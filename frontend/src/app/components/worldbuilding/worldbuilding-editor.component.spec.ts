@@ -24,7 +24,6 @@ describe('WorldbuildingEditorComponent', () => {
 
   const mockCharacterSchema: ElementTypeSchema = {
     id: 'character',
-    type: 'CHARACTER',
     name: 'Character',
     icon: 'person',
     description: 'Character schema',
@@ -74,7 +73,8 @@ describe('WorldbuildingEditorComponent', () => {
   const mockElement: Element = {
     id: 'test-element-123',
     name: 'Test Character',
-    type: ElementType.Character,
+    type: ElementType.Worldbuilding,
+    schemaId: 'character',
     parentId: null,
     level: 0,
     order: 0,
@@ -131,7 +131,7 @@ describe('WorldbuildingEditorComponent', () => {
     fixture.componentRef.setInput('elementId', 'test-element-123');
     fixture.componentRef.setInput('username', 'testuser');
     fixture.componentRef.setInput('slug', 'test-project');
-    fixture.componentRef.setInput('elementType', ElementType.Character);
+    fixture.componentRef.setInput('elementType', ElementType.Worldbuilding);
 
     fixture.detectChanges();
     // Wait for effect to run
@@ -315,7 +315,9 @@ describe('WorldbuildingEditorComponent', () => {
         'test-project'
       );
       expect(worldbuildingService.getWorldbuildingData).toHaveBeenCalledWith(
-        'test-element-123'
+        'test-element-123',
+        'testuser',
+        'test-project'
       );
     });
 

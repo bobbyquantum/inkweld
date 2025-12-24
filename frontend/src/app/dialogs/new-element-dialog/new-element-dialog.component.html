@@ -27,7 +27,7 @@
               class="type-card"
               [class.selected]="selectedType() === option.type"
               [attr.data-testid]="'element-type-' + option.type.toLowerCase()"
-              (click)="selectType(option.type)">
+              (click)="selectType(option)">
               <mat-icon
                 class="type-icon"
                 [style.color]="
@@ -51,12 +51,15 @@
           Worldbuilding Elements
         </h3>
         <div class="type-grid">
-          @for (option of worldbuildingOptions(); track option.type) {
+          @for (option of worldbuildingOptions(); track option.schemaId) {
             <mat-card
               class="type-card"
-              [class.selected]="selectedType() === option.type"
-              [attr.data-testid]="'element-type-' + option.type.toLowerCase()"
-              (click)="selectType(option.type)">
+              [class.selected]="
+                selectedType() === option.type &&
+                selectedSchemaId() === option.schemaId
+              "
+              [attr.data-testid]="'element-type-' + option.schemaId"
+              (click)="selectType(option)">
               <mat-icon class="type-icon" [style.color]="'#9C27B0'">
                 {{ option.icon }}
               </mat-icon>
@@ -119,23 +122,23 @@
           data-testid="element-name-input"
           required
           [placeholder]="
-            getSelectedOption()?.type === 'CHARACTER'
+            getSelectedOption()?.schemaId?.includes('character')
               ? 'e.g., Aragorn, Hermione Granger'
-              : getSelectedOption()?.type === 'LOCATION'
+              : getSelectedOption()?.schemaId?.includes('location')
                 ? 'e.g., Rivendell, Kings Landing'
-                : getSelectedOption()?.type === 'WB_ITEM'
+                : getSelectedOption()?.schemaId?.includes('item')
                   ? 'e.g., Excalibur, Elder Wand'
-                  : getSelectedOption()?.type === 'MAP'
+                  : getSelectedOption()?.schemaId?.includes('map')
                     ? 'e.g., Middle Earth Map, City Layout'
-                    : getSelectedOption()?.type === 'RELATIONSHIP'
+                    : getSelectedOption()?.schemaId?.includes('relationship')
                       ? 'e.g., Frodo & Sam, Romeo & Juliet'
-                      : getSelectedOption()?.type === 'PHILOSOPHY'
+                      : getSelectedOption()?.schemaId?.includes('philosophy')
                         ? 'e.g., The Force, Stoicism'
-                        : getSelectedOption()?.type === 'CULTURE'
+                        : getSelectedOption()?.schemaId?.includes('culture')
                           ? 'e.g., Elvish Culture, Viking Society'
-                          : getSelectedOption()?.type === 'SPECIES'
+                          : getSelectedOption()?.schemaId?.includes('species')
                             ? 'e.g., Dragons, Time Lords'
-                            : getSelectedOption()?.type === 'SYSTEMS'
+                            : getSelectedOption()?.schemaId?.includes('system')
                               ? 'e.g., Magic System, FTL Travel'
                               : getSelectedOption()?.type === 'FOLDER'
                                 ? 'e.g., Act 1, Characters, Research'

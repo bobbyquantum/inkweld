@@ -18,7 +18,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Create a character worldbuilding element to initialize templates
     await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character').click();
+    await page.getByTestId('element-type-character-v1').click();
     await page.getByTestId('element-name-input').fill('Test Character');
     await page.getByTestId('create-element-button').click();
 
@@ -79,9 +79,13 @@ test.describe('Worldbuilding Templates', () => {
 
     // Create different types of worldbuilding elements
     const elementTypes = [
-      { type: 'character', name: 'Test Character', expectedTab: 'Basic Info' },
-      { type: 'location', name: 'Test Location', expectedTab: 'Overview' },
-      { type: 'wb_item', name: 'Test Item', expectedTab: 'Properties' },
+      {
+        type: 'character-v1',
+        name: 'Test Character',
+        expectedTab: 'Basic Info',
+      },
+      { type: 'location-v1', name: 'Test Location', expectedTab: 'Overview' },
+      { type: 'wb-item-v1', name: 'Test Item', expectedTab: 'Properties' },
     ];
 
     for (const element of elementTypes) {
@@ -201,7 +205,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Create a character first to ensure templates are initialized
     await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character').click();
+    await page.getByTestId('element-type-character-v1').click();
     await page.getByTestId('element-name-input').fill('Validation Test');
     await page.getByTestId('create-element-button').click();
     await expect(page.getByTestId('element-Validation Test')).toBeVisible();
@@ -269,7 +273,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Create a character first to ensure templates are initialized
     await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character').click();
+    await page.getByTestId('element-type-character-v1').click();
     await page.getByTestId('element-name-input').fill('Init Character');
     await page.getByTestId('create-element-button').click();
     await expect(page.getByTestId('element-Init Character')).toBeVisible();
@@ -303,8 +307,8 @@ test.describe('Worldbuilding Templates', () => {
     let customTemplateType: string | undefined;
     page.on('console', msg => {
       const text = msg.text();
-      // Look for: [WorldbuildingService] Cloned template CHARACTER to CUSTOM_123: "Custom Hero"
-      const match = text.match(/Cloned template \w+ to (\w+):/);
+      // Look for: [WorldbuildingService] Cloned template character-v1 to custom-123: "Custom Hero"
+      const match = text.match(/Cloned template [\w-]+ to ([\w-]+):/);
       if (match) {
         customTemplateType = match[1];
       }
@@ -317,7 +321,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Verify we captured the custom template type
     expect(customTemplateType).toBeDefined();
-    expect(customTemplateType).toMatch(/^CUSTOM_\d+$/);
+    expect(customTemplateType).toMatch(/^custom-\d+$/);
 
     // Go back to project home to create element
     await page.getByTestId('toolbar-home-button').click();

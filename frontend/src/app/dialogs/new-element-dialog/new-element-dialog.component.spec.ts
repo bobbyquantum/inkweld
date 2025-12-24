@@ -25,7 +25,6 @@ describe('NewElementDialogComponent', () => {
   let mockWorldbuildingService: {
     getAllSchemas: ReturnType<typeof vi.fn>;
     hasNoSchemas: ReturnType<typeof vi.fn>;
-    loadDefaults: ReturnType<typeof vi.fn>;
   };
 
   const mockProject: Project = {
@@ -43,7 +42,6 @@ describe('NewElementDialogComponent', () => {
   ): ElementTypeSchema[] => {
     return schemas.map(schema => ({
       id: schema.id || 'generated-id',
-      type: schema.type || 'UNKNOWN',
       name: schema.name || 'Unknown',
       icon: schema.icon || 'help',
       description: schema.description || '',
@@ -66,7 +64,6 @@ describe('NewElementDialogComponent', () => {
     mockWorldbuildingService = {
       getAllSchemas: vi.fn(),
       hasNoSchemas: vi.fn(),
-      loadDefaults: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -146,12 +143,24 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should advance to step 2 after selecting a type', () => {
-      component.selectType(ElementType.Item);
+      component.selectType({
+        type: ElementType.Item,
+        label: 'Document',
+        icon: 'description',
+        description: 'A document',
+        category: 'document',
+      });
       expect(component.currentStep()).toBe(2);
     });
 
     it('should go back to step 1 from step 2', () => {
-      component.selectType(ElementType.Item);
+      component.selectType({
+        type: ElementType.Item,
+        label: 'Document',
+        icon: 'description',
+        description: 'A document',
+        category: 'document',
+      });
       expect(component.currentStep()).toBe(2);
 
       component.previousStep();
@@ -164,7 +173,13 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should set form type when selecting a type', () => {
-      component.selectType(ElementType.Folder);
+      component.selectType({
+        type: ElementType.Folder,
+        label: 'Folder',
+        icon: 'folder',
+        description: 'A folder',
+        category: 'document',
+      });
       expect(component.form.controls.type.value).toBe(ElementType.Folder);
       expect(component.selectedType()).toBe(ElementType.Folder);
     });
@@ -225,7 +240,13 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should return the selected option details', () => {
-      component.selectType(ElementType.Folder);
+      component.selectType({
+        type: ElementType.Folder,
+        label: 'Folder',
+        icon: 'folder',
+        description: 'A folder',
+        category: 'document',
+      });
       const selected = component.getSelectedOption();
       expect(selected).toBeDefined();
       expect(selected?.type).toBe(ElementType.Folder);
@@ -238,13 +259,13 @@ describe('NewElementDialogComponent', () => {
     it('should load worldbuilding types when project is set', async () => {
       const mockSchemas = createMockSchemas([
         {
-          type: 'CHARACTER',
+          id: 'character-v1',
           name: 'Character',
           icon: 'person',
           description: 'A character template',
         },
         {
-          type: 'LOCATION',
+          id: 'location-v1',
           name: 'Location',
           icon: 'place',
           description: 'A location template',
@@ -267,36 +288,8 @@ describe('NewElementDialogComponent', () => {
 
       const wbOptions = component.worldbuildingOptions();
       expect(wbOptions.length).toBe(2);
-      expect(wbOptions[0].type).toBe('CHARACTER');
-      expect(wbOptions[1].type).toBe('LOCATION');
-    });
-
-    it('should auto-load default templates if library is empty', async () => {
-      const loadedSchemas = createMockSchemas([
-        {
-          type: 'CHARACTER',
-          name: 'Character',
-          icon: 'person',
-          description: 'Default character',
-        },
-      ]);
-
-      mockWorldbuildingService.hasNoSchemas.mockReturnValue(true);
-      mockWorldbuildingService.loadDefaults.mockResolvedValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue(loadedSchemas);
-
-      mockProjectState.project.set(mockProject);
-      fixture.detectChanges();
-
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      expect(mockWorldbuildingService.loadDefaults).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
-      );
-
-      const wbOptions = component.worldbuildingOptions();
-      expect(wbOptions.length).toBe(1);
+      expect(wbOptions[0].schemaId).toBe('character-v1');
+      expect(wbOptions[1].schemaId).toBe('location-v1');
     });
 
     it('should handle errors when loading schemas', async () => {
@@ -322,13 +315,13 @@ describe('NewElementDialogComponent', () => {
     it('should filter worldbuilding options by search', async () => {
       const mockSchemas = createMockSchemas([
         {
-          type: 'CHARACTER',
+          id: 'character-v1',
           name: 'Character',
           icon: 'person',
           description: 'A character template',
         },
         {
-          type: 'LOCATION',
+          id: 'location-v1',
           name: 'Location',
           icon: 'place',
           description: 'A location template',
@@ -346,7 +339,7 @@ describe('NewElementDialogComponent', () => {
       component.searchQuery.set('character');
       const filtered = component.filteredOptions();
       expect(filtered.length).toBe(1);
-      expect(filtered[0].type).toBe('CHARACTER');
+      expect(filtered[0].schemaId).toBe('character-v1');
     });
   });
 });

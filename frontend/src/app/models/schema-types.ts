@@ -55,15 +55,24 @@ export interface TabSchema {
 }
 
 export interface ElementTypeSchema {
+  /** Unique identifier (nanoid) - used for all lookups */
   id: string;
-  type: string;
+  /** Display name shown to users */
   name: string;
+  /** Material icon name */
   icon: string;
+  /** Description of what this schema is for */
   description: string;
+  /** Schema version for migrations */
   version: number;
+  /** Whether this is a built-in schema (cannot be deleted) */
   isBuiltIn: boolean;
+  /** Tab definitions containing field schemas */
   tabs: TabSchema[];
+  /** Default values for new elements */
   defaultValues?: Record<string, unknown>;
+  /** Creation timestamp */
   createdAt?: string;
+  /** Last update timestamp */
   updatedAt?: string;
 }

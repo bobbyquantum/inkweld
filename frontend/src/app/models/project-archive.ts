@@ -3,7 +3,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../components/element-ref/element-ref.model';
-import { TagDefinition } from '../components/tags/tag.model';
+import { ElementTag, TagDefinition } from '../components/tags/tag.model';
 import { PublishPlan } from './publish-plan';
 import { ElementTypeSchema } from './schema-types';
 
@@ -69,6 +69,8 @@ export interface ArchiveElement {
   name: string;
   /** Element type */
   type: ElementType;
+  /** Schema ID for WORLDBUILDING elements */
+  schemaId?: string | null;
   /** Sort order within parent */
   order: number;
   /** Nesting level (0 = root) */
@@ -101,8 +103,8 @@ export interface ArchiveDocumentContent {
 export interface ArchiveWorldbuildingData {
   /** Element ID this data belongs to */
   elementId: string;
-  /** Schema type (e.g., 'CHARACTER', 'LOCATION') */
-  schemaType: string;
+  /** Schema ID (e.g., 'character-v1', 'location-v1') */
+  schemaId: string;
   /** Flattened data from Y.Map */
   data: Record<string, unknown>;
 }
@@ -192,6 +194,8 @@ export interface ProjectArchive {
   customRelationshipTypes: RelationshipTypeDefinition[];
   /** Tag definitions for this project */
   tags: TagDefinition[];
+  /** Element tag assignments */
+  elementTags: ElementTag[];
   /** Publish plans */
   publishPlans: PublishPlan[];
   /** Media file manifest */

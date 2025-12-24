@@ -3,6 +3,7 @@ import {
   Component,
   effect,
   inject,
+  OnInit,
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -43,7 +44,7 @@ import { UnifiedUserService } from '../../services/user/unified-user.service';
     UserMenuComponent,
   ],
 })
-export class CreateProjectComponent {
+export class CreateProjectComponent implements OnInit {
   private unifiedProjectService = inject(UnifiedProjectService);
   private templateService = inject(ProjectTemplateService);
   protected unifiedUserService = inject(UnifiedUserService);
@@ -76,9 +77,6 @@ export class CreateProjectComponent {
   constructor() {
     this.baseUrl = window.location.origin;
 
-    // Load available templates
-    void this.loadTemplates();
-
     this.projectForm
       .get('title')
       ?.valueChanges.subscribe((title: string | null) => {
@@ -98,6 +96,23 @@ export class CreateProjectComponent {
       this.username = user.username;
       this.updateProjectUrl();
     });
+  }
+
+  ngOnInit(): void {
+    // Reset all state to ensure fresh start each time page is visited
+    this.step.set(1);
+    this.selectedTemplateId.set('worldbuilding-empty');
+    this.loadingTemplates.set(true);
+    this.isSaving.set(false);
+    this.projectForm.reset({
+      title: '',
+      slug: '',
+      description: '',
+    });
+    this.projectUrl = '';
+
+    // Load available templates
+    void this.loadTemplates();
   }
 
   generateSlug = (title: string): string => {

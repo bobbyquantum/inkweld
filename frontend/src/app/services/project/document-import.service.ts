@@ -35,6 +35,11 @@ export class DocumentImportService {
     // Create a Yjs document
     const ydoc = new Y.Doc();
 
+    // Create IndexedDB provider BEFORE writing data
+    // This ensures the provider observes the document changes
+    const provider = new IndexeddbPersistence(documentId, ydoc);
+    await provider.whenSynced;
+
     // Store the imported content as JSON in a map
     // The editor will need to be modified to check for this on load
     const importedContentMap = ydoc.getMap<unknown>('importedContent');
@@ -47,12 +52,8 @@ export class DocumentImportService {
     // The editor will populate this from importedContent on first load
     ydoc.getXmlFragment('prosemirror');
 
-    // Save to IndexedDB
-    const provider = new IndexeddbPersistence(documentId, ydoc);
-    await provider.whenSynced;
-
-    // Give IndexedDB time to flush
-    await new Promise<void>(resolve => setTimeout(resolve, 50));
+    // Give IndexedDB time to flush the transaction
+    await this.waitForSync(provider, 200);
 
     // Cleanup
     await provider.destroy();
@@ -76,35 +77,118 @@ export class DocumentImportService {
     username: string,
     slug: string
   ): Promise<void> {
-    const docId = `${username}:${slug}:wb:${wb.elementId}`;
+    // Key format must match worldbuilding.service.ts setupCollaboration()
+    // Include project key to prevent cross-project data collisions
+    const docId = `worldbuilding:${username}:${slug}:${wb.elementId}`;
 
-    // Create a Yjs document for the worldbuilding data
-    const ydoc = new Y.Doc();
-    const dataMap = ydoc.getMap<unknown>('data');
+    try {
+      // Create a Yjs document for the worldbuilding data
+      const ydoc = new Y.Doc();
 
-    // Copy all data fields to the Yjs map
-    ydoc.transact(() => {
-      for (const [key, value] of Object.entries(wb.data)) {
-        dataMap.set(key, value);
-      }
-      // Also store the schema type
-      dataMap.set('schemaType', wb.schemaType);
+      // Create IndexedDB provider BEFORE writing data
+      // This ensures the provider observes the document changes
+      const provider = new IndexeddbPersistence(docId, ydoc);
+
+      // Wait for provider to be ready (loads any existing data)
+      await provider.whenSynced;
+
+      // Map name must match worldbuilding.service.ts ('worldbuilding', not 'data')
+      const dataMap = ydoc.getMap<unknown>('worldbuilding');
+
+      // Copy all data fields to the Yjs map
+      // Handle dot-notation keys (e.g., "appearance.height") by setting them
+      // into nested Y.Map structures
+      ydoc.transact(() => {
+        // First pass: create nested Y.Map for dot-notation parent keys
+        const nestedMaps = new Map<string, Y.Map<unknown>>();
+        for (const key of Object.keys(wb.data)) {
+          if (key.includes('.')) {
+            const parentKey = key.split('.')[0];
+            if (!nestedMaps.has(parentKey)) {
+              const nestedMap = new Y.Map<unknown>();
+              nestedMaps.set(parentKey, nestedMap);
+              dataMap.set(parentKey, nestedMap);
+            }
+          }
+        }
+
+        // Second pass: set all values
+        for (const [key, value] of Object.entries(wb.data)) {
+          if (key.includes('.')) {
+            // Dot-notation key: set into nested map
+            const [parentKey, childKey] = key.split('.');
+            const nestedMap = nestedMaps.get(parentKey);
+            if (nestedMap) {
+              // Convert arrays to Y.Array for proper Yjs handling
+              if (Array.isArray(value)) {
+                const yArray = new Y.Array<unknown>();
+                yArray.push(value);
+                nestedMap.set(childKey, yArray);
+              } else {
+                nestedMap.set(childKey, value);
+              }
+            }
+          } else {
+            // Simple key: set directly on dataMap
+            if (Array.isArray(value)) {
+              const yArray = new Y.Array<unknown>();
+              yArray.push(value);
+              dataMap.set(key, yArray);
+            } else if (typeof value === 'object' && value !== null) {
+              // Skip nested objects - they're created from dot-notation keys
+              // or not used in new format
+            } else {
+              dataMap.set(key, value);
+            }
+          }
+        }
+
+        // Also store the schema ID
+        dataMap.set('schemaId', wb.schemaId);
+      });
+
+      // Wait for IndexedDB persistence to sync the changes
+      await this.waitForSync(provider, 500);
+
+      // Cleanup
+      await provider.destroy();
+      ydoc.destroy();
+
+      this.logger.debug(
+        'DocumentImport',
+        `Wrote worldbuilding data for ${wb.elementId} (${username}/${slug})`
+      );
+    } catch (error) {
+      console.error(
+        `[DocumentImport] ERROR writing worldbuilding data for ${wb.elementId}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Wait for the IndexedDB provider to be synced.
+   * @param provider - The IndexedDB provider
+   * @param timeoutMs - Timeout in milliseconds
+   */
+  private async waitForSync(
+    provider: IndexeddbPersistence,
+    timeoutMs: number
+  ): Promise<void> {
+    if (provider.synced) {
+      return;
+    }
+
+    return new Promise<void>(resolve => {
+      const handler = () => {
+        clearTimeout(timeout);
+        provider.off('synced', handler);
+        resolve();
+      };
+
+      const timeout = setTimeout(handler, timeoutMs);
+      provider.on('synced', handler);
     });
-
-    // Save to IndexedDB
-    const provider = new IndexeddbPersistence(docId, ydoc);
-    await provider.whenSynced;
-
-    // Give IndexedDB time to flush
-    await new Promise<void>(resolve => setTimeout(resolve, 50));
-
-    // Cleanup
-    await provider.destroy();
-    ydoc.destroy();
-
-    this.logger.debug(
-      'DocumentImport',
-      `Wrote worldbuilding data for ${wb.elementId}`
-    );
   }
 }

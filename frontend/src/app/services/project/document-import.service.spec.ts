@@ -13,7 +13,10 @@ const { mockDestroy, mockWhenSynced } = vi.hoisted(() => ({
 vi.mock('y-indexeddb', () => ({
   IndexeddbPersistence: class MockIndexeddbPersistence {
     whenSynced = mockWhenSynced;
+    synced = true;
     destroy = mockDestroy;
+    on = vi.fn();
+    off = vi.fn();
   },
 }));
 
@@ -29,6 +32,27 @@ vi.mock('yjs', () => ({
     getXmlFragment = vi.fn().mockReturnValue({});
     transact = mockTransact;
     destroy = mockDocDestroy;
+  },
+  Array: class MockArray {
+    private items: unknown[] = [];
+    push(items: unknown[]) {
+      this.items.push(...items);
+    }
+    toArray() {
+      return this.items;
+    }
+  },
+  Map: class MockMap {
+    private data: Record<string, unknown> = {};
+    set(key: string, value: unknown) {
+      this.data[key] = value;
+    }
+    get(key: string) {
+      return this.data[key];
+    }
+    toJSON() {
+      return this.data;
+    }
   },
 }));
 
@@ -109,7 +133,7 @@ describe('DocumentImportService', () => {
     it('should write worldbuilding data to IndexedDB', async () => {
       const wb = {
         elementId: 'wb-elem-123',
-        schemaType: 'CHARACTER',
+        schemaId: 'character-v1',
         data: {
           name: 'John Doe',
           age: 30,
@@ -128,7 +152,7 @@ describe('DocumentImportService', () => {
     it('should handle empty data object', async () => {
       const wb = {
         elementId: 'wb-elem-empty',
-        schemaType: 'LOCATION',
+        schemaId: 'location-v1',
         data: {},
       };
 
@@ -140,7 +164,7 @@ describe('DocumentImportService', () => {
     it('should handle complex nested worldbuilding data', async () => {
       const wb = {
         elementId: 'wb-elem-complex',
-        schemaType: 'CHARACTER',
+        schemaId: 'character-v1',
         data: {
           name: 'Jane Smith',
           traits: ['brave', 'intelligent'],
@@ -163,7 +187,7 @@ describe('DocumentImportService', () => {
     it('should handle worldbuilding data with arrays', async () => {
       const wb = {
         elementId: 'wb-elem-arrays',
-        schemaType: 'WB_ITEM',
+        schemaId: 'wb-item-v1',
         data: {
           tags: ['magic', 'weapon', 'artifact'],
           properties: [

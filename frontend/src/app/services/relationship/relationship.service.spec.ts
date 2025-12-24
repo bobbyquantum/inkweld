@@ -4,7 +4,6 @@ import { Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS } from '../../components/element-ref/default-relationship-types';
 import {
   ElementRelationship,
   RelationshipCategory,
@@ -15,6 +14,43 @@ import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { RelationshipService } from './relationship.service';
+
+// Mock relationship types (simulating what would come from a project template)
+const MOCK_RELATIONSHIP_TYPES: RelationshipTypeDefinition[] = [
+  {
+    id: 'parent',
+    name: 'Parent',
+    inverseLabel: 'Child of',
+    showInverse: true,
+    category: RelationshipCategory.Familial,
+    icon: 'family_restroom',
+    isBuiltIn: false,
+    sourceEndpoint: { allowedSchemas: ['character-v1'] },
+    targetEndpoint: { allowedSchemas: ['character-v1'] },
+  },
+  {
+    id: 'referenced-in',
+    name: 'Referenced in',
+    inverseLabel: 'References',
+    showInverse: true,
+    category: RelationshipCategory.Reference,
+    icon: 'link',
+    isBuiltIn: false,
+    sourceEndpoint: { allowedSchemas: [] },
+    targetEndpoint: { allowedSchemas: [] },
+  },
+  {
+    id: 'lives-at',
+    name: 'Lives at',
+    inverseLabel: 'Residence of',
+    showInverse: true,
+    category: RelationshipCategory.Spatial,
+    icon: 'place',
+    isBuiltIn: false,
+    sourceEndpoint: { allowedSchemas: ['character-v1'] },
+    targetEndpoint: { allowedSchemas: ['location-v1'] },
+  },
+];
 
 describe('RelationshipService', () => {
   let service: RelationshipService;
@@ -44,7 +80,8 @@ describe('RelationshipService', () => {
     {
       id: 'char-1',
       name: 'John Smith',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
+      schemaId: 'character-v1',
       parentId: null,
       order: 0,
       level: 0,
@@ -55,7 +92,8 @@ describe('RelationshipService', () => {
     {
       id: 'char-2',
       name: 'Jane Doe',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
+      schemaId: 'character-v1',
       parentId: null,
       order: 1,
       level: 0,
@@ -66,7 +104,8 @@ describe('RelationshipService', () => {
     {
       id: 'loc-1',
       name: 'Castle Blackwood',
-      type: ElementType.Location,
+      type: ElementType.Worldbuilding,
+      schemaId: 'location-v1',
       parentId: null,
       order: 2,
       level: 0,
@@ -79,7 +118,7 @@ describe('RelationshipService', () => {
   beforeEach(() => {
     // Reset stores - pre-seed with default relationship types (as would happen at project creation)
     relationshipsStore = [];
-    customTypesStore = [...DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS];
+    customTypesStore = [...MOCK_RELATIONSHIP_TYPES];
 
     mockLogger = {
       debug: vi.fn(),
@@ -113,7 +152,7 @@ describe('RelationshipService', () => {
       // Initialize with seeded types (as would happen at project creation)
       customRelationshipTypes$: new BehaviorSubject<
         RelationshipTypeDefinition[]
-      >([...DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS]),
+      >([...MOCK_RELATIONSHIP_TYPES]),
     };
 
     mockSyncProviderFactory = {
@@ -144,9 +183,7 @@ describe('RelationshipService', () => {
 
     it('should initialize with seeded default types', () => {
       // Types are now seeded at project creation
-      expect(service.customTypes().length).toBe(
-        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length
-      );
+      expect(service.customTypes().length).toBe(MOCK_RELATIONSHIP_TYPES.length);
     });
 
     it('should have built-in types available', () => {

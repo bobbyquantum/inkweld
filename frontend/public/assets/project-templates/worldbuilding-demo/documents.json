@@ -12,7 +12,9 @@
         {
           "type": "paragraph",
           "content": [
-            { "type": "text", "text": "This project demonstrates the worldbuilding features of Inkweld with sample characters, locations, and relationships." }
+            { "type": "text", "text": "This project demonstrates the worldbuilding features of Inkweld with sample characters, locations, and relationships. Use " },
+            { "type": "text", "marks": [{ "type": "code" }], "text": "@" },
+            { "type": "text", "text": " to create element references like the ones below!" }
           ]
         },
         {
@@ -33,7 +35,10 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Elara Nightwhisper" }, { "type": "text", "text": " - A mysterious scholar with secrets to uncover" }]
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "char-elara", "elementType": "WORLDBUILDING", "displayText": "Elara Nightwhisper", "originalName": "Elara Nightwhisper", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " - A mysterious half-elf scholar seeking the lost Library of Moonveil" }
+                  ]
                 }
               ]
             },
@@ -42,7 +47,10 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Theron Blackwood" }, { "type": "text", "text": " - A skilled ranger protecting the ancient forest" }]
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "char-theron", "elementType": "WORLDBUILDING", "displayText": "Theron Blackwood", "originalName": "Theron Blackwood", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " - A skilled ranger and guardian of the ancient forest" }
+                  ]
                 }
               ]
             },
@@ -51,7 +59,10 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Mira Stonehart" }, { "type": "text", "text": " - A determined blacksmith with a hidden past" }]
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "char-mira", "elementType": "WORLDBUILDING", "displayText": "Mira Stonehart", "originalName": "Mira Stonehart", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " - A determined dwarf blacksmith with secrets from her homeland" }
+                  ]
                 }
               ]
             }
@@ -70,7 +81,10 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Silverhollow" }, { "type": "text", "text": " - A bustling trade town at the forest's edge" }]
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "loc-silverhollow", "elementType": "WORLDBUILDING", "displayText": "Silverhollow", "originalName": "Silverhollow", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " - A bustling trade town at the forest's edge" }
+                  ]
                 }
               ]
             },
@@ -79,7 +93,10 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Thornwood Forest" }, { "type": "text", "text": " - An ancient woodland full of mysteries" }]
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "loc-thornwood", "elementType": "WORLDBUILDING", "displayText": "Thornwood Forest", "originalName": "Thornwood Forest", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " - An ancient, semi-sentient woodland full of mysteries" }
+                  ]
                 }
               ]
             },
@@ -88,7 +105,10 @@
               "content": [
                 {
                   "type": "paragraph",
-                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Cloudspire Academy" }, { "type": "text", "text": " - A prestigious school for magical studies" }]
+                  "content": [
+                    { "type": "elementRef", "attrs": { "elementId": "loc-cloudspire", "elementType": "WORLDBUILDING", "displayText": "Cloudspire Academy", "originalName": "Cloudspire Academy", "relationshipTypeId": "referenced-in" } },
+                    { "type": "text", "text": " - A prestigious floating school for magical studies" }
+                  ]
                 }
               ]
             }
@@ -102,7 +122,19 @@
         {
           "type": "paragraph",
           "content": [
-            { "type": "text", "text": "Check the Relationships tab to see how these characters and locations are connected. Feel free to modify, expand, or completely replace this demo content with your own ideas!" }
+            { "type": "text", "text": "Check the Relationships tab to see how these characters and locations are connected. For example, " },
+            { "type": "elementRef", "attrs": { "elementId": "char-elara", "elementType": "WORLDBUILDING", "displayText": "Elara", "originalName": "Elara Nightwhisper", "relationshipTypeId": "referenced-in" } },
+            { "type": "text", "text": " and " },
+            { "type": "elementRef", "attrs": { "elementId": "char-theron", "elementType": "WORLDBUILDING", "displayText": "Theron", "originalName": "Theron Blackwood", "relationshipTypeId": "referenced-in" } },
+            { "type": "text", "text": " formed an unlikely friendship when he helped her navigate " },
+            { "type": "elementRef", "attrs": { "elementId": "loc-thornwood", "elementType": "WORLDBUILDING", "displayText": "Thornwood", "originalName": "Thornwood Forest", "relationshipTypeId": "referenced-in" } },
+            { "type": "text", "text": " safely." }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Feel free to modify, expand, or completely replace this demo content with your own ideas!" }
           ]
         }
       ]
@@ -128,8 +160,12 @@
           "type": "paragraph",
           "content": [
             { "type": "text", "text": "Fifty years before " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Theron Blackwood" },
-            { "type": "text", "text": " took up his post as guardian of the Thornwood, the forest and the town of Silverhollow stood on the brink of war. The lumber barons demanded access to the ancient heartwood. The forest spirits spoke of purging the settlement entirely." }
+            { "type": "elementRef", "attrs": { "elementId": "char-theron", "elementType": "WORLDBUILDING", "displayText": "Theron Blackwood", "originalName": "Theron Blackwood", "relationshipTypeId": "mentioned" } },
+            { "type": "text", "text": " took up his post as guardian of the " },
+            { "type": "elementRef", "attrs": { "elementId": "loc-thornwood", "elementType": "WORLDBUILDING", "displayText": "Thornwood", "originalName": "Thornwood Forest", "relationshipTypeId": "mentioned" } },
+            { "type": "text", "text": ", the forest and the town of " },
+            { "type": "elementRef", "attrs": { "elementId": "loc-silverhollow", "elementType": "WORLDBUILDING", "displayText": "Silverhollow", "originalName": "Silverhollow", "relationshipTypeId": "mentioned" } },
+            { "type": "text", "text": " stood on the brink of war. The lumber barons demanded access to the ancient heartwood. The forest spirits spoke of purging the settlement entirely." }
           ]
         },
         {
@@ -141,9 +177,9 @@
           "type": "paragraph",
           "content": [
             { "type": "text", "text": "It was " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Elara Nightwhisper's" },
+            { "type": "elementRef", "attrs": { "elementId": "char-elara", "elementType": "WORLDBUILDING", "displayText": "Elara Nightwhisper's", "originalName": "Elara Nightwhisper", "relationshipTypeId": "mentioned" } },
             { "type": "text", "text": " mentor, the great Aldric the Grey, who brokered the peace. He journeyed from " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Cloudspire Academy" },
+            { "type": "elementRef", "attrs": { "elementId": "loc-cloudspire", "elementType": "WORLDBUILDING", "displayText": "Cloudspire Academy", "originalName": "Cloudspire Academy", "relationshipTypeId": "mentioned" } },
             { "type": "text", "text": " to the sacred Moonwell Spring at the heart of the forest. There, beneath the light of a blood-red moon, representatives of both sides met." }
           ]
         },
@@ -151,8 +187,10 @@
           "type": "paragraph",
           "content": [
             { "type": "text", "text": "The dryad queen Thessaly spoke for the forest. Mayor Harwick Stonehart—great-grandfather of " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Mira Stonehart" },
-            { "type": "text", "text": "—spoke for Silverhollow. The negotiations lasted three days and three nights." }
+            { "type": "elementRef", "attrs": { "elementId": "char-mira", "elementType": "WORLDBUILDING", "displayText": "Mira Stonehart", "originalName": "Mira Stonehart", "relationshipTypeId": "mentioned" } },
+            { "type": "text", "text": "—spoke for " },
+            { "type": "elementRef", "attrs": { "elementId": "loc-silverhollow", "elementType": "WORLDBUILDING", "displayText": "Silverhollow", "originalName": "Silverhollow", "relationshipTypeId": "mentioned" } },
+            { "type": "text", "text": ". The negotiations lasted three days and three nights." }
           ]
         },
         {
@@ -216,11 +254,11 @@
           "type": "paragraph",
           "content": [
             { "type": "text", "text": "Today, " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Theron" },
+            { "type": "elementRef", "attrs": { "elementId": "char-theron", "elementType": "WORLDBUILDING", "displayText": "Theron", "originalName": "Theron Blackwood", "relationshipTypeId": "mentioned" } },
             { "type": "text", "text": " carries on the tradition of the forest guardians. " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Mira" },
+            { "type": "elementRef", "attrs": { "elementId": "char-mira", "elementType": "WORLDBUILDING", "displayText": "Mira", "originalName": "Mira Stonehart", "relationshipTypeId": "mentioned" } },
             { "type": "text", "text": " forges tools and weapons that honor her great-grandfather's commitment to peace. And " },
-            { "type": "text", "marks": [{ "type": "bold" }], "text": "Elara" },
+            { "type": "elementRef", "attrs": { "elementId": "char-elara", "elementType": "WORLDBUILDING", "displayText": "Elara", "originalName": "Elara Nightwhisper", "relationshipTypeId": "mentioned" } },
             { "type": "text", "text": " searches for the Library of Moonveil, said to contain Aldric's personal account of those fateful nights." }
           ]
         },

@@ -31,7 +31,7 @@ describe('ElementRefPopupComponent', () => {
       element: {
         id: 'elem-1',
         name: 'Character One',
-        type: ElementType.Character,
+        type: ElementType.Worldbuilding,
       },
       icon: 'person',
       path: '/Characters',
@@ -41,7 +41,7 @@ describe('ElementRefPopupComponent', () => {
       element: {
         id: 'elem-2',
         name: 'Location Alpha',
-        type: ElementType.Location,
+        type: ElementType.Worldbuilding,
       },
       icon: 'location_on',
       path: '/Locations',
@@ -209,7 +209,7 @@ describe('ElementRefPopupComponent', () => {
           element: {
             id: 'elem-1',
             name: 'Root Element',
-            type: ElementType.Character,
+            type: ElementType.Worldbuilding,
           },
           icon: 'person',
           path: '', // Empty path

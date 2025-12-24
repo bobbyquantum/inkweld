@@ -54,6 +54,7 @@ describe('ElementRefTooltipComponent', () => {
             getIdentityData: vi
               .fn()
               .mockResolvedValue({ description: undefined }),
+            getSchemaFromLibrary: vi.fn().mockReturnValue(null),
           },
         },
         {
@@ -119,19 +120,20 @@ describe('ElementRefTooltipComponent', () => {
   describe('display content', () => {
     const tooltipData: ElementRefTooltipData = {
       elementId: 'test-id',
-      elementType: ElementType.Character,
+      elementType: ElementType.Worldbuilding,
       displayText: 'Elena',
       originalName: 'Elena',
       position: { x: 100, y: 200 },
     };
 
     beforeEach(() => {
-      // Mock element lookup for CHARACTER type
+      // Mock element lookup for WORLDBUILDING type
       const elementRefService = TestBed.inject(ElementRefService);
       vi.spyOn(elementRefService, 'getElementById').mockReturnValue({
         id: 'test-id',
         name: 'Elena',
-        type: ElementType.Character,
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
         parentId: null,
         order: 0,
         level: 0,
@@ -153,21 +155,21 @@ describe('ElementRefTooltipComponent', () => {
     it('should display the element type badge', () => {
       const badge = fixture.nativeElement.querySelector('.tooltip-type-badge');
       expect(badge).toBeTruthy();
-      expect(badge?.textContent?.trim()).toBe('Character');
+      expect(badge?.textContent?.trim()).toBe('Worldbuilding');
     });
 
     it('should show correct icon for element type', () => {
-      expect(component.getTypeIcon()).toBe('person');
+      expect(component.getTypeIcon()).toBe('category');
     });
 
     it('should format element type for display', () => {
-      expect(component.formatElementType()).toBe('Character');
+      expect(component.formatElementType()).toBe('Worldbuilding');
     });
 
     it('should show display alias when displayText differs from originalName', () => {
       const aliasTooltipData: ElementRefTooltipData = {
         elementId: 'test-id',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'The Hero', // Different from original name
         originalName: 'Elena',
         position: { x: 100, y: 200 },
@@ -208,11 +210,8 @@ describe('ElementRefTooltipComponent', () => {
   describe('element type icons', () => {
     const testCases = [
       { type: ElementType.Item, icon: 'description' },
-      { type: ElementType.Character, icon: 'person' },
-      { type: ElementType.Location, icon: 'place' },
+      { type: ElementType.Worldbuilding, icon: 'category' },
       { type: ElementType.Folder, icon: 'folder' },
-      { type: ElementType.WbItem, icon: 'category' },
-      { type: ElementType.Map, icon: 'map' },
     ];
 
     testCases.forEach(({ type, icon }) => {
@@ -270,11 +269,8 @@ describe('ElementRefTooltipComponent', () => {
   describe('type formatting', () => {
     const typeTestCases = [
       { type: ElementType.Item, label: 'Document' },
-      { type: ElementType.Character, label: 'Character' },
-      { type: ElementType.Location, label: 'Location' },
+      { type: ElementType.Worldbuilding, label: 'Worldbuilding' },
       { type: ElementType.Folder, label: 'Folder' },
-      { type: ElementType.WbItem, label: 'Item' },
-      { type: ElementType.Map, label: 'Map' },
     ];
 
     typeTestCases.forEach(({ type, label }) => {
@@ -562,7 +558,8 @@ describe('ElementRefTooltipComponent', () => {
       const characterElement: Element = {
         id: 'character-1',
         name: 'Test Character',
-        type: ElementType.Character,
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
         parentId: null,
         order: 0,
         level: 0,
@@ -586,7 +583,7 @@ describe('ElementRefTooltipComponent', () => {
 
       const tooltipData: ElementRefTooltipData = {
         elementId: 'character-1',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'Test Character',
         originalName: 'Test Character',
         position: { x: 100, y: 200 },

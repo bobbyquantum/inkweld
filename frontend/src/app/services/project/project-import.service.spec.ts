@@ -126,6 +126,7 @@ describe('ProjectImportService', () => {
     relationships: [],
     customRelationshipTypes: [],
     tags: [],
+    elementTags: [],
     publishPlans: [],
     media: [],
   };
@@ -343,12 +344,12 @@ describe('ProjectImportService', () => {
           worldbuilding: [
             {
               elementId: 'wb-1',
-              schemaType: 'CHARACTER',
+              schemaId: 'character-v1',
               data: { name: 'Hero' },
             },
             {
               elementId: 'wb-2',
-              schemaType: 'LOCATION',
+              schemaId: 'location-v1',
               data: { name: 'Town' },
             },
           ],
@@ -367,7 +368,6 @@ describe('ProjectImportService', () => {
         schemas: [
           {
             id: 'schema-1',
-            type: 'CHARACTER',
             name: 'Character',
             icon: 'person',
             description: 'A character template',
@@ -504,7 +504,7 @@ describe('ProjectImportService', () => {
         worldbuilding: [
           {
             elementId: 'wb-1',
-            schemaType: 'CHARACTER',
+            schemaId: 'character-v1',
             data: { name: 'Hero' },
           },
         ],
@@ -516,7 +516,7 @@ describe('ProjectImportService', () => {
       expect(documentImport.writeWorldbuildingData).toHaveBeenCalledWith(
         {
           elementId: 'wb-1',
-          schemaType: 'CHARACTER',
+          schemaId: 'character-v1',
           data: { name: 'Hero' },
         },
         'testuser',
@@ -530,7 +530,6 @@ describe('ProjectImportService', () => {
         schemas: [
           {
             id: 'schema-1',
-            type: 'CHARACTER',
             name: 'Character',
             icon: 'person',
             description: 'A character template',

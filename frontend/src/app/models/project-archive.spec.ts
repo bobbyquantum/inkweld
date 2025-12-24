@@ -237,6 +237,7 @@ describe('project-archive models', () => {
         relationships: [],
         customRelationshipTypes: [],
         tags: [],
+        elementTags: [],
         publishPlans: [],
         media: [],
       };
@@ -265,6 +266,7 @@ describe('project-archive models', () => {
         relationships: [],
         customRelationshipTypes: [],
         tags: [],
+        elementTags: [],
         publishPlans: [],
         media: [],
       };

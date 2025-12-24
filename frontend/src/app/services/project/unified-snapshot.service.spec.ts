@@ -277,7 +277,7 @@ describe('UnifiedSnapshotService', () => {
       const element = createElement(
         'char-123',
         'Character',
-        ElementType.Character
+        ElementType.Worldbuilding
       );
       elementsSignal.set([element]);
 
@@ -910,9 +910,7 @@ describe('UnifiedSnapshotService', () => {
 
   describe('isWorldbuildingType (via createSnapshot)', () => {
     it.each([
-      [ElementType.Character, true],
-      [ElementType.Location, true],
-      [ElementType.WbItem, true],
+      [ElementType.Worldbuilding, true],
       [ElementType.Item, false],
       [ElementType.Folder, false],
     ] as const)(

@@ -239,7 +239,7 @@ describe('DialogGatewayService', () => {
   it('should open add relationship dialog', async () => {
     const data: AddRelationshipDialogData = {
       sourceElementId: 'element-1',
-      sourceSchemaType: 'CHARACTER',
+      sourceSchemaType: 'character-v1',
     };
     const result = {
       targetElementId: 'element-2',
