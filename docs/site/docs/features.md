@@ -111,7 +111,7 @@ Export your work in multiple professional formats.
 
 For those interested in what's under the hood:
 
-- **Angular 20 frontend** with standalone components and modern control flow
+- **Angular 21 frontend** with standalone components and modern control flow
 - **Bun + Hono backend** for blazing-fast API performance
 - **Yjs CRDTs** for real-time collaboration without conflicts
 - **LevelDB** for efficient document persistence

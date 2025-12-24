@@ -21,7 +21,7 @@ GitHub Actions orchestrates linting, testing, and container publishing for Inkwe
 1. **Test**
    - Uses Ubuntu runners
    - Installs Bun + Node dependencies for both apps
-   - Runs linting and the full Jest/Bun test suites
+   - Runs linting and the full Vitest/Bun test suites
 2. **Docker Publish** (only on `main` pushes)
    - Depends on the test job
    - Builds the Angular app, then the bundled backend Docker image

@@ -80,7 +80,7 @@ That launches the Bun backend on port `8333` and the Angular dev server on port 
  npm run e2e
 ```
 
-Frontend unit tests use Jest, while end-to-end coverage runs through Playwright with fixtures in `frontend/e2e/fixtures.ts`. Backend tests run via Bun.
+Frontend unit tests use Vitest, while end-to-end coverage runs through Playwright with fixtures in `frontend/e2e/fixtures.ts`. Backend tests run via Bun.
 
 ## Building artifacts
 

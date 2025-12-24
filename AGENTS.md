@@ -8,8 +8,8 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 **Inkweld** is a collaborative creative writing platform built with:
 
-- **Frontend**: Angular 20 (standalone components, modern control flow)
-- **Backend**: Hono running on Bun/Node/Workers
+- **Frontend**: Angular 21 (standalone components, modern control flow)
+- **Backend**: Hono running on Bun
 - **Database**: SQLite/D1 (Drizzle ORM) + LevelDB (per-project document storage)
 - **Real-time**: Yjs + WebSocket for collaborative editing
 - **Testing**: Vitest (unit) + Playwright (e2e)
@@ -50,8 +50,8 @@ For more information, visit: <https://angular.dev/ai/mcp>
 - **Test Coverage Required**: Before completing any code change, ensure test coverage exists
 - **All Tests Must Pass**: Run tests before submitting changes
 - **Test Frameworks**:
-  - Frontend: Jest (unit), Playwright (e2e) - **USE `npm test` NOT `bun test`**
-  - Backend: Jest - uses Bun runtime
+  - Frontend: Vitest (unit), Playwright (e2e) - **USE `npm test` NOT `bun test`**
+  - Backend: Bun's built-in test runner
   - **Never use Jasmine** - this project uses Vitest exclusively
 - **CRITICAL**: Always run frontend tests with `npm test` - Bun's test runner is incompatible with Angular tests
 
@@ -72,16 +72,16 @@ For more information, visit: <https://angular.dev/ai/mcp>
 
 ---
 
-## Frontend Architecture (Angular 20)
+## Frontend Architecture (Angular 21)
 
 ### Technology Stack
 
-- **Framework**: Angular 20 with standalone components
+- **Framework**: Angular 21 with standalone components
 - **Dependency Injection**: Use `inject()` syntax, **NOT constructor injection**
 - **Control Flow**: Use `@if`, `@for`, `@switch` directives (not `*ngIf`, `*ngFor`, `*ngSwitch`)
 - **Modules**: Everything is standalone - no NgModules
 - **State**: Service-based with RxJS
-- **Testing**: Jest for unit tests, Playwright for e2e
+- **Testing**: Vitest for unit tests, Playwright for e2e
 - **Package Manager**: npm (dev server runs on Node.js)
 
 ### Angular Control Flow Guidelines
@@ -128,7 +128,7 @@ src/app/
 - **Framework**: Hono (lightweight, runs on Bun and Cloudflare Workers)
 - **Database**: Drizzle ORM with SQLite/D1 + LevelDB (Yjs documents)
 - **Auth**: Session-based authentication with signed cookies
-- **Testing**: Jest
+- **Testing**: Bun's built-in test runner
 - **Package Manager**: Bun
 
 ### Important Backend Rules
@@ -162,7 +162,7 @@ src/
 
 ## Testing Guidelines
 
-### Unit Tests (Jest)
+### Unit Tests (Vitest)
 
 - **Location**: `*.spec.ts` files next to the code
 - **Coverage Thresholds** (Frontend):
@@ -171,7 +171,7 @@ src/
   - Lines: 80%
   - Branches: 60%
 - **Run**: `npm test` (frontend) or `bun test` (backend)
-- Use `jest-mock-extended` for deep mocking
+- Use `vitest-mock-extended` for deep mocking
 - Use `@ngneat/spectator` for Angular component testing
 
 ### E2E Tests (Playwright - Frontend)
@@ -219,14 +219,14 @@ npm test
 # Frontend
 cd frontend
 npm start              # Dev server (localhost:4200)
-npm test               # Run Jest tests
+npm test               # Run Vitest tests
 npm run e2e            # Run Playwright tests
 npm run lint           # Run linter
 npm run lint:fix       # Auto-fix lint issues
 
 # Backend
-cd server
-bun run start:dev      # Dev server (localhost:8333)
+cd backend
+bun run dev            # Dev server (localhost:8333)
 bun test               # Run tests
 bun run generate:openapi  # Generate OpenAPI spec
 ```
@@ -333,7 +333,7 @@ Stop-Job $job -ErrorAction SilentlyContinue
 Remove-Job $job
 
 # Then generate Angular client
-cd server && bun run generate:angular-client
+cd backend && bun run generate:angular-client
 ```
 
 **Note**: OpenAPI generation runs in "preview mode" and doesn't need database connectivity. It will succeed even if database connection fails afterward (that's expected).
