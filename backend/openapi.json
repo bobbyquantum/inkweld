@@ -406,16 +406,7 @@
         "enum": [
           "FOLDER",
           "ITEM",
-          "CHARACTER",
-          "LOCATION",
-          "WB_ITEM",
-          "WORLDBUILDING",
-          "MAP",
-          "RELATIONSHIP",
-          "PHILOSOPHY",
-          "CULTURE",
-          "SPECIES",
-          "SYSTEMS"
+          "WORLDBUILDING"
         ]
       },
       "Element": {
@@ -3841,8 +3832,28 @@
               }
             }
           },
+          "403": {
+            "description": "Unauthorized access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -4057,8 +4068,28 @@
               }
             }
           },
+          "403": {
+            "description": "Unauthorized access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElementError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElementError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -5247,28 +5278,6 @@
           },
           "401": {
             "description": "Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MCPError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/ai/mcp/sse": {
-      "get": {
-        "tags": [
-          "MCP"
-        ],
-        "operationId": "getMCPEventStream",
-        "deprecated": true,
-        "description": "Deprecated: Use POST / with JSON-RPC instead",
-        "responses": {
-          "501": {
-            "description": "SSE transport not implemented - use JSON-RPC instead",
             "content": {
               "application/json": {
                 "schema": {

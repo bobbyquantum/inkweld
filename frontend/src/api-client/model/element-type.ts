@@ -15,24 +15,6 @@ export enum ElementType {
 
     Item = 'ITEM',
 
-    Character = 'CHARACTER',
-
-    Location = 'LOCATION',
-
-    WbItem = 'WB_ITEM',
-
-    Worldbuilding = 'WORLDBUILDING',
-
-    Map = 'MAP',
-
-    Relationship = 'RELATIONSHIP',
-
-    Philosophy = 'PHILOSOPHY',
-
-    Culture = 'CULTURE',
-
-    Species = 'SPECIES',
-
-    Systems = 'SYSTEMS'
+    Worldbuilding = 'WORLDBUILDING'
 }
 
