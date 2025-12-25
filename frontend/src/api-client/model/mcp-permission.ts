@@ -15,20 +15,12 @@ export enum McpPermission {
 
     ReadElements = 'read:elements',
 
-    ReadDocuments = 'read:documents',
-
     ReadWorldbuilding = 'read:worldbuilding',
 
     ReadSchemas = 'read:schemas',
 
-    ReadMedia = 'read:media',
-
     WriteElements = 'write:elements',
 
-    WriteWorldbuilding = 'write:worldbuilding',
-
-    WriteSchemas = 'write:schemas',
-
-    WriteMedia = 'write:media'
+    WriteWorldbuilding = 'write:worldbuilding'
 }
 

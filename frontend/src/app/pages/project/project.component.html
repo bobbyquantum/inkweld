@@ -238,6 +238,18 @@
                   <span class="nav-title">Tags</span>
                 </div>
                 <div
+                  class="sidebar-nav-item"
+                  [class.selected-item]="isSystemTabSelected('settings')"
+                  data-testid="sidebar-settings-button"
+                  tabindex="0"
+                  role="button"
+                  (click)="onShowSettings()"
+                  (keyup.enter)="onShowSettings()"
+                  aria-label="Project Settings">
+                  <mat-icon>settings</mat-icon>
+                  <span class="nav-title">Project Settings</span>
+                </div>
+                <div
                   class="sidebar-nav-item exit-item"
                   data-testid="sidebar-exit-button"
                   tabindex="0"

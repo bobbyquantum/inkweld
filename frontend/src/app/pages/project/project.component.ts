@@ -473,6 +473,19 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  public onShowSettings(): void {
+    this.projectState.openSystemTab('settings');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'settings',
+      ]);
+    }
+  }
+
   openEditDialog() {
     void this.dialogGateway.openEditProjectDialog(this.projectState.project()!);
   }

@@ -21,6 +21,7 @@ export interface AppTab {
     | 'templates-list'
     | 'relationships-list'
     | 'tags-list'
+    | 'settings'
     | 'home';
   /** The element associated with this tab (for document/folder/worldbuilding tabs) */
   element?: Element;
@@ -166,6 +167,7 @@ export class TabManagerService {
       | 'templates-list'
       | 'relationships-list'
       | 'tags-list'
+      | 'settings'
       | 'home'
   ): OpenTabResult {
     const tabs = this.openTabs();
@@ -181,7 +183,9 @@ export class TabManagerService {
               ? 'Templates'
               : type === 'tags-list'
                 ? 'Tags'
-                : 'Relationships';
+                : type === 'settings'
+                  ? 'Settings'
+                  : 'Relationships';
 
     // Check if tab already exists
     const existingIndex = tabs.findIndex(t => t.id === tabId);

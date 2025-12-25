@@ -252,6 +252,22 @@ export class HomeTabComponent {
     }
   }
 
+  /**
+   * Opens the project settings tab
+   */
+  openSettingsTab(): void {
+    this.projectState.openSystemTab('settings');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'settings',
+      ]);
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Publish Plans
   // ─────────────────────────────────────────────────────────────────────────────

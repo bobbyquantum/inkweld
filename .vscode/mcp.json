@@ -8,7 +8,7 @@
       "type": "http",
       "url": "http://localhost:8333/api/v1/ai/mcp",
       "headers": {
-        "Authorization": "Bearer iw_proj_q8fiAoO1AMW2fck8pk5NL4rAzCedVn_n"
+        "Authorization": "Bearer iw_proj_Eo7rCA7fdHf8poAIcB3K9IqFqWLp2KLk"
       }
     }
   }

@@ -27,14 +27,10 @@ const PermissionSchema = z
   .enum([
     'read:project',
     'read:elements',
-    'read:documents',
     'read:worldbuilding',
     'read:schemas',
-    'read:media',
     'write:elements',
     'write:worldbuilding',
-    'write:schemas',
-    'write:media',
   ])
   .openapi('McpPermission');
 
@@ -396,12 +392,6 @@ mcpKeyRoutes.openapi(getPermissionsRoute, async (c) => {
         category: 'read',
       },
       {
-        id: 'read:documents',
-        name: 'Read Documents',
-        description: 'Read document content',
-        category: 'read',
-      },
-      {
         id: 'read:worldbuilding',
         name: 'Read Worldbuilding',
         description: 'Read worldbuilding data (characters, locations, etc.)',
@@ -411,12 +401,6 @@ mcpKeyRoutes.openapi(getPermissionsRoute, async (c) => {
         id: 'read:schemas',
         name: 'Read Schemas',
         description: 'Read template schemas',
-        category: 'read',
-      },
-      {
-        id: 'read:media',
-        name: 'Read Media',
-        description: 'Access media library',
         category: 'read',
       },
       {
@@ -431,39 +415,16 @@ mcpKeyRoutes.openapi(getPermissionsRoute, async (c) => {
         description: 'Update worldbuilding data',
         category: 'write',
       },
-      {
-        id: 'write:schemas',
-        name: 'Write Schemas',
-        description: 'Create and update custom templates',
-        category: 'write',
-      },
-      {
-        id: 'write:media',
-        name: 'Write Media',
-        description: 'Upload media files',
-        category: 'write',
-      },
     ],
     presets: {
-      readOnly: [
-        'read:project',
-        'read:elements',
-        'read:documents',
-        'read:worldbuilding',
-        'read:schemas',
-        'read:media',
-      ],
+      readOnly: ['read:project', 'read:elements', 'read:worldbuilding', 'read:schemas'],
       fullAccess: [
         'read:project',
         'read:elements',
-        'read:documents',
         'read:worldbuilding',
         'read:schemas',
-        'read:media',
         'write:elements',
         'write:worldbuilding',
-        'write:schemas',
-        'write:media',
       ],
       worldbuilding: [
         'read:project',
