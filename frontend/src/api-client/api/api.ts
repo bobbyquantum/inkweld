@@ -1,5 +1,9 @@
 export * from './ai-image-generation.service';
 import { AIImageGenerationService } from './ai-image-generation.service';
+export * from './ai-providers.service';
+import { AIProvidersService } from './ai-providers.service';
+export * from './ai-text-generation.service';
+import { AITextGenerationService } from './ai-text-generation.service';
 export * from './admin.service';
 import { AdminService } from './admin.service';
 export * from './admin-config.service';
@@ -36,4 +40,4 @@ export * from './snapshots.service';
 import { SnapshotsService } from './snapshots.service';
 export * from './users.service';
 import { UsersService } from './users.service';
-export const APIS = [AIImageGenerationService, AdminService, AdminConfigService, AuthenticationService, ConfigurationService, DocumentsService, ElementsService, HealthService, ImagesService, LintingService, MCPService, MCPKeysService, MediaService, ProjectsService, PublishedFilesService, SecurityService, ShareService, SnapshotsService, UsersService];
+export const APIS = [AIImageGenerationService, AIProvidersService, AITextGenerationService, AdminService, AdminConfigService, AuthenticationService, ConfigurationService, DocumentsService, ElementsService, HealthService, ImagesService, LintingService, MCPService, MCPKeysService, MediaService, ProjectsService, PublishedFilesService, SecurityService, ShareService, SnapshotsService, UsersService];

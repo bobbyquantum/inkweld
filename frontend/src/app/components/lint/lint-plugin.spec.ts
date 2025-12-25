@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { LintResponse } from '@inkweld/model/lint-response';
+import { LintResponse, LintResponseSource } from '@inkweld/model/lint-response';
 import { Schema } from 'prosemirror-model';
 import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
@@ -63,12 +63,13 @@ describe('LintPlugin', () => {
       originalParagraph: 'This is a test paragraph with some grammar errors.',
       corrections: [
         {
-          from: 10,
-          to: 14,
-          suggestion: 'test sentence',
-          // Note: The real DTO might have different fields, adjusting to pass tests
-          reason: 'Grammar improvement',
-        } as any,
+          startPos: 10,
+          endPos: 14,
+          correctedText: 'test sentence',
+          originalText: 'test',
+          errorType: 'grammar',
+          recommendation: 'Grammar improvement',
+        },
       ],
       styleRecommendations: [
         {
@@ -76,7 +77,7 @@ describe('LintPlugin', () => {
           recommendation: 'Consider using active voice for clarity',
         } as any,
       ],
-      source: 'openai' as any,
+      source: LintResponseSource.Openai,
     };
   };
 

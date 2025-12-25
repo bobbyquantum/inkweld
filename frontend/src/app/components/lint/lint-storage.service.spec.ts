@@ -1,8 +1,8 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Correction } from '@inkweld/model/correction';
 import { vi } from 'vitest';
 
+import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 
 describe('LintStorageService', () => {
@@ -10,7 +10,7 @@ describe('LintStorageService', () => {
   let getItemSpy: any;
   let setItemSpy: any;
 
-  const mockCorrection: Correction = {
+  const mockCorrection: ExtendedCorrectionDto = {
     startPos: 0,
     endPos: 5,
     originalText: 'original text',
@@ -19,7 +19,7 @@ describe('LintStorageService', () => {
     recommendation: 'test recommendation',
   };
 
-  const mockExtendedCorrection: any = {
+  const mockExtendedCorrection: ExtendedCorrectionDto = {
     ...mockCorrection,
     text: 'original text',
   };

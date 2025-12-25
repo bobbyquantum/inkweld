@@ -1479,6 +1479,456 @@
           "providers"
         ]
       },
+      "TextProviderType": {
+        "type": "string",
+        "enum": [
+          "openai",
+          "openrouter",
+          "anthropic"
+        ]
+      },
+      "TextModelInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Model ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Model display name"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/TextProviderType"
+          },
+          "maxTokens": {
+            "type": "number",
+            "description": "Maximum context tokens"
+          },
+          "supportsJsonMode": {
+            "type": "boolean",
+            "description": "Whether JSON mode is supported"
+          },
+          "supportsStreaming": {
+            "type": "boolean",
+            "description": "Whether streaming is supported"
+          },
+          "description": {
+            "type": "string",
+            "description": "Model description"
+          },
+          "costTier": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Cost tier (1=cheapest, 5=most expensive)"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "provider",
+          "maxTokens"
+        ]
+      },
+      "DefaultTextModelsResponse": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "object",
+            "properties": {
+              "openai": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Provider display name"
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TextModelInfo"
+                    },
+                    "description": "Default models"
+                  }
+                },
+                "required": [
+                  "name",
+                  "models"
+                ],
+                "description": "OpenAI default models"
+              },
+              "openrouter": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Provider display name"
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TextModelInfo"
+                    },
+                    "description": "Default models"
+                  }
+                },
+                "required": [
+                  "name",
+                  "models"
+                ],
+                "description": "OpenRouter default models"
+              },
+              "anthropic": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Provider display name"
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TextModelInfo"
+                    },
+                    "description": "Default models"
+                  }
+                },
+                "required": [
+                  "name",
+                  "models"
+                ],
+                "description": "Anthropic default models"
+              }
+            },
+            "required": [
+              "openai",
+              "openrouter",
+              "anthropic"
+            ],
+            "description": "Default models grouped by provider"
+          }
+        },
+        "required": [
+          "providers"
+        ]
+      },
+      "TextGenerationError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "TextProviderStatus": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/TextProviderType"
+          },
+          "name": {
+            "type": "string",
+            "description": "Provider display name"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Whether provider is available"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether provider is enabled"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextModelInfo"
+            },
+            "description": "Available models"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if unavailable"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "available",
+          "enabled",
+          "models"
+        ]
+      },
+      "TextGenerationStatus": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether any provider is available"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextProviderStatus"
+            },
+            "description": "All configured providers"
+          },
+          "defaultProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TextProviderType"
+              },
+              {
+                "description": "Default provider"
+              }
+            ]
+          },
+          "lintModel": {
+            "type": "string",
+            "description": "Configured lint model"
+          },
+          "imagePromptModel": {
+            "type": "string",
+            "description": "Configured image prompt optimization model"
+          }
+        },
+        "required": [
+          "available",
+          "providers"
+        ]
+      },
+      "OptimizeImagePromptResponse": {
+        "type": "object",
+        "properties": {
+          "optimizedPrompt": {
+            "type": "string",
+            "description": "The optimized image prompt"
+          },
+          "negativePrompt": {
+            "type": "string",
+            "description": "Suggested negative prompt"
+          },
+          "suggestedSize": {
+            "type": "string",
+            "description": "Suggested image size"
+          },
+          "optimizationNotes": {
+            "type": "string",
+            "description": "Notes about the optimization"
+          }
+        },
+        "required": [
+          "optimizedPrompt"
+        ]
+      },
+      "OptimizeImagePromptRequest": {
+        "type": "object",
+        "properties": {
+          "rawInput": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000,
+            "description": "Raw input text to optimize (e.g., worldbuilding data dump)",
+            "example": "Character: Elena, age 25, dark hair, blue eyes, wears leather armor, carries a sword"
+          },
+          "targetStyle": {
+            "type": "string",
+            "description": "Target image style",
+            "example": "fantasy art, detailed, painterly"
+          },
+          "context": {
+            "type": "string",
+            "description": "Additional context for the optimization",
+            "example": "character portrait for a book cover"
+          },
+          "maxLength": {
+            "type": "integer",
+            "minimum": 50,
+            "maximum": 2000,
+            "description": "Maximum length of the optimized prompt",
+            "example": 500
+          }
+        },
+        "required": [
+          "rawInput"
+        ]
+      },
+      "ProviderStatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Provider identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Provider display name"
+          },
+          "hasApiKey": {
+            "type": "boolean",
+            "description": "Whether an API key is configured"
+          },
+          "description": {
+            "type": "string",
+            "description": "Provider description"
+          },
+          "supportsImages": {
+            "type": "boolean",
+            "description": "Whether provider supports image generation"
+          },
+          "supportsText": {
+            "type": "boolean",
+            "description": "Whether provider supports text generation"
+          },
+          "requiresEndpoint": {
+            "type": "boolean",
+            "description": "Whether provider requires a custom endpoint"
+          },
+          "hasEndpoint": {
+            "type": "boolean",
+            "description": "Whether a custom endpoint is configured"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "hasApiKey",
+          "description",
+          "supportsImages",
+          "supportsText"
+        ]
+      },
+      "ProvidersStatusResponse": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderStatus"
+            },
+            "description": "All AI providers"
+          }
+        },
+        "required": [
+          "providers"
+        ]
+      },
+      "ProviderError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ProviderSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the operation succeeded"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "SetProviderKeyRequest": {
+        "type": "object",
+        "properties": {
+          "apiKey": {
+            "type": "string",
+            "minLength": 1,
+            "description": "API key to set (or empty to clear)"
+          }
+        },
+        "required": [
+          "apiKey"
+        ]
+      },
+      "SetProviderEndpointRequest": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "Custom endpoint URL (or empty to clear)"
+          }
+        },
+        "required": [
+          "endpoint"
+        ]
+      },
+      "OpenRouterModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Model ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Model display name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Model description"
+          },
+          "contextLength": {
+            "type": "number",
+            "description": "Context length in tokens"
+          },
+          "pricing": {
+            "type": "object",
+            "properties": {
+              "prompt": {
+                "type": "string",
+                "description": "Price per 1M prompt tokens"
+              },
+              "completion": {
+                "type": "string",
+                "description": "Price per 1M completion tokens"
+              }
+            },
+            "description": "Pricing information"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "OpenRouterModelsResponse": {
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterModel"
+            },
+            "description": "Available models"
+          },
+          "cached": {
+            "type": "boolean",
+            "description": "Whether the response was from cache"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "ISO timestamp of last update"
+          }
+        },
+        "required": [
+          "models",
+          "cached"
+        ]
+      },
       "JsonRpcResponse": {
         "type": "object",
         "properties": {
@@ -5380,6 +5830,423 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/text/default-models": {
+      "get": {
+        "tags": [
+          "AI Text Generation"
+        ],
+        "summary": "Get default text-to-text models",
+        "description": "Get the default model configurations for all text generation providers",
+        "operationId": "getDefaultTextModels",
+        "responses": {
+          "200": {
+            "description": "Default models by provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultTextModelsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/text/status": {
+      "get": {
+        "tags": [
+          "AI Text Generation"
+        ],
+        "summary": "Get text generation status",
+        "description": "Get the status of all configured text generation providers",
+        "operationId": "getTextGenerationStatus",
+        "responses": {
+          "200": {
+            "description": "Provider status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/text/optimize-image-prompt": {
+      "post": {
+        "tags": [
+          "AI Text Generation"
+        ],
+        "summary": "Optimize an image generation prompt",
+        "description": "Takes raw input (like worldbuilding data) and optimizes it into a clean image generation prompt",
+        "operationId": "optimizeImagePrompt",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimizeImagePromptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Optimized prompt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizeImagePromptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Text generation not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/status": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get AI provider status",
+        "description": "Get the configuration status of all AI providers",
+        "operationId": "getAiProvidersStatus",
+        "responses": {
+          "200": {
+            "description": "Provider status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvidersStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/{providerId}/key": {
+      "put": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Set provider API key",
+        "description": "Set or update the API key for a provider",
+        "operationId": "setAiProviderKey",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Provider ID"
+            },
+            "required": true,
+            "description": "Provider ID",
+            "name": "providerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProviderKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API key updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Delete provider API key",
+        "description": "Remove the API key for a provider",
+        "operationId": "deleteAiProviderKey",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Provider ID"
+            },
+            "required": true,
+            "description": "Provider ID",
+            "name": "providerId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/{providerId}/endpoint": {
+      "put": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Set provider endpoint",
+        "description": "Set or update the custom endpoint for a provider (e.g., Stable Diffusion)",
+        "operationId": "setAiProviderEndpoint",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Provider ID"
+            },
+            "required": true,
+            "description": "Provider ID",
+            "name": "providerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProviderEndpointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Endpoint updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider or provider does not support custom endpoints",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/openrouter/models": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get OpenRouter models",
+        "description": "Fetch available models from OpenRouter API. Results are cached for 1 hour. Requires OpenRouter API key to be configured.",
+        "operationId": "getOpenRouterModels",
+        "responses": {
+          "200": {
+            "description": "List of available models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenRouterModelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "OpenRouter API key not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from OpenRouter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
                 }
               }
             }

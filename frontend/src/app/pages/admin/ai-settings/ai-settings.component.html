@@ -56,810 +56,284 @@
       </mat-card-actions>
     </mat-card>
   } @else {
-    <!-- Global Settings -->
+    <!-- Global Enable Toggle -->
     <mat-card class="settings-card">
       <mat-card-header>
         <mat-icon mat-card-avatar>auto_awesome</mat-icon>
         <mat-card-title>AI Image Generation</mat-card-title>
-        <mat-card-subtitle
-          >Global settings for AI-powered image generation</mat-card-subtitle
-        >
+        <mat-card-subtitle>
+          Enable or disable AI-powered image generation
+        </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Enable Image Generation</span>
-            <span class="setting-description"
-              >Allow users to generate images using AI providers</span
-            >
+            <span class="setting-description">
+              Allow users to generate images using AI providers
+            </span>
           </div>
           <mat-slide-toggle
             [checked]="imageGenerationEnabled()"
             (change)="saveGlobalEnabled($event.checked)"
-            [disabled]="isSaving()"></mat-slide-toggle>
-        </div>
-
-        @if (imageGenerationEnabled()) {
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Default Provider</span>
-              <span class="setting-description"
-                >Provider used when none is specified</span
-              >
-            </div>
-            <mat-form-field appearance="outline" class="provider-select">
-              <mat-select
-                [value]="defaultProvider()"
-                (selectionChange)="saveDefaultProvider($event.value)"
-                [disabled]="isSaving()">
-                <mat-option value="openai">OpenAI (GPT Image)</mat-option>
-                <mat-option value="openrouter">OpenRouter</mat-option>
-                <mat-option value="falai">Fal.ai</mat-option>
-                <mat-option value="stable-diffusion"
-                  >Stable Diffusion</mat-option
-                >
-              </mat-select>
-            </mat-form-field>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Default Model</span>
-              <span class="setting-description"
-                >Model used when none is specified</span
-              >
-            </div>
-            <mat-form-field appearance="outline" class="model-select">
-              <mat-select
-                [value]="defaultModel()"
-                (selectionChange)="saveDefaultModel($event.value)"
-                [disabled]="
-                  isSaving() || availableModelsForDefaultProvider().length === 0
-                ">
-                <mat-option value="">(Use provider default)</mat-option>
-                @for (
-                  model of availableModelsForDefaultProvider();
-                  track model.id
-                ) {
-                  <mat-option [value]="model.id">
-                    {{ model.name }}
-                    @if (model.description) {
-                      <span class="model-description">
-                        - {{ model.description }}</span
-                      >
-                    }
-                  </mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-          </div>
-        }
-      </mat-card-content>
-    </mat-card>
-
-    <!-- OpenAI Settings -->
-    <mat-card class="settings-card provider-card">
-      <mat-card-header>
-        <img
-          mat-card-avatar
-          src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg"
-          alt="OpenAI"
-          class="provider-logo" />
-        <mat-card-title>OpenAI</mat-card-title>
-        <mat-card-subtitle
-          >Generate images using GPT Image models
-          (gpt-image-1)</mat-card-subtitle
-        >
-      </mat-card-header>
-      <mat-card-content>
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Enable OpenAI</span>
-            <span class="setting-description"
-              >Use OpenAI's GPT Image models for image generation</span
-            >
-          </div>
-          <mat-slide-toggle
-            [checked]="openaiConfig().enabled"
-            (change)="toggleOpenai($event.checked)"
-            [disabled]="
-              isSaving() || !openaiConfig().hasApiKey
-            "></mat-slide-toggle>
-        </div>
-
-        <div class="api-key-section">
-          <div class="setting-info">
-            <span class="setting-label">API Key</span>
-            <span class="setting-description">
-              @if (openaiConfig().hasApiKey) {
-                <mat-icon class="key-status configured">check_circle</mat-icon>
-                API key configured
-              } @else {
-                <mat-icon class="key-status not-configured">warning</mat-icon>
-                No API key configured
-              }
-            </span>
-          </div>
-
-          @if (editingOpenaiKey()) {
-            <div class="api-key-input">
-              <mat-form-field appearance="outline" class="api-key-field">
-                <mat-label>OpenAI API Key</mat-label>
-                <input
-                  matInput
-                  type="password"
-                  [value]="openaiConfig().apiKey"
-                  (input)="updateOpenaiApiKey($any($event.target).value)"
-                  placeholder="sk-..." />
-                <mat-hint>Starts with sk-</mat-hint>
-              </mat-form-field>
-              <div class="api-key-actions">
-                <button mat-button (click)="editingOpenaiKey.set(false)">
-                  Cancel
-                </button>
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="saveOpenaiApiKey()"
-                  [disabled]="isSaving() || !openaiConfig().apiKey">
-                  Save
-                </button>
-              </div>
-            </div>
-          } @else {
-            <div class="api-key-buttons">
-              <button mat-stroked-button (click)="editingOpenaiKey.set(true)">
-                <mat-icon>edit</mat-icon>
-                {{ openaiConfig().hasApiKey ? 'Change' : 'Add' }} API Key
-              </button>
-              @if (openaiConfig().hasApiKey) {
-                <button
-                  mat-stroked-button
-                  color="warn"
-                  (click)="clearOpenaiApiKey()"
-                  [disabled]="isSaving()">
-                  <mat-icon>delete</mat-icon>
-                  Clear
-                </button>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- OpenAI Model Configuration -->
-        <mat-expansion-panel class="models-panel">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon>tune</mat-icon>
-              Model Configuration
-            </mat-panel-title>
-            <mat-panel-description>
-              {{ openaiEnabledCount() }} of {{ openaiModels().length }} models
-              enabled
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-
-          <div class="models-content">
-            <p class="models-hint">
-              Enable or disable which OpenAI image models are available to
-              users.
-              <a
-                href="https://platform.openai.com/docs/models"
-                target="_blank"
-                rel="noopener">
-                View OpenAI models documentation
-              </a>
-            </p>
-
-            <mat-list class="models-list">
-              @for (model of openaiModels(); track model.id) {
-                <mat-list-item class="model-item">
-                  <div class="model-info">
-                    <span class="model-name">{{ model.name }}</span>
-                    <span class="model-id">{{ model.id }}</span>
-                    @if (model.description) {
-                      <span class="model-description">{{
-                        model.description
-                      }}</span>
-                    }
-                  </div>
-                  <mat-slide-toggle
-                    [checked]="model.enabled"
-                    (change)="toggleOpenaiModel(model.id, $event.checked)"
-                    [disabled]="isSaving()">
-                  </mat-slide-toggle>
-                </mat-list-item>
-                <mat-divider></mat-divider>
-              }
-            </mat-list>
-
-            <div class="models-actions">
-              <button mat-button (click)="resetOpenaiModels()">
-                <mat-icon>restore</mat-icon>
-                Reset to Defaults
-              </button>
-              @if (openaiModelsModified()) {
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="saveOpenaiModels()"
-                  [disabled]="isSaving()">
-                  <mat-icon>save</mat-icon>
-                  Save Changes
-                </button>
-              }
-            </div>
-          </div>
-        </mat-expansion-panel>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- OpenRouter Settings -->
-    <mat-card class="settings-card provider-card">
-      <mat-card-header>
-        <svg
-          mat-card-avatar
-          class="provider-icon openrouter-icon"
-          width="40"
-          height="40"
-          viewBox="0 0 512 512"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="currentColor"
-          stroke="currentColor">
-          <path
-            d="M3 248.945C18 248.945 76 236 106 219C136 202 136 202 198 158C276.497 102.293 332 120.945 423 120.945"
-            stroke-width="90" />
-          <path d="M511 121.5L357.25 210.268L357.25 32.7324L511 121.5Z" />
-          <path
-            d="M0 249C15 249 73 261.945 103 278.945C133 295.945 133 295.945 195 339.945C273.497 395.652 329 377 420 377"
-            stroke-width="90" />
-          <path d="M508 376.445L354.25 287.678L354.25 465.213L508 376.445Z" />
-        </svg>
-        <mat-card-title>OpenRouter</mat-card-title>
-        <mat-card-subtitle
-          >Access FLUX, Stable Diffusion 3, and other models via
-          OpenRouter</mat-card-subtitle
-        >
-      </mat-card-header>
-      <mat-card-content>
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Enable OpenRouter</span>
-            <span class="setting-description"
-              >Use OpenRouter's unified API for various image models</span
-            >
-          </div>
-          <mat-slide-toggle
-            [checked]="openrouterConfig().enabled"
-            (change)="toggleOpenrouter($event.checked)"
-            [disabled]="
-              isSaving() || !openrouterConfig().hasApiKey
-            "></mat-slide-toggle>
-        </div>
-
-        <div class="api-key-section">
-          <div class="setting-info">
-            <span class="setting-label">API Key</span>
-            <span class="setting-description">
-              @if (openrouterConfig().hasApiKey) {
-                <mat-icon class="key-status configured">check_circle</mat-icon>
-                API key configured
-              } @else {
-                <mat-icon class="key-status not-configured">warning</mat-icon>
-                No API key configured
-              }
-            </span>
-          </div>
-
-          @if (editingOpenrouterKey()) {
-            <div class="api-key-input">
-              <mat-form-field appearance="outline" class="api-key-field">
-                <mat-label>OpenRouter API Key</mat-label>
-                <input
-                  matInput
-                  type="password"
-                  [value]="openrouterConfig().apiKey"
-                  (input)="updateOpenrouterApiKey($any($event.target).value)"
-                  placeholder="sk-or-..." />
-                <mat-hint>Get your key at openrouter.ai</mat-hint>
-              </mat-form-field>
-              <div class="api-key-actions">
-                <button mat-button (click)="editingOpenrouterKey.set(false)">
-                  Cancel
-                </button>
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="saveOpenrouterApiKey()"
-                  [disabled]="isSaving() || !openrouterConfig().apiKey">
-                  Save
-                </button>
-              </div>
-            </div>
-          } @else {
-            <div class="api-key-buttons">
-              <button
-                mat-stroked-button
-                (click)="editingOpenrouterKey.set(true)">
-                <mat-icon>edit</mat-icon>
-                {{ openrouterConfig().hasApiKey ? 'Change' : 'Add' }} API Key
-              </button>
-              @if (openrouterConfig().hasApiKey) {
-                <button
-                  mat-stroked-button
-                  color="warn"
-                  (click)="clearOpenrouterApiKey()"
-                  [disabled]="isSaving()">
-                  <mat-icon>delete</mat-icon>
-                  Clear
-                </button>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- OpenRouter Model Configuration -->
-        <mat-expansion-panel class="models-panel">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon>tune</mat-icon>
-              Model Configuration
-            </mat-panel-title>
-            <mat-panel-description>
-              {{ openrouterEnabledCount() }} of
-              {{ openrouterModels().length }} models enabled
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-
-          <div class="models-content">
-            <p class="models-hint">
-              Enable or disable which OpenRouter image models are available to
-              users. New models can be added as they become available.
-              <a
-                href="https://openrouter.ai/models?modality=image"
-                target="_blank"
-                rel="noopener">
-                Browse OpenRouter image models
-              </a>
-            </p>
-
-            <mat-list class="models-list">
-              @for (model of openrouterModels(); track model.id) {
-                <mat-list-item class="model-item">
-                  <div class="model-info">
-                    <span class="model-name">{{ model.name }}</span>
-                    <span class="model-id">{{ model.id }}</span>
-                    @if (model.description) {
-                      <span class="model-description">{{
-                        model.description
-                      }}</span>
-                    }
-                  </div>
-                  <mat-slide-toggle
-                    [checked]="model.enabled"
-                    (change)="toggleOpenrouterModel(model.id, $event.checked)"
-                    [disabled]="isSaving()">
-                  </mat-slide-toggle>
-                </mat-list-item>
-                <mat-divider></mat-divider>
-              }
-            </mat-list>
-
-            <div class="models-actions">
-              <button mat-button (click)="resetOpenrouterModels()">
-                <mat-icon>restore</mat-icon>
-                Reset to Defaults
-              </button>
-              @if (openrouterModelsModified()) {
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="saveOpenrouterModels()"
-                  [disabled]="isSaving()">
-                  <mat-icon>save</mat-icon>
-                  Save Changes
-                </button>
-              }
-            </div>
-          </div>
-        </mat-expansion-panel>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Fal.ai Settings -->
-    <mat-card class="settings-card provider-card">
-      <mat-card-header>
-        <img
-          mat-card-avatar
-          src="icons/falai.svg"
-          alt="Fal.ai"
-          class="provider-logo" />
-        <mat-card-title>Fal.ai</mat-card-title>
-        <mat-card-subtitle
-          >Access FLUX, Recraft, and other models via Fal.ai</mat-card-subtitle
-        >
-      </mat-card-header>
-      <mat-card-content>
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Enable Fal.ai</span>
-            <span class="setting-description"
-              >Use Fal.ai's API for various image models</span
-            >
-          </div>
-          <mat-slide-toggle
-            [checked]="falaiConfig().enabled"
-            (change)="toggleFalai($event.checked)"
-            [disabled]="
-              isSaving() || !falaiConfig().hasApiKey
-            "></mat-slide-toggle>
-        </div>
-
-        <div class="api-key-section">
-          <div class="setting-info">
-            <span class="setting-label">API Key</span>
-            <span class="setting-description">
-              @if (falaiConfig().hasApiKey) {
-                <mat-icon class="key-status configured">check_circle</mat-icon>
-                API key configured
-              } @else {
-                <mat-icon class="key-status not-configured">warning</mat-icon>
-                No API key configured
-              }
-            </span>
-          </div>
-
-          @if (editingFalaiKey()) {
-            <div class="api-key-input">
-              <mat-form-field appearance="outline" class="api-key-field">
-                <mat-label>Fal.ai API Key</mat-label>
-                <input
-                  matInput
-                  type="password"
-                  [value]="falaiConfig().apiKey"
-                  (input)="updateFalaiApiKey($any($event.target).value)"
-                  placeholder="key-..." />
-                <mat-hint>Get your key at fal.ai</mat-hint>
-              </mat-form-field>
-              <div class="api-key-actions">
-                <button mat-button (click)="editingFalaiKey.set(false)">
-                  Cancel
-                </button>
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="saveFalaiApiKey()"
-                  [disabled]="isSaving() || !falaiConfig().apiKey">
-                  Save
-                </button>
-              </div>
-            </div>
-          } @else {
-            <div class="api-key-buttons">
-              <button mat-stroked-button (click)="editingFalaiKey.set(true)">
-                <mat-icon>edit</mat-icon>
-                {{ falaiConfig().hasApiKey ? 'Change' : 'Add' }} API Key
-              </button>
-              @if (falaiConfig().hasApiKey) {
-                <button
-                  mat-stroked-button
-                  color="warn"
-                  (click)="clearFalaiApiKey()"
-                  [disabled]="isSaving()">
-                  <mat-icon>delete</mat-icon>
-                  Clear
-                </button>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Fal.ai Model Configuration -->
-        <mat-expansion-panel class="models-panel">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon>tune</mat-icon>
-              Model Configuration
-            </mat-panel-title>
-            <mat-panel-description>
-              {{ falaiEnabledCount() }} of {{ falaiModels().length }} models
-              enabled
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-
-          <div class="models-content">
-            <p class="models-hint">
-              Enable or disable which Fal.ai image models are available to
-              users.
-              <a href="https://fal.ai/models" target="_blank" rel="noopener">
-                Browse Fal.ai models
-              </a>
-            </p>
-
-            <mat-list class="models-list">
-              @for (model of falaiModels(); track model.id) {
-                <mat-list-item class="model-item">
-                  <div class="model-info">
-                    <span class="model-name">{{ model.name }}</span>
-                    <span class="model-id">{{ model.id }}</span>
-                    @if (model.description) {
-                      <span class="model-description">{{
-                        model.description
-                      }}</span>
-                    }
-                  </div>
-                  <mat-slide-toggle
-                    [checked]="model.enabled"
-                    (change)="toggleFalaiModel(model.id, $event.checked)"
-                    [disabled]="isSaving()">
-                  </mat-slide-toggle>
-                </mat-list-item>
-                <mat-divider></mat-divider>
-              }
-            </mat-list>
-
-            <div class="models-actions">
-              <button mat-button (click)="resetFalaiModels()">
-                <mat-icon>restore</mat-icon>
-                Reset to Defaults
-              </button>
-              @if (falaiModelsModified()) {
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="saveFalaiModels()"
-                  [disabled]="isSaving()">
-                  <mat-icon>save</mat-icon>
-                  Save Changes
-                </button>
-              }
-            </div>
-          </div>
-        </mat-expansion-panel>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Stable Diffusion Settings -->
-    <mat-card class="settings-card provider-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar class="provider-icon sd-icon">brush</mat-icon>
-        <mat-card-title>Stable Diffusion</mat-card-title>
-        <mat-card-subtitle
-          >Connect to a local or remote AUTOMATIC1111 WebUI
-          instance</mat-card-subtitle
-        >
-      </mat-card-header>
-      <mat-card-content>
-        <div class="setting-row">
-          <div class="setting-info">
-            <span class="setting-label">Enable Stable Diffusion</span>
-            <span class="setting-description"
-              >Use a self-hosted Stable Diffusion instance</span
-            >
-          </div>
-          <mat-slide-toggle
-            [checked]="sdConfig().enabled"
-            (change)="toggleSd($event.checked)"
-            [disabled]="isSaving() || !sdConfig().endpoint"></mat-slide-toggle>
-        </div>
-
-        <div class="endpoint-section">
-          <mat-form-field appearance="outline" class="endpoint-field">
-            <mat-label>WebUI Endpoint URL</mat-label>
-            <input
-              matInput
-              type="url"
-              [value]="sdConfig().endpoint"
-              (input)="updateSdEndpoint($any($event.target).value)"
-              placeholder="http://localhost:7860" />
-            <mat-hint>URL of your AUTOMATIC1111 WebUI instance</mat-hint>
-          </mat-form-field>
-          <button
-            mat-stroked-button
-            (click)="saveSdEndpoint()"
-            [disabled]="isSaving() || !sdConfig().endpoint">
-            <mat-icon>save</mat-icon>
-            Save Endpoint
-          </button>
-        </div>
-
-        <div class="api-key-section">
-          <div class="setting-info">
-            <span class="setting-label">API Key (Optional)</span>
-            <span class="setting-description">
-              @if (sdConfig().hasApiKey) {
-                <mat-icon class="key-status configured">check_circle</mat-icon>
-                API key configured
-              } @else {
-                <mat-icon class="key-status optional">info</mat-icon>
-                Only needed if your WebUI requires authentication
-              }
-            </span>
-          </div>
-
-          @if (editingSdKey()) {
-            <div class="api-key-input">
-              <mat-form-field appearance="outline" class="api-key-field">
-                <mat-label>WebUI API Key</mat-label>
-                <input
-                  matInput
-                  type="password"
-                  [value]="sdConfig().apiKey"
-                  (input)="updateSdApiKey($any($event.target).value)" />
-              </mat-form-field>
-              <div class="api-key-actions">
-                <button mat-button (click)="editingSdKey.set(false)">
-                  Cancel
-                </button>
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="saveSdApiKey()"
-                  [disabled]="isSaving() || !sdConfig().apiKey">
-                  Save
-                </button>
-              </div>
-            </div>
-          } @else {
-            <div class="api-key-buttons">
-              <button mat-stroked-button (click)="editingSdKey.set(true)">
-                <mat-icon>edit</mat-icon>
-                {{ sdConfig().hasApiKey ? 'Change' : 'Add' }} API Key
-              </button>
-              @if (sdConfig().hasApiKey) {
-                <button
-                  mat-stroked-button
-                  color="warn"
-                  (click)="clearSdApiKey()"
-                  [disabled]="isSaving()">
-                  <mat-icon>delete</mat-icon>
-                  Clear
-                </button>
-              }
-            </div>
-          }
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Custom Image Sizes -->
-    <mat-card class="settings-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar>photo_size_select_large</mat-icon>
-        <mat-card-title>Custom Image Sizes</mat-card-title>
-        <mat-card-subtitle>
-          Define custom resolution profiles for image generation
-        </mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="help-text">
-          Custom sizes are available in addition to the standard sizes offered
-          by each provider. Note that not all providers support all sizes -
-          providers with flexible resolution (like Fal.ai) work best with custom
-          sizes.
-        </p>
-
-        <!-- Existing Custom Sizes -->
-        @if (customSizes().length > 0) {
-          <div class="custom-sizes-list">
-            @for (size of customSizes(); track size.id) {
-              <div class="custom-size-item">
-                <div class="size-info">
-                  <span class="size-name">{{ size.name }}</span>
-                  <span class="size-dimensions">
-                    {{ getSizeString(size) }} ({{ getAspectRatioLabel(size) }})
-                  </span>
-                  @if (size.description) {
-                    <span class="size-description">{{ size.description }}</span>
-                  }
-                </div>
-                <button
-                  mat-icon-button
-                  color="warn"
-                  (click)="removeCustomSize(size.id)"
-                  matTooltip="Remove this size">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            }
-          </div>
-        } @else {
-          <div class="empty-state">
-            <mat-icon>crop_free</mat-icon>
-            <p>No custom sizes defined</p>
-          </div>
-        }
-
-        <mat-divider></mat-divider>
-
-        <!-- Add New Size Form -->
-        @if (editingNewSize()) {
-          <div class="add-size-form">
-            <h4>Add Custom Size</h4>
-            <div class="size-form-row">
-              <mat-form-field appearance="outline">
-                <mat-label>Name</mat-label>
-                <input
-                  matInput
-                  [value]="newSize().name"
-                  (input)="updateNewSizeName($any($event.target).value)"
-                  placeholder="e.g., HD Landscape" />
-              </mat-form-field>
-            </div>
-            <div class="size-form-row dimensions-row">
-              <mat-form-field appearance="outline">
-                <mat-label>Width (px)</mat-label>
-                <input
-                  matInput
-                  type="number"
-                  min="256"
-                  max="4096"
-                  [value]="newSize().width"
-                  (input)="updateNewSizeWidth(+$any($event.target).value)" />
-              </mat-form-field>
-              <span class="dimension-separator">×</span>
-              <mat-form-field appearance="outline">
-                <mat-label>Height (px)</mat-label>
-                <input
-                  matInput
-                  type="number"
-                  min="256"
-                  max="4096"
-                  [value]="newSize().height"
-                  (input)="updateNewSizeHeight(+$any($event.target).value)" />
-              </mat-form-field>
-            </div>
-            <div class="size-form-row">
-              <mat-form-field appearance="outline">
-                <mat-label>Description (optional)</mat-label>
-                <input
-                  matInput
-                  [value]="newSize().description || ''"
-                  (input)="updateNewSizeDescription($any($event.target).value)"
-                  placeholder="e.g., Standard HD for wallpapers" />
-              </mat-form-field>
-            </div>
-            <div class="size-form-actions">
-              <button mat-button (click)="cancelAddingSize()">Cancel</button>
-              <button
-                mat-raised-button
-                color="primary"
-                (click)="addCustomSize()"
-                [disabled]="
-                  !newSize().name || !newSize().width || !newSize().height
-                ">
-                Add Size
-              </button>
-            </div>
-          </div>
-        } @else {
-          <button
-            mat-stroked-button
-            color="primary"
-            (click)="startAddingSize()"
-            class="add-size-button">
-            <mat-icon>add</mat-icon>
-            Add Custom Size
-          </button>
-        }
-      </mat-card-content>
-
-      @if (customSizesModified()) {
-        <mat-card-actions align="end">
-          <button mat-button color="warn" (click)="resetCustomSizes()">
-            <mat-icon>clear_all</mat-icon>
-            Clear All
-          </button>
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="saveCustomSizes()"
             [disabled]="isSaving()">
-            <mat-icon>save</mat-icon>
-            Save Custom Sizes
-          </button>
-        </mat-card-actions>
-      }
+          </mat-slide-toggle>
+        </div>
+      </mat-card-content>
     </mat-card>
+
+    <!-- Model List -->
+    @if (imageGenerationEnabled()) {
+      @if (unifiedModels().length > 0) {
+        <!-- Default Model Display -->
+        @if (defaultModelInfo(); as defaultModel) {
+          <mat-card class="settings-card default-model-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>auto_awesome</mat-icon>
+              <mat-card-title>Default Model</mat-card-title>
+              <mat-card-subtitle>
+                {{ defaultModel.providerName }}
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="default-model-display">
+                <span class="default-model-name">{{ defaultModel.name }}</span>
+                @if (defaultModel.description) {
+                  <span class="default-model-description">{{
+                    defaultModel.description
+                  }}</span>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Models by Provider -->
+        @for (group of modelsByProvider(); track group.providerId) {
+          <mat-card class="settings-card provider-models-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar>api</mat-icon>
+              <mat-card-title>{{ group.providerName }}</mat-card-title>
+              <mat-card-subtitle>
+                {{ group.models.length }}
+                {{ group.models.length === 1 ? 'model' : 'models' }}
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="model-list">
+                @for (model of group.models; track model.id) {
+                  <div class="model-item">
+                    <mat-slide-toggle
+                      class="model-toggle"
+                      [checked]="model.enabled"
+                      (change)="toggleUnifiedModel(model.id, $event.checked)"
+                      [disabled]="isSaving()">
+                    </mat-slide-toggle>
+                    <div class="model-info">
+                      <span class="model-name">
+                        {{ model.name }}
+                        @if (model.isDefault) {
+                          <mat-chip class="default-chip">Default</mat-chip>
+                        }
+                      </span>
+                      @if (model.description) {
+                        <span class="model-description">{{
+                          model.description
+                        }}</span>
+                      }
+                    </div>
+                    <div class="model-actions">
+                      @if (!model.isDefault && model.enabled) {
+                        <button
+                          mat-stroked-button
+                          (click)="setAsDefaultModel(model.id)"
+                          [disabled]="isSaving()">
+                          Make Default
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        @if (unifiedModelsModified()) {
+          <div class="save-actions">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="saveUnifiedModels()"
+              [disabled]="isSaving()">
+              <mat-icon>save</mat-icon>
+              Save Changes
+            </button>
+          </div>
+        }
+      } @else {
+        <mat-card class="settings-card empty-state-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>view_list</mat-icon>
+            <mat-card-title>Available Models</mat-card-title>
+            <mat-card-subtitle>No models available</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="empty-state">
+              <mat-icon>api</mat-icon>
+              <p>
+                Configure at least one AI provider with an API key on the
+                <a routerLink="/admin/ai">AI Providers</a> page to see available
+                models.
+              </p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <!-- Custom Image Sizes -->
+      <mat-card class="settings-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>photo_size_select_large</mat-icon>
+          <mat-card-title>Custom Image Sizes</mat-card-title>
+          <mat-card-subtitle>
+            Define custom resolution profiles for image generation
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p class="help-text">
+            Custom sizes are available in addition to the standard sizes offered
+            by each provider. Note that not all providers support all sizes.
+          </p>
+
+          <!-- Existing Custom Sizes -->
+          @if (customSizes().length > 0) {
+            <div class="custom-sizes-list">
+              @for (size of customSizes(); track size.id) {
+                <div class="custom-size-item">
+                  <div class="size-info">
+                    <span class="size-name">{{ size.name }}</span>
+                    <span class="size-dimensions">
+                      {{ getSizeString(size) }} ({{
+                        getAspectRatioLabel(size)
+                      }})
+                    </span>
+                    @if (size.description) {
+                      <span class="size-description">{{
+                        size.description
+                      }}</span>
+                    }
+                  </div>
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="removeCustomSize(size.id)"
+                    matTooltip="Remove this size">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-state small">
+              <mat-icon>crop_free</mat-icon>
+              <p>No custom sizes defined</p>
+            </div>
+          }
+
+          <mat-divider></mat-divider>
+
+          <!-- Add New Size Form -->
+          @if (editingNewSize()) {
+            <div class="add-size-form">
+              <h4>Add Custom Size</h4>
+              <div class="size-form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Name</mat-label>
+                  <input
+                    matInput
+                    [value]="newSize().name"
+                    (input)="updateNewSizeName($any($event.target).value)"
+                    placeholder="e.g., HD Landscape" />
+                </mat-form-field>
+              </div>
+              <div class="size-form-row dimensions-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Width (px)</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    min="256"
+                    max="4096"
+                    [value]="newSize().width"
+                    (input)="updateNewSizeWidth(+$any($event.target).value)" />
+                </mat-form-field>
+                <span class="dimension-separator">×</span>
+                <mat-form-field appearance="outline">
+                  <mat-label>Height (px)</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    min="256"
+                    max="4096"
+                    [value]="newSize().height"
+                    (input)="updateNewSizeHeight(+$any($event.target).value)" />
+                </mat-form-field>
+              </div>
+              <div class="size-form-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Description (optional)</mat-label>
+                  <input
+                    matInput
+                    [value]="newSize().description || ''"
+                    (input)="
+                      updateNewSizeDescription($any($event.target).value)
+                    "
+                    placeholder="e.g., Standard HD for wallpapers" />
+                </mat-form-field>
+              </div>
+              <div class="size-form-actions">
+                <button mat-button (click)="cancelAddingSize()">Cancel</button>
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="addCustomSize()"
+                  [disabled]="
+                    !newSize().name || !newSize().width || !newSize().height
+                  ">
+                  Add Size
+                </button>
+              </div>
+            </div>
+          } @else {
+            <button
+              mat-stroked-button
+              color="primary"
+              (click)="startAddingSize()"
+              class="add-size-button">
+              <mat-icon>add</mat-icon>
+              Add Custom Size
+            </button>
+          }
+        </mat-card-content>
+
+        @if (customSizesModified()) {
+          <mat-card-actions align="end">
+            <button mat-button color="warn" (click)="resetCustomSizes()">
+              <mat-icon>clear_all</mat-icon>
+              Clear All
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="saveCustomSizes()"
+              [disabled]="isSaving()">
+              <mat-icon>save</mat-icon>
+              Save Custom Sizes
+            </button>
+          </mat-card-actions>
+        }
+      </mat-card>
+    }
   }
 </div>

@@ -1,7 +1,8 @@
 import { Correction } from '../../../api-client/model/correction';
 
 /**
- * Extended correction interface for internal use in the lint system
+ * Extended correction interface for internal use in the lint system.
+ * Adds ProseMirror position tracking on top of the API's Correction type.
  */
 export interface ExtendedCorrectionDto extends Correction {
   /**
