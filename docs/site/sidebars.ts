@@ -30,12 +30,21 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Admin Guide',
+      items: [
+        'admin-guide/overview',
+        'admin-guide/ai-kill-switch',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Hosting',
       items: [
         'hosting/docker',
         'hosting/cloudflare',
         'hosting/ci-cd',
         'hosting/admin-cli',
+        'hosting/ai-image-generation',
       ],
     },
     {

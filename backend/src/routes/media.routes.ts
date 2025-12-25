@@ -217,7 +217,9 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
   if (!allowedTypes.includes(file.type)) {
-    throw new BadRequestError(`Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(', ')}`);
+    throw new BadRequestError(
+      `Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(', ')}`
+    );
   }
 
   // Read file data

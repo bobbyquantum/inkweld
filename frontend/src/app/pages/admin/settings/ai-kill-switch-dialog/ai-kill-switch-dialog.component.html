@@ -1,0 +1,46 @@
+<h2 mat-dialog-title>
+  <mat-icon class="warning-icon">warning</mat-icon>
+  Enable AI Features?
+</h2>
+
+<mat-dialog-content>
+  <p class="warning-text">
+    <strong>Warning:</strong> Disabling the AI kill switch will enable AI
+    features on this server.
+  </p>
+
+  <div class="info-section">
+    <p>
+      Depending on how your AI providers are configured, this could result in:
+    </p>
+    <ul>
+      <li>User content being sent to third-party AI services</li>
+      <li>
+        Data being processed by external providers (OpenAI, OpenRouter, etc.)
+      </li>
+      <li>Potential costs for API usage</li>
+    </ul>
+  </div>
+
+  <div class="recommendation">
+    <mat-icon>tips_and_updates</mat-icon>
+    <p>
+      <strong>Recommendation:</strong> If privacy is a concern, consider using
+      self-hosted AI providers (like local Stable Diffusion or Ollama) to keep
+      all data on your own infrastructure.
+    </p>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" data-testid="cancel-ai-enable">
+    Cancel
+  </button>
+  <button
+    mat-raised-button
+    color="warn"
+    (click)="onConfirm()"
+    data-testid="confirm-ai-enable">
+    Enable AI Features
+  </button>
+</mat-dialog-actions>

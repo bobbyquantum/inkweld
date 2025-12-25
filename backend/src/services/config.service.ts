@@ -110,6 +110,8 @@ class ConfigService {
 
     // Hardcoded defaults for boolean values
     switch (key) {
+      case 'AI_KILL_SWITCH':
+        return 'true'; // Default to ON (AI disabled) for safety
       case 'USER_APPROVAL_REQUIRED':
         return 'true';
       case 'LOCAL_USERS_ENABLED':
