@@ -16,7 +16,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { AIImageGenerationService, CustomImageSize } from 'api-client';
+import {
+  AIImageGenerationService,
+  CustomImageSize,
+  DefaultTextToImageModelsResponse,
+  ImageModelInfo,
+} from 'api-client';
+import { firstValueFrom } from 'rxjs';
 
 interface ProviderConfig {
   enabled: boolean;
@@ -122,6 +128,10 @@ export class AdminAiSettingsComponent implements OnInit {
   readonly openrouterModels = signal<ModelConfig[]>([]);
   readonly falaiModels = signal<ModelConfig[]>([]);
 
+  // Cached default models from backend API (single source of truth)
+  private readonly defaultModelsCache =
+    signal<DefaultTextToImageModelsResponse | null>(null);
+
   // Track if models have been modified
   readonly openaiModelsModified = signal(false);
   readonly openrouterModelsModified = signal(false);
@@ -172,6 +182,9 @@ export class AdminAiSettingsComponent implements OnInit {
     this.error.set(null);
 
     try {
+      // First, fetch default models from the backend (single source of truth)
+      await this.fetchDefaultModels();
+
       const config = await this.configService.getAllConfig();
 
       // Global settings
@@ -260,6 +273,27 @@ export class AdminAiSettingsComponent implements OnInit {
     } catch (err) {
       console.error('Failed to load custom sizes:', err);
       this.customSizes.set([]);
+    }
+  }
+
+  /**
+   * Fetch default models from backend API.
+   * This is the single source of truth for available text-to-image models.
+   */
+  private async fetchDefaultModels(): Promise<void> {
+    try {
+      const response = await firstValueFrom(
+        this.imageService.getDefaultTextToImageModels()
+      );
+      this.defaultModelsCache.set(response);
+      console.log(
+        '[AI Settings] Loaded default models from backend:',
+        response.providers
+      );
+    } catch (err) {
+      console.error('Failed to fetch default models from backend:', err);
+      // Continue with empty cache - parseModelsConfig will return empty arrays
+      this.defaultModelsCache.set(null);
     }
   }
 
@@ -583,23 +617,52 @@ export class AdminAiSettingsComponent implements OnInit {
 
   // Model configuration methods
 
-  /** Parse models JSON string or return defaults */
+  /**
+   * Convert ImageModelInfo from API to ModelConfig for UI.
+   * Adds an 'enabled' flag for toggle controls.
+   */
+  private apiModelToModelConfig(model: ImageModelInfo): ModelConfig {
+    return {
+      id: model.id,
+      name: model.name,
+      description: model.description,
+      enabled: true, // Default to enabled
+      supportedSizes: model.supportedSizes,
+      supportsQuality: model.supportsQuality,
+      supportsStyle: model.supportsStyle,
+      maxImages: model.maxImages,
+    };
+  }
+
+  /**
+   * Get default models for a provider from the cached API response.
+   * Returns an empty array if cache is not available.
+   */
+  private getDefaultModelsForProvider(
+    provider: 'openai' | 'openrouter' | 'falai'
+  ): ModelConfig[] {
+    const cache = this.defaultModelsCache();
+    if (!cache?.providers) {
+      console.warn(
+        `[AI Settings] No default models cache for provider: ${provider}`
+      );
+      return [];
+    }
+
+    const providerData = cache.providers[provider];
+    if (!providerData?.models) {
+      return [];
+    }
+
+    return providerData.models.map(m => this.apiModelToModelConfig(m));
+  }
+
+  /** Parse models JSON string or return defaults from backend API */
   private parseModelsConfig(
     json: string,
     provider: 'openai' | 'openrouter' | 'falai'
   ): ModelConfig[] {
-    let defaults: ModelConfig[];
-    switch (provider) {
-      case 'openai':
-        defaults = this.getDefaultOpenaiModelsList();
-        break;
-      case 'openrouter':
-        defaults = this.getDefaultOpenrouterModelsList();
-        break;
-      case 'falai':
-        defaults = this.getDefaultFalaiModelsList();
-        break;
-    }
+    const defaults = this.getDefaultModelsForProvider(provider);
 
     if (!json) {
       return defaults;
@@ -738,13 +801,13 @@ export class AdminAiSettingsComponent implements OnInit {
 
   /** Reset OpenAI models to defaults */
   resetOpenaiModels(): void {
-    this.openaiModels.set(this.getDefaultOpenaiModelsList());
+    this.openaiModels.set(this.getDefaultModelsForProvider('openai'));
     this.openaiModelsModified.set(true);
   }
 
   /** Reset OpenRouter models to defaults */
   resetOpenrouterModels(): void {
-    this.openrouterModels.set(this.getDefaultOpenrouterModelsList());
+    this.openrouterModels.set(this.getDefaultModelsForProvider('openrouter'));
     this.openrouterModelsModified.set(true);
   }
 
@@ -781,141 +844,8 @@ export class AdminAiSettingsComponent implements OnInit {
 
   /** Reset Fal.ai models to defaults */
   resetFalaiModels(): void {
-    this.falaiModels.set(this.getDefaultFalaiModelsList());
+    this.falaiModels.set(this.getDefaultModelsForProvider('falai'));
     this.falaiModelsModified.set(true);
-  }
-
-  /** Get default OpenAI models as a list */
-  getDefaultOpenaiModelsList(): ModelConfig[] {
-    return [
-      {
-        id: 'gpt-image-1',
-        name: 'GPT Image 1',
-        description: 'Latest GPT image model with best quality',
-        enabled: true,
-        supportedSizes: ['1024x1024', '1536x1024', '1024x1536', 'auto'],
-        supportsQuality: true,
-        supportsStyle: false,
-        maxImages: 1,
-      },
-      {
-        id: 'gpt-image-1-mini',
-        name: 'GPT Image 1 Mini',
-        description: 'Fast and efficient image generation',
-        enabled: true,
-        supportedSizes: ['1024x1024', '1536x1024', '1024x1536', 'auto'],
-        supportsQuality: true,
-        supportsStyle: false,
-        maxImages: 1,
-      },
-    ];
-  }
-
-  /** Get default OpenRouter models as a list */
-  getDefaultOpenrouterModelsList(): ModelConfig[] {
-    return [
-      {
-        id: 'black-forest-labs/flux-1.1-pro',
-        name: 'FLUX 1.1 Pro',
-        description: 'High-quality image generation by Black Forest Labs',
-        enabled: true,
-        supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
-        supportsQuality: false,
-        supportsStyle: false,
-        maxImages: 1,
-      },
-      {
-        id: 'black-forest-labs/flux.2-flex',
-        name: 'FLUX 2 Flex',
-        description: 'Flexible FLUX model with fast generation',
-        enabled: true,
-        supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
-        supportsQuality: false,
-        supportsStyle: false,
-        maxImages: 1,
-      },
-      {
-        id: 'google/gemini-2.5-flash-image',
-        name: 'Gemini 2.5 Flash Image',
-        description: 'Google Gemini 2.5 Flash with image generation',
-        enabled: true,
-        supportedSizes: ['1024x1024'],
-        supportsQuality: false,
-        supportsStyle: false,
-        maxImages: 1,
-      },
-      {
-        id: 'google/gemini-3-pro-image-preview',
-        name: 'Gemini 3 Pro Image (Preview)',
-        description: 'Google Gemini 3 Pro image generation preview',
-        enabled: true,
-        supportedSizes: ['1024x1024'],
-        supportsQuality: false,
-        supportsStyle: false,
-        maxImages: 1,
-      },
-    ];
-  }
-
-  /** Get default Fal.ai models as a list */
-  getDefaultFalaiModelsList(): ModelConfig[] {
-    // Nano Banana aspect ratio combinations
-    const nanoBananaAspectRatios = [
-      '1:1',
-      '16:9',
-      '9:16',
-      '4:3',
-      '3:4',
-      '21:9',
-      '9:21',
-      '3:2',
-      '2:3',
-    ];
-    const nanoBananaResolutions = ['1K', '2K', '4K'];
-    const nanoBananaSizes: string[] = [];
-    for (const ratio of nanoBananaAspectRatios) {
-      for (const res of nanoBananaResolutions) {
-        nanoBananaSizes.push(`${ratio}@${res}`);
-      }
-    }
-
-    return [
-      {
-        id: 'fal-ai/flux-2-pro',
-        name: 'FLUX 2 Pro',
-        description: 'FLUX 2 Pro - excellent quality with flexible resolution',
-        enabled: true,
-        supportedSizes: [
-          '1024x1024',
-          '1920x1080',
-          '1080x1920',
-          '1600x2560',
-          '2560x1600',
-          '832x1248',
-          '1248x832',
-          '864x1184',
-          '1184x864',
-          '896x1152',
-          '1152x896',
-          '768x1344',
-          '1344x768',
-        ],
-        supportsQuality: false,
-        supportsStyle: false,
-        maxImages: 4,
-      },
-      {
-        id: 'fal-ai/nano-banana-pro',
-        name: 'Nano Banana Pro',
-        description:
-          'Nano Banana Pro - fast generation with aspect ratio + resolution control',
-        enabled: true,
-        supportedSizes: nanoBananaSizes,
-        supportsQuality: false,
-        supportsStyle: false,
-        maxImages: 4,
-      },
-    ];
   }
 
   // ========== Custom Sizes Methods ==========

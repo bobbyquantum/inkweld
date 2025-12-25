@@ -1,14 +1,17 @@
 /**
  * AI Image Generation Routes
  *
- * Unified routes for multi-provider image generation.
- * Supports OpenAI DALL-E, OpenRouter, and Stable Diffusion.
+ * Unified routes for multi-provider image generation (text-to-image).
+ * Supports OpenAI DALL-E, OpenRouter, Stable Diffusion, and Fal.ai.
  */
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { imageGenerationService } from '../services/image-generation.service';
 import { configService } from '../services/config.service';
+import { DEFAULT_OPENAI_MODELS } from '../services/image-providers/openai-provider';
+import { DEFAULT_OPENROUTER_MODELS } from '../services/image-providers/openrouter-provider';
+import { DEFAULT_FALAI_MODELS } from '../services/image-providers/falai-provider';
 import type { AppContext } from '../types/context';
 import type {
   ImageProviderType,
@@ -188,6 +191,34 @@ const CustomSizesResponseSchema = z
     sizes: z.array(CustomImageSizeSchema).openapi({ description: 'Custom image sizes' }),
   })
   .openapi('CustomSizesResponse');
+
+// Default models response schema - provides default model configs for text-to-image providers
+const DefaultTextToImageModelsResponseSchema = z
+  .object({
+    providers: z
+      .object({
+        openai: z
+          .object({
+            name: z.string().openapi({ description: 'Provider display name' }),
+            models: z.array(ModelInfoSchema).openapi({ description: 'Default models' }),
+          })
+          .openapi({ description: 'OpenAI default models' }),
+        openrouter: z
+          .object({
+            name: z.string().openapi({ description: 'Provider display name' }),
+            models: z.array(ModelInfoSchema).openapi({ description: 'Default models' }),
+          })
+          .openapi({ description: 'OpenRouter default models' }),
+        falai: z
+          .object({
+            name: z.string().openapi({ description: 'Provider display name' }),
+            models: z.array(ModelInfoSchema).openapi({ description: 'Default models' }),
+          })
+          .openapi({ description: 'Fal.ai default models' }),
+      })
+      .openapi({ description: 'Default models grouped by provider' }),
+  })
+  .openapi('DefaultTextToImageModelsResponse');
 
 // ============================================================================
 // Routes
@@ -457,6 +488,56 @@ aiImageRoutes.openapi(updateCustomSizesRoute, async (c) => {
 
     return c.json({ error: err.message || 'Failed to update custom sizes' }, 400);
   }
+});
+
+// ============================================================================
+// Default Models Route (text-to-image)
+// ============================================================================
+
+// Get default models for all text-to-image providers
+// This is the single source of truth for model configurations
+const defaultModelsRoute = createRoute({
+  method: 'get',
+  path: '/default-models',
+  tags: ['AI Image Generation'],
+  summary: 'Get default text-to-image models',
+  description:
+    'Get default model configurations for all text-to-image providers. This is the authoritative source of available models - frontend should use this instead of hardcoding model lists.',
+  operationId: 'getDefaultTextToImageModels',
+  responses: {
+    200: {
+      description: 'Default models for all providers',
+      content: { 'application/json': { schema: DefaultTextToImageModelsResponseSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+aiImageRoutes.openapi(defaultModelsRoute, async (c) => {
+  // Return the default models from each provider
+  // These are the built-in defaults that can be overridden via admin config
+  return c.json(
+    {
+      providers: {
+        openai: {
+          name: 'OpenAI',
+          models: DEFAULT_OPENAI_MODELS,
+        },
+        openrouter: {
+          name: 'OpenRouter',
+          models: DEFAULT_OPENROUTER_MODELS,
+        },
+        falai: {
+          name: 'Fal.ai',
+          models: DEFAULT_FALAI_MODELS,
+        },
+      },
+    },
+    200
+  );
 });
 
 export default aiImageRoutes;

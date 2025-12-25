@@ -19,6 +19,8 @@ import { Observable }                                        from 'rxjs';
 // @ts-ignore
 import { CustomSizesResponse } from '../model/custom-sizes-response';
 // @ts-ignore
+import { DefaultTextToImageModelsResponse } from '../model/default-text-to-image-models-response';
+// @ts-ignore
 import { GetProviderModels200Response } from '../model/get-provider-models200-response';
 // @ts-ignore
 import { ImageGenerateRequest } from '../model/image-generate-request';
@@ -152,6 +154,58 @@ export class AIImageGenerationService extends BaseService {
         let localVarPath = `/api/v1/ai/image/custom-sizes`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<CustomSizesResponse>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Get default text-to-image models
+     * Get default model configurations for all text-to-image providers. This is the authoritative source of available models - frontend should use this instead of hardcoding model lists.
+     * @endpoint get /api/v1/ai/image/default-models
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getDefaultTextToImageModels(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<DefaultTextToImageModelsResponse>;
+    public getDefaultTextToImageModels(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<DefaultTextToImageModelsResponse>>;
+    public getDefaultTextToImageModels(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<DefaultTextToImageModelsResponse>>;
+    public getDefaultTextToImageModels(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/image/default-models`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<DefaultTextToImageModelsResponse>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

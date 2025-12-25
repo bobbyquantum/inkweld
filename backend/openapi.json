@@ -1397,6 +1397,88 @@
           "sizes"
         ]
       },
+      "DefaultTextToImageModelsResponse": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "object",
+            "properties": {
+              "openai": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Provider display name"
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ImageModelInfo"
+                    },
+                    "description": "Default models"
+                  }
+                },
+                "required": [
+                  "name",
+                  "models"
+                ],
+                "description": "OpenAI default models"
+              },
+              "openrouter": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Provider display name"
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ImageModelInfo"
+                    },
+                    "description": "Default models"
+                  }
+                },
+                "required": [
+                  "name",
+                  "models"
+                ],
+                "description": "OpenRouter default models"
+              },
+              "falai": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Provider display name"
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ImageModelInfo"
+                    },
+                    "description": "Default models"
+                  }
+                },
+                "required": [
+                  "name",
+                  "models"
+                ],
+                "description": "Fal.ai default models"
+              }
+            },
+            "required": [
+              "openai",
+              "openrouter",
+              "falai"
+            ],
+            "description": "Default models grouped by provider"
+          }
+        },
+        "required": [
+          "providers"
+        ]
+      },
       "JsonRpcResponse": {
         "type": "object",
         "properties": {
@@ -5262,6 +5344,38 @@
           },
           "403": {
             "description": "Forbidden - admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/image/default-models": {
+      "get": {
+        "tags": [
+          "AI Image Generation"
+        ],
+        "summary": "Get default text-to-image models",
+        "description": "Get default model configurations for all text-to-image providers. This is the authoritative source of available models - frontend should use this instead of hardcoding model lists.",
+        "operationId": "getDefaultTextToImageModels",
+        "responses": {
+          "200": {
+            "description": "Default models for all providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultTextToImageModelsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
