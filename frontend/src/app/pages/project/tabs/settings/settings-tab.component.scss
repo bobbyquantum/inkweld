@@ -1,0 +1,411 @@
+.settings-tab {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  color: var(--sys-on-surface);
+
+  h2 {
+    margin: 0 0 24px 0;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+.settings-section {
+  margin-bottom: 32px;
+
+  &.coming-soon {
+    opacity: 0.7;
+  }
+}
+
+.section-description {
+  margin: 0 0 16px 0;
+  color: var(--sys-on-surface-variant);
+}
+
+.coming-soon-badge {
+  font-size: 12px;
+  background: var(--sys-primary-container);
+  color: var(--sys-on-primary-container);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+// Cards
+mat-card {
+  margin-bottom: 16px;
+}
+
+.info-card,
+.error-card {
+  mat-card-content {
+    padding: 16px;
+  }
+}
+
+.info-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--sys-on-surface);
+
+  mat-icon {
+    flex-shrink: 0;
+    color: var(--sys-primary);
+  }
+
+  div {
+    flex: 1;
+  }
+}
+
+.info-card.offline {
+  background: var(--sys-surface-container-high);
+
+  mat-icon {
+    color: var(--sys-tertiary);
+  }
+}
+
+.error-card {
+  background: var(--sys-error-container);
+
+  mat-card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--sys-on-error-container);
+
+    mat-icon {
+      color: var(--sys-error);
+    }
+  }
+}
+
+// Loading state
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--sys-on-surface-variant);
+}
+
+// Keys list
+.keys-card {
+  mat-card-content {
+    padding: 0;
+  }
+}
+
+.keys-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.key-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+  border-bottom: 1px solid var(--sys-outline-variant);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.revoked {
+    opacity: 0.6;
+    background: var(--sys-surface-container);
+  }
+}
+
+.key-info {
+  flex: 1;
+  color: var(--sys-on-surface);
+}
+
+.key-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+
+  strong {
+    font-size: 16px;
+    color: var(--sys-on-surface);
+  }
+}
+
+.revoked-badge {
+  font-size: 11px;
+  background: var(--sys-error-container);
+  color: var(--sys-on-error-container);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.key-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  margin-bottom: 8px;
+}
+
+.key-prefix {
+  font-family: monospace;
+  background: var(--sys-surface-container-high);
+  color: var(--sys-on-surface);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.key-expires.warning {
+  color: var(--sys-error);
+}
+
+.key-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.permission-chip {
+  font-size: 11px;
+  background: var(--sys-secondary-container);
+  color: var(--sys-on-secondary-container);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.key-actions {
+  display: flex;
+  gap: 4px;
+}
+
+// New key display
+.new-key-card.success {
+  background: var(--sys-tertiary-container);
+  border: 2px solid var(--sys-tertiary);
+
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--sys-on-tertiary-container);
+
+      mat-icon {
+        color: var(--sys-tertiary);
+      }
+    }
+  }
+}
+
+.warning-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sys-error);
+  font-weight: 500;
+  margin-bottom: 16px;
+
+  mat-icon {
+    font-size: 20px;
+  }
+}
+
+.key-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sys-surface);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.full-key {
+  flex: 1;
+  font-family: monospace;
+  font-size: 14px;
+  word-break: break-all;
+  padding: 8px;
+  background: var(--sys-surface-container);
+  color: var(--sys-on-surface);
+  border-radius: 4px;
+}
+
+.dismiss-button {
+  width: 100%;
+}
+
+// Create key form
+.create-key-card {
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.permissions-section {
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.permissions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+}
+
+.permission-shortcuts {
+  display: flex;
+  gap: 4px;
+
+  button {
+    font-size: 12px;
+    padding: 0 8px;
+    min-width: auto;
+  }
+}
+
+.permission-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  h5 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sys-on-surface-variant);
+  }
+}
+
+.permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+// Sync card
+.sync-card {
+  mat-card-content {
+    padding: 16px;
+  }
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .label {
+    font-size: 12px;
+    color: var(--sys-on-surface-variant);
+  }
+
+  .value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+
+    &.warning {
+      color: var(--sys-error);
+    }
+  }
+}
+
+.sync-progress-text {
+  text-align: center;
+  font-size: 14px;
+  color: var(--sys-on-surface-variant);
+  margin: 8px 0 16px 0;
+}
+
+.error-text {
+  color: var(--sys-error);
+  margin: 8px 0;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// Responsive adjustments
+@media (max-width: 600px) {
+  .settings-tab {
+    padding: 16px;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .permissions-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .permission-shortcuts {
+    flex-wrap: wrap;
+  }
+
+  .key-meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

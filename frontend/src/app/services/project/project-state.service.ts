@@ -824,6 +824,7 @@ export class ProjectStateService implements OnDestroy {
       | 'templates-list'
       | 'relationships-list'
       | 'tags-list'
+      | 'settings'
       | 'home'
   ): void {
     const result = this.tabManager.openSystemTab(type);
