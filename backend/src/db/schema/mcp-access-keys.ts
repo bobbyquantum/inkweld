@@ -87,16 +87,12 @@ export const MCP_PERMISSIONS = {
   // Read permissions
   READ_PROJECT: 'read:project',
   READ_ELEMENTS: 'read:elements',
-  READ_DOCUMENTS: 'read:documents',
   READ_WORLDBUILDING: 'read:worldbuilding',
   READ_SCHEMAS: 'read:schemas',
-  READ_MEDIA: 'read:media',
 
   // Write permissions
   WRITE_ELEMENTS: 'write:elements',
   WRITE_WORLDBUILDING: 'write:worldbuilding',
-  WRITE_SCHEMAS: 'write:schemas',
-  WRITE_MEDIA: 'write:media',
 } as const;
 
 export type McpPermission = (typeof MCP_PERMISSIONS)[keyof typeof MCP_PERMISSIONS];
@@ -109,24 +105,18 @@ export const MCP_PERMISSION_PRESETS = {
   READ_ONLY: [
     MCP_PERMISSIONS.READ_PROJECT,
     MCP_PERMISSIONS.READ_ELEMENTS,
-    MCP_PERMISSIONS.READ_DOCUMENTS,
     MCP_PERMISSIONS.READ_WORLDBUILDING,
     MCP_PERMISSIONS.READ_SCHEMAS,
-    MCP_PERMISSIONS.READ_MEDIA,
   ],
 
   /** Full read/write access */
   FULL_ACCESS: [
     MCP_PERMISSIONS.READ_PROJECT,
     MCP_PERMISSIONS.READ_ELEMENTS,
-    MCP_PERMISSIONS.READ_DOCUMENTS,
     MCP_PERMISSIONS.READ_WORLDBUILDING,
     MCP_PERMISSIONS.READ_SCHEMAS,
-    MCP_PERMISSIONS.READ_MEDIA,
     MCP_PERMISSIONS.WRITE_ELEMENTS,
     MCP_PERMISSIONS.WRITE_WORLDBUILDING,
-    MCP_PERMISSIONS.WRITE_SCHEMAS,
-    MCP_PERMISSIONS.WRITE_MEDIA,
   ],
 
   /** Worldbuilding-focused access */

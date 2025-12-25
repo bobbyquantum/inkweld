@@ -353,6 +353,19 @@ const uploadAvatarRoute = createRoute({
   path: '/avatar',
   tags: ['Users'],
   operationId: 'uploadUserAvatar',
+  request: {
+    body: {
+      content: {
+        'multipart/form-data': {
+          schema: z.object({
+            avatar: z
+              .any()
+              .openapi({ type: 'string', format: 'binary', description: 'Avatar image file' }),
+          }),
+        },
+      },
+    },
+  },
   responses: {
     200: {
       content: {

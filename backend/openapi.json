@@ -1488,14 +1488,10 @@
         "enum": [
           "read:project",
           "read:elements",
-          "read:documents",
           "read:worldbuilding",
           "read:schemas",
-          "read:media",
           "write:elements",
-          "write:worldbuilding",
-          "write:schemas",
-          "write:media"
+          "write:worldbuilding"
         ]
       },
       "McpPublicKey": {
@@ -2182,6 +2178,22 @@
           "Users"
         ],
         "operationId": "uploadUserAvatar",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Avatar image file"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Avatar uploaded",

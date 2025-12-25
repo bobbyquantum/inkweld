@@ -4,7 +4,7 @@ import { lookup } from 'mime-types';
 import { requireAuth } from '../middleware/auth';
 import { getStorageService } from '../services/storage.service';
 import { projectService } from '../services/project.service';
-import { ForbiddenError, NotFoundError } from '../errors';
+import { BadRequestError, ForbiddenError, NotFoundError } from '../errors';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
@@ -211,13 +211,13 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
   const file = body['file'] || body['image'];
 
   if (!file || !(file instanceof File)) {
-    throw new NotFoundError('No file provided');
+    throw new BadRequestError('No file provided');
   }
 
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
   if (!allowedTypes.includes(file.type)) {
-    throw new NotFoundError(`Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(', ')}`);
+    throw new BadRequestError(`Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(', ')}`);
   }
 
   // Read file data
