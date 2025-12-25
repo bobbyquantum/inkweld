@@ -511,3 +511,136 @@
     }
   }
 }
+
+// =========================================================================
+// Unified Model List Styles
+// =========================================================================
+
+.default-model-card {
+  background-color: var(--mat-sys-primary-container);
+
+  mat-card-title {
+    color: var(--mat-sys-on-primary-container);
+  }
+
+  mat-card-subtitle {
+    color: var(--mat-sys-on-primary-container);
+    opacity: 0.8;
+  }
+
+  mat-icon[mat-card-avatar] {
+    background-color: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
+  }
+
+  .default-model-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .default-model-name {
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: var(--mat-sys-on-primary-container);
+    }
+
+    .default-model-description {
+      font-size: 0.875rem;
+      color: var(--mat-sys-on-primary-container);
+      opacity: 0.8;
+    }
+  }
+}
+
+.provider-models-card {
+  .model-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .model-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .model-toggle {
+    flex-shrink: 0;
+  }
+
+  .model-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .model-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface);
+  }
+
+  .model-description {
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .model-actions {
+    flex-shrink: 0;
+  }
+
+  .default-chip {
+    font-size: 0.75rem;
+    height: 20px;
+    padding: 0 8px;
+  }
+}
+
+.save-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0;
+}
+
+.empty-state-card {
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    gap: 16px;
+    text-align: center;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    p {
+      color: var(--mat-sys-on-surface-variant);
+      margin: 0;
+
+      a {
+        color: var(--mat-sys-primary);
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}

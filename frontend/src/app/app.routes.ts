@@ -65,12 +65,28 @@ export const routes: Routes = [
         title: 'Admin - Settings',
       },
       {
+        path: 'ai-providers',
+        loadComponent: () =>
+          import('./pages/admin/ai-providers/ai-providers.component').then(
+            m => m.AdminAiProvidersComponent
+          ),
+        title: 'Admin - AI Providers',
+      },
+      {
         path: 'ai',
         loadComponent: () =>
           import('./pages/admin/ai-settings/ai-settings.component').then(
             m => m.AdminAiSettingsComponent
           ),
-        title: 'Admin - AI Settings',
+        title: 'Admin - AI Image Settings',
+      },
+      {
+        path: 'ai-text',
+        loadComponent: () =>
+          import('./pages/admin/ai-text-settings/ai-text-settings.component').then(
+            m => m.AdminAiTextSettingsComponent
+          ),
+        title: 'Admin - AI Text Settings',
       },
     ],
   },

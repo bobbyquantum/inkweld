@@ -1,0 +1,312 @@
+<div class="ai-text-settings-container">
+  <!-- AI Kill Switch Warning Banner -->
+  @if (isAiKillSwitchEnabled()) {
+    <mat-card class="kill-switch-warning">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="warning-icon">block</mat-icon>
+        <mat-card-title>AI Features Disabled</mat-card-title>
+        <mat-card-subtitle>
+          @if (isAiKillSwitchLockedByEnv()) {
+            AI features are disabled by the
+            <code>AI_KILL_SWITCH</code> environment variable.
+          } @else {
+            The AI Kill Switch is enabled. All AI features are currently
+            disabled.
+          }
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          While the kill switch is enabled, AI text generation features
+          (linting, prompt optimization) will not be available. You can still
+          configure AI providers below, but they will not be used until the kill
+          switch is disabled.
+        </p>
+      </mat-card-content>
+      @if (!isAiKillSwitchLockedByEnv()) {
+        <mat-card-actions>
+          <a mat-button color="primary" routerLink="/admin/settings">
+            <mat-icon>settings</mat-icon>
+            Go to Settings to disable Kill Switch
+          </a>
+        </mat-card-actions>
+      }
+    </mat-card>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading AI text configuration...</p>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>error</mat-icon>
+        <mat-card-title>Error Loading Configuration</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>{{ error()?.message }}</p>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-button color="primary" (click)="loadConfig()">
+          <mat-icon>refresh</mat-icon>
+          Retry
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  } @else {
+    <!-- Global Settings -->
+    <mat-card class="settings-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>psychology</mat-icon>
+        <mat-card-title>AI Text Generation</mat-card-title>
+        <mat-card-subtitle
+          >Global settings for AI-powered text generation (linting, prompt
+          optimization)</mat-card-subtitle
+        >
+      </mat-card-header>
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Enable Text Generation</span>
+            <span class="setting-description"
+              >Allow AI text generation features like linting and prompt
+              optimization</span
+            >
+          </div>
+          <mat-slide-toggle
+            [checked]="textGenerationEnabled()"
+            (change)="saveGlobalEnabled($event.checked)"
+            [disabled]="isSaving()"></mat-slide-toggle>
+        </div>
+
+        @if (textGenerationEnabled()) {
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Default Provider</span>
+              <span class="setting-description"
+                >Provider used when none is specified</span
+              >
+            </div>
+            <mat-form-field appearance="outline" class="provider-select">
+              <mat-select
+                [value]="defaultProvider()"
+                (selectionChange)="saveDefaultProvider($event.value)"
+                [disabled]="isSaving()">
+                <mat-option value="openai">OpenAI</mat-option>
+                <mat-option value="openrouter">OpenRouter</mat-option>
+                <mat-option value="anthropic">Anthropic</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    @if (textGenerationEnabled()) {
+      <!-- Lint Settings -->
+      <mat-card class="settings-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>spellcheck</mat-icon>
+          <mat-card-title>AI Linting</mat-card-title>
+          <mat-card-subtitle>
+            Configure the AI model and prompt used for document linting
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Lint Model</span>
+              <span class="setting-description">
+                Model used for AI-powered grammar and style checking
+              </span>
+            </div>
+            <mat-form-field appearance="outline" class="model-select">
+              <mat-select
+                [value]="lintModel()"
+                (selectionChange)="saveLintModel($event.value)"
+                (opened)="lintModelSearch.set('')"
+                [disabled]="isSaving()">
+                <div class="model-search-container">
+                  <mat-icon>search</mat-icon>
+                  <input
+                    type="text"
+                    class="model-search-input"
+                    placeholder="Search models..."
+                    [value]="lintModelSearch()"
+                    (input)="lintModelSearch.set($any($event.target).value)"
+                    (keydown)="$event.stopPropagation()" />
+                  @if (lintModelSearch()) {
+                    <button
+                      type="button"
+                      class="clear-search-btn"
+                      (click)="lintModelSearch.set('')">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  }
+                </div>
+                <mat-divider></mat-divider>
+                <mat-option value="">Use Default</mat-option>
+                @for (model of filteredLintModels(); track model.id) {
+                  <mat-option [value]="model.id">
+                    {{ model.name }}
+                    <span class="provider-badge">{{ model.provider }}</span>
+                  </mat-option>
+                } @empty {
+                  <mat-option disabled class="no-results-option">
+                    No models matching "{{ lintModelSearch() }}"
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="setting-row vertical">
+            <div class="setting-info">
+              <span class="setting-label">Custom Lint Prompt</span>
+              <span class="setting-description">
+                Customize the system prompt sent to the AI for linting. Leave
+                empty to use the default prompt.
+              </span>
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Custom lint prompt</mat-label>
+              <textarea
+                matInput
+                rows="6"
+                [value]="lintPrompt()"
+                (input)="lintPrompt.set($any($event.target).value)"
+                placeholder="You are an expert editor helping to improve creative writing..."></textarea>
+            </mat-form-field>
+            <div class="action-row">
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="saveLintPrompt()"
+                [disabled]="isSaving()">
+                <mat-icon>save</mat-icon>
+                Save Lint Prompt
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Image Prompt Optimization Settings -->
+      <mat-card class="settings-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>auto_fix_high</mat-icon>
+          <mat-card-title>Image Prompt Optimization</mat-card-title>
+          <mat-card-subtitle>
+            Configure the AI model that optimizes worldbuilding data into image
+            generation prompts
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Optimization Model</span>
+              <span class="setting-description">
+                Model used to transform raw worldbuilding data into optimized
+                image prompts
+              </span>
+            </div>
+            <mat-form-field appearance="outline" class="model-select">
+              <mat-select
+                [value]="imagePromptModel()"
+                (selectionChange)="saveImagePromptModel($event.value)"
+                (opened)="imagePromptModelSearch.set('')"
+                [disabled]="isSaving()">
+                <div class="model-search-container">
+                  <mat-icon>search</mat-icon>
+                  <input
+                    type="text"
+                    class="model-search-input"
+                    placeholder="Search models..."
+                    [value]="imagePromptModelSearch()"
+                    (input)="
+                      imagePromptModelSearch.set($any($event.target).value)
+                    "
+                    (keydown)="$event.stopPropagation()" />
+                  @if (imagePromptModelSearch()) {
+                    <button
+                      type="button"
+                      class="clear-search-btn"
+                      (click)="imagePromptModelSearch.set('')">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  }
+                </div>
+                <mat-divider></mat-divider>
+                <mat-option value="">Use Default</mat-option>
+                @for (model of filteredImagePromptModels(); track model.id) {
+                  <mat-option [value]="model.id">
+                    {{ model.name }}
+                    <span class="provider-badge">{{ model.provider }}</span>
+                  </mat-option>
+                } @empty {
+                  <mat-option disabled class="no-results-option">
+                    No models matching "{{ imagePromptModelSearch() }}"
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="setting-row vertical">
+            <div class="setting-info">
+              <span class="setting-label">Custom Optimization Template</span>
+              <span class="setting-description">
+                Customize the system prompt for transforming worldbuilding data
+                into image prompts. Leave empty to use the default template.
+              </span>
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Custom optimization template</mat-label>
+              <textarea
+                matInput
+                rows="8"
+                [value]="imagePromptTemplate()"
+                (input)="imagePromptTemplate.set($any($event.target).value)"
+                placeholder="You are an expert at creating prompts for AI image generation..."></textarea>
+            </mat-form-field>
+            <div class="action-row">
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="saveImagePromptTemplate()"
+                [disabled]="isSaving()">
+                <mat-icon>save</mat-icon>
+                Save Template
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- No providers configured hint -->
+      @if (availableModels().length === 0) {
+        <mat-card class="settings-card empty-state-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>api</mat-icon>
+            <mat-card-title>No Providers Configured</mat-card-title>
+            <mat-card-subtitle>
+              Configure API keys to enable text models
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="empty-state">
+              <mat-icon>key</mat-icon>
+              <p>
+                Configure API keys for text providers (OpenAI, OpenRouter, or
+                Anthropic) on the
+                <a routerLink="/admin/providers">AI Providers</a> page.
+              </p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  }
+</div>

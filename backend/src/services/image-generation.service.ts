@@ -55,10 +55,12 @@ class ImageGenerationService {
     // Configure OpenAI provider
     const openaiProvider = this.providers.get('openai') as OpenAIImageProvider;
     const openaiEnabled = await configService.getBoolean(db, 'AI_IMAGE_OPENAI_ENABLED');
-    const openaiApiKey = await this.getConfigValue(db, 'OPENAI_API_KEY');
+    const openaiApiKey = await this.getConfigValue(db, 'AI_OPENAI_API_KEY');
+    const openaiEndpoint = await this.getConfigValue(db, 'AI_OPENAI_ENDPOINT');
     openaiProvider.configure({
       enabled: openaiEnabled || !!openaiApiKey, // Auto-enable if API key is set
       apiKey: openaiApiKey,
+      endpoint: openaiEndpoint,
     });
     // Load custom model configuration for OpenAI
     const openaiModelsJson = await this.getConfigValue(db, 'AI_IMAGE_OPENAI_MODELS');
@@ -77,7 +79,7 @@ class ImageGenerationService {
     // Configure OpenRouter provider
     const openrouterProvider = this.providers.get('openrouter') as OpenRouterImageProvider;
     const openrouterEnabled = await configService.getBoolean(db, 'AI_IMAGE_OPENROUTER_ENABLED');
-    const openrouterApiKey = await this.getConfigValue(db, 'AI_IMAGE_OPENROUTER_API_KEY');
+    const openrouterApiKey = await this.getConfigValue(db, 'AI_OPENROUTER_API_KEY');
     openrouterProvider.configure({
       enabled: openrouterEnabled,
       apiKey: openrouterApiKey,
@@ -101,8 +103,8 @@ class ImageGenerationService {
     // Configure Stable Diffusion provider
     const sdProvider = this.providers.get('stable-diffusion') as StableDiffusionProvider;
     const sdEnabled = await configService.getBoolean(db, 'AI_IMAGE_SD_ENABLED');
-    const sdEndpoint = await this.getConfigValue(db, 'AI_IMAGE_SD_ENDPOINT');
-    const sdApiKey = await this.getConfigValue(db, 'AI_IMAGE_SD_API_KEY');
+    const sdEndpoint = await this.getConfigValue(db, 'AI_SD_ENDPOINT');
+    const sdApiKey = await this.getConfigValue(db, 'AI_SD_API_KEY');
     sdProvider.configure({
       enabled: sdEnabled,
       endpoint: sdEndpoint,
@@ -112,7 +114,7 @@ class ImageGenerationService {
     // Configure Fal.ai provider
     const falaiProvider = this.providers.get('falai') as FalAiImageProvider;
     const falaiEnabled = await configService.getBoolean(db, 'AI_IMAGE_FALAI_ENABLED');
-    const falaiApiKey = await this.getConfigValue(db, 'AI_IMAGE_FALAI_API_KEY');
+    const falaiApiKey = await this.getConfigValue(db, 'AI_FALAI_API_KEY');
     falaiProvider.configure({
       enabled: falaiEnabled,
       apiKey: falaiApiKey,

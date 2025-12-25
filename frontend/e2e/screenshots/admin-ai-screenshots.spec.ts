@@ -31,34 +31,18 @@ async function navigateToAdminAiViaMenu(
   // Wait for admin page to load
   await page.waitForURL('**/admin/**');
 
-  // Wait for features API to complete (determines if AI nav is visible)
-  // The features API is called when the admin component loads
-  try {
-    await page.waitForResponse(
-      resp =>
-        resp.url().includes('/api/v1/config/features') && resp.status() === 200,
-      { timeout: 5000 }
-    );
-    console.log('[navigateToAdminAiViaMenu] Features API responded');
-  } catch {
-    console.log(
-      '[navigateToAdminAiViaMenu] Features API timeout, proceeding...'
-    );
-  }
-
-  // Wait for network to settle after features response
+  // Wait for network to settle
   await page.waitForLoadState('networkidle');
 
   // Now click on AI Settings link in the admin sidebar/nav
   // First check if we need to navigate to /admin/ai
   if (!page.url().includes('/admin/ai')) {
     // Wait for the AI nav link to appear (depends on kill switch being disabled)
-    const aiLink = page.locator(
-      '[data-testid="admin-nav-ai"], a[href*="/admin/ai"]'
-    );
+    // Use specific data-testid to avoid matching ai-providers link
+    const aiLink = page.locator('[data-testid="admin-nav-ai"]');
     try {
       await aiLink.waitFor({ state: 'visible', timeout: 5000 });
-      await aiLink.first().click();
+      await aiLink.click();
       await page.waitForLoadState('networkidle');
     } catch {
       console.log(
@@ -163,6 +147,19 @@ test.describe('Admin AI Settings Screenshots', () => {
   });
 
   test('OpenAI card with expanded model config', async ({ adminPage }) => {
+    // Navigate to AI Providers page (provider cards are there, not on AI settings)
+    const aiProvidersLink = adminPage.locator(
+      '[data-testid="admin-nav-ai-providers"]'
+    );
+    if (await aiProvidersLink.isVisible({ timeout: 5000 })) {
+      await aiProvidersLink.click();
+      await adminPage.waitForLoadState('networkidle');
+    } else {
+      // Direct navigation fallback
+      await adminPage.goto('/admin/ai-providers');
+      await adminPage.waitForLoadState('networkidle');
+    }
+
     // Ensure light mode
     await adminPage.evaluate(() => {
       document.documentElement.classList.remove('dark-mode');
@@ -174,26 +171,29 @@ test.describe('Admin AI Settings Screenshots', () => {
       timeout: 10000,
     });
 
-    // Find the OpenAI card (first card or by its heading)
+    // Find the OpenAI card
     const openaiCard = adminPage.locator('.provider-card').first();
 
-    // Click the model configuration expansion panel
-    const modelConfigPanel = openaiCard.locator(
-      'mat-expansion-panel-header:has-text("Model Configuration")'
-    );
-
-    if (await modelConfigPanel.isVisible()) {
-      await modelConfigPanel.click();
-      await adminPage.waitForTimeout(400); // Wait for expansion animation
-    }
-
-    // Take screenshot of the OpenAI card with expanded model config
+    // Take screenshot of the OpenAI provider card
     await openaiCard.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'admin-ai-openai-model-config.png'),
     });
   });
 
   test('OpenRouter card with expanded model config', async ({ adminPage }) => {
+    // Navigate to AI Providers page (provider cards are there, not on AI settings)
+    const aiProvidersLink = adminPage.locator(
+      '[data-testid="admin-nav-ai-providers"]'
+    );
+    if (await aiProvidersLink.isVisible({ timeout: 5000 })) {
+      await aiProvidersLink.click();
+      await adminPage.waitForLoadState('networkidle');
+    } else {
+      // Direct navigation fallback
+      await adminPage.goto('/admin/ai-providers');
+      await adminPage.waitForLoadState('networkidle');
+    }
+
     // Ensure light mode
     await adminPage.evaluate(() => {
       document.documentElement.classList.remove('dark-mode');

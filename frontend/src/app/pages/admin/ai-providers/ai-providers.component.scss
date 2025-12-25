@@ -1,0 +1,141 @@
+.ai-providers-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  h1 {
+    margin-bottom: 8px;
+    color: var(--mat-sys-on-surface);
+  }
+
+  .description {
+    color: var(--mat-sys-on-surface-variant);
+    margin-bottom: 24px;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  gap: 16px;
+
+  p {
+    color: var(--mat-sys-on-surface-variant);
+    margin: 0;
+  }
+}
+
+.error-card {
+  background-color: var(--mat-sys-error-container);
+
+  mat-card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--mat-sys-on-error-container);
+
+    mat-icon {
+      color: var(--mat-sys-error);
+    }
+  }
+}
+
+.providers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.provider-card {
+  background-color: var(--mat-sys-surface-container);
+
+  &.configured {
+    border-left: 4px solid var(--mat-sys-primary);
+  }
+
+  mat-card-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mat-sys-surface-variant);
+    color: var(--mat-sys-on-surface-variant);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+  }
+
+  mat-card-title {
+    color: var(--mat-sys-on-surface);
+  }
+
+  mat-card-subtitle {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .provider-description {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .status-label {
+      font-weight: 500;
+      min-width: 80px;
+      color: var(--mat-sys-on-surface);
+    }
+
+    .status-value {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &.configured {
+        color: var(--mat-sys-primary);
+      }
+
+      &.not-configured {
+        color: var(--mat-sys-on-surface-variant);
+      }
+    }
+  }
+
+  .edit-section {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--mat-sys-surface-variant);
+    border-radius: 8px;
+
+    .full-width {
+      width: 100%;
+    }
+
+    .edit-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+  }
+
+  mat-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px;
+  }
+}

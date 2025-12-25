@@ -6,7 +6,6 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
-import { Correction } from '../../../api-client/model/correction';
 import { LintResponse } from '../../../api-client/model/lint-response';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
@@ -199,8 +198,11 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
     );
 
     // Filter out rejected suggestions
-    const filteredCorrections = lintResult.corrections.filter(
-      (correction: Correction) => !lintStorage.isSuggestionRejected(correction)
+    const filteredCorrections = (
+      lintResult.corrections as ExtendedCorrectionDto[]
+    ).filter(
+      (correction: ExtendedCorrectionDto) =>
+        !lintStorage.isSuggestionRejected(correction)
     );
 
     console.log(
@@ -209,7 +211,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     const extendedSuggestions: ExtendedCorrectionDto[] = [];
     const decos = filteredCorrections
-      .map((correction: Correction) => {
+      .map((correction: ExtendedCorrectionDto) => {
         let reasonText = '';
 
         // Handle both formats of corrections (server might send 'error' or 'reason')

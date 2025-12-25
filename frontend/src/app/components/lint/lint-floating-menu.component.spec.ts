@@ -20,13 +20,13 @@ describe('LintFloatingMenuComponent', () => {
   const createMockSuggestion = (
     overrides: Partial<ExtendedCorrectionDto> = {}
   ): ExtendedCorrectionDto => ({
+    startPos: 10,
+    endPos: 13,
     originalText: 'teh',
     correctedText: 'the',
     errorType: 'spelling',
     recommendation: 'Fix spelling',
     reason: 'Spelling error',
-    startPos: 10,
-    endPos: 13,
     ...overrides,
   });
 

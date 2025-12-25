@@ -27,11 +27,27 @@
       @if (!isAiKillSwitchEnabled()) {
         <a
           mat-list-item
+          routerLink="ai-providers"
+          routerLinkActive="active"
+          data-testid="admin-nav-ai-providers">
+          <mat-icon matListItemIcon>key</mat-icon>
+          <span matListItemTitle>AI Providers</span>
+        </a>
+        <a
+          mat-list-item
           routerLink="ai"
           routerLinkActive="active"
           data-testid="admin-nav-ai">
           <mat-icon matListItemIcon>auto_awesome</mat-icon>
           <span matListItemTitle>AI Images</span>
+        </a>
+        <a
+          mat-list-item
+          routerLink="ai-text"
+          routerLinkActive="active"
+          data-testid="admin-nav-ai-text">
+          <mat-icon matListItemIcon>psychology</mat-icon>
+          <span matListItemTitle>AI Text</span>
         </a>
       }
     </mat-nav-list>

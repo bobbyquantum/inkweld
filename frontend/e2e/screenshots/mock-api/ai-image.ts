@@ -7,6 +7,97 @@ import { mockApi } from './index';
  * Handles image generation status, models, and generation requests
  */
 export function setupAiImageHandlers(): void {
+  // GET /api/v1/ai/providers/status - Providers status for admin page
+  mockApi.addHandler('**/api/v1/ai/providers/status', async (route: Route) => {
+    console.log('Handling AI providers status request');
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        providers: [
+          {
+            id: 'openai',
+            name: 'OpenAI',
+            hasApiKey: true,
+            supportsImages: true,
+            supportsText: true,
+          },
+          {
+            id: 'openrouter',
+            name: 'OpenRouter',
+            hasApiKey: true,
+            supportsImages: true,
+            supportsText: true,
+          },
+          {
+            id: 'falai',
+            name: 'Fal.ai',
+            hasApiKey: false,
+            supportsImages: true,
+            supportsText: false,
+          },
+        ],
+      }),
+    });
+  });
+
+  // GET /api/v1/ai/image/default-models - Get default image models
+  mockApi.addHandler(
+    '**/api/v1/ai/image/default-models',
+    async (route: Route) => {
+      console.log('Handling AI image default-models request');
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          openai: [
+            {
+              id: 'gpt-image-1',
+              name: 'GPT Image 1',
+              provider: 'openai',
+              supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
+              supportsQuality: true,
+              supportsStyle: false,
+              maxImages: 1,
+              description: 'Latest GPT image model with best quality',
+            },
+          ],
+          openrouter: [
+            {
+              id: 'black-forest-labs/flux-1.1-pro',
+              name: 'FLUX 1.1 Pro',
+              provider: 'openrouter',
+              supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
+              supportsQuality: false,
+              supportsStyle: false,
+              maxImages: 1,
+              description: 'High-quality image generation by Black Forest Labs',
+            },
+          ],
+          'stable-diffusion': [],
+        }),
+      });
+    }
+  );
+
+  // GET /api/v1/ai/image/custom-sizes - Get custom image sizes
+  mockApi.addHandler(
+    '**/api/v1/ai/image/custom-sizes',
+    async (route: Route) => {
+      console.log('Handling AI image custom-sizes request');
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          sizes: [],
+        }),
+      });
+    }
+  );
+
   // GET /api/v1/ai/image/status - Image generation status
   mockApi.addHandler('**/api/v1/ai/image/status', async (route: Route) => {
     console.log('Handling AI image status request');

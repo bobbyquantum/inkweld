@@ -2,6 +2,8 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,9 +20,11 @@ import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
   AIImageGenerationService,
+  AIProvidersService,
   CustomImageSize,
   DefaultTextToImageModelsResponse,
   ImageModelInfo,
+  ProviderStatus,
 } from 'api-client';
 import { firstValueFrom } from 'rxjs';
 
@@ -44,6 +48,17 @@ interface ModelConfig {
   maxImages?: number;
 }
 
+/** Unified model for the simplified model list */
+interface UnifiedModel {
+  id: string;
+  name: string;
+  provider: string;
+  providerName: string;
+  description?: string;
+  enabled: boolean;
+  isDefault: boolean;
+}
+
 @Component({
   selector: 'app-admin-ai-settings',
   standalone: true,
@@ -51,6 +66,8 @@ interface ModelConfig {
     FormsModule,
     MatButtonModule,
     MatCardModule,
+    MatCheckboxModule,
+    MatChipsModule,
     MatDividerModule,
     MatExpansionModule,
     MatFormFieldModule,
@@ -71,6 +88,7 @@ export class AdminAiSettingsComponent implements OnInit {
   private readonly configService = inject(AdminConfigService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly imageService = inject(AIImageGenerationService);
+  private readonly providersService = inject(AIProvidersService);
   private readonly systemConfigService = inject(SystemConfigService);
 
   // AI Kill Switch state from system config
@@ -136,6 +154,13 @@ export class AdminAiSettingsComponent implements OnInit {
   readonly openaiModelsModified = signal(false);
   readonly openrouterModelsModified = signal(false);
   readonly falaiModelsModified = signal(false);
+  readonly unifiedModelsModified = signal(false);
+
+  // Provider status from AI Providers API
+  readonly providerStatus = signal<ProviderStatus[]>([]);
+
+  // Unified model list (enabled models from configured providers)
+  readonly unifiedModels = signal<UnifiedModel[]>([]);
 
   // Custom image sizes
   readonly customSizes = signal<CustomImageSize[]>([]);
@@ -157,6 +182,47 @@ export class AdminAiSettingsComponent implements OnInit {
   readonly falaiEnabledCount = computed(
     () => this.falaiModels().filter(m => m.enabled).length
   );
+
+  /** Sorted unified models - default model at top, then by provider and name */
+  readonly sortedUnifiedModels = computed(() => {
+    const models = [...this.unifiedModels()];
+    return models.sort((a, b) => {
+      // Default model always first
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      // Then sort by provider, then by name
+      if (a.providerName !== b.providerName) {
+        return a.providerName.localeCompare(b.providerName);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  });
+
+  /** Get the current default model (for display at top) */
+  readonly defaultModelInfo = computed(() => {
+    return this.unifiedModels().find(m => m.isDefault) || null;
+  });
+
+  /** Models grouped by provider (excluding the default model display) */
+  readonly modelsByProvider = computed(() => {
+    const models = this.unifiedModels();
+    const grouped = new Map<string, UnifiedModel[]>();
+
+    for (const model of models) {
+      const existing = grouped.get(model.provider) || [];
+      existing.push(model);
+      grouped.set(model.provider, existing);
+    }
+
+    // Convert to array and sort providers alphabetically
+    return Array.from(grouped.entries())
+      .map(([providerId, providerModels]) => ({
+        providerId,
+        providerName: providerModels[0]?.providerName || providerId,
+        models: providerModels.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+      .sort((a, b) => a.providerName.localeCompare(b.providerName));
+  });
 
   // Computed: available models for the selected default provider
   readonly availableModelsForDefaultProvider = computed(() => {
@@ -196,8 +262,8 @@ export class AdminAiSettingsComponent implements OnInit {
       );
       this.defaultModel.set(config['AI_IMAGE_DEFAULT_MODEL']?.value || '');
 
-      // OpenAI
-      const openaiHasKey = config['OPENAI_API_KEY']?.value === '********';
+      // OpenAI - uses shared provider key AI_OPENAI_API_KEY
+      const openaiHasKey = config['AI_OPENAI_API_KEY']?.value === '********';
       const openaiModelsJson = config['AI_IMAGE_OPENAI_MODELS']?.value || '';
       this.openaiConfig.set({
         enabled:
@@ -210,9 +276,9 @@ export class AdminAiSettingsComponent implements OnInit {
       this.openaiModels.set(this.parseModelsConfig(openaiModelsJson, 'openai'));
       this.openaiModelsModified.set(false);
 
-      // OpenRouter
+      // OpenRouter - uses shared provider key AI_OPENROUTER_API_KEY
       const openrouterHasKey =
-        config['AI_IMAGE_OPENROUTER_API_KEY']?.value === '********';
+        config['AI_OPENROUTER_API_KEY']?.value === '********';
       const openrouterModelsJson =
         config['AI_IMAGE_OPENROUTER_MODELS']?.value || '';
       this.openrouterConfig.set({
@@ -227,18 +293,17 @@ export class AdminAiSettingsComponent implements OnInit {
       );
       this.openrouterModelsModified.set(false);
 
-      // Stable Diffusion
-      const sdHasKey = config['AI_IMAGE_SD_API_KEY']?.value === '********';
+      // Stable Diffusion - uses shared provider keys AI_SD_API_KEY and AI_SD_ENDPOINT
+      const sdHasKey = config['AI_SD_API_KEY']?.value === '********';
       this.sdConfig.set({
         enabled: config['AI_IMAGE_SD_ENABLED']?.value === 'true',
         apiKey: '',
-        endpoint: config['AI_IMAGE_SD_ENDPOINT']?.value || '',
+        endpoint: config['AI_SD_ENDPOINT']?.value || '',
         hasApiKey: sdHasKey,
       });
 
-      // Fal.ai
-      const falaiHasKey =
-        config['AI_IMAGE_FALAI_API_KEY']?.value === '********';
+      // Fal.ai - uses shared provider key AI_FALAI_API_KEY
+      const falaiHasKey = config['AI_FALAI_API_KEY']?.value === '********';
       const falaiModelsJson = config['AI_IMAGE_FALAI_MODELS']?.value || '';
       this.falaiConfig.set({
         enabled: config['AI_IMAGE_FALAI_ENABLED']?.value === 'true',
@@ -252,6 +317,10 @@ export class AdminAiSettingsComponent implements OnInit {
 
       // Load custom sizes
       await this.loadCustomSizes();
+
+      // Fetch provider status and build unified model list
+      await this.loadProviderStatus();
+      this.buildUnifiedModels();
     } catch (err) {
       console.error('Failed to load AI config:', err);
       this.error.set(
@@ -273,6 +342,19 @@ export class AdminAiSettingsComponent implements OnInit {
     } catch (err) {
       console.error('Failed to load custom sizes:', err);
       this.customSizes.set([]);
+    }
+  }
+
+  /** Load provider status from the AI Providers service */
+  private async loadProviderStatus(): Promise<void> {
+    try {
+      const status = await firstValueFrom(
+        this.providersService.getAiProvidersStatus()
+      );
+      this.providerStatus.set(status.providers);
+    } catch (err) {
+      console.error('Failed to load provider status:', err);
+      this.providerStatus.set([]);
     }
   }
 
@@ -368,7 +450,7 @@ export class AdminAiSettingsComponent implements OnInit {
 
     this.isSaving.set(true);
     try {
-      await this.configService.setConfig('OPENAI_API_KEY', apiKey);
+      await this.configService.setConfig('AI_OPENAI_API_KEY', apiKey);
       this.openaiConfig.update(c => ({ ...c, apiKey: '', hasApiKey: true }));
       this.editingOpenaiKey.set(false);
       this.snackBar.open('API key saved', 'Close', { duration: 2000 });
@@ -383,7 +465,7 @@ export class AdminAiSettingsComponent implements OnInit {
   async clearOpenaiApiKey(): Promise<void> {
     this.isSaving.set(true);
     try {
-      await this.configService.deleteConfig('OPENAI_API_KEY');
+      await this.configService.deleteConfig('AI_OPENAI_API_KEY');
       this.openaiConfig.update(c => ({ ...c, apiKey: '', hasApiKey: false }));
       this.snackBar.open('API key cleared', 'Close', { duration: 2000 });
     } catch (err) {
@@ -423,7 +505,7 @@ export class AdminAiSettingsComponent implements OnInit {
 
     this.isSaving.set(true);
     try {
-      await this.configService.setConfig('AI_IMAGE_OPENROUTER_API_KEY', apiKey);
+      await this.configService.setConfig('AI_OPENROUTER_API_KEY', apiKey);
       this.openrouterConfig.update(c => ({
         ...c,
         apiKey: '',
@@ -442,7 +524,7 @@ export class AdminAiSettingsComponent implements OnInit {
   async clearOpenrouterApiKey(): Promise<void> {
     this.isSaving.set(true);
     try {
-      await this.configService.deleteConfig('AI_IMAGE_OPENROUTER_API_KEY');
+      await this.configService.deleteConfig('AI_OPENROUTER_API_KEY');
       this.openrouterConfig.update(c => ({
         ...c,
         apiKey: '',
@@ -486,7 +568,7 @@ export class AdminAiSettingsComponent implements OnInit {
 
     this.isSaving.set(true);
     try {
-      await this.configService.setConfig('AI_IMAGE_SD_ENDPOINT', endpoint);
+      await this.configService.setConfig('AI_SD_ENDPOINT', endpoint);
       this.snackBar.open('Endpoint saved', 'Close', { duration: 2000 });
     } catch (err) {
       console.error('Failed to save endpoint:', err);
@@ -504,7 +586,7 @@ export class AdminAiSettingsComponent implements OnInit {
 
     this.isSaving.set(true);
     try {
-      await this.configService.setConfig('AI_IMAGE_SD_API_KEY', apiKey);
+      await this.configService.setConfig('AI_SD_API_KEY', apiKey);
       this.sdConfig.update(c => ({ ...c, apiKey: '', hasApiKey: true }));
       this.editingSdKey.set(false);
       this.snackBar.open('API key saved', 'Close', { duration: 2000 });
@@ -519,7 +601,7 @@ export class AdminAiSettingsComponent implements OnInit {
   async clearSdApiKey(): Promise<void> {
     this.isSaving.set(true);
     try {
-      await this.configService.deleteConfig('AI_IMAGE_SD_API_KEY');
+      await this.configService.deleteConfig('AI_SD_API_KEY');
       this.sdConfig.update(c => ({ ...c, apiKey: '', hasApiKey: false }));
       this.snackBar.open('API key cleared', 'Close', { duration: 2000 });
     } catch (err) {
@@ -559,7 +641,7 @@ export class AdminAiSettingsComponent implements OnInit {
 
     this.isSaving.set(true);
     try {
-      await this.configService.setConfig('AI_IMAGE_FALAI_API_KEY', apiKey);
+      await this.configService.setConfig('AI_FALAI_API_KEY', apiKey);
       this.falaiConfig.update(c => ({
         ...c,
         apiKey: '',
@@ -578,7 +660,7 @@ export class AdminAiSettingsComponent implements OnInit {
   async clearFalaiApiKey(): Promise<void> {
     this.isSaving.set(true);
     try {
-      await this.configService.deleteConfig('AI_IMAGE_FALAI_API_KEY');
+      await this.configService.deleteConfig('AI_FALAI_API_KEY');
       this.falaiConfig.update(c => ({
         ...c,
         apiKey: '',
@@ -982,5 +1064,194 @@ export class AdminAiSettingsComponent implements OnInit {
   resetCustomSizes(): void {
     this.customSizes.set([]);
     this.customSizesModified.set(true);
+  }
+
+  // =========================================================================
+  // Unified Model List Management
+  // =========================================================================
+
+  /** Build the unified models list from all configured providers */
+  private buildUnifiedModels(): void {
+    const providers = this.providerStatus();
+    const currentDefault = this.defaultModel();
+    const unified: UnifiedModel[] = [];
+
+    // Map provider IDs to their display names
+    const providerNames: Record<string, string> = {
+      openai: 'OpenAI',
+      openrouter: 'OpenRouter',
+      falai: 'Fal.ai',
+      sd: 'Stable Diffusion',
+    };
+
+    // Process each provider that has an API key and supports images
+    for (const provider of providers) {
+      if (!provider.hasApiKey || !provider.supportsImages) continue;
+
+      let models: ModelConfig[] = [];
+      switch (provider.id) {
+        case 'openai':
+          models = this.openaiModels();
+          break;
+        case 'openrouter':
+          models = this.openrouterModels();
+          break;
+        case 'falai':
+          models = this.falaiModels();
+          break;
+        // SD doesn't have a model list, skip
+      }
+
+      for (const model of models) {
+        unified.push({
+          id: model.id,
+          name: model.name,
+          provider: provider.id,
+          providerName: providerNames[provider.id] || provider.name,
+          description: model.description,
+          enabled: model.enabled,
+          isDefault: model.id === currentDefault,
+        });
+      }
+    }
+
+    this.unifiedModels.set(unified);
+    this.unifiedModelsModified.set(false);
+  }
+
+  /** Toggle a model's enabled state in the unified list */
+  toggleUnifiedModel(modelId: string, enabled: boolean): void {
+    this.unifiedModels.update(models =>
+      models.map(m => (m.id === modelId ? { ...m, enabled } : m))
+    );
+    this.unifiedModelsModified.set(true);
+
+    // Also update the underlying provider's model list
+    const model = this.unifiedModels().find(m => m.id === modelId);
+    if (model) {
+      this.updateProviderModel(model.provider, modelId, enabled);
+    }
+  }
+
+  /** Update a model in the underlying provider's model list */
+  private updateProviderModel(
+    provider: string,
+    modelId: string,
+    enabled: boolean
+  ): void {
+    switch (provider) {
+      case 'openai':
+        this.openaiModels.update(models =>
+          models.map(m => (m.id === modelId ? { ...m, enabled } : m))
+        );
+        this.openaiModelsModified.set(true);
+        break;
+      case 'openrouter':
+        this.openrouterModels.update(models =>
+          models.map(m => (m.id === modelId ? { ...m, enabled } : m))
+        );
+        this.openrouterModelsModified.set(true);
+        break;
+      case 'falai':
+        this.falaiModels.update(models =>
+          models.map(m => (m.id === modelId ? { ...m, enabled } : m))
+        );
+        this.falaiModelsModified.set(true);
+        break;
+    }
+  }
+
+  /** Set a model as the default */
+  async setAsDefaultModel(modelId: string): Promise<void> {
+    const model = this.unifiedModels().find(m => m.id === modelId);
+    if (!model) return;
+
+    // Update the default model and provider
+    this.defaultModel.set(modelId);
+    this.defaultProvider.set(model.provider);
+
+    // Update the unified models list - only one can be default
+    this.unifiedModels.update(models =>
+      models.map(m => ({ ...m, isDefault: m.id === modelId }))
+    );
+
+    // Auto-save the default model immediately
+    this.isSaving.set(true);
+    try {
+      await this.configService.setConfig(
+        'AI_IMAGE_DEFAULT_PROVIDER',
+        model.provider
+      );
+      await this.configService.setConfig('AI_IMAGE_DEFAULT_MODEL', modelId);
+      this.snackBar.open(`${model.name} set as default`, 'Close', {
+        duration: 2000,
+      });
+    } catch (err) {
+      console.error('Failed to save default model:', err);
+      this.snackBar.open('Failed to save default model', 'Close', {
+        duration: 3000,
+      });
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  /** Save the unified model configuration */
+  async saveUnifiedModels(): Promise<void> {
+    this.isSaving.set(true);
+    try {
+      // Save the default provider and model
+      await this.configService.setConfig(
+        'AI_IMAGE_DEFAULT_PROVIDER',
+        this.defaultProvider()
+      );
+      await this.configService.setConfig(
+        'AI_IMAGE_DEFAULT_MODEL',
+        this.defaultModel()
+      );
+
+      // Save each provider's model list if modified
+      if (this.openaiModelsModified()) {
+        const modelsJson = JSON.stringify(
+          this.openaiModels().map(m => ({ id: m.id, enabled: m.enabled }))
+        );
+        await this.configService.setConfig(
+          'AI_IMAGE_OPENAI_MODELS',
+          modelsJson
+        );
+        this.openaiModelsModified.set(false);
+      }
+
+      if (this.openrouterModelsModified()) {
+        const modelsJson = JSON.stringify(
+          this.openrouterModels().map(m => ({ id: m.id, enabled: m.enabled }))
+        );
+        await this.configService.setConfig(
+          'AI_IMAGE_OPENROUTER_MODELS',
+          modelsJson
+        );
+        this.openrouterModelsModified.set(false);
+      }
+
+      if (this.falaiModelsModified()) {
+        const modelsJson = JSON.stringify(
+          this.falaiModels().map(m => ({ id: m.id, enabled: m.enabled }))
+        );
+        await this.configService.setConfig('AI_IMAGE_FALAI_MODELS', modelsJson);
+        this.falaiModelsModified.set(false);
+      }
+
+      this.unifiedModelsModified.set(false);
+      this.snackBar.open('Model configuration saved', 'Close', {
+        duration: 2000,
+      });
+    } catch (err) {
+      console.error('Failed to save model configuration:', err);
+      this.snackBar.open('Failed to save configuration', 'Close', {
+        duration: 3000,
+      });
+    } finally {
+      this.isSaving.set(false);
+    }
   }
 }

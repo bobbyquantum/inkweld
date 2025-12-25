@@ -4,13 +4,14 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Correction } from '../../../api-client/model/correction';
+import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintOverlayComponent } from './lint-overlay.component';
 
 describe('LintOverlayComponent', () => {
   let component: LintOverlayComponent;
   let fixture: ComponentFixture<LintOverlayComponent>;
 
-  const mockCorrection: Correction = {
+  const mockCorrection: ExtendedCorrectionDto = {
     originalText: 'teh',
     correctedText: 'the',
     startPos: 0,
@@ -19,7 +20,7 @@ describe('LintOverlayComponent', () => {
     recommendation: 'Use correct spelling',
   };
 
-  const mockCorrections: Correction[] = [
+  const mockCorrections: ExtendedCorrectionDto[] = [
     mockCorrection,
     {
       originalText: 'recieve',

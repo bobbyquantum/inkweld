@@ -17,6 +17,8 @@ import documentRoutes from '../routes/document.routes';
 import elementRoutes from '../routes/element.routes';
 import lintRoutes from '../routes/lint.routes';
 import aiImageRoutes from '../routes/ai-image.routes';
+import { aiTextRoutes } from '../routes/ai-text.routes';
+import { aiProvidersRoutes } from '../routes/ai-providers.routes';
 import mcpRoutes from '../routes/mcp.routes';
 import mcpKeyRoutes from '../routes/mcp-keys.routes';
 import mediaRoutes from '../routes/media.routes';
@@ -59,6 +61,8 @@ export function registerCommonRoutes(app: any): void {
   // AI services
   app.route('/api/v1/ai/lint', lintRoutes);
   app.route('/api/v1/ai/image', aiImageRoutes);
+  app.route('/api/v1/ai/text', aiTextRoutes);
+  app.route('/api/v1/ai/providers', aiProvidersRoutes);
   app.route('/api/v1/ai/mcp', mcpRoutes);
 
   // MCP key management (for frontend to create/manage API keys)

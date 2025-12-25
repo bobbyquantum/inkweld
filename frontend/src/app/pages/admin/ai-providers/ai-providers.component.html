@@ -1,0 +1,216 @@
+<div class="ai-providers-container" data-testid="admin-ai-providers-page">
+  <h1>AI Providers</h1>
+  <p class="description">
+    Configure API keys for AI service providers. These keys are shared across
+    all AI features including image generation and text generation.
+  </p>
+
+  @if (isLoading()) {
+    <div class="loading-container" data-testid="ai-providers-loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading provider configuration...</p>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card" data-testid="ai-providers-error">
+      <mat-card-content>
+        <mat-icon>error</mat-icon>
+        <span>Failed to load providers: {{ error()?.message }}</span>
+        <button mat-button color="primary" (click)="loadProviders()">
+          Retry
+        </button>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <div class="providers-grid" data-testid="ai-providers-grid">
+      @for (provider of providers(); track provider.id) {
+        <mat-card
+          class="provider-card"
+          [class.configured]="provider.hasApiKey"
+          [attr.data-testid]="'ai-provider-card-' + provider.id">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>{{
+              getProviderIcon(provider.id)
+            }}</mat-icon>
+            <mat-card-title>{{ provider.name }}</mat-card-title>
+            <mat-card-subtitle>
+              {{ getCapabilityLabel(provider) }}
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <p class="provider-description">{{ provider.description }}</p>
+
+            <div class="status-row">
+              <span class="status-label">API Key:</span>
+              @if (provider.hasApiKey) {
+                <span
+                  class="status-value configured"
+                  data-testid="ai-provider-key-configured">
+                  <mat-icon>check_circle</mat-icon>
+                  Configured
+                </span>
+              } @else {
+                <span
+                  class="status-value not-configured"
+                  data-testid="ai-provider-key-not-configured">
+                  <mat-icon>cancel</mat-icon>
+                  Not configured
+                </span>
+              }
+            </div>
+
+            @if (provider.requiresEndpoint) {
+              <div class="status-row">
+                <span class="status-label">Endpoint:</span>
+                @if (provider.hasEndpoint) {
+                  <span
+                    class="status-value configured"
+                    data-testid="ai-provider-endpoint-configured">
+                    <mat-icon>check_circle</mat-icon>
+                    Configured
+                  </span>
+                } @else {
+                  <span
+                    class="status-value not-configured"
+                    data-testid="ai-provider-endpoint-not-configured">
+                    <mat-icon>cancel</mat-icon>
+                    Not configured
+                  </span>
+                }
+              </div>
+            }
+
+            <!-- API Key editing -->
+            @if (provider.isEditingKey) {
+              <div class="edit-section" data-testid="ai-provider-key-edit">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>API Key</mat-label>
+                  <input
+                    matInput
+                    type="password"
+                    [value]="provider.apiKey"
+                    (input)="
+                      updateProviderApiKey(provider, $any($event.target).value)
+                    "
+                    placeholder="Enter API key"
+                    data-testid="ai-provider-key-input" />
+                </mat-form-field>
+                <div class="edit-actions">
+                  <button
+                    mat-button
+                    (click)="cancelEditingKey(provider)"
+                    [disabled]="provider.isSaving"
+                    data-testid="ai-provider-key-cancel">
+                    Cancel
+                  </button>
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    (click)="saveApiKey(provider)"
+                    [disabled]="provider.isSaving || !provider.apiKey.trim()"
+                    data-testid="ai-provider-key-save">
+                    @if (provider.isSaving) {
+                      <mat-spinner diameter="20"></mat-spinner>
+                    } @else {
+                      Save
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- Endpoint editing (for Stable Diffusion) -->
+            @if (provider.isEditingEndpoint) {
+              <div class="edit-section" data-testid="ai-provider-endpoint-edit">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Endpoint URL</mat-label>
+                  <input
+                    matInput
+                    type="url"
+                    [value]="provider.endpoint"
+                    (input)="
+                      updateProviderEndpoint(
+                        provider,
+                        $any($event.target).value
+                      )
+                    "
+                    placeholder="https://your-sd-endpoint.com"
+                    data-testid="ai-provider-endpoint-input" />
+                </mat-form-field>
+                <div class="edit-actions">
+                  <button
+                    mat-button
+                    (click)="cancelEditingEndpoint(provider)"
+                    [disabled]="provider.isSaving"
+                    data-testid="ai-provider-endpoint-cancel">
+                    Cancel
+                  </button>
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    (click)="saveEndpoint(provider)"
+                    [disabled]="provider.isSaving || !provider.endpoint.trim()"
+                    data-testid="ai-provider-endpoint-save">
+                    @if (provider.isSaving) {
+                      <mat-spinner diameter="20"></mat-spinner>
+                    } @else {
+                      Save
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+          </mat-card-content>
+
+          <mat-divider></mat-divider>
+
+          <mat-card-actions>
+            @if (!provider.isEditingKey) {
+              <button
+                mat-button
+                color="primary"
+                (click)="startEditingKey(provider)"
+                [disabled]="provider.isSaving"
+                [attr.data-testid]="
+                  provider.hasApiKey
+                    ? 'ai-provider-update-key-' + provider.id
+                    : 'ai-provider-add-key-' + provider.id
+                ">
+                <mat-icon>{{ provider.hasApiKey ? 'edit' : 'add' }}</mat-icon>
+                {{ provider.hasApiKey ? 'Update Key' : 'Add Key' }}
+              </button>
+
+              @if (provider.hasApiKey) {
+                <button
+                  mat-button
+                  color="warn"
+                  (click)="deleteApiKey(provider)"
+                  [disabled]="provider.isSaving"
+                  [attr.data-testid]="'ai-provider-delete-key-' + provider.id">
+                  <mat-icon>delete</mat-icon>
+                  Delete Key
+                </button>
+              }
+            }
+
+            @if (provider.requiresEndpoint && !provider.isEditingEndpoint) {
+              <button
+                mat-button
+                color="primary"
+                (click)="startEditingEndpoint(provider)"
+                [disabled]="provider.isSaving"
+                [attr.data-testid]="
+                  provider.hasEndpoint
+                    ? 'ai-provider-update-endpoint-' + provider.id
+                    : 'ai-provider-add-endpoint-' + provider.id
+                ">
+                <mat-icon>{{ provider.hasEndpoint ? 'edit' : 'add' }}</mat-icon>
+                {{ provider.hasEndpoint ? 'Update Endpoint' : 'Add Endpoint' }}
+              </button>
+            }
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

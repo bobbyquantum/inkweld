@@ -190,9 +190,14 @@ export const test = base.extend<ScreenshotFixtures>({
     // First, navigate to home to establish user session
     await page.goto('about:blank');
 
-    // Navigate to home and wait for user to be loaded
+    // Navigate to home and wait for user and features to be loaded
     const userApiPromise = page.waitForResponse(
       resp => resp.url().includes('/api/v1/users/me') && resp.status() === 200,
+      { timeout: 10000 }
+    );
+    const featuresApiPromise = page.waitForResponse(
+      resp =>
+        resp.url().includes('/api/v1/config/features') && resp.status() === 200,
       { timeout: 10000 }
     );
 
@@ -202,6 +207,15 @@ export const test = base.extend<ScreenshotFixtures>({
     console.log('[AdminFixture] Waiting for user API...');
     await userApiPromise;
     console.log('[AdminFixture] User API responded');
+
+    // Also wait for features API (needed for AI kill switch state)
+    console.log('[AdminFixture] Waiting for features API...');
+    try {
+      await featuresApiPromise;
+      console.log('[AdminFixture] Features API responded');
+    } catch {
+      console.log('[AdminFixture] Features API timeout, proceeding...');
+    }
 
     // Wait for the page to fully render and Angular to process the user
     await page.waitForLoadState('networkidle');

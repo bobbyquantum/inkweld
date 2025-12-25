@@ -53,7 +53,11 @@ export class OpenAIImageProvider extends BaseImageProvider {
 
   private initializeClient(): void {
     if (this.apiKey) {
-      this.client = new OpenAI({ apiKey: this.apiKey });
+      const options: { apiKey: string; baseURL?: string } = { apiKey: this.apiKey };
+      if (this.endpoint) {
+        options.baseURL = this.endpoint;
+      }
+      this.client = new OpenAI(options);
     } else {
       this.client = null;
     }

@@ -21,15 +21,19 @@ export class LintStorageService {
   /**
    * Generate a unique identifier for a correction
    */
-  private getCorrectionId(correction: Correction): string {
+  private getCorrectionId(
+    correction: Correction | ExtendedCorrectionDto
+  ): string {
+    // Support both Correction (API) and ExtendedCorrectionDto (with text property)
+    const extended = correction as ExtendedCorrectionDto;
     const suggestion = correction.correctedText || '';
-    // Since text might not be available in all cases, we'll use from/to as part of the ID
-    const uniqueKey = `${correction.startPos}-${correction.endPos}-${suggestion}`;
+    const startPos = correction.startPos ?? 0;
+    const endPos = correction.endPos ?? 0;
+    const uniqueKey = `${startPos}-${endPos}-${suggestion}`;
 
     // For ExtendedCorrectionDto with text property
-    const extendedCorrection = correction as ExtendedCorrectionDto;
-    if (extendedCorrection.text) {
-      return `${uniqueKey}-${extendedCorrection.text}`.toLowerCase();
+    if (extended.text) {
+      return `${uniqueKey}-${extended.text}`.toLowerCase();
     }
 
     return uniqueKey.toLowerCase();
@@ -72,7 +76,7 @@ export class LintStorageService {
    */
   private listenForEvents(): void {
     document.addEventListener('lint-correction-accept', (event: Event) => {
-      const customEvent = event as CustomEvent<Correction>;
+      const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
       if (customEvent.detail) {
         console.log(
           '[LintStorage] Suggestion accepted:',
@@ -82,7 +86,7 @@ export class LintStorageService {
     });
 
     document.addEventListener('lint-correction-reject', (event: Event) => {
-      const customEvent = event as CustomEvent<Correction>;
+      const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
       if (customEvent.detail) {
         this.rejectSuggestion(customEvent.detail);
       }
@@ -92,7 +96,9 @@ export class LintStorageService {
   /**
    * Add a suggestion to the rejected list
    */
-  public rejectSuggestion(correction: Correction): void {
+  public rejectSuggestion(
+    correction: Correction | ExtendedCorrectionDto
+  ): void {
     const id = this.getCorrectionId(correction);
     this.rejectedSuggestions.add(id);
     this.saveRejectedSuggestions();
@@ -105,7 +111,9 @@ export class LintStorageService {
   /**
    * Check if a suggestion has been rejected
    */
-  public isSuggestionRejected(correction: Correction): boolean {
+  public isSuggestionRejected(
+    correction: Correction | ExtendedCorrectionDto
+  ): boolean {
     const id = this.getCorrectionId(correction);
     return this.rejectedSuggestions.has(id);
   }

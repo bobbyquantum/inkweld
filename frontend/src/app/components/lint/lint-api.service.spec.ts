@@ -2,8 +2,7 @@ import { HttpContext } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { LintingService } from '@inkweld/api/linting.service';
-import { LintRequestLevel } from '@inkweld/index';
-import { LintResponse } from '@inkweld/model/lint-response';
+import { LintRequestLevel, LintResponse } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
