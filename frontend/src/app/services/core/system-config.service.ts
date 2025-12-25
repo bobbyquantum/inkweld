@@ -20,6 +20,8 @@ export interface AiImageGenerationStatus {
 
 /** Default system features when user explicitly chooses offline mode */
 const OFFLINE_DEFAULTS: SystemFeatures = {
+  aiKillSwitch: true, // Kill switch ON = AI disabled in offline mode
+  aiKillSwitchLockedByEnv: false,
   aiLinting: false,
   aiImageGeneration: false,
   userApprovalRequired: false, // No approval needed in offline mode
@@ -28,6 +30,8 @@ const OFFLINE_DEFAULTS: SystemFeatures = {
 
 /** Default system features when server is unavailable (degraded online mode) */
 const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
+  aiKillSwitch: true, // Assume kill switch ON when server unavailable
+  aiKillSwitchLockedByEnv: false,
   aiLinting: false,
   aiImageGeneration: false,
   userApprovalRequired: true, // Keep strict in server mode
@@ -42,6 +46,8 @@ export class SystemConfigService {
   private readonly setupService = inject(SetupService);
 
   private readonly systemFeaturesSignal = signal<SystemFeatures>({
+    aiKillSwitch: true, // Default to ON (AI disabled) for safety
+    aiKillSwitchLockedByEnv: false,
     aiLinting: false,
     aiImageGeneration: false,
     userApprovalRequired: true,
@@ -55,6 +61,15 @@ export class SystemConfigService {
 
   // Public readonly signals
   public readonly systemFeatures = this.systemFeaturesSignal.asReadonly();
+
+  // AI Kill Switch signals
+  public readonly isAiKillSwitchEnabled = computed(
+    () => this.systemFeaturesSignal().aiKillSwitch ?? true
+  );
+  public readonly isAiKillSwitchLockedByEnv = computed(
+    () => this.systemFeaturesSignal().aiKillSwitchLockedByEnv ?? false
+  );
+
   public readonly isAiLintingEnabled = computed(
     () => this.systemFeaturesSignal().aiLinting ?? false
   );

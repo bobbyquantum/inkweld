@@ -7,6 +7,43 @@
   gap: 24px;
 }
 
+.kill-switch-warning {
+  background-color: var(--mat-sys-error-container);
+  border-left: 4px solid var(--mat-sys-error);
+
+  mat-card-title {
+    color: var(--mat-sys-on-error-container);
+  }
+
+  mat-card-subtitle {
+    color: var(--mat-sys-on-error-container);
+
+    code {
+      background-color: var(--mat-sys-surface-variant);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  }
+
+  .warning-icon {
+    color: var(--mat-sys-error);
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--mat-sys-surface);
+    border-radius: 50%;
+  }
+
+  mat-card-content p {
+    color: var(--mat-sys-on-error-container);
+    margin: 0;
+  }
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;

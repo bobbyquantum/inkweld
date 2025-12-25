@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-warn-color, #f44336);
+
+  .warning-icon {
+    color: var(--mat-warn-color, #f44336);
+  }
+}
+
+mat-dialog-content {
+  .warning-text {
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 4px solid #ff9800;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .info-section {
+    margin-bottom: 16px;
+
+    ul {
+      margin: 8px 0;
+      padding-left: 24px;
+
+      li {
+        margin: 4px 0;
+        color: var(--mat-app-text-color, rgba(0, 0, 0, 0.87));
+      }
+    }
+  }
+
+  .recommendation {
+    display: flex;
+    gap: 12px;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 8px;
+    padding: 12px 16px;
+
+    mat-icon {
+      color: #2196f3;
+      flex-shrink: 0;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 8px;
+}

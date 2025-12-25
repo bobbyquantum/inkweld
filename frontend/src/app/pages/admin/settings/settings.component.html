@@ -14,11 +14,66 @@
       </mat-card-content>
     </mat-card>
   } @else {
+    <!-- AI Kill Switch Card -->
+    <mat-card
+      class="setting-card ai-kill-switch-card kill-switch-card"
+      data-testid="kill-switch-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">
+              <mat-icon class="warning-icon">security</mat-icon>
+              AI Kill Switch
+            </span>
+            <span class="setting-description">
+              Master switch to disable ALL AI features. When enabled, no data is
+              sent to AI providers.
+            </span>
+            @if (aiKillSwitchLockedByEnv()) {
+              <span class="env-locked-notice">
+                <mat-icon>lock</mat-icon>
+                Locked by environment variable (AI_KILL_SWITCH). Change .env to
+                modify.
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [checked]="aiKillSwitchEnabled()"
+            (change)="toggleAiKillSwitch($event.checked)"
+            [disabled]="isSaving() || aiKillSwitchLockedByEnv()"
+            [matTooltip]="
+              aiKillSwitchLockedByEnv()
+                ? 'Locked by environment variable'
+                : aiKillSwitchEnabled()
+                  ? 'AI features are disabled'
+                  : 'AI features are enabled'
+            "
+            color="warn"
+            data-testid="setting-toggle-ai-kill-switch"></mat-slide-toggle>
+        </div>
+        @if (!aiKillSwitchEnabled()) {
+          <div class="warning-banner">
+            <mat-icon>warning</mat-icon>
+            <span
+              >AI features are enabled. Depending on your AI provider
+              configuration, data may be sent to third-party services. Use
+              self-hosted AI providers to keep data local.</span
+            >
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- User Approval Card -->
     <mat-card class="setting-card">
       <mat-card-content>
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Require User Approval</span>
+            <span class="setting-description">
+              New users must be approved by an admin before they can access the
+              application.
+            </span>
           </div>
           <mat-slide-toggle
             [checked]="userApprovalRequired()"

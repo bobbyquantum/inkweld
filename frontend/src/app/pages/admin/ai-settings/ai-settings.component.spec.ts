@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,10 +16,12 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import {
   AdminConfigService,
   ConfigValue,
 } from '@services/admin/admin-config.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { AIImageGenerationService } from 'api-client';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
@@ -34,6 +36,10 @@ describe('AdminAiSettingsComponent', () => {
   let component: AdminAiSettingsComponent;
   let mockConfigService: MockedObject<AdminConfigService>;
   let mockImageService: MockedObject<AIImageGenerationService>;
+  let mockSystemConfigService: {
+    isAiKillSwitchEnabled: ReturnType<typeof signal<boolean>>;
+    isAiKillSwitchLockedByEnv: ReturnType<typeof signal<boolean>>;
+  };
 
   const createMockConfig = (
     overrides: Partial<Record<string, ConfigValue>> = {}
@@ -111,6 +117,11 @@ describe('AdminAiSettingsComponent', () => {
         .mockReturnValue(of({ sizes: [], total: 0 })),
     } as unknown as MockedObject<AIImageGenerationService>;
 
+    mockSystemConfigService = {
+      isAiKillSwitchEnabled: signal(false),
+      isAiKillSwitchLockedByEnv: signal(false),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         AdminAiSettingsComponent,
@@ -132,8 +143,10 @@ describe('AdminAiSettingsComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideNoopAnimations(),
+        provideRouter([]),
         { provide: AdminConfigService, useValue: mockConfigService },
         { provide: AIImageGenerationService, useValue: mockImageService },
+        { provide: SystemConfigService, useValue: mockSystemConfigService },
       ],
     }).compileComponents();
 

@@ -141,6 +141,14 @@ export const config = {
       process.env.GITHUB_CALLBACK_URL || 'http://localhost:8333/api/auth/github/callback',
   },
 
+  // AI Kill Switch - master switch for all AI features (defaults to ON/enabled = AI disabled)
+  // When set to 'true' or not set, all AI features are disabled
+  // Must be explicitly set to 'false' to enable AI features
+  aiKillSwitch: {
+    enabled: process.env.AI_KILL_SWITCH !== 'false',
+    lockedByEnv: process.env.AI_KILL_SWITCH !== undefined,
+  },
+
   // OpenAI
   openai: {
     apiKey: process.env.OPENAI_API_KEY || '',

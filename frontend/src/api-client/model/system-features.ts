@@ -11,6 +11,14 @@
 
 export interface SystemFeatures { 
     /**
+     * Master kill switch for ALL AI features. When true (default), all AI features are disabled.
+     */
+    aiKillSwitch: boolean;
+    /**
+     * Whether the AI kill switch is locked by environment variable and cannot be changed in admin UI.
+     */
+    aiKillSwitchLockedByEnv: boolean;
+    /**
      * Whether AI-powered linting is available
      */
     aiLinting: boolean;
