@@ -19,6 +19,9 @@ describe('adminGuard', () => {
   let userServiceMock: {
     isAuthenticated: ReturnType<typeof vi.fn>;
     currentUser: ReturnType<typeof signal<User | null>>;
+    initialized: ReturnType<typeof vi.fn>;
+    initialize: ReturnType<typeof vi.fn>;
+    hasCachedUser: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -42,6 +45,9 @@ describe('adminGuard', () => {
         enabled: true,
         isAdmin: true,
       }),
+      initialized: vi.fn().mockReturnValue(true),
+      initialize: vi.fn().mockResolvedValue(undefined),
+      hasCachedUser: vi.fn().mockResolvedValue(true),
     };
 
     TestBed.configureTestingModule({
@@ -62,8 +68,8 @@ describe('adminGuard', () => {
     );
   };
 
-  it('should allow access for authenticated admin in server mode', () => {
-    const result = runGuard();
+  it('should allow access for authenticated admin in server mode', async () => {
+    const result = await runGuard();
 
     expect(result).toBe(true);
   });
@@ -100,6 +106,9 @@ describe('adminGuard', () => {
       enabled: true,
       isAdmin: false,
     });
+    userServiceMock.initialized = vi.fn().mockReturnValue(true);
+    userServiceMock.initialize = vi.fn().mockResolvedValue(undefined);
+    userServiceMock.hasCachedUser = vi.fn().mockResolvedValue(true);
 
     // Need to recreate the service mock with new signal
     TestBed.resetTestingModule();
@@ -118,6 +127,9 @@ describe('adminGuard', () => {
 
   it('should redirect to / if current user is null', async () => {
     userServiceMock.currentUser = signal<User | null>(null);
+    userServiceMock.initialized = vi.fn().mockReturnValue(true);
+    userServiceMock.initialize = vi.fn().mockResolvedValue(undefined);
+    userServiceMock.hasCachedUser = vi.fn().mockResolvedValue(false);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -130,6 +142,7 @@ describe('adminGuard', () => {
 
     await runGuard();
 
-    expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/']);
+    // With no cached user, it should redirect to welcome
+    expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/welcome']);
   });
 });

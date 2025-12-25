@@ -132,13 +132,63 @@ export const CONFIG_KEYS = {
     envVar: 'AI_IMAGE_DEFAULT_MODEL',
     type: 'string' as const,
   },
-  OPENAI_API_KEY: {
+
+  // ============================================================================
+  // Shared AI Provider Configuration (used by both Image and Text features)
+  // ============================================================================
+  AI_OPENAI_API_KEY: {
     category: 'ai' as ConfigCategory,
-    description: 'OpenAI API key for AI features',
+    description: 'OpenAI API key (shared across all AI features)',
     encrypted: true,
     envVar: 'OPENAI_API_KEY',
     type: 'string' as const,
   },
+  AI_OPENAI_ENDPOINT: {
+    category: 'ai' as ConfigCategory,
+    description: 'OpenAI API endpoint URL (for OpenAI-compatible services)',
+    encrypted: false,
+    envVar: 'OPENAI_API_BASE',
+    type: 'string' as const,
+  },
+  AI_OPENROUTER_API_KEY: {
+    category: 'ai' as ConfigCategory,
+    description: 'OpenRouter API key (shared across all AI features)',
+    encrypted: true,
+    envVar: 'OPENROUTER_API_KEY',
+    type: 'string' as const,
+  },
+  AI_ANTHROPIC_API_KEY: {
+    category: 'ai' as ConfigCategory,
+    description: 'Anthropic API key for Claude models',
+    encrypted: true,
+    envVar: 'ANTHROPIC_API_KEY',
+    type: 'string' as const,
+  },
+  AI_SD_ENDPOINT: {
+    category: 'ai' as ConfigCategory,
+    description: 'Stable Diffusion API endpoint URL',
+    encrypted: false,
+    envVar: 'SD_API_ENDPOINT',
+    type: 'string' as const,
+  },
+  AI_SD_API_KEY: {
+    category: 'ai' as ConfigCategory,
+    description: 'Stable Diffusion API key (if required)',
+    encrypted: true,
+    envVar: 'SD_API_KEY',
+    type: 'string' as const,
+  },
+  AI_FALAI_API_KEY: {
+    category: 'ai' as ConfigCategory,
+    description: 'Fal.ai API key for AI features',
+    encrypted: true,
+    envVar: 'FALAI_API_KEY',
+    type: 'string' as const,
+  },
+
+  // ============================================================================
+  // Image Generation Feature Settings
+  // ============================================================================
   AI_IMAGE_OPENAI_ENABLED: {
     category: 'ai' as ConfigCategory,
     description: 'Enable OpenAI for image generation',
@@ -151,13 +201,6 @@ export const CONFIG_KEYS = {
     description: 'JSON array of available OpenAI models (leave empty for defaults)',
     encrypted: false,
     envVar: 'AI_IMAGE_OPENAI_MODELS',
-    type: 'string' as const,
-  },
-  AI_IMAGE_OPENROUTER_API_KEY: {
-    category: 'ai' as ConfigCategory,
-    description: 'OpenRouter API key for AI image generation',
-    encrypted: true,
-    envVar: 'AI_IMAGE_OPENROUTER_API_KEY',
     type: 'string' as const,
   },
   AI_IMAGE_OPENROUTER_ENABLED: {
@@ -174,33 +217,12 @@ export const CONFIG_KEYS = {
     envVar: 'AI_IMAGE_OPENROUTER_MODELS',
     type: 'string' as const,
   },
-  AI_IMAGE_SD_ENDPOINT: {
-    category: 'ai' as ConfigCategory,
-    description: 'Stable Diffusion API endpoint URL',
-    encrypted: false,
-    envVar: 'AI_IMAGE_SD_ENDPOINT',
-    type: 'string' as const,
-  },
-  AI_IMAGE_SD_API_KEY: {
-    category: 'ai' as ConfigCategory,
-    description: 'Stable Diffusion API key (if required)',
-    encrypted: true,
-    envVar: 'AI_IMAGE_SD_API_KEY',
-    type: 'string' as const,
-  },
   AI_IMAGE_SD_ENABLED: {
     category: 'ai' as ConfigCategory,
     description: 'Enable Stable Diffusion for image generation',
     encrypted: false,
     envVar: 'AI_IMAGE_SD_ENABLED',
     type: 'boolean' as const,
-  },
-  AI_IMAGE_FALAI_API_KEY: {
-    category: 'ai' as ConfigCategory,
-    description: 'Fal.ai API key for AI image generation',
-    encrypted: true,
-    envVar: 'AI_IMAGE_FALAI_API_KEY',
-    type: 'string' as const,
   },
   AI_IMAGE_FALAI_ENABLED: {
     category: 'ai' as ConfigCategory,
@@ -221,6 +243,94 @@ export const CONFIG_KEYS = {
     description: 'JSON array of custom image size profiles',
     encrypted: false,
     envVar: 'AI_IMAGE_CUSTOM_SIZES',
+    type: 'string' as const,
+  },
+
+  // ============================================================================
+  // Text-to-Text AI Settings
+  // ============================================================================
+  AI_TEXT_ENABLED: {
+    category: 'ai' as ConfigCategory,
+    description: 'Enable AI text-to-text features (linting, prompt optimization)',
+    encrypted: false,
+    envVar: 'AI_TEXT_ENABLED',
+    type: 'boolean' as const,
+  },
+  AI_TEXT_DEFAULT_PROVIDER: {
+    category: 'ai' as ConfigCategory,
+    description: 'Default text-to-text provider (openai, openrouter, anthropic)',
+    encrypted: false,
+    envVar: 'AI_TEXT_DEFAULT_PROVIDER',
+    type: 'string' as const,
+  },
+  AI_TEXT_LINT_MODEL: {
+    category: 'ai' as ConfigCategory,
+    description: 'Model to use for AI linting (e.g., gpt-4o, claude-3-sonnet)',
+    encrypted: false,
+    envVar: 'AI_TEXT_LINT_MODEL',
+    type: 'string' as const,
+  },
+  AI_TEXT_LINT_PROMPT: {
+    category: 'ai' as ConfigCategory,
+    description: 'Custom system prompt for AI linting (leave empty for default)',
+    encrypted: false,
+    envVar: 'AI_TEXT_LINT_PROMPT',
+    type: 'string' as const,
+  },
+  AI_TEXT_IMAGE_PROMPT_MODEL: {
+    category: 'ai' as ConfigCategory,
+    description: 'Model to use for image prompt optimization',
+    encrypted: false,
+    envVar: 'AI_TEXT_IMAGE_PROMPT_MODEL',
+    type: 'string' as const,
+  },
+  AI_TEXT_IMAGE_PROMPT_TEMPLATE: {
+    category: 'ai' as ConfigCategory,
+    description: 'Custom system prompt for image prompt optimization (leave empty for default)',
+    encrypted: false,
+    envVar: 'AI_TEXT_IMAGE_PROMPT_TEMPLATE',
+    type: 'string' as const,
+  },
+  AI_TEXT_OPENAI_ENABLED: {
+    category: 'ai' as ConfigCategory,
+    description: 'Enable OpenAI for text-to-text features',
+    encrypted: false,
+    envVar: 'AI_TEXT_OPENAI_ENABLED',
+    type: 'boolean' as const,
+  },
+  AI_TEXT_OPENAI_MODELS: {
+    category: 'ai' as ConfigCategory,
+    description: 'JSON array of available OpenAI text models (leave empty for defaults)',
+    encrypted: false,
+    envVar: 'AI_TEXT_OPENAI_MODELS',
+    type: 'string' as const,
+  },
+  AI_TEXT_OPENROUTER_ENABLED: {
+    category: 'ai' as ConfigCategory,
+    description: 'Enable OpenRouter for text-to-text features',
+    encrypted: false,
+    envVar: 'AI_TEXT_OPENROUTER_ENABLED',
+    type: 'boolean' as const,
+  },
+  AI_TEXT_OPENROUTER_MODELS: {
+    category: 'ai' as ConfigCategory,
+    description: 'JSON array of available OpenRouter text models (leave empty for defaults)',
+    encrypted: false,
+    envVar: 'AI_TEXT_OPENROUTER_MODELS',
+    type: 'string' as const,
+  },
+  AI_TEXT_ANTHROPIC_ENABLED: {
+    category: 'ai' as ConfigCategory,
+    description: 'Enable Anthropic Claude for text-to-text features',
+    encrypted: false,
+    envVar: 'AI_TEXT_ANTHROPIC_ENABLED',
+    type: 'boolean' as const,
+  },
+  AI_TEXT_ANTHROPIC_MODELS: {
+    category: 'ai' as ConfigCategory,
+    description: 'JSON array of available Anthropic models (leave empty for defaults)',
+    encrypted: false,
+    envVar: 'AI_TEXT_ANTHROPIC_MODELS',
     type: 'string' as const,
   },
 } as const;

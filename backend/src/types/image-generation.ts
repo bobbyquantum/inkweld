@@ -252,24 +252,29 @@ export interface StoredProviderConfig {
 
 /**
  * Admin config keys for image generation
+ * Note: API keys are now shared across features (AI_OPENAI_API_KEY, etc.)
  */
 export const IMAGE_GENERATION_CONFIG_KEYS = {
   /** Master enable/disable for image generation */
   ENABLED: 'AI_IMAGE_ENABLED',
   /** Default provider */
   DEFAULT_PROVIDER: 'AI_IMAGE_DEFAULT_PROVIDER',
-  /** OpenAI API key */
-  OPENAI_API_KEY: 'OPENAI_API_KEY',
+  /** OpenAI API key (shared across all AI features) */
+  OPENAI_API_KEY: 'AI_OPENAI_API_KEY',
   /** OpenAI enabled */
   OPENAI_ENABLED: 'AI_IMAGE_OPENAI_ENABLED',
-  /** OpenRouter API key */
-  OPENROUTER_API_KEY: 'AI_IMAGE_OPENROUTER_API_KEY',
+  /** OpenRouter API key (shared across all AI features) */
+  OPENROUTER_API_KEY: 'AI_OPENROUTER_API_KEY',
   /** OpenRouter enabled */
   OPENROUTER_ENABLED: 'AI_IMAGE_OPENROUTER_ENABLED',
-  /** Stable Diffusion endpoint */
-  SD_ENDPOINT: 'AI_IMAGE_SD_ENDPOINT',
-  /** Stable Diffusion API key */
-  SD_API_KEY: 'AI_IMAGE_SD_API_KEY',
+  /** Stable Diffusion endpoint (shared) */
+  SD_ENDPOINT: 'AI_SD_ENDPOINT',
+  /** Stable Diffusion API key (shared) */
+  SD_API_KEY: 'AI_SD_API_KEY',
   /** Stable Diffusion enabled */
   SD_ENABLED: 'AI_IMAGE_SD_ENABLED',
+  /** Fal.ai API key (shared) */
+  FALAI_API_KEY: 'AI_FALAI_API_KEY',
+  /** Fal.ai enabled */
+  FALAI_ENABLED: 'AI_IMAGE_FALAI_ENABLED',
 } as const;

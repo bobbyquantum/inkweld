@@ -8,7 +8,7 @@ import { UnifiedUserService } from '../services/user/unified-user.service';
  * Guard that checks if the current user has admin privileges.
  * Redirects to home if user is not an admin.
  */
-export const adminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const setupService = inject(SetupService);
   const unifiedUserService = inject(UnifiedUserService);
@@ -24,6 +24,24 @@ export const adminGuard: CanActivateFn = () => {
   // Admin functionality is only available in server mode
   if (mode !== 'server') {
     return router.createUrlTree(['/']);
+  }
+
+  // Check for cached user first - if no cache, redirect immediately
+  if (
+    !unifiedUserService.currentUser() ||
+    unifiedUserService.currentUser().username === 'anonymous'
+  ) {
+    const hasCached = await unifiedUserService.hasCachedUser();
+    if (!hasCached) {
+      return router.createUrlTree(['/welcome']);
+    }
+  }
+
+  // Always initialize/refresh user data from server
+  try {
+    await unifiedUserService.initialize();
+  } catch {
+    return router.createUrlTree(['/welcome']);
   }
 
   // Check if user is authenticated

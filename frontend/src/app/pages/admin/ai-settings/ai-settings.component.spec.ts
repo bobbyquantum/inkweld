@@ -22,7 +22,7 @@ import {
   ConfigValue,
 } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { AIImageGenerationService } from 'api-client';
+import { AIImageGenerationService, AIProvidersService } from 'api-client';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
@@ -36,6 +36,7 @@ describe('AdminAiSettingsComponent', () => {
   let component: AdminAiSettingsComponent;
   let mockConfigService: MockedObject<AdminConfigService>;
   let mockImageService: MockedObject<AIImageGenerationService>;
+  let mockProvidersService: MockedObject<AIProvidersService>;
   let mockSystemConfigService: {
     isAiKillSwitchEnabled: ReturnType<typeof signal<boolean>>;
     isAiKillSwitchLockedByEnv: ReturnType<typeof signal<boolean>>;
@@ -54,8 +55,8 @@ describe('AdminAiSettingsComponent', () => {
       value: 'openai',
       source: 'database',
     },
-    OPENAI_API_KEY: {
-      key: 'OPENAI_API_KEY',
+    AI_OPENAI_API_KEY: {
+      key: 'AI_OPENAI_API_KEY',
       value: '********',
       source: 'database',
     },
@@ -69,8 +70,8 @@ describe('AdminAiSettingsComponent', () => {
       value: '',
       source: 'database',
     },
-    AI_IMAGE_OPENROUTER_API_KEY: {
-      key: 'AI_IMAGE_OPENROUTER_API_KEY',
+    AI_OPENROUTER_API_KEY: {
+      key: 'AI_OPENROUTER_API_KEY',
       value: '',
       source: 'database',
     },
@@ -84,8 +85,8 @@ describe('AdminAiSettingsComponent', () => {
       value: '',
       source: 'database',
     },
-    AI_IMAGE_SD_API_KEY: {
-      key: 'AI_IMAGE_SD_API_KEY',
+    AI_SD_API_KEY: {
+      key: 'AI_SD_API_KEY',
       value: '',
       source: 'database',
     },
@@ -94,8 +95,8 @@ describe('AdminAiSettingsComponent', () => {
       value: 'false',
       source: 'database',
     },
-    AI_IMAGE_SD_ENDPOINT: {
-      key: 'AI_IMAGE_SD_ENDPOINT',
+    AI_SD_ENDPOINT: {
+      key: 'AI_SD_ENDPOINT',
       value: 'http://localhost:7860',
       source: 'database',
     },
@@ -213,6 +214,36 @@ describe('AdminAiSettingsComponent', () => {
       isAiKillSwitchLockedByEnv: signal(false),
     };
 
+    mockProvidersService = {
+      getAiProvidersStatus: vi.fn().mockReturnValue(
+        of({
+          providers: [
+            {
+              id: 'openai',
+              name: 'OpenAI',
+              hasApiKey: true,
+              supportsImages: true,
+              supportsText: true,
+            },
+            {
+              id: 'openrouter',
+              name: 'OpenRouter',
+              hasApiKey: false,
+              supportsImages: true,
+              supportsText: true,
+            },
+            {
+              id: 'falai',
+              name: 'Fal.ai',
+              hasApiKey: false,
+              supportsImages: true,
+              supportsText: false,
+            },
+          ],
+        })
+      ),
+    } as unknown as MockedObject<AIProvidersService>;
+
     await TestBed.configureTestingModule({
       imports: [
         AdminAiSettingsComponent,
@@ -237,6 +268,7 @@ describe('AdminAiSettingsComponent', () => {
         provideRouter([]),
         { provide: AdminConfigService, useValue: mockConfigService },
         { provide: AIImageGenerationService, useValue: mockImageService },
+        { provide: AIProvidersService, useValue: mockProvidersService },
         { provide: SystemConfigService, useValue: mockSystemConfigService },
       ],
     }).compileComponents();
@@ -295,8 +327,8 @@ describe('AdminAiSettingsComponent', () => {
     it('should detect OpenRouter config', async () => {
       mockConfigService.getAllConfig.mockResolvedValue(
         createMockConfig({
-          AI_IMAGE_OPENROUTER_API_KEY: {
-            key: 'AI_IMAGE_OPENROUTER_API_KEY',
+          AI_OPENROUTER_API_KEY: {
+            key: 'AI_OPENROUTER_API_KEY',
             value: '********',
             source: 'database',
           },
@@ -318,8 +350,8 @@ describe('AdminAiSettingsComponent', () => {
     it('should detect Stable Diffusion config', async () => {
       mockConfigService.getAllConfig.mockResolvedValue(
         createMockConfig({
-          AI_IMAGE_SD_API_KEY: {
-            key: 'AI_IMAGE_SD_API_KEY',
+          AI_SD_API_KEY: {
+            key: 'AI_SD_API_KEY',
             value: '********',
             source: 'database',
           },
@@ -437,7 +469,7 @@ describe('AdminAiSettingsComponent', () => {
       await component.saveOpenaiApiKey();
 
       expect(mockConfigService.setConfig).toHaveBeenCalledWith(
-        'OPENAI_API_KEY',
+        'AI_OPENAI_API_KEY',
         'sk-test-key'
       );
       expect(component.openaiConfig().hasApiKey).toBe(true);
@@ -465,7 +497,7 @@ describe('AdminAiSettingsComponent', () => {
       await component.clearOpenaiApiKey();
 
       expect(mockConfigService.deleteConfig).toHaveBeenCalledWith(
-        'OPENAI_API_KEY'
+        'AI_OPENAI_API_KEY'
       );
       expect(component.openaiConfig().hasApiKey).toBe(false);
     });
@@ -508,7 +540,7 @@ describe('AdminAiSettingsComponent', () => {
       await component.saveOpenrouterApiKey();
 
       expect(mockConfigService.setConfig).toHaveBeenCalledWith(
-        'AI_IMAGE_OPENROUTER_API_KEY',
+        'AI_OPENROUTER_API_KEY',
         'sk-or-test-key'
       );
       expect(component.openrouterConfig().hasApiKey).toBe(true);
@@ -526,7 +558,7 @@ describe('AdminAiSettingsComponent', () => {
       await component.clearOpenrouterApiKey();
 
       expect(mockConfigService.deleteConfig).toHaveBeenCalledWith(
-        'AI_IMAGE_OPENROUTER_API_KEY'
+        'AI_OPENROUTER_API_KEY'
       );
       expect(component.openrouterConfig().hasApiKey).toBe(false);
     });
@@ -561,7 +593,7 @@ describe('AdminAiSettingsComponent', () => {
       await component.saveSdEndpoint();
 
       expect(mockConfigService.setConfig).toHaveBeenCalledWith(
-        'AI_IMAGE_SD_ENDPOINT',
+        'AI_SD_ENDPOINT',
         'http://custom:7860'
       );
     });
@@ -578,7 +610,7 @@ describe('AdminAiSettingsComponent', () => {
       await component.saveSdApiKey();
 
       expect(mockConfigService.setConfig).toHaveBeenCalledWith(
-        'AI_IMAGE_SD_API_KEY',
+        'AI_SD_API_KEY',
         'sd-test-key'
       );
       expect(component.sdConfig().hasApiKey).toBe(true);
@@ -596,7 +628,7 @@ describe('AdminAiSettingsComponent', () => {
       await component.clearSdApiKey();
 
       expect(mockConfigService.deleteConfig).toHaveBeenCalledWith(
-        'AI_IMAGE_SD_API_KEY'
+        'AI_SD_API_KEY'
       );
       expect(component.sdConfig().hasApiKey).toBe(false);
     });
@@ -828,7 +860,7 @@ describe('AdminAiSettingsComponent', () => {
       mockConfigService.setConfig.mockResolvedValue(undefined);
       await component.saveFalaiApiKey();
       expect(mockConfigService.setConfig).toHaveBeenCalledWith(
-        'AI_IMAGE_FALAI_API_KEY',
+        'AI_FALAI_API_KEY',
         'test-falai-key'
       );
     });
@@ -837,7 +869,7 @@ describe('AdminAiSettingsComponent', () => {
       mockConfigService.deleteConfig.mockResolvedValue(undefined);
       await component.clearFalaiApiKey();
       expect(mockConfigService.deleteConfig).toHaveBeenCalledWith(
-        'AI_IMAGE_FALAI_API_KEY'
+        'AI_FALAI_API_KEY'
       );
     });
 
