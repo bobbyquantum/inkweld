@@ -10,6 +10,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { User } from '@inkweld/model/user';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,11 +41,18 @@ describe('AdminComponent', () => {
     currentUser: ReturnType<typeof signal<User | null>>;
     getMode: ReturnType<typeof vi.fn>;
   };
+  let systemConfigMock: {
+    isAiKillSwitchEnabled: ReturnType<typeof signal<boolean>>;
+  };
 
   beforeEach(async () => {
     userServiceMock = {
       currentUser: signal<User | null>(CURRENT_USER),
       getMode: vi.fn().mockReturnValue('online'),
+    };
+
+    systemConfigMock = {
+      isAiKillSwitchEnabled: signal(false),
     };
 
     await TestBed.configureTestingModule({
@@ -60,6 +68,7 @@ describe('AdminComponent', () => {
           { path: 'settings', component: AdminComponent },
         ]),
         { provide: UnifiedUserService, useValue: userServiceMock },
+        { provide: SystemConfigService, useValue: systemConfigMock },
       ],
     })
       .overrideComponent(AdminComponent, {
@@ -84,5 +93,11 @@ describe('AdminComponent', () => {
   it('should handle null current user', () => {
     userServiceMock.currentUser.set(null);
     expect(component.currentUser()).toBeNull();
+  });
+
+  it('should expose kill switch status', () => {
+    expect(component.isAiKillSwitchEnabled()).toBe(false);
+    systemConfigMock.isAiKillSwitchEnabled.set(true);
+    expect(component.isAiKillSwitchEnabled()).toBe(true);
   });
 });

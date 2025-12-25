@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { config } from '../config/env';
 import { imageGenerationService } from '../services/image-generation.service';
+import { configService } from '../services/config.service';
 import type { AppContext } from '../types/context';
 
 const configRoutes = new OpenAPIHono<AppContext>();
@@ -21,6 +22,16 @@ const ConfigResponseSchema = z
 
 const SystemFeaturesSchema = z
   .object({
+    aiKillSwitch: z.boolean().openapi({
+      example: true,
+      description:
+        'Master kill switch for ALL AI features. When true (default), all AI features are disabled.',
+    }),
+    aiKillSwitchLockedByEnv: z.boolean().openapi({
+      example: false,
+      description:
+        'Whether the AI kill switch is locked by environment variable and cannot be changed in admin UI.',
+    }),
     aiLinting: z
       .boolean()
       .openapi({ example: true, description: 'Whether AI-powered linting is available' }),
@@ -87,13 +98,34 @@ const getFeaturesRoute = createRoute({
 configRoutes.openapi(getFeaturesRoute, async (c) => {
   const db = c.get('db');
 
-  // Check if OpenAI API key is configured (for AI linting)
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  const hasOpenAI = !!openaiApiKey && openaiApiKey.trim().length > 0;
+  // Check AI kill switch status
+  // If locked by env var, always use the env value
+  // Otherwise, check database or fall back to default (true = AI disabled)
+  let aiKillSwitch: boolean;
+  const lockedByEnv = config.aiKillSwitch.lockedByEnv;
 
-  // Check if ANY image generation provider is available
-  // This properly checks OpenAI, OpenRouter, Fal.ai, and Stable Diffusion
-  const hasImageGeneration = await imageGenerationService.isAvailable(db);
+  if (lockedByEnv) {
+    // Environment variable takes precedence - cannot be changed in admin UI
+    aiKillSwitch = config.aiKillSwitch.enabled;
+  } else {
+    // Check database value (or default)
+    aiKillSwitch = await configService.getBoolean(db, 'AI_KILL_SWITCH');
+  }
+
+  // If kill switch is ON (enabled = true), all AI features are disabled
+  let hasOpenAI = false;
+  let hasImageGeneration = false;
+
+  if (!aiKillSwitch) {
+    // Kill switch is OFF, check actual AI availability
+    // Check if OpenAI API key is configured (for AI linting)
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    hasOpenAI = !!openaiApiKey && openaiApiKey.trim().length > 0;
+
+    // Check if ANY image generation provider is available
+    // This properly checks OpenAI, OpenRouter, Fal.ai, and Stable Diffusion
+    hasImageGeneration = await imageGenerationService.isAvailable(db);
+  }
 
   // Get app mode configuration
   const appModeEnv = process.env.APP_MODE?.toUpperCase() || 'BOTH';
@@ -105,6 +137,8 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   const defaultServerName = process.env.DEFAULT_SERVER_NAME?.trim() || undefined;
 
   return c.json({
+    aiKillSwitch,
+    aiKillSwitchLockedByEnv: lockedByEnv,
     aiLinting: hasOpenAI,
     aiImageGeneration: hasImageGeneration,
     appMode,

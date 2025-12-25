@@ -30,17 +30,43 @@ async function navigateToAdminAiViaMenu(
   await page.locator('[data-testid="admin-menu-link"]').click();
   // Wait for admin page to load
   await page.waitForURL('**/admin/**');
+
+  // Wait for features API to complete (determines if AI nav is visible)
+  // The features API is called when the admin component loads
+  try {
+    await page.waitForResponse(
+      resp =>
+        resp.url().includes('/api/v1/config/features') && resp.status() === 200,
+      { timeout: 5000 }
+    );
+    console.log('[navigateToAdminAiViaMenu] Features API responded');
+  } catch {
+    console.log(
+      '[navigateToAdminAiViaMenu] Features API timeout, proceeding...'
+    );
+  }
+
+  // Wait for network to settle after features response
   await page.waitForLoadState('networkidle');
 
   // Now click on AI Settings link in the admin sidebar/nav
   // First check if we need to navigate to /admin/ai
   if (!page.url().includes('/admin/ai')) {
+    // Wait for the AI nav link to appear (depends on kill switch being disabled)
     const aiLink = page.locator(
       '[data-testid="admin-nav-ai"], a[href*="/admin/ai"]'
     );
-    if ((await aiLink.count()) > 0) {
+    try {
+      await aiLink.waitFor({ state: 'visible', timeout: 5000 });
       await aiLink.first().click();
       await page.waitForLoadState('networkidle');
+    } catch {
+      console.log(
+        '[navigateToAdminAiViaMenu] AI nav link not found - kill switch may be enabled'
+      );
+      throw new Error(
+        'AI nav link not visible - AI kill switch may be enabled in mock'
+      );
     }
   }
 }

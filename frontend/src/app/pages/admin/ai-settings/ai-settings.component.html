@@ -1,4 +1,39 @@
 <div class="ai-settings-container">
+  <!-- AI Kill Switch Warning Banner -->
+  @if (isAiKillSwitchEnabled()) {
+    <mat-card class="kill-switch-warning">
+      <mat-card-header>
+        <mat-icon mat-card-avatar class="warning-icon">block</mat-icon>
+        <mat-card-title>AI Features Disabled</mat-card-title>
+        <mat-card-subtitle>
+          @if (isAiKillSwitchLockedByEnv()) {
+            AI features are disabled by the
+            <code>AI_KILL_SWITCH</code> environment variable.
+          } @else {
+            The AI Kill Switch is enabled. All AI features are currently
+            disabled.
+          }
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          While the kill switch is enabled, AI image generation and AI linting
+          features will not be available to users. You can still configure AI
+          providers below, but they will not be used until the kill switch is
+          disabled.
+        </p>
+      </mat-card-content>
+      @if (!isAiKillSwitchLockedByEnv()) {
+        <mat-card-actions>
+          <a mat-button color="primary" routerLink="/admin/settings">
+            <mat-icon>settings</mat-icon>
+            Go to Settings to disable Kill Switch
+          </a>
+        </mat-card-actions>
+      }
+    </mat-card>
+  }
+
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>

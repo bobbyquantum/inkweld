@@ -17,6 +17,8 @@ describe('SystemConfigService', () => {
   let consoleWarnSpy: any;
 
   const mockSystemFeatures: SystemFeatures = {
+    aiKillSwitch: false,
+    aiKillSwitchLockedByEnv: false,
     aiLinting: true,
     aiImageGeneration: true,
     appMode: SystemFeaturesAppMode.Both,
@@ -102,6 +104,8 @@ describe('SystemConfigService', () => {
         setTimeout(() => {
           // When server is unavailable, use offline defaults
           expect(errorService.systemFeatures()).toEqual({
+            aiKillSwitch: true,
+            aiKillSwitchLockedByEnv: false,
             aiLinting: false,
             aiImageGeneration: false,
             appMode: 'OFFLINE', // Changed from BOTH - treat as offline when server down
@@ -134,6 +138,8 @@ describe('SystemConfigService', () => {
   describe('refreshSystemFeatures', () => {
     it('should refresh system features and reload configuration', () => {
       const newFeatures: SystemFeatures = {
+        aiKillSwitch: false,
+        aiKillSwitchLockedByEnv: false,
         aiLinting: false,
         appMode: SystemFeaturesAppMode.Both,
         userApprovalRequired: false,
@@ -443,6 +449,8 @@ describe('SystemConfigService', () => {
         setTimeout(() => {
           // When server is unavailable, use offline defaults
           expect(testService.systemFeatures()).toEqual({
+            aiKillSwitch: true,
+            aiKillSwitchLockedByEnv: false,
             aiLinting: false,
             aiImageGeneration: false,
             appMode: 'OFFLINE', // Treat as offline when server down
@@ -475,6 +483,8 @@ describe('SystemConfigService', () => {
           setTimeout(() => {
             // When server becomes unavailable, use offline defaults
             expect(service.systemFeatures()).toEqual({
+              aiKillSwitch: true,
+              aiKillSwitchLockedByEnv: false,
               aiLinting: false,
               aiImageGeneration: false,
               appMode: 'OFFLINE', // Treat as offline when server down

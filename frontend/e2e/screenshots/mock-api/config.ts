@@ -17,6 +17,7 @@ const mockConfigValues: Record<string, { value: string; source: string }> = {
   OPENAI_API_KEY: { value: '********', source: 'database' },
   USER_APPROVAL_REQUIRED: { value: 'true', source: 'database' },
   GITHUB_ENABLED: { value: 'true', source: 'database' },
+  AI_KILL_SWITCH: { value: 'false', source: 'database' },
 };
 
 /**
@@ -27,15 +28,21 @@ const mockConfigValues: Record<string, { value: string; source: string }> = {
  * Mock system features endpoint
  */
 export async function handleSystemFeatures(route: Route): Promise<void> {
+  console.log(
+    'Handling system features request - returning aiKillSwitch: false'
+  );
   await route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({
-      aiLinting: false,
+      aiKillSwitch: false,
+      aiKillSwitchLockedByEnv: false,
+      aiLinting: true,
       aiImageGeneration: true,
       captcha: { enabled: false },
       appMode: 'BOTH',
       defaultServerName: null,
+      userApprovalRequired: true,
     }),
   });
 }

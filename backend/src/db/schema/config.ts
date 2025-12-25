@@ -95,6 +95,14 @@ export const CONFIG_KEYS = {
   },
 
   // AI settings
+  AI_KILL_SWITCH: {
+    category: 'ai' as ConfigCategory,
+    description:
+      'Master kill switch for ALL AI features. When enabled (default), all AI features are disabled. Must be explicitly disabled to enable AI.',
+    encrypted: false,
+    envVar: 'AI_KILL_SWITCH',
+    type: 'boolean' as const,
+  },
   AI_LINT_ENABLED: {
     category: 'ai' as ConfigCategory,
     description: 'Enable AI-powered writing lint/suggestions',

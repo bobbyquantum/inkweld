@@ -744,6 +744,16 @@
       "SystemFeatures": {
         "type": "object",
         "properties": {
+          "aiKillSwitch": {
+            "type": "boolean",
+            "example": true,
+            "description": "Master kill switch for ALL AI features. When true (default), all AI features are disabled."
+          },
+          "aiKillSwitchLockedByEnv": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the AI kill switch is locked by environment variable and cannot be changed in admin UI."
+          },
           "aiLinting": {
             "type": "boolean",
             "example": true,
@@ -776,6 +786,8 @@
           }
         },
         "required": [
+          "aiKillSwitch",
+          "aiKillSwitchLockedByEnv",
           "aiLinting",
           "aiImageGeneration",
           "appMode",

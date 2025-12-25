@@ -13,7 +13,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterModule } from '@angular/router';
 import { AdminConfigService } from '@services/admin/admin-config.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { AIImageGenerationService, CustomImageSize } from 'api-client';
 
 interface ProviderConfig {
@@ -54,6 +56,7 @@ interface ModelConfig {
     MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
+    RouterModule,
   ],
   templateUrl: './ai-settings.component.html',
   styleUrl: './ai-settings.component.scss',
@@ -62,6 +65,13 @@ export class AdminAiSettingsComponent implements OnInit {
   private readonly configService = inject(AdminConfigService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly imageService = inject(AIImageGenerationService);
+  private readonly systemConfigService = inject(SystemConfigService);
+
+  // AI Kill Switch state from system config
+  readonly isAiKillSwitchEnabled =
+    this.systemConfigService.isAiKillSwitchEnabled;
+  readonly isAiKillSwitchLockedByEnv =
+    this.systemConfigService.isAiKillSwitchLockedByEnv;
 
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
