@@ -115,6 +115,97 @@ describe('AdminAiSettingsComponent', () => {
       updateCustomImageSizes: vi
         .fn()
         .mockReturnValue(of({ sizes: [], total: 0 })),
+      getDefaultTextToImageModels: vi.fn().mockReturnValue(
+        of({
+          providers: {
+            openai: {
+              name: 'OpenAI',
+              models: [
+                {
+                  id: 'gpt-image-1',
+                  name: 'GPT Image 1',
+                  provider: 'openai',
+                  supportedSizes: [
+                    '1024x1024',
+                    '1024x1536',
+                    '1536x1024',
+                    'auto',
+                  ],
+                  supportsQuality: true,
+                  supportsStyle: false,
+                  maxImages: 1,
+                  description: 'High-quality image generation',
+                },
+                {
+                  id: 'gpt-image-1-mini',
+                  name: 'GPT Image 1 Mini',
+                  provider: 'openai',
+                  supportedSizes: [
+                    '1024x1024',
+                    '1024x1536',
+                    '1536x1024',
+                    'auto',
+                  ],
+                  supportsQuality: true,
+                  supportsStyle: false,
+                  maxImages: 1,
+                  description: 'Fast and cost-effective image generation',
+                },
+              ],
+            },
+            openrouter: {
+              name: 'OpenRouter',
+              models: [
+                {
+                  id: 'black-forest-labs/flux-1.1-pro',
+                  name: 'FLUX 1.1 Pro',
+                  provider: 'openrouter',
+                  supportedSizes: ['1024x1024'],
+                  supportsQuality: false,
+                  supportsStyle: false,
+                  maxImages: 1,
+                  description: 'High-quality image generation',
+                },
+                {
+                  id: 'google/gemini-2.5-flash-image',
+                  name: 'Gemini 2.5 Flash Image',
+                  provider: 'openrouter',
+                  supportedSizes: ['1024x1024'],
+                  supportsQuality: false,
+                  supportsStyle: false,
+                  maxImages: 1,
+                  description: 'Google Gemini image generation',
+                },
+              ],
+            },
+            falai: {
+              name: 'Fal.ai',
+              models: [
+                {
+                  id: 'fal-ai/flux-2-pro',
+                  name: 'FLUX 2 Pro',
+                  provider: 'falai',
+                  supportedSizes: ['1024x1024', '1920x1080'],
+                  supportsQuality: false,
+                  supportsStyle: false,
+                  maxImages: 4,
+                  description: 'FLUX 2 Pro with flexible resolution',
+                },
+                {
+                  id: 'fal-ai/nano-banana-pro',
+                  name: 'Nano Banana Pro',
+                  provider: 'falai',
+                  supportedSizes: ['1:1@1K', '16:9@2K'],
+                  supportsQuality: false,
+                  supportsStyle: false,
+                  maxImages: 4,
+                  description: 'Fast generation with aspect ratio control',
+                },
+              ],
+            },
+          },
+        })
+      ),
     } as unknown as MockedObject<AIImageGenerationService>;
 
     mockSystemConfigService = {
@@ -653,20 +744,30 @@ describe('AdminAiSettingsComponent', () => {
     });
   });
 
-  describe('Default Model Lists', () => {
-    it('should return valid OpenAI default models', () => {
-      const models = component.getDefaultOpenaiModelsList();
+  describe('Default Model Lists from API', () => {
+    it('should load OpenAI default models from API', async () => {
+      component.ngOnInit();
+      await flushPromises();
+
+      // Models should be populated from the mock API response
+      const models = component.openaiModels();
       expect(models.length).toBe(2);
       expect(models[0].id).toBe('gpt-image-1');
       expect(models[0].supportedSizes).toBeDefined();
       expect(models[0].supportsQuality).toBe(true);
     });
 
-    it('should return valid OpenRouter default models', () => {
-      const models = component.getDefaultOpenrouterModelsList();
-      expect(models.length).toBe(4);
+    it('should load OpenRouter default models from API', async () => {
+      component.ngOnInit();
+      await flushPromises();
+
+      // Models should be populated from the mock API response
+      const models = component.openrouterModels();
+      expect(models.length).toBe(2);
       expect(models[0].id).toBe('black-forest-labs/flux-1.1-pro');
-      expect(models.some(m => m.id.startsWith('google/'))).toBe(true);
+      expect(
+        models.some((m: { id: string }) => m.id.startsWith('google/'))
+      ).toBe(true);
     });
   });
 
@@ -740,13 +841,20 @@ describe('AdminAiSettingsComponent', () => {
       );
     });
 
-    it('should get default Fal.ai models list', () => {
-      const models = component.getDefaultFalaiModelsList();
+    it('should load default Fal.ai models from API', async () => {
+      component.ngOnInit();
+      await flushPromises();
+
+      const models = component.falaiModels();
       expect(models.length).toBeGreaterThan(0);
       // Should include FLUX 2 Pro
-      expect(models.some(m => m.id === 'fal-ai/flux-2-pro')).toBe(true);
+      expect(
+        models.some((m: { id: string }) => m.id === 'fal-ai/flux-2-pro')
+      ).toBe(true);
       // Should include Nano Banana Pro
-      expect(models.some(m => m.id === 'fal-ai/nano-banana-pro')).toBe(true);
+      expect(
+        models.some((m: { id: string }) => m.id === 'fal-ai/nano-banana-pro')
+      ).toBe(true);
     });
 
     it('should reset Fal.ai models to defaults', () => {

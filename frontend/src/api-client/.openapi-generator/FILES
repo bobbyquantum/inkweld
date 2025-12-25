@@ -1,5 +1,4 @@
 .gitignore
-.openapi-generator-ignore
 README.md
 api.base.service.ts
 api.module.ts
@@ -42,6 +41,11 @@ model/csrf-error-response.ts
 model/csrf-token-response.ts
 model/custom-image-size.ts
 model/custom-sizes-response.ts
+model/default-text-to-image-models-response-providers-falai.ts
+model/default-text-to-image-models-response-providers-openai.ts
+model/default-text-to-image-models-response-providers-openrouter.ts
+model/default-text-to-image-models-response-providers.ts
+model/default-text-to-image-models-response.ts
 model/delete-published-file200-response.ts
 model/document-error.ts
 model/document-snapshot.ts
