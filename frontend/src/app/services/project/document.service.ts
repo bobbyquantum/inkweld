@@ -33,10 +33,15 @@ import {
 import { LintApiService } from '../../components/lint/lint-api.service';
 import { createLintPlugin } from '../../components/lint/lint-plugin';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { OfflineStorageService } from '../offline/offline-storage.service';
+import {
+  createAuthenticatedWebsocketProvider,
+  setupReauthentication,
+} from '../sync/authenticated-websocket-provider';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { ProjectStateService } from './project-state.service';
 
@@ -83,6 +88,7 @@ interface ProseMirrorNode {
 })
 export class DocumentService {
   private documentsService = inject(DocumentsService);
+  private authTokenService = inject(AuthTokenService);
   private setupService = inject(SetupService);
   private ngZone = inject(NgZone);
   private systemConfigService = inject(SystemConfigService);
@@ -710,19 +716,73 @@ export class DocumentService {
           `Setting up WebSocket connection for document: ${formattedDocId}`
         );
 
-        // WebsocketProvider(url, roomName, doc, options)
-        // The roomName parameter is appended to the URL, but we want documentId as a query param
-        // So we include it in the URL and use a dummy room name
+        // Get auth token for WebSocket authentication
+        const authToken = this.authTokenService.getToken();
+        if (!authToken) {
+          this.logger.error(
+            'DocumentService',
+            'No auth token available for WebSocket connection'
+          );
+          this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+          // Continue without WebSocket - will use IndexedDB only
+          connection = {
+            ydoc,
+            provider: null,
+            type,
+            indexeddbProvider,
+          };
+          this.connections.set(documentId, connection);
+          return;
+        }
+
+        // Create authenticated WebSocket connection
+        // The server expects the auth token as the first text message after connection
         const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
-        provider = new WebsocketProvider(
-          wsUrl,
-          '', // Empty room name - documentId is already in URL
-          ydoc,
-          {
-            connect: true,
-            resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
-          }
-        );
+
+        try {
+          provider = await createAuthenticatedWebsocketProvider(
+            wsUrl,
+            '', // Empty room name - documentId is already in URL
+            ydoc,
+            authToken,
+            {
+              resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
+            }
+          );
+
+          // Authentication succeeded - we're now connected and synced
+          // Set state immediately since the "connected" event already fired during auth
+          this.updateSyncStatus(documentId, DocumentSyncState.Synced);
+
+          // Set up re-authentication for reconnections
+          setupReauthentication(
+            provider,
+            () => this.authTokenService.getToken(),
+            error => {
+              this.logger.error(
+                'DocumentService',
+                `WebSocket auth error: ${error}`
+              );
+              this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+            }
+          );
+        } catch (error) {
+          this.logger.error(
+            'DocumentService',
+            'Failed to establish authenticated WebSocket connection',
+            error
+          );
+          this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+          // Continue without WebSocket - will use IndexedDB only
+          connection = {
+            ydoc,
+            provider: null,
+            type,
+            indexeddbProvider,
+          };
+          this.connections.set(documentId, connection);
+          return;
+        }
 
         // Set user information for awareness (collaborative cursors)
         const currentUser = this.userService.currentUser();
