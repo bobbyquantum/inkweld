@@ -14,7 +14,12 @@ import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
+import {
+  createAuthenticatedWebsocketProvider,
+  setupReauthentication,
+} from './authenticated-websocket-provider';
 import {
   IElementSyncProvider,
   ProjectMeta,
@@ -57,6 +62,7 @@ const DEFAULT_RECONNECTION_CONFIG: ReconnectionConfig = {
 })
 export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly logger = inject(LoggerService);
+  private readonly authTokenService = inject(AuthTokenService);
 
   // Yjs infrastructure
   private doc: Y.Doc | null = null;
@@ -159,14 +165,57 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       // Load elements from local storage first
       this.loadElementsFromDoc();
 
-      // Now set up WebSocket connection for server sync
+      // Get auth token for WebSocket authentication
+      const authToken = this.authTokenService.getToken();
+      if (!authToken) {
+        this.logger.error(
+          'YjsSync',
+          'No auth token available for WebSocket connection'
+        );
+        // Continue offline - we already have IndexedDB data
+        this.syncStateSubject.next(DocumentSyncState.Offline);
+        return { success: true };
+      }
+
+      // Now set up authenticated WebSocket connection for server sync
+      // The server expects the auth token as the first text message after connection
       const wsUrl = `${webSocketUrl}/api/v1/ws/yjs?documentId=${this.docId}`;
       this.logger.info('YjsSync', `🌐 WebSocket URL: ${wsUrl}`);
 
-      this.wsProvider = new WebsocketProvider(wsUrl, '', this.doc, {
-        connect: true,
-        resyncInterval: 10000,
-      });
+      try {
+        this.wsProvider = await createAuthenticatedWebsocketProvider(
+          wsUrl,
+          '',
+          this.doc,
+          authToken,
+          {
+            resyncInterval: 10000,
+          }
+        );
+
+        // Authentication succeeded - we're now connected and synced
+        // Set state immediately since the "connected" event already fired during auth
+        this.syncStateSubject.next(DocumentSyncState.Synced);
+
+        // Set up re-authentication for reconnections
+        setupReauthentication(
+          this.wsProvider,
+          () => this.authTokenService.getToken(),
+          error => {
+            this.logger.error('YjsSync', `WebSocket auth error: ${error}`);
+            this.syncStateSubject.next(DocumentSyncState.Unavailable);
+          }
+        );
+      } catch (authError) {
+        this.logger.error(
+          'YjsSync',
+          'Failed to authenticate WebSocket',
+          authError
+        );
+        // Continue offline - we already have IndexedDB data
+        this.syncStateSubject.next(DocumentSyncState.Offline);
+        return { success: true };
+      }
 
       // Set up event handlers before waiting for sync
       this.setupWebSocketHandlers();

@@ -2,32 +2,30 @@
  * Cloudflare Workers-specific Yjs WebSocket routes
  * Uses Durable Objects for stateful document collaboration
  * One DO per PROJECT (username:slug) manages all documents + elements
+ *
+ * WebSocket Authentication Protocol:
+ * - Client connects to WebSocket (no auth required for upgrade)
+ * - Client sends JWT token as first text message
+ * - DO validates token and project access
+ * - DO responds with "authenticated" or "access-denied:reason"
+ * - Only after auth does Yjs sync begin
  */
 
 import { Hono } from 'hono';
 import type { CloudflareAppContext } from '../types/cloudflare';
-import { authService } from '../services/auth.service';
-import { projectService } from '../services/project.service';
 
 const app = new Hono<CloudflareAppContext>();
 
 /**
  * WebSocket endpoint for Yjs collaboration (Cloudflare Workers)
  * Routes to a Durable Object instance for the project
- * The DO internally routes messages to the correct document
+ * The DO handles authentication over the WebSocket connection
  */
 app.get('/yjs', async (c) => {
   const documentId = c.req.query('documentId');
 
   if (!documentId) {
     return c.json({ error: 'Missing documentId parameter' }, 400);
-  }
-
-  // Authentication check
-  const db = c.get('db');
-  const user = await authService.getUserFromSession(db, c);
-  if (!user) {
-    return c.json({ error: 'Unauthorized' }, 401);
   }
 
   // Validate document format (username:slug:documentId or username:slug:elements)
@@ -38,18 +36,6 @@ app.get('/yjs', async (c) => {
 
   const [username, slug] = parts;
   const projectId = `${username}:${slug}`;
-
-  // Verify project exists and user has access
-  const project = await projectService.findByUsernameAndSlug(db, username, slug);
-  if (!project) {
-    return c.json({ error: 'Project not found' }, 404);
-  }
-
-  // Check access - owner or collaborator
-  if (project.userId !== user.id) {
-    // TODO: Check collaborator access when implemented
-    return c.json({ error: 'Forbidden' }, 403);
-  }
 
   try {
     // Get Durable Object namespace binding
@@ -68,7 +54,7 @@ app.get('/yjs', async (c) => {
     console.log(`Routing WebSocket to project DO: ${projectId} for document: ${documentId}`);
 
     // Forward the request to the Durable Object
-    // The request includes documentId query param so the DO knows which doc to route to
+    // The DO will handle authentication over the WebSocket connection
     return stub.fetch(c.req.raw);
   } catch (error) {
     console.error('Error routing to Durable Object:', error);
