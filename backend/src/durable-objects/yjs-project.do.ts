@@ -11,6 +11,12 @@
  * - Routes WebSocket messages based on documentId query param
  * - Uses y-durableobjects for proper Yjs persistence
  *
+ * WebSocket Authentication Protocol:
+ * - Client connects and sends JWT token as first text message
+ * - DO verifies token and project access
+ * - DO responds with "authenticated" or "access-denied:reason"
+ * - Only after auth does Yjs sync begin
+ *
  * Cost savings: 20 open docs = 1 DO instead of 20 = ~20x reduction!
  */
 
@@ -23,10 +29,24 @@ declare const WebSocketPair: any;
 interface ConnectionInfo {
   documentId: string; // Which document this connection is for
   userId?: string;
+  authenticated: boolean; // Whether this connection has been authenticated
+  sharedDoc?: WSSharedDoc; // Document (only set after auth)
+  pendingMessages: ArrayBuffer[]; // Binary messages queued before auth
+  unsubscribe?: () => void; // Cleanup function for document subscription
+}
+
+interface SessionData {
+  userId: string;
+  username: string;
+  email: string;
+  exp?: number;
 }
 
 type YjsEnv = {
-  Bindings: Record<string, never>;
+  Bindings: {
+    DATABASE_KEY?: string;
+    SESSION_SECRET?: string;
+  };
 };
 
 /**
@@ -39,13 +59,88 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   private projectId: string = '';
 
   /**
+   * Get the JWT secret from environment
+   */
+  private getSecret(): string {
+    // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
+    const secret = this.env.DATABASE_KEY || this.env.SESSION_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new Error('DATABASE_KEY must be at least 32 characters');
+    }
+    return secret;
+  }
+
+  /**
+   * Verify a JWT token
+   * Note: We use a simple base64 decode + HMAC verify approach
+   * since hono/jwt is not available in the DO context
+   */
+  private async verifyToken(token: string): Promise<SessionData | null> {
+    try {
+      if (!token) return null;
+
+      // JWT format: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+
+      const secret = this.getSecret();
+
+      // Decode payload (base64url)
+      const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payloadJson = atob(payloadB64);
+      const payload = JSON.parse(payloadJson) as SessionData;
+
+      // Verify signature using Web Crypto API
+      const encoder = new TextEncoder();
+      const data = encoder.encode(`${parts[0]}.${parts[1]}`);
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+
+      // Decode signature (base64url)
+      const sigB64 = parts[2].replace(/-/g, '+').replace(/_/g, '/');
+      // Pad if needed
+      const padded = sigB64 + '='.repeat((4 - (sigB64.length % 4)) % 4);
+      const sigBytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+
+      const valid = await crypto.subtle.verify('HMAC', key, sigBytes, data);
+      if (!valid) {
+        console.error('JWT signature verification failed');
+        return null;
+      }
+
+      // Check required fields
+      if (!payload.userId || !payload.username) {
+        return null;
+      }
+
+      // Check expiration
+      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+        console.error('JWT token expired');
+        return null;
+      }
+
+      return payload;
+    } catch (err) {
+      console.error('Failed to verify token:', err);
+      return null;
+    }
+  }
+
+  /**
    * Handle WebSocket upgrade requests
    * Query params: ?documentId=username:slug:docId (or :elements)
+   *
+   * NOTE: No authentication here - auth happens over the WebSocket connection
+   * Client must send JWT token as first text message after connecting
    */
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     let documentId = url.searchParams.get('documentId');
-    const userId = url.searchParams.get('userId') || undefined;
 
     if (!documentId) {
       return new Response('Missing documentId parameter', { status: 400 });
@@ -70,20 +165,21 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     const pair = new WebSocketPair();
     const [client, server] = pair;
 
-    // Get or create document-specific storage
-    const sharedDoc = await this.getOrCreateDocument(documentId);
-
-    // Track connection
-    this.connections.set(server, { documentId, userId });
+    // Track connection - NOT authenticated yet, no Yjs setup
+    this.connections.set(server, {
+      documentId,
+      authenticated: false,
+      pendingMessages: [],
+    });
 
     // Accept WebSocket with hibernation and tag with documentId
     this.state.acceptWebSocket(server, [documentId]);
 
-    // Register the WebSocket with the document-specific handler
-    this.registerWebSocketForDocument(server, sharedDoc, documentId);
+    // Note: We do NOT set up Yjs here - we wait for authentication
+    // The client must send a JWT token as the first text message
 
     console.log(
-      `WS connected: ${documentId} (${this.connections.size} total connections, ${this.documents.size} docs, DO instance: ${this.projectId})`
+      `WS connected: ${documentId}, awaiting authentication... (${this.connections.size} total connections, DO: ${this.projectId})`
     );
 
     return new Response(null, {
@@ -141,7 +237,8 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
   /**
    * Handle incoming WebSocket messages
-   * Routes to the correct document based on connection's documentId
+   * Text messages: Authentication (first message must be JWT token)
+   * Binary messages: Yjs sync protocol (only after auth)
    */
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): Promise<void> {
     const connInfo = this.connections.get(ws);
@@ -150,14 +247,82 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       return;
     }
 
-    const sharedDoc = this.documents.get(connInfo.documentId);
-    if (!sharedDoc) {
-      console.warn(`No document state for ${connInfo.documentId}`);
+    // Handle text messages (authentication)
+    if (typeof message === 'string') {
+      if (connInfo.authenticated) {
+        // Already authenticated, ignore text messages
+        return;
+      }
+
+      // First text message should be the JWT token
+      const token = message;
+
+      try {
+        // Verify the token
+        const sessionData = await this.verifyToken(token);
+        if (!sessionData) {
+          console.error(`Invalid auth token for ${connInfo.documentId}`);
+          ws.send('access-denied:invalid-token');
+          ws.close(4001, 'Invalid token');
+          return;
+        }
+
+        // Validate project access (document format: username:slug:documentId)
+        const parts = connInfo.documentId.split(':');
+        const [projectOwner] = parts;
+
+        // Check access - the token's username should match the project owner
+        // TODO: Add collaborator support when implemented
+        if (sessionData.username !== projectOwner) {
+          console.error(
+            `User ${sessionData.username} attempted to access project owned by ${projectOwner}`
+          );
+          ws.send('access-denied:forbidden');
+          ws.close(4003, 'Access denied');
+          return;
+        }
+
+        // Authentication successful!
+        connInfo.authenticated = true;
+        connInfo.userId = sessionData.userId;
+        console.log(`WS authenticated for ${connInfo.documentId} (user: ${sessionData.username})`);
+
+        // Send success message
+        ws.send('authenticated');
+
+        // Now set up Yjs connection
+        const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
+        connInfo.sharedDoc = sharedDoc;
+        this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId);
+
+        // Process any binary messages that arrived during auth
+        for (const data of connInfo.pendingMessages) {
+          sharedDoc.update(new Uint8Array(data));
+        }
+        connInfo.pendingMessages = [];
+
+        console.log(
+          `Yjs sync started for ${connInfo.documentId} (${this.documents.size} docs in DO)`
+        );
+      } catch (error) {
+        console.error(`Auth error for ${connInfo.documentId}:`, error);
+        ws.send('access-denied:error');
+        ws.close(4000, 'Authentication error');
+      }
+
       return;
     }
 
-    if (typeof message === 'string') {
-      console.warn('Received string message, expected binary');
+    // Handle binary messages (Yjs sync protocol)
+    if (!connInfo.authenticated) {
+      // Not authenticated yet - queue the message
+      connInfo.pendingMessages.push(message);
+      return;
+    }
+
+    const sharedDoc = connInfo.sharedDoc;
+    if (!sharedDoc) {
+      console.warn(`No document state for ${connInfo.documentId}`);
       return;
     }
 

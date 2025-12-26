@@ -162,6 +162,46 @@ class AuthService {
   }
 
   /**
+   * Verify a JWT token directly (without needing the Authorization header).
+   * Used for WebSocket authentication where the token is sent over the connection.
+   * @param token - The JWT token to verify
+   * @param c - Hono context (needed for accessing the secret)
+   * @returns SessionData if valid, null otherwise
+   */
+  async verifyToken(token: string, c: Context): Promise<SessionData | null> {
+    try {
+      if (!token) {
+        return null;
+      }
+
+      // Verify and decode JWT using request-context secret
+      const secret = this.getSecret(c);
+      const payload = await verify(token, secret);
+
+      if (!payload) {
+        return null;
+      }
+
+      const data = payload as SessionData;
+
+      // Validate required fields
+      if (!data.userId || !data.username) {
+        return null;
+      }
+
+      // Check expiration
+      if (data.exp && data.exp < Math.floor(Date.now() / 1000)) {
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error('Failed to verify token:', err);
+      return null;
+    }
+  }
+
+  /**
    * Require authentication middleware
    */
   requireAuth() {
