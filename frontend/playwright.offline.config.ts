@@ -16,16 +16,13 @@ export default defineConfig({
   testDir: './e2e/offline',
 
   /* Disable parallel - Angular app is heavy and causes timeouts when parallel */
-  fullyParallel: false,
+  fullyParallel: true,
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env['CI'],
 
   /* Retry on CI only */
   retries: process.env['CI'] ? 2 : 0,
-
-  /* Single worker - Angular app is resource-intensive */
-  workers: 1,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [['list'], ['html', { open: 'never' }]],

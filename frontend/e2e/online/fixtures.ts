@@ -136,14 +136,29 @@ export const test = base.extend<OnlineTestFixtures>({
     // This ensures the auth guard will find a cached user on subsequent navigations
     await page.waitForFunction(
       () => {
-        // Check that we're not on a redirect page (setup/welcome)
+        const path = window.location.pathname;
+        // Check that we're not on a redirect page (setup/welcome/login/approval-pending)
         return (
-          !window.location.pathname.includes('setup') &&
-          !window.location.pathname.includes('welcome')
+          !path.includes('setup') &&
+          !path.includes('welcome') &&
+          !path.includes('login') &&
+          !path.includes('approval-pending')
         );
       },
       { timeout: 10000 }
     );
+
+    // Double-check we're not on an auth page (if waitForFunction passed but we're still redirected)
+    const currentUrl = page.url();
+    if (
+      currentUrl.includes('/login') ||
+      currentUrl.includes('/approval-pending')
+    ) {
+      throw new Error(
+        `authenticatedPage fixture failed: landed on ${currentUrl} instead of authenticated page. ` +
+          `Token may be invalid or user not approved.`
+      );
+    }
 
     // Store credentials for potential later use
     // @ts-expect-error - Dynamic property for test context
@@ -194,13 +209,27 @@ export const test = base.extend<OnlineTestFixtures>({
     // Wait for the app to fully initialize
     await page.waitForFunction(
       () => {
+        const path = window.location.pathname;
         return (
-          !window.location.pathname.includes('setup') &&
-          !window.location.pathname.includes('welcome')
+          !path.includes('setup') &&
+          !path.includes('welcome') &&
+          !path.includes('login') &&
+          !path.includes('approval-pending')
         );
       },
       { timeout: 10000 }
     );
+
+    // Double-check we're not on an auth page
+    const currentUrl = page.url();
+    if (
+      currentUrl.includes('/login') ||
+      currentUrl.includes('/approval-pending')
+    ) {
+      throw new Error(
+        `adminPage fixture failed: landed on ${currentUrl} instead of authenticated page.`
+      );
+    }
 
     // Store admin credentials for potential later use
     // @ts-expect-error - Dynamic property for test context
@@ -276,27 +305,60 @@ export async function authenticateUser(
   isRegister: boolean = true
 ): Promise<string> {
   const apiUrl = getApiBaseUrl();
+  const maxRetries = 3;
+  const retryDelay = 500;
 
   if (isRegister) {
-    // Register via API
-    const registerResponse = await page.request.post(
-      `${apiUrl}/api/v1/auth/register`,
-      {
-        data: {
-          username,
-          password,
-        },
-      }
-    );
-
-    if (!registerResponse.ok()) {
-      throw new Error(
-        `Registration failed: ${registerResponse.status()} ${await registerResponse.text()}`
+    // Register via API with retry for transient approval-required errors
+    // This can happen when another test temporarily toggles USER_APPROVAL_REQUIRED
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const usernameToTry =
+        attempt > 1 ? `${username}-retry${attempt}` : username;
+      const registerResponse = await page.request.post(
+        `${apiUrl}/api/v1/auth/register`,
+        {
+          data: {
+            username: usernameToTry,
+            password,
+          },
+        }
       );
+
+      if (!registerResponse.ok()) {
+        throw new Error(
+          `Registration failed: ${registerResponse.status()} ${await registerResponse.text()}`
+        );
+      }
+
+      const registerData = (await registerResponse.json()) as {
+        token?: string;
+        requiresApproval?: boolean;
+        message?: string;
+      };
+
+      if (registerData.requiresApproval) {
+        if (attempt < maxRetries) {
+          // Wait and retry - the admin test may be temporarily toggling the setting
+          await new Promise(r => setTimeout(r, retryDelay * attempt));
+          continue;
+        }
+        throw new Error(
+          `Registration requires approval after ${maxRetries} attempts - ` +
+            `USER_APPROVAL_REQUIRED may be incorrectly set. ` +
+            `Message: ${registerData.message}`
+        );
+      }
+
+      if (!registerData.token) {
+        throw new Error(
+          `Registration succeeded but no token returned. Response: ${JSON.stringify(registerData)}`
+        );
+      }
+
+      return registerData.token;
     }
 
-    const registerData = (await registerResponse.json()) as { token: string };
-    return registerData.token;
+    throw new Error('Registration failed after max retries');
   } else {
     // Login via API
     const loginResponse = await page.request.post(

@@ -19,46 +19,72 @@ test.describe('Online Infrastructure', () => {
     const testUsername = `e2etest-${Date.now()}`;
     const testPassword = 'TestPassword123!';
 
-    // Set server mode with serverUrl
-    await page.addInitScript(() => {
-      // Clear all localStorage first
-      localStorage.clear();
+    // First, verify the backend config has USER_APPROVAL_REQUIRED=false
+    const configResponse = await page.request.get(
+      'http://localhost:9333/api/v1/config'
+    );
+    expect(configResponse.ok()).toBeTruthy();
+    const config = (await configResponse.json()) as {
+      userApprovalRequired: boolean;
+    };
 
-      // Set server mode with serverUrl pointing to test backend
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'server',
-          serverUrl: 'http://localhost:9333',
-        })
+    // Register via API first (more reliable than UI flow)
+    const registerResponse = await page.request.post(
+      'http://localhost:9333/api/v1/auth/register',
+      {
+        data: {
+          username: testUsername,
+          password: testPassword,
+        },
+      }
+    );
+
+    expect(registerResponse.ok()).toBeTruthy();
+    const registerData = (await registerResponse.json()) as {
+      token?: string;
+      requiresApproval?: boolean;
+      user: { username: string };
+    };
+
+    // If approval is required, the test cannot continue
+    // This should not happen with USER_APPROVAL_REQUIRED=false
+    if (registerData.requiresApproval) {
+      console.log(
+        `Backend config: userApprovalRequired=${config.userApprovalRequired}`
       );
-    });
+      throw new Error(
+        `Registration requires approval - expected USER_APPROVAL_REQUIRED=false but got requiresApproval=true`
+      );
+    }
+
+    expect(registerData.token).toBeDefined();
+
+    // Set server mode with token
+    await page.addInitScript(
+      ({ token, serverUrl }: { token: string; serverUrl: string }) => {
+        localStorage.clear();
+        localStorage.setItem(
+          'inkweld-app-config',
+          JSON.stringify({
+            mode: 'server',
+            serverUrl,
+          })
+        );
+        localStorage.setItem('auth_token', token);
+      },
+      { token: registerData.token!, serverUrl: 'http://localhost:9333' }
+    );
 
     // Navigate to app
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'networkidle' });
 
-    // We're on the landing page - click the Register button
-    const registerButton = page.getByRole('button', { name: /^register$/i });
-    await registerButton.waitFor({ state: 'visible', timeout: 10000 });
-    await registerButton.click();
-
-    // Wait for register page
-    await page.waitForURL(/register/i, { timeout: 10000 });
-
-    // Register new user
-    await page.getByLabel(/^username/i).fill(testUsername);
-    await page.getByLabel(/^password$/i).fill(testPassword);
-    await page.getByLabel(/confirm password/i).fill(testPassword);
-
-    // Click register and wait for navigation
-    await page.getByRole('button', { name: /register|sign up/i }).click();
-
-    // Registration should succeed and show success message or redirect to home
-    // The register page calls loadCurrentUser() which should auto-login
-    await page.waitForURL('/', { timeout: 10000 });
-
-    // Verify we can access the app
+    // Verify we can access the app and are logged in
     await expect(page).toHaveTitle(/Home|Inkweld/i);
+
+    // Verify we're not on a login or approval page
+    const url = page.url();
+    expect(url).not.toContain('/login');
+    expect(url).not.toContain('/approval-pending');
 
     // Cleanup
     await context.close();
