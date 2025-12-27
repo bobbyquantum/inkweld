@@ -201,6 +201,21 @@ class ConfigService {
   }
 
   /**
+   * Get a config value as a boolean with source info.
+   * Returns whether the value was explicitly set (database or environment) vs using defaults.
+   */
+  async getBooleanWithSource(
+    db: DatabaseInstance,
+    key: ConfigKey
+  ): Promise<{ value: boolean; isExplicitlySet: boolean }> {
+    const configValue = await this.get(db, key);
+    return {
+      value: configValue.value === 'true' || configValue.value === '1',
+      isExplicitlySet: configValue.source === 'database' || configValue.source === 'environment',
+    };
+  }
+
+  /**
    * Get all config values
    */
   async getAll(db: DatabaseInstance): Promise<ConfigValues> {

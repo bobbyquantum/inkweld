@@ -1,11 +1,11 @@
 /**
  * OpenAI image generation provider.
- * Supports gpt-image-1 and gpt-image-1-mini models (formerly DALL-E).
+ * Supports gpt-image-1, gpt-image-1-mini, and gpt-image-1.5 models.
  */
 import OpenAI from 'openai';
 
 import type {
-  ImageGenerateRequest,
+  ResolvedImageRequest,
   ImageGenerateResponse,
   ImageModelInfo,
   ImageProviderType,
@@ -24,7 +24,7 @@ export const DEFAULT_OPENAI_MODELS: ImageModelInfo[] = [
     supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
     supportsQuality: true,
     supportsStyle: false,
-    maxImages: 1,
+    maxImages: 10,
     description: 'High-quality image generation with excellent prompt understanding',
   },
   {
@@ -34,8 +34,18 @@ export const DEFAULT_OPENAI_MODELS: ImageModelInfo[] = [
     supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
     supportsQuality: true,
     supportsStyle: false,
-    maxImages: 1,
+    maxImages: 10,
     description: 'Fast and cost-effective image generation',
+  },
+  {
+    id: 'gpt-image-1.5',
+    name: 'GPT Image 1.5',
+    provider: 'openai',
+    supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
+    supportsQuality: true,
+    supportsStyle: false,
+    maxImages: 10,
+    description: 'Latest GPT image model with enhanced capabilities',
   },
 ];
 
@@ -94,55 +104,43 @@ export class OpenAIImageProvider extends BaseImageProvider {
     return this.configuredModels;
   }
 
-  async generate(request: ImageGenerateRequest): Promise<ImageGenerateResponse> {
+  async generate(request: ResolvedImageRequest): Promise<ImageGenerateResponse> {
     if (!this.isAvailable() || !this.client) {
       throw new Error('OpenAI image generation is not available. Please configure API key.');
     }
 
-    const model = request.model || this.configuredModels[0]?.id || 'gpt-image-1';
-    const modelInfo = this.configuredModels.find((m) => m.id === model);
-
-    if (!modelInfo) {
-      throw new Error(
-        `Invalid model: ${model}. Available models: ${this.configuredModels.map((m) => m.id).join(', ')}`
-      );
-    }
-
-    // Validate size for model
+    // Model comes from the profile - no validation needed
+    const model = request.model;
     const size = request.size || '1024x1024';
-    if (!modelInfo.supportedSizes.includes(size) && !modelInfo.supportedSizes.includes('auto')) {
-      throw new Error(
-        `Size ${size} not supported by ${model}. Supported: ${modelInfo.supportedSizes.join(', ')}`
-      );
-    }
-
-    // Validate number of images
-    const n = Math.min(request.n || 1, modelInfo.maxImages);
+    const n = request.n || 1;
 
     // Build prompt with worldbuilding context
     const prompt = this.buildPromptWithContext(request);
 
     console.log(`[OpenAI] Generating image with model: ${model}, size: ${size}, n: ${n}`);
 
-    // Build request parameters
+    // Build request parameters for GPT image models
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI SDK has complex types
     const params: any = {
       prompt,
       model,
       n,
       size,
-      response_format: 'b64_json',
+      output_format: 'png', // GPT image models always use output_format
     };
 
-    // Add quality parameter if model supports it
-    if (modelInfo.supportsQuality && request.quality) {
-      params.quality = request.quality;
+    // Add quality parameter if provided
+    // GPT image models use: 'low', 'medium', 'high', 'auto'
+    if (request.quality) {
+      // Map legacy quality values to GPT image model values
+      const qualityMap: Record<string, string> = {
+        standard: 'medium',
+        hd: 'high',
+      };
+      params.quality = qualityMap[request.quality] || request.quality;
     }
 
-    // Add style parameter if model supports it
-    if (modelInfo.supportsStyle && request.style) {
-      params.style = request.style;
-    }
+    // Note: GPT image models do not support the 'style' parameter
 
     try {
       const controller = new AbortController();

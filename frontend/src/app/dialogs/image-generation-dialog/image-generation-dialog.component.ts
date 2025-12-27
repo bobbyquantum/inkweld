@@ -31,6 +31,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
+import { ImageProfilesService } from '../../../api-client/api/image-profiles.service';
 import {
   CustomImageSize,
   GeneratedImage,
@@ -39,9 +40,10 @@ import {
   ImageGenerateRequestStyle,
   ImageGenerateResponse,
   ImageGenerationStatus,
-  ImageModelInfo,
   ImageProviderType,
   ImageSize,
+  PublicImageModelProfile,
+  PublicImageModelProfileProvider,
   WorldbuildingContext,
   WorldbuildingContextRole,
 } from '../../../api-client/model/models';
@@ -109,6 +111,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   );
   private readonly data = inject<ImageGenerationDialogData>(MAT_DIALOG_DATA);
   private readonly aiImageService = inject(AIImageGenerationService);
+  private readonly imageProfilesService = inject(ImageProfilesService);
   private readonly generationService = inject(ImageGenerationService);
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
@@ -122,8 +125,12 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
   // Status & loading states
   readonly isLoadingStatus = signal(true);
-  readonly isLoadingModels = signal(false);
+  readonly isLoadingProfiles = signal(false);
   readonly error = signal<string | null>(null);
+
+  // Image model profiles for simplified selection
+  readonly profiles = signal<PublicImageModelProfile[]>([]);
+  readonly selectedProfile = signal<PublicImageModelProfile | null>(null);
 
   // Current generation job (when in generating stage)
   readonly currentJobId = signal<string | null>(null);
@@ -133,17 +140,10 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     return this.generationService.getJob(jobId) ?? null;
   });
 
-  // Provider status
+  // Provider status (used to check if image generation is available)
   readonly status = signal<ImageGenerationStatus | null>(null);
-  readonly enabledProviders = computed(() => {
-    const s = this.status();
-    if (!s) return [];
-    return s.providers
-      .filter(p => p.enabled && p.available)
-      .map(p => ({ key: p.type, ...p }));
-  });
 
-  // Form state
+  // Form state (provider and model are set from profile)
   readonly prompt = signal<string>(this.data.prompt || '');
   readonly selectedProvider = signal<ImageProviderType | null>(null);
   readonly selectedModel = signal<string | null>(null);
@@ -156,9 +156,6 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     ImageGenerateRequestStyle.Vivid
   );
   readonly negativePrompt = signal<string>('');
-
-  // Available models for selected provider
-  readonly availableModels = signal<ImageModelInfo[]>([]);
 
   // Worldbuilding elements
   readonly worldbuildingElements = signal<WorldbuildingElement[]>([]);
@@ -302,23 +299,18 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
   /**
    * Build size options based on:
-   * 1. Selected model's supported sizes
-   * 2. Custom sizes (for dimension-based models)
+   * 1. Selected profile's supported sizes (if configured)
+   * 2. Custom sizes from admin configuration
+   * 3. Default size options as fallback
    *
    * Handles both dimension format (1920x1080) and aspect ratio format (16:9@4K)
    */
   readonly sizeOptions = computed(() => {
-    const selectedModelId = this.selectedModel();
-    const models = this.availableModels();
+    const profile = this.selectedProfile();
     const custom = this.customSizes();
 
-    // Find the selected model
-    const selectedModel = selectedModelId
-      ? models.find(m => m.id === selectedModelId)
-      : null;
-
-    // Get supported sizes from the model, or fall back to defaults
-    const supportedSizes = selectedModel?.supportedSizes ?? [];
+    // Get supported sizes from the profile, or empty array
+    const supportedSizes = profile?.supportedSizes ?? [];
 
     // Build options list
     const options: {
@@ -328,7 +320,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       isCustom?: boolean;
     }[] = [];
 
-    // First, add sizes from the model's supported sizes
+    // First, add sizes from the profile's supported sizes
     for (const size of supportedSizes) {
       // Check if this is an aspect ratio format (e.g., "16:9@4K")
       const aspectRatio = this.parseAspectRatioSize(size);
@@ -362,12 +354,12 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       }
     }
 
-    // If no model is selected or model has no sizes, use defaults
+    // If no profile sizes configured, use defaults
     if (options.length === 0) {
       options.push(...this.defaultSizeOptions);
     }
 
-    // Add custom sizes (only for dimension-based models)
+    // Add custom sizes (only for dimension-based profiles)
     const hasAspectRatioSizes = supportedSizes.some(
       s => this.parseAspectRatioSize(s) !== null
     );
@@ -394,28 +386,25 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
-    // When provider changes, load models
+    // When profile changes, update size options if needed
     effect(() => {
-      const provider = this.selectedProvider();
-      if (provider) {
-        void this.loadModels(provider);
-      }
-    });
-
-    // When model changes, reset selected size to first available option
-    effect(() => {
-      const modelId = this.selectedModel();
-      if (modelId) {
+      const profile = this.selectedProfile();
+      if (profile) {
         const options = this.sizeOptions();
         if (options.length > 0) {
           const currentSize = this.selectedSize();
-          // Check if current size is still valid for this model
+          // Check if current size is still valid for this profile
           const isValid = options.some(
             o => o.value === (currentSize as string)
           );
           if (!isValid) {
-            // Reset to first option
-            this.selectedSize.set(options[0].value as ImageSize);
+            // Reset to profile's default size or first option
+            const defaultSize = profile.defaultSize;
+            if (defaultSize && options.some(o => o.value === defaultSize)) {
+              this.selectedSize.set(defaultSize as ImageSize);
+            } else {
+              this.selectedSize.set(options[0].value as ImageSize);
+            }
           }
         }
       }
@@ -445,10 +434,60 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     void this.loadStatus();
     void this.loadWorldbuildingElements();
     void this.loadCustomSizes();
+    void this.loadProfiles();
   }
 
   ngOnDestroy(): void {
     this.stopPolling();
+  }
+
+  /** Load enabled image model profiles */
+  private async loadProfiles(): Promise<void> {
+    this.isLoadingProfiles.set(true);
+
+    try {
+      const allProfiles =
+        (await firstValueFrom(this.imageProfilesService.listImageProfiles())) ??
+        [];
+
+      // Filter out image-to-image profiles since this dialog only does text-to-image.
+      // Profiles with supportsImageInput=true require a source image which we don't support.
+      const textToImageProfiles = allProfiles.filter(
+        p => !p.supportsImageInput
+      );
+      this.profiles.set(textToImageProfiles);
+
+      // If profiles exist, select the first one by default
+      if (textToImageProfiles.length > 0) {
+        this.selectedProfile.set(textToImageProfiles[0]);
+        this.applyProfileSettings(textToImageProfiles[0]);
+      }
+    } catch (err) {
+      console.warn('Failed to load image profiles:', err);
+      this.profiles.set([]);
+    } finally {
+      this.isLoadingProfiles.set(false);
+    }
+  }
+
+  /** Apply settings from a selected profile */
+  applyProfileSettings(profile: PublicImageModelProfile): void {
+    // Set provider and model from profile
+    // Cast through unknown since the enums have same values but different types
+    this.selectedProvider.set(profile.provider as unknown as ImageProviderType);
+    this.selectedModel.set(profile.modelId);
+
+    // Set default size if specified, unless we're in forCover mode
+    // (forCover mode has its own portrait size preference)
+    if (profile.defaultSize && !this.data.forCover) {
+      this.selectedSize.set(profile.defaultSize as ImageSize);
+    }
+  }
+
+  /** Handle profile selection change */
+  onProfileChange(profile: PublicImageModelProfile): void {
+    this.selectedProfile.set(profile);
+    this.applyProfileSettings(profile);
   }
 
   /** Load custom image sizes from the backend */
@@ -474,53 +513,11 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
         this.aiImageService.getImageGenerationStatus()
       );
       this.status.set(status);
-
-      // Auto-select default provider
-      if (status.available && status.defaultProvider) {
-        const defaultProviderStatus = status.providers.find(
-          p => p.type === status.defaultProvider
-        );
-        if (
-          defaultProviderStatus?.enabled &&
-          defaultProviderStatus?.available
-        ) {
-          this.selectedProvider.set(status.defaultProvider);
-        } else {
-          const available = this.enabledProviders();
-          if (available.length > 0) {
-            this.selectedProvider.set(available[0].key);
-          }
-        }
-      }
     } catch (err) {
       console.error('Failed to load image generation status:', err);
       this.error.set('Failed to load image generation configuration');
     } finally {
       this.isLoadingStatus.set(false);
-    }
-  }
-
-  private async loadModels(provider: ImageProviderType): Promise<void> {
-    this.isLoadingModels.set(true);
-    this.availableModels.set([]);
-    this.selectedModel.set(null);
-
-    try {
-      const response = await firstValueFrom(
-        this.aiImageService.getProviderModels(provider)
-      );
-      this.availableModels.set(response.models);
-
-      if (response.models.length > 0) {
-        this.selectedModel.set(response.models[0].id);
-      }
-    } catch (err) {
-      console.error('Failed to load models for provider:', provider, err);
-      this.snackBar.open('Failed to load available models', 'Close', {
-        duration: 3000,
-      });
-    } finally {
-      this.isLoadingModels.set(false);
     }
   }
 
@@ -598,6 +595,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
    * Start generation - switches to generating stage and starts background job
    */
   generate(): void {
+    const profile = this.selectedProfile();
     const provider = this.selectedProvider();
     const prompt = this.prompt().trim();
 
@@ -606,8 +604,8 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!provider) {
-      this.snackBar.open('Please select a provider', 'Close', {
+    if (!profile || !provider) {
+      this.snackBar.open('Please select a model profile', 'Close', {
         duration: 3000,
       });
       return;
@@ -633,20 +631,20 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
     const request: ImageGenerateRequest = {
       prompt,
-      provider,
-      model: this.selectedModel() || undefined,
+      profileId: profile.id,
       n: this.imageCount(),
       size: this.selectedSize(),
       worldbuildingContext:
         worldbuildingContext.length > 0 ? worldbuildingContext : undefined,
     };
 
-    if (provider === ImageProviderType.Openai) {
+    // Provider-specific options that can override profile defaults
+    if (profile.provider === PublicImageModelProfileProvider.Openai) {
       request.quality = this.quality();
       request.style = this.style();
     }
 
-    if (provider === ImageProviderType.StableDiffusion) {
+    if (profile.provider === PublicImageModelProfileProvider.StableDiffusion) {
       const negPrompt = this.negativePrompt().trim();
       if (negPrompt) {
         request.negativePrompt = negPrompt;
@@ -791,7 +789,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     const providerStr = String(provider);
     switch (providerStr) {
       case 'openai':
-        return 'OpenAI (DALL-E)';
+        return 'OpenAI';
       case 'openrouter':
         return 'OpenRouter';
       case 'falai':
@@ -809,10 +807,12 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   }
 
   getModelName(): string {
+    const profile = this.selectedProfile();
+    if (profile) {
+      return profile.name;
+    }
     const modelId = this.selectedModel();
-    if (!modelId) return 'Default';
-    const model = this.availableModels().find(m => m.id === modelId);
-    return model?.name ?? modelId;
+    return modelId ?? 'Default';
   }
 
   formatElementData(data: Record<string, unknown> | undefined): string {

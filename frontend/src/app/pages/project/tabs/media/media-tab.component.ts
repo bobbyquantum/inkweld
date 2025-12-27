@@ -263,13 +263,18 @@ export class MediaTabComponent implements OnInit, OnDestroy {
    * Get a display label for a generation job's provider
    */
   getJobProviderLabel(job: GenerationJob): string {
-    const provider = job.request.provider;
-    if (!provider) return 'Unknown';
+    // Provider comes from the response after generation completes
+    const provider = job.response?.provider;
+    if (!provider) return 'Generating...';
     switch (provider as string) {
       case 'openrouter':
         return 'OpenRouter';
       case 'openai':
         return 'OpenAI';
+      case 'falai':
+        return 'Fal.ai';
+      case 'stable-diffusion':
+        return 'Stable Diffusion';
       default:
         return provider as string;
     }

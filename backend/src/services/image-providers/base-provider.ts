@@ -4,7 +4,7 @@
  */
 import type {
   IImageProvider,
-  ImageGenerateRequest,
+  ResolvedImageRequest,
   ImageGenerateResponse,
   ImageModelInfo,
   ImageProviderStatus,
@@ -55,7 +55,7 @@ export abstract class BaseImageProvider implements IImageProvider {
   /**
    * Generate images
    */
-  abstract generate(request: ImageGenerateRequest): Promise<ImageGenerateResponse>;
+  abstract generate(request: ResolvedImageRequest): Promise<ImageGenerateResponse>;
 
   /**
    * Get provider status
@@ -104,7 +104,7 @@ export abstract class BaseImageProvider implements IImageProvider {
   /**
    * Build the final prompt including worldbuilding context
    */
-  protected buildPromptWithContext(request: ImageGenerateRequest): string {
+  protected buildPromptWithContext(request: ResolvedImageRequest): string {
     let prompt = request.prompt;
 
     // Add worldbuilding context if provided

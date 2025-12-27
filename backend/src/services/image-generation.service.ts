@@ -11,7 +11,7 @@ import {
 } from './image-providers/index';
 import type { IImageProvider } from '../types/image-generation';
 import type {
-  ImageGenerateRequest,
+  ResolvedImageRequest,
   ImageGenerateResponse,
   ImageGenerationStatus,
   ImageProviderType,
@@ -54,11 +54,18 @@ class ImageGenerationService {
 
     // Configure OpenAI provider
     const openaiProvider = this.providers.get('openai') as OpenAIImageProvider;
-    const openaiEnabled = await configService.getBoolean(db, 'AI_IMAGE_OPENAI_ENABLED');
+    const openaiEnabledConfig = await configService.getBooleanWithSource(
+      db,
+      'AI_IMAGE_OPENAI_ENABLED'
+    );
     const openaiApiKey = await this.getConfigValue(db, 'AI_OPENAI_API_KEY');
     const openaiEndpoint = await this.getConfigValue(db, 'AI_OPENAI_ENDPOINT');
+    // If enabled is explicitly set, respect that; otherwise auto-enable if API key is present
+    const openaiEnabled = openaiEnabledConfig.isExplicitlySet
+      ? openaiEnabledConfig.value
+      : !!openaiApiKey;
     openaiProvider.configure({
-      enabled: openaiEnabled || !!openaiApiKey, // Auto-enable if API key is set
+      enabled: openaiEnabled,
       apiKey: openaiApiKey,
       endpoint: openaiEndpoint,
     });
@@ -78,8 +85,15 @@ class ImageGenerationService {
 
     // Configure OpenRouter provider
     const openrouterProvider = this.providers.get('openrouter') as OpenRouterImageProvider;
-    const openrouterEnabled = await configService.getBoolean(db, 'AI_IMAGE_OPENROUTER_ENABLED');
+    const openrouterEnabledConfig = await configService.getBooleanWithSource(
+      db,
+      'AI_IMAGE_OPENROUTER_ENABLED'
+    );
     const openrouterApiKey = await this.getConfigValue(db, 'AI_OPENROUTER_API_KEY');
+    // If enabled is explicitly set, respect that; otherwise auto-enable if API key is present
+    const openrouterEnabled = openrouterEnabledConfig.isExplicitlySet
+      ? openrouterEnabledConfig.value
+      : !!openrouterApiKey;
     openrouterProvider.configure({
       enabled: openrouterEnabled,
       apiKey: openrouterApiKey,
@@ -102,9 +116,11 @@ class ImageGenerationService {
 
     // Configure Stable Diffusion provider
     const sdProvider = this.providers.get('stable-diffusion') as StableDiffusionProvider;
-    const sdEnabled = await configService.getBoolean(db, 'AI_IMAGE_SD_ENABLED');
+    const sdEnabledConfig = await configService.getBooleanWithSource(db, 'AI_IMAGE_SD_ENABLED');
     const sdEndpoint = await this.getConfigValue(db, 'AI_SD_ENDPOINT');
     const sdApiKey = await this.getConfigValue(db, 'AI_SD_API_KEY');
+    // If enabled is explicitly set, respect that; otherwise auto-enable if endpoint is present
+    const sdEnabled = sdEnabledConfig.isExplicitlySet ? sdEnabledConfig.value : !!sdEndpoint;
     sdProvider.configure({
       enabled: sdEnabled,
       endpoint: sdEndpoint,
@@ -113,8 +129,15 @@ class ImageGenerationService {
 
     // Configure Fal.ai provider
     const falaiProvider = this.providers.get('falai') as FalAiImageProvider;
-    const falaiEnabled = await configService.getBoolean(db, 'AI_IMAGE_FALAI_ENABLED');
+    const falaiEnabledConfig = await configService.getBooleanWithSource(
+      db,
+      'AI_IMAGE_FALAI_ENABLED'
+    );
     const falaiApiKey = await this.getConfigValue(db, 'AI_FALAI_API_KEY');
+    // If enabled is explicitly set, respect that; otherwise auto-enable if API key is present
+    const falaiEnabled = falaiEnabledConfig.isExplicitlySet
+      ? falaiEnabledConfig.value
+      : !!falaiApiKey;
     falaiProvider.configure({
       enabled: falaiEnabled,
       apiKey: falaiApiKey,
@@ -190,44 +213,29 @@ class ImageGenerationService {
   }
 
   /**
-   * Generate images using the specified or default provider.
+   * Generate images using the resolved profile settings.
+   * The route handler is responsible for resolving the profile.
    */
   async generate(
     db: DatabaseInstance,
-    request: ImageGenerateRequest
+    request: ResolvedImageRequest
   ): Promise<ImageGenerateResponse> {
     // Ensure we're configured
     if (!this.initialized) {
       await this.configure(db);
     }
 
-    // Get provider
-    let provider = this.providers.get(request.provider);
-
-    if (!provider || !provider.isAvailable()) {
-      // Try to get default provider
-      const status = await this.getStatus(db);
-      if (status.defaultProvider) {
-        provider = this.providers.get(status.defaultProvider);
-      }
-    }
+    // Get provider from the resolved request
+    const provider = this.providers.get(request.provider);
 
     if (!provider || !provider.isAvailable()) {
       throw new Error(
-        'No image generation provider is available. Please configure at least one provider.'
+        `Image provider '${request.provider}' is not available. Please check provider configuration.`
       );
     }
 
-    // If no model specified, try to use the default model from config
-    if (!request.model) {
-      const defaultModel = await this.getConfigValue(db, 'AI_IMAGE_DEFAULT_MODEL');
-      if (defaultModel) {
-        request = { ...request, model: defaultModel };
-      }
-    }
-
     console.log(
-      `[ImageGenerationService] Generating image with provider: ${provider.name}, model: ${request.model || 'default'}`
+      `[ImageGenerationService] Generating image with provider: ${provider.name}, model: ${request.model}`
     );
 
     return provider.generate(request);

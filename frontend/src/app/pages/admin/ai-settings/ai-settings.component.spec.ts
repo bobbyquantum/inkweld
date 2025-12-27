@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,8 +23,13 @@ import {
   ConfigValue,
 } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { AIImageGenerationService, AIProvidersService } from 'api-client';
-import { of } from 'rxjs';
+import {
+  AdminImageModelProfileProvider,
+  AdminImageProfilesService,
+  AIImageGenerationService,
+  AIProvidersService,
+} from 'api-client';
+import { of, Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { AdminAiSettingsComponent } from './ai-settings.component';
@@ -37,6 +43,8 @@ describe('AdminAiSettingsComponent', () => {
   let mockConfigService: MockedObject<AdminConfigService>;
   let mockImageService: MockedObject<AIImageGenerationService>;
   let mockProvidersService: MockedObject<AIProvidersService>;
+  let mockProfilesService: MockedObject<AdminImageProfilesService>;
+  let mockDialog: MockedObject<MatDialog>;
   let mockSystemConfigService: {
     isAiKillSwitchEnabled: ReturnType<typeof signal<boolean>>;
     isAiKillSwitchLockedByEnv: ReturnType<typeof signal<boolean>>;
@@ -244,12 +252,33 @@ describe('AdminAiSettingsComponent', () => {
       ),
     } as unknown as MockedObject<AIProvidersService>;
 
+    mockProfilesService = {
+      adminListImageProfiles: vi.fn().mockReturnValue(of([])),
+      adminListImageProviders: vi.fn().mockReturnValue(
+        of([
+          { id: 'openai', name: 'OpenAI' },
+          { id: 'openrouter', name: 'OpenRouter' },
+          { id: 'falai', name: 'Fal.ai' },
+        ])
+      ),
+      adminCreateImageProfile: vi.fn().mockReturnValue(of({ id: 'new-id' })),
+      adminUpdateImageProfile: vi.fn().mockReturnValue(of({ success: true })),
+      adminDeleteImageProfile: vi.fn().mockReturnValue(of({ success: true })),
+    } as unknown as MockedObject<AdminImageProfilesService>;
+
+    mockDialog = {
+      open: vi.fn().mockReturnValue({
+        afterClosed: () => new Subject().asObservable(),
+      }),
+    } as unknown as MockedObject<MatDialog>;
+
     await TestBed.configureTestingModule({
       imports: [
         AdminAiSettingsComponent,
         FormsModule,
         MatButtonModule,
         MatCardModule,
+        MatDialogModule,
         MatDividerModule,
         MatExpansionModule,
         MatFormFieldModule,
@@ -269,9 +298,15 @@ describe('AdminAiSettingsComponent', () => {
         { provide: AdminConfigService, useValue: mockConfigService },
         { provide: AIImageGenerationService, useValue: mockImageService },
         { provide: AIProvidersService, useValue: mockProvidersService },
+        { provide: AdminImageProfilesService, useValue: mockProfilesService },
         { provide: SystemConfigService, useValue: mockSystemConfigService },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(AdminAiSettingsComponent, {
+        remove: { imports: [MatDialogModule] },
+        add: { providers: [{ provide: MatDialog, useValue: mockDialog }] },
+      })
+      .compileComponents();
 
     const fixture = TestBed.createComponent(AdminAiSettingsComponent);
     component = fixture.componentInstance;
@@ -1101,6 +1136,178 @@ describe('AdminAiSettingsComponent', () => {
 
       expect(savingDuringCall).toBe(true);
       expect(component.isSaving()).toBe(false);
+    });
+  });
+
+  describe('Image Profiles', () => {
+    beforeEach(async () => {
+      component.ngOnInit();
+      await flushPromises();
+    });
+
+    describe('loadImageProfiles', () => {
+      it('should load image profiles and providers', () => {
+        expect(mockProfilesService.adminListImageProfiles).toHaveBeenCalled();
+        expect(mockProfilesService.adminListImageProviders).toHaveBeenCalled();
+      });
+
+      it('should set isLoadingProfiles to false after loading', () => {
+        expect(component.isLoadingProfiles()).toBe(false);
+      });
+    });
+
+    describe('getProfileProviderName', () => {
+      it('should return provider name for known provider', () => {
+        component.imageProfileProviders.set([
+          { id: 'openai', name: 'OpenAI' },
+          { id: 'falai', name: 'Fal.ai' },
+        ]);
+
+        expect(component.getProfileProviderName('openai')).toBe('OpenAI');
+        expect(component.getProfileProviderName('falai')).toBe('Fal.ai');
+      });
+
+      it('should return provider id for unknown provider', () => {
+        component.imageProfileProviders.set([]);
+        expect(component.getProfileProviderName('unknown')).toBe('unknown');
+      });
+    });
+
+    describe('openCreateProfileDialog', () => {
+      it('should open dialog with create mode', () => {
+        component.imageProfileProviders.set([{ id: 'openai', name: 'OpenAI' }]);
+
+        component.openCreateProfileDialog();
+
+        expect(mockDialog.open).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            width: '600px',
+            data: expect.objectContaining({
+              mode: 'create',
+            }),
+          })
+        );
+      });
+    });
+
+    describe('openEditProfileDialog', () => {
+      it('should open dialog with edit mode and profile data', () => {
+        const profile = {
+          id: 'profile-1',
+          name: 'Test Profile',
+          description: null,
+          provider: AdminImageModelProfileProvider.Openai,
+          modelId: 'gpt-4o',
+          enabled: true,
+          supportsImageInput: false,
+          supportsCustomResolutions: false,
+          supportedSizes: null,
+          defaultSize: null,
+          sortOrder: 1,
+          modelConfig: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        component.imageProfileProviders.set([{ id: 'openai', name: 'OpenAI' }]);
+
+        component.openEditProfileDialog(profile);
+
+        expect(mockDialog.open).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            width: '600px',
+            data: expect.objectContaining({
+              mode: 'edit',
+              profile,
+            }),
+          })
+        );
+      });
+    });
+
+    describe('deleteImageProfile', () => {
+      it('should not delete if user cancels confirmation', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+        const profile = {
+          id: 'profile-1',
+          name: 'Test Profile',
+          description: null,
+          provider: AdminImageModelProfileProvider.Openai,
+          modelId: 'gpt-4o',
+          enabled: true,
+          supportsImageInput: false,
+          supportsCustomResolutions: false,
+          supportedSizes: null,
+          defaultSize: null,
+          sortOrder: 1,
+          modelConfig: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        await component.deleteImageProfile(profile);
+
+        expect(
+          mockProfilesService.adminDeleteImageProfile
+        ).not.toHaveBeenCalled();
+      });
+
+      it('should delete profile when confirmed', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+        const profile = {
+          id: 'profile-1',
+          name: 'Test Profile',
+          description: null,
+          provider: AdminImageModelProfileProvider.Openai,
+          modelId: 'gpt-4o',
+          enabled: true,
+          supportsImageInput: false,
+          supportsCustomResolutions: false,
+          supportedSizes: null,
+          defaultSize: null,
+          sortOrder: 1,
+          modelConfig: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        await component.deleteImageProfile(profile);
+
+        expect(
+          mockProfilesService.adminDeleteImageProfile
+        ).toHaveBeenCalledWith('profile-1');
+      });
+    });
+
+    describe('toggleProfileEnabled', () => {
+      it('should toggle profile enabled state', async () => {
+        const profile = {
+          id: 'profile-1',
+          name: 'Test Profile',
+          description: null,
+          provider: AdminImageModelProfileProvider.Openai,
+          modelId: 'gpt-4o',
+          enabled: true,
+          supportsImageInput: false,
+          supportsCustomResolutions: false,
+          supportedSizes: null,
+          defaultSize: null,
+          sortOrder: 1,
+          modelConfig: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        await component.toggleProfileEnabled(profile);
+
+        expect(
+          mockProfilesService.adminUpdateImageProfile
+        ).toHaveBeenCalledWith('profile-1', { enabled: false });
+      });
     });
   });
 });

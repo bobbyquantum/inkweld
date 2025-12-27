@@ -3,7 +3,7 @@
  * Supports AUTOMATIC1111/Stable Diffusion WebUI API and compatible endpoints.
  */
 import type {
-  ImageGenerateRequest,
+  ResolvedImageRequest,
   ImageGenerateResponse,
   ImageModelInfo,
   ImageProviderType,
@@ -134,7 +134,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
     }
   }
 
-  async generate(request: ImageGenerateRequest): Promise<ImageGenerateResponse> {
+  async generate(request: ResolvedImageRequest): Promise<ImageGenerateResponse> {
     if (!this.isAvailable()) {
       throw new Error('Stable Diffusion is not available. Please configure endpoint.');
     }
