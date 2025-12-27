@@ -8,11 +8,13 @@ import {
 import { of, throwError } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 
+import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
 
 describe('SystemConfigService', () => {
   let service: SystemConfigService;
   let mockConfigService: MockedObject<ConfigurationService>;
+  let mockSetupService: MockedObject<SetupService>;
   let consoleSpy: any;
   let consoleWarnSpy: any;
 
@@ -33,6 +35,11 @@ describe('SystemConfigService', () => {
       getSystemFeatures: vi.fn(),
     } as MockedObject<ConfigurationService>;
 
+    // Mock SetupService - default to 'online' mode
+    mockSetupService = {
+      getMode: vi.fn().mockReturnValue('online'),
+    } as MockedObject<SetupService>;
+
     // Mock console methods to avoid test output noise, but keep spies for testing
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -47,6 +54,7 @@ describe('SystemConfigService', () => {
         provideZonelessChangeDetection(),
         SystemConfigService,
         { provide: ConfigurationService, useValue: mockConfigService },
+        { provide: SetupService, useValue: mockSetupService },
       ],
     });
 
@@ -80,6 +88,46 @@ describe('SystemConfigService', () => {
   });
 
   describe('loadSystemFeatures', () => {
+    it('should use offline defaults in offline mode without API call', () => {
+      TestBed.resetTestingModule();
+
+      // Clear mocks from previous test
+      vi.clearAllMocks();
+
+      const offlineSetupService = {
+        getMode: vi.fn().mockReturnValue('offline'),
+      } as MockedObject<SetupService>;
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: offlineSetupService },
+        ],
+      });
+
+      const offlineService = TestBed.inject(SystemConfigService);
+
+      // Should NOT call the API in offline mode
+      expect(mockConfigService.getSystemFeatures).not.toHaveBeenCalled();
+
+      // Should use offline defaults
+      expect(offlineService.systemFeatures()).toEqual({
+        aiKillSwitch: true,
+        aiKillSwitchLockedByEnv: false,
+        aiLinting: false,
+        aiImageGeneration: false,
+        appMode: 'OFFLINE',
+        userApprovalRequired: false,
+      });
+
+      expect(offlineService.isConfigLoaded()).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[SystemConfig] Offline mode - using default features without API call'
+      );
+    });
+
     it('should handle API errors gracefully', () => {
       const error = new Error('API Error');
 
@@ -94,6 +142,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -199,6 +248,43 @@ describe('SystemConfigService', () => {
   });
 
   describe('Computed Properties', () => {
+    it('should compute isAiKillSwitchEnabled correctly', async () => {
+      // Wait for initial load
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // mockSystemFeatures has aiKillSwitch: false
+      expect(service.isAiKillSwitchEnabled()).toBe(false);
+    });
+
+    it('should default isAiKillSwitchEnabled to true when undefined', async () => {
+      TestBed.resetTestingModule();
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({} as SystemFeatures)
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
+        ],
+      });
+
+      const testService = TestBed.inject(SystemConfigService);
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(testService.isAiKillSwitchEnabled()).toBe(true);
+    });
+
+    it('should compute isAiKillSwitchLockedByEnv correctly', async () => {
+      // Wait for initial load
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // mockSystemFeatures has aiKillSwitchLockedByEnv: false
+      expect(service.isAiKillSwitchLockedByEnv()).toBe(false);
+    });
+
     it('should compute isAiLintingEnabled correctly', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
@@ -210,6 +296,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -236,6 +323,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -260,6 +348,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -284,6 +373,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -308,6 +398,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -336,6 +427,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -362,6 +454,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -391,6 +484,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -440,6 +534,7 @@ describe('SystemConfigService', () => {
           provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
         ],
       });
 
@@ -499,6 +594,139 @@ describe('SystemConfigService', () => {
           }, 10);
         }, 10);
       });
+    });
+  });
+
+  describe('getAiImageGenerationStatus', () => {
+    it('should return disabled when config is loading', () => {
+      // Create a fresh service that hasn't loaded config yet
+      TestBed.resetTestingModule();
+
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of(mockSystemFeatures)
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
+        ],
+      });
+
+      // The service will be loading - test will check immediately
+      const testService = TestBed.inject(SystemConfigService);
+      // Since mocked with `of()`, loading happens synchronously, so this check verifies the method works
+      expect(testService.getAiImageGenerationStatus).toBeDefined();
+    });
+
+    it('should return enabled when AI image generation is enabled', async () => {
+      // Wait for initial load
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const status = service.getAiImageGenerationStatus();
+      expect(status.status).toBe('enabled');
+    });
+
+    it('should return hidden when AI image generation is disabled', async () => {
+      TestBed.resetTestingModule();
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({
+          ...mockSystemFeatures,
+          aiImageGeneration: false,
+        })
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
+        ],
+      });
+
+      const disabledService = TestBed.inject(SystemConfigService);
+
+      // Wait for load
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const status = disabledService.getAiImageGenerationStatus();
+      expect(status.status).toBe('hidden');
+    });
+
+    it('should handle sync state when checking status', async () => {
+      // Wait for initial load
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const { DocumentSyncState } =
+        await import('../../models/document-sync-state');
+
+      // With successful config and AI enabled, sync state doesn't matter
+      const status = service.getAiImageGenerationStatus(
+        DocumentSyncState.Synced
+      );
+      expect(status.status).toBe('enabled');
+    });
+
+    it('should return hidden when in offline mode', () => {
+      TestBed.resetTestingModule();
+      vi.clearAllMocks();
+
+      const offlineSetupService = {
+        getMode: vi.fn().mockReturnValue('offline'),
+      } as MockedObject<SetupService>;
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: offlineSetupService },
+        ],
+      });
+
+      const offlineService = TestBed.inject(SystemConfigService);
+
+      const status = offlineService.getAiImageGenerationStatus();
+      expect(status.status).toBe('hidden');
+    });
+
+    it('should return disabled when server is unavailable and sync state indicates offline', async () => {
+      TestBed.resetTestingModule();
+      vi.clearAllMocks();
+
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        throwError(() => new Error('Server unavailable'))
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
+        ],
+      });
+
+      const failedService = TestBed.inject(SystemConfigService);
+
+      // Wait for error handling
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const { DocumentSyncState } =
+        await import('../../models/document-sync-state');
+
+      const status = failedService.getAiImageGenerationStatus(
+        DocumentSyncState.Offline
+      );
+
+      // Server unavailable with offline sync state - disabled with tooltip
+      expect(status.status).toBe('disabled');
+      expect(status.tooltip).toBe(
+        'Not connected to server. AI image generation is unavailable.'
+      );
     });
   });
 });

@@ -19,7 +19,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Editor } from 'ngx-editor';
+import { Editor } from '@bobbyquantum/ngx-editor';
 import { toggleMark } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
 import { MarkType, NodeType } from 'prosemirror-model';

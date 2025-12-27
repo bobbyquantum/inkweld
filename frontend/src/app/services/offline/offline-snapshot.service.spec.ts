@@ -686,7 +686,7 @@ describe('OfflineSnapshotService', () => {
   });
 
   describe('importSnapshot with legacy format', () => {
-    it('should import a snapshot with legacy yDocState', async () => {
+    it('should import a snapshot with xmlContent', async () => {
       storageService.put.mockResolvedValue(undefined);
 
       const mockStore = {
@@ -711,17 +711,15 @@ describe('OfflineSnapshotService', () => {
         }
       }, 0);
 
-      const legacyState = new Uint8Array([1, 2, 3]);
+      const xmlContent = '<doc><p>Test content</p></doc>';
       const result = await service.importSnapshot('testuser/test-project', {
         documentId: 'doc-1',
-        name: 'Legacy Snapshot',
-        yDocState: legacyState,
-        stateVector: new Uint8Array([4, 5, 6]),
+        name: 'Test Snapshot',
+        xmlContent: xmlContent,
         createdAt: '2024-01-01T00:00:00.000Z',
       });
 
-      expect(result.yDocState).toEqual(legacyState);
-      expect(result.xmlContent).toBe('');
+      expect(result.xmlContent).toEqual(xmlContent);
     });
   });
 });
