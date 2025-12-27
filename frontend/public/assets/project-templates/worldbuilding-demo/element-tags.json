@@ -1,1 +1,80 @@
-[]
+[
+  {
+    "id": "et-elara-protagonist",
+    "elementId": "char-elara",
+    "tagId": "protagonist",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-elara-complete",
+    "elementId": "char-elara",
+    "tagId": "complete",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-theron-supporting",
+    "elementId": "char-theron",
+    "tagId": "supporting",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-theron-complete",
+    "elementId": "char-theron",
+    "tagId": "complete",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-mira-supporting",
+    "elementId": "char-mira",
+    "tagId": "supporting",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-mira-complete",
+    "elementId": "char-mira",
+    "tagId": "complete",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-silverhollow-key",
+    "elementId": "loc-silverhollow",
+    "tagId": "key-location",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-silverhollow-complete",
+    "elementId": "loc-silverhollow",
+    "tagId": "complete",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-thornwood-key",
+    "elementId": "loc-thornwood",
+    "tagId": "key-location",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-thornwood-important",
+    "elementId": "loc-thornwood",
+    "tagId": "important",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-thornwood-complete",
+    "elementId": "loc-thornwood",
+    "tagId": "complete",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-cloudspire-key",
+    "elementId": "loc-cloudspire",
+    "tagId": "key-location",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "et-cloudspire-complete",
+    "elementId": "loc-cloudspire",
+    "tagId": "complete",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+]

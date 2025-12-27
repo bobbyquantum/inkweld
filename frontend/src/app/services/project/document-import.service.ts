@@ -145,6 +145,16 @@ export class DocumentImportService {
 
         // Also store the schema ID
         dataMap.set('schemaId', wb.schemaId);
+
+        // Copy identity fields (description, image) to the identity map
+        // These are stored separately for the identity panel
+        const identityMap = ydoc.getMap<unknown>('identity');
+        if (wb.data['description']) {
+          identityMap.set('description', wb.data['description']);
+        }
+        if (wb.data['image']) {
+          identityMap.set('image', wb.data['image']);
+        }
       });
 
       // Wait for IndexedDB persistence to sync the changes
