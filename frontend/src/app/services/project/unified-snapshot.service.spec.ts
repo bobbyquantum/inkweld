@@ -285,7 +285,7 @@ describe('UnifiedSnapshotService', () => {
       documentService.getYDoc.mockResolvedValue(ydoc);
 
       const wbYdoc = new Y.Doc();
-      const dataMap = wbYdoc.getMap('data');
+      const dataMap = wbYdoc.getMap('worldbuilding');
       wbYdoc.transact(() => {
         dataMap.set('name', 'John Doe');
         dataMap.set('age', 30);

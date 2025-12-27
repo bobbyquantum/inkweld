@@ -44,6 +44,9 @@ export class WorldbuildingService {
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private connections = new Map<string, WorldbuildingConnection>();
 
+  // Pending connection promises to prevent race conditions
+  private pendingConnections = new Map<string, Promise<Y.Map<unknown>>>();
+
   // Current sync provider (used for schema library access)
   private syncProvider: IElementSyncProvider | null = null;
   private schemasCache: ElementTypeSchema[] = [];
@@ -113,75 +116,108 @@ export class WorldbuildingService {
   ): Promise<Y.Map<unknown>> {
     // Create a unique connection key that includes project context
     const connectionKey = `${username}:${slug}:${elementId}`;
-    let connection = this.connections.get(connectionKey);
 
-    if (!connection) {
-      const ydoc = new Y.Doc();
-      const dataMap = ydoc.getMap('worldbuilding');
-      const identityMap = ydoc.getMap('identity');
-
-      // Initialize IndexedDB provider for offline persistence
-      // Include project key to prevent cross-project data collisions
-      const dbKey = `worldbuilding:${username}:${slug}:${elementId}`;
-      const indexeddbProvider = new IndexeddbPersistence(dbKey, ydoc);
-
-      // Wait for IndexedDB sync with timeout
-      const syncPromise = indexeddbProvider.whenSynced;
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('IndexedDB sync timeout')),
-          INDEXEDDB_SYNC_TIMEOUT
-        )
-      );
-
-      try {
-        await Promise.race([syncPromise, timeoutPromise]);
-      } catch {
-        // Continue anyway - the document may be empty/new
-      }
-
-      // Setup WebSocket provider if not in offline mode
-      const mode = this.setupService.getMode();
-      const wsUrl = this.setupService.getWebSocketUrl();
-      let provider: WebsocketProvider | undefined;
-
-      if (mode !== 'offline' && wsUrl && username && slug) {
-        // Build full document ID in format: username:slug:elementId
-        const fullDocId = `${username}:${slug}:${elementId}`;
-        const formattedId = fullDocId.replace(/^\/+/, '');
-
-        // WebsocketProvider(url, roomName, doc, options)
-        // The roomName parameter is appended to the URL, but we want documentId as a query param
-        // So we include it in the URL and use an empty room name
-        const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
-        provider = new WebsocketProvider(
-          fullWsUrl,
-          '', // Empty room name - documentId is already in URL
-          ydoc,
-          {
-            connect: true,
-            resyncInterval: WEBSOCKET_RESYNC_INTERVAL,
-          }
-        );
-
-        // Handle connection status
-        provider.on('status', ({ status: _status }: { status: string }) => {
-          // Connection status changes are handled internally
-        });
-      }
-
-      connection = {
-        ydoc,
-        dataMap,
-        identityMap,
-        provider,
-        indexeddbProvider,
-      };
-
-      this.connections.set(connectionKey, connection);
+    // Check for existing connection first (fast path)
+    const existingConnection = this.connections.get(connectionKey);
+    if (existingConnection) {
+      return existingConnection.dataMap;
     }
 
-    return connection.dataMap;
+    // Check for pending connection setup (race condition prevention)
+    const pendingPromise = this.pendingConnections.get(connectionKey);
+    if (pendingPromise) {
+      return pendingPromise;
+    }
+
+    // Create the connection setup promise
+    const setupPromise = this.createConnection(
+      connectionKey,
+      elementId,
+      username,
+      slug
+    );
+    this.pendingConnections.set(connectionKey, setupPromise);
+
+    try {
+      const dataMap = await setupPromise;
+      return dataMap;
+    } finally {
+      // Clean up pending promise after it resolves
+      this.pendingConnections.delete(connectionKey);
+    }
+  }
+
+  private async createConnection(
+    connectionKey: string,
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<Y.Map<unknown>> {
+    const ydoc = new Y.Doc();
+    const dataMap = ydoc.getMap('worldbuilding');
+    const identityMap = ydoc.getMap('identity');
+
+    // Initialize IndexedDB provider for offline persistence
+    // Include project key to prevent cross-project data collisions
+    const dbKey = `worldbuilding:${username}:${slug}:${elementId}`;
+    const indexeddbProvider = new IndexeddbPersistence(dbKey, ydoc);
+
+    // Wait for IndexedDB sync with timeout
+    const syncPromise = indexeddbProvider.whenSynced;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('IndexedDB sync timeout')),
+        INDEXEDDB_SYNC_TIMEOUT
+      )
+    );
+
+    try {
+      await Promise.race([syncPromise, timeoutPromise]);
+    } catch {
+      // Continue anyway - the document may be empty/new
+    }
+
+    // Setup WebSocket provider if not in offline mode
+    const mode = this.setupService.getMode();
+    const wsUrl = this.setupService.getWebSocketUrl();
+    let provider: WebsocketProvider | undefined;
+
+    if (mode !== 'offline' && wsUrl && username && slug) {
+      // Build full document ID in format: username:slug:elementId
+      const fullDocId = `${username}:${slug}:${elementId}`;
+      const formattedId = fullDocId.replace(/^\/+/, '');
+
+      // WebsocketProvider(url, roomName, doc, options)
+      // The roomName parameter is appended to the URL, but we want documentId as a query param
+      // So we include it in the URL and use an empty room name
+      const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
+      provider = new WebsocketProvider(
+        fullWsUrl,
+        '', // Empty room name - documentId is already in URL
+        ydoc,
+        {
+          connect: true,
+          resyncInterval: WEBSOCKET_RESYNC_INTERVAL,
+        }
+      );
+
+      // Handle connection status
+      provider.on('status', ({ status: _status }: { status: string }) => {
+        // Connection status changes are handled internally
+      });
+    }
+
+    const connection: WorldbuildingConnection = {
+      ydoc,
+      dataMap,
+      identityMap,
+      provider,
+      indexeddbProvider,
+    };
+
+    this.connections.set(connectionKey, connection);
+
+    return dataMap;
   }
 
   /**
@@ -240,7 +276,9 @@ export class WorldbuildingService {
     dataMap.observe(observer);
 
     // Return cleanup function
-    return () => dataMap.unobserve(observer);
+    return () => {
+      dataMap.unobserve(observer);
+    };
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

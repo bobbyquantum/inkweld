@@ -56,21 +56,24 @@ export class CreateSnapshotDialogComponent {
 
   constructor() {
     this.form = this.fb.group({
-      name: ['', [Validators.required, Validators.maxLength(100)]],
+      name: ['', [Validators.maxLength(100)]],
       description: ['', [Validators.maxLength(500)]],
     });
   }
 
   /**
    * Handle form submission
+   * If name is left blank, auto-generates an ISO date-time name
    */
   onSubmit() {
     if (this.form.valid) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const formValue = this.form.value;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const trimmedName = ((formValue.name as string) || '').trim();
       const result: CreateSnapshotDialogResult = {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        name: (formValue.name || '').trim() as string,
+        // If name is blank, use ISO date-time format
+        name: trimmedName || new Date().toISOString(),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
         description: formValue.description?.trim() || undefined,
       };
