@@ -48,11 +48,6 @@ describe('CreateSnapshotDialogComponent', () => {
       expect(component.form.get('description')?.value).toBe('');
     });
 
-    it('should have name as required', () => {
-      const nameControl = component.form.get('name');
-      expect(nameControl?.hasError('required')).toBe(true);
-    });
-
     it('should validate name max length', () => {
       const nameControl = component.form.get('name');
       nameControl?.setValue('a'.repeat(101));
@@ -123,7 +118,7 @@ describe('CreateSnapshotDialogComponent', () => {
       });
     });
 
-    it('should not close dialog when form is invalid', () => {
+    it('should generate ISO date-time name when name is left blank', () => {
       component.form.patchValue({
         name: '',
         description: 'Test',
@@ -131,7 +126,10 @@ describe('CreateSnapshotDialogComponent', () => {
 
       component.onSubmit();
 
-      expect(dialogRefMock.close).not.toHaveBeenCalled();
+      expect(dialogRefMock.close).toHaveBeenCalled();
+      const result = dialogRefMock.close.mock.calls[0][0] as { name: string };
+      // Verify the name is an ISO date-time string (starts with date format)
+      expect(result.name).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
   });
 

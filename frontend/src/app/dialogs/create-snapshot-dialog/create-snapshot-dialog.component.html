@@ -10,17 +10,14 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Snapshot Name</mat-label>
+      <mat-label>Snapshot Name (Optional)</mat-label>
       <input
         matInput
         formControlName="name"
-        placeholder="e.g., 'Chapter 5 - First Draft'"
+        placeholder="Leave blank for auto date-time"
         maxlength="100"
-        data-testid="snapshot-name-input"
-        required />
-      @if (form.get('name')?.hasError('required')) {
-        <mat-error>Name is required</mat-error>
-      }
+        data-testid="snapshot-name-input" />
+      <mat-hint>If left blank, uses current date-time</mat-hint>
       @if (form.get('name')?.hasError('maxlength')) {
         <mat-error>Name cannot exceed 100 characters</mat-error>
       }
@@ -54,7 +51,6 @@
     mat-raised-button
     color="primary"
     (click)="onSubmit()"
-    [disabled]="!form.valid"
     data-testid="create-snapshot-submit-btn"
     type="submit">
     Create Snapshot

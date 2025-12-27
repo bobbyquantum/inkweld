@@ -120,33 +120,55 @@ export class UnifiedSnapshotService {
 
     const projectKey = `${project.username}/${project.slug}`;
 
-    // Get the current Yjs document
-    const ydoc = await this.getDocumentYDoc(documentId);
-    if (!ydoc) {
-      throw new Error(`Document ${documentId} not found or not loaded`);
-    }
+    // Extract the element ID from documentId (which may be full ID or just element ID)
+    const expectedPrefix = `${project.username}:${project.slug}:`;
+    const elementId = documentId.startsWith(expectedPrefix)
+      ? documentId.slice(expectedPrefix.length)
+      : documentId;
 
-    // Serialize document content as XML (not Yjs state bytes)
-    // This enables CRDT-correct restore using forward operations
-    const prosemirror = ydoc.getXmlFragment('prosemirror');
-    const xmlContent = xmlFragmentToXmlString(prosemirror);
+    // Check if this is a worldbuilding element
+    const element = this.projectState.elements().find(e => e.id === elementId);
+    const isWorldbuilding = element && this.isWorldbuildingType(element.type);
 
-    // Calculate word count from prosemirror content
-    const wordCount = this.calculateWordCount(ydoc);
-
-    // Check if this is a worldbuilding element and get that data too
-    const element = this.projectState.elements().find(e => e.id === documentId);
+    let xmlContent = '';
+    let wordCount = 0;
     let worldbuildingData: Record<string, unknown> | undefined;
 
-    if (element && this.isWorldbuildingType(element.type)) {
-      const wbYdoc = this.getWorldbuildingYDoc(documentId);
-      if (wbYdoc) {
-        const dataMap = wbYdoc.getMap<unknown>('data');
-        worldbuildingData = yjsMapToJson(dataMap);
+    // For worldbuilding elements, we primarily snapshot the worldbuilding data
+    // The prose document may not exist or may be empty
+    if (isWorldbuilding) {
+      // Get worldbuilding data (required for WB elements)
+      const wbYdoc = this.getWorldbuildingYDoc(elementId);
+      if (!wbYdoc) {
+        throw new Error(
+          `Worldbuilding document ${elementId} not found or not loaded`
+        );
       }
+      const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
+      worldbuildingData = yjsMapToJson(dataMap);
+
+      // Optionally try to get prose content (may not exist)
+      const ydoc = await this.getDocumentYDoc(documentId);
+      if (ydoc) {
+        const prosemirror = ydoc.getXmlFragment('prosemirror');
+        if (prosemirror.length > 0) {
+          xmlContent = xmlFragmentToXmlString(prosemirror);
+          wordCount = this.calculateWordCount(ydoc);
+        }
+      }
+    } else {
+      // For regular documents, the prose document is required
+      const ydoc = await this.getDocumentYDoc(documentId);
+      if (!ydoc) {
+        throw new Error(`Document ${elementId} not found or not loaded`);
+      }
+
+      const prosemirror = ydoc.getXmlFragment('prosemirror');
+      xmlContent = xmlFragmentToXmlString(prosemirror);
+      wordCount = this.calculateWordCount(ydoc);
     }
 
-    // Create the snapshot options (now using content, not state bytes)
+    // Create the snapshot options
     const options: CreateSnapshotOptions = {
       name,
       description,
@@ -373,45 +395,87 @@ export class UnifiedSnapshotService {
       throw new Error(`Snapshot ${snapshotId} not found`);
     }
 
-    if (snapshot.documentId !== documentId) {
+    // Get project info for element ID extraction
+    const project = this.projectState.project();
+    if (!project) {
+      throw new Error('No active project');
+    }
+
+    // Extract the element ID from documentId (which may be full ID or just element ID)
+    const expectedPrefix = `${project.username}:${project.slug}:`;
+    const elementId = documentId.startsWith(expectedPrefix)
+      ? documentId.slice(expectedPrefix.length)
+      : documentId;
+
+    // Verify snapshot belongs to this document (compare element IDs)
+    const snapshotElementId = snapshot.documentId.startsWith(expectedPrefix)
+      ? snapshot.documentId.slice(expectedPrefix.length)
+      : snapshot.documentId;
+
+    if (snapshotElementId !== elementId) {
       throw new Error(
         `Snapshot ${snapshotId} is for document ${snapshot.documentId}, not ${documentId}`
       );
     }
 
-    // Get the current document's Yjs doc
-    const ydoc = await this.getDocumentYDoc(documentId);
-    if (!ydoc) {
-      throw new Error(`Document ${documentId} not found or not loaded`);
-    }
+    // Check if this is a worldbuilding element
+    const element = this.projectState.elements().find(e => e.id === elementId);
+    const isWorldbuilding = element && this.isWorldbuildingType(element.type);
 
-    // Get the prosemirror fragment
-    const prosemirror = ydoc.getXmlFragment('prosemirror');
-
-    // Check if we have the XML content format
+    // Restore prose content if available
     if (snapshot.xmlContent) {
-      // New format: Apply XML content as forward CRDT operations
-      applyXmlToFragment(ydoc, prosemirror, snapshot.xmlContent);
-      this.logger.info(
-        'UnifiedSnapshot',
-        `Restored document ${documentId} from snapshot "${snapshot.name}" using XML content`
-      );
-    } else {
+      const ydoc = await this.getDocumentYDoc(documentId);
+      if (ydoc) {
+        const prosemirror = ydoc.getXmlFragment('prosemirror');
+        applyXmlToFragment(ydoc, prosemirror, snapshot.xmlContent);
+        this.logger.info(
+          'UnifiedSnapshot',
+          `Restored document ${elementId} from snapshot "${snapshot.name}" using XML content`
+        );
+      } else if (!isWorldbuilding) {
+        // For non-WB elements, prose content is required
+        throw new Error(`Document ${elementId} not found or not loaded`);
+      }
+    } else if (!isWorldbuilding) {
+      // For non-WB elements, must have content to restore
       throw new Error(`Snapshot ${snapshotId} has no content to restore`);
     }
 
-    // If this is a worldbuilding element and we have worldbuilding data
-    if (snapshot.worldbuildingData) {
-      // New format: Apply JSON data as forward CRDT operations
-      const wbYdoc = this.getWorldbuildingYDoc(documentId);
+    // Restore worldbuilding data if available
+    if (snapshot.worldbuildingData && isWorldbuilding) {
+      this.logger.debug(
+        'UnifiedSnapshot',
+        `Restoring worldbuilding data for ${elementId}`,
+        { worldbuildingData: snapshot.worldbuildingData }
+      );
+      const wbYdoc = this.getWorldbuildingYDoc(elementId);
       if (wbYdoc) {
-        const dataMap = wbYdoc.getMap<unknown>('data');
+        const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
+        this.logger.debug(
+          'UnifiedSnapshot',
+          `Before restore - dataMap contents:`,
+          { dataMapBefore: dataMap.toJSON() }
+        );
         applyJsonToYjsMap(wbYdoc, dataMap, snapshot.worldbuildingData);
+        this.logger.debug(
+          'UnifiedSnapshot',
+          `After restore - dataMap contents:`,
+          { dataMapAfter: dataMap.toJSON() }
+        );
         this.logger.info(
           'UnifiedSnapshot',
-          `Restored worldbuilding data for ${documentId}`
+          `Restored worldbuilding data for ${elementId}`
+        );
+      } else {
+        throw new Error(
+          `Worldbuilding document ${elementId} not found or not loaded`
         );
       }
+    } else if (isWorldbuilding && !snapshot.worldbuildingData) {
+      this.logger.warn(
+        'UnifiedSnapshot',
+        `No worldbuilding data in snapshot for WB element ${elementId}`
+      );
     }
 
     return true;
@@ -451,7 +515,7 @@ export class UnifiedSnapshotService {
     if (worldbuildingData) {
       const wbYdoc = this.getWorldbuildingYDoc(documentId);
       if (wbYdoc) {
-        const dataMap = wbYdoc.getMap<unknown>('data');
+        const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
         applyJsonToYjsMap(wbYdoc, dataMap, worldbuildingData);
         this.logger.debug(
           'UnifiedSnapshot',
@@ -702,10 +766,23 @@ export class UnifiedSnapshotService {
 
   /**
    * Get the Yjs document for a prose document.
+   * @param documentId - The document ID, can be either:
+   *   - Element ID only (e.g., 'char-elara')
+   *   - Full document ID (e.g., 'username:slug:char-elara')
    */
   private getDocumentYDoc(documentId: string): Promise<Y.Doc | null> {
-    // Use DocumentService to get the Yjs doc
-    return this.documentService.getYDoc(documentId);
+    const project = this.projectState.project();
+    if (!project) {
+      return Promise.resolve(null);
+    }
+
+    // Check if documentId already has the full prefix
+    const expectedPrefix = `${project.username}:${project.slug}:`;
+    const fullDocId = documentId.startsWith(expectedPrefix)
+      ? documentId
+      : `${expectedPrefix}${documentId}`;
+
+    return this.documentService.getYDoc(fullDocId);
   }
 
   /**
