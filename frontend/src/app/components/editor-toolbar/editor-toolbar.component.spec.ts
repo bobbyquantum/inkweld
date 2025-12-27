@@ -7,8 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { EditorToolbarComponent } from './editor-toolbar.component';
 
-// Mock ngx-editor
-vi.mock('ngx-editor', () => {
+// Mock @bobbyquantum/ngx-editor
+vi.mock('@bobbyquantum/ngx-editor', () => {
   return {
     Editor: vi.fn().mockImplementation(() => ({
       view: null,
