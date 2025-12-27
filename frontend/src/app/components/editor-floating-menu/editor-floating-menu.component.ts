@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Editor } from 'ngx-editor';
+import { Editor } from '@bobbyquantum/ngx-editor';
 import { toggleMark } from 'prosemirror-commands';
 import { MarkType } from 'prosemirror-model';
 import { EditorState, Transaction } from 'prosemirror-state';
