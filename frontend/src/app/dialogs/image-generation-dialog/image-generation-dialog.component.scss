@@ -68,6 +68,42 @@ h2[mat-dialog-title] {
     font-weight: 500;
     color: var(--mat-sys-on-surface-variant);
   }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h3 {
+      margin: 0;
+    }
+  }
+
+  .profile-description {
+    opacity: 0.7;
+    font-size: 0.875em;
+  }
+
+  .advanced-toggle {
+    margin-top: 8px;
+    font-size: 0.875rem;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 4px;
+    }
+  }
+
+  .hint-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
 }
 
 .provider-chips {

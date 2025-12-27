@@ -7,7 +7,7 @@
  * new models frequently.
  */
 import type {
-  ImageGenerateRequest,
+  ResolvedImageRequest,
   ImageGenerateResponse,
   ImageModelInfo,
   ImageProviderType,
@@ -272,19 +272,13 @@ export class OpenRouterImageProvider extends BaseImageProvider {
     return '1:1';
   }
 
-  async generate(request: ImageGenerateRequest): Promise<ImageGenerateResponse> {
+  async generate(request: ResolvedImageRequest): Promise<ImageGenerateResponse> {
     if (!this.isAvailable()) {
       throw new Error('OpenRouter image generation is not available. Please configure API key.');
     }
 
-    const model = request.model || this.configuredModels[0]?.id || 'black-forest-labs/flux-2-fast';
-    const modelInfo = this.configuredModels.find((m) => m.id === model);
-
-    if (!modelInfo) {
-      throw new Error(
-        `Invalid model: ${model}. Available models: ${this.configuredModels.map((m) => m.id).join(', ')}`
-      );
-    }
+    // Model comes from the profile - no validation needed
+    const model = request.model;
 
     // Build prompt with worldbuilding context
     const prompt = this.buildPromptWithContext(request);

@@ -67,6 +67,7 @@ app.get('/', (c) =>
   c.json({ name: 'Inkweld API (Workers)', version: config.version, status: 'running' })
 );
 
+// Note: securitySchemes is injected by generate-openapi.ts post-processing
 app.get('/api/openapi.json', (c) => {
   return c.json(
     app.getOpenAPIDocument({

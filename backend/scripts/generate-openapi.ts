@@ -41,6 +41,32 @@ function convertPathParameters(spec: Record<string, unknown>): Record<string, un
   };
 }
 
+/**
+ * Ensure securitySchemes is properly added to components
+ * The Hono OpenAPI plugin doesn't always merge components correctly
+ */
+function ensureSecuritySchemes(spec: Record<string, unknown>): Record<string, unknown> {
+  const components = (spec.components || {}) as Record<string, unknown>;
+
+  // Add securitySchemes if not present
+  if (!components.securitySchemes) {
+    components.securitySchemes = {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description:
+          'JWT token obtained from POST /api/v1/auth/login. Include as: Authorization: Bearer <token>',
+      },
+    };
+  }
+
+  return {
+    ...spec,
+    components,
+  };
+}
+
 async function generateOpenAPIJson() {
   let serverProcess: ChildProcess | null = null;
 
@@ -126,7 +152,10 @@ async function generateOpenAPIJson() {
     const rawSpec = (await response.json()) as Record<string, unknown>;
 
     // Convert Express-style path parameters to OpenAPI-style
-    const spec = convertPathParameters(rawSpec);
+    let spec = convertPathParameters(rawSpec);
+
+    // Ensure securitySchemes is properly added
+    spec = ensureSecuritySchemes(spec);
 
     // Write to the same path we cleaned up earlier
     await writeFile(outputPath, JSON.stringify(spec, null, 2));

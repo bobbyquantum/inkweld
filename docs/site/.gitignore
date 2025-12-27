@@ -11,6 +11,9 @@
 # Copied OpenAPI spec (generated from backend)
 /static/openapi.json
 
+# Generated API documentation (created by docusaurus-plugin-openapi-docs)
+/docs/api/
+
 # Generated screenshots (created by playwright e2e:screenshots)
 # All generated screenshots go in the /static/img/generated/ folder
 /static/img/generated/

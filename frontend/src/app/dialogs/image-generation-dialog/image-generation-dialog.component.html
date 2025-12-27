@@ -39,79 +39,51 @@
         Please contact an administrator to configure image generation providers.
       </p>
     </div>
-  } @else if (enabledProviders().length === 0) {
+  } @else if (isLoadingProfiles()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading image profiles...</p>
+    </div>
+  } @else if (profiles().length === 0) {
     <div class="disabled-notice">
       <mat-icon>warning</mat-icon>
-      <h3>No Providers Available</h3>
-      <p>
-        No image generation providers are currently configured and available.
-      </p>
-      <p>Please contact an administrator to set up API keys for providers.</p>
+      <h3>No Image Profiles Configured</h3>
+      <p>No image generation profiles are available.</p>
+      <p>Please contact an administrator to set up image model profiles.</p>
     </div>
   } @else {
     <!-- STAGE 1: Form -->
     @if (stage() === 'form') {
       <div class="generation-form">
-        <!-- Provider Selection -->
+        <!-- Profile Selection -->
         <div class="form-section">
-          <h3>Provider</h3>
-          <mat-button-toggle-group
-            [value]="selectedProvider()"
-            (change)="selectedProvider.set($event.value)"
-            class="provider-toggle-group">
-            @for (provider of enabledProviders(); track provider.key) {
-              <mat-button-toggle
-                [value]="provider.key"
-                [matTooltip]="provider.models.join(', ')">
-                @if (provider.key === 'openrouter') {
-                  <svg
-                    class="openrouter-icon"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 512 512"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="currentColor"
-                    stroke="currentColor">
-                    <path
-                      d="M3 248.945C18 248.945 76 236 106 219C136 202 136 202 198 158C276.497 102.293 332 120.945 423 120.945"
-                      stroke-width="90" />
-                    <path
-                      d="M511 121.5L357.25 210.268L357.25 32.7324L511 121.5Z" />
-                    <path
-                      d="M0 249C15 249 73 261.945 103 278.945C133 295.945 133 295.945 195 339.945C273.497 395.652 329 377 420 377"
-                      stroke-width="90" />
-                    <path
-                      d="M508 376.445L354.25 287.678L354.25 465.213L508 376.445Z" />
-                  </svg>
-                } @else {
-                  <mat-icon>{{ getProviderIcon(provider.key) }}</mat-icon>
-                }
-                {{ getProviderLabel(provider.key) }}
-              </mat-button-toggle>
-            }
-          </mat-button-toggle-group>
-        </div>
-
-        <!-- Model Selection -->
-        @if (selectedProvider() && availableModels().length > 0) {
-          <div class="form-section">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Model</mat-label>
-              <mat-select
-                [value]="selectedModel()"
-                (selectionChange)="selectedModel.set($event.value)">
-                @for (model of availableModels(); track model.id) {
-                  <mat-option [value]="model.id">
-                    {{ model.name }}
-                  </mat-option>
-                }
-              </mat-select>
-              @if (isLoadingModels()) {
-                <mat-hint>Loading models...</mat-hint>
+          <h3>Model</h3>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Select a model profile</mat-label>
+            <mat-select
+              [value]="selectedProfile()"
+              (selectionChange)="onProfileChange($event.value)">
+              @for (profile of profiles(); track profile.id) {
+                <mat-option [value]="profile">
+                  {{ profile.name }}
+                  @if (profile.description) {
+                    <span class="profile-description">
+                      - {{ profile.description }}</span
+                    >
+                  }
+                </mat-option>
               }
-            </mat-form-field>
-          </div>
-        }
+            </mat-select>
+            <mat-hint>
+              @if (selectedProfile()) {
+                @if (selectedProfile()!.supportsImageInput) {
+                  <mat-icon class="hint-icon">image</mat-icon> Supports image
+                  input
+                }
+              }
+            </mat-hint>
+          </mat-form-field>
+        </div>
 
         <!-- Prompt -->
         <div class="form-section">
@@ -283,7 +255,7 @@
             mat-raised-button
             color="primary"
             (click)="generate()"
-            [disabled]="!prompt().trim() || !selectedProvider()">
+            [disabled]="!prompt().trim() || !selectedProfile()">
             <mat-icon>auto_awesome</mat-icon>
             Generate
           </button>
@@ -306,15 +278,13 @@
             <div class="summary-row">
               <span class="label">Provider</span>
               <span class="value">{{
-                getProviderLabel(currentJob()?.request?.provider!)
+                getProviderLabel(currentJob()?.response?.provider!)
               }}</span>
             </div>
             <div class="summary-row">
               <span class="label">Model</span>
               <span class="value">{{
-                currentJob()?.response?.model ||
-                  currentJob()?.request?.model ||
-                  'Default'
+                currentJob()?.response?.model || 'Default'
               }}</span>
             </div>
             <div class="summary-row">

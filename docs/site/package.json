@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "bun run copy-openapi && docusaurus start",
-    "build": "bun run copy-openapi && bun run generate-screenshots && docusaurus build",
-    "build:no-screenshots": "bun run copy-openapi && docusaurus build",
+    "start": "bun run gen-api-docs && docusaurus start",
+    "build": "bun run gen-api-docs && bun run generate-screenshots && docusaurus build",
+    "build:no-screenshots": "bun run gen-api-docs && docusaurus build",
     "copy-openapi": "node -e \"require('fs').mkdirSync('static', {recursive: true}); require('fs').copyFileSync('../../backend/openapi.json', 'static/openapi.json')\"",
     "generate-screenshots": "cd ../../frontend && TEST_ENV=screenshots npx playwright test",
     "swizzle": "docusaurus swizzle",

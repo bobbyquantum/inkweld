@@ -8,13 +8,15 @@ import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
+import { ImageProfilesService } from '../../../api-client/api/image-profiles.service';
 import {
   CustomSizesResponse,
   Element,
   ImageGenerationStatus,
-  ImageModelInfo,
   ImageProviderType,
   ImageSize,
+  PublicImageModelProfile,
+  PublicImageModelProfileProvider,
   WorldbuildingContextRole,
 } from '../../../api-client/model/models';
 import {
@@ -33,6 +35,7 @@ describe('ImageGenerationDialogComponent', () => {
   let fixture: ComponentFixture<ImageGenerationDialogComponent>;
   let dialogRef: MockedObject<MatDialogRef<ImageGenerationDialogComponent>>;
   let aiImageService: MockedObject<AIImageGenerationService>;
+  let imageProfilesService: MockedObject<ImageProfilesService>;
   let generationService: MockedObject<ImageGenerationService>;
   let projectState: MockedObject<ProjectStateService>;
   let worldbuildingService: MockedObject<WorldbuildingService>;
@@ -59,12 +62,34 @@ describe('ImageGenerationDialogComponent', () => {
     ],
   };
 
-  const mockModels = {
-    models: [
-      { id: 'model-1', name: 'Test Model 1' },
-      { id: 'model-2', name: 'Test Model 2' },
-    ] as ImageModelInfo[],
-  };
+  const mockProfiles: PublicImageModelProfile[] = [
+    {
+      id: 'profile-1',
+      name: 'Test Profile 1',
+      description: 'A test profile',
+      provider: PublicImageModelProfileProvider.Openrouter,
+      modelId: 'model-1',
+      supportsImageInput: false,
+      supportsCustomResolutions: false,
+      supportedSizes: ['1024x1024', '1920x1080'],
+      defaultSize: '1024x1024',
+      enabled: true,
+      sortOrder: 0,
+    },
+    {
+      id: 'profile-2',
+      name: 'Test Profile 2',
+      description: null,
+      provider: PublicImageModelProfileProvider.Openai,
+      modelId: 'gpt-image-1',
+      supportsImageInput: false,
+      supportsCustomResolutions: false,
+      supportedSizes: ['1024x1024', '1792x1024'],
+      defaultSize: '1024x1024',
+      enabled: true,
+      sortOrder: 1,
+    },
+  ];
 
   const mockProject = {
     id: 'proj-1',
@@ -85,7 +110,6 @@ describe('ImageGenerationDialogComponent', () => {
 
     aiImageService = {
       getImageGenerationStatus: vi.fn().mockReturnValue(of(mockStatus)),
-      getProviderModels: vi.fn().mockReturnValue(of(mockModels)),
       getCustomImageSizes: vi
         .fn()
         .mockReturnValue(of({ sizes: [] } as CustomSizesResponse)),
@@ -95,6 +119,10 @@ describe('ImageGenerationDialogComponent', () => {
         })
       ),
     } as unknown as MockedObject<AIImageGenerationService>;
+
+    imageProfilesService = {
+      listImageProfiles: vi.fn().mockReturnValue(of(mockProfiles)),
+    } as unknown as MockedObject<ImageProfilesService>;
 
     generationService = {
       startGeneration: vi.fn().mockReturnValue('job-123'),
@@ -123,6 +151,7 @@ describe('ImageGenerationDialogComponent', () => {
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
         { provide: AIImageGenerationService, useValue: aiImageService },
+        { provide: ImageProfilesService, useValue: imageProfilesService },
         { provide: ImageGenerationService, useValue: generationService },
         { provide: ProjectStateService, useValue: projectState },
         { provide: WorldbuildingService, useValue: worldbuildingService },
@@ -168,17 +197,43 @@ describe('ImageGenerationDialogComponent', () => {
     expect(component.selectedProvider()).toBe(ImageProviderType.Openrouter);
   });
 
-  it('should load models when provider is manually selected', async () => {
+  it('should load profiles on init', async () => {
     fixture.detectChanges();
     await flushPromises();
 
-    // Manually trigger model load - the effect runs on provider change
-    component.selectedProvider.set(ImageProviderType.Openai);
+    expect(imageProfilesService.listImageProfiles).toHaveBeenCalled();
+    expect(component.profiles().length).toBe(2);
+  });
+
+  it('should filter out image-to-image profiles (supportsImageInput=true)', async () => {
+    // Add an image-to-image profile to the mock data
+    const profilesWithImageToImage: PublicImageModelProfile[] = [
+      ...mockProfiles,
+      {
+        id: 'profile-img2img',
+        name: 'Image-to-Image Profile',
+        description: 'Requires source image',
+        provider: PublicImageModelProfileProvider.Falai,
+        modelId: 'fal-ai/gpt-image-1.5/edit',
+        supportsImageInput: true, // This should be filtered out
+        supportsCustomResolutions: false,
+        supportedSizes: ['1024x1024'],
+        defaultSize: '1024x1024',
+        enabled: true,
+        sortOrder: 2,
+      },
+    ];
+
+    (imageProfilesService.listImageProfiles as any).mockReturnValue(
+      of(profilesWithImageToImage)
+    );
+
     fixture.detectChanges();
     await flushPromises();
-    await flushPromises();
 
-    expect(aiImageService.getProviderModels).toHaveBeenCalled();
+    // Should only include text-to-image profiles (2), not the image-to-image one
+    expect(component.profiles().length).toBe(2);
+    expect(component.profiles().every(p => !p.supportsImageInput)).toBe(true);
   });
 
   describe('form stage', () => {
@@ -217,8 +272,7 @@ describe('ImageGenerationDialogComponent', () => {
         'testuser/test-project',
         expect.objectContaining({
           prompt: 'A beautiful sunset over mountains',
-          provider: ImageProviderType.Openrouter,
-          model: 'model-1',
+          profileId: 'profile-1',
           n: 1,
           size: ImageSize._1024x1024,
         }),
@@ -235,7 +289,7 @@ describe('ImageGenerationDialogComponent', () => {
       projectKey: 'testuser/test-project',
       request: {
         prompt: 'test',
-        provider: ImageProviderType.Openrouter,
+        profileId: 'profile-1',
         size: ImageSize._1024x1024,
       },
       status: 'completed',
@@ -329,6 +383,7 @@ describe('ImageGenerationDialogComponent', () => {
           { provide: MAT_DIALOG_DATA, useValue: { forCover: true } },
           { provide: AIImageGenerationService, useValue: aiImageService },
           { provide: ImageGenerationService, useValue: generationService },
+          { provide: ImageProfilesService, useValue: imageProfilesService },
           { provide: ProjectStateService, useValue: projectState },
           { provide: WorldbuildingService, useValue: worldbuildingService },
           { provide: MatSnackBar, useValue: snackBar },
@@ -352,6 +407,8 @@ describe('ImageGenerationDialogComponent', () => {
 
     it('should pass forCover option to generation service', async () => {
       await flushPromises();
+      // Select a profile to enable generation
+      component.selectedProfile.set(mockProfiles[0]);
       component.generate();
 
       expect(generationService.startGeneration).toHaveBeenCalledWith(
@@ -377,7 +434,7 @@ describe('ImageGenerationDialogComponent', () => {
     });
 
     it('should get correct provider label', () => {
-      expect(component.getProviderLabel('openai')).toBe('OpenAI (DALL-E)');
+      expect(component.getProviderLabel('openai')).toBe('OpenAI');
       expect(component.getProviderLabel('openrouter')).toBe('OpenRouter');
       expect(component.getProviderLabel('stable-diffusion')).toBe(
         'Stable Diffusion'
@@ -391,19 +448,35 @@ describe('ImageGenerationDialogComponent', () => {
       expect(label).toBe('1024×1024 (1:1 Square)');
     });
 
-    it('should get model name when model is selected', () => {
-      // Set up models and selection manually
-      component.availableModels.set([
-        { id: 'model-1', name: 'Test Model 1' },
-        { id: 'model-2', name: 'Test Model 2' },
-      ] as ImageModelInfo[]);
-      component.selectedModel.set('model-1');
+    it('should get model name when profile is selected', () => {
+      // Set up profile selection manually
+      component.selectedProfile.set({
+        id: 'profile-1',
+        name: 'Test Profile',
+        description: 'A test profile',
+        provider: PublicImageModelProfileProvider.Openrouter,
+        modelId: 'model-1',
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: ['1024x1024'],
+        defaultSize: '1024x1024',
+        enabled: true,
+        sortOrder: 0,
+      });
 
       const name = component.getModelName();
-      expect(name).toBe('Test Model 1');
+      expect(name).toBe('Test Profile');
     });
 
-    it('should return Default when no model selected', () => {
+    it('should return model id when no profile selected', () => {
+      component.selectedProfile.set(null);
+      component.selectedModel.set('model-1');
+      const name = component.getModelName();
+      expect(name).toBe('model-1');
+    });
+
+    it('should return Default when no profile or model selected', () => {
+      component.selectedProfile.set(null);
       component.selectedModel.set(null);
       const name = component.getModelName();
       expect(name).toBe('Default');
@@ -513,43 +586,45 @@ describe('ImageGenerationDialogComponent', () => {
       expect(component.customSizes()).toEqual([]);
     });
 
-    it('should show sizes from selected model supportedSizes', () => {
-      // Set up a model with specific supported sizes
-      component.availableModels.set([
-        {
-          id: 'test-model',
-          name: 'Test Model',
-          provider: 'falai',
-          supportedSizes: ['1024x1024', '1920x1080'],
-          supportsQuality: false,
-          supportsStyle: false,
-          maxImages: 4,
-        } as ImageModelInfo,
-      ]);
-      component.selectedModel.set('test-model');
+    it('should show sizes from selected profile supportedSizes', () => {
+      // Set up a profile with specific supported sizes
+      component.selectedProfile.set({
+        id: 'profile-sizes',
+        name: 'Test Profile',
+        description: null,
+        provider: PublicImageModelProfileProvider.Falai,
+        modelId: 'test-model',
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: ['1024x1024', '1920x1080'],
+        defaultSize: '1024x1024',
+        enabled: true,
+        sortOrder: 0,
+      });
       component.customSizes.set([]);
 
       const options = component.sizeOptions();
-      // Should only have the 2 sizes from the model
+      // Should only have the 2 sizes from the profile
       expect(options.length).toBe(2);
       expect(options.map(o => o.value)).toContain('1024x1024');
       expect(options.map(o => o.value)).toContain('1920x1080');
     });
 
     it('should handle aspect ratio format sizes (e.g., 16:9@4K)', () => {
-      // Set up a model with aspect ratio sizes (like Nano Banana Pro)
-      component.availableModels.set([
-        {
-          id: 'aspect-ratio-model',
-          name: 'Aspect Ratio Model',
-          provider: 'falai',
-          supportedSizes: ['16:9@4K', '9:16@2K', '1:1@1K'],
-          supportsQuality: false,
-          supportsStyle: false,
-          maxImages: 4,
-        } as ImageModelInfo,
-      ]);
-      component.selectedModel.set('aspect-ratio-model');
+      // Set up a profile with aspect ratio sizes (like Nano Banana Pro)
+      component.selectedProfile.set({
+        id: 'aspect-ratio-profile',
+        name: 'Aspect Ratio Profile',
+        description: null,
+        provider: PublicImageModelProfileProvider.Falai,
+        modelId: 'aspect-model',
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: ['16:9@4K', '9:16@2K', '1:1@1K'],
+        defaultSize: '16:9@4K',
+        enabled: true,
+        sortOrder: 0,
+      });
       component.customSizes.set([]);
 
       const options = component.sizeOptions();
@@ -561,21 +636,22 @@ describe('ImageGenerationDialogComponent', () => {
       expect(wideOption?.megapixels).toBe('-'); // N/A for aspect ratio
     });
 
-    it('should not add custom sizes for aspect ratio models', () => {
-      // Set up an aspect ratio model
-      component.availableModels.set([
-        {
-          id: 'aspect-model',
-          name: 'Aspect Model',
-          provider: 'falai',
-          supportedSizes: ['16:9@4K'],
-          supportsQuality: false,
-          supportsStyle: false,
-          maxImages: 4,
-        } as ImageModelInfo,
-      ]);
-      component.selectedModel.set('aspect-model');
-      // Try to add custom sizes - they should be ignored for aspect ratio models
+    it('should not add custom sizes for aspect ratio profiles', () => {
+      // Set up an aspect ratio profile
+      component.selectedProfile.set({
+        id: 'aspect-profile',
+        name: 'Aspect Profile',
+        description: null,
+        provider: PublicImageModelProfileProvider.Falai,
+        modelId: 'aspect-model',
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: ['16:9@4K'],
+        defaultSize: '16:9@4K',
+        enabled: true,
+        sortOrder: 0,
+      });
+      // Try to add custom sizes - they should be ignored for aspect ratio profiles
       component.customSizes.set([
         { id: 'custom-1', name: 'Custom', width: 1234, height: 5678 },
       ]);
@@ -586,19 +662,20 @@ describe('ImageGenerationDialogComponent', () => {
       expect(options[0].value).toBe('16:9@4K');
     });
 
-    it('should fall back to defaults when model has no supportedSizes', () => {
-      component.availableModels.set([
-        {
-          id: 'empty-model',
-          name: 'Empty Model',
-          provider: 'openai',
-          supportedSizes: [],
-          supportsQuality: false,
-          supportsStyle: false,
-          maxImages: 4,
-        } as ImageModelInfo,
-      ]);
-      component.selectedModel.set('empty-model');
+    it('should fall back to defaults when profile has no supportedSizes', () => {
+      component.selectedProfile.set({
+        id: 'empty-profile',
+        name: 'Empty Profile',
+        description: null,
+        provider: PublicImageModelProfileProvider.Openai,
+        modelId: 'gpt-image-1',
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: [],
+        defaultSize: null,
+        enabled: true,
+        sortOrder: 0,
+      });
       component.customSizes.set([]);
 
       const options = component.sizeOptions();
@@ -607,18 +684,19 @@ describe('ImageGenerationDialogComponent', () => {
     });
 
     it('should parse dimension sizes not in defaults', () => {
-      component.availableModels.set([
-        {
-          id: 'custom-dim-model',
-          name: 'Custom Dim Model',
-          provider: 'falai',
-          supportedSizes: ['1234x5678'], // Not in defaults
-          supportsQuality: false,
-          supportsStyle: false,
-          maxImages: 4,
-        } as ImageModelInfo,
-      ]);
-      component.selectedModel.set('custom-dim-model');
+      component.selectedProfile.set({
+        id: 'custom-dim-profile',
+        name: 'Custom Dim Profile',
+        description: null,
+        provider: PublicImageModelProfileProvider.Falai,
+        modelId: 'custom-model',
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: ['1234x5678'], // Not in defaults
+        defaultSize: '1234x5678',
+        enabled: true,
+        sortOrder: 0,
+      });
       component.customSizes.set([]);
 
       const options = component.sizeOptions();
@@ -750,7 +828,7 @@ describe('ImageGenerationDialogComponent', () => {
         projectKey: 'test',
         request: {
           prompt: 'test',
-          provider: ImageProviderType.Openrouter,
+          profileId: 'profile-1',
           size: ImageSize._1024x1024,
         },
         status: 'completed',
@@ -775,7 +853,7 @@ describe('ImageGenerationDialogComponent', () => {
         projectKey: 'test',
         request: {
           prompt: 'test',
-          provider: ImageProviderType.Openrouter,
+          profileId: 'profile-1',
           size: ImageSize._1024x1024,
         },
         status: 'generating',
@@ -798,7 +876,7 @@ describe('ImageGenerationDialogComponent', () => {
         projectKey: 'test',
         request: {
           prompt: 'test',
-          provider: ImageProviderType.Openrouter,
+          profileId: 'profile-1',
           size: ImageSize._1024x1024,
         },
         status: 'generating',
@@ -822,7 +900,6 @@ describe('ImageGenerationDialogComponent', () => {
 
       const failingAiService = {
         getImageGenerationStatus: vi.fn().mockReturnValue(of(null)),
-        getProviderModels: vi.fn().mockReturnValue(of(mockModels)),
       };
 
       await TestBed.configureTestingModule({
@@ -833,6 +910,7 @@ describe('ImageGenerationDialogComponent', () => {
           { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
           { provide: AIImageGenerationService, useValue: failingAiService },
           { provide: ImageGenerationService, useValue: generationService },
+          { provide: ImageProfilesService, useValue: imageProfilesService },
           { provide: ProjectStateService, useValue: projectState },
           { provide: WorldbuildingService, useValue: worldbuildingService },
           { provide: MatSnackBar, useValue: snackBar },
@@ -858,7 +936,7 @@ describe('ImageGenerationDialogComponent', () => {
         projectKey: 'test',
         request: {
           prompt: 'test',
-          provider: ImageProviderType.Openrouter,
+          profileId: 'profile-1',
           size: ImageSize._1024x1024,
         },
         status: 'generating',
@@ -885,7 +963,7 @@ describe('ImageGenerationDialogComponent', () => {
         projectKey: 'test',
         request: {
           prompt: 'test',
-          provider: ImageProviderType.Openrouter,
+          profileId: 'profile-1',
           size: ImageSize._1024x1024,
         },
         status: 'completed',
@@ -918,7 +996,7 @@ describe('ImageGenerationDialogComponent', () => {
         projectKey: 'test',
         request: {
           prompt: 'test',
-          provider: ImageProviderType.Openrouter,
+          profileId: 'profile-1',
           size: ImageSize._1024x1024,
         },
         status: 'generating',

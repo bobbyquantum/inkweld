@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AIProvidersService, ProviderStatus } from 'api-client';
@@ -32,6 +33,7 @@ interface ProviderUIState extends ProviderStatus {
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
   ],
@@ -213,14 +215,51 @@ export class AdminAiProvidersComponent implements OnInit {
   }
 
   getProviderIcon(providerId: string): string {
+    // Use custom SVG icons for OpenRouter and Fal.ai
+    if (providerId === 'openrouter' || providerId === 'falai') {
+      return providerId;
+    }
     const icons: Record<string, string> = {
       openai: 'auto_awesome',
-      openrouter: 'hub',
       anthropic: 'psychology',
       'stable-diffusion': 'brush',
-      falai: 'bolt',
     };
     return icons[providerId] || 'extension';
+  }
+
+  isSvgIcon(providerId: string): boolean {
+    return providerId === 'openrouter' || providerId === 'falai';
+  }
+
+  async toggleProviderEnabled(provider: ProviderUIState): Promise<void> {
+    const newEnabled = !provider.imageEnabled;
+    this.updateProvider(provider.id, { isSaving: true });
+
+    try {
+      await firstValueFrom(
+        this.providersService.setAiProviderImageEnabled(provider.id, {
+          enabled: newEnabled,
+        })
+      );
+
+      this.updateProvider(provider.id, {
+        imageEnabled: newEnabled,
+        imageEnabledExplicit: true,
+        isSaving: false,
+      });
+
+      this.snackBar.open(
+        `${provider.name} ${newEnabled ? 'enabled' : 'disabled'}`,
+        'Close',
+        { duration: 2000 }
+      );
+    } catch (err) {
+      console.error(`Failed to toggle ${provider.name}:`, err);
+      this.updateProvider(provider.id, { isSaving: false });
+      this.snackBar.open(`Failed to update ${provider.name}`, 'Close', {
+        duration: 3000,
+      });
+    }
   }
 
   getCapabilityLabel(provider: ProviderStatus): string {

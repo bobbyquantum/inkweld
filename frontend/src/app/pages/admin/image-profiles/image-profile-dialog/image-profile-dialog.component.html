@@ -1,0 +1,255 @@
+<h2 mat-dialog-title>
+  @if (isEditMode) {
+    Edit Image Profile
+  } @else {
+    Create Image Profile
+  }
+</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="profile-form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Name</mat-label>
+      <input
+        matInput
+        formControlName="name"
+        placeholder="e.g., GPT Image 1 High Quality" />
+      <mat-hint>A user-friendly name for this profile</mat-hint>
+      @if (form.get('name')?.hasError('required')) {
+        <mat-error>Name is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea
+        matInput
+        formControlName="description"
+        rows="2"
+        placeholder="Optional description of this profile"></textarea>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Provider</mat-label>
+        <mat-select
+          formControlName="provider"
+          (selectionChange)="onProviderChange()">
+          @for (provider of data.providers; track provider.id) {
+            <mat-option [value]="provider.id">{{ provider.name }}</mat-option>
+          }
+        </mat-select>
+        @if (form.get('provider')?.hasError('required')) {
+          <mat-error>Provider is required</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Fal.ai: Category selection first -->
+      @if (isFalaiProvider()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Model Type</mat-label>
+          <mat-select
+            [value]="selectedFalaiCategory()"
+            (selectionChange)="onFalaiCategoryChange($event.value)">
+            @for (cat of falaiCategories; track cat.value) {
+              <mat-option [value]="cat.value">{{ cat.label }}</mat-option>
+            }
+          </mat-select>
+          <mat-hint>Select type then choose model</mat-hint>
+        </mat-form-field>
+      }
+    </div>
+
+    <!-- Model Selection Row -->
+    <div class="row">
+      @if (isOpenAiProvider()) {
+        <!-- OpenAI: Simple dropdown of hardcoded models -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Model</mat-label>
+          <mat-select
+            (selectionChange)="selectModel($event.value)"
+            [value]="null">
+            @for (model of openaiModels; track model.id) {
+              <mat-option [value]="model">
+                <span class="model-name">{{ model.name }}</span>
+                <span class="model-desc"> - {{ model.description }}</span>
+              </mat-option>
+            }
+          </mat-select>
+          @if (form.get('modelId')?.hasError('required')) {
+            <mat-error>Model is required</mat-error>
+          }
+          <mat-hint>Select an OpenAI image model</mat-hint>
+        </mat-form-field>
+      } @else if (canBrowseModels()) {
+        <!-- Autocomplete for browsable providers (OpenRouter, Fal.ai) -->
+        <mat-form-field appearance="outline" class="model-field full-width">
+          <mat-label>Model</mat-label>
+          <input
+            matInput
+            formControlName="modelId"
+            [matAutocomplete]="modelAuto"
+            (input)="onModelSearchInput($event)"
+            (focus)="loadModelsForProvider()"
+            placeholder="Search for a model..." />
+          <mat-autocomplete
+            #modelAuto="matAutocomplete"
+            (optionSelected)="selectModel($event.option.value)">
+            @if (isLoadingModels()) {
+              <mat-option disabled>
+                <div class="loading-option">
+                  <mat-spinner diameter="20"></mat-spinner>
+                  <span>Loading models...</span>
+                </div>
+              </mat-option>
+            } @else {
+              @for (model of filteredModels(); track model.id) {
+                <mat-option [value]="model">
+                  <div class="model-option">
+                    <span class="model-name">{{ model.name }}</span>
+                    <span class="model-id">{{ model.id }}</span>
+                  </div>
+                </mat-option>
+              }
+              @if (filteredModels().length === 0 && !isLoadingModels()) {
+                <mat-option disabled>
+                  @if (isFalaiProvider()) {
+                    Select a model type above, then search here
+                  } @else {
+                    No models found. Type to search or check provider API key.
+                  }
+                </mat-option>
+              }
+            }
+          </mat-autocomplete>
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="loadModelsForProvider()"
+            matTooltip="Refresh models">
+            <mat-icon>refresh</mat-icon>
+          </button>
+          @if (form.get('modelId')?.hasError('required')) {
+            <mat-error>Model ID is required</mat-error>
+          }
+          <mat-hint>Search and select from available models</mat-hint>
+        </mat-form-field>
+      } @else if (isManualModelEntry()) {
+        <!-- Manual entry for Stable Diffusion -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Model ID</mat-label>
+          <input
+            matInput
+            formControlName="modelId"
+            placeholder="e.g., stable-diffusion-xl-base-1.0" />
+          <mat-hint
+            >Enter the model identifier from your Stable Diffusion API</mat-hint
+          >
+          @if (form.get('modelId')?.hasError('required')) {
+            <mat-error>Model ID is required</mat-error>
+          }
+        </mat-form-field>
+      }
+    </div>
+
+    <div class="toggles-row">
+      <mat-slide-toggle formControlName="enabled"> Enabled </mat-slide-toggle>
+
+      <mat-slide-toggle formControlName="supportsImageInput">
+        Supports Image Input
+      </mat-slide-toggle>
+
+      <mat-slide-toggle
+        formControlName="supportsCustomResolutions"
+        matTooltip="Allow users to specify arbitrary width/height values">
+        Custom Resolutions
+      </mat-slide-toggle>
+    </div>
+
+    <div class="sizes-section">
+      <div class="sizes-header">
+        <span class="label">Supported Sizes</span>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="addSize()"
+          matTooltip="Add size">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+
+      @for (size of sizesArray.controls; track $index) {
+        <div class="size-row">
+          <mat-form-field appearance="outline">
+            <input
+              matInput
+              [formControl]="$any(size)"
+              placeholder="e.g., 1024x1024" />
+          </mat-form-field>
+          <button
+            mat-icon-button
+            type="button"
+            color="warn"
+            (click)="removeSize($index)">
+            <mat-icon>remove</mat-icon>
+          </button>
+        </div>
+      }
+
+      @if (sizesArray.length > 0) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Default Size</mat-label>
+          <mat-select formControlName="defaultSize">
+            <mat-option value="">None</mat-option>
+            @for (size of sizesArray.controls; track $index) {
+              <mat-option [value]="size.value">{{ size.value }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+    </div>
+
+    <mat-form-field appearance="outline" class="narrow-field">
+      <mat-label>Sort Order</mat-label>
+      <input matInput type="number" formControlName="sortOrder" />
+      <mat-hint>Lower numbers appear first</mat-hint>
+    </mat-form-field>
+
+    <div class="model-config-section">
+      <button mat-button type="button" (click)="toggleModelConfig()">
+        <mat-icon>{{
+          showModelConfig() ? 'expand_less' : 'expand_more'
+        }}</mat-icon>
+        Advanced: Model Config JSON
+      </button>
+
+      @if (showModelConfig()) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Model Configuration (JSON)</mat-label>
+          <textarea
+            matInput
+            formControlName="modelConfigJson"
+            rows="6"
+            placeholder='{"quality": "hd", "style": "vivid"}'></textarea>
+          <mat-hint>Provider-specific configuration options as JSON</mat-hint>
+        </mat-form-field>
+      }
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="!form.valid"
+    (click)="onSubmit()">
+    @if (isEditMode) {
+      Save Changes
+    } @else {
+      Create Profile
+    }
+  </button>
+</mat-dialog-actions>

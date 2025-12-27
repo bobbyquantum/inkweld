@@ -42,5 +42,13 @@ export interface ProviderStatus {
      * Whether a custom endpoint is configured
      */
     hasEndpoint?: boolean;
+    /**
+     * Whether image generation is enabled for this provider
+     */
+    imageEnabled?: boolean;
+    /**
+     * Whether the enabled state was explicitly set (vs auto-detected from API key)
+     */
+    imageEnabledExplicit?: boolean;
 }
 
