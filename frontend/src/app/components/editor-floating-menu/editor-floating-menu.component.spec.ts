@@ -20,15 +20,7 @@ vi.mock('ngx-editor', () => {
   };
 });
 
-// Mock prosemirror-commands
-vi.mock('prosemirror-commands', () => ({
-  toggleMark:
-    () =>
-    (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
-      if (dispatch) dispatch({});
-      return true;
-    },
-}));
+// prosemirror-commands is mocked globally in setup-vitest.ts
 
 describe('EditorFloatingMenuComponent', () => {
   let component: EditorFloatingMenuComponent;

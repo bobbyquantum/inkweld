@@ -8,11 +8,10 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e/screenshots',
-  fullyParallel: false, // Run sequentially for consistent screenshots
+  fullyParallel: true, // Run sequentially for consistent screenshots
   forbidOnly: !!process.env['CI'],
   retries: 0, // No retries for screenshot generation
-  workers: 1, // Single worker for consistent state
-  reporter: 'html',
+  reporter: [['list'], ['html', { open: 'never' }]],
 
   use: {
     baseURL: 'http://localhost:4200',

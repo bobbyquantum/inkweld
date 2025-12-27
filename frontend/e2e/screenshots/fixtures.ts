@@ -256,8 +256,6 @@ export const test = base.extend<ScreenshotFixtures>({
       );
     });
 
-    console.log('Setting up offline page for editor screenshots');
-
     await use(page);
   },
 });

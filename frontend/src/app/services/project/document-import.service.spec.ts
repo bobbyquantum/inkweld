@@ -5,20 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoggerService } from '../core/logger.service';
 import { DocumentImportService } from './document-import.service';
 
-// Mock y-indexeddb with vi.hoisted to ensure mocks are available before vi.mock
-const { mockDestroy, mockWhenSynced } = vi.hoisted(() => ({
-  mockDestroy: vi.fn().mockResolvedValue(undefined),
-  mockWhenSynced: Promise.resolve(),
-}));
-vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: class MockIndexeddbPersistence {
-    whenSynced = mockWhenSynced;
-    synced = true;
-    destroy = mockDestroy;
-    on = vi.fn();
-    off = vi.fn();
-  },
-}));
+// y-indexeddb is mocked globally in setup-vitest.ts with full on/off support
 
 // Mock yjs with vi.hoisted
 const { mockMapSet, mockTransact, mockDocDestroy } = vi.hoisted(() => ({

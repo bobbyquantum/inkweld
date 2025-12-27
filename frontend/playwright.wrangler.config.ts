@@ -31,9 +31,6 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env['CI'] ? 2 : 0,
 
-  /* Single worker for database state management */
-  workers: 1,
-
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
 
