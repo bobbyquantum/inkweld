@@ -5,6 +5,9 @@ import { expect, test } from './fixtures';
  *
  * These tests verify snapshot functionality (create, restore, delete)
  * for both document elements and worldbuilding elements in offline mode.
+ *
+ * Snapshots are now accessed via a history icon in the toolbar that opens
+ * a dialog, rather than being embedded in the meta panel.
  */
 
 test.describe('Document Snapshots', () => {
@@ -39,18 +42,15 @@ test.describe('Document Snapshots', () => {
     // Wait for content to be saved
     await page.waitForTimeout(500);
 
-    // Open the meta panel (which contains the snapshot panel)
-    const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
-    await expect(metaPanelToggle).toBeVisible({ timeout: 5000 });
-    await metaPanelToggle.click();
+    // Open the snapshots dialog via toolbar button
+    const snapshotsBtn = page.getByTestId('toolbar-snapshots');
+    await expect(snapshotsBtn).toBeVisible({ timeout: 5000 });
+    await snapshotsBtn.click();
 
-    // Expand the Snapshots section
-    const snapshotsSection = page.getByTestId('snapshots-section');
-    await expect(snapshotsSection).toBeVisible({ timeout: 5000 });
-    await snapshotsSection.click();
-
-    // Wait for snapshot panel to be visible
-    await page.waitForTimeout(300);
+    // Wait for the snapshots dialog to appear
+    await expect(page.locator('mat-dialog-container')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Verify empty state message appears
     await expect(page.getByText('No snapshots yet')).toBeVisible({
@@ -62,10 +62,8 @@ test.describe('Document Snapshots', () => {
     await expect(createSnapshotBtn).toBeVisible({ timeout: 5000 });
     await createSnapshotBtn.click();
 
-    // Wait for the dialog to appear
-    await expect(page.locator('mat-dialog-container')).toBeVisible({
-      timeout: 5000,
-    });
+    // Wait for the create snapshot dialog to appear (nested dialog)
+    await page.waitForTimeout(300);
 
     // Fill in snapshot dialog
     const snapshotNameInput = page.getByTestId('snapshot-name-input');
@@ -80,11 +78,6 @@ test.describe('Document Snapshots', () => {
     await expect(submitBtn).toBeEnabled({ timeout: 2000 });
     await submitBtn.click();
 
-    // Wait for the dialog to close
-    await expect(page.locator('mat-dialog-container')).not.toBeVisible({
-      timeout: 5000,
-    });
-
     // Wait a moment for the snapshot to be saved
     await page.waitForTimeout(1000);
 
@@ -97,6 +90,12 @@ test.describe('Document Snapshots', () => {
 
     // Verify the empty state is gone
     await expect(page.getByText('No snapshots yet')).not.toBeVisible();
+
+    // Close the snapshots dialog
+    await page.getByTestId('close-snapshots-dialog').click();
+    await expect(page.locator('mat-dialog-container')).not.toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('should restore a snapshot for a document element', async ({
@@ -125,10 +124,11 @@ test.describe('Document Snapshots', () => {
     await editor.fill('Original content before snapshot.');
     await page.waitForTimeout(500);
 
-    // Open the meta panel and snapshots section
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
-    await page.getByTestId('snapshots-section').click();
-    await page.waitForTimeout(300);
+    // Open the snapshots dialog
+    await page.getByTestId('toolbar-snapshots').click();
+    await expect(page.locator('mat-dialog-container')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Create a snapshot
     await page.getByTestId('create-snapshot-btn').click();
@@ -142,8 +142,11 @@ test.describe('Document Snapshots', () => {
       'Before Edit'
     );
 
-    // Close the meta panel to edit the content
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
+    // Close the snapshots dialog to edit the content
+    await page.getByTestId('close-snapshots-dialog').click();
+    await expect(page.locator('mat-dialog-container')).not.toBeVisible({
+      timeout: 5000,
+    });
 
     // Modify the document content
     await editor.click();
@@ -154,13 +157,18 @@ test.describe('Document Snapshots', () => {
     // Verify content changed
     await expect(editor).toContainText('Modified content after snapshot.');
 
-    // Open meta panel again and restore the snapshot
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
-    await page.getByTestId('snapshots-section').click();
-    await page.waitForTimeout(300);
+    // Open snapshots dialog again and restore the snapshot
+    await page.getByTestId('toolbar-snapshots').click();
+    await expect(page.locator('mat-dialog-container')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Find the snapshot menu button and click it
-    const snapshotMenuBtn = snapshotItem.locator('button').first();
+    const snapshotMenuBtn = page
+      .locator('[data-testid^="snapshot-"]')
+      .first()
+      .locator('button')
+      .first();
     await snapshotMenuBtn.click();
 
     // Click restore option
@@ -169,6 +177,11 @@ test.describe('Document Snapshots', () => {
     // Confirm restore in dialog
     await page.getByRole('button', { name: /restore/i }).click();
     await page.waitForTimeout(500);
+
+    // Dialog should close after restore
+    await expect(page.locator('mat-dialog-container')).not.toBeVisible({
+      timeout: 5000,
+    });
 
     // Verify content was restored
     await expect(editor).toContainText('Original content before snapshot.');
@@ -196,10 +209,11 @@ test.describe('Document Snapshots', () => {
     await editor.fill('Content for delete test.');
     await page.waitForTimeout(500);
 
-    // Open the meta panel and snapshots section
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
-    await page.getByTestId('snapshots-section').click();
-    await page.waitForTimeout(300);
+    // Open the snapshots dialog
+    await page.getByTestId('toolbar-snapshots').click();
+    await expect(page.locator('mat-dialog-container')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Create a snapshot
     await page.getByTestId('create-snapshot-btn').click();
@@ -235,6 +249,9 @@ test.describe('Document Snapshots', () => {
     await expect(page.getByText('No snapshots yet')).toBeVisible({
       timeout: 5000,
     });
+
+    // Close the snapshots dialog
+    await page.getByTestId('close-snapshots-dialog').click();
   });
 });
 
@@ -270,18 +287,15 @@ test.describe('Worldbuilding Snapshots', () => {
     // Wait for data to be saved
     await page.waitForTimeout(500);
 
-    // Open the meta panel (worldbuilding elements also have a meta panel toggle)
-    const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
-    await expect(metaPanelToggle).toBeVisible({ timeout: 5000 });
-    await metaPanelToggle.click();
+    // Open the snapshots dialog via toolbar button
+    const snapshotsBtn = page.getByTestId('toolbar-snapshots');
+    await expect(snapshotsBtn).toBeVisible({ timeout: 5000 });
+    await snapshotsBtn.click();
 
-    // Expand the Snapshots section
-    const snapshotsSection = page.getByTestId('snapshots-section');
-    await expect(snapshotsSection).toBeVisible({ timeout: 5000 });
-    await snapshotsSection.click();
-
-    // Wait for snapshot panel to be visible
-    await page.waitForTimeout(300);
+    // Wait for the snapshots dialog to appear
+    await expect(page.locator('mat-dialog-container')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Verify empty state message appears
     await expect(page.getByText('No snapshots yet')).toBeVisible({
@@ -313,6 +327,9 @@ test.describe('Worldbuilding Snapshots', () => {
 
     // Verify the empty state is gone
     await expect(page.getByText('No snapshots yet')).not.toBeVisible();
+
+    // Close the snapshots dialog
+    await page.getByTestId('close-snapshots-dialog').click();
   });
 
   test('should restore a snapshot for a worldbuilding element', async ({
@@ -341,10 +358,11 @@ test.describe('Worldbuilding Snapshots', () => {
     // Wait for debounce (500ms) + save to complete
     await page.waitForTimeout(1000);
 
-    // Open meta panel and create a snapshot
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
-    await page.getByTestId('snapshots-section').click();
-    await page.waitForTimeout(300);
+    // Open snapshots dialog and create a snapshot
+    await page.getByTestId('toolbar-snapshots').click();
+    await expect(page.locator('mat-dialog-container')).toBeVisible({
+      timeout: 5000,
+    });
 
     await page.getByTestId('create-snapshot-btn').click();
     await page.getByTestId('snapshot-name-input').fill('Original Location');
@@ -357,8 +375,11 @@ test.describe('Worldbuilding Snapshots', () => {
       'Original Location'
     );
 
-    // Close meta panel and modify the location data
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
+    // Close dialog and modify the location data
+    await page.getByTestId('close-snapshots-dialog').click();
+    await expect(page.locator('mat-dialog-container')).not.toBeVisible({
+      timeout: 5000,
+    });
 
     // Change the summary field
     await summaryField.clear();
@@ -369,22 +390,28 @@ test.describe('Worldbuilding Snapshots', () => {
     // Verify content changed
     await expect(summaryField).toHaveValue('A destroyed wasteland.');
 
-    // Open meta panel and restore
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
-    await page.getByTestId('snapshots-section').click();
-    await page.waitForTimeout(300);
+    // Open snapshots dialog and restore
+    await page.getByTestId('toolbar-snapshots').click();
+    await expect(page.locator('mat-dialog-container')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Find the snapshot and restore it
-    const snapshotMenuBtn = snapshotItem.locator('button').first();
+    const snapshotMenuBtn = page
+      .locator('[data-testid^="snapshot-"]')
+      .first()
+      .locator('button')
+      .first();
     await snapshotMenuBtn.click();
     await page.getByRole('menuitem', { name: /restore/i }).click();
 
     await page.getByRole('button', { name: /restore/i }).click();
     await page.waitForTimeout(2000); // Wait longer for restore
 
-    // Close meta panel to see the field
-    await page.locator('[data-testid="meta-panel-toggle"]').click();
-    await page.waitForTimeout(300);
+    // Dialog should close after restore
+    await expect(page.locator('mat-dialog-container')).not.toBeVisible({
+      timeout: 5000,
+    });
 
     // Verify content was restored
     await expect(summaryField).toHaveValue(

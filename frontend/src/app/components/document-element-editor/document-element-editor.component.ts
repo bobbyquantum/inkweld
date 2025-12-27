@@ -28,6 +28,10 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 
 import {
+  SnapshotsDialogComponent,
+  SnapshotsDialogData,
+} from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
+import {
   TagEditorDialogComponent,
   TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
@@ -666,6 +670,22 @@ export class DocumentElementEditorComponent
     this.dialog.open(TagEditorDialogComponent, {
       data,
       width: '450px',
+      autoFocus: false,
+    });
+  }
+
+  /**
+   * Open the snapshots dialog for this document
+   */
+  openSnapshotsDialog(): void {
+    const data: SnapshotsDialogData = {
+      documentId: this.documentId,
+      currentWordCount: this.wordCount(),
+    };
+
+    this.dialog.open(SnapshotsDialogComponent, {
+      data,
+      width: '550px',
       autoFocus: false,
     });
   }

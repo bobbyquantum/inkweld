@@ -17,6 +17,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,6 +27,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime } from 'rxjs';
 
 import { Element as ApiElement, ElementType } from '../../../api-client';
+import {
+  SnapshotsDialogComponent,
+  SnapshotsDialogData,
+} from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import {
   ElementTypeSchema,
   FieldSchema,
@@ -78,6 +83,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private worldbuildingService = inject(WorldbuildingService);
   private projectState = inject(ProjectStateService);
   private dialogGateway = inject(DialogGatewayService);
+  private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
 
   // Schema and form
@@ -389,5 +395,20 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (newName) {
       void this.projectState.renameNode(element, newName);
     }
+  }
+
+  /**
+   * Open the snapshots dialog for this worldbuilding element
+   */
+  openSnapshotsDialog(): void {
+    const data: SnapshotsDialogData = {
+      documentId: this.elementId(),
+    };
+
+    this.dialog.open(SnapshotsDialogComponent, {
+      data,
+      width: '550px',
+      autoFocus: false,
+    });
   }
 }

@@ -80,22 +80,6 @@
             </mat-nav-list>
           </mat-expansion-panel>
         }
-
-        <!-- Snapshots Section -->
-        <mat-expansion-panel
-          [expanded]="!hasRelationships()"
-          data-testid="snapshots-section">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon class="section-icon">history</mat-icon>
-              Snapshots
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <app-snapshot-panel
-            [documentId]="documentId()"
-            (closePanel)="close()">
-          </app-snapshot-panel>
-        </mat-expansion-panel>
       </mat-accordion>
     </div>
   </div>

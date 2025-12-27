@@ -20,7 +20,6 @@ import {
 } from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
-import { SnapshotPanelComponent } from '../snapshot-panel/snapshot-panel.component';
 
 /**
  * Grouped relationships by type for display
@@ -38,7 +37,7 @@ interface RelationshipGroup {
 
 /**
  * Meta panel with accordion sections for document metadata.
- * Includes relationship type panels, Snapshots, and extensible for future sections.
+ * Includes relationship type panels and is extensible for future sections.
  * Toggle button is in the parent editor toolbar.
  */
 @Component({
@@ -50,7 +49,6 @@ interface RelationshipGroup {
     MatExpansionModule,
     MatListModule,
     MatTooltipModule,
-    SnapshotPanelComponent,
   ],
   templateUrl: './meta-panel.component.html',
   styleUrl: './meta-panel.component.scss',

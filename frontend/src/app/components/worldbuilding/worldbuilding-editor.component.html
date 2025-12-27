@@ -24,6 +24,15 @@
             <button
               tabBarActions
               mat-icon-button
+              class="snapshots-btn"
+              (click)="openSnapshotsDialog()"
+              matTooltip="Document snapshots"
+              data-testid="toolbar-snapshots">
+              <mat-icon>history</mat-icon>
+            </button>
+            <button
+              tabBarActions
+              mat-icon-button
               class="meta-panel-toggle-btn"
               (click)="showMetaPanel.set(!showMetaPanel())"
               [matTooltip]="showMetaPanel() ? 'Hide panel' : 'Show panel'"
