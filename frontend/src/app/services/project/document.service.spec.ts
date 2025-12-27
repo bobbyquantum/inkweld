@@ -17,19 +17,7 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
-// Mock y-indexeddb with all required exports
-// Note: All mock implementations must be defined inline without referencing vi.fn()
-// to avoid vitest hoisting issues in CI environments
-vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: class MockIndexeddbPersistence {
-    whenSynced = Promise.resolve();
-    destroy = () => {};
-    constructor(_name: string, _doc: unknown) {}
-  },
-  storeState: () => Promise.resolve(),
-  fetchUpdates: () => Promise.resolve(),
-  clearDocument: () => Promise.resolve(),
-}));
+// y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
 
 // Mock y-websocket
 vi.mock('y-websocket', () => ({

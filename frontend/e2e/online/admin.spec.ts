@@ -279,7 +279,14 @@ test.describe('Admin User Management', () => {
   });
 });
 
+// Admin Settings tests modify global config state (USER_APPROVAL_REQUIRED)
+// which can interfere with other tests registering users in parallel.
+// Run these tests serially to avoid race conditions.
 test.describe('Admin Settings', () => {
+  // Configure this describe block to run serially (one test at a time)
+  // This prevents the toggle test from interfering with parallel registration tests
+  test.describe.configure({ mode: 'serial' });
+
   test('should display settings page with user approval toggle', async ({
     adminPage,
   }) => {
@@ -304,84 +311,75 @@ test.describe('Admin Settings', () => {
       localStorage.getItem('auth_token')
     );
 
-    // Save initial state via API so we can restore it
-    const configResponse = await adminPage.request.get(
+    // IMPORTANT: This test modifies USER_APPROVAL_REQUIRED which can affect other
+    // tests that register users. We need to minimize the window where this is set to true.
+
+    // First, ENSURE it starts as false (the safe default for parallel tests)
+    await adminPage.request.put(
       'http://localhost:9333/api/v1/admin/config/USER_APPROVAL_REQUIRED',
       {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: { value: 'false' },
       }
     );
-    const configData = (await configResponse.json()) as {
-      value: string;
-    };
-    const initialApprovalRequired = configData.value === 'true';
 
-    try {
-      await navigateToAdminViaMenu(adminPage);
+    await navigateToAdminViaMenu(adminPage);
 
-      // Navigate to settings
-      await adminPage.locator('[data-testid="admin-nav-settings"]').click();
-      await adminPage.waitForURL('**/admin/settings');
+    // Navigate to settings
+    await adminPage.locator('[data-testid="admin-nav-settings"]').click();
+    await adminPage.waitForURL('**/admin/settings');
 
-      // Wait for toggle to be visible
-      const toggle = adminPage.locator(
-        '[data-testid="setting-toggle-user-approval"]'
-      );
-      await expect(toggle).toBeVisible({ timeout: 10000 });
+    // Wait for toggle to be visible
+    const toggle = adminPage.locator(
+      '[data-testid="setting-toggle-user-approval"]'
+    );
+    await expect(toggle).toBeVisible({ timeout: 10000 });
 
-      // Get the initial state by checking if the toggle has the checked class
-      const isInitiallyChecked = await toggle.evaluate(el =>
-        el.classList.contains('mat-mdc-slide-toggle-checked')
-      );
+    // Verify the toggle is in the expected unchecked state (USER_APPROVAL_REQUIRED=false)
+    const isInitiallyChecked = await toggle.evaluate(el =>
+      el.classList.contains('mat-mdc-slide-toggle-checked')
+    );
+    expect(isInitiallyChecked).toBe(false);
 
-      // Click the toggle to change it
-      await toggle.click();
+    // Click the toggle to enable approval (this is the dangerous change)
+    await toggle.click();
 
-      // Wait for the save to complete (snackbar appears)
-      // Use first() in case there are multiple snackbars
-      const snackbar = adminPage
-        .locator('.mat-mdc-snack-bar-label')
-        .filter({ hasText: /Setting saved/i })
-        .first();
-      await snackbar.waitFor({ state: 'visible', timeout: 5000 });
+    // Wait for the save to complete (snackbar appears)
+    const snackbar = adminPage
+      .locator('.mat-mdc-snack-bar-label')
+      .filter({ hasText: /Setting saved/i })
+      .first();
+    await snackbar.waitFor({ state: 'visible', timeout: 5000 });
 
-      // Verify the toggle changed state
-      const isNowChecked = await toggle.evaluate(el =>
-        el.classList.contains('mat-mdc-slide-toggle-checked')
-      );
-      expect(isNowChecked).toBe(!isInitiallyChecked);
+    // Verify the toggle changed state
+    const isNowChecked = await toggle.evaluate(el =>
+      el.classList.contains('mat-mdc-slide-toggle-checked')
+    );
+    expect(isNowChecked).toBe(true);
 
-      // Wait for snackbar to disappear before navigating
-      await adminPage.waitForTimeout(2000); // Give snackbar time to dismiss
+    // IMMEDIATELY restore to false to minimize impact on parallel tests
+    await adminPage.request.put(
+      'http://localhost:9333/api/v1/admin/config/USER_APPROVAL_REQUIRED',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: { value: 'false' },
+      }
+    );
 
-      // Navigate away and back to verify persistence
-      await adminPage.locator('[data-testid="admin-nav-users"]').click();
-      await adminPage.waitForURL('**/admin/users');
-      await adminPage.locator('[data-testid="admin-nav-settings"]').click();
-      await adminPage.waitForURL('**/admin/settings');
+    // Reload the page to verify the API restore worked
+    await adminPage.reload();
+    await expect(toggle).toBeVisible({ timeout: 10000 });
 
-      // Wait for toggle to load again
-      await expect(toggle).toBeVisible({ timeout: 10000 });
-
-      // Verify the setting persisted
-      const isPersistedChecked = await toggle.evaluate(el =>
-        el.classList.contains('mat-mdc-slide-toggle-checked')
-      );
-      expect(isPersistedChecked).toBe(!isInitiallyChecked);
-    } finally {
-      // ALWAYS restore the original state via API to avoid affecting other tests
-      await adminPage.request.put(
-        'http://localhost:9333/api/v1/admin/config/USER_APPROVAL_REQUIRED',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          data: {
-            value: initialApprovalRequired ? 'true' : 'false',
-          },
-        }
-      );
-    }
+    // Verify the setting was restored to unchecked
+    const isRestoredChecked = await toggle.evaluate(el =>
+      el.classList.contains('mat-mdc-slide-toggle-checked')
+    );
+    expect(isRestoredChecked).toBe(false);
   });
 });

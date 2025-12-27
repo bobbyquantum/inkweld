@@ -60,13 +60,33 @@ vi.mock('nanoid', () => {
 // Only mock the side-effect packages (network/storage), not pure logic libraries
 // Yjs core, ProseMirror, and y-prosemirror are pure JS/TS and work fine in tests
 
-// Mock y-indexeddb
+// Mock y-indexeddb with complete interface for non-isolated test mode
 vi.mock('y-indexeddb', () => {
   return {
     IndexeddbPersistence: class IndexeddbPersistence {
       whenSynced = Promise.resolve();
+      synced = true;
+      private _listeners = new Map<string, Set<(...args: any[]) => void>>();
+
       constructor(_name: string, _doc: any) {}
+
+      on(event: string, callback: (...args: any[]) => void): void {
+        if (!this._listeners.has(event)) {
+          this._listeners.set(event, new Set());
+        }
+        this._listeners.get(event)!.add(callback);
+        // If already synced, immediately call synced handler
+        if (event === 'synced' && this.synced) {
+          queueMicrotask(() => callback());
+        }
+      }
+
+      off(event: string, callback: (...args: any[]) => void): void {
+        this._listeners.get(event)?.delete(callback);
+      }
+
       destroy() {
+        this._listeners.clear();
         return Promise.resolve();
       }
     },
@@ -76,18 +96,57 @@ vi.mock('y-indexeddb', () => {
   };
 });
 
-// Mock y-websocket
+// Mock y-websocket with complete interface for non-isolated test mode
 vi.mock('y-websocket', () => {
   return {
-    WebsocketProvider: class {
-      awareness = { setLocalState: () => {}, getStates: () => new Map() };
+    WebsocketProvider: class WebsocketProvider {
+      ws: { onmessage: null; send: () => {} } | null = null;
+      awareness = {
+        setLocalState: () => {},
+        setLocalStateField: () => {},
+        getStates: () => new Map(),
+        clientID: 123,
+      };
+      private _listeners = new Map<string, Set<(...args: any[]) => void>>();
+
       constructor(_url: string, _room: string, _doc: any, _options?: any) {}
-      on(_event: string, _callback: (...args: any[]) => void): void {}
-      connect(): void {}
-      destroy(): void {}
+
+      on(event: string, callback: (...args: any[]) => void): void {
+        if (!this._listeners.has(event)) {
+          this._listeners.set(event, new Set());
+        }
+        this._listeners.get(event)!.add(callback);
+      }
+
+      off(event: string, callback: (...args: any[]) => void): void {
+        this._listeners.get(event)?.delete(callback);
+      }
+
+      connect(): void {
+        this.ws = { onmessage: null, send: () => {} };
+      }
+
+      disconnect(): void {
+        this.ws = null;
+      }
+
+      destroy(): void {
+        this._listeners.clear();
+        this.ws = null;
+      }
     },
   };
 });
+
+// Mock prosemirror-commands for components that use it
+vi.mock('prosemirror-commands', () => ({
+  toggleMark:
+    () =>
+    (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
+      if (dispatch) dispatch({});
+      return true;
+    },
+}));
 
 // Mock File.arrayBuffer for jsdom (only if not already defined)
 if (!File.prototype.arrayBuffer) {

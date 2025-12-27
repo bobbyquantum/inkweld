@@ -1,11 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import {
-  createAuthenticatedWebsocketProvider,
-  setupReauthentication,
-} from './authenticated-websocket-provider';
-
 // Type for our mock WebSocket
 interface MockWebSocket {
   onmessage: ((event: MessageEvent) => void) | null;
@@ -24,73 +19,79 @@ interface MockProviderInstance {
   _emitStatus: (status: string) => void;
 }
 
-// Use vi.hoisted to ensure the mock class is defined before vi.mock runs
-const { MockWebsocketProvider, mockProviderInstances, resetMockInstances } =
-  vi.hoisted(() => {
-    const instances: MockProviderInstance[] = [];
+// Store mock instances for test assertions - must be defined before vi.doMock
+const mockProviderInstances: MockProviderInstance[] = [];
 
-    // Mock class that behaves like a constructor
-    class MockWebsocketProvider implements MockProviderInstance {
-      ws: MockWebSocket | null = null;
-      on = vi.fn((event: string, callback: (arg: unknown) => void) => {
-        if (!this._listeners.has(event)) {
-          this._listeners.set(event, []);
-        }
-        this._listeners.get(event)!.push(callback);
-      });
-      off = vi.fn((event: string, callback: (arg: unknown) => void) => {
-        const listeners = this._listeners.get(event);
-        if (listeners) {
-          this._listeners.set(
-            event,
-            listeners.filter(cb => cb !== callback)
-          );
-        }
-      });
-      connect = vi.fn(() => {
-        // Create mock WebSocket
-        this.ws = {
-          onmessage: null,
-          send: vi.fn(),
-        };
-      });
-      disconnect = vi.fn();
-      awareness = {
-        setLocalStateField: vi.fn(),
-        clientID: 123,
-      };
-      _listeners = new Map<string, Array<(arg: unknown) => void>>();
+function resetMockInstances() {
+  mockProviderInstances.length = 0;
+}
 
-      _emitStatus(status: string) {
-        const listeners = this._listeners.get('status');
-        listeners?.forEach(cb => cb({ status }));
-      }
-
-      constructor() {
-        instances.push(this);
-      }
+// Create the mock class - used by vi.doMock and directly in tests
+class MockWebsocketProvider implements MockProviderInstance {
+  ws: MockWebSocket | null = null;
+  on = vi.fn((event: string, callback: (arg: unknown) => void) => {
+    if (!this._listeners.has(event)) {
+      this._listeners.set(event, []);
     }
-
-    return {
-      MockWebsocketProvider,
-      mockProviderInstances: instances,
-      resetMockInstances: () => {
-        instances.length = 0;
-      },
+    this._listeners.get(event)!.push(callback);
+  });
+  off = vi.fn((event: string, callback: (arg: unknown) => void) => {
+    const listeners = this._listeners.get(event);
+    if (listeners) {
+      this._listeners.set(
+        event,
+        listeners.filter(cb => cb !== callback)
+      );
+    }
+  });
+  connect = vi.fn(() => {
+    // Create mock WebSocket
+    this.ws = {
+      onmessage: null,
+      send: vi.fn(),
     };
   });
+  disconnect = vi.fn();
+  awareness = {
+    setLocalStateField: vi.fn(),
+    clientID: 123,
+  };
+  _listeners = new Map<string, Array<(arg: unknown) => void>>();
 
-// Mock y-websocket module with the hoisted class
+  _emitStatus(status: string) {
+    const listeners = this._listeners.get('status');
+    listeners?.forEach(cb => cb({ status }));
+  }
+
+  constructor() {
+    mockProviderInstances.push(this);
+  }
+}
+
+// Override the global mock with our custom mock that tracks instances
 vi.mock('y-websocket', () => {
   return {
     WebsocketProvider: MockWebsocketProvider,
   };
 });
 
+// Dynamic import to ensure our mock is used
+let createAuthenticatedWebsocketProvider: typeof import('./authenticated-websocket-provider').createAuthenticatedWebsocketProvider;
+let setupReauthentication: typeof import('./authenticated-websocket-provider').setupReauthentication;
+
 describe('authenticated-websocket-provider', () => {
   let mockDoc: Y.Doc;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Reset modules to ensure our mock is used
+    vi.resetModules();
+
+    // Re-import the module under test after resetting
+    const module = await import('./authenticated-websocket-provider');
+    createAuthenticatedWebsocketProvider =
+      module.createAuthenticatedWebsocketProvider;
+    setupReauthentication = module.setupReauthentication;
+
     mockDoc = new Y.Doc();
     resetMockInstances();
     vi.clearAllMocks();
@@ -146,6 +147,7 @@ describe('authenticated-websocket-provider', () => {
       );
 
       const mockProvider = mockProviderInstances[0];
+      expect(mockProvider).toBeDefined();
 
       mockProvider._emitStatus('connected');
 
@@ -173,6 +175,7 @@ describe('authenticated-websocket-provider', () => {
       );
 
       const mockProvider = mockProviderInstances[0];
+      expect(mockProvider).toBeDefined();
 
       // Emit disconnected before auth completes
       mockProvider._emitStatus('disconnected');

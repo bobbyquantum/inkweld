@@ -11,7 +11,6 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Set reasonable test timeout (1 second instead of vitest's default)
     // This prevents hanging tests from blocking CI for too long
     testTimeout: 3000,
 
@@ -22,7 +21,7 @@ export default defineConfig({
     // This ensures each test file runs in a fresh environment
     isolate: true,
 
-    // Retry flaky tests once
-    retry: 1,
+    // Retry flaky tests
+    retry: 0,
   },
 });
