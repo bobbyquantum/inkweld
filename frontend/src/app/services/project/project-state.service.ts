@@ -293,6 +293,10 @@ export class ProjectStateService implements OnDestroy {
     // Get the appropriate provider (Yjs or Offline)
     this.syncProvider = this.syncProviderFactory.getProvider();
 
+    // Set WorldbuildingService sync provider BEFORE subscribing to observables
+    // This ensures schemasCache is populated when elements$ triggers component effects
+    this.worldbuildingService.setSyncProvider(this.syncProvider);
+
     // Subscribe to provider observables
     this.setupProviderSubscriptions();
 
@@ -318,8 +322,6 @@ export class ProjectStateService implements OnDestroy {
       `Connected to ${this.syncProviderFactory.getCurrentMode()} sync provider`
     );
 
-    // Update WorldbuildingService with the sync provider for schema access
-    this.worldbuildingService.setSyncProvider(this.syncProvider);
     return true;
   }
 
