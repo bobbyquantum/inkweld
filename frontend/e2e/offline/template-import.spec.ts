@@ -306,4 +306,68 @@ test.describe('Template Worldbuilding Import', () => {
     const fullNameValueA = await fullNameFieldA.inputValue();
     expect(fullNameValueA).toBe('Elara Nightwhisper');
   });
+
+  test('should import element tags and description from demo template', async ({
+    offlinePage: page,
+  }) => {
+    // Create project using worldbuilding-demo template
+    await createProjectWithTwoSteps(
+      page,
+      'Tags Test Project',
+      'tags-test',
+      'Testing tags and description import',
+      'worldbuilding-demo'
+    );
+
+    // Wait for navigation to the project page
+    await page.waitForURL(/\/testuser\/tags-test/, { timeout: 10000 });
+
+    // Wait for project tree to be visible
+    await page.waitForSelector('[data-testid="project-tree"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
+
+    // Find Characters folder and expand it
+    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
+    await expect(charactersFolder).toBeVisible({ timeout: 5000 });
+    const expandButton = charactersFolder.locator('button').first();
+    await expandButton.click();
+    await page.waitForTimeout(500);
+
+    // Click on Elara Nightwhisper character (the protagonist)
+    const elaraElement = page.getByRole('treeitem', {
+      name: 'Elara Nightwhisper',
+    });
+    await expect(elaraElement).toBeVisible({ timeout: 5000 });
+    await elaraElement.click();
+
+    // Wait for worldbuilding editor to load
+    await page.waitForTimeout(1000);
+
+    // Verify the description field in identity panel is populated
+    const descriptionField = page.locator(
+      'app-identity-panel textarea[placeholder*="description"]'
+    );
+    await expect(descriptionField).toBeVisible({ timeout: 5000 });
+    const descriptionValue = await descriptionField.inputValue();
+    expect(descriptionValue).toContain('brilliant half-elf scholar');
+
+    // Verify tags are displayed in the identity panel
+    // The tags are displayed in a grid with gridcell elements
+    const tagGrid = page.locator('app-identity-panel [role="grid"]');
+    await expect(tagGrid).toBeVisible({ timeout: 5000 });
+
+    // Check that the "Protagonist" tag is visible in a gridcell
+    const protagonistTag = tagGrid.locator('[role="gridcell"]').filter({
+      hasText: 'Protagonist',
+    });
+    await expect(protagonistTag).toBeVisible({ timeout: 5000 });
+
+    // Also verify the "Complete" tag is present
+    const completeTag = tagGrid.locator('[role="gridcell"]').filter({
+      hasText: 'Complete',
+    });
+    await expect(completeTag).toBeVisible({ timeout: 5000 });
+  });
 });

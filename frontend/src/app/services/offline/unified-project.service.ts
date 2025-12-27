@@ -189,6 +189,15 @@ export class UnifiedProjectService {
     if (archive.tags.length > 0) {
       await this.offlineElements.saveCustomTags(username, slug, archive.tags);
     }
+
+    // Import element tag assignments from template
+    if (archive.elementTags.length > 0) {
+      await this.offlineElements.saveElementTags(
+        username,
+        slug,
+        archive.elementTags
+      );
+    }
   }
 
   async updateProject(

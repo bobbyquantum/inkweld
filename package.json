@@ -65,7 +65,7 @@
     "clean:all": "npm run clean && rm -rf node_modules frontend/node_modules backend/node_modules docs/site/node_modules"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "concurrently": "^9.2.1"
   },
   "engines": {
     "node": ">=20.0.0"
