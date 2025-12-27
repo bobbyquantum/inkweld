@@ -140,22 +140,6 @@ mat-panel-title {
   }
 }
 
-// Embedded panel styles - remove redundant headers when inside accordion
-::ng-deep {
-  .meta-accordion {
-    app-snapshot-panel {
-      .panel-header {
-        display: none; // Hide redundant header inside accordion
-      }
-
-      .snapshot-panel {
-        border: none;
-        background: transparent;
-      }
-    }
-  }
-}
-
 // Animation states handled by Angular animations
 :host {
   display: block;

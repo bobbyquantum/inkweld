@@ -80,6 +80,9 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Emitted when the tags button is clicked */
   @Output() tagsClick = new EventEmitter<void>();
 
+  /** Emitted when the snapshots button is clicked */
+  @Output() snapshotsClick = new EventEmitter<void>();
+
   /** Whether the meta panel is currently open (for icon state) */
   @Input() metaPanelOpen = false;
 
@@ -627,5 +630,12 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Open the tags editor */
   openTags(): void {
     this.tagsClick.emit();
+  }
+
+  // ========== Snapshots ==========
+
+  /** Open the snapshots dialog */
+  openSnapshots(): void {
+    this.snapshotsClick.emit();
   }
 }

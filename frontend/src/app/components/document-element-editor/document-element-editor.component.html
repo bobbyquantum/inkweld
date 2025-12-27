@@ -11,7 +11,8 @@
           [elementName]="elementName()"
           [metaPanelOpen]="showMetaPanel()"
           (metaPanelToggle)="showMetaPanel.set(!showMetaPanel())"
-          (tagsClick)="openTagsDialog()">
+          (tagsClick)="openTagsDialog()"
+          (snapshotsClick)="openSnapshotsDialog()">
         </app-editor-toolbar>
       }
       <div
