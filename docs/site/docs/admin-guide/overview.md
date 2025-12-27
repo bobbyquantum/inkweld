@@ -40,7 +40,7 @@ Configure system-wide settings:
 
 Configure AI providers for image generation:
 
-- OpenAI (DALL-E)
+- OpenAI (GPT Image)
 - OpenRouter (FLUX, Stable Diffusion 3)
 - Stable Diffusion (self-hosted)
 - Fal.ai

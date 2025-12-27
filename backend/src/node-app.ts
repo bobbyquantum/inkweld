@@ -99,6 +99,7 @@ app.get('/api', (c) => {
 });
 
 // OpenAPI documentation
+// Note: securitySchemes is injected by generate-openapi.ts post-processing
 app.get('/api/openapi.json', (c) => {
   return c.json(
     app.getOpenAPIDocument({

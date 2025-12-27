@@ -127,7 +127,7 @@ export const CONFIG_KEYS = {
   AI_IMAGE_DEFAULT_MODEL: {
     category: 'ai' as ConfigCategory,
     description:
-      'Default model for image generation (e.g., dall-e-3, black-forest-labs/flux-1.1-pro)',
+      'Default model for image generation (e.g., gpt-image-1, black-forest-labs/flux-1.1-pro)',
     encrypted: false,
     envVar: 'AI_IMAGE_DEFAULT_MODEL',
     type: 'string' as const,

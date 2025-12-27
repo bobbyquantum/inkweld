@@ -239,7 +239,7 @@ This Hono backend was designed with the following principles:
 - Error handling middleware
 - CORS and security headers
 - AI Linting (OpenAI integration)
-- AI Image generation (OpenAI DALL-E)
+- AI Image generation (OpenAI GPT Image)
 - MCP (Model Context Protocol) integration
 
 ### ❌ Not Yet Implemented (Critical Features)

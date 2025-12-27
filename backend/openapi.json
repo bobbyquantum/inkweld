@@ -11,6 +11,11 @@
       "description": "Local development server"
     }
   ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "components": {
     "schemas": {
       "User": {
@@ -1230,7 +1235,8 @@
           "1600x2560",
           "2560x1600",
           "auto"
-        ]
+        ],
+        "description": "Image size (uses profile default if not specified)"
       },
       "WorldbuildingContext": {
         "type": "object",
@@ -1287,20 +1293,10 @@
             "example": "A fantasy castle on a misty mountain",
             "description": "The image generation prompt"
           },
-          "provider": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ImageProviderType"
-              },
-              {
-                "description": "Provider to use (uses default if not specified)"
-              }
-            ]
-          },
-          "model": {
+          "profileId": {
             "type": "string",
-            "example": "dall-e-3",
-            "description": "Specific model to use"
+            "format": "uuid",
+            "description": "Image model profile ID - determines provider, model, and default settings"
           },
           "n": {
             "type": "integer",
@@ -1319,7 +1315,7 @@
               "hd"
             ],
             "example": "standard",
-            "description": "Image quality (DALL-E 3 only)"
+            "description": "Image quality (overrides profile config)"
           },
           "style": {
             "type": "string",
@@ -1328,11 +1324,11 @@
               "natural"
             ],
             "example": "vivid",
-            "description": "Image style (DALL-E 3 only)"
+            "description": "Image style (overrides profile config)"
           },
           "negativePrompt": {
             "type": "string",
-            "description": "Negative prompt (Stable Diffusion only)"
+            "description": "Negative prompt (for Stable Diffusion models)"
           },
           "worldbuildingContext": {
             "type": "array",
@@ -1344,7 +1340,7 @@
         },
         "required": [
           "prompt",
-          "size"
+          "profileId"
         ]
       },
       "CustomImageSize": {
@@ -1791,6 +1787,14 @@
           "hasEndpoint": {
             "type": "boolean",
             "description": "Whether a custom endpoint is configured"
+          },
+          "imageEnabled": {
+            "type": "boolean",
+            "description": "Whether image generation is enabled for this provider"
+          },
+          "imageEnabledExplicit": {
+            "type": "boolean",
+            "description": "Whether the enabled state was explicitly set (vs auto-detected from API key)"
           }
         },
         "required": [
@@ -1866,6 +1870,18 @@
           "endpoint"
         ]
       },
+      "SetImageEnabledRequest": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether image generation is enabled"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
       "OpenRouterModel": {
         "type": "object",
         "properties": {
@@ -1927,6 +1943,129 @@
         "required": [
           "models",
           "cached"
+        ]
+      },
+      "ImageModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Model ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Model display name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Model description"
+          },
+          "category": {
+            "type": "string",
+            "description": "Model category"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider identifier"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "provider"
+        ]
+      },
+      "ImageModelsResponse": {
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageModel"
+            },
+            "description": "Available image models"
+          },
+          "cached": {
+            "type": "boolean",
+            "description": "Whether the response was from cache"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "ISO timestamp of last update"
+          }
+        },
+        "required": [
+          "models",
+          "cached"
+        ]
+      },
+      "FalaiModelMetadata": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "deprecated"
+            ]
+          },
+          "supportsImageInput": {
+            "type": "boolean"
+          },
+          "supportsCustomResolutions": {
+            "type": "boolean"
+          },
+          "supportedSizes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supportedAspectRatios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supportedResolutions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sizeMode": {
+            "type": "string",
+            "enum": [
+              "dimensions",
+              "aspect_ratio",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "category",
+          "status",
+          "supportsImageInput",
+          "supportsCustomResolutions",
+          "supportedSizes",
+          "supportedAspectRatios",
+          "supportedResolutions",
+          "sizeMode"
         ]
       },
       "JsonRpcResponse": {
@@ -2026,6 +2165,229 @@
           "jsonrpc",
           "method"
         ]
+      },
+      "PublicImageModelProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "openrouter",
+              "falai",
+              "stable-diffusion"
+            ],
+            "description": "Image generation provider"
+          },
+          "modelId": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "supportsImageInput": {
+            "type": "boolean"
+          },
+          "supportsCustomResolutions": {
+            "type": "boolean"
+          },
+          "supportedSizes": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultSize": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "provider",
+          "modelId",
+          "enabled",
+          "supportsImageInput",
+          "supportsCustomResolutions",
+          "supportedSizes",
+          "defaultSize",
+          "sortOrder"
+        ]
+      },
+      "AdminImageModelProfile": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PublicImageModelProfile"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "modelConfig": {
+                "type": "object",
+                "nullable": true,
+                "additionalProperties": {
+                  "nullable": true
+                }
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "modelConfig",
+              "createdAt",
+              "updatedAt"
+            ]
+          }
+        ]
+      },
+      "CreateImageModelProfileRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Display name for the profile"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional description"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "openrouter",
+              "falai",
+              "stable-diffusion"
+            ],
+            "description": "Image generation provider"
+          },
+          "modelId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Provider-specific model identifier"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "supportsImageInput": {
+            "type": "boolean",
+            "default": false
+          },
+          "supportsCustomResolutions": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether arbitrary/custom resolutions are allowed"
+          },
+          "supportedSizes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultSize": {
+            "type": "string"
+          },
+          "modelConfig": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0
+          }
+        },
+        "required": [
+          "name",
+          "provider",
+          "modelId"
+        ]
+      },
+      "UpdateImageModelProfileRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "openrouter",
+              "falai",
+              "stable-diffusion"
+            ],
+            "description": "Image generation provider"
+          },
+          "modelId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "supportsImageInput": {
+            "type": "boolean"
+          },
+          "supportsCustomResolutions": {
+            "type": "boolean"
+          },
+          "supportedSizes": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultSize": {
+            "type": "string",
+            "nullable": true
+          },
+          "modelConfig": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        }
       },
       "McpPermission": {
         "type": "string",
@@ -2396,7 +2758,15 @@
         ]
       }
     },
-    "parameters": {}
+    "parameters": {},
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from POST /api/v1/auth/login. Include as: Authorization: Bearer <token>"
+      }
+    }
   },
   "paths": {
     "/api/v1/auth/register": {
@@ -6202,6 +6572,79 @@
         }
       }
     },
+    "/api/v1/ai/providers/{providerId}/image-enabled": {
+      "put": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Set provider image generation enabled state",
+        "description": "Enable or disable image generation for a provider",
+        "operationId": "setAiProviderImageEnabled",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Provider ID"
+            },
+            "required": true,
+            "description": "Provider ID",
+            "name": "providerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetImageEnabledRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image enabled state updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider or provider does not support images",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ai/providers/openrouter/models": {
       "get": {
         "tags": [
@@ -6254,6 +6697,209 @@
         }
       }
     },
+    "/api/v1/ai/providers/openrouter/image-models": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get OpenRouter image models",
+        "description": "Fetch available image generation models from OpenRouter API (Flux, SDXL, etc.). Results are cached for 1 hour.",
+        "operationId": "getOpenRouterImageModels",
+        "responses": {
+          "200": {
+            "description": "List of available image models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageModelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "OpenRouter API key not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from OpenRouter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/falai/models": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get Fal.ai image models",
+        "description": "Fetch available models from Fal.ai API by category. Results are cached for 1 hour per category.",
+        "operationId": "getFalaiModels",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "text-to-image",
+                "image-to-image",
+                "image-to-video",
+                "text-to-video"
+              ]
+            },
+            "description": "Model category (default: text-to-image)"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search query to filter models"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available image models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageModelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Fal.ai API key not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from Fal.ai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/falai/models/{modelId}/metadata": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get Fal.ai model metadata with supported sizes",
+        "description": "Fetch detailed model metadata from Fal.ai including supported sizes, resolutions, and whether custom resolutions are allowed. Uses OpenAPI schema expansion.",
+        "operationId": "getFalaiModelMetadata",
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Model endpoint ID (e.g., fal-ai/flux-2-pro)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Model metadata with size/resolution info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FalaiModelMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Model not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from Fal.ai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ai/mcp": {
       "post": {
         "tags": [
@@ -6287,6 +6933,432 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MCPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/image-profiles": {
+      "get": {
+        "tags": [
+          "Image Profiles"
+        ],
+        "summary": "List available image profiles",
+        "description": "Get a list of enabled image model profiles available for generation",
+        "operationId": "listImageProfiles",
+        "responses": {
+          "200": {
+            "description": "List of available profiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicImageModelProfile"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/image-profiles": {
+      "get": {
+        "tags": [
+          "Admin - Image Profiles"
+        ],
+        "summary": "List all image profiles",
+        "description": "Get a list of all image model profiles (admin only)",
+        "operationId": "adminListImageProfiles",
+        "responses": {
+          "200": {
+            "description": "List of all profiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminImageModelProfile"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Image Profiles"
+        ],
+        "summary": "Create an image profile",
+        "description": "Create a new image model profile (admin only)",
+        "operationId": "adminCreateImageProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateImageModelProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Profile created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminImageModelProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Profile with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/image-profiles/providers": {
+      "get": {
+        "tags": [
+          "Admin - Image Profiles"
+        ],
+        "summary": "List available providers",
+        "description": "Get a list of supported image generation providers",
+        "operationId": "adminListImageProviders",
+        "responses": {
+          "200": {
+            "description": "List of providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/image-profiles/{profileId}": {
+      "get": {
+        "tags": [
+          "Admin - Image Profiles"
+        ],
+        "summary": "Get an image profile",
+        "description": "Get details of a specific image model profile (admin only)",
+        "operationId": "adminGetImageProfile",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Profile ID"
+            },
+            "required": true,
+            "description": "Profile ID",
+            "name": "profileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminImageModelProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin - Image Profiles"
+        ],
+        "summary": "Update an image profile",
+        "description": "Update an existing image model profile (admin only)",
+        "operationId": "adminUpdateImageProfile",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Profile ID"
+            },
+            "required": true,
+            "description": "Profile ID",
+            "name": "profileId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateImageModelProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminImageModelProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Profile with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin - Image Profiles"
+        ],
+        "summary": "Delete an image profile",
+        "description": "Delete an image model profile (admin only)",
+        "operationId": "adminDeleteImageProfile",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Profile ID"
+            },
+            "required": true,
+            "description": "Profile ID",
+            "name": "profileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

@@ -255,8 +255,8 @@ export class ImageGenerationService {
         // Build generation metadata
         const generation: GenerationMetadata = {
           prompt: job.request.prompt,
-          model: response.model || job.request.model || 'unknown',
-          provider: response.provider || job.request.provider,
+          model: response.model,
+          provider: response.provider,
           size: job.request.size || '1024x1024',
           generatedAt,
         };

@@ -55,10 +55,10 @@ export interface CustomImageSize {
 /**
  * Image quality settings
  */
-export type ImageQuality = 'standard' | 'hd';
+export type ImageQuality = 'low' | 'medium' | 'high' | 'auto' | 'standard' | 'hd';
 
 /**
- * Image style settings (primarily for DALL-E 3)
+ * Image style settings (provider-specific)
  */
 export type ImageStyle = 'vivid' | 'natural';
 
@@ -99,15 +99,39 @@ export interface ImageModelInfo {
 }
 
 /**
- * Request to generate images
+ * Request to generate images (API input)
  */
 export interface ImageGenerateRequest {
   /** The main prompt for image generation */
   prompt: string;
-  /** Provider to use for generation */
+  /** Profile ID to use for generation settings */
+  profileId: string;
+  /** Number of images to generate */
+  n?: number;
+  /** Image size (overrides profile default) */
+  size?: ImageSize;
+  /** Image quality (overrides profile config) */
+  quality?: ImageQuality;
+  /** Image style (overrides profile config) */
+  style?: ImageStyle;
+  /** Negative prompt (for Stable Diffusion models) */
+  negativePrompt?: string;
+  /** Worldbuilding elements context */
+  worldbuildingContext?: WorldbuildingContext[];
+}
+
+/**
+ * Internal request with resolved profile settings (used by providers)
+ */
+export interface ResolvedImageRequest {
+  /** The main prompt for image generation */
+  prompt: string;
+  /** Profile ID that was used */
+  profileId: string;
+  /** Resolved provider from profile */
   provider: ImageProviderType;
-  /** Specific model to use */
-  model?: string;
+  /** Resolved model from profile */
+  model: string;
   /** Number of images to generate */
   n?: number;
   /** Image size */
@@ -116,11 +140,11 @@ export interface ImageGenerateRequest {
   quality?: ImageQuality;
   /** Image style */
   style?: ImageStyle;
-  /** Negative prompt (for Stable Diffusion) */
+  /** Negative prompt */
   negativePrompt?: string;
   /** Worldbuilding elements context */
   worldbuildingContext?: WorldbuildingContext[];
-  /** Additional provider-specific options */
+  /** Profile-specific model config options */
   options?: Record<string, unknown>;
 }
 
@@ -169,7 +193,7 @@ export interface ImageGenerateResponse {
   /** Model used */
   model: string;
   /** Original request for reference */
-  request: Pick<ImageGenerateRequest, 'prompt' | 'size' | 'quality' | 'style'>;
+  request: Pick<ResolvedImageRequest, 'prompt' | 'size' | 'quality' | 'style'>;
 }
 
 /**
@@ -224,7 +248,7 @@ export interface IImageProvider {
   /**
    * Generate images using this provider
    */
-  generate(request: ImageGenerateRequest): Promise<ImageGenerateResponse>;
+  generate(request: ResolvedImageRequest): Promise<ImageGenerateResponse>;
 
   /**
    * Get provider status

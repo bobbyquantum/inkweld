@@ -114,7 +114,7 @@ describe('ThemeService', () => {
 
   it('should register custom icons on initialization', () => {
     service.initTheme();
-    expect(matIconRegistry.addSvgIconLiteral).toHaveBeenCalledTimes(3);
+    expect(matIconRegistry.addSvgIconLiteral).toHaveBeenCalledTimes(5);
     expect(domSanitizer.bypassSecurityTrustHtml).toHaveBeenCalled();
   });
 

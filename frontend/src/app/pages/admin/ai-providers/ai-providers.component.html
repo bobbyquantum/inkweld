@@ -26,11 +26,18 @@
         <mat-card
           class="provider-card"
           [class.configured]="provider.hasApiKey"
+          [class.enabled]="provider.imageEnabled"
           [attr.data-testid]="'ai-provider-card-' + provider.id">
           <mat-card-header>
-            <mat-icon mat-card-avatar>{{
-              getProviderIcon(provider.id)
-            }}</mat-icon>
+            @if (isSvgIcon(provider.id)) {
+              <mat-icon
+                mat-card-avatar
+                [svgIcon]="getProviderIcon(provider.id)"></mat-icon>
+            } @else {
+              <mat-icon mat-card-avatar>{{
+                getProviderIcon(provider.id)
+              }}</mat-icon>
+            }
             <mat-card-title>{{ provider.name }}</mat-card-title>
             <mat-card-subtitle>
               {{ getCapabilityLabel(provider) }}
@@ -39,6 +46,24 @@
 
           <mat-card-content>
             <p class="provider-description">{{ provider.description }}</p>
+
+            <!-- Enable/Disable toggle -->
+            <div class="toggle-row">
+              <span class="toggle-label">Enabled</span>
+              <mat-slide-toggle
+                [checked]="provider.imageEnabled ?? false"
+                (change)="toggleProviderEnabled(provider)"
+                [disabled]="provider.isSaving || !provider.hasApiKey"
+                [matTooltip]="
+                  !provider.hasApiKey
+                    ? 'Configure API key first'
+                    : provider.imageEnabled
+                      ? 'Disable provider'
+                      : 'Enable provider'
+                "
+                [attr.data-testid]="'ai-provider-toggle-' + provider.id">
+              </mat-slide-toggle>
+            </div>
 
             <div class="status-row">
               <span class="status-label">API Key:</span>

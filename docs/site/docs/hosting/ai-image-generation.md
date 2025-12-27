@@ -1,6 +1,6 @@
 ---
 title: AI Image Generation
-description: Configure AI-powered image generation with OpenAI, OpenRouter, or Stable Diffusion.
+description: Configure AI-powered image generation with OpenAI, OpenRouter, Fal.ai, or Stable Diffusion.
 sidebar_position: 5
 ---
 
@@ -14,34 +14,71 @@ The AI image generation system allows users to generate images directly within t
 
 ### Supported Providers
 
-| Provider             | Models                             | Requirements                    |
-| -------------------- | ---------------------------------- | ------------------------------- |
-| **OpenAI**           | DALL-E 2, DALL-E 3                 | OpenAI API key                  |
-| **OpenRouter**       | FLUX, Stable Diffusion 3, and more | OpenRouter API key              |
-| **Stable Diffusion** | Local models                       | Self-hosted AUTOMATIC1111 WebUI |
+| Provider             | Models                                               | Requirements                    |
+| -------------------- | ---------------------------------------------------- | ------------------------------- |
+| **OpenAI**           | GPT Image 1, GPT Image 1 Mini, GPT Image 1.5         | OpenAI API key                  |
+| **OpenRouter**       | FLUX, Stable Diffusion 3, and more                   | OpenRouter API key              |
+| **Fal.ai**           | FLUX 2 Pro, GPT Image 1.5, Nano Banana, and more     | Fal.ai API key                  |
+| **Stable Diffusion** | Local models                                         | Self-hosted AUTOMATIC1111 WebUI |
 
 ## Admin Configuration
 
-Navigate to **Admin → AI Image Generation** to configure providers.
+Navigate to **Admin → AI Image Generation** to configure providers and create image model profiles.
 
 ![Admin AI Settings](/img/features/admin-ai-settings-light.png)
 
 ### Global Settings
 
-1. **Enable Image Generation**: Master toggle to enable/disable AI image generation for all users
-2. **Default Provider**: The provider used when users don't specify one
+**Enable Image Generation**: Master toggle to enable/disable AI image generation for all users.
+
+### Image Model Profiles
+
+Image Model Profiles are the primary way to configure which AI models are available to users. Each profile:
+
+- Wraps a specific provider and model combination
+- Has a user-friendly name (e.g., "Fast Draft", "High Quality Portrait")
+- Can be enabled/disabled independently
+- Supports pre-configured settings like sizes and model parameters
+
+![Image Model Profiles](/img/features/admin-ai-image-profiles-light.png)
+
+#### Creating a Profile
+
+1. Click **Create Profile** in the Image Model Profiles section
+2. Choose a provider (OpenAI, OpenRouter, Fal.ai, or Stable Diffusion)
+3. Select a model from the available options
+4. Configure profile settings:
+   - **Name**: Display name shown to users
+   - **Description**: Optional help text
+   - **Supports Image Input**: Enable for image-to-image models
+   - **Supported Sizes**: Available dimensions for this profile
+   - **Default Size**: Pre-selected size option
+   - **Model Config**: Advanced JSON configuration for provider-specific parameters
+
+![Profile Creation Dialog](/img/features/admin-ai-image-profile-dialog-light.png)
+
+:::tip Best Practice
+Create multiple profiles for different use cases. For example:
+- "Quick Sketch" using a fast model for drafts
+- "Portrait HD" using a high-quality model for character art
+- "Landscape Wide" with widescreen dimensions for location images
+:::
 
 ### Provider Setup
 
-#### OpenAI (DALL-E)
+Before creating profiles, configure API keys for each provider you want to use.
 
-OpenAI's DALL-E models offer high-quality image generation with excellent prompt understanding.
+#### OpenAI (GPT Image)
 
-1. Enable the OpenAI provider toggle
-2. Add your OpenAI API key
-3. Available models:
-   - **DALL-E 3**: Highest quality, better prompt adherence
-   - **DALL-E 2**: Faster generation, lower cost
+OpenAI's GPT Image models offer high-quality image generation with excellent prompt understanding.
+
+1. Expand the OpenAI provider card
+2. Enable the provider toggle
+3. Add your OpenAI API key
+4. Available models:
+   - **GPT Image 1**: High-quality image generation
+   - **GPT Image 1 Mini**: Faster, cost-effective generation
+   - **GPT Image 1.5**: Latest model with enhanced capabilities
 
 :::tip API Key
 Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
@@ -51,24 +88,41 @@ Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
 
 OpenRouter provides unified access to multiple image generation models through a single API.
 
-1. Enable the OpenRouter provider toggle
-2. Add your OpenRouter API key
-3. Available models include:
+1. Expand the OpenRouter provider card
+2. Enable the provider toggle
+3. Add your OpenRouter API key
+4. Available models include:
    - **FLUX Schnell**: Fast, high-quality generation
-   - **Stable Diffusion 3**: Photorealistic results
    - **FLUX Pro**: Premium quality
+   - **Stable Diffusion 3**: Photorealistic results
 
 :::tip API Key
 Get your API key from [OpenRouter](https://openrouter.ai/keys)
+:::
+
+#### Fal.ai
+
+Fal.ai provides access to cutting-edge image generation models with fast inference.
+
+1. Expand the Fal.ai provider card
+2. Enable the provider toggle
+3. Add your Fal.ai API key
+4. When creating a profile, select from:
+   - **Text to Image** models (FLUX 2 Pro, GPT Image 1.5, Nano Banana, etc.)
+   - **Image to Image** models (for style transfer and modification)
+
+:::tip API Key
+Get your API key from [Fal.ai Dashboard](https://fal.ai/dashboard/keys)
 :::
 
 #### Stable Diffusion (Self-Hosted)
 
 For maximum control and privacy, you can connect to a self-hosted AUTOMATIC1111 WebUI instance.
 
-1. Enable the Stable Diffusion provider toggle
-2. Enter your WebUI endpoint URL (e.g., `http://localhost:7860`)
-3. Add an API key if your WebUI requires authentication
+1. Expand the Stable Diffusion provider card
+2. Enable the provider toggle
+3. Enter your WebUI endpoint URL (e.g., `http://localhost:7860`)
+4. Add an API key if your WebUI requires authentication
 
 :::note Self-Hosting
 Stable Diffusion requires running the [AUTOMATIC1111 WebUI](https://github.com/AUTOMATIC1111/stable-diffusion-webui) with the `--api` flag.
@@ -81,7 +135,6 @@ Providers can also be configured via environment variables:
 ```bash
 # Global settings
 AI_IMAGE_ENABLED=true
-AI_IMAGE_DEFAULT_PROVIDER=openai
 
 # OpenAI
 AI_IMAGE_OPENAI_ENABLED=true
@@ -90,6 +143,10 @@ OPENAI_API_KEY=sk-...
 # OpenRouter
 AI_IMAGE_OPENROUTER_ENABLED=true
 AI_IMAGE_OPENROUTER_API_KEY=sk-or-...
+
+# Fal.ai
+AI_FALAI_ENABLED=true
+AI_FALAI_API_KEY=fal-...
 
 # Stable Diffusion
 AI_IMAGE_SD_ENABLED=true
@@ -108,11 +165,10 @@ Database configuration takes precedence over environment variables. If a value i
 Users can generate images from the **Media** tab in any project:
 
 1. Click **Generate Image** in the media tab header
-2. Select a provider (if multiple are enabled)
-3. Choose a model
-4. Enter a prompt describing the desired image
-5. Configure options (size, quality, count)
-6. Click **Generate**
+2. Select an image profile (configured by the admin)
+3. Enter a prompt describing the desired image
+4. Configure options (size, count)
+5. Click **Generate**
 
 ![Image Generation Dialog](/img/features/image-generation-dialog-light.png)
 
@@ -149,17 +205,19 @@ AI image generation requires a server connection and is not available in offline
 
 Image generation costs vary by provider and model:
 
-| Provider    | Model        | Approximate Cost       |
-| ----------- | ------------ | ---------------------- |
-| OpenAI      | DALL-E 3 HD  | ~$0.080/image          |
-| OpenAI      | DALL-E 3     | ~$0.040/image          |
-| OpenAI      | DALL-E 2     | ~$0.020/image          |
-| OpenRouter  | FLUX Schnell | ~$0.003/image          |
-| OpenRouter  | SD3          | ~$0.035/image          |
-| Self-hosted | Any          | Electricity + Hardware |
+| Provider    | Model            | Approximate Cost       |
+| ----------- | ---------------- | ---------------------- |
+| OpenAI      | GPT Image 1      | ~$0.040/image          |
+| OpenAI      | GPT Image 1 Mini | ~$0.020/image          |
+| OpenAI      | GPT Image 1.5    | ~$0.040/image          |
+| OpenRouter  | FLUX Schnell     | ~$0.003/image          |
+| OpenRouter  | SD3              | ~$0.035/image          |
+| Fal.ai      | FLUX 2 Pro       | ~$0.05/image           |
+| Fal.ai      | Nano Banana Pro  | ~$0.01/image           |
+| Self-hosted | Any              | Electricity + Hardware |
 
 :::tip Cost Control
-Use DALL-E 2 or FLUX Schnell for drafts, then upgrade to higher-quality models for final images.
+Use fast models like GPT Image 1 Mini, FLUX Schnell, or Nano Banana Pro for drafts, then upgrade to higher-quality models for final images.
 :::
 
 ## Troubleshooting

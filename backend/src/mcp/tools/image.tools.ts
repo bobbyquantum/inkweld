@@ -8,11 +8,16 @@ import { registerTool } from '../mcp.handler';
 import type { McpContext, McpToolResult } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { imageGenerationService } from '../../services/image-generation.service';
+import { imageProfileService } from '../../services/image-profile.service';
 import { imageService } from '../../services/image.service';
 import { projectService } from '../../services/project.service';
 import { getStorageService } from '../../services/storage.service';
 import { yjsService } from '../../services/yjs.service';
-import type { ImageProviderType } from '../../types/image-generation';
+import type {
+  ImageProviderType,
+  ImageSize,
+  ResolvedImageRequest,
+} from '../../types/image-generation';
 import type { DatabaseInstance } from '../../types/context';
 
 // ============================================
@@ -58,12 +63,12 @@ registerTool({
           type: 'string',
           enum: ['vivid', 'natural'],
           description:
-            'Image style (DALL-E only). Vivid is more dramatic, natural is more realistic.',
+            'Image style (provider-specific). Vivid is more dramatic, natural is more realistic.',
         },
         quality: {
           type: 'string',
-          enum: ['standard', 'hd'],
-          description: 'Image quality (DALL-E only). HD takes longer but produces more detail.',
+          enum: ['low', 'medium', 'high', 'auto'],
+          description: 'Image quality. Higher quality takes longer but produces more detail.',
         },
       },
       required: ['prompt'],
@@ -104,16 +109,37 @@ registerTool({
         };
       }
 
-      // Generate the image
+      // Get first enabled profile for generation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await imageGenerationService.generate(db as any, {
+      const profile = await imageProfileService.getFirstEnabled(db as any);
+      if (!profile) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Error: No enabled image profile found. Please configure an image profile.',
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Build resolved request from profile
+      const request: ResolvedImageRequest = {
         prompt,
-        provider: provider || 'openai',
-        size,
+        profileId: profile.id,
+        provider: (provider || profile.provider) as ImageProviderType,
+        model: profile.modelId,
+        size: (size || profile.defaultSize || '1024x1024') as ImageSize,
         style,
         quality,
         n: 1,
-      });
+        options: profile.modelConfig || undefined,
+      };
+
+      // Generate the image
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await imageGenerationService.generate(db as any, request);
 
       if (!result.data || result.data.length === 0) {
         return {
@@ -364,13 +390,34 @@ registerTool({
         };
       }
 
+      // Get first enabled profile for generation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await imageGenerationService.generate(db as any, {
+      const profile = await imageProfileService.getFirstEnabled(db as any);
+      if (!profile) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Error: No enabled image profile found. Please configure an image profile.',
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Build resolved request from profile
+      const request: ResolvedImageRequest = {
         prompt,
-        provider: provider || 'openai',
-        size: size || '1024x1024',
+        profileId: profile.id,
+        provider: (provider || profile.provider) as ImageProviderType,
+        model: profile.modelId,
+        size: (size || profile.defaultSize || '1024x1024') as ImageSize,
         n: 1,
-      });
+        options: profile.modelConfig || undefined,
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await imageGenerationService.generate(db as any, request);
 
       if (!result.data || result.data.length === 0) {
         return {
@@ -593,13 +640,33 @@ registerTool({
         };
       }
 
-      // Generate with landscape size for covers
-      const result = await imageGenerationService.generate(db as DatabaseInstance, {
+      // Get first enabled profile for generation
+      const profile = await imageProfileService.getFirstEnabled(db as DatabaseInstance);
+      if (!profile) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Error: No enabled image profile found. Please configure an image profile.',
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Build resolved request from profile - use landscape size for covers
+      const request: ResolvedImageRequest = {
         prompt,
-        provider: provider || 'openai',
+        profileId: profile.id,
+        provider: (provider || profile.provider) as ImageProviderType,
+        model: profile.modelId,
         size: '1248x832', // Landscape for covers
         n: 1,
-      });
+        options: profile.modelConfig || undefined,
+      };
+
+      // Generate with landscape size for covers
+      const result = await imageGenerationService.generate(db as DatabaseInstance, request);
 
       if (!result.data || result.data.length === 0) {
         return {

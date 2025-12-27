@@ -238,6 +238,155 @@ test.describe('Admin AI Settings Screenshots', () => {
   });
 });
 
+test.describe('Image Model Profiles Screenshots', () => {
+  test.beforeEach(async ({ adminPage }) => {
+    // Navigate via user menu (more reliable than direct URL)
+    await navigateToAdminAiViaMenu(adminPage);
+
+    // Wait for the page to load
+    await adminPage.waitForSelector('.settings-card, .loading-container', {
+      timeout: 10000,
+    });
+
+    // Wait for loading to complete
+    const loadingContainer = adminPage.locator('.loading-container');
+    if (await loadingContainer.isVisible()) {
+      await loadingContainer.waitFor({ state: 'hidden', timeout: 10000 });
+    }
+  });
+
+  test('Image profiles grid - light mode', async ({ adminPage }) => {
+    // Ensure light mode
+    await adminPage.evaluate(() => {
+      document.documentElement.classList.remove('dark-mode');
+      document.documentElement.classList.add('light-mode');
+    });
+
+    await adminPage.waitForTimeout(300);
+
+    // Wait for profiles section to be visible
+    const profilesSection = adminPage.locator('.profiles-section-card');
+    if (await profilesSection.isVisible({ timeout: 5000 })) {
+      // Scroll to ensure the profiles section is in view
+      await profilesSection.scrollIntoViewIfNeeded();
+      await adminPage.waitForTimeout(300);
+
+      // Wait for profiles grid to appear
+      await adminPage.waitForSelector('.profiles-grid, .empty-state', {
+        timeout: 5000,
+      });
+
+      // Take screenshot of the profiles section
+      await profilesSection.screenshot({
+        path: path.join(SCREENSHOTS_DIR, 'admin-ai-image-profiles-light.png'),
+      });
+    }
+  });
+
+  test('Image profiles grid - dark mode', async ({ adminPage }) => {
+    // Set dark mode
+    await adminPage.evaluate(() => {
+      document.documentElement.classList.remove('light-mode');
+      document.documentElement.classList.add('dark-mode');
+    });
+
+    await adminPage.waitForTimeout(300);
+
+    // Wait for profiles section to be visible
+    const profilesSection = adminPage.locator('.profiles-section-card');
+    if (await profilesSection.isVisible({ timeout: 5000 })) {
+      // Scroll to ensure the profiles section is in view
+      await profilesSection.scrollIntoViewIfNeeded();
+      await adminPage.waitForTimeout(300);
+
+      // Wait for profiles grid to appear
+      await adminPage.waitForSelector('.profiles-grid, .empty-state', {
+        timeout: 5000,
+      });
+
+      // Take screenshot of the profiles section
+      await profilesSection.screenshot({
+        path: path.join(SCREENSHOTS_DIR, 'admin-ai-image-profiles-dark.png'),
+      });
+    }
+  });
+
+  test('Image profile creation dialog - light mode', async ({ adminPage }) => {
+    // Ensure light mode
+    await adminPage.evaluate(() => {
+      document.documentElement.classList.remove('dark-mode');
+      document.documentElement.classList.add('light-mode');
+    });
+
+    await adminPage.waitForTimeout(300);
+
+    // Wait for profiles section and find the create button
+    const createButton = adminPage.locator('button:has-text("Create Profile")');
+    if (await createButton.isVisible({ timeout: 5000 })) {
+      await createButton.click();
+
+      // Wait for dialog to appear
+      await adminPage.waitForSelector('mat-dialog-container', {
+        timeout: 5000,
+      });
+
+      // Wait for dialog to fully render
+      await adminPage.waitForTimeout(500);
+
+      // Take screenshot of the dialog
+      const dialog = adminPage.locator('mat-dialog-container');
+      await dialog.screenshot({
+        path: path.join(
+          SCREENSHOTS_DIR,
+          'admin-ai-image-profile-dialog-light.png'
+        ),
+      });
+
+      // Close the dialog
+      const closeButton = adminPage.locator(
+        'mat-dialog-container button:has-text("Cancel")'
+      );
+      if (await closeButton.isVisible()) {
+        await closeButton.click();
+        await adminPage.waitForTimeout(300);
+      }
+    }
+  });
+
+  test('Image profile creation dialog - dark mode', async ({ adminPage }) => {
+    // Set dark mode
+    await adminPage.evaluate(() => {
+      document.documentElement.classList.remove('light-mode');
+      document.documentElement.classList.add('dark-mode');
+    });
+
+    await adminPage.waitForTimeout(300);
+
+    // Wait for profiles section and find the create button
+    const createButton = adminPage.locator('button:has-text("Create Profile")');
+    if (await createButton.isVisible({ timeout: 5000 })) {
+      await createButton.click();
+
+      // Wait for dialog to appear
+      await adminPage.waitForSelector('mat-dialog-container', {
+        timeout: 5000,
+      });
+
+      // Wait for dialog to fully render
+      await adminPage.waitForTimeout(500);
+
+      // Take screenshot of the dialog
+      const dialog = adminPage.locator('mat-dialog-container');
+      await dialog.screenshot({
+        path: path.join(
+          SCREENSHOTS_DIR,
+          'admin-ai-image-profile-dialog-dark.png'
+        ),
+      });
+    }
+  });
+});
+
 test.describe('Image Generation Dialog Screenshots', () => {
   test('Image generation dialog - light mode', async ({
     authenticatedPage,

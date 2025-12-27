@@ -17,6 +17,10 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
+import { FalaiModelMetadata } from '../model/falai-model-metadata';
+// @ts-ignore
+import { ImageModelsResponse } from '../model/image-models-response';
+// @ts-ignore
 import { OpenRouterModelsResponse } from '../model/open-router-models-response';
 // @ts-ignore
 import { ProviderError } from '../model/provider-error';
@@ -24,6 +28,8 @@ import { ProviderError } from '../model/provider-error';
 import { ProviderSuccessResponse } from '../model/provider-success-response';
 // @ts-ignore
 import { ProvidersStatusResponse } from '../model/providers-status-response';
+// @ts-ignore
+import { SetImageEnabledRequest } from '../model/set-image-enabled-request';
 // @ts-ignore
 import { SetProviderEndpointRequest } from '../model/set-provider-endpoint-request';
 // @ts-ignore
@@ -154,6 +160,175 @@ export class AIProvidersService extends BaseService {
     }
 
     /**
+     * Get Fal.ai model metadata with supported sizes
+     * Fetch detailed model metadata from Fal.ai including supported sizes, resolutions, and whether custom resolutions are allowed. Uses OpenAPI schema expansion.
+     * @endpoint get /api/v1/ai/providers/falai/models/{modelId}/metadata
+     * @param modelId Model endpoint ID (e.g., fal-ai/flux-2-pro)
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getFalaiModelMetadata(modelId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<FalaiModelMetadata>;
+    public getFalaiModelMetadata(modelId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<FalaiModelMetadata>>;
+    public getFalaiModelMetadata(modelId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<FalaiModelMetadata>>;
+    public getFalaiModelMetadata(modelId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (modelId === null || modelId === undefined) {
+            throw new Error('Required parameter modelId was null or undefined when calling getFalaiModelMetadata.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/providers/falai/models/${this.configuration.encodeParam({name: "modelId", value: modelId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/metadata`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<FalaiModelMetadata>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Get Fal.ai image models
+     * Fetch available models from Fal.ai API by category. Results are cached for 1 hour per category.
+     * @endpoint get /api/v1/ai/providers/falai/models
+     * @param category Model category (default: text-to-image)
+     * @param q Search query to filter models
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getFalaiModels(category?: 'text-to-image' | 'image-to-image' | 'image-to-video' | 'text-to-video', q?: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ImageModelsResponse>;
+    public getFalaiModels(category?: 'text-to-image' | 'image-to-image' | 'image-to-video' | 'text-to-video', q?: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ImageModelsResponse>>;
+    public getFalaiModels(category?: 'text-to-image' | 'image-to-image' | 'image-to-video' | 'text-to-video', q?: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ImageModelsResponse>>;
+    public getFalaiModels(category?: 'text-to-image' | 'image-to-image' | 'image-to-video' | 'text-to-video', q?: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarQueryParameters = new HttpParams({encoder: this.encoder});
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>category, 'category');
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>q, 'q');
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/providers/falai/models`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<ImageModelsResponse>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                params: localVarQueryParameters,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Get OpenRouter image models
+     * Fetch available image generation models from OpenRouter API (Flux, SDXL, etc.). Results are cached for 1 hour.
+     * @endpoint get /api/v1/ai/providers/openrouter/image-models
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getOpenRouterImageModels(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ImageModelsResponse>;
+    public getOpenRouterImageModels(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ImageModelsResponse>>;
+    public getOpenRouterImageModels(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ImageModelsResponse>>;
+    public getOpenRouterImageModels(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/providers/openrouter/image-models`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<ImageModelsResponse>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
      * Get OpenRouter models
      * Fetch available models from OpenRouter API. Results are cached for 1 hour. Requires OpenRouter API key to be configured.
      * @endpoint get /api/v1/ai/providers/openrouter/models
@@ -262,6 +437,73 @@ export class AIProvidersService extends BaseService {
             {
                 context: localVarHttpContext,
                 body: setProviderEndpointRequest,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Set provider image generation enabled state
+     * Enable or disable image generation for a provider
+     * @endpoint put /api/v1/ai/providers/{providerId}/image-enabled
+     * @param providerId Provider ID
+     * @param setImageEnabledRequest 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public setAiProviderImageEnabled(providerId: string, setImageEnabledRequest?: SetImageEnabledRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProviderSuccessResponse>;
+    public setAiProviderImageEnabled(providerId: string, setImageEnabledRequest?: SetImageEnabledRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProviderSuccessResponse>>;
+    public setAiProviderImageEnabled(providerId: string, setImageEnabledRequest?: SetImageEnabledRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProviderSuccessResponse>>;
+    public setAiProviderImageEnabled(providerId: string, setImageEnabledRequest?: SetImageEnabledRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (providerId === null || providerId === undefined) {
+            throw new Error('Required parameter providerId was null or undefined when calling setAiProviderImageEnabled.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/providers/${this.configuration.encodeParam({name: "providerId", value: providerId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/image-enabled`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<ProviderSuccessResponse>('put', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: setImageEnabledRequest,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

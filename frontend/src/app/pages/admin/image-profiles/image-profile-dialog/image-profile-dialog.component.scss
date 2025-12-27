@@ -1,0 +1,95 @@
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 500px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.narrow-field {
+  width: 150px;
+}
+
+.row {
+  display: flex;
+  gap: 16px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.toggles-row {
+  display: flex;
+  gap: 24px;
+  padding: 8px 0;
+}
+
+.sizes-section {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  padding: 16px;
+
+  .sizes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    .label {
+      font-weight: 500;
+    }
+  }
+
+  .size-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    mat-form-field {
+      flex: 1;
+    }
+  }
+}
+
+.model-config-section {
+  button {
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+
+  mat-form-field {
+    margin-top: 8px;
+  }
+}
+
+// Model autocomplete styles
+.model-field {
+  flex: 1.5; // Give more room for model search
+}
+
+.loading-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.model-option {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+
+  .model-name {
+    font-weight: 500;
+  }
+
+  .model-id {
+    font-size: 0.75rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}

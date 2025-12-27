@@ -9,7 +9,6 @@
  */
 import { ImageSize } from './image-size';
 import { WorldbuildingContext } from './worldbuilding-context';
-import { ImageProviderType } from './image-provider-type';
 
 
 export interface ImageGenerateRequest { 
@@ -18,28 +17,24 @@ export interface ImageGenerateRequest {
      */
     prompt: string;
     /**
-     * Provider to use (uses default if not specified)
+     * Image model profile ID - determines provider, model, and default settings
      */
-    provider?: ImageProviderType;
-    /**
-     * Specific model to use
-     */
-    model?: string;
+    profileId: string;
     /**
      * Number of images to generate
      */
     n?: number;
-    size: ImageSize;
+    size?: ImageSize;
     /**
-     * Image quality (DALL-E 3 only)
+     * Image quality (overrides profile config)
      */
     quality?: ImageGenerateRequestQuality;
     /**
-     * Image style (DALL-E 3 only)
+     * Image style (overrides profile config)
      */
     style?: ImageGenerateRequestStyle;
     /**
-     * Negative prompt (Stable Diffusion only)
+     * Negative prompt (for Stable Diffusion models)
      */
     negativePrompt?: string;
     /**

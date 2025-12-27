@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -77,6 +78,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private worldbuildingService = inject(WorldbuildingService);
   private projectState = inject(ProjectStateService);
   private dialogGateway = inject(DialogGatewayService);
+  private cdr = inject(ChangeDetectorRef);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -306,6 +308,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       }
     });
     this.isUpdatingFromRemote = false;
+    // Trigger change detection so Angular Material form fields update their floating labels
+    this.cdr.markForCheck();
   }
 
   private async setupRealtimeSync(elementId: string): Promise<void> {

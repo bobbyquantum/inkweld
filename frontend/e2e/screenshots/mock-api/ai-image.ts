@@ -320,6 +320,253 @@ export function setupAiImageHandlers(): void {
     });
   });
 
+  // GET /api/v1/ai/image-profiles - List user-facing profiles
+  mockApi.addHandler('**/api/v1/ai/image-profiles', async (route: Route) => {
+    const method = route.request().method();
+    if (method !== 'GET') {
+      await route.continue();
+      return;
+    }
+    console.log('Handling AI image profiles list request');
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 'profile-1',
+          name: 'GPT Image 1',
+          description: 'Fast GPT-based image generation',
+          supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
+          supportsImageInput: true,
+          supportsQuality: true,
+          supportsStyle: false,
+          supportsCustomResolutions: false,
+        },
+        {
+          id: 'profile-2',
+          name: 'FLUX Pro',
+          description: 'High quality FLUX model',
+          supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
+          supportsImageInput: false,
+          supportsQuality: false,
+          supportsStyle: false,
+          supportsCustomResolutions: true,
+        },
+      ]),
+    });
+  });
+
+  // PATCH/DELETE /api/v1/admin/image-profiles/:id - Update/delete profile
+  mockApi.addHandler(
+    '**/api/v1/admin/image-profiles/*',
+    async (route: Route) => {
+      const method = route.request().method();
+      const url = route.request().url();
+
+      // Don't match the base profiles endpoint or providers
+      if (
+        url.endsWith('/image-profiles') ||
+        url.endsWith('/image-profiles/') ||
+        url.includes('/providers')
+      ) {
+        await route.continue();
+        return;
+      }
+
+      if (method === 'PATCH') {
+        console.log('Handling admin AI image profile update request');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'profile-1',
+            name: 'Updated Profile',
+            description: 'Updated description',
+            provider: 'openai',
+            modelId: 'gpt-image-1',
+            enabled: true,
+            sortOrder: 0,
+            supportedSizes: ['1024x1024'],
+            supportsImageInput: true,
+            supportsQuality: true,
+            supportsStyle: false,
+            supportsCustomResolutions: false,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: new Date().toISOString(),
+          }),
+        });
+      } else if (method === 'DELETE') {
+        console.log('Handling admin AI image profile delete request');
+        await route.fulfill({
+          status: 204,
+          contentType: 'application/json',
+          body: '',
+        });
+      } else {
+        await route.continue();
+      }
+    }
+  );
+
+  // GET /api/v1/admin/image-profiles/providers - List providers for profile creation
+  mockApi.addHandler(
+    '**/api/v1/admin/image-profiles/providers',
+    async (route: Route) => {
+      console.log('Handling admin AI image profiles providers request');
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          providers: [
+            {
+              id: 'openai',
+              name: 'OpenAI',
+              available: true,
+              models: [
+                {
+                  id: 'gpt-image-1',
+                  name: 'GPT Image 1',
+                  supportedSizes: [
+                    '1024x1024',
+                    '1024x1536',
+                    '1536x1024',
+                    'auto',
+                  ],
+                  supportsQuality: true,
+                  supportsStyle: false,
+                  supportsImageInput: true,
+                },
+                {
+                  id: 'gpt-image-1-mini',
+                  name: 'GPT Image 1 Mini',
+                  supportedSizes: [
+                    '1024x1024',
+                    '1024x1536',
+                    '1536x1024',
+                    'auto',
+                  ],
+                  supportsQuality: true,
+                  supportsStyle: false,
+                  supportsImageInput: true,
+                },
+              ],
+            },
+            {
+              id: 'openrouter',
+              name: 'OpenRouter',
+              available: true,
+              models: [
+                {
+                  id: 'black-forest-labs/flux-1.1-pro',
+                  name: 'FLUX 1.1 Pro',
+                  supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
+                  supportsQuality: false,
+                  supportsStyle: false,
+                  supportsImageInput: false,
+                },
+              ],
+            },
+            {
+              id: 'falai',
+              name: 'Fal.ai',
+              available: false,
+              models: [],
+            },
+          ],
+        }),
+      });
+    }
+  );
+
+  // GET /api/v1/admin/image-profiles - Admin list of profiles
+  mockApi.addHandler('**/api/v1/admin/image-profiles', async (route: Route) => {
+    const method = route.request().method();
+    if (method === 'GET') {
+      console.log('Handling admin AI image profiles list request');
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'profile-1',
+            name: 'GPT Image 1',
+            description: 'Fast GPT-based image generation',
+            provider: 'openai',
+            modelId: 'gpt-image-1',
+            enabled: true,
+            sortOrder: 0,
+            supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
+            supportsImageInput: true,
+            supportsQuality: true,
+            supportsStyle: false,
+            supportsCustomResolutions: false,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'profile-2',
+            name: 'FLUX Pro',
+            description: 'High quality FLUX model via OpenRouter',
+            provider: 'openrouter',
+            modelId: 'black-forest-labs/flux-1.1-pro',
+            enabled: true,
+            sortOrder: 1,
+            supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
+            supportsImageInput: false,
+            supportsQuality: false,
+            supportsStyle: false,
+            supportsCustomResolutions: true,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'profile-3',
+            name: 'Gemini Image',
+            description: 'Google Gemini image generation (disabled)',
+            provider: 'openrouter',
+            modelId: 'google/gemini-2.5-flash-image',
+            enabled: false,
+            sortOrder: 2,
+            supportedSizes: ['1024x1024'],
+            supportsImageInput: false,
+            supportsQuality: false,
+            supportsStyle: false,
+            supportsCustomResolutions: false,
+            createdAt: '2024-01-01T00:00:00.000Z',
+            updatedAt: '2024-01-01T00:00:00.000Z',
+          },
+        ]),
+      });
+    } else if (method === 'POST') {
+      console.log('Handling admin AI image profile create request');
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'profile-new',
+          name: 'New Profile',
+          description: 'A newly created profile',
+          provider: 'openai',
+          modelId: 'gpt-image-1',
+          enabled: true,
+          sortOrder: 3,
+          supportedSizes: ['1024x1024'],
+          supportsImageInput: false,
+          supportsQuality: false,
+          supportsStyle: false,
+          supportsCustomResolutions: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
   // POST /api/v1/ai/image/generate - Generate image
   mockApi.addHandler('**/api/v1/ai/image/generate', async (route: Route) => {
     const request = route.request();
@@ -353,7 +600,7 @@ export function setupAiImageHandlers(): void {
     const prompt = body.prompt || 'A beautiful image';
     const provider = body.provider || 'openai';
     const model =
-      body.model || (provider === 'openai' ? 'dall-e-3' : 'flux-schnell');
+      body.model || (provider === 'openai' ? 'gpt-image-1' : 'flux-schnell');
     const n = body.n || 1;
 
     // Generate mock image data (1x1 pixel placeholder PNG in base64)

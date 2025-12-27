@@ -53,6 +53,10 @@
   background-color: var(--mat-sys-surface-container);
 
   &.configured {
+    border-left: 4px solid var(--mat-sys-outline);
+  }
+
+  &.enabled {
     border-left: 4px solid var(--mat-sys-primary);
   }
 
@@ -79,6 +83,21 @@
     color: var(--mat-sys-on-surface-variant);
     font-size: 0.875rem;
     margin-bottom: 16px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    margin: 0 -16px 16px -16px;
+    background: var(--mat-sys-surface-variant);
+    border-radius: 8px;
+
+    .toggle-label {
+      font-weight: 500;
+      color: var(--mat-sys-on-surface);
+    }
   }
 
   .status-row {

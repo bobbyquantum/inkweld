@@ -266,11 +266,19 @@ describe('AdminAiProvidersComponent', () => {
   describe('helper methods', () => {
     it('should return correct provider icons', () => {
       expect(component.getProviderIcon('openai')).toBe('auto_awesome');
-      expect(component.getProviderIcon('openrouter')).toBe('hub');
+      expect(component.getProviderIcon('openrouter')).toBe('openrouter'); // Custom SVG icon
       expect(component.getProviderIcon('anthropic')).toBe('psychology');
       expect(component.getProviderIcon('stable-diffusion')).toBe('brush');
-      expect(component.getProviderIcon('falai')).toBe('bolt');
+      expect(component.getProviderIcon('falai')).toBe('falai'); // Custom SVG icon
       expect(component.getProviderIcon('unknown')).toBe('extension');
+    });
+
+    it('should identify SVG icons correctly', () => {
+      expect(component.isSvgIcon('openrouter')).toBe(true);
+      expect(component.isSvgIcon('falai')).toBe(true);
+      expect(component.isSvgIcon('openai')).toBe(false);
+      expect(component.isSvgIcon('anthropic')).toBe(false);
+      expect(component.isSvgIcon('stable-diffusion')).toBe(false);
     });
 
     it('should return correct capability labels', () => {

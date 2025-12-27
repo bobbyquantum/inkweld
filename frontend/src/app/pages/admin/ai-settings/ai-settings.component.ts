@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -19,14 +20,21 @@ import { RouterModule } from '@angular/router';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
+  AdminImageModelProfile,
+  AdminImageProfilesService,
+  AdminListImageProviders200ResponseInner,
   AIImageGenerationService,
   AIProvidersService,
+  CreateImageModelProfileRequest,
   CustomImageSize,
   DefaultTextToImageModelsResponse,
   ImageModelInfo,
   ProviderStatus,
+  UpdateImageModelProfileRequest,
 } from 'api-client';
 import { firstValueFrom } from 'rxjs';
+
+import { ImageProfileDialogComponent } from '../image-profiles/image-profile-dialog/image-profile-dialog.component';
 
 interface ProviderConfig {
   enabled: boolean;
@@ -68,6 +76,7 @@ interface UnifiedModel {
     MatCardModule,
     MatCheckboxModule,
     MatChipsModule,
+    MatDialogModule,
     MatDividerModule,
     MatExpansionModule,
     MatFormFieldModule,
@@ -89,6 +98,8 @@ export class AdminAiSettingsComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly imageService = inject(AIImageGenerationService);
   private readonly providersService = inject(AIProvidersService);
+  private readonly profilesService = inject(AdminImageProfilesService);
+  private readonly dialog = inject(MatDialog);
   private readonly systemConfigService = inject(SystemConfigService);
 
   // AI Kill Switch state from system config
@@ -172,6 +183,13 @@ export class AdminAiSettingsComponent implements OnInit {
     height: 1024,
   });
 
+  // Image profiles
+  readonly imageProfiles = signal<AdminImageModelProfile[]>([]);
+  readonly imageProfileProviders = signal<
+    AdminListImageProviders200ResponseInner[]
+  >([]);
+  readonly isLoadingProfiles = signal(false);
+
   // Computed: count enabled models
   readonly openaiEnabledCount = computed(
     () => this.openaiModels().filter(m => m.enabled).length
@@ -241,6 +259,7 @@ export class AdminAiSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     void this.loadConfig();
+    void this.loadImageProfiles();
   }
 
   async loadConfig(): Promise<void> {
@@ -1252,6 +1271,187 @@ export class AdminAiSettingsComponent implements OnInit {
       });
     } finally {
       this.isSaving.set(false);
+    }
+  }
+
+  // =========================================================================
+  // Image Profiles Management
+  // =========================================================================
+
+  /**
+   * Load image profiles and their available providers.
+   */
+  async loadImageProfiles(): Promise<void> {
+    this.isLoadingProfiles.set(true);
+
+    try {
+      const [profilesResponse, providersResponse] = await Promise.all([
+        firstValueFrom(this.profilesService.adminListImageProfiles()),
+        firstValueFrom(this.profilesService.adminListImageProviders()),
+      ]);
+
+      this.imageProfiles.set(profilesResponse);
+      this.imageProfileProviders.set(providersResponse);
+    } catch (err) {
+      console.error('Failed to load image profiles:', err);
+      this.snackBar.open('Failed to load image profiles', 'Close', {
+        duration: 3000,
+      });
+    } finally {
+      this.isLoadingProfiles.set(false);
+    }
+  }
+
+  /**
+   * Get display name for a provider by ID.
+   */
+  getProfileProviderName(providerId: string): string {
+    const provider = this.imageProfileProviders().find(
+      p => p.id === providerId
+    );
+    return provider?.name ?? providerId;
+  }
+
+  /**
+   * Open dialog to create a new image profile.
+   */
+  openCreateProfileDialog(): void {
+    const dialogRef = this.dialog.open(ImageProfileDialogComponent, {
+      width: '600px',
+      data: {
+        mode: 'create',
+        providers: this.imageProfileProviders(),
+      },
+    });
+
+    dialogRef
+      .afterClosed()
+      .subscribe((result: CreateImageModelProfileRequest | undefined) => {
+        if (result) {
+          void this.createImageProfile(result);
+        }
+      });
+  }
+
+  /**
+   * Open dialog to edit an existing image profile.
+   */
+  openEditProfileDialog(profile: AdminImageModelProfile): void {
+    const dialogRef = this.dialog.open(ImageProfileDialogComponent, {
+      width: '600px',
+      data: {
+        mode: 'edit',
+        profile,
+        providers: this.imageProfileProviders(),
+      },
+    });
+
+    dialogRef
+      .afterClosed()
+      .subscribe((result: UpdateImageModelProfileRequest | undefined) => {
+        if (result) {
+          void this.updateImageProfile(profile.id, result);
+        }
+      });
+  }
+
+  /**
+   * Create a new image profile.
+   */
+  async createImageProfile(
+    data: CreateImageModelProfileRequest
+  ): Promise<void> {
+    this.isSaving.set(true);
+
+    try {
+      await firstValueFrom(this.profilesService.adminCreateImageProfile(data));
+      this.snackBar.open('Profile created successfully', 'Dismiss', {
+        duration: 3000,
+      });
+      await this.loadImageProfiles();
+    } catch (err) {
+      console.error('Failed to create profile:', err);
+      this.snackBar.open('Failed to create profile', 'Dismiss', {
+        duration: 5000,
+      });
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  /**
+   * Update an existing image profile.
+   */
+  async updateImageProfile(
+    id: string,
+    data: UpdateImageModelProfileRequest
+  ): Promise<void> {
+    this.isSaving.set(true);
+
+    try {
+      await firstValueFrom(
+        this.profilesService.adminUpdateImageProfile(id, data)
+      );
+      this.snackBar.open('Profile updated successfully', 'Dismiss', {
+        duration: 3000,
+      });
+      await this.loadImageProfiles();
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      this.snackBar.open('Failed to update profile', 'Dismiss', {
+        duration: 5000,
+      });
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  /**
+   * Delete an image profile.
+   */
+  async deleteImageProfile(profile: AdminImageModelProfile): Promise<void> {
+    if (
+      !confirm(`Are you sure you want to delete the profile "${profile.name}"?`)
+    ) {
+      return;
+    }
+
+    this.isSaving.set(true);
+
+    try {
+      await firstValueFrom(
+        this.profilesService.adminDeleteImageProfile(profile.id)
+      );
+      this.snackBar.open('Profile deleted successfully', 'Dismiss', {
+        duration: 3000,
+      });
+      await this.loadImageProfiles();
+    } catch (err) {
+      console.error('Failed to delete profile:', err);
+      this.snackBar.open('Failed to delete profile', 'Dismiss', {
+        duration: 5000,
+      });
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  /**
+   * Toggle the enabled state of an image profile.
+   */
+  async toggleProfileEnabled(profile: AdminImageModelProfile): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.profilesService.adminUpdateImageProfile(profile.id, {
+          enabled: !profile.enabled,
+        })
+      );
+      await this.loadImageProfiles();
+    } catch (err) {
+      console.error('Failed to toggle profile:', err);
+      this.snackBar.open('Failed to update profile', 'Dismiss', {
+        duration: 5000,
+      });
     }
   }
 }

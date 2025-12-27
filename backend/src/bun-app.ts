@@ -198,6 +198,18 @@ app.get('/api/openapi.json', (c) => {
           description: 'Local development server',
         },
       ],
+      security: [{ bearerAuth: [] }],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+            description:
+              'JWT token obtained from POST /api/v1/auth/login. Include as: Authorization: Bearer <token>',
+          },
+        },
+      },
     })
   );
 });

@@ -84,112 +84,123 @@
 
     <!-- Model List -->
     @if (imageGenerationEnabled()) {
-      @if (unifiedModels().length > 0) {
-        <!-- Default Model Display -->
-        @if (defaultModelInfo(); as defaultModel) {
-          <mat-card class="settings-card default-model-card">
-            <mat-card-header>
-              <mat-icon mat-card-avatar>auto_awesome</mat-icon>
-              <mat-card-title>Default Model</mat-card-title>
-              <mat-card-subtitle>
-                {{ defaultModel.providerName }}
-              </mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="default-model-display">
-                <span class="default-model-name">{{ defaultModel.name }}</span>
-                @if (defaultModel.description) {
-                  <span class="default-model-description">{{
-                    defaultModel.description
-                  }}</span>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
-        }
+      <!-- Image Profiles Section -->
+      <mat-card class="settings-card profiles-section-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>tune</mat-icon>
+          <mat-card-title>Image Model Profiles</mat-card-title>
+          <mat-card-subtitle>
+            Configure which AI models are available for image generation
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p class="help-text">
+            Image profiles define which AI models users can select when
+            generating images. Each profile can have custom settings like
+            supported sizes and default options.
+          </p>
 
-        <!-- Models by Provider -->
-        @for (group of modelsByProvider(); track group.providerId) {
-          <mat-card class="settings-card provider-models-card">
-            <mat-card-header>
-              <mat-icon mat-card-avatar>api</mat-icon>
-              <mat-card-title>{{ group.providerName }}</mat-card-title>
-              <mat-card-subtitle>
-                {{ group.models.length }}
-                {{ group.models.length === 1 ? 'model' : 'models' }}
-              </mat-card-subtitle>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="model-list">
-                @for (model of group.models; track model.id) {
-                  <div class="model-item">
-                    <mat-slide-toggle
-                      class="model-toggle"
-                      [checked]="model.enabled"
-                      (change)="toggleUnifiedModel(model.id, $event.checked)"
-                      [disabled]="isSaving()">
-                    </mat-slide-toggle>
-                    <div class="model-info">
-                      <span class="model-name">
-                        {{ model.name }}
-                        @if (model.isDefault) {
-                          <mat-chip class="default-chip">Default</mat-chip>
-                        }
-                      </span>
-                      @if (model.description) {
-                        <span class="model-description">{{
-                          model.description
-                        }}</span>
+          @if (isLoadingProfiles()) {
+            <div class="profiles-loading">
+              <mat-spinner diameter="32"></mat-spinner>
+              <span>Loading profiles...</span>
+            </div>
+          } @else {
+            <div class="profiles-toolbar">
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="openCreateProfileDialog()"
+                [disabled]="isSaving()">
+                <mat-icon>add</mat-icon>
+                Create Profile
+              </button>
+            </div>
+
+            @if (imageProfiles().length === 0) {
+              <div class="empty-state small">
+                <mat-icon>image</mat-icon>
+                <p>No profiles configured</p>
+                <span class="hint"
+                  >Create an image model profile to enable image generation for
+                  users.</span
+                >
+              </div>
+            } @else {
+              <div class="profiles-grid">
+                @for (profile of imageProfiles(); track profile.id) {
+                  <div class="profile-item" [class.disabled]="!profile.enabled">
+                    <div class="profile-header">
+                      <div class="profile-title">{{ profile.name }}</div>
+                      <div class="profile-subtitle">
+                        {{ getProfileProviderName(profile.provider) }} /
+                        {{ profile.modelId }}
+                      </div>
+                    </div>
+
+                    @if (profile.description) {
+                      <div class="profile-description">
+                        {{ profile.description }}
+                      </div>
+                    }
+
+                    <div class="profile-details">
+                      <div class="detail-row">
+                        <span class="label">Image Input:</span>
+                        <span class="value">
+                          @if (profile.supportsImageInput) {
+                            <mat-icon class="check">check_circle</mat-icon> Yes
+                          } @else {
+                            <mat-icon class="no">cancel</mat-icon> No
+                          }
+                        </span>
+                      </div>
+
+                      @if (
+                        profile.supportedSizes &&
+                        profile.supportedSizes.length > 0
+                      ) {
+                        <div class="detail-row">
+                          <span class="label">Sizes:</span>
+                          <span class="value sizes">
+                            @for (size of profile.supportedSizes; track size) {
+                              <span class="size-chip">{{ size }}</span>
+                            }
+                          </span>
+                        </div>
                       }
                     </div>
-                    <div class="model-actions">
-                      @if (!model.isDefault && model.enabled) {
-                        <button
-                          mat-stroked-button
-                          (click)="setAsDefaultModel(model.id)"
-                          [disabled]="isSaving()">
-                          Make Default
-                        </button>
-                      }
+
+                    <div class="profile-actions">
+                      <mat-slide-toggle
+                        [checked]="profile.enabled"
+                        (change)="toggleProfileEnabled(profile)"
+                        [disabled]="isSaving()"
+                        matTooltip="Enable/disable this profile">
+                      </mat-slide-toggle>
+                      <button
+                        mat-icon-button
+                        (click)="openEditProfileDialog(profile)"
+                        [disabled]="isSaving()"
+                        matTooltip="Edit profile">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        (click)="deleteImageProfile(profile)"
+                        [disabled]="isSaving()"
+                        matTooltip="Delete profile">
+                        <mat-icon>delete</mat-icon>
+                      </button>
                     </div>
                   </div>
                 }
               </div>
-            </mat-card-content>
-          </mat-card>
-        }
-
-        @if (unifiedModelsModified()) {
-          <div class="save-actions">
-            <button
-              mat-raised-button
-              color="primary"
-              (click)="saveUnifiedModels()"
-              [disabled]="isSaving()">
-              <mat-icon>save</mat-icon>
-              Save Changes
-            </button>
-          </div>
-        }
-      } @else {
-        <mat-card class="settings-card empty-state-card">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>view_list</mat-icon>
-            <mat-card-title>Available Models</mat-card-title>
-            <mat-card-subtitle>No models available</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="empty-state">
-              <mat-icon>api</mat-icon>
-              <p>
-                Configure at least one AI provider with an API key on the
-                <a routerLink="/admin/ai">AI Providers</a> page to see available
-                models.
-              </p>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      }
+            }
+          }
+        </mat-card-content>
+      </mat-card>
 
       <!-- Custom Image Sizes -->
       <mat-card class="settings-card">

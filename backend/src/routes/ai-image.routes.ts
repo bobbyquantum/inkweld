@@ -2,12 +2,13 @@
  * AI Image Generation Routes
  *
  * Unified routes for multi-provider image generation (text-to-image).
- * Supports OpenAI DALL-E, OpenRouter, Stable Diffusion, and Fal.ai.
+ * Supports OpenAI GPT Image, OpenRouter, Stable Diffusion, and Fal.ai.
  */
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { imageGenerationService } from '../services/image-generation.service';
+import { imageProfileService } from '../services/image-profile.service';
 import { configService } from '../services/config.service';
 import { DEFAULT_OPENAI_MODELS } from '../services/image-providers/openai-provider';
 import { DEFAULT_OPENROUTER_MODELS } from '../services/image-providers/openrouter-provider';
@@ -15,6 +16,7 @@ import { DEFAULT_FALAI_MODELS } from '../services/image-providers/falai-provider
 import type { AppContext } from '../types/context';
 import type {
   ImageProviderType,
+  ImageSize,
   WorldbuildingContext,
   CustomImageSize,
 } from '../types/image-generation';
@@ -82,28 +84,26 @@ const GenerateRequestSchema = z
       example: 'A fantasy castle on a misty mountain',
       description: 'The image generation prompt',
     }),
-    provider: ProviderTypeSchema.optional().openapi({
-      description: 'Provider to use (uses default if not specified)',
-    }),
-    model: z.string().optional().openapi({
-      example: 'dall-e-3',
-      description: 'Specific model to use',
+    profileId: z.string().uuid().openapi({
+      description: 'Image model profile ID - determines provider, model, and default settings',
     }),
     n: z.number().int().min(1).max(4).optional().openapi({
       example: 1,
       description: 'Number of images to generate',
     }),
-    size: ImageSizeSchema,
+    size: ImageSizeSchema.optional().openapi({
+      description: 'Image size (uses profile default if not specified)',
+    }),
     quality: z.enum(['standard', 'hd']).optional().openapi({
       example: 'standard',
-      description: 'Image quality (DALL-E 3 only)',
+      description: 'Image quality (overrides profile config)',
     }),
     style: z.enum(['vivid', 'natural']).optional().openapi({
       example: 'vivid',
-      description: 'Image style (DALL-E 3 only)',
+      description: 'Image style (overrides profile config)',
     }),
     negativePrompt: z.string().optional().openapi({
-      description: 'Negative prompt (Stable Diffusion only)',
+      description: 'Negative prompt (for Stable Diffusion models)',
     }),
     worldbuildingContext: z.array(WorldbuildingContextSchema).optional().openapi({
       description: 'Worldbuilding elements to include in the prompt',
@@ -304,17 +304,61 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       );
     }
 
+    // Look up the profile
+    const profile = await imageProfileService.getById(db, validatedBody.profileId);
+    if (!profile) {
+      return c.json({ error: 'Image profile not found' }, 400);
+    }
+    if (!profile.enabled) {
+      return c.json({ error: 'Image profile is disabled' }, 400);
+    }
+
+    // Resolve settings from profile
+    const provider = profile.provider as ImageProviderType;
+    const model = profile.modelId;
+    const profileConfig = profile.modelConfig;
+
+    // Use request size or fall back to profile default
+    let size: ImageSize | undefined = validatedBody.size;
+    if (!size && profile.defaultSize) {
+      size = profile.defaultSize as ImageSize;
+    }
+
+    // Validate size is supported by profile
+    if (size && profile.supportedSizes && !profile.supportedSizes.includes(size)) {
+      return c.json(
+        {
+          error: `Size '${size}' is not supported by this profile. Supported: ${profile.supportedSizes.join(', ')}`,
+        },
+        400
+      );
+    }
+
+    // Request values override profile config
+    let quality = validatedBody.quality;
+    let style = validatedBody.style;
+    if (profileConfig) {
+      if (!quality && profileConfig.quality) {
+        quality = profileConfig.quality as 'standard' | 'hd';
+      }
+      if (!style && profileConfig.style) {
+        style = profileConfig.style as 'vivid' | 'natural';
+      }
+    }
+
     // Generate images
     const result = await imageGenerationService.generate(db, {
       prompt: validatedBody.prompt,
-      provider: (validatedBody.provider as ImageProviderType) || 'openai',
-      model: validatedBody.model,
+      profileId: validatedBody.profileId,
+      provider,
+      model,
       n: validatedBody.n,
-      size: validatedBody.size,
-      quality: validatedBody.quality,
-      style: validatedBody.style,
+      size,
+      quality,
+      style,
       negativePrompt: validatedBody.negativePrompt,
       worldbuildingContext: validatedBody.worldbuildingContext as WorldbuildingContext[],
+      options: profileConfig || undefined,
     });
 
     return c.json(result, 200);

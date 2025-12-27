@@ -26,6 +26,7 @@ import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
 import { adminConfigRoutes } from '../routes/admin-config.routes';
+import { imageProfileUserRoutes, imageProfileAdminRoutes } from '../routes/image-profile.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -64,6 +65,10 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/ai/text', aiTextRoutes);
   app.route('/api/v1/ai/providers', aiProvidersRoutes);
   app.route('/api/v1/ai/mcp', mcpRoutes);
+
+  // Image model profiles
+  app.route('/api/v1/ai/image-profiles', imageProfileUserRoutes);
+  app.route('/api/v1/admin/image-profiles', imageProfileAdminRoutes);
 
   // MCP key management (for frontend to create/manage API keys)
   app.route('/api/v1/mcp-keys', mcpKeyRoutes);

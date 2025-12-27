@@ -9,6 +9,9 @@
  */
 
 
+/**
+ * Image size (uses profile default if not specified)
+ */
 export enum ImageSize {
 
     _256x256 = '256x256',
