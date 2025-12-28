@@ -1,65 +1,203 @@
 [
   {
     "id": "rel-elara-theron-friend",
-    "sourceId": "char-elara",
-    "targetId": "char-theron",
-    "typeId": "friend",
-    "notes": "An unlikely friendship formed when Theron helped Elara navigate Thornwood safely. They respect each other's need for solitude."
+    "sourceElementId": "char-elara",
+    "targetElementId": "char-theron",
+    "relationshipTypeId": "friend",
+    "note": "An unlikely friendship formed when Theron helped Elara navigate Thornwood safely. They respect each other's need for solitude.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-elara-cloudspire",
-    "sourceId": "char-elara",
-    "targetId": "loc-cloudspire",
-    "typeId": "originated-from",
-    "notes": "Elara studied at Cloudspire Academy under Aldric the Grey. Her thesis on pre-Sundering magical theory is still referenced today."
+    "sourceElementId": "char-elara",
+    "targetElementId": "loc-cloudspire",
+    "relationshipTypeId": "originated-from",
+    "note": "Elara studied at Cloudspire Academy under Aldric the Grey. Her thesis on pre-Sundering magical theory is still referenced today.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-mira-elara-colleague",
-    "sourceId": "char-mira",
-    "targetId": "char-elara",
-    "typeId": "colleague",
-    "notes": "Mira occasionally crafts specialized tools for Elara's research. They share a mutual respect for craftsmanship in their respective fields."
+    "sourceElementId": "char-mira",
+    "targetElementId": "char-elara",
+    "relationshipTypeId": "colleague",
+    "note": "Mira occasionally crafts specialized tools for Elara's research. They share a mutual respect for craftsmanship in their respective fields.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-theron-thornwood",
-    "sourceId": "char-theron",
-    "targetId": "loc-thornwood",
-    "typeId": "lives-in",
-    "notes": "Theron has lived in Thornwood Forest for ten years, serving as its primary guardian and liaison with Silverhollow."
+    "sourceElementId": "char-theron",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "lives-in",
+    "note": "Theron has lived in Thornwood Forest for ten years, serving as its primary guardian and liaison with Silverhollow.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-theron-silverhollow-origin",
-    "sourceId": "char-theron",
-    "targetId": "loc-silverhollow",
-    "typeId": "originated-from",
-    "notes": "Born and raised in Silverhollow before joining the military. His family still lives there, unaware he's alive."
+    "sourceElementId": "char-theron",
+    "targetElementId": "loc-silverhollow",
+    "relationshipTypeId": "originated-from",
+    "note": "Born and raised in Silverhollow before joining the military. His family still lives there, unaware he's alive.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-mira-silverhollow",
-    "sourceId": "char-mira",
-    "targetId": "loc-silverhollow",
-    "typeId": "lives-in",
-    "notes": "Mira runs the Stonehart Forge, the finest smithy in town. She's been a resident for five years."
+    "sourceElementId": "char-mira",
+    "targetElementId": "loc-silverhollow",
+    "relationshipTypeId": "lives-in",
+    "note": "Mira runs the Stonehart Forge, the finest smithy in town. She's been a resident for five years.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-silverhollow-thornwood-adjacent",
-    "sourceId": "loc-silverhollow",
-    "targetId": "loc-thornwood",
-    "typeId": "adjacent-to",
-    "notes": "Silverhollow sits at the edge of Thornwood Forest. The Thornwood Accord established peaceful relations between the two."
+    "sourceElementId": "loc-silverhollow",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "adjacent-to",
+    "note": "Silverhollow sits at the edge of Thornwood Forest. The Thornwood Accord established peaceful relations between the two.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-elara-thornwood",
-    "sourceId": "char-elara",
-    "targetId": "loc-thornwood",
-    "typeId": "located-in",
-    "notes": "Elara frequently visits Thornwood seeking clues to the Library of Moonveil. Theron guides her to the safer areas."
+    "sourceElementId": "char-elara",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "located-in",
+    "note": "Elara frequently visits Thornwood seeking clues to the Library of Moonveil. Theron guides her to the safer areas.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   },
   {
     "id": "rel-theron-mira-friend",
-    "sourceId": "char-theron",
-    "targetId": "char-mira",
-    "typeId": "friend",
-    "notes": "Theron trades forest materials with Mira. They share a similar taciturn nature and respect for honest work."
+    "sourceElementId": "char-theron",
+    "targetElementId": "char-mira",
+    "relationshipTypeId": "friend",
+    "note": "Theron trades forest materials with Mira. They share a similar taciturn nature and respect for honest work.",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-char-elara",
+    "sourceElementId": "readme-001",
+    "targetElementId": "char-elara",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Elara Nightwhisper",
+    "documentContext": { "documentId": "readme-001" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-char-theron",
+    "sourceElementId": "readme-001",
+    "targetElementId": "char-theron",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Theron Blackwood",
+    "documentContext": { "documentId": "readme-001" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-char-mira",
+    "sourceElementId": "readme-001",
+    "targetElementId": "char-mira",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Mira Stonehart",
+    "documentContext": { "documentId": "readme-001" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-loc-silverhollow",
+    "sourceElementId": "readme-001",
+    "targetElementId": "loc-silverhollow",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Silverhollow",
+    "documentContext": { "documentId": "readme-001" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-loc-thornwood",
+    "sourceElementId": "readme-001",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Thornwood Forest",
+    "documentContext": { "documentId": "readme-001" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-readme-loc-cloudspire",
+    "sourceElementId": "readme-001",
+    "targetElementId": "loc-cloudspire",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Cloudspire Academy",
+    "documentContext": { "documentId": "readme-001" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonveil-char-theron",
+    "sourceElementId": "doc-moonveil-accord",
+    "targetElementId": "char-theron",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Theron Blackwood",
+    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonveil-loc-thornwood",
+    "sourceElementId": "doc-moonveil-accord",
+    "targetElementId": "loc-thornwood",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Thornwood",
+    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonveil-loc-silverhollow",
+    "sourceElementId": "doc-moonveil-accord",
+    "targetElementId": "loc-silverhollow",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Silverhollow",
+    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonveil-char-elara",
+    "sourceElementId": "doc-moonveil-accord",
+    "targetElementId": "char-elara",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Elara Nightwhisper",
+    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonveil-loc-cloudspire",
+    "sourceElementId": "doc-moonveil-accord",
+    "targetElementId": "loc-cloudspire",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Cloudspire Academy",
+    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "rel-moonveil-char-mira",
+    "sourceElementId": "doc-moonveil-accord",
+    "targetElementId": "char-mira",
+    "relationshipTypeId": "referenced-in",
+    "displayText": "Mira Stonehart",
+    "documentContext": { "documentId": "doc-moonveil-accord" },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   }
 ]

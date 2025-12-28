@@ -414,7 +414,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   public onShowDocumentList(): void {
-    this.projectState.openSystemTab('documents-list');
+    const result = this.projectState.openSystemTab('documents-list');
+    this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
       void this.router.navigate([
@@ -427,54 +428,19 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   public onShowMediaLibrary(): void {
-    this.projectState.openSystemTab('media');
+    const result = this.projectState.openSystemTab('media');
+    // Ensure the tab is selected
+    this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
       void this.router.navigate(['/', project.username, project.slug, 'media']);
     }
   }
 
-  public onShowTemplatesList(): void {
-    this.projectState.openSystemTab('templates-list');
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'templates-list',
-      ]);
-    }
-  }
-
-  public onShowRelationships(): void {
-    this.projectState.openSystemTab('relationships-list');
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'relationships-list',
-      ]);
-    }
-  }
-
-  public onShowTags(): void {
-    this.projectState.openSystemTab('tags-list');
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'tags-list',
-      ]);
-    }
-  }
-
   public onShowSettings(): void {
-    this.projectState.openSystemTab('settings');
+    const result = this.projectState.openSystemTab('settings');
+    // Ensure the tab is selected
+    this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
       void this.router.navigate([

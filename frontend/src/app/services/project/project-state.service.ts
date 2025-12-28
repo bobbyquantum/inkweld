@@ -828,11 +828,12 @@ export class ProjectStateService implements OnDestroy {
       | 'tags-list'
       | 'settings'
       | 'home'
-  ): void {
+  ): { index: number; wasCreated: boolean } {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {
       void this.saveOpenedDocumentsToCache();
     }
+    return { index: result.index, wasCreated: result.wasCreated };
   }
 
   /** Opens the home tab */

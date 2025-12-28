@@ -4,13 +4,72 @@
  * Tests that verify worldbuilding data is properly imported when creating
  * a project from a template (e.g., worldbuilding-demo).
  *
- * These tests specifically verify the fix for cross-project data collisions
- * and proper IndexedDB persistence timing.
+ * These tests specifically verify the fix for cross-project data collisions,
+ * proper IndexedDB persistence timing, and relationship import.
  */
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Template Worldbuilding Import', () => {
+  test('should import relationships from demo template', async ({
+    offlinePage: page,
+  }) => {
+    // Create project using worldbuilding-demo template
+    await createProjectWithTwoSteps(
+      page,
+      'Relationships Test Project',
+      'rel-test',
+      'Testing relationships import',
+      'worldbuilding-demo'
+    );
+
+    // Wait for navigation to the project page
+    await page.waitForURL(/\/testuser\/rel-test/, { timeout: 10000 });
+
+    // Wait for project tree to be visible
+    await page.waitForSelector('[data-testid="project-tree"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
+
+    // Find Characters folder and expand it
+    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
+    await expect(charactersFolder).toBeVisible({ timeout: 5000 });
+    const expandButton = charactersFolder.locator('button').first();
+    await expandButton.click();
+    await page.waitForTimeout(500);
+
+    // Click on Elara Nightwhisper character
+    const elaraElement = page.getByRole('treeitem', {
+      name: 'Elara Nightwhisper',
+    });
+    await expect(elaraElement).toBeVisible({ timeout: 5000 });
+    await elaraElement.click();
+
+    // Wait for worldbuilding editor to load
+    await page.waitForTimeout(1000);
+
+    // Open the meta panel to see relationships
+    const metaPanelToggle = page.getByTestId('meta-panel-toggle');
+    await expect(metaPanelToggle).toBeVisible({ timeout: 5000 });
+    await metaPanelToggle.click();
+
+    // Wait for meta panel to open
+    await page.waitForTimeout(500);
+
+    // Check that the meta panel is visible and has relationship panels
+    // Elara has: friend with Theron, originated-from Cloudspire, colleague with Mira, located-in Thornwood
+    const relationshipPanels = page.locator(
+      '[data-testid="relationship-type-panel"]'
+    );
+    const panelCount = await relationshipPanels.count();
+    expect(panelCount).toBeGreaterThan(0);
+
+    // Verify the add relationship button is visible (indicates the panel is open)
+    const addRelationshipButton = page.getByTestId('add-relationship-button');
+    await expect(addRelationshipButton).toBeVisible({ timeout: 3000 });
+  });
+
   test('should import all worldbuilding data from demo template', async ({
     offlinePage: page,
   }) => {
@@ -369,5 +428,69 @@ test.describe('Template Worldbuilding Import', () => {
       hasText: 'Complete',
     });
     await expect(completeTag).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should show document-to-character backlink after @ reference', async ({
+    offlinePage: page,
+  }) => {
+    // Create project using worldbuilding-demo template
+    await createProjectWithTwoSteps(
+      page,
+      'Backlinks Test Project',
+      'backlinks-test',
+      'Testing document to character backlinks',
+      'worldbuilding-demo'
+    );
+
+    // Wait for navigation to the project page
+    await page.waitForURL(/\/testuser\/backlinks-test/, { timeout: 10000 });
+
+    // Wait for project tree to be visible
+    await page.waitForSelector('[data-testid="project-tree"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
+
+    // Navigate directly to Elara to check that template backlinks exist
+    // (The template now includes document-to-character relationships)
+    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
+    await expect(charactersFolder).toBeVisible({ timeout: 5000 });
+    const charactersExpandButton = charactersFolder.locator('button').first();
+    await charactersExpandButton.click();
+    await page.waitForTimeout(500);
+
+    // Click on Elara Nightwhisper character
+    const elaraElement = page.getByRole('treeitem', {
+      name: 'Elara Nightwhisper',
+    });
+    await expect(elaraElement).toBeVisible({ timeout: 5000 });
+    await elaraElement.click();
+
+    // Wait for worldbuilding editor to load
+    await page.waitForTimeout(1000);
+
+    // Open the meta panel to see relationships
+    const metaPanelToggle = page.getByTestId('meta-panel-toggle');
+    await expect(metaPanelToggle).toBeVisible({ timeout: 5000 });
+    await metaPanelToggle.click();
+
+    // Wait for meta panel to open
+    await page.waitForTimeout(500);
+
+    const metaPanel = page.locator('app-meta-panel');
+    await expect(metaPanel).toBeVisible({ timeout: 5000 });
+
+    // Look for the References panel (backlinks from documents)
+    // The template now includes document-to-character relationships
+    const referencesPanelHeader = metaPanel.getByText('References');
+    await expect(referencesPanelHeader).toBeVisible({ timeout: 5000 });
+
+    // Verify README appears in the relationships (template backlink)
+    const readmeReference = metaPanel.getByText('README');
+    await expect(readmeReference).toBeVisible({ timeout: 5000 });
+
+    // Verify The Moonveil Accord also appears (template backlink)
+    const moonveilReference = metaPanel.getByText('The Moonveil Accord');
+    await expect(moonveilReference).toBeVisible({ timeout: 5000 });
   });
 });

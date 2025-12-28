@@ -13,6 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import {
@@ -27,6 +28,10 @@ import {
 } from '@services/offline/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
+
+import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
+import { TagsTabComponent } from '../tags/tags-tab.component';
+import { TemplatesTabComponent } from '../templates/templates-tab.component';
 
 /**
  * Permission group for easier selection in UI
@@ -66,7 +71,11 @@ interface PermissionGroup {
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatTabsModule,
     MatTooltipModule,
+    RelationshipsTabComponent,
+    TagsTabComponent,
+    TemplatesTabComponent,
   ],
 })
 export class SettingsTabComponent {

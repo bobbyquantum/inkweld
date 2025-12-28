@@ -5,6 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -59,6 +60,19 @@ describe('MetaPanelComponent', () => {
       hideTooltip: vi.fn(),
     };
 
+    // Mock WorldbuildingService to return schema icons
+    const worldbuildingServiceMock = {
+      getSchemaById: vi.fn().mockImplementation((schemaId: string) => {
+        if (schemaId === 'character-v1') {
+          return { id: 'character-v1', name: 'Character', icon: 'person' };
+        }
+        if (schemaId === 'location-v1') {
+          return { id: 'location-v1', name: 'Location', icon: 'place' };
+        }
+        return null;
+      }),
+    };
+
     // Mock SystemConfigService to prevent real API calls
     const systemConfigMock = {
       systemFeatures: signal({
@@ -83,6 +97,7 @@ describe('MetaPanelComponent', () => {
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: MatDialog, useValue: dialogMock },
         { provide: ElementRefService, useValue: elementRefServiceMock },
+        { provide: WorldbuildingService, useValue: worldbuildingServiceMock },
       ],
     }).compileComponents();
 
@@ -305,9 +320,23 @@ describe('MetaPanelComponent', () => {
 
       expect(component.getElementIcon('folder-1')).toBe('folder');
       expect(component.getElementIcon('item-1')).toBe('description');
-      // Worldbuilding elements use ElementRefService which needs mocked WorldbuildingService
-      // Without proper schema lookup, it defaults to 'category' or falls back to 'link'
+      // Worldbuilding elements should get their icon from the schema
+      expect(component.getElementIcon('wb-1')).toBe('person');
       expect(component.getElementIcon('non-existent')).toBe('link');
+    });
+
+    it('should return category for worldbuilding elements without schema', () => {
+      projectStateMock.elements.set([
+        {
+          id: 'wb-no-schema',
+          name: 'No Schema Worldbuilding',
+          type: 'WORLDBUILDING',
+          schemaId: 'unknown-schema',
+        },
+      ]);
+      fixture.detectChanges();
+
+      expect(component.getElementIcon('wb-no-schema')).toBe('category');
     });
   });
 

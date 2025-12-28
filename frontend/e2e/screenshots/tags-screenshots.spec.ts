@@ -88,6 +88,7 @@ test.describe('Tags Feature Screenshots', () => {
 
   /**
    * Helper to create a project and navigate to tags tab
+   * (Tags is now a sub-tab within Project Settings)
    */
   async function setupProjectAndTagsTab(
     page: Page,
@@ -123,8 +124,17 @@ test.describe('Tags Feature Screenshots', () => {
       timeout: 5000,
     });
 
-    // Navigate to tags tab
-    await page.goto(`/demouser/${projectSlug}/tags-list`);
+    // Navigate to Settings tab first
+    await page.goto(`/demouser/${projectSlug}/settings`);
+    await page.waitForSelector('[data-testid="settings-tab-content"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
+
+    // Click on the "Tags" inner tab
+    await page.getByRole('tab', { name: 'Tags' }).click();
+
+    // Wait for tags container
     await page.waitForSelector('.tags-tab', {
       state: 'visible',
       timeout: 5000,
