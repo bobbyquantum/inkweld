@@ -1,6 +1,6 @@
 .settings-tab {
   padding: 24px;
-  max-width: 800px;
+  max-width: 100%;
   margin: 0 auto;
   color: var(--sys-on-surface);
 
@@ -24,6 +24,47 @@
       font-size: 20px;
       width: 20px;
       height: 20px;
+    }
+  }
+}
+
+// Tabbed interface styles
+.settings-tabs {
+  ::ng-deep .mat-mdc-tab-labels {
+    background: var(--sys-surface-container);
+    border-radius: 8px 8px 0 0;
+  }
+
+  ::ng-deep .mat-mdc-tab {
+    min-width: 120px;
+  }
+
+  ::ng-deep .mdc-tab__content {
+    gap: 8px;
+  }
+}
+
+.tab-label {
+  margin-left: 4px;
+}
+
+.tab-content {
+  padding: 24px;
+  max-width: 800px;
+
+  &.embedded-tab {
+    padding: 0;
+    max-width: 100%;
+
+    // Remove duplicate headers from embedded components
+    ::ng-deep {
+      .templates-tab,
+      .relationships-tab,
+      .tags-tab {
+        h2 {
+          display: none;
+        }
+      }
     }
   }
 }

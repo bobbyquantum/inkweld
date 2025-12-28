@@ -13,74 +13,107 @@
         </button>
       </div>
 
-      <mat-accordion class="meta-accordion" multi>
-        <!-- Dynamic Relationship Type Panels -->
+      <!-- ARIA Accordion for relationship groups -->
+      <div
+        ngAccordionGroup
+        class="relationships-accordion"
+        [multiExpandable]="true">
         @for (group of groupedRelationships(); track getGroupKey(group)) {
-          <mat-expansion-panel
-            [expanded]="true"
-            class="relationship-type-panel"
-            [class.incoming]="group.isIncoming"
-            data-testid="relationship-type-panel">
-            <mat-expansion-panel-header>
-              <mat-panel-title>
-                <mat-icon class="section-icon">{{
-                  group.type.icon || 'link'
-                }}</mat-icon>
-                {{ group.displayLabel }} ({{ group.relationships.length }})
-              </mat-panel-title>
-            </mat-expansion-panel-header>
-
-            <mat-nav-list class="relationships-list" dense>
-              @for (rel of group.relationships; track rel.id) {
-                <a
-                  mat-list-item
-                  tabindex="0"
-                  (click)="navigateToElement(rel, group.isIncoming)"
-                  (keydown.enter)="navigateToElement(rel, group.isIncoming)"
-                  (mouseenter)="
-                    showTooltipForElement(
-                      group.isIncoming
-                        ? rel.sourceElementId
-                        : rel.targetElementId,
-                      $event
-                    )
-                  "
-                  (mouseleave)="hideTooltip()"
-                  class="relationship-item"
-                  data-testid="relationship-item">
-                  <mat-icon matListItemIcon>{{
-                    getElementIcon(
-                      group.isIncoming
-                        ? rel.sourceElementId
-                        : rel.targetElementId
-                    )
+          <div class="accordion-section" [class.incoming]="group.isIncoming">
+            <h3 class="accordion-header">
+              <span
+                ngAccordionTrigger
+                [panelId]="getGroupKey(group)"
+                #trigger="ngAccordionTrigger"
+                [expanded]="true"
+                class="accordion-trigger"
+                data-testid="relationship-type-panel">
+                <span class="trigger-content">
+                  <mat-icon class="section-icon">{{
+                    group.type.icon || 'link'
                   }}</mat-icon>
-                  <span matListItemTitle>{{
-                    getElementName(
-                      group.isIncoming
-                        ? rel.sourceElementId
-                        : rel.targetElementId
-                    )
-                  }}</span>
-                  <div matListItemMeta class="item-actions">
-                    @if (!group.isIncoming) {
+                  <span class="group-label">{{ group.displayLabel }}</span>
+                  <span class="group-count"
+                    >({{ group.relationships.length }})</span
+                  >
+                </span>
+                <mat-icon
+                  class="expand-icon"
+                  [class.expanded]="trigger.expanded()">
+                  keyboard_arrow_up
+                </mat-icon>
+              </span>
+            </h3>
+            <div ngAccordionPanel [panelId]="getGroupKey(group)">
+              <ng-template ngAccordionContent>
+                <ul class="relationships-list" role="list">
+                  @for (rel of group.relationships; track rel.id) {
+                    <li
+                      class="relationship-item"
+                      data-testid="relationship-item"
+                      (mouseenter)="
+                        showTooltipForElement(
+                          group.isIncoming
+                            ? rel.sourceElementId
+                            : rel.targetElementId,
+                          $event
+                        )
+                      "
+                      (mouseleave)="hideTooltip()">
+                      <button
+                        type="button"
+                        class="item-button"
+                        (click)="navigateToElement(rel, group.isIncoming)"
+                        (keydown.enter)="
+                          navigateToElement(rel, group.isIncoming)
+                        ">
+                        <mat-icon class="item-icon">{{
+                          getElementIcon(
+                            group.isIncoming
+                              ? rel.sourceElementId
+                              : rel.targetElementId
+                          )
+                        }}</mat-icon>
+                        <span class="item-name">{{
+                          getElementName(
+                            group.isIncoming
+                              ? rel.sourceElementId
+                              : rel.targetElementId
+                          )
+                        }}</span>
+                      </button>
                       <button
                         mat-icon-button
-                        (click)="deleteRelationship(rel, $event)"
-                        matTooltip="Remove relationship"
-                        class="delete-button"
-                        data-testid="delete-relationship-button">
-                        <mat-icon>close</mat-icon>
+                        [matMenuTriggerFor]="relationshipMenu"
+                        class="menu-button"
+                        data-testid="relationship-menu-button">
+                        <mat-icon>more_vert</mat-icon>
                       </button>
-                    }
-                    <mat-icon class="chevron">chevron_right</mat-icon>
-                  </div>
-                </a>
-              }
-            </mat-nav-list>
-          </mat-expansion-panel>
+                      <mat-menu #relationshipMenu="matMenu">
+                        <button
+                          mat-menu-item
+                          (click)="navigateToElement(rel, group.isIncoming)">
+                          <mat-icon>open_in_new</mat-icon>
+                          <span>Go to element</span>
+                        </button>
+                        @if (!group.isIncoming) {
+                          <button
+                            mat-menu-item
+                            (click)="deleteRelationship(rel, $event)"
+                            data-testid="delete-relationship-button">
+                            <mat-icon color="warn">delete</mat-icon>
+                            <span>Remove relationship</span>
+                          </button>
+                        }
+                      </mat-menu>
+                    </li>
+                  }
+                </ul>
+              </ng-template>
+            </div>
+          </div>
         }
-      </mat-accordion>
+      </div>
     </div>
   </div>
 }

@@ -1,421 +1,485 @@
-<div class="settings-tab">
+<div class="settings-tab" data-testid="settings-tab-content">
   <h2>Project Settings</h2>
 
-  @if (currentMode === 'offline') {
-    <mat-card class="info-card offline">
-      <mat-card-content>
-        <div class="info-content">
-          <mat-icon>info</mat-icon>
-          <div>
-            <strong>Offline Mode:</strong> Some settings are not available in
-            offline mode. Connect to a server to access MCP API keys and sync
-            features.
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  }
+  <mat-tab-group class="settings-tabs" animationDuration="200ms">
+    <!-- General Settings Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>settings</mat-icon>
+        <span class="tab-label">General</span>
+      </ng-template>
 
-  <!-- MCP API Keys Section -->
-  <section class="settings-section">
-    <h3>
-      <mat-icon>key</mat-icon>
-      MCP API Keys
-    </h3>
-    <p class="section-description">
-      Create API keys to allow external tools (like AI assistants) to access
-      your project via the Model Context Protocol (MCP).
-    </p>
-
-    @if (currentMode === 'server') {
-      @if (isLoadingKeys()) {
-        <div class="loading-state">
-          <mat-progress-spinner diameter="32" mode="indeterminate">
-          </mat-progress-spinner>
-          <span>Loading API keys...</span>
-        </div>
-      } @else if (keysError()) {
-        <mat-card class="error-card">
-          <mat-card-content>
-            <mat-icon>error</mat-icon>
-            <span>{{ keysError() }}</span>
-            <button mat-button color="primary" (click)="loadMcpKeys()">
-              Retry
-            </button>
-          </mat-card-content>
-        </mat-card>
-      } @else {
-        <!-- Existing Keys List -->
-        @if (mcpKeys().length > 0) {
-          <mat-card class="keys-card">
-            <mat-card-header>
-              <mat-card-title
-                >Active Keys ({{ getActiveKeysCount() }})</mat-card-title
-              >
-            </mat-card-header>
+      <div class="tab-content">
+        @if (currentMode === 'offline') {
+          <mat-card class="info-card offline">
             <mat-card-content>
-              <div class="keys-list">
-                @for (key of mcpKeys(); track key.id) {
-                  <div
-                    class="key-item"
-                    [class.revoked]="key.revoked"
-                    data-testid="mcp-key-item">
-                    <div class="key-info">
-                      <div class="key-header">
-                        <strong>{{ key.name }}</strong>
-                        @if (key.revoked) {
-                          <span class="revoked-badge">Revoked</span>
-                        }
-                      </div>
-                      <div class="key-meta">
-                        <span class="key-prefix">{{ key.keyPrefix }}...</span>
-                        <span class="key-created">
-                          Created: {{ formatDate(key.createdAt) }}
-                        </span>
-                        @if (key.expiresAt) {
-                          <span
-                            class="key-expires"
-                            [class.warning]="key.expiresAt < currentTime()">
-                            Expires: {{ formatDate(key.expiresAt) }}
-                          </span>
-                        }
-                        @if (key.lastUsedAt) {
-                          <span class="key-used">
-                            Last used: {{ formatDate(key.lastUsedAt) }}
-                          </span>
-                        }
-                      </div>
-                      <div class="key-permissions">
-                        @for (perm of key.permissions; track perm) {
-                          <span class="permission-chip">{{ perm }}</span>
-                        }
-                      </div>
-                    </div>
-                    <div class="key-actions">
-                      @if (!key.revoked) {
-                        <button
-                          mat-icon-button
-                          color="warn"
-                          matTooltip="Revoke key"
-                          (click)="revokeKey(key)"
-                          data-testid="revoke-key-button">
-                          <mat-icon>block</mat-icon>
-                        </button>
+              <div class="info-content">
+                <mat-icon>info</mat-icon>
+                <div>
+                  <strong>Offline Mode:</strong> Some settings are not available
+                  in offline mode. Connect to a server to access MCP API keys
+                  and sync features.
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- MCP API Keys Section -->
+        <section class="settings-section">
+          <h3>
+            <mat-icon>key</mat-icon>
+            MCP API Keys
+          </h3>
+          <p class="section-description">
+            Create API keys to allow external tools (like AI assistants) to
+            access your project via the Model Context Protocol (MCP).
+          </p>
+
+          @if (currentMode === 'server') {
+            @if (isLoadingKeys()) {
+              <div class="loading-state">
+                <mat-progress-spinner diameter="32" mode="indeterminate">
+                </mat-progress-spinner>
+                <span>Loading API keys...</span>
+              </div>
+            } @else if (keysError()) {
+              <mat-card class="error-card">
+                <mat-card-content>
+                  <mat-icon>error</mat-icon>
+                  <span>{{ keysError() }}</span>
+                  <button mat-button color="primary" (click)="loadMcpKeys()">
+                    Retry
+                  </button>
+                </mat-card-content>
+              </mat-card>
+            } @else {
+              <!-- Existing Keys List -->
+              @if (mcpKeys().length > 0) {
+                <mat-card class="keys-card">
+                  <mat-card-header>
+                    <mat-card-title
+                      >Active Keys ({{ getActiveKeysCount() }})</mat-card-title
+                    >
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="keys-list">
+                      @for (key of mcpKeys(); track key.id) {
+                        <div
+                          class="key-item"
+                          [class.revoked]="key.revoked"
+                          data-testid="mcp-key-item">
+                          <div class="key-info">
+                            <div class="key-header">
+                              <strong>{{ key.name }}</strong>
+                              @if (key.revoked) {
+                                <span class="revoked-badge">Revoked</span>
+                              }
+                            </div>
+                            <div class="key-meta">
+                              <span class="key-prefix"
+                                >{{ key.keyPrefix }}...</span
+                              >
+                              <span class="key-created">
+                                Created: {{ formatDate(key.createdAt) }}
+                              </span>
+                              @if (key.expiresAt) {
+                                <span
+                                  class="key-expires"
+                                  [class.warning]="
+                                    key.expiresAt < currentTime()
+                                  ">
+                                  Expires: {{ formatDate(key.expiresAt) }}
+                                </span>
+                              }
+                              @if (key.lastUsedAt) {
+                                <span class="key-used">
+                                  Last used: {{ formatDate(key.lastUsedAt) }}
+                                </span>
+                              }
+                            </div>
+                            <div class="key-permissions">
+                              @for (perm of key.permissions; track perm) {
+                                <span class="permission-chip">{{ perm }}</span>
+                              }
+                            </div>
+                          </div>
+                          <div class="key-actions">
+                            @if (!key.revoked) {
+                              <button
+                                mat-icon-button
+                                color="warn"
+                                matTooltip="Revoke key"
+                                (click)="revokeKey(key)"
+                                data-testid="revoke-key-button">
+                                <mat-icon>block</mat-icon>
+                              </button>
+                            }
+                            <button
+                              mat-icon-button
+                              color="warn"
+                              matTooltip="Delete key"
+                              (click)="deleteKey(key)"
+                              data-testid="delete-key-button">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </div>
+                        </div>
                       }
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <!-- Newly Created Key Display -->
+              @if (newlyCreatedKey()) {
+                <mat-card class="new-key-card success">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>check_circle</mat-icon>
+                      API Key Created
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <p class="warning-text">
+                      <mat-icon>warning</mat-icon>
+                      Copy this key now! It will not be shown again.
+                    </p>
+                    <div class="key-display">
+                      <code class="full-key">{{ newlyCreatedKey() }}</code>
                       <button
                         mat-icon-button
-                        color="warn"
-                        matTooltip="Delete key"
-                        (click)="deleteKey(key)"
-                        data-testid="delete-key-button">
-                        <mat-icon>delete</mat-icon>
+                        matTooltip="Copy to clipboard"
+                        (click)="copyKeyToClipboard(newlyCreatedKey()!)"
+                        data-testid="copy-key-button">
+                        <mat-icon>content_copy</mat-icon>
                       </button>
                     </div>
-                  </div>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
-        }
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      (click)="dismissNewKey()"
+                      class="dismiss-button">
+                      I've copied the key
+                    </button>
+                  </mat-card-content>
+                </mat-card>
+              }
 
-        <!-- Newly Created Key Display -->
-        @if (newlyCreatedKey()) {
-          <mat-card class="new-key-card success">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>check_circle</mat-icon>
-                API Key Created
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p class="warning-text">
-                <mat-icon>warning</mat-icon>
-                Copy this key now! It will not be shown again.
-              </p>
-              <div class="key-display">
-                <code class="full-key">{{ newlyCreatedKey() }}</code>
-                <button
-                  mat-icon-button
-                  matTooltip="Copy to clipboard"
-                  (click)="copyKeyToClipboard(newlyCreatedKey()!)"
-                  data-testid="copy-key-button">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </div>
-              <button
-                mat-raised-button
-                color="primary"
-                (click)="dismissNewKey()"
-                class="dismiss-button">
-                I've copied the key
-              </button>
-            </mat-card-content>
-          </mat-card>
-        }
-
-        <!-- Create New Key Form -->
-        @if (!newlyCreatedKey()) {
-          @if (!showCreateKeyForm()) {
-            <button
-              mat-raised-button
-              color="primary"
-              (click)="toggleCreateKeyForm()"
-              data-testid="create-key-button">
-              <mat-icon>add</mat-icon>
-              Create New API Key
-            </button>
-          } @else {
-            <mat-card class="create-key-card">
-              <mat-card-header>
-                <mat-card-title>Create New API Key</mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                <mat-form-field class="full-width">
-                  <mat-label>Key Name</mat-label>
-                  <input
-                    matInput
-                    [(ngModel)]="newKeyName"
-                    placeholder="e.g., Claude Desktop, Cursor IDE"
-                    data-testid="key-name-input" />
-                  <mat-hint>A friendly name to identify this key</mat-hint>
-                </mat-form-field>
-
-                <div class="permissions-section">
-                  <div class="permissions-header">
-                    <h4>Permissions</h4>
-                    <div class="permission-shortcuts">
-                      <button mat-button (click)="selectAllReadPermissions()">
-                        All Read
-                      </button>
-                      <button mat-button (click)="selectAllWritePermissions()">
-                        All Write
-                      </button>
-                      <button mat-button (click)="selectAllPermissions()">
-                        All
-                      </button>
-                      <button mat-button (click)="clearPermissions()">
-                        Clear
-                      </button>
-                    </div>
-                  </div>
-
-                  @for (group of permissionGroups; track group.label) {
-                    <div class="permission-group">
-                      <h5>{{ group.label }}</h5>
-                      <div class="permissions-grid">
-                        @for (
-                          perm of group.permissions;
-                          track perm.permission
-                        ) {
-                          <mat-checkbox
-                            [checked]="hasPermission(perm.permission)"
-                            (change)="togglePermission(perm.permission)"
-                            [matTooltip]="perm.description">
-                            {{ perm.label }}
-                          </mat-checkbox>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-
-                <mat-form-field class="full-width">
-                  <mat-label>Expiration</mat-label>
-                  <mat-select [(ngModel)]="newKeyExpiration">
-                    <mat-option value="never">Never expires</mat-option>
-                    <mat-option value="7days">7 days</mat-option>
-                    <mat-option value="30days">30 days</mat-option>
-                    <mat-option value="90days">90 days</mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <div class="form-actions">
-                  <button mat-button (click)="toggleCreateKeyForm()">
-                    Cancel
-                  </button>
+              <!-- Create New Key Form -->
+              @if (!newlyCreatedKey()) {
+                @if (!showCreateKeyForm()) {
                   <button
                     mat-raised-button
                     color="primary"
-                    [disabled]="
-                      !newKeyName.trim() ||
-                      selectedPermissions().size === 0 ||
-                      isCreatingKey()
-                    "
-                    (click)="createKey()"
-                    data-testid="submit-create-key-button">
-                    @if (isCreatingKey()) {
-                      <mat-progress-spinner diameter="20" mode="indeterminate">
-                      </mat-progress-spinner>
-                    } @else {
-                      <ng-container>
-                        <mat-icon>add</mat-icon>
-                        Create Key
-                      </ng-container>
-                    }
+                    (click)="toggleCreateKeyForm()"
+                    data-testid="create-key-button">
+                    <mat-icon>add</mat-icon>
+                    Create New API Key
                   </button>
+                } @else {
+                  <mat-card class="create-key-card">
+                    <mat-card-header>
+                      <mat-card-title>Create New API Key</mat-card-title>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <mat-form-field class="full-width">
+                        <mat-label>Key Name</mat-label>
+                        <input
+                          matInput
+                          [(ngModel)]="newKeyName"
+                          placeholder="e.g., Claude Desktop, Cursor IDE"
+                          data-testid="key-name-input" />
+                        <mat-hint
+                          >A friendly name to identify this key</mat-hint
+                        >
+                      </mat-form-field>
+
+                      <div class="permissions-section">
+                        <div class="permissions-header">
+                          <h4>Permissions</h4>
+                          <div class="permission-shortcuts">
+                            <button
+                              mat-button
+                              (click)="selectAllReadPermissions()">
+                              All Read
+                            </button>
+                            <button
+                              mat-button
+                              (click)="selectAllWritePermissions()">
+                              All Write
+                            </button>
+                            <button mat-button (click)="selectAllPermissions()">
+                              All
+                            </button>
+                            <button mat-button (click)="clearPermissions()">
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+
+                        @for (group of permissionGroups; track group.label) {
+                          <div class="permission-group">
+                            <h5>{{ group.label }}</h5>
+                            <div class="permissions-grid">
+                              @for (
+                                perm of group.permissions;
+                                track perm.permission
+                              ) {
+                                <mat-checkbox
+                                  [checked]="hasPermission(perm.permission)"
+                                  (change)="togglePermission(perm.permission)"
+                                  [matTooltip]="perm.description">
+                                  {{ perm.label }}
+                                </mat-checkbox>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+
+                      <mat-form-field class="full-width">
+                        <mat-label>Expiration</mat-label>
+                        <mat-select [(ngModel)]="newKeyExpiration">
+                          <mat-option value="never">Never expires</mat-option>
+                          <mat-option value="7days">7 days</mat-option>
+                          <mat-option value="30days">30 days</mat-option>
+                          <mat-option value="90days">90 days</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+
+                      <div class="form-actions">
+                        <button mat-button (click)="toggleCreateKeyForm()">
+                          Cancel
+                        </button>
+                        <button
+                          mat-raised-button
+                          color="primary"
+                          [disabled]="
+                            !newKeyName.trim() ||
+                            selectedPermissions().size === 0 ||
+                            isCreatingKey()
+                          "
+                          (click)="createKey()"
+                          data-testid="submit-create-key-button">
+                          @if (isCreatingKey()) {
+                            <mat-progress-spinner
+                              diameter="20"
+                              mode="indeterminate">
+                            </mat-progress-spinner>
+                          } @else {
+                            <ng-container>
+                              <mat-icon>add</mat-icon>
+                              Create Key
+                            </ng-container>
+                          }
+                        </button>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                }
+              }
+            }
+          } @else {
+            <mat-card class="info-card">
+              <mat-card-content>
+                <div class="info-content">
+                  <mat-icon>cloud_off</mat-icon>
+                  <div>
+                    MCP API keys require a server connection. Switch to server
+                    mode in the Connection settings to create API keys.
+                  </div>
                 </div>
               </mat-card-content>
             </mat-card>
           }
-        }
-      }
-    } @else {
-      <mat-card class="info-card">
-        <mat-card-content>
-          <div class="info-content">
-            <mat-icon>cloud_off</mat-icon>
-            <div>
-              MCP API keys require a server connection. Switch to server mode in
-              the Connection settings to create API keys.
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    }
-  </section>
+        </section>
 
-  <!-- Media Sync Section -->
-  <section class="settings-section">
-    <h3>
-      <mat-icon>perm_media</mat-icon>
-      Media Library Sync
-    </h3>
+        <!-- Media Sync Section -->
+        <section class="settings-section">
+          <h3>
+            <mat-icon>perm_media</mat-icon>
+            Media Library Sync
+          </h3>
 
-    @if (currentMode === 'server' && projectKey()) {
-      <mat-card class="sync-card">
-        <mat-card-content>
-          @if (mediaSyncState(); as state) {
-            <div class="status-grid">
-              <div class="status-item">
-                <span class="label">Server:</span>
-                <span class="value">
-                  {{ getServerFileCount() }} files ({{
-                    formatBytes(getServerTotalSize())
-                  }})
-                </span>
-              </div>
-              <div class="status-item">
-                <span class="label">Local Cache:</span>
-                <span class="value">
-                  {{ getLocalFileCount() }} files ({{
-                    formatBytes(getLocalTotalSize())
-                  }})
-                </span>
-              </div>
-              <div class="status-item">
-                <span class="label">Needs Download:</span>
-                <span class="value" [class.warning]="state.needsDownload > 0">
-                  {{ state.needsDownload }} files
-                </span>
-              </div>
-              <div class="status-item">
-                <span class="label">Needs Upload:</span>
-                <span class="value" [class.warning]="state.needsUpload > 0">
-                  {{ state.needsUpload }} files
-                </span>
-              </div>
-              <div class="status-item">
-                <span class="label">Last Checked:</span>
-                <span class="value">
-                  {{
-                    state.lastChecked
-                      ? (state.lastChecked | date: 'short')
-                      : 'Never'
-                  }}
-                </span>
-              </div>
-            </div>
+          @if (currentMode === 'server' && projectKey()) {
+            <mat-card class="sync-card">
+              <mat-card-content>
+                @if (mediaSyncState(); as state) {
+                  <div class="status-grid">
+                    <div class="status-item">
+                      <span class="label">Server:</span>
+                      <span class="value">
+                        {{ getServerFileCount() }} files ({{
+                          formatBytes(getServerTotalSize())
+                        }})
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Local Cache:</span>
+                      <span class="value">
+                        {{ getLocalFileCount() }} files ({{
+                          formatBytes(getLocalTotalSize())
+                        }})
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Needs Download:</span>
+                      <span
+                        class="value"
+                        [class.warning]="state.needsDownload > 0">
+                        {{ state.needsDownload }} files
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Needs Upload:</span>
+                      <span
+                        class="value"
+                        [class.warning]="state.needsUpload > 0">
+                        {{ state.needsUpload }} files
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Last Checked:</span>
+                      <span class="value">
+                        {{
+                          state.lastChecked
+                            ? (state.lastChecked | date: 'short')
+                            : 'Never'
+                        }}
+                      </span>
+                    </div>
+                  </div>
 
-            @if (state.isSyncing) {
-              <mat-progress-bar
-                mode="determinate"
-                [value]="state.downloadProgress">
-              </mat-progress-bar>
-              <p class="sync-progress-text">
-                Downloading... {{ state.downloadProgress }}%
-              </p>
-            }
+                  @if (state.isSyncing) {
+                    <mat-progress-bar
+                      mode="determinate"
+                      [value]="state.downloadProgress">
+                    </mat-progress-bar>
+                    <p class="sync-progress-text">
+                      Downloading... {{ state.downloadProgress }}%
+                    </p>
+                  }
 
-            @if (state.error) {
-              <p class="error-text">{{ state.error }}</p>
-            }
+                  @if (state.error) {
+                    <p class="error-text">{{ state.error }}</p>
+                  }
 
-            <div class="action-buttons">
-              <button
-                mat-stroked-button
-                (click)="checkMediaSyncStatus()"
-                [disabled]="state.isSyncing">
-                <mat-icon>refresh</mat-icon>
-                Refresh Status
-              </button>
-              @if (state.needsDownload > 0) {
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="downloadAllMedia()"
-                  [disabled]="state.isSyncing">
-                  <mat-icon>cloud_download</mat-icon>
-                  Download All ({{ state.needsDownload }})
-                </button>
-              }
-              @if (state.needsUpload > 0) {
-                <button
-                  mat-raised-button
-                  color="accent"
-                  (click)="uploadAllMedia()"
-                  [disabled]="state.isSyncing">
-                  <mat-icon>cloud_upload</mat-icon>
-                  Upload All ({{ state.needsUpload }})
-                </button>
-              }
-            </div>
+                  <div class="action-buttons">
+                    <button
+                      mat-stroked-button
+                      (click)="checkMediaSyncStatus()"
+                      [disabled]="state.isSyncing">
+                      <mat-icon>refresh</mat-icon>
+                      Refresh Status
+                    </button>
+                    @if (state.needsDownload > 0) {
+                      <button
+                        mat-raised-button
+                        color="primary"
+                        (click)="downloadAllMedia()"
+                        [disabled]="state.isSyncing">
+                        <mat-icon>cloud_download</mat-icon>
+                        Download All ({{ state.needsDownload }})
+                      </button>
+                    }
+                    @if (state.needsUpload > 0) {
+                      <button
+                        mat-raised-button
+                        color="accent"
+                        (click)="uploadAllMedia()"
+                        [disabled]="state.isSyncing">
+                        <mat-icon>cloud_upload</mat-icon>
+                        Upload All ({{ state.needsUpload }})
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <div class="loading-state">
+                    <mat-progress-spinner diameter="24" mode="indeterminate">
+                    </mat-progress-spinner>
+                    <span>Checking media sync status...</span>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
           } @else {
-            <div class="loading-state">
-              <mat-progress-spinner diameter="24" mode="indeterminate">
-              </mat-progress-spinner>
-              <span>Checking media sync status...</span>
-            </div>
+            <mat-card class="info-card">
+              <mat-card-content>
+                <div class="info-content">
+                  <mat-icon>info</mat-icon>
+                  <div>
+                    @if (currentMode !== 'server') {
+                      Media sync requires a server connection.
+                    } @else {
+                      Open a project to view its media sync status.
+                    }
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
           }
-        </mat-card-content>
-      </mat-card>
-    } @else {
-      <mat-card class="info-card">
-        <mat-card-content>
-          <div class="info-content">
-            <mat-icon>info</mat-icon>
-            <div>
-              @if (currentMode !== 'server') {
-                Media sync requires a server connection.
-              } @else {
-                Open a project to view its media sync status.
-              }
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    }
-  </section>
+        </section>
 
-  <!-- Future: Collaboration Section -->
-  <section class="settings-section coming-soon">
-    <h3>
-      <mat-icon>group</mat-icon>
-      Collaboration
-      <span class="coming-soon-badge">Coming Soon</span>
-    </h3>
-    <p class="section-description">
-      Share your project with other users and collaborate in real-time.
-    </p>
-    <mat-card class="info-card">
-      <mat-card-content>
-        <div class="info-content">
-          <mat-icon>schedule</mat-icon>
-          <div>
-            Collaboration features are coming in a future update. You'll be able
-            to invite other users to view or edit your project.
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </section>
+        <!-- Future: Collaboration Section -->
+        <section class="settings-section coming-soon">
+          <h3>
+            <mat-icon>group</mat-icon>
+            Collaboration
+            <span class="coming-soon-badge">Coming Soon</span>
+          </h3>
+          <p class="section-description">
+            Share your project with other users and collaborate in real-time.
+          </p>
+          <mat-card class="info-card">
+            <mat-card-content>
+              <div class="info-content">
+                <mat-icon>schedule</mat-icon>
+                <div>
+                  Collaboration features are coming in a future update. You'll
+                  be able to invite other users to view or edit your project.
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </section>
+      </div>
+    </mat-tab>
+
+    <!-- Element Templates Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>description</mat-icon>
+        <span class="tab-label">Element Templates</span>
+      </ng-template>
+
+      <div class="tab-content embedded-tab">
+        <app-templates-tab></app-templates-tab>
+      </div>
+    </mat-tab>
+
+    <!-- Relationship Types Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>hub</mat-icon>
+        <span class="tab-label">Relationship Types</span>
+      </ng-template>
+
+      <div class="tab-content embedded-tab">
+        <app-relationships-tab></app-relationships-tab>
+      </div>
+    </mat-tab>
+
+    <!-- Tags Tab -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>local_offer</mat-icon>
+        <span class="tab-label">Tags</span>
+      </ng-template>
+
+      <div class="tab-content embedded-tab">
+        <app-tags-tab></app-tags-tab>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
 </div>

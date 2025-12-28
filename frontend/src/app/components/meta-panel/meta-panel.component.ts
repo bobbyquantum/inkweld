@@ -1,9 +1,14 @@
+import {
+  AccordionContent,
+  AccordionGroup,
+  AccordionPanel,
+  AccordionTrigger,
+} from '@angular/aria/accordion';
 import { Component, computed, inject, input, output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -11,6 +16,7 @@ import {
   RelationshipService,
   RelationshipTypeDefinition,
 } from '@services/relationship';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 import { Element, ElementType } from '../../../api-client';
 import {
@@ -44,10 +50,13 @@ interface RelationshipGroup {
   selector: 'app-meta-panel',
   standalone: true,
   imports: [
+    AccordionGroup,
+    AccordionTrigger,
+    AccordionPanel,
+    AccordionContent,
     MatButtonModule,
     MatIconModule,
-    MatExpansionModule,
-    MatListModule,
+    MatMenuModule,
     MatTooltipModule,
   ],
   templateUrl: './meta-panel.component.html',
@@ -69,11 +78,21 @@ export class MetaPanelComponent {
   private relationshipService = inject(RelationshipService);
   private projectState = inject(ProjectStateService);
   private elementRefService = inject(ElementRefService);
+  private worldbuildingService = inject(WorldbuildingService);
   private dialog = inject(MatDialog);
 
   /** The effective element ID (elementId or documentId) */
   private effectiveElementId = computed(() => {
     return this.elementId() || this.documentId();
+  });
+
+  /**
+   * The normalized element ID for relationship matching.
+   * Extracts the element ID from documentId format (username:slug:elementId).
+   */
+  private normalizedElementId = computed(() => {
+    const id = this.effectiveElementId();
+    return this.extractElementId(id ?? '');
   });
 
   /** All relationships from the service */
@@ -83,7 +102,7 @@ export class MetaPanelComponent {
 
   /** Outgoing relationships (from this element to others) */
   private outgoingRelationships = computed(() => {
-    const targetId = this.effectiveElementId();
+    const targetId = this.normalizedElementId();
     return this.allRelationships().filter(
       (r: ElementRelationship) => r.sourceElementId === targetId
     );
@@ -91,7 +110,7 @@ export class MetaPanelComponent {
 
   /** Incoming relationships (backlinks from other elements) */
   private incomingRelationships = computed(() => {
-    const targetId = this.effectiveElementId();
+    const targetId = this.normalizedElementId();
     return this.allRelationships().filter(
       (r: ElementRelationship) => r.targetElementId === targetId
     );
@@ -213,7 +232,8 @@ export class MetaPanelComponent {
   }
 
   /**
-   * Get icon for an element by ID
+   * Get icon for an element by ID.
+   * For Worldbuilding elements, looks up the schema icon.
    */
   getElementIcon(elementId: string): string {
     const element = this.getElement(elementId);
@@ -225,7 +245,16 @@ export class MetaPanelComponent {
       case ElementType.Item:
         return 'description';
       case ElementType.Worldbuilding:
-        return 'auto_awesome';
+        // Look up schema icon for worldbuilding elements
+        if (element.schemaId) {
+          const schema = this.worldbuildingService.getSchemaById(
+            element.schemaId
+          );
+          if (schema?.icon) {
+            return schema.icon;
+          }
+        }
+        return 'category';
       default:
         return 'link';
     }

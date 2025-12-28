@@ -1,4 +1,8 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  Component,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,7 +26,24 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
+import { TagsTabComponent } from '../tags/tags-tab.component';
+import { TemplatesTabComponent } from '../templates/templates-tab.component';
 import { SettingsTabComponent } from './settings-tab.component';
+
+// Mock child components to avoid their complex dependencies
+@Component({ selector: 'app-templates-tab', template: '', standalone: true })
+class MockTemplatesTabComponent {}
+
+@Component({
+  selector: 'app-relationships-tab',
+  template: '',
+  standalone: true,
+})
+class MockRelationshipsTabComponent {}
+
+@Component({ selector: 'app-tags-tab', template: '', standalone: true })
+class MockTagsTabComponent {}
 
 describe('SettingsTabComponent', () => {
   let component: SettingsTabComponent;
@@ -142,7 +163,24 @@ describe('SettingsTabComponent', () => {
         { provide: MediaSyncService, useValue: mediaSyncService },
         { provide: MatDialog, useValue: dialog },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(SettingsTabComponent, {
+        remove: {
+          imports: [
+            TemplatesTabComponent,
+            RelationshipsTabComponent,
+            TagsTabComponent,
+          ],
+        },
+        add: {
+          imports: [
+            MockTemplatesTabComponent,
+            MockRelationshipsTabComponent,
+            MockTagsTabComponent,
+          ],
+        },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(SettingsTabComponent);
     component = fixture.componentInstance;

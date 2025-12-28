@@ -91,9 +91,13 @@ mat-form-field {
   word-break: break-all;
 }
 
+mat-card-content {
+  padding-bottom: 16px;
+}
+
 mat-card-actions {
   padding: 16px;
-  padding-top: 0;
+  margin: 0 !important; // Override Angular Material's negative margins
 }
 
 // Step header styling

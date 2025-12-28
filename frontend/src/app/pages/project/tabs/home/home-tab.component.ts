@@ -213,7 +213,8 @@ export class HomeTabComponent {
    * Opens the documents tab
    */
   openDocumentsTab(): void {
-    this.projectState.openSystemTab('documents-list');
+    const result = this.projectState.openSystemTab('documents-list');
+    this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
       void this.router.navigate([
@@ -229,7 +230,8 @@ export class HomeTabComponent {
    * Opens the media tab
    */
   openMediaTab(): void {
-    this.projectState.openSystemTab('media');
+    const result = this.projectState.openSystemTab('media');
+    this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
       void this.router.navigate(['/', project.username, project.slug, 'media']);
@@ -240,7 +242,8 @@ export class HomeTabComponent {
    * Opens the templates tab
    */
   openTemplatesTab(): void {
-    this.projectState.openSystemTab('templates-list');
+    const result = this.projectState.openSystemTab('templates-list');
+    this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
       void this.router.navigate([
@@ -256,7 +259,8 @@ export class HomeTabComponent {
    * Opens the project settings tab
    */
   openSettingsTab(): void {
-    this.projectState.openSystemTab('settings');
+    const result = this.projectState.openSystemTab('settings');
+    this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
       void this.router.navigate([

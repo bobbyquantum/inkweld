@@ -95,7 +95,6 @@ export class TagsTabComponent {
     effect(() => {
       const project = this.project();
       if (project) {
-        this.projectState.openSystemTab('tags-list');
         this.loadTags();
       }
     });

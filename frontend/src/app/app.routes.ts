@@ -11,10 +11,7 @@ import { FolderTabComponent } from './pages/project/tabs/folder/folder-tab.compo
 import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
 import { MediaTabComponent } from './pages/project/tabs/media/media-tab.component';
 import { PublishPlanTabComponent } from './pages/project/tabs/publish-plan/publish-plan-tab.component';
-import { RelationshipsTabComponent } from './pages/project/tabs/relationships/relationships-tab.component';
 import { SettingsTabComponent } from './pages/project/tabs/settings/settings-tab.component';
-import { TagsTabComponent } from './pages/project/tabs/tags/tags-tab.component';
-import { TemplatesTabComponent } from './pages/project/tabs/templates/templates-tab.component';
 import { WorldbuildingTabComponent } from './pages/project/tabs/worldbuilding/worldbuilding-tab.component';
 
 export const routes: Routes = [
@@ -177,18 +174,16 @@ export const routes: Routes = [
         },
       },
       {
+        // Redirect old templates-list route to settings
         path: 'templates-list',
-        component: TemplatesTabComponent,
-        data: {
-          reuseComponent: false,
-        },
+        redirectTo: 'settings',
+        pathMatch: 'full',
       },
       {
+        // Redirect old relationships-list route to settings
         path: 'relationships-list',
-        component: RelationshipsTabComponent,
-        data: {
-          reuseComponent: false,
-        },
+        redirectTo: 'settings',
+        pathMatch: 'full',
       },
       {
         path: 'settings',
@@ -198,11 +193,10 @@ export const routes: Routes = [
         },
       },
       {
+        // Redirect old tags-list route to settings
         path: 'tags-list',
-        component: TagsTabComponent,
-        data: {
-          reuseComponent: false,
-        },
+        redirectTo: 'settings',
+        pathMatch: 'full',
       },
       {
         path: 'worldbuilding/:tabId',

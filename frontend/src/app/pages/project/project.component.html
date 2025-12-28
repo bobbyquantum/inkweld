@@ -201,44 +201,6 @@
                 </div>
                 <div
                   class="sidebar-nav-item"
-                  [class.selected-item]="isSystemTabSelected('templates-list')"
-                  data-testid="sidebar-templates-button"
-                  tabindex="0"
-                  role="button"
-                  (click)="onShowTemplatesList()"
-                  (keyup.enter)="onShowTemplatesList()"
-                  aria-label="Element Templates">
-                  <mat-icon>description</mat-icon>
-                  <span class="nav-title">Element Templates</span>
-                </div>
-                <div
-                  class="sidebar-nav-item"
-                  [class.selected-item]="
-                    isSystemTabSelected('relationships-list')
-                  "
-                  data-testid="sidebar-relationships-button"
-                  tabindex="0"
-                  role="button"
-                  (click)="onShowRelationships()"
-                  (keyup.enter)="onShowRelationships()"
-                  aria-label="Relationship Types">
-                  <mat-icon>hub</mat-icon>
-                  <span class="nav-title">Relationship Types</span>
-                </div>
-                <div
-                  class="sidebar-nav-item"
-                  [class.selected-item]="isSystemTabSelected('tags-list')"
-                  data-testid="sidebar-tags-button"
-                  tabindex="0"
-                  role="button"
-                  (click)="onShowTags()"
-                  (keyup.enter)="onShowTags()"
-                  aria-label="Tags">
-                  <mat-icon>local_offer</mat-icon>
-                  <span class="nav-title">Tags</span>
-                </div>
-                <div
-                  class="sidebar-nav-item"
                   [class.selected-item]="isSystemTabSelected('settings')"
                   data-testid="sidebar-settings-button"
                   tabindex="0"

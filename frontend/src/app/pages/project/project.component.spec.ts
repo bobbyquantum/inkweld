@@ -157,7 +157,7 @@ describe('ProjectComponent', () => {
       }),
       closeTab: vi.fn(),
       openDocument: vi.fn(),
-      openSystemTab: vi.fn(),
+      openSystemTab: vi.fn().mockReturnValue({ index: 1, wasCreated: true }),
       getPublishPlans: vi.fn().mockReturnValue([]),
       createPublishPlan: vi.fn(),
       openPublishPlan: vi.fn(),
@@ -375,6 +375,7 @@ describe('ProjectComponent', () => {
       expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
         'documents-list'
       );
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
       expect(router.navigate).toHaveBeenCalledWith([
         '/',
         'testuser',
@@ -386,6 +387,7 @@ describe('ProjectComponent', () => {
     it('should show media library', () => {
       component.onShowMediaLibrary();
       expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
       expect(router.navigate).toHaveBeenCalledWith([
         '/',
         'testuser',
@@ -394,16 +396,17 @@ describe('ProjectComponent', () => {
       ]);
     });
 
-    it('should show templates list', () => {
-      component.onShowTemplatesList();
+    it('should show project settings', () => {
+      component.onShowSettings();
       expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'templates-list'
+        'settings'
       );
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
       expect(router.navigate).toHaveBeenCalledWith([
         '/',
         'testuser',
         'test-project',
-        'templates-list',
+        'settings',
       ]);
     });
   });

@@ -336,6 +336,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         systemRoute = 'relationships-list';
       } else if (url === `${projectBaseUrl}/tags-list`) {
         systemRoute = 'tags-list';
+      } else if (url === `${projectBaseUrl}/settings`) {
+        systemRoute = 'settings';
       } else if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
         // Extract publish plan ID from URL
         const urlParts = url.split('/');

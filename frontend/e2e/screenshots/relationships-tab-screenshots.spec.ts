@@ -88,6 +88,7 @@ test.describe('Relationships Tab Screenshots', () => {
 
   /**
    * Helper to create a project and navigate to relationships tab
+   * (Relationship Types is now a sub-tab within Project Settings)
    */
   async function setupProjectAndRelationshipsTab(
     page: Page,
@@ -123,13 +124,57 @@ test.describe('Relationships Tab Screenshots', () => {
       timeout: 5000,
     });
 
-    // Navigate to relationships tab
-    await page.goto(`/demouser/${projectSlug}/relationships-list`);
+    // Navigate to Settings tab first
+    await page.goto(`/demouser/${projectSlug}/settings`);
+    await page.waitForSelector('[data-testid="settings-tab-content"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
+
+    // Click on the "Relationship Types" inner tab
+    await page.getByRole('tab', { name: 'Relationship Types' }).click();
+
+    // Wait for relationships container
     await page.waitForSelector('.relationships-tab-container', {
       state: 'visible',
       timeout: 5000,
     });
     await page.waitForTimeout(500);
+
+    // Create a sample relationship type so screenshots have content
+    await createSampleRelationshipType(page);
+  }
+
+  /**
+   * Helper to create a sample relationship type for screenshots
+   */
+  async function createSampleRelationshipType(page: Page) {
+    // Click the create button (handles both empty state and populated state)
+    const createButton = page.getByRole('button', { name: /create.*type/i });
+    await createButton.click();
+
+    // First dialog: Enter the type name
+    await page.waitForSelector('app-rename-dialog', { state: 'visible' });
+    await page.locator('app-rename-dialog input').clear();
+    await page.locator('app-rename-dialog input').fill('Parent');
+    await page.locator('app-rename-dialog button:has-text("Rename")').click();
+
+    // Second dialog: Enter the inverse label
+    await page
+      .locator('app-rename-dialog h2:has-text("Inverse Label")')
+      .waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('app-rename-dialog input').clear();
+    await page.locator('app-rename-dialog input').fill('Child');
+    await page.locator('app-rename-dialog button:has-text("Rename")').click();
+
+    // Wait for dialog to close and type to appear
+    await page
+      .locator('app-rename-dialog')
+      .waitFor({ state: 'hidden', timeout: 5000 });
+    await page
+      .locator('[data-testid="relationship-type-card"]')
+      .first()
+      .waitFor({ state: 'visible', timeout: 5000 });
   }
 
   test.describe('Light Mode Screenshots', () => {

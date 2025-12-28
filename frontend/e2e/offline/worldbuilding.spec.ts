@@ -25,9 +25,19 @@ test.describe('Worldbuilding Templates', () => {
     // Verify character element was created
     await expect(page.getByTestId('element-Test Character')).toBeVisible();
 
-    // Navigate to Templates tab to access clone functionality
-    await page.getByTestId('toolbar-home-button').click();
-    await page.getByTestId('sidebar-templates-button').click();
+    // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
+    const settingsButton = page.getByTestId('sidebar-settings-button');
+    await expect(settingsButton).toBeVisible({ timeout: 5000 });
+    await settingsButton.click();
+    await page.waitForURL(/\/settings$/);
+
+    // Wait for settings content to load
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Click the Element Templates inner tab
+    await page.getByRole('tab', { name: 'Element Templates' }).click();
 
     // Wait for templates to load
     await page.waitForTimeout(500);
@@ -210,10 +220,19 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByTestId('create-element-button').click();
     await expect(page.getByTestId('element-Validation Test')).toBeVisible();
 
-    // Navigate to Templates to create a custom template
-    await page.getByTestId('toolbar-home-button').click();
-    await page.getByTestId('sidebar-templates-button').click();
-    await expect(page).toHaveURL(/.*templates-list.*/);
+    // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
+    const settingsButton = page.getByTestId('sidebar-settings-button');
+    await expect(settingsButton).toBeVisible({ timeout: 5000 });
+    await settingsButton.click();
+    await page.waitForURL(/\/settings$/);
+
+    // Wait for settings content to load
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Click the Element Templates inner tab
+    await page.getByRole('tab', { name: 'Element Templates' }).click();
     await page.waitForSelector('mat-card', {
       state: 'visible',
       timeout: 10000,
@@ -278,12 +297,19 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByTestId('create-element-button').click();
     await expect(page.getByTestId('element-Init Character')).toBeVisible();
 
-    // Navigate back to project home, then to Templates
-    await page.getByTestId('toolbar-home-button').click();
-    await page.getByTestId('sidebar-templates-button').click();
+    // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
+    const settingsButton = page.getByTestId('sidebar-settings-button');
+    await expect(settingsButton).toBeVisible({ timeout: 5000 });
+    await settingsButton.click();
+    await page.waitForURL(/\/settings$/);
 
-    // Wait for templates page to load
-    await expect(page).toHaveURL(/.*templates-list.*/);
+    // Wait for settings content to load
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Click the Element Templates inner tab
+    await page.getByRole('tab', { name: 'Element Templates' }).click();
     await page.waitForSelector('mat-card', {
       state: 'visible',
       timeout: 10000,

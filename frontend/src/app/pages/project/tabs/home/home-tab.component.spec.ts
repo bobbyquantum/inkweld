@@ -82,7 +82,8 @@ describe('HomeTabComponent', () => {
       coverMediaId: coverMediaIdSignal,
       openDocument: vi.fn(),
       showEditProjectDialog: vi.fn(),
-      openSystemTab: vi.fn(),
+      openSystemTab: vi.fn().mockReturnValue({ index: 1, wasCreated: true }),
+      selectTab: vi.fn(),
       getPublishPlans: vi.fn().mockReturnValue([]),
       createPublishPlan: vi.fn(),
       openPublishPlan: vi.fn(),
@@ -358,11 +359,13 @@ describe('HomeTabComponent', () => {
     expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
       'documents-list'
     );
+    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
   });
 
   it('should open media tab', () => {
     component.openMediaTab();
     expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
+    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
   });
 
   describe.skip('cover image', () => {

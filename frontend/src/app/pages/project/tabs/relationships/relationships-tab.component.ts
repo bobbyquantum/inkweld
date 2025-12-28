@@ -75,13 +75,10 @@ export class RelationshipsTabComponent {
   );
 
   constructor() {
-    // Load relationship types and ensure tab is open when project changes
+    // Load relationship types when project changes
     effect(() => {
       const project = this.project();
       if (project) {
-        // Ensure the relationships tab is open in the tab bar
-        // Must be inside effect to run after project loads (which clears tabs)
-        this.projectState.openSystemTab('relationships-list');
         void this.loadRelationshipTypes();
       }
     });
