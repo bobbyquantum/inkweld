@@ -154,7 +154,7 @@ export class SettingsTabComponent {
     },
   ];
 
-  // Media sync state (moved from sync-settings)
+  // Media sync state
   protected readonly projectKey = computed(() => {
     const project = this.projectState.project();
     if (!project) return null;
@@ -407,7 +407,7 @@ export class SettingsTabComponent {
   }
 
   // =====================
-  // Media Sync (moved from sync-settings)
+  // Media Sync
   // =====================
 
   async checkMediaSyncStatus(): Promise<void> {
