@@ -24,7 +24,6 @@ import { Subject, takeUntil } from 'rxjs';
 import { ConnectionSettingsComponent } from './tabs/connection-settings/connection-settings.component';
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
-import { SyncSettingsComponent } from './tabs/sync-settings/sync-settings.component';
 
 const slideAnimation = trigger('slideAnimation', [
   transition(
@@ -72,7 +71,6 @@ const slideAnimation = trigger('slideAnimation', [
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,
     ConnectionSettingsComponent,
-    SyncSettingsComponent,
   ],
   animations: [slideAnimation],
   templateUrl: './user-settings-dialog.component.html',
@@ -84,13 +82,9 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     optional: true,
   });
 
-  @Input() selectedCategory:
-    | 'connection'
-    | 'project-tree'
-    | 'project'
-    | 'sync' = 'connection';
-  previousCategory: 'connection' | 'project-tree' | 'project' | 'sync' =
+  @Input() selectedCategory: 'connection' | 'project-tree' | 'project' =
     'connection';
+  previousCategory: 'connection' | 'project-tree' | 'project' = 'connection';
   isMobile = false;
   private destroyed = new Subject<void>();
 
@@ -115,13 +109,13 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.destroyed.complete();
   }
 
-  selectCategory(category: 'connection' | 'project-tree' | 'project' | 'sync') {
+  selectCategory(category: 'connection' | 'project-tree' | 'project') {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
 
   getAnimationState() {
-    const categories = ['connection', 'project-tree', 'project', 'sync'];
+    const categories = ['connection', 'project-tree', 'project'];
     const currentIndex = categories.indexOf(this.selectedCategory);
     const previousIndex = categories.indexOf(this.previousCategory);
     const isMovingDown = currentIndex > previousIndex;
