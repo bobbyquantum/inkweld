@@ -292,6 +292,7 @@ export class IdentityPanelComponent implements OnDestroy {
       );
 
     const result = await this.dialogGateway.openWorldbuildingImageDialog({
+      elementId: this.elementId(),
       elementName: this.elementName(),
       username,
       slug,

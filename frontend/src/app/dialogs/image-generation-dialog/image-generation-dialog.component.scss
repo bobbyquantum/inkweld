@@ -538,6 +538,116 @@ mat-expansion-panel {
   }
 }
 
+// Mat Stepper styling
+.image-generation-stepper {
+  // Remove padding around stepper content
+  ::ng-deep .mat-horizontal-content-container {
+    padding: 0 !important;
+  }
+
+  // Compact step header
+  ::ng-deep .mat-horizontal-stepper-header-container {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  // Step header styling
+  ::ng-deep .mat-step-header {
+    padding: 8px 16px;
+
+    .mat-step-label {
+      font-size: 0.875rem;
+    }
+
+    &[aria-selected='true'] .mat-step-label {
+      font-weight: 500;
+    }
+  }
+
+  // Hide the step connector lines for a cleaner look
+  ::ng-deep .mat-stepper-horizontal-line {
+    border-top-style: dashed;
+    border-color: var(--mat-sys-outline-variant);
+  }
+
+  // Style for non-editable/disabled steps (like Generate before it's active)
+  ::ng-deep .mat-step-header[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      background: transparent;
+    }
+  }
+}
+
+// Wizard pages
+.wizard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.select-elements-page {
+  .worldbuilding-section {
+    min-height: 200px;
+
+    .section-hint {
+      font-size: 0.875rem;
+      color: var(--mat-sys-on-surface-variant);
+      margin: 0 0 12px;
+    }
+  }
+}
+
+.edit-prompt-page {
+  .selected-elements-summary {
+    background-color: var(--mat-sys-surface-container);
+    border-radius: 8px;
+    padding: 12px 16px;
+
+    h4 {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--mat-sys-on-surface-variant);
+      margin: 0 0 8px;
+    }
+  }
+
+  .element-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .element-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: var(--mat-sys-surface-container-high);
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface);
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    .toggle-indicator {
+      font-size: 12px;
+      width: 12px;
+      height: 12px;
+      color: var(--mat-sys-primary);
+      margin-left: 2px;
+    }
+  }
+}
+
 // Responsive
 @media (max-width: 600px) {
   .dialog-content {
@@ -556,6 +666,13 @@ mat-expansion-panel {
     .role-select {
       width: 100%;
       margin-top: 8px;
+    }
+  }
+
+  .image-generation-stepper {
+    ::ng-deep .mat-horizontal-stepper-header-container {
+      flex-wrap: wrap;
+      justify-content: center;
     }
   }
 }

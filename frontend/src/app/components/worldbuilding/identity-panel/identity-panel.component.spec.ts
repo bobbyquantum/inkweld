@@ -163,6 +163,7 @@ describe('IdentityPanelComponent', () => {
         currentImage: undefined,
         description: '',
         worldbuildingFields: undefined,
+        elementId: 'test-element-id',
       });
     });
 
