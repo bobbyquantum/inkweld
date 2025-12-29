@@ -46,10 +46,12 @@ class D1AdminCLI {
   public readonly verbose: boolean;
   public readonly dbName: string;
   public readonly remote: boolean;
+  public readonly env: string | null;
 
-  constructor(verbose: boolean = false, remote: boolean = false) {
+  constructor(verbose: boolean = false, remote: boolean = false, env: string | null = null) {
     this.verbose = verbose;
     this.remote = remote;
+    this.env = env;
 
     // Try to read database name from wrangler.toml
     this.dbName = this.getD1DatabaseName();
@@ -57,14 +59,30 @@ class D1AdminCLI {
     if (this.verbose) {
       console.log('🔧 D1 Database Configuration:');
       console.log(`   Database: ${this.dbName}`);
-      console.log(`   Remote: ${this.remote ? 'Yes (production)' : 'No (local dev)'}`);
+      console.log(`   Environment: ${this.env || 'default (local)'}`);
+      console.log(`   Remote: ${this.remote ? 'Yes' : 'No (local dev)'}`);
     }
   }
 
   private getD1DatabaseName(): string {
-    // Try to read from wrangler.toml
+    // Try to read from wrangler.toml based on environment
     try {
       const wranglerConfig = fs.readFileSync('wrangler.toml', 'utf-8');
+
+      if (this.env) {
+        // Look for environment-specific database name
+        // Match pattern: [env.staging] ... database_name = "inkweld_staging"
+        const envSection = new RegExp(
+          `\\[env\\.${this.env}[^\\]]*\\][\\s\\S]*?database_name\\s*=\\s*"([^"]+)"`,
+          'm'
+        );
+        const envMatch = wranglerConfig.match(envSection);
+        if (envMatch) {
+          return envMatch[1];
+        }
+      }
+
+      // Fall back to default (first database_name found)
       const match = wranglerConfig.match(/database_name\s*=\s*"([^"]+)"/);
       if (match) {
         return match[1];
@@ -86,6 +104,7 @@ class D1AdminCLI {
         '--command',
         command,
         '--json', // Get JSON output instead of table
+        ...(this.env ? ['--env', this.env] : []),
         ...(this.remote ? ['--remote'] : []),
       ];
 
@@ -757,11 +776,12 @@ async function showHelp() {
 Inkweld Admin CLI - Standalone Database Management Tool
 
 USAGE:
-  bun run admin-cli.ts [--verbose] [--remote] <command> [options]
+  bun run admin-cli.ts [options] <command> [arguments]
 
 OPTIONS:
   --verbose, -v                   Show detailed debug information
-  --remote, -r                    Use remote D1 database (for D1 only, accesses production)
+  --remote, -r                    Use remote D1 database (Cloudflare D1 only)
+  --env, -e <environment>         D1 environment: staging or production
 
 COMMANDS:
   stats                           Show system statistics
@@ -788,10 +808,11 @@ EXAMPLES:
   bun run admin-cli.ts users approve alice
   bun run admin-cli.ts users set-admin alice true
 
-  # D1 Database (set DB_TYPE=d1 in .env)
-  DB_TYPE=d1 bun run admin-cli.ts stats                    # Local D1 dev
-  DB_TYPE=d1 bun run admin-cli.ts --remote users list      # Remote D1 prod
-  DB_TYPE=d1 bun run admin-cli.ts --remote users approve alice
+  # D1 Database (set DB_TYPE=d1 in .env or inline)
+  DB_TYPE=d1 bun run admin-cli.ts stats                              # Local D1 dev
+  DB_TYPE=d1 bun run admin-cli.ts --remote --env staging stats       # Remote D1 staging
+  DB_TYPE=d1 bun run admin-cli.ts --remote --env production stats    # Remote D1 production
+  DB_TYPE=d1 bun run admin-cli.ts --remote --env staging users approve alice
 
 NOTE: This tool connects directly to the database and bypasses the web application.
       Use with caution in production environments.
@@ -1203,45 +1224,24 @@ async function promptYesNo(question: string, defaultValue: boolean): Promise<boo
 
 async function showCloudflareDeployment() {
   console.log('');
-  console.log('☁️  Cloudflare Workers Deployment Guide');
+  console.log('☁️  Cloudflare Workers Deployment');
   console.log('═'.repeat(80));
   console.log('');
-  console.log('Prerequisites:');
-  console.log('  • Cloudflare account with Workers Paid plan');
-  console.log('  • Wrangler CLI installed (npm install -g wrangler)');
+  console.log('For Cloudflare Workers deployment, use the dedicated setup script:');
   console.log('');
-  console.log('Step 1: Login to Cloudflare');
-  console.log('  $ npx wrangler login');
+  console.log('  $ npm run cloudflare:setup');
   console.log('');
-  console.log('Step 2: Create D1 databases');
-  console.log('  $ npx wrangler d1 create inkweld_dev');
-  console.log('  $ npx wrangler d1 create inkweld_prod');
-  console.log('  ');
-  console.log('  Save the database IDs from the output');
+  console.log('This interactive script will:');
+  console.log('  • Create D1 databases (staging and/or production)');
+  console.log('  • Create R2 storage buckets');
+  console.log('  • Generate wrangler.toml configuration');
+  console.log('  • Generate frontend environment files');
+  console.log('  • Generate secrets');
+  console.log('  • Run database migrations');
   console.log('');
-  console.log('Step 3: Configure wrangler.toml');
-  console.log('  $ cd backend');
-  console.log('  $ cp wrangler.toml.example wrangler.toml');
-  console.log('  ');
-  console.log('  Edit wrangler.toml and add your database IDs');
-  console.log('');
-  console.log('Step 4: Run database migrations');
-  console.log('  $ npx wrangler d1 execute inkweld_dev --file=./drizzle/0000_safe_mysterio.sql');
-  console.log('  $ npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql');
-  console.log('');
-  console.log('Step 5: Set secrets');
-  console.log('  $ echo "your-secret-key" | npx wrangler secret put SESSION_SECRET');
-  console.log(
-    '  $ echo "your-secret-key" | npx wrangler secret put SESSION_SECRET --env production'
-  );
-  console.log('');
-  console.log('Step 6: Deploy');
-  console.log('  $ bun run deploy:dev      # Deploy to dev');
-  console.log('  $ bun run deploy:prod     # Deploy to production');
-  console.log('');
-  console.log('Step 7: Configure custom domain (optional)');
-  console.log('  Go to Workers & Pages → Your worker → Settings → Triggers');
-  console.log('  Add your custom domain');
+  console.log('After setup, deploy with:');
+  console.log('  $ npm run cloudflare:deploy:staging    # Deploy to staging');
+  console.log('  $ npm run cloudflare:deploy:prod       # Deploy to production');
   console.log('');
   console.log('📖 For detailed documentation, see:');
   console.log('   https://inkweld.org/docs/hosting/cloudflare');
@@ -1307,6 +1307,14 @@ async function main() {
     args.splice(remoteIndex, 1);
   }
 
+  // Parse --env flag for D1 environment (staging, production)
+  let env: string | null = null;
+  const envIndex = args.findIndex((arg) => arg === '--env' || arg === '-e');
+  if (envIndex !== -1 && args[envIndex + 1]) {
+    env = args[envIndex + 1];
+    args.splice(envIndex, 2);
+  }
+
   if (args.length === 0 || args[0] === 'help') {
     await showHelp();
     return;
@@ -1324,7 +1332,7 @@ async function main() {
   // Determine which CLI to use based on DB_TYPE
   const dbType = process.env.DB_TYPE || 'sqlite';
   const cli: AdminCLI | D1AdminCLI =
-    dbType === 'd1' ? new D1AdminCLI(verbose, remote) : new AdminCLI(verbose);
+    dbType === 'd1' ? new D1AdminCLI(verbose, remote, env) : new AdminCLI(verbose);
 
   try {
     await cli.connect();

@@ -41,9 +41,23 @@ app.use('*', async (c, next) => {
   const envOrigins = c.env?.ALLOWED_ORIGINS;
   const allowedOrigins = envOrigins ? envOrigins.split(',') : config.allowedOrigins;
 
+  // Helper to check if origin matches allowed pattern (supports *.pages.dev wildcards)
+  const isOriginAllowed = (origin: string): boolean => {
+    for (const allowed of allowedOrigins) {
+      // Exact match
+      if (allowed === origin) return true;
+      // Wildcard subdomain match (e.g., "*.inkweld-frontend-staging.pages.dev")
+      if (allowed.startsWith('*.')) {
+        const suffix = allowed.slice(1); // Remove the "*" but keep the dot
+        if (origin.endsWith(suffix)) return true;
+      }
+    }
+    return false;
+  };
+
   const corsMiddleware = cors({
     origin: (origin) => {
-      if (!origin || allowedOrigins.includes(origin)) return origin || '*';
+      if (!origin || isOriginAllowed(origin)) return origin || '*';
       return allowedOrigins[0] || '*';
     },
     credentials: true, // Allow credentials (cookies/sessions)
