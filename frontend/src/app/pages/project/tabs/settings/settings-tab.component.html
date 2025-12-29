@@ -1,14 +1,103 @@
 <div class="settings-tab" data-testid="settings-tab-content">
   <h2>Project Settings</h2>
 
-  <mat-tab-group class="settings-tabs" animationDuration="200ms">
-    <!-- General Settings Tab -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <mat-icon>settings</mat-icon>
-        <span class="tab-label">General</span>
-      </ng-template>
+  <div class="settings-tabs" ngTabs>
+    <!-- Tab Bar Container -->
+    <div class="tab-bar-container">
+      <!-- Left scroll arrow -->
+      @if (canScrollLeft()) {
+        <button
+          type="button"
+          class="scroll-arrow scroll-arrow-left"
+          (click)="scrollLeft()"
+          aria-label="Scroll tabs left"
+          data-testid="scroll-tabs-left-button">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+      }
 
+      <div class="tabs-scroll-container">
+        <nav
+          #tabNavBar
+          ngTabList
+          class="tab-nav-bar"
+          [selectedTab]="selectedTab()"
+          selectionMode="explicit"
+          (scroll)="onTabsScroll()">
+          <button
+            ngTab
+            value="general"
+            type="button"
+            role="tab"
+            (click)="onTabChange('general')"
+            class="tab-button"
+            data-testid="settings-tab-general">
+            <mat-icon class="tab-icon">settings</mat-icon>
+            <span class="tab-name">General</span>
+          </button>
+          <button
+            ngTab
+            value="templates"
+            type="button"
+            role="tab"
+            (click)="onTabChange('templates')"
+            class="tab-button"
+            data-testid="settings-tab-templates">
+            <mat-icon class="tab-icon">description</mat-icon>
+            <span class="tab-name">Element Templates</span>
+          </button>
+          <button
+            ngTab
+            value="relationships"
+            type="button"
+            role="tab"
+            (click)="onTabChange('relationships')"
+            class="tab-button"
+            data-testid="settings-tab-relationships">
+            <mat-icon class="tab-icon">hub</mat-icon>
+            <span class="tab-name">Relationship Types</span>
+          </button>
+          <button
+            ngTab
+            value="tags"
+            type="button"
+            role="tab"
+            (click)="onTabChange('tags')"
+            class="tab-button"
+            data-testid="settings-tab-tags">
+            <mat-icon class="tab-icon">local_offer</mat-icon>
+            <span class="tab-name">Tags</span>
+          </button>
+          <button
+            ngTab
+            value="mcp-keys"
+            type="button"
+            role="tab"
+            (click)="onTabChange('mcp-keys')"
+            class="tab-button"
+            data-testid="settings-tab-mcp-keys">
+            <mat-icon class="tab-icon">key</mat-icon>
+            <span class="tab-name">MCP Keys</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Right scroll arrow -->
+      @if (canScrollRight()) {
+        <button
+          type="button"
+          class="scroll-arrow scroll-arrow-right"
+          (click)="scrollRight()"
+          aria-label="Scroll tabs right"
+          data-testid="scroll-tabs-right-button">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      }
+    </div>
+
+    <!-- Tab Panels -->
+    <!-- General Settings Tab -->
+    @if (selectedTab() === 'general') {
       <div class="tab-content">
         @if (currentMode === 'offline') {
           <mat-card class="info-card offline">
@@ -25,7 +114,184 @@
           </mat-card>
         }
 
-        <!-- MCP API Keys Section -->
+        <!-- Media Sync Section -->
+        <section class="settings-section">
+          <h3>
+            <mat-icon>perm_media</mat-icon>
+            Media Library Sync
+          </h3>
+
+          @if (currentMode === 'server' && projectKey()) {
+            <mat-card class="sync-card">
+              <mat-card-content>
+                @if (mediaSyncState(); as state) {
+                  <div class="status-grid">
+                    <div class="status-item">
+                      <span class="label">Server:</span>
+                      <span class="value">
+                        {{ getServerFileCount() }} files ({{
+                          formatBytes(getServerTotalSize())
+                        }})
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Local Cache:</span>
+                      <span class="value">
+                        {{ getLocalFileCount() }} files ({{
+                          formatBytes(getLocalTotalSize())
+                        }})
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Needs Download:</span>
+                      <span
+                        class="value"
+                        [class.warning]="state.needsDownload > 0">
+                        {{ state.needsDownload }} files
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Needs Upload:</span>
+                      <span
+                        class="value"
+                        [class.warning]="state.needsUpload > 0">
+                        {{ state.needsUpload }} files
+                      </span>
+                    </div>
+                    <div class="status-item">
+                      <span class="label">Last Checked:</span>
+                      <span class="value">
+                        {{
+                          state.lastChecked
+                            ? (state.lastChecked | date: 'short')
+                            : 'Never'
+                        }}
+                      </span>
+                    </div>
+                  </div>
+
+                  @if (state.isSyncing) {
+                    <mat-progress-bar
+                      mode="determinate"
+                      [value]="state.downloadProgress">
+                    </mat-progress-bar>
+                    <p class="sync-progress-text">
+                      Downloading... {{ state.downloadProgress }}%
+                    </p>
+                  }
+
+                  @if (state.error) {
+                    <p class="error-text">{{ state.error }}</p>
+                  }
+
+                  <div class="action-buttons">
+                    <button
+                      mat-stroked-button
+                      (click)="checkMediaSyncStatus()"
+                      [disabled]="state.isSyncing"
+                      data-testid="media-sync-refresh-button">
+                      <mat-icon>refresh</mat-icon>
+                      Refresh Status
+                    </button>
+                    @if (state.needsDownload > 0) {
+                      <button
+                        mat-raised-button
+                        color="primary"
+                        (click)="downloadAllMedia()"
+                        [disabled]="state.isSyncing"
+                        data-testid="media-sync-download-button">
+                        <mat-icon>cloud_download</mat-icon>
+                        Download All ({{ state.needsDownload }})
+                      </button>
+                    }
+                    @if (state.needsUpload > 0) {
+                      <button
+                        mat-raised-button
+                        color="accent"
+                        (click)="uploadAllMedia()"
+                        [disabled]="state.isSyncing"
+                        data-testid="media-sync-upload-button">
+                        <mat-icon>cloud_upload</mat-icon>
+                        Upload All ({{ state.needsUpload }})
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <div class="loading-state">
+                    <mat-progress-spinner diameter="24" mode="indeterminate">
+                    </mat-progress-spinner>
+                    <span>Checking media sync status...</span>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          } @else {
+            <mat-card class="info-card">
+              <mat-card-content>
+                <div class="info-content">
+                  <mat-icon>info</mat-icon>
+                  <div>
+                    @if (currentMode !== 'server') {
+                      Media sync requires a server connection.
+                    } @else {
+                      Open a project to view its media sync status.
+                    }
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </section>
+
+        <!-- Future: Collaboration Section -->
+        <section class="settings-section coming-soon">
+          <h3>
+            <mat-icon>group</mat-icon>
+            Collaboration
+            <span class="coming-soon-badge">Coming Soon</span>
+          </h3>
+          <p class="section-description">
+            Share your project with other users and collaborate in real-time.
+          </p>
+          <mat-card class="info-card">
+            <mat-card-content>
+              <div class="info-content">
+                <mat-icon>schedule</mat-icon>
+                <div>
+                  Collaboration features are coming in a future update. You'll
+                  be able to invite other users to view or edit your project.
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </section>
+      </div>
+    }
+
+    <!-- Element Templates Tab -->
+    @if (selectedTab() === 'templates') {
+      <div class="tab-content embedded-tab">
+        <app-templates-tab></app-templates-tab>
+      </div>
+    }
+
+    <!-- Relationship Types Tab -->
+    @if (selectedTab() === 'relationships') {
+      <div class="tab-content embedded-tab">
+        <app-relationships-tab></app-relationships-tab>
+      </div>
+    }
+
+    <!-- Tags Tab -->
+    @if (selectedTab() === 'tags') {
+      <div class="tab-content embedded-tab">
+        <app-tags-tab></app-tags-tab>
+      </div>
+    }
+
+    <!-- MCP API Keys Tab -->
+    @if (selectedTab() === 'mcp-keys') {
+      <div class="tab-content">
         <section class="settings-section">
           <h3>
             <mat-icon>key</mat-icon>
@@ -48,7 +314,11 @@
                 <mat-card-content>
                   <mat-icon>error</mat-icon>
                   <span>{{ keysError() }}</span>
-                  <button mat-button color="primary" (click)="loadMcpKeys()">
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="loadMcpKeys()"
+                    data-testid="mcp-keys-retry-button">
                     Retry
                   </button>
                 </mat-card-content>
@@ -159,7 +429,8 @@
                       mat-raised-button
                       color="primary"
                       (click)="dismissNewKey()"
-                      class="dismiss-button">
+                      class="dismiss-button"
+                      data-testid="dismiss-new-key-button">
                       I've copied the key
                     </button>
                   </mat-card-content>
@@ -201,18 +472,26 @@
                           <div class="permission-shortcuts">
                             <button
                               mat-button
-                              (click)="selectAllReadPermissions()">
+                              (click)="selectAllReadPermissions()"
+                              data-testid="permissions-all-read-button">
                               All Read
                             </button>
                             <button
                               mat-button
-                              (click)="selectAllWritePermissions()">
+                              (click)="selectAllWritePermissions()"
+                              data-testid="permissions-all-write-button">
                               All Write
                             </button>
-                            <button mat-button (click)="selectAllPermissions()">
+                            <button
+                              mat-button
+                              (click)="selectAllPermissions()"
+                              data-testid="permissions-all-button">
                               All
                             </button>
-                            <button mat-button (click)="clearPermissions()">
+                            <button
+                              mat-button
+                              (click)="clearPermissions()"
+                              data-testid="permissions-clear-button">
                               Clear
                             </button>
                           </div>
@@ -249,7 +528,10 @@
                       </mat-form-field>
 
                       <div class="form-actions">
-                        <button mat-button (click)="toggleCreateKeyForm()">
+                        <button
+                          mat-button
+                          (click)="toggleCreateKeyForm()"
+                          data-testid="cancel-create-key-button">
                           Cancel
                         </button>
                         <button
@@ -294,192 +576,7 @@
             </mat-card>
           }
         </section>
-
-        <!-- Media Sync Section -->
-        <section class="settings-section">
-          <h3>
-            <mat-icon>perm_media</mat-icon>
-            Media Library Sync
-          </h3>
-
-          @if (currentMode === 'server' && projectKey()) {
-            <mat-card class="sync-card">
-              <mat-card-content>
-                @if (mediaSyncState(); as state) {
-                  <div class="status-grid">
-                    <div class="status-item">
-                      <span class="label">Server:</span>
-                      <span class="value">
-                        {{ getServerFileCount() }} files ({{
-                          formatBytes(getServerTotalSize())
-                        }})
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Local Cache:</span>
-                      <span class="value">
-                        {{ getLocalFileCount() }} files ({{
-                          formatBytes(getLocalTotalSize())
-                        }})
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Needs Download:</span>
-                      <span
-                        class="value"
-                        [class.warning]="state.needsDownload > 0">
-                        {{ state.needsDownload }} files
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Needs Upload:</span>
-                      <span
-                        class="value"
-                        [class.warning]="state.needsUpload > 0">
-                        {{ state.needsUpload }} files
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Last Checked:</span>
-                      <span class="value">
-                        {{
-                          state.lastChecked
-                            ? (state.lastChecked | date: 'short')
-                            : 'Never'
-                        }}
-                      </span>
-                    </div>
-                  </div>
-
-                  @if (state.isSyncing) {
-                    <mat-progress-bar
-                      mode="determinate"
-                      [value]="state.downloadProgress">
-                    </mat-progress-bar>
-                    <p class="sync-progress-text">
-                      Downloading... {{ state.downloadProgress }}%
-                    </p>
-                  }
-
-                  @if (state.error) {
-                    <p class="error-text">{{ state.error }}</p>
-                  }
-
-                  <div class="action-buttons">
-                    <button
-                      mat-stroked-button
-                      (click)="checkMediaSyncStatus()"
-                      [disabled]="state.isSyncing">
-                      <mat-icon>refresh</mat-icon>
-                      Refresh Status
-                    </button>
-                    @if (state.needsDownload > 0) {
-                      <button
-                        mat-raised-button
-                        color="primary"
-                        (click)="downloadAllMedia()"
-                        [disabled]="state.isSyncing">
-                        <mat-icon>cloud_download</mat-icon>
-                        Download All ({{ state.needsDownload }})
-                      </button>
-                    }
-                    @if (state.needsUpload > 0) {
-                      <button
-                        mat-raised-button
-                        color="accent"
-                        (click)="uploadAllMedia()"
-                        [disabled]="state.isSyncing">
-                        <mat-icon>cloud_upload</mat-icon>
-                        Upload All ({{ state.needsUpload }})
-                      </button>
-                    }
-                  </div>
-                } @else {
-                  <div class="loading-state">
-                    <mat-progress-spinner diameter="24" mode="indeterminate">
-                    </mat-progress-spinner>
-                    <span>Checking media sync status...</span>
-                  </div>
-                }
-              </mat-card-content>
-            </mat-card>
-          } @else {
-            <mat-card class="info-card">
-              <mat-card-content>
-                <div class="info-content">
-                  <mat-icon>info</mat-icon>
-                  <div>
-                    @if (currentMode !== 'server') {
-                      Media sync requires a server connection.
-                    } @else {
-                      Open a project to view its media sync status.
-                    }
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          }
-        </section>
-
-        <!-- Future: Collaboration Section -->
-        <section class="settings-section coming-soon">
-          <h3>
-            <mat-icon>group</mat-icon>
-            Collaboration
-            <span class="coming-soon-badge">Coming Soon</span>
-          </h3>
-          <p class="section-description">
-            Share your project with other users and collaborate in real-time.
-          </p>
-          <mat-card class="info-card">
-            <mat-card-content>
-              <div class="info-content">
-                <mat-icon>schedule</mat-icon>
-                <div>
-                  Collaboration features are coming in a future update. You'll
-                  be able to invite other users to view or edit your project.
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </section>
       </div>
-    </mat-tab>
-
-    <!-- Element Templates Tab -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <mat-icon>description</mat-icon>
-        <span class="tab-label">Element Templates</span>
-      </ng-template>
-
-      <div class="tab-content embedded-tab">
-        <app-templates-tab></app-templates-tab>
-      </div>
-    </mat-tab>
-
-    <!-- Relationship Types Tab -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <mat-icon>hub</mat-icon>
-        <span class="tab-label">Relationship Types</span>
-      </ng-template>
-
-      <div class="tab-content embedded-tab">
-        <app-relationships-tab></app-relationships-tab>
-      </div>
-    </mat-tab>
-
-    <!-- Tags Tab -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <mat-icon>local_offer</mat-icon>
-        <span class="tab-label">Tags</span>
-      </ng-template>
-
-      <div class="tab-content embedded-tab">
-        <app-tags-tab></app-tags-tab>
-      </div>
-    </mat-tab>
-  </mat-tab-group>
+    }
+  </div>
 </div>
