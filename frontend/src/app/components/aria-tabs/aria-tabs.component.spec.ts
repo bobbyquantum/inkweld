@@ -156,14 +156,63 @@ describe('AriaTabsComponent', () => {
   });
 
   describe('Scroll functionality', () => {
-    it('should call updateScrollState after view init', async () => {
+    it('should call updateScrollState and scrollToActiveTab after view init', async () => {
       const updateSpy = vi.spyOn(component, 'updateScrollState');
+      const scrollToActiveSpy = vi.spyOn(component, 'scrollToActiveTab');
 
       component.ngAfterViewInit();
       // Wait for setTimeout to execute
       await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(updateSpy).toHaveBeenCalled();
+      expect(scrollToActiveSpy).toHaveBeenCalled();
+    });
+
+    it('should call scrollToActiveTab when selectedIndex changes via ngOnChanges', async () => {
+      const scrollToActiveSpy = vi.spyOn(component, 'scrollToActiveTab');
+
+      component.ngOnChanges({
+        selectedIndex: {
+          currentValue: 1,
+          previousValue: 0,
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+
+      // Wait for setTimeout to execute
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(scrollToActiveSpy).toHaveBeenCalled();
+    });
+
+    it('should call updateScrollState when tabs change via ngOnChanges', async () => {
+      const updateSpy = vi.spyOn(component, 'updateScrollState');
+
+      component.ngOnChanges({
+        tabs: {
+          currentValue: [{ key: 'new', label: 'New' }],
+          previousValue: [],
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+
+      // Wait for setTimeout to execute
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(updateSpy).toHaveBeenCalled();
+    });
+
+    it('should call scrollToActiveTab when tab is selected via onTabSelect', async () => {
+      const scrollToActiveSpy = vi.spyOn(component, 'scrollToActiveTab');
+
+      component.onTabSelect(1);
+
+      // Wait for setTimeout to execute
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(scrollToActiveSpy).toHaveBeenCalled();
     });
 
     it('should not update scroll state if showScrollArrows is false', () => {
@@ -231,6 +280,121 @@ describe('AriaTabsComponent', () => {
       component.tabNavBar = undefined;
 
       expect(() => component.scrollRight()).not.toThrow();
+    });
+
+    it('should scroll to active tab when it is out of view on the left', () => {
+      const scrollBySpy = vi.fn();
+      const mockTabButton = {
+        getBoundingClientRect: () => ({ left: 50, right: 150 }),
+      };
+      component.tabs = [
+        { key: 'tab1', label: 'Tab 1' },
+        { key: 'tab2', label: 'Tab 2' },
+      ];
+      component.selectedIndex = 0;
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: scrollBySpy,
+          scrollLeft: 0,
+          scrollWidth: 500,
+          clientWidth: 300,
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelector: () => mockTabButton,
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      component.scrollToActiveTab();
+
+      // Tab left (50) < container left (100), should scroll left
+      expect(scrollBySpy).toHaveBeenCalledWith({
+        left: expect.any(Number),
+        behavior: 'smooth',
+      });
+      // Should scroll by negative amount (to the left)
+      expect(scrollBySpy.mock.calls[0][0].left).toBeLessThan(0);
+    });
+
+    it('should scroll to active tab when it is out of view on the right', () => {
+      const scrollBySpy = vi.fn();
+      const mockTabButton = {
+        getBoundingClientRect: () => ({ left: 350, right: 450 }),
+      };
+      component.tabs = [
+        { key: 'tab1', label: 'Tab 1' },
+        { key: 'tab2', label: 'Tab 2' },
+      ];
+      component.selectedIndex = 1;
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: scrollBySpy,
+          scrollLeft: 0,
+          scrollWidth: 500,
+          clientWidth: 300,
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelector: () => mockTabButton,
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      component.scrollToActiveTab();
+
+      // Tab right (450) > container right (400), should scroll right
+      expect(scrollBySpy).toHaveBeenCalledWith({
+        left: expect.any(Number),
+        behavior: 'smooth',
+      });
+      // Should scroll by positive amount (to the right)
+      expect(scrollBySpy.mock.calls[0][0].left).toBeGreaterThan(0);
+    });
+
+    it('should not scroll when active tab is already visible', () => {
+      const scrollBySpy = vi.fn();
+      const mockTabButton = {
+        getBoundingClientRect: () => ({ left: 150, right: 250 }),
+      };
+      component.tabs = [
+        { key: 'tab1', label: 'Tab 1' },
+        { key: 'tab2', label: 'Tab 2' },
+      ];
+      component.selectedIndex = 0;
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: scrollBySpy,
+          scrollLeft: 0,
+          scrollWidth: 500,
+          clientWidth: 300,
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelector: () => mockTabButton,
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      component.scrollToActiveTab();
+
+      // Tab is within view, should not scroll
+      expect(scrollBySpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing tabNavBar gracefully in scrollToActiveTab', () => {
+      // @ts-expect-error Testing undefined case
+      component.tabNavBar = undefined;
+
+      expect(() => component.scrollToActiveTab()).not.toThrow();
+    });
+
+    it('should handle missing active tab button gracefully', () => {
+      component.tabs = [{ key: 'tab1', label: 'Tab 1' }];
+      component.selectedIndex = 0;
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: vi.fn(),
+          scrollLeft: 0,
+          scrollWidth: 500,
+          clientWidth: 300,
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelector: () => null, // No matching element
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      expect(() => component.scrollToActiveTab()).not.toThrow();
     });
 
     it('should detect canScrollLeft when scrollLeft > 0', () => {

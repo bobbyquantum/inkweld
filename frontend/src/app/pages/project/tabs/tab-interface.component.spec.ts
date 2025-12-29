@@ -401,4 +401,115 @@ describe('TabInterfaceComponent', () => {
     expect(destroyNextSpy).toHaveBeenCalled();
     expect(destroyCompleteSpy).toHaveBeenCalled();
   });
+
+  describe('scrollToActiveTab', () => {
+    it('should scroll left when active tab is out of view on the left', () => {
+      const scrollBySpy = vi.fn();
+      const mockTabButtons = [
+        { getBoundingClientRect: () => ({ left: 50, right: 150 }) },
+        { getBoundingClientRect: () => ({ left: 160, right: 260 }) },
+      ];
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: scrollBySpy,
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelectorAll: () => mockTabButtons,
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      component.scrollToActiveTab();
+
+      // Tab left (50) < container left (100), should scroll left
+      expect(scrollBySpy).toHaveBeenCalledWith({
+        left: expect.any(Number),
+        behavior: 'smooth',
+      });
+      expect(scrollBySpy.mock.calls[0][0].left).toBeLessThan(0);
+    });
+
+    it('should scroll right when active tab is out of view on the right', () => {
+      const scrollBySpy = vi.fn();
+      const mockTabButtons = [
+        { getBoundingClientRect: () => ({ left: 110, right: 200 }) },
+        { getBoundingClientRect: () => ({ left: 350, right: 450 }) },
+      ];
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: scrollBySpy,
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelectorAll: () => mockTabButtons,
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      (projectStateService.selectedTabIndex as any).set(1);
+
+      component.scrollToActiveTab();
+
+      // Tab right (450) > container right (400), should scroll right
+      expect(scrollBySpy).toHaveBeenCalledWith({
+        left: expect.any(Number),
+        behavior: 'smooth',
+      });
+      expect(scrollBySpy.mock.calls[0][0].left).toBeGreaterThan(0);
+    });
+
+    it('should not scroll when active tab is already visible', () => {
+      const scrollBySpy = vi.fn();
+      const mockTabButtons = [
+        { getBoundingClientRect: () => ({ left: 150, right: 250 }) },
+        { getBoundingClientRect: () => ({ left: 260, right: 360 }) },
+      ];
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: scrollBySpy,
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelectorAll: () => mockTabButtons,
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      component.scrollToActiveTab();
+
+      // Tab is within view, should not scroll
+      expect(scrollBySpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing tabNavBar gracefully', () => {
+      // @ts-expect-error Testing undefined case
+      component.tabNavBar = undefined;
+
+      expect(() => component.scrollToActiveTab()).not.toThrow();
+    });
+
+    it('should handle missing active tab button gracefully', () => {
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: vi.fn(),
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelectorAll: () => [], // No tab buttons
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      expect(() => component.scrollToActiveTab()).not.toThrow();
+    });
+
+    it('should handle out of bounds tab index gracefully', () => {
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy: vi.fn(),
+          getBoundingClientRect: () => ({ left: 100, right: 400 }),
+          querySelectorAll: () => [
+            { getBoundingClientRect: () => ({ left: 150, right: 250 }) },
+          ],
+        },
+      } as unknown as typeof component.tabNavBar;
+
+      (projectStateService.selectedTabIndex as any).set(5); // Out of bounds
+
+      expect(() => component.scrollToActiveTab()).not.toThrow();
+    });
+  });
 });
