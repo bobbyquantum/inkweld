@@ -7,9 +7,11 @@ import {
   ElementRef,
   EventEmitter,
   Input,
+  OnChanges,
   Output,
   QueryList,
   signal,
+  SimpleChanges,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,7 +38,7 @@ export interface AriaTabConfig {
   templateUrl: './aria-tabs.component.html',
   styleUrl: './aria-tabs.component.scss',
 })
-export class AriaTabsComponent implements AfterViewInit {
+export class AriaTabsComponent implements AfterViewInit, OnChanges {
   /** Array of tab configurations */
   @Input() tabs: AriaTabConfig[] = [];
 
@@ -61,8 +63,22 @@ export class AriaTabsComponent implements AfterViewInit {
   canScrollRight = signal(false);
 
   ngAfterViewInit(): void {
-    // Initial scroll state check
-    setTimeout(() => this.updateScrollState(), 0);
+    // Initial scroll state check and scroll to active tab
+    setTimeout(() => {
+      this.updateScrollState();
+      this.scrollToActiveTab();
+    }, 0);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // When selectedIndex changes from outside, scroll to reveal the tab
+    if (changes['selectedIndex'] && !changes['selectedIndex'].firstChange) {
+      setTimeout(() => this.scrollToActiveTab(), 0);
+    }
+    // When tabs array changes, update scroll state
+    if (changes['tabs']) {
+      setTimeout(() => this.updateScrollState(), 0);
+    }
   }
 
   /** Handle tab selection */
@@ -70,6 +86,8 @@ export class AriaTabsComponent implements AfterViewInit {
     if (this.tabs[index]?.disabled) return;
     this.selectedIndex = index;
     this.selectedIndexChange.emit(index);
+    // Scroll to the newly selected tab
+    setTimeout(() => this.scrollToActiveTab(), 0);
   }
 
   /** Check if scroll arrows should be visible */
@@ -102,5 +120,35 @@ export class AriaTabsComponent implements AfterViewInit {
     const el = this.tabNavBar?.nativeElement;
     if (!el) return;
     el.scrollBy({ left: 150, behavior: 'smooth' });
+  }
+
+  /** Scroll to make the active tab visible */
+  scrollToActiveTab(): void {
+    const container = this.tabNavBar?.nativeElement;
+    // Guard against destroyed DOM elements (can happen when setTimeout fires after test cleanup)
+    if (!container || typeof container.querySelector !== 'function') return;
+
+    const activeTabButton = container.querySelector(
+      `[data-testid="aria-tab-${this.tabs[this.selectedIndex]?.key}"]`
+    ) as HTMLElement;
+
+    if (!activeTabButton) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = activeTabButton.getBoundingClientRect();
+
+    // Check if tab is out of view on the left
+    if (tabRect.left < containerRect.left) {
+      const scrollAmount = tabRect.left - containerRect.left - 8; // 8px padding
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+    // Check if tab is out of view on the right
+    else if (tabRect.right > containerRect.right) {
+      const scrollAmount = tabRect.right - containerRect.right + 8; // 8px padding
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+
+    // Update scroll state after scrolling
+    setTimeout(() => this.updateScrollState(), 150);
   }
 }

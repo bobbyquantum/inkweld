@@ -168,6 +168,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
           tab.id,
         ]);
       }
+
+      // Scroll to reveal the newly selected tab
+      setTimeout(() => this.scrollToActiveTab(), 0);
     });
 
     // Effect to handle initial tab synchronization after project state is loaded
@@ -186,6 +189,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
           this.updateSelectedTabFromUrl();
           this.initialSyncDone = true;
           this.cdr.detectChanges(); // Trigger change detection after initial sync
+          // Scroll to reveal the active tab after sync
+          setTimeout(() => this.scrollToActiveTab(), 0);
         }
       }
     });
@@ -279,8 +284,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // Initial scroll state check
+    // Initial scroll state check and scroll to active tab
     this.updateScrollState();
+    setTimeout(() => this.scrollToActiveTab(), 0);
   }
 
   /** Check if scroll arrows should be visible */
@@ -312,6 +318,39 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     const el = this.tabNavBar?.nativeElement;
     if (!el) return;
     el.scrollBy({ left: 150, behavior: 'smooth' });
+  }
+
+  /** Scroll to make the active tab visible */
+  scrollToActiveTab(): void {
+    const container = this.tabNavBar?.nativeElement;
+    if (!container) return;
+
+    const tabs = this.projectState.openTabs();
+    const currentIndex = this.currentTabIndex;
+    if (currentIndex < 0 || currentIndex >= tabs.length) return;
+
+    // Find the active tab button by index (nth child in the nav)
+    const tabButtons = container.querySelectorAll('.tab-button');
+    const activeTabButton = tabButtons[currentIndex] as HTMLElement;
+
+    if (!activeTabButton) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = activeTabButton.getBoundingClientRect();
+
+    // Check if tab is out of view on the left
+    if (tabRect.left < containerRect.left) {
+      const scrollAmount = tabRect.left - containerRect.left - 8; // 8px padding
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+    // Check if tab is out of view on the right
+    else if (tabRect.right > containerRect.right) {
+      const scrollAmount = tabRect.right - containerRect.right + 8; // 8px padding
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+
+    // Update scroll state after scrolling
+    setTimeout(() => this.updateScrollState(), 150);
   }
 
   updateSelectedTabFromUrl(): void {
