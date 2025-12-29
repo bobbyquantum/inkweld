@@ -5,7 +5,7 @@
  * works correctly in server mode with the real backend.
  *
  * Note: Relationship Types is now a sub-tab within Project Settings.
- * New projects start with NO relationship types - they must be created.
+ * New projects start with default relationship types seeded from templates.
  */
 import { expect, type Page, test } from './fixtures';
 
@@ -42,8 +42,8 @@ async function createCustomRelationshipType(
   name: string,
   inverseName: string
 ) {
-  // Click "Create Custom Type" button (works from both empty and populated state)
-  const createButton = page.getByRole('button', { name: /create.*type/i });
+  // Click "New Type" button (works from both empty and populated state)
+  const createButton = page.getByRole('button', { name: /new type/i });
   await createButton.click();
 
   // Wait for the first dialog (Create Relationship Type)
@@ -81,7 +81,7 @@ async function createCustomRelationshipType(
 
 test.describe('Relationships Tab', () => {
   test.describe('View Relationship Types', () => {
-    test('should navigate to relationships tab and show empty state for new project', async ({
+    test('should navigate to relationships tab and show default types for new project', async ({
       authenticatedPage: page,
     }) => {
       // First create a project
@@ -103,14 +103,18 @@ test.describe('Relationships Tab', () => {
       const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
-      // Should see the empty state (new projects have no relationship types)
+      // New projects now start with default relationship types seeded from templates
+      // Should see the Custom Types section with relationship type cards
+      await expect(page.locator('h3:has-text("Custom Types")')).toBeVisible();
+
+      // Should see at least one relationship type card
       await expect(
-        page.locator('h3:has-text("No Relationship Types Configured")')
+        page.getByTestId('relationship-type-card').first()
       ).toBeVisible();
 
-      // Should see the Create Custom Type button
+      // Should see the New Type button for creating additional types
       await expect(
-        page.getByRole('button', { name: /create custom type/i })
+        page.getByRole('button', { name: /new type/i })
       ).toBeVisible();
     });
 
@@ -134,7 +138,7 @@ test.describe('Relationships Tab', () => {
       const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
-      // Create a relationship type first (new projects start empty)
+      // Create a new relationship type (new projects have default types)
       await createCustomRelationshipType(page, 'Test Parent', 'Test Child');
 
       // Get the first card

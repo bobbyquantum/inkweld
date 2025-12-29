@@ -149,8 +149,8 @@ test.describe('Relationships Tab Screenshots', () => {
    * Helper to create a sample relationship type for screenshots
    */
   async function createSampleRelationshipType(page: Page) {
-    // Click the create button (handles both empty state and populated state)
-    const createButton = page.getByRole('button', { name: /create.*type/i });
+    // Click the "New Type" button (handles both empty state and populated state)
+    const createButton = page.getByRole('button', { name: /new type/i });
     await createButton.click();
 
     // First dialog: Enter the type name

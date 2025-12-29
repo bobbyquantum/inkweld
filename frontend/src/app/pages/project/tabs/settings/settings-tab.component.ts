@@ -1,5 +1,15 @@
+import { Tab, TabList, Tabs } from '@angular/aria/tabs';
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -13,7 +23,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import {
@@ -71,14 +80,24 @@ interface PermissionGroup {
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatTabsModule,
     MatTooltipModule,
     RelationshipsTabComponent,
+    Tab,
+    TabList,
+    Tabs,
     TagsTabComponent,
     TemplatesTabComponent,
   ],
 })
-export class SettingsTabComponent {
+export class SettingsTabComponent implements AfterViewInit {
+  @ViewChild('tabNavBar') tabNavBar!: ElementRef<HTMLElement>;
+
+  // Active tab tracking
+  protected readonly selectedTab = signal('general');
+
+  // Scroll state for arrow visibility
+  protected readonly canScrollLeft = signal(false);
+  protected readonly canScrollRight = signal(false);
   protected readonly projectState = inject(ProjectStateService);
   private readonly mcpKeysService = inject(MCPKeysService);
   private readonly snackBar = inject(MatSnackBar);
@@ -172,6 +191,78 @@ export class SettingsTabComponent {
         void this.loadMcpKeys();
       }
     });
+
+    // Watch for tab changes and update scroll state
+    effect(() => {
+      this.selectedTab();
+      setTimeout(() => this.updateScrollState(), 0);
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.updateScrollState();
+    setTimeout(() => this.scrollToActiveTab(), 0);
+  }
+
+  /** Check if scroll arrows should be visible */
+  updateScrollState(): void {
+    const el = this.tabNavBar?.nativeElement;
+    if (!el) return;
+
+    const canLeft = el.scrollLeft > 0;
+    const canRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
+
+    this.canScrollLeft.set(canLeft);
+    this.canScrollRight.set(canRight);
+  }
+
+  /** Handle scroll event on the tab nav bar */
+  onTabsScroll(): void {
+    this.updateScrollState();
+  }
+
+  /** Scroll tabs left */
+  scrollLeft(): void {
+    const el = this.tabNavBar?.nativeElement;
+    if (!el) return;
+    el.scrollBy({ left: -150, behavior: 'smooth' });
+  }
+
+  /** Scroll tabs right */
+  scrollRight(): void {
+    const el = this.tabNavBar?.nativeElement;
+    if (!el) return;
+    el.scrollBy({ left: 150, behavior: 'smooth' });
+  }
+
+  /** Scroll to make the active tab visible */
+  scrollToActiveTab(): void {
+    const container = this.tabNavBar?.nativeElement;
+    if (!container) return;
+
+    const activeTabButton = container.querySelector(
+      '[aria-selected="true"]'
+    ) as HTMLElement;
+    if (!activeTabButton) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = activeTabButton.getBoundingClientRect();
+
+    if (tabRect.left < containerRect.left) {
+      const scrollAmount = tabRect.left - containerRect.left - 8;
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    } else if (tabRect.right > containerRect.right) {
+      const scrollAmount = tabRect.right - containerRect.right + 8;
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+
+    setTimeout(() => this.updateScrollState(), 150);
+  }
+
+  /** Handle tab selection change */
+  onTabChange(tabId: string): void {
+    this.selectedTab.set(tabId);
+    setTimeout(() => this.scrollToActiveTab(), 0);
   }
 
   // =====================
