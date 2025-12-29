@@ -1,0 +1,136 @@
+<div class="element-selector" data-testid="worldbuilding-element-selector">
+  <!-- Add Element Button -->
+  <div class="add-element-section">
+    <button
+      mat-stroked-button
+      type="button"
+      class="add-element-button"
+      data-testid="add-element-button"
+      [disabled]="!canAddMore()"
+      (click)="openElementPicker()">
+      <mat-icon>add</mat-icon>
+      Add Element
+    </button>
+    <span class="element-count">
+      {{ selectedElements().length }} / {{ maxElements() }} elements
+    </span>
+  </div>
+
+  <!-- Elements Grid Table -->
+  @if (selectedElements().length > 0) {
+    <table ngGrid class="element-grid">
+      <thead>
+        <tr ngGridRow>
+          <th ngGridCell class="col-element">Element</th>
+          <th ngGridCell class="col-toggle">
+            <span matTooltip="Include element images as references"
+              >Reference</span
+            >
+          </th>
+          <th ngGridCell class="col-toggle">
+            <span matTooltip="Include element descriptions">Description</span>
+          </th>
+          <th ngGridCell class="col-toggle">
+            <span matTooltip="Include worldbuilding data fields">Data</span>
+          </th>
+          <th ngGridCell class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (element of selectedElements(); track element.id) {
+          <tr ngGridRow>
+            <!-- Element Name & Type -->
+            <td ngGridCell class="col-element">
+              <div class="element-info">
+                <span class="material-symbols-outlined type-icon">{{
+                  getTypeIcon(element.type)
+                }}</span>
+                <div class="element-details">
+                  <span class="element-name">{{ element.name }}</span>
+                  <span class="element-type">{{ element.typeLabel }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Include Reference Toggle -->
+            <td ngGridCell class="col-toggle">
+              <div class="toggle-cell">
+                <mat-slide-toggle
+                  ngGridCellWidget
+                  [checked]="element.includeReference()"
+                  [disabled]="!element.hasImage"
+                  (change)="
+                    element.includeReference.set($event.checked);
+                    onToggleChange()
+                  "
+                  aria-label="Include reference image for {{ element.name }}">
+                </mat-slide-toggle>
+                @if (!element.hasImage) {
+                  <span
+                    class="material-symbols-outlined no-image-icon"
+                    matTooltip="No image available"
+                    >image_not_supported</span
+                  >
+                }
+              </div>
+            </td>
+
+            <!-- Include Description Toggle -->
+            <td ngGridCell class="col-toggle">
+              <mat-slide-toggle
+                ngGridCellWidget
+                [checked]="element.includeDescription()"
+                [disabled]="!element.description"
+                (change)="
+                  element.includeDescription.set($event.checked);
+                  onToggleChange()
+                "
+                aria-label="Include description for {{ element.name }}">
+              </mat-slide-toggle>
+            </td>
+
+            <!-- Include Data Toggle -->
+            <td ngGridCell class="col-toggle">
+              <mat-slide-toggle
+                ngGridCellWidget
+                [checked]="element.includeData()"
+                (change)="
+                  element.includeData.set($event.checked); onToggleChange()
+                "
+                aria-label="Include data fields for {{ element.name }}">
+              </mat-slide-toggle>
+            </td>
+
+            <!-- Remove Action -->
+            <td ngGridCell class="col-actions">
+              <button
+                ngGridCellWidget
+                type="button"
+                class="remove-button"
+                aria-label="Remove {{ element.name }}"
+                (click)="removeElement(element)"
+                matTooltip="Remove element">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else if (!isLoading()) {
+    <div class="empty-state">
+      <span class="material-symbols-outlined">diversity_3</span>
+      <p>No elements selected</p>
+      <p class="hint">
+        Add worldbuilding elements to include their details in the image prompt.
+      </p>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <p>Loading worldbuilding elements...</p>
+    </div>
+  }
+</div>

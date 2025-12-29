@@ -32,6 +32,8 @@ import {
  * Data passed to the dialog
  */
 export interface WorldbuildingImageDialogData {
+  /** Element ID (for passing to image generation) */
+  elementId: string;
   /** Element name for display */
   elementName: string;
   /** Project username for media library access */
@@ -243,6 +245,7 @@ export class WorldbuildingImageDialogComponent implements OnInit {
     const result = await this.dialogGateway.openImageGenerationDialog({
       forCover: false, // Not a cover, just a worldbuilding image
       prompt: initialPrompt || undefined,
+      selectedElementIds: [this.dialogData.elementId],
     });
 
     if (!result) {

@@ -8,25 +8,23 @@ import {
   OnDestroy,
   OnInit,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSliderModule } from '@angular/material/slider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
@@ -47,6 +45,11 @@ import {
   WorldbuildingContext,
   WorldbuildingContextRole,
 } from '../../../api-client/model/models';
+import {
+  SelectionChangeEvent,
+  WorldbuildingElementSelection,
+  WorldbuildingElementSelectorComponent,
+} from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import { ImageGenerationService } from '../../services/ai/image-generation.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
@@ -69,16 +72,7 @@ export interface ImageGenerationDialogResult {
   response?: ImageGenerateResponse;
 }
 
-interface WorldbuildingElement {
-  id: string;
-  name: string;
-  type: string;
-  selected: boolean;
-  role: WorldbuildingContextRole;
-  data?: Record<string, unknown>;
-}
-
-type DialogStage = 'form' | 'generating';
+type DialogStage = 'select-elements' | 'edit-prompt' | 'generating';
 
 @Component({
   selector: 'app-image-generation-dialog',
@@ -97,19 +91,17 @@ type DialogStage = 'form' | 'generating';
     MatSelectModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatCheckboxModule,
-    MatChipsModule,
-    MatExpansionModule,
-    MatSliderModule,
+    MatStepperModule,
     MatTooltipModule,
     MatSnackBarModule,
+    WorldbuildingElementSelectorComponent,
   ],
 })
 export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   private readonly dialogRef = inject(
     MatDialogRef<ImageGenerationDialogComponent>
   );
-  private readonly data = inject<ImageGenerationDialogData>(MAT_DIALOG_DATA);
+  protected readonly data = inject<ImageGenerationDialogData>(MAT_DIALOG_DATA);
   private readonly aiImageService = inject(AIImageGenerationService);
   private readonly imageProfilesService = inject(ImageProfilesService);
   private readonly generationService = inject(ImageGenerationService);
@@ -117,11 +109,28 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snackBar = inject(MatSnackBar);
 
+  // Stepper reference for programmatic control
+  readonly stepper = viewChild<MatStepper>('stepper');
+
   // Provider type constants for template
   readonly ImageProviderType = ImageProviderType;
 
-  // Dialog stage: 'form' or 'generating'
-  readonly stage = signal<DialogStage>('form');
+  // Dialog stage: 'select-elements' | 'edit-prompt' | 'generating'
+  readonly stage = signal<DialogStage>('select-elements');
+
+  // Stepper index computed from stage
+  readonly stepperIndex = computed(() => {
+    switch (this.stage()) {
+      case 'select-elements':
+        return 0;
+      case 'edit-prompt':
+        return 1;
+      case 'generating':
+        return 2;
+      default:
+        return 0;
+    }
+  });
 
   // Status & loading states
   readonly isLoadingStatus = signal(true);
@@ -157,43 +166,29 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   );
   readonly negativePrompt = signal<string>('');
 
-  // Worldbuilding elements
-  readonly worldbuildingElements = signal<WorldbuildingElement[]>([]);
-  readonly showWorldbuilding = signal(false);
+  // Selected worldbuilding elements (from selector component)
+  readonly selectedWorldbuildingElements = signal<
+    WorldbuildingElementSelection[]
+  >([]);
+
+  // Auto-generated prompt based on selections
+  readonly autoPrompt = computed(() => this.buildAutoPrompt());
+
+  // Stepper state - whether each step can be navigated to
+  readonly canNavigateToPrompt = computed(() => !!this.selectedProfile());
+  readonly canNavigateToGenerate = computed(
+    () => this.stage() === 'generating'
+  );
+  readonly isGenerationActive = computed(() => {
+    const job = this.currentJob();
+    return job?.status === 'pending' || job?.status === 'generating';
+  });
 
   // Generation results (for selection in generating stage)
   readonly selectedImageIndex = signal<number>(0);
 
   // Poll interval for job updates
   private pollInterval: ReturnType<typeof setInterval> | null = null;
-
-  // Role options for worldbuilding elements
-  readonly roleOptions: {
-    value: WorldbuildingContextRole;
-    label: string;
-    description: string;
-  }[] = [
-    {
-      value: WorldbuildingContextRole.Subject,
-      label: 'Subject',
-      description: 'Main focus of the image',
-    },
-    {
-      value: WorldbuildingContextRole.Setting,
-      label: 'Setting',
-      description: 'Background or environment',
-    },
-    {
-      value: WorldbuildingContextRole.Style,
-      label: 'Style',
-      description: 'Artistic style influence',
-    },
-    {
-      value: WorldbuildingContextRole.Reference,
-      label: 'Reference',
-      description: 'Additional context',
-    },
-  ];
 
   // Custom sizes loaded from backend
   readonly customSizes = signal<CustomImageSize[]>([]);
@@ -432,7 +427,6 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     void this.loadStatus();
-    void this.loadWorldbuildingElements();
     void this.loadCustomSizes();
     void this.loadProfiles();
   }
@@ -521,74 +515,208 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async loadWorldbuildingElements(): Promise<void> {
-    const elements = this.projectState.elements();
-    const username = this.projectState.project()?.username;
-    const slug = this.projectState.project()?.slug;
+  /**
+   * Handle worldbuilding element selection changes from the selector component
+   */
+  onWorldbuildingSelectionChange(event: SelectionChangeEvent): void {
+    this.selectedWorldbuildingElements.set(event.elements);
+  }
 
-    const worldbuildingElements = elements.filter(
-      el => el.type && el.type.startsWith('worldbuilding/')
-    );
+  /**
+   * Navigate to the prompt editing stage
+   */
+  goToPromptStage(): void {
+    const profile = this.selectedProfile();
+    if (!profile) {
+      this.snackBar.open('Please select a model profile', 'Close', {
+        duration: 3000,
+      });
+      return;
+    }
 
-    const loadedElements: WorldbuildingElement[] = [];
+    // Build the auto-prompt if user hasn't entered one
+    if (!this.prompt().trim()) {
+      this.prompt.set(this.buildAutoPrompt());
+    }
 
-    for (const el of worldbuildingElements) {
-      let data: Record<string, unknown> | undefined;
-      try {
-        if (username && slug) {
-          const result = await this.worldbuildingService.getWorldbuildingData(
-            el.id,
-            username,
-            slug
-          );
-          data = result ?? undefined;
-        }
-      } catch {
-        // Ignore errors loading individual elements
+    this.stage.set('edit-prompt');
+  }
+
+  /**
+   * Navigate back to element selection stage
+   */
+  goToSelectStage(): void {
+    this.stage.set('select-elements');
+  }
+
+  /**
+   * Handle stepper step change (when user clicks on step header)
+   */
+  onStepChange(event: { selectedIndex: number }): void {
+    const targetIndex = event.selectedIndex;
+    const currentIndex = this.stepperIndex();
+
+    // Don't allow navigation during active generation
+    if (this.isGenerationActive()) {
+      this.resetStepperTo(currentIndex);
+      this.snackBar.open('Please wait for generation to complete', 'Close', {
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (targetIndex === 0) {
+      // Always allow going back to step 1
+      this.stage.set('select-elements');
+    } else if (targetIndex === 1) {
+      // Only allow going to prompt stage if we have a profile selected
+      if (!this.canNavigateToPrompt()) {
+        this.resetStepperTo(currentIndex);
+        this.snackBar.open('Please select a model profile first', 'Close', {
+          duration: 3000,
+        });
+        return;
+      }
+      this.stage.set('edit-prompt');
+    } else if (targetIndex === 2) {
+      // Can only go to generate step if already generating (via Generate button)
+      if (!this.canNavigateToGenerate()) {
+        this.resetStepperTo(currentIndex);
+        this.snackBar.open(
+          'Click the Generate button to start generation',
+          'Close',
+          {
+            duration: 3000,
+          }
+        );
+        return;
+      }
+      // Already in generating stage, just stay there
+    }
+  }
+
+  /**
+   * Reset stepper to a specific index
+   */
+  private resetStepperTo(index: number): void {
+    const stepper = this.stepper();
+    if (stepper) {
+      // Use setTimeout to reset after Angular's change detection
+      setTimeout(() => {
+        stepper.selectedIndex = index;
+      }, 0);
+    }
+  }
+
+  /**
+   * Build an automatic prompt based on selected elements and their toggles
+   */
+  private buildAutoPrompt(): string {
+    const elements = this.selectedWorldbuildingElements();
+    if (elements.length === 0) {
+      return this.data.prompt || '';
+    }
+
+    const parts: string[] = [];
+
+    // Add intro for multiple elements
+    if (elements.length > 1) {
+      parts.push('Create a scene combining the following elements');
+    }
+
+    for (const el of elements) {
+      const elementParts: string[] = [];
+
+      // Add element name
+      elementParts.push(el.name);
+
+      // Add description if enabled
+      if (el.includeDescription && el.description) {
+        elementParts.push(el.description);
       }
 
-      const isPreSelected =
-        this.data.selectedElementIds?.includes(el.id) || false;
+      // Add data fields if enabled
+      if (el.includeData && el.data) {
+        const dataFields = this.formatWorldbuildingData(el.data);
+        if (dataFields) {
+          elementParts.push(dataFields);
+        }
+      }
 
-      loadedElements.push({
-        id: el.id,
+      if (elementParts.length > 0) {
+        parts.push(elementParts.join('. '));
+      }
+    }
+
+    return parts.join('. ');
+  }
+
+  /**
+   * Format worldbuilding data into a prompt-friendly string
+   */
+  private formatWorldbuildingData(data: Record<string, unknown>): string {
+    const fieldParts: string[] = [];
+
+    for (const [key, value] of Object.entries(data)) {
+      // Skip empty values, internal fields, and timestamps
+      if (
+        value === null ||
+        value === undefined ||
+        value === '' ||
+        key === 'lastModified' ||
+        key.startsWith('_')
+      ) {
+        continue;
+      }
+
+      let formattedValue: string;
+      if (Array.isArray(value)) {
+        formattedValue = value.filter(v => v).join(', ');
+        if (!formattedValue) continue;
+      } else if (typeof value === 'object') {
+        continue; // Skip nested objects
+      } else if (typeof value === 'string') {
+        formattedValue = value;
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        formattedValue = String(value);
+      } else {
+        continue;
+      }
+
+      fieldParts.push(`${key}: ${formattedValue}`);
+    }
+
+    return fieldParts.join(', ');
+  }
+
+  /**
+   * Build WorldbuildingContext array from selected elements
+   */
+  private buildWorldbuildingContext(
+    elements: WorldbuildingElementSelection[]
+  ): WorldbuildingContext[] {
+    return elements.map(el => {
+      // Build the context with proper typing
+      const context: WorldbuildingContext = {
+        elementId: el.id,
         name: el.name,
-        type: el.type.replace('worldbuilding/', ''),
-        selected: isPreSelected,
-        role: WorldbuildingContextRole.Reference,
-        data: data,
-      });
-    }
+        type: el.type,
+        // Map toggles to a role - if includeReference is on, use Reference role
+        role: el.includeReference
+          ? WorldbuildingContextRole.Reference
+          : WorldbuildingContextRole.Subject,
+        data: {},
+      };
 
-    this.worldbuildingElements.set(loadedElements);
+      // Copy data fields if includeData is enabled
+      if (el.includeData && el.data) {
+        for (const [key, value] of Object.entries(el.data)) {
+          context.data[key] = value as null;
+        }
+      }
 
-    if (
-      this.data.selectedElementIds &&
-      this.data.selectedElementIds.length > 0
-    ) {
-      this.showWorldbuilding.set(true);
-    }
-  }
-
-  toggleElementSelection(element: WorldbuildingElement): void {
-    this.worldbuildingElements.update(elements =>
-      elements.map(el =>
-        el.id === element.id ? { ...el, selected: !el.selected } : el
-      )
-    );
-  }
-
-  updateElementRole(
-    element: WorldbuildingElement,
-    role: WorldbuildingContextRole
-  ): void {
-    this.worldbuildingElements.update(elements =>
-      elements.map(el => (el.id === element.id ? { ...el, role } : el))
-    );
-  }
-
-  getSelectedElements(): WorldbuildingElement[] {
-    return this.worldbuildingElements().filter(el => el.selected);
+      return context;
+    });
   }
 
   /**
@@ -619,15 +747,9 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
     this.error.set(null);
 
-    // Build request
-    const worldbuildingContext: WorldbuildingContext[] =
-      this.getSelectedElements().map(el => ({
-        elementId: el.id,
-        name: el.name,
-        type: el.type,
-        role: el.role,
-        data: el.data || {},
-      }));
+    // Build worldbuilding context from selected elements
+    const elements = this.selectedWorldbuildingElements();
+    const worldbuildingContext = this.buildWorldbuildingContext(elements);
 
     const request: ImageGenerateRequest = {
       prompt,
@@ -666,7 +788,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Go back to form stage (only if not actively generating)
+   * Go back to prompt stage (only if not actively generating)
    */
   goBack(): void {
     const job = this.currentJob();
@@ -674,7 +796,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       // Can't go back during active generation
       return;
     }
-    this.stage.set('form');
+    this.stage.set('edit-prompt');
     this.currentJobId.set(null);
     this.selectedImageIndex.set(0);
     this.stopPolling();
@@ -818,6 +940,26 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   formatElementData(data: Record<string, unknown> | undefined): string {
     if (!data) return 'No data available';
     return JSON.stringify(data, null, 2);
+  }
+
+  /**
+   * Get the appropriate icon for a worldbuilding element type
+   */
+  getElementIcon(type: string): string {
+    const iconMap: Record<string, string> = {
+      character: 'person',
+      location: 'place',
+      item: 'inventory_2',
+      event: 'event',
+      organization: 'groups',
+      concept: 'lightbulb',
+      creature: 'pets',
+      faction: 'flag',
+    };
+
+    // Type may be like "worldbuilding/character" or just "character"
+    const normalizedType = type.replace('worldbuilding/', '').toLowerCase();
+    return iconMap[normalizedType] || 'category';
   }
 
   /**

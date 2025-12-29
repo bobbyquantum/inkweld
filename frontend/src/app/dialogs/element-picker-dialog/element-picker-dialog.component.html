@@ -1,0 +1,91 @@
+<h2 mat-dialog-title>{{ title }}</h2>
+
+<mat-dialog-content>
+  @if (subtitle) {
+    <p class="dialog-subtitle">{{ subtitle }}</p>
+  }
+
+  <!-- Search field -->
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Search elements</mat-label>
+    <input
+      matInput
+      [value]="searchText()"
+      (input)="searchText.set($any($event.target).value)"
+      placeholder="Type to filter..."
+      data-testid="element-picker-search" />
+    <mat-icon matPrefix>search</mat-icon>
+    @if (searchText()) {
+      <button
+        matSuffix
+        mat-icon-button
+        (click)="searchText.set('')"
+        matTooltip="Clear search">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <!-- Element list -->
+  <div class="element-list" data-testid="element-picker-list">
+    @for (element of filteredElements(); track element.id) {
+      <div
+        class="element-item"
+        [class.selected]="isSelected(element)"
+        [class.disabled]="!isSelected(element) && !canSelectMore()"
+        (click)="toggleSelection(element)"
+        (keydown.enter)="toggleSelection(element)"
+        (keydown.space)="toggleSelection(element); $event.preventDefault()"
+        tabindex="0"
+        role="option"
+        [attr.aria-selected]="isSelected(element)"
+        data-testid="element-picker-item">
+        <mat-checkbox
+          [checked]="isSelected(element)"
+          [disabled]="!isSelected(element) && !canSelectMore()"
+          (click)="$event.stopPropagation()"
+          (change)="toggleSelection(element)">
+        </mat-checkbox>
+        <span class="material-symbols-outlined type-icon">
+          {{ getTypeIcon(element.schemaId) }}
+        </span>
+        <div class="element-info">
+          <span class="element-name">{{ element.name }}</span>
+          <span class="element-type">{{ getTypeLabel(element.schemaId) }}</span>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        @if (searchText()) {
+          <mat-icon>search_off</mat-icon>
+          <p>No elements match "{{ searchText() }}"</p>
+        } @else {
+          <mat-icon>inventory_2</mat-icon>
+          <p>No elements available</p>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Selection status -->
+  <div class="selection-status">
+    <span>{{ selectionCountText() }}</span>
+    @if (maxSelections < 10) {
+      <span class="max-hint">(max {{ maxSelections }})</span>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()" data-testid="element-picker-cancel">
+    Cancel
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    [disabled]="!hasSelection()"
+    (click)="confirm()"
+    data-testid="element-picker-confirm">
+    Add Selected
+  </button>
+</mat-dialog-actions>

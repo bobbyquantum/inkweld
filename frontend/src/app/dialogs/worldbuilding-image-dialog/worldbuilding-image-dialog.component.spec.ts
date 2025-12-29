@@ -21,6 +21,7 @@ describe('WorldbuildingImageDialogComponent', () => {
   let mockSnackBar: { open: ReturnType<typeof vi.fn> };
 
   const defaultDialogData: WorldbuildingImageDialogData = {
+    elementId: 'element-123',
     elementName: 'Test Character',
     username: 'testuser',
     slug: 'test-project',
@@ -172,6 +173,7 @@ describe('WorldbuildingImageDialogComponent', () => {
       expect(mockDialogGateway.openImageGenerationDialog).toHaveBeenCalledWith({
         forCover: false,
         prompt: 'Test Character', // Built from elementName
+        selectedElementIds: ['element-123'],
       });
     });
 
@@ -195,6 +197,7 @@ describe('WorldbuildingImageDialogComponent', () => {
         forCover: false,
         prompt:
           'Test Character. A brave warrior. occupation: Knight, age: 35, skills: Swordsmanship, Leadership',
+        selectedElementIds: ['element-123'],
       });
     });
 

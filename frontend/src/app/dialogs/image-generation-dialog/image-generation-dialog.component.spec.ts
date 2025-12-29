@@ -11,14 +11,13 @@ import { AIImageGenerationService } from '../../../api-client/api/ai-image-gener
 import { ImageProfilesService } from '../../../api-client/api/image-profiles.service';
 import {
   CustomSizesResponse,
-  Element,
   ImageGenerationStatus,
   ImageProviderType,
   ImageSize,
   PublicImageModelProfile,
   PublicImageModelProfileProvider,
-  WorldbuildingContextRole,
 } from '../../../api-client/model/models';
+import { WorldbuildingElementSelection } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import {
   GenerationJob,
   ImageGenerationService,
@@ -245,8 +244,8 @@ describe('ImageGenerationDialogComponent', () => {
       component.selectedModel.set('model-1');
     });
 
-    it('should start in form stage', () => {
-      expect(component.stage()).toBe('form');
+    it('should start in select-elements stage', () => {
+      expect(component.stage()).toBe('select-elements');
     });
 
     it('should not call generate when prompt is empty', () => {
@@ -708,95 +707,60 @@ describe('ImageGenerationDialogComponent', () => {
     });
   });
 
-  describe('worldbuilding elements', () => {
-    // Note: The component filters by el.type.startsWith('worldbuilding/')
-    // We use 'as unknown' because Element.type is actually ElementType enum,
-    // but the component code treats it as a string pattern
-    const mockElements = [
-      {
-        id: 'el-1',
-        name: 'Hero',
-        type: 'worldbuilding/character',
-        parentId: null,
-        order: 0,
-        level: 0,
-        expandable: false,
-        version: 1,
-        metadata: {},
-      },
-      {
-        id: 'el-2',
-        name: 'Castle',
-        type: 'worldbuilding/location',
-        parentId: null,
-        order: 1,
-        level: 0,
-        expandable: false,
-        version: 1,
-        metadata: {},
-      },
-      {
-        id: 'el-3',
-        name: 'Chapter 1',
-        type: 'document',
-        parentId: null,
-        order: 2,
-        level: 0,
-        expandable: false,
-        version: 1,
-        metadata: {},
-      },
-    ] as unknown as Element[];
+  describe('worldbuilding elements selection', () => {
+    // The worldbuilding selection is now handled by the WorldbuildingElementSelectorComponent
+    // These tests verify that the dialog component correctly handles selection changes
+    // and includes them in generation requests
 
     beforeEach(async () => {
-      projectState.elements.mockReturnValue(mockElements);
       fixture.detectChanges();
       await flushPromises();
     });
 
-    it('should load worldbuilding elements', () => {
-      const elements = component.worldbuildingElements();
-      // Should only include worldbuilding elements (not document)
-      expect(elements.length).toBe(2);
-      expect(elements[0].name).toBe('Hero');
-      expect(elements[1].name).toBe('Castle');
+    it('should start with empty worldbuilding selection', () => {
+      expect(component.selectedWorldbuildingElements()).toEqual([]);
     });
 
-    it('should toggle element selection', () => {
-      const elements = component.worldbuildingElements();
-      expect(elements[0].selected).toBe(false);
+    it('should update selection when onWorldbuildingSelectionChange is called', () => {
+      const mockSelection: WorldbuildingElementSelection[] = [
+        {
+          id: 'el-1',
+          name: 'Hero',
+          type: 'character',
+          typeLabel: 'Character',
+          includeReference: true,
+          includeDescription: true,
+          includeData: true,
+          hasImage: true,
+          description: 'A brave hero',
+          data: { occupation: 'Knight' },
+        },
+      ];
 
-      component.toggleElementSelection(elements[0]);
+      component.onWorldbuildingSelectionChange({ elements: mockSelection });
 
-      const updated = component.worldbuildingElements();
-      expect(updated[0].selected).toBe(true);
-    });
-
-    it('should update element role', () => {
-      const elements = component.worldbuildingElements();
-      expect(elements[0].role).toBe(WorldbuildingContextRole.Reference);
-
-      component.updateElementRole(
-        elements[0],
-        WorldbuildingContextRole.Subject
-      );
-
-      const updated = component.worldbuildingElements();
-      expect(updated[0].role).toBe(WorldbuildingContextRole.Subject);
-    });
-
-    it('should get selected elements', () => {
-      const elements = component.worldbuildingElements();
-      component.toggleElementSelection(elements[0]);
-
-      const selected = component.getSelectedElements();
-      expect(selected.length).toBe(1);
-      expect(selected[0].id).toBe('el-1');
+      expect(component.selectedWorldbuildingElements()).toEqual(mockSelection);
     });
 
     it('should include worldbuilding context in generation request', () => {
-      const elements = component.worldbuildingElements();
-      component.toggleElementSelection(elements[0]);
+      // Set up selection
+      const mockSelection: WorldbuildingElementSelection[] = [
+        {
+          id: 'el-1',
+          name: 'Hero',
+          type: 'character',
+          typeLabel: 'Character',
+          includeReference: true,
+          includeDescription: true,
+          includeData: true,
+          hasImage: true,
+          description: 'A brave hero',
+          data: { occupation: 'Knight' },
+        },
+      ];
+
+      component.onWorldbuildingSelectionChange({ elements: mockSelection });
+      component.prompt.set('Test prompt');
 
       component.generate();
 
@@ -810,6 +774,19 @@ describe('ImageGenerationDialogComponent', () => {
               type: 'character',
             }),
           ],
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('should not include worldbuilding context when no elements selected', () => {
+      component.prompt.set('Test prompt');
+      component.generate();
+
+      expect(generationService.startGeneration).toHaveBeenCalledWith(
+        'testuser/test-project',
+        expect.objectContaining({
+          worldbuildingContext: undefined,
         }),
         expect.any(Object)
       );
@@ -843,7 +820,7 @@ describe('ImageGenerationDialogComponent', () => {
       expect(component.stage()).toBe('generating');
 
       component.goBack();
-      expect(component.stage()).toBe('form');
+      expect(component.stage()).toBe('edit-prompt');
       expect(component.currentJobId()).toBeNull();
     });
 
@@ -890,6 +867,109 @@ describe('ImageGenerationDialogComponent', () => {
       component.generate();
 
       expect(component.isBackDisabled()).toBe(true);
+    });
+
+    it('should compute stepperIndex based on stage', () => {
+      expect(component.stage()).toBe('select-elements');
+      expect(component.stepperIndex()).toBe(0);
+
+      component.goToPromptStage();
+      expect(component.stepperIndex()).toBe(1);
+
+      component.generate();
+      expect(component.stepperIndex()).toBe(2);
+    });
+
+    it('should handle onStepChange to select-elements', () => {
+      component.goToPromptStage();
+      expect(component.stage()).toBe('edit-prompt');
+
+      component.onStepChange({ selectedIndex: 0 });
+      expect(component.stage()).toBe('select-elements');
+    });
+
+    it('should handle onStepChange to edit-prompt with profile selected', () => {
+      expect(component.selectedProfile()).toBeTruthy();
+      expect(component.stage()).toBe('select-elements');
+
+      component.onStepChange({ selectedIndex: 1 });
+      expect(component.stage()).toBe('edit-prompt');
+    });
+
+    it('should prevent navigating to generating stage (index 2) directly', () => {
+      component.goToPromptStage();
+      expect(component.stage()).toBe('edit-prompt');
+      expect(component.canNavigateToGenerate()).toBe(false);
+
+      // Try to click on generation step directly - should stay on edit-prompt
+      component.onStepChange({ selectedIndex: 2 });
+      expect(component.stage()).toBe('edit-prompt');
+    });
+
+    it('should compute canNavigateToPrompt based on profile selection', () => {
+      expect(component.selectedProfile()).toBeTruthy();
+      expect(component.canNavigateToPrompt()).toBe(true);
+
+      component.selectedProfile.set(null);
+      expect(component.canNavigateToPrompt()).toBe(false);
+    });
+
+    it('should compute canNavigateToGenerate based on stage', () => {
+      expect(component.stage()).toBe('select-elements');
+      expect(component.canNavigateToGenerate()).toBe(false);
+
+      component.generate();
+      expect(component.stage()).toBe('generating');
+      expect(component.canNavigateToGenerate()).toBe(true);
+    });
+
+    it('should compute isGenerationActive correctly', () => {
+      expect(component.isGenerationActive()).toBe(false);
+
+      // Start generation
+      const activeJob: GenerationJob = {
+        id: 'job-123',
+        projectKey: 'test',
+        request: {
+          prompt: 'test',
+          profileId: 'profile-1',
+          size: ImageSize._1024x1024,
+        },
+        status: 'generating',
+        message: 'Generating...',
+        images: [],
+        createdAt: new Date(),
+        savedMediaIds: [],
+      };
+      generationService.getJob.mockReturnValue(activeJob);
+      component.generate();
+
+      expect(component.isGenerationActive()).toBe(true);
+    });
+
+    it('should prevent navigation during active generation', () => {
+      const activeJob: GenerationJob = {
+        id: 'job-123',
+        projectKey: 'test',
+        request: {
+          prompt: 'test',
+          profileId: 'profile-1',
+          size: ImageSize._1024x1024,
+        },
+        status: 'generating',
+        message: 'Generating...',
+        images: [],
+        createdAt: new Date(),
+        savedMediaIds: [],
+      };
+      generationService.getJob.mockReturnValue(activeJob);
+      component.generate();
+      expect(component.stage()).toBe('generating');
+      expect(component.isGenerationActive()).toBe(true);
+
+      // Try to go back - should stay on generating
+      component.onStepChange({ selectedIndex: 0 });
+      expect(component.stage()).toBe('generating');
     });
   });
 
@@ -1014,6 +1094,18 @@ describe('ImageGenerationDialogComponent', () => {
 
       // Destroy should clean up without errors
       expect(() => component.ngOnDestroy()).not.toThrow();
+    });
+  });
+
+  describe('autoPrompt', () => {
+    beforeEach(async () => {
+      fixture.detectChanges();
+      await flushPromises();
+    });
+
+    it('should return initial prompt when no elements selected', () => {
+      const prompt = component.autoPrompt();
+      expect(prompt).toBe('A beautiful sunset over mountains');
     });
   });
 });

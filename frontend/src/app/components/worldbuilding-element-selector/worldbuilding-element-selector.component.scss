@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined');
+
+.element-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Material Symbols icon styling
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Add element section
+.add-element-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+
+  .add-element-button {
+    mat-icon {
+      margin-right: 4px;
+    }
+  }
+
+  .element-count {
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.no-results {
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
+}
+
+// Grid table
+.element-grid {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background-color: var(--mat-sys-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  overflow: hidden;
+
+  thead {
+    background-color: var(--mat-sys-surface-container);
+
+    tr {
+      border-bottom: 1px solid var(--mat-sys-outline-variant);
+    }
+
+    th {
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: var(--mat-sys-on-surface-variant);
+      text-align: left;
+      padding: 12px 16px;
+
+      &.col-toggle {
+        text-align: center;
+        width: 100px;
+      }
+
+      &.col-actions {
+        width: 48px;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background-color: var(--mat-sys-surface-container-low);
+      }
+
+      &:focus-within {
+        background-color: var(--mat-sys-surface-container-low);
+      }
+    }
+
+    td {
+      padding: 12px 16px;
+      vertical-align: middle;
+
+      &.col-toggle {
+        text-align: center;
+      }
+
+      &.col-actions {
+        text-align: right;
+      }
+    }
+  }
+
+  // Focus styling for grid cells
+  [ngGridCell]:focus-within {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: -2px;
+  }
+}
+
+// Header with checkbox
+.header-with-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+// Element info in name column
+.element-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .type-icon {
+    color: var(--mat-sys-primary);
+    font-size: 24px;
+  }
+
+  .element-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .element-name {
+      font-weight: 500;
+      color: var(--mat-sys-on-surface);
+    }
+
+    .element-type {
+      font-size: 0.75rem;
+      color: var(--mat-sys-on-surface-variant);
+      text-transform: capitalize;
+    }
+  }
+}
+
+// Toggle cells
+.toggle-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+// Checkbox styling
+input[type='checkbox'] {
+  accent-color: var(--mat-sys-primary);
+  transform: scale(1.2);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &:focus {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
+.no-image-icon {
+  font-size: 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+// Remove button
+.remove-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface-variant);
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-highest);
+    color: var(--mat-sys-error);
+  }
+
+  &:focus {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+
+  .material-symbols-outlined {
+    font-size: 20px;
+  }
+}
+
+// Empty state
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  background: var(--mat-sys-surface-container);
+  border-radius: 8px;
+
+  .material-symbols-outlined {
+    font-size: 48px;
+    color: var(--mat-sys-on-surface-variant);
+    margin-bottom: 16px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mat-sys-on-surface);
+
+    &.hint {
+      margin-top: 8px;
+      font-size: 0.875rem;
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+}
+
+// Loading state
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--mat-sys-on-surface-variant);
+}
