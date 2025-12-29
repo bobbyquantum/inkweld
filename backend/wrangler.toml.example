@@ -5,6 +5,11 @@
 # QUICK SETUP (from project root):
 #   npm run cloudflare:setup
 #
+# ENVIRONMENTS:
+#   - Local dev:   wrangler dev (uses local SQLite, no cloud resources)
+#   - Staging:     --env staging (deploys to Cloudflare for testing)
+#   - Production:  --env production (live environment)
+#
 # MANUAL SETUP:
 #
 # 1. Copy this file:
@@ -13,24 +18,23 @@
 # 2. Login to Cloudflare:
 #    npx wrangler login
 #
-# 3. Create your D1 databases:
-#    npx wrangler d1 create inkweld_dev
-#    npx wrangler d1 create inkweld_prod
+# 3. Create D1 database(s):
+#    npx wrangler d1 create inkweld_staging   # Optional
+#    npx wrangler d1 create inkweld_prod      # Required for production
 #
-# 4. Copy the database_id values from the output into this file
-#    (look for the [[env.dev.d1_databases]] and [[env.production.d1_databases]] sections)
+# 4. Update the database_id values in the env sections below
 #
 # 5. Set secrets (from backend directory):
-#    echo "your-session-secret-at-least-32-chars" | npx wrangler secret put SESSION_SECRET --env dev
-#    echo "your-session-secret-at-least-32-chars" | npx wrangler secret put SESSION_SECRET --env production
+#    npx wrangler secret put SESSION_SECRET --env staging
+#    npx wrangler secret put SESSION_SECRET --env production
 #
 # 6. Run migrations (from backend directory):
-#    npx wrangler d1 execute inkweld_dev --file=./drizzle/0000_safe_mysterio.sql
+#    npx wrangler d1 execute inkweld_staging --file=./drizzle/0000_safe_mysterio.sql
 #    npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql
 #
 # 7. Deploy (from project root):
-#    npm run cloudflare:deploy:dev   # Development
-#    npm run cloudflare:deploy:prod  # Production
+#    npm run cloudflare:deploy:staging   # Staging
+#    npm run cloudflare:deploy:prod      # Production
 #
 # For more details, see: docs/site/docs/hosting/cloudflare.md
 # ========================================
@@ -40,19 +44,16 @@ main = "src/cloudflare-runner.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Note: The top-level configuration is for local development with wrangler dev.
-# For actual deployments, use --env dev or --env production.
-
 workers_dev = true
 
 [build]
 command = ""
 
 # ========================================
-# LOCAL DEVELOPMENT (wrangler dev --local)
+# LOCAL DEVELOPMENT (wrangler dev)
 # ========================================
-# These settings are used when running `wrangler dev` locally.
-# They use placeholder values that don't require Cloudflare resources.
+# Run with: wrangler dev (from backend directory)
+# Uses local SQLite - no Cloudflare resources needed.
 
 [vars]
 NODE_ENV = "development"
@@ -67,7 +68,7 @@ SESSION_SECRET = "local-dev-session-secret-for-testing-minimum-32-chars"
 [[d1_databases]]
 binding = "DB"
 database_name = "inkweld_local"
-database_id = "local"  # Wrangler creates a local SQLite for dev
+database_id = "local"  # Wrangler creates a local SQLite automatically
 
 [[durable_objects.bindings]]
 name = "YJS_PROJECTS"
@@ -79,47 +80,48 @@ tag = "v1"
 new_sqlite_classes = ["YjsProject"]
 
 # ========================================
-# DEVELOPMENT ENVIRONMENT (--env dev)
+# STAGING ENVIRONMENT (--env staging)
 # ========================================
-# Deploy with: bun run deploy:dev (or wrangler deploy --env dev)
-# This deploys to inkweld-backend-dev.your-subdomain.workers.dev
+# Deploy with: npm run cloudflare:deploy:staging
+# A pre-production environment for testing on real Cloudflare infrastructure.
+# Skip this if you only need production.
 
-[env.dev]
-name = "inkweld-backend-dev"
+[env.staging]
+name = "inkweld-backend-staging"
 
-[env.dev.vars]
-NODE_ENV = "development"
+[env.staging.vars]
+NODE_ENV = "staging"
 PORT = "8333"
 DB_TYPE = "d1"
-ALLOWED_ORIGINS = "http://localhost:4200,http://localhost:4400,https://inkweld.app"
+# Include *.your-pages-project.pages.dev to allow deployment preview URLs
+ALLOWED_ORIGINS = "http://localhost:4200,https://staging.yourdomain.com,*.your-pages-project-staging.pages.dev"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
 RECAPTCHA_ENABLED = "false"
+SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
 
-# TODO: Replace with your actual D1 database ID
-# Create with: npx wrangler d1 create inkweld_dev
-# Then copy the database_id from the output
-[[env.dev.d1_databases]]
+# Create with: npx wrangler d1 create inkweld_staging
+[[env.staging.d1_databases]]
 binding = "DB"
-database_name = "inkweld_dev"
-database_id = "YOUR_DEV_DATABASE_ID_HERE"  # <-- REPLACE THIS
+database_name = "inkweld_staging"
+database_id = "YOUR_STAGING_DATABASE_ID_HERE"  # <-- REPLACE THIS
 
-# Optional: R2 storage for file uploads
-# Create with: npx wrangler r2 bucket create inkweld-storage-dev
-# [[env.dev.r2_buckets]]
-# binding = "STORAGE"
-# bucket_name = "inkweld-storage-dev"
+# R2 storage for media files (covers, avatars, inline images)
+# Create with: npx wrangler r2 bucket create inkweld-storage-staging
+[[env.staging.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "inkweld-storage-staging"
 
-[[env.dev.durable_objects.bindings]]
+[[env.staging.durable_objects.bindings]]
 name = "YJS_PROJECTS"
 class_name = "YjsProject"
-script_name = "inkweld-backend-dev"
+script_name = "inkweld-backend-staging"
 
 # ========================================
 # PRODUCTION ENVIRONMENT (--env production)
 # ========================================
-# Deploy with: bun run deploy:prod (or wrangler deploy --env production)
-# This deploys to inkweld-backend-prod.your-subdomain.workers.dev
+# Deploy with: npm run cloudflare:deploy:prod
+# Your live production environment.
 
 [env.production]
 name = "inkweld-backend-prod"
@@ -128,24 +130,24 @@ name = "inkweld-backend-prod"
 NODE_ENV = "production"
 PORT = "8333"
 DB_TYPE = "d1"
-ALLOWED_ORIGINS = "https://inkweld.app"  # Update with your production domain
+# Include *.your-pages-project.pages.dev to allow deployment preview URLs
+ALLOWED_ORIGINS = "https://yourdomain.com,*.your-pages-project.pages.dev"
 USER_APPROVAL_REQUIRED = "true"
 GITHUB_ENABLED = "false"
 RECAPTCHA_ENABLED = "false"
+SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
 
-# TODO: Replace with your actual D1 database ID
 # Create with: npx wrangler d1 create inkweld_prod
-# Then copy the database_id from the output
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "inkweld_prod"
 database_id = "YOUR_PROD_DATABASE_ID_HERE"  # <-- REPLACE THIS
 
-# Optional: R2 storage for file uploads
+# R2 storage for media files (covers, avatars, inline images)
 # Create with: npx wrangler r2 bucket create inkweld-storage
-# [[env.production.r2_buckets]]
-# binding = "STORAGE"
-# bucket_name = "inkweld-storage"
+[[env.production.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "inkweld-storage"
 
 [[env.production.durable_objects.bindings]]
 name = "YJS_PROJECTS"
@@ -155,15 +157,13 @@ script_name = "inkweld-backend-prod"
 # ========================================
 # SECRETS (set via wrangler secret put)
 # ========================================
-# Required secrets for each environment:
+# Required for each environment:
 #   SESSION_SECRET - Session encryption key (32+ characters)
 #
-# Optional secrets (if features enabled):
-#   GITHUB_CLIENT_ID - GitHub OAuth client ID
-#   GITHUB_CLIENT_SECRET - GitHub OAuth client secret
-#   RECAPTCHA_SITE_KEY - reCAPTCHA site key
-#   RECAPTCHA_SECRET_KEY - reCAPTCHA secret key
+# Optional (if features enabled):
+#   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+#   RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY
 #
 # Set with:
-#   echo "value" | npx wrangler secret put SECRET_NAME --env dev
-#   echo "value" | npx wrangler secret put SECRET_NAME --env production
+#   npx wrangler secret put SESSION_SECRET --env staging
+#   npx wrangler secret put SESSION_SECRET --env production

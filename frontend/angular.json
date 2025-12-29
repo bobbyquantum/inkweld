@@ -67,6 +67,66 @@
               "extractLicenses": false,
               "sourceMap": true
             },
+            "staging": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "4mb",
+                  "maximumError": "6mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "13kb",
+                  "maximumError": "15kb"
+                }
+              ],
+              "outputHashing": "all",
+              "serviceWorker": "ngsw-config.json",
+              "optimization": true,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.staging.ts"
+                }
+              ],
+              "outputPath": "dist",
+              "index": "src/index.html",
+              "browser": "src/main.ts",
+              "baseHref": "/"
+            },
+            "cloudflare": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "4mb",
+                  "maximumError": "6mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "13kb",
+                  "maximumError": "15kb"
+                }
+              ],
+              "outputHashing": "all",
+              "serviceWorker": "ngsw-config.json",
+              "optimization": true,
+              "sourceMap": false,
+              "namedChunks": false,
+              "extractLicenses": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.cloudflare.ts"
+                }
+              ],
+              "outputPath": "dist",
+              "index": "src/index.html",
+              "browser": "src/main.ts",
+              "baseHref": "/"
+            },
             "electron": {
               "optimization": true,
               "outputHashing": "all",

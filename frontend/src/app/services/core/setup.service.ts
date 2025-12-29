@@ -1,6 +1,8 @@
 import { Injectable, signal } from '@angular/core';
 import { User } from '@inkweld/index';
 
+import { environment } from '../../../environments/environment';
+
 export interface AppConfig {
   mode: 'server' | 'offline';
   serverUrl?: string;
@@ -22,6 +24,41 @@ export class SetupService {
 
   constructor() {
     this.loadConfig();
+  }
+
+  /**
+   * Check if the environment has a pre-configured API URL
+   * (non-localhost URL, indicating a Cloudflare or hosted deployment)
+   */
+  private hasPreConfiguredApiUrl(): boolean {
+    const apiUrl = environment.apiUrl;
+    if (!apiUrl) return false;
+    // Check if it's NOT a localhost URL
+    return !apiUrl.includes('localhost') && !apiUrl.includes('127.0.0.1');
+  }
+
+  /**
+   * Auto-configure for hosted deployments with pre-set API URLs
+   * This allows Cloudflare/hosted deployments to skip manual setup
+   */
+  private autoConfigureIfNeeded(): void {
+    // Only auto-configure if no existing config AND we have a pre-configured API URL
+    if (this.getStoredConfig()) return;
+    if (!this.hasPreConfiguredApiUrl()) return;
+
+    console.log(
+      '[SetupService] Auto-configuring for hosted deployment:',
+      environment.apiUrl
+    );
+
+    const config: AppConfig = {
+      mode: 'server',
+      serverUrl: environment.apiUrl,
+    };
+
+    this.saveConfig(config);
+    this.appConfig.set(config);
+    this.isConfigured.set(true);
   }
 
   /**
@@ -153,6 +190,9 @@ export class SetupService {
     if (config) {
       this.appConfig.set(config);
       this.isConfigured.set(true);
+    } else {
+      // Try auto-configuring for hosted deployments
+      this.autoConfigureIfNeeded();
     }
   }
 

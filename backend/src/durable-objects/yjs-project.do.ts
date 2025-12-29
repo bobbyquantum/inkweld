@@ -22,6 +22,9 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { createEncoder, toUint8Array, writeVarUint, writeVarUint8Array } from 'lib0/encoding';
+import { encodeAwarenessUpdate } from 'y-protocols/awareness';
+import { writeSyncStep1 } from 'y-protocols/sync';
 import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
 
 declare const WebSocketPair: any;
@@ -232,6 +235,52 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     const connInfo = this.connections.get(ws);
     if (connInfo) {
       (connInfo as any).unsubscribe = unsubscribe;
+    }
+
+    // Send initial sync state to the new client
+    // This triggers the Yjs sync protocol to exchange document state
+    this.sendInitialSyncState(ws, sharedDoc, documentId);
+  }
+
+  /**
+   * Send initial sync state to a newly connected client
+   * This is critical for syncing existing document state to new clients
+   * Implements the y-protocols sync step 1 handshake
+   */
+  private sendInitialSyncState(ws: WebSocket, sharedDoc: WSSharedDoc, documentId: string): void {
+    try {
+      // Message type constants (matching y-durableobjects)
+      const MESSAGE_SYNC = 0;
+      const MESSAGE_AWARENESS = 1;
+
+      // Send sync step 1 - this tells the client what state we have
+      // and triggers the client to send us any updates we're missing
+      {
+        const encoder = createEncoder();
+        writeVarUint(encoder, MESSAGE_SYNC);
+        writeSyncStep1(encoder, sharedDoc);
+        const syncMessage = toUint8Array(encoder);
+        ws.send(syncMessage);
+        console.log(`📤 Sent sync step 1 for ${documentId} (${syncMessage.byteLength} bytes)`);
+      }
+
+      // Send awareness state
+      {
+        const awarenessStates = sharedDoc.awareness.getStates();
+        if (awarenessStates.size > 0) {
+          const encoder = createEncoder();
+          writeVarUint(encoder, MESSAGE_AWARENESS);
+          const awarenessUpdate = encodeAwarenessUpdate(
+            sharedDoc.awareness,
+            Array.from(awarenessStates.keys())
+          );
+          writeVarUint8Array(encoder, awarenessUpdate);
+          ws.send(toUint8Array(encoder));
+          console.log(`📤 Sent awareness for ${documentId} (${awarenessStates.size} clients)`);
+        }
+      }
+    } catch (error) {
+      console.error(`Error sending initial sync state for ${documentId}:`, error);
     }
   }
 

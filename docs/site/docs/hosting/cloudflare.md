@@ -25,18 +25,21 @@ npm run cloudflare:setup
 This script will:
 
 1. Check that you're logged into Cloudflare
-2. Create D1 databases for dev and production
-3. Configure your `wrangler.toml` with the correct database IDs
-4. Optionally run database migrations
-5. Guide you through setting secrets
+2. Ask which environments to set up (staging and/or production)
+3. Create D1 databases for chosen environments
+4. Configure your `wrangler.toml` with the correct database IDs
+5. Optionally run database migrations
+6. Guide you through setting secrets
 
 After running the setup script, deploy with:
 
 ```bash
 # From the project root
-npm run cloudflare:deploy:dev   # Deploy to development
-npm run cloudflare:deploy:prod  # Deploy to production
+npm run cloudflare:deploy:staging  # Deploy to staging (pre-production testing)
+npm run cloudflare:deploy:prod     # Deploy to production
 ```
+
+**Note:** For local development, use `wrangler dev` from the backend directory - no cloud setup needed.
 
 ## Manual Setup
 
@@ -146,13 +149,13 @@ This will open a browser window to authorize Wrangler with your Cloudflare accou
 
 ### 3. Create D1 Databases
 
-Create separate databases for development and production:
+Create databases for your chosen environments:
 
 ```bash
-# Development database
-npx wrangler d1 create inkweld_dev
+# Staging (optional - for pre-production testing)
+npx wrangler d1 create inkweld_staging
 
-# Production database
+# Production
 npx wrangler d1 create inkweld_prod
 ```
 
@@ -166,14 +169,14 @@ Copy the example configuration:
 cp wrangler.toml.example wrangler.toml
 ```
 
-Edit `wrangler.toml` and update the database IDs. Look for lines with `YOUR_DEV_DATABASE_ID_HERE` and `YOUR_PROD_DATABASE_ID_HERE`:
+Edit `wrangler.toml` and update the database IDs. Look for lines with `YOUR_STAGING_DATABASE_ID_HERE` and `YOUR_PROD_DATABASE_ID_HERE`:
 
 ```toml
-# Development environment
-[[env.dev.d1_databases]]
+# Staging environment
+[[env.staging.d1_databases]]
 binding = "DB"
-database_name = "inkweld_dev"
-database_id = "your-dev-database-id-here"  # Replace with actual ID
+database_name = "inkweld_staging"
+database_id = "your-staging-database-id-here"  # Replace with actual ID
 
 # Production environment
 [[env.production.d1_databases]]
@@ -187,8 +190,8 @@ database_id = "your-prod-database-id-here"  # Replace with actual ID
 Apply the schema to your D1 databases:
 
 ```bash
-# Development
-npx wrangler d1 execute inkweld_dev --file=./drizzle/0000_safe_mysterio.sql
+# Staging (if configured)
+npx wrangler d1 execute inkweld_staging --file=./drizzle/0000_safe_mysterio.sql
 
 # Production
 npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql
@@ -199,18 +202,20 @@ npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql
 Configure sensitive environment variables using Wrangler secrets:
 
 ```bash
-# Required: Session encryption key (32+ characters)
-echo "your-super-secret-session-key-here-make-it-long" | npx wrangler secret put SESSION_SECRET
+# For staging
+npx wrangler secret put SESSION_SECRET --env staging
 
-# Optional: GitHub OAuth (if enabled)
-echo "your-github-client-id" | npx wrangler secret put GITHUB_CLIENT_ID
-echo "your-github-client-secret" | npx wrangler secret put GITHUB_CLIENT_SECRET
+# For production
+npx wrangler secret put SESSION_SECRET --env production
 ```
 
-For production environment, add `--env production` to each command:
+You'll be prompted to enter the secret value (32+ characters recommended).
+
+Optional secrets (if features enabled):
 
 ```bash
-echo "your-production-session-key" | npx wrangler secret put SESSION_SECRET --env production
+npx wrangler secret put GITHUB_CLIENT_ID --env production
+npx wrangler secret put GITHUB_CLIENT_SECRET --env production
 ```
 
 ### 7. Deploy
@@ -218,8 +223,8 @@ echo "your-production-session-key" | npx wrangler secret put SESSION_SECRET --en
 Deploy to your chosen environment. From the **project root**:
 
 ```bash
-# Deploy frontend (Pages) + backend (Worker) to development
-npm run cloudflare:deploy:dev
+# Deploy frontend (Pages) + backend (Worker) to staging
+npm run cloudflare:deploy:staging
 
 # Deploy frontend (Pages) + backend (Worker) to production
 npm run cloudflare:deploy:prod
