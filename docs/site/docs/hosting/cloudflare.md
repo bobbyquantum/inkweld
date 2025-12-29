@@ -8,11 +8,41 @@ description: Deploy Inkweld to Cloudflare Workers with D1 database, R2 storage, 
 Inkweld can be deployed to Cloudflare Workers, leveraging Cloudflare's edge platform for global, low-latency access. This deployment method uses:
 
 - **Cloudflare Workers** - Serverless compute for the backend API
+- **Cloudflare Pages** - Hosts the Angular frontend
 - **D1 Database** - Cloudflare's SQLite-based database for user data and projects
-- **R2 Storage** - Object storage for project files and uploads
+- **R2 Storage** - Object storage for project files and uploads (optional)
 - **Durable Objects** - For real-time collaborative editing with Yjs
 
-## Prerequisites
+## Quick Start (Automated Setup)
+
+The easiest way to set up Cloudflare deployment is using the interactive setup script:
+
+```bash
+# From the project root
+npm run cloudflare:setup
+```
+
+This script will:
+
+1. Check that you're logged into Cloudflare
+2. Create D1 databases for dev and production
+3. Configure your `wrangler.toml` with the correct database IDs
+4. Optionally run database migrations
+5. Guide you through setting secrets
+
+After running the setup script, deploy with:
+
+```bash
+# From the project root
+npm run cloudflare:deploy:dev   # Deploy to development
+npm run cloudflare:deploy:prod  # Deploy to production
+```
+
+## Manual Setup
+
+If you prefer to configure everything manually, follow these steps:
+
+### Prerequisites
 
 - A [Cloudflare account](https://dash.cloudflare.com/sign-up)
 - Wrangler CLI installed: `npm install -g wrangler`
@@ -95,6 +125,10 @@ Upgrading to the paid plan provides:
 
 ## Setup Steps
 
+:::tip Recommended: Use the Setup Script
+The automated setup script handles all these steps for you. Run `npm run cloudflare:setup` from the project root.
+:::
+
 ### 1. Install Dependencies
 
 ```bash
@@ -132,7 +166,7 @@ Copy the example configuration:
 cp wrangler.toml.example wrangler.toml
 ```
 
-Edit `wrangler.toml` and update the database IDs:
+Edit `wrangler.toml` and update the database IDs. Look for lines with `YOUR_DEV_DATABASE_ID_HERE` and `YOUR_PROD_DATABASE_ID_HERE`:
 
 ```toml
 # Development environment
@@ -181,14 +215,14 @@ echo "your-production-session-key" | npx wrangler secret put SESSION_SECRET --en
 
 ### 7. Deploy
 
-Deploy to your chosen environment:
+Deploy to your chosen environment. From the **project root**:
 
 ```bash
-# Deploy to development
-bun run deploy:dev
+# Deploy frontend (Pages) + backend (Worker) to development
+npm run cloudflare:deploy:dev
 
-# Deploy to production
-bun run deploy:prod
+# Deploy frontend (Pages) + backend (Worker) to production
+npm run cloudflare:deploy:prod
 ```
 
 Your Worker will be deployed to a `*.workers.dev` subdomain by default.
