@@ -17,6 +17,22 @@ export const ProjectSchema = z
     coverImage: z.string().nullable().optional().openapi({ description: 'Cover image URL' }),
     createdDate: z.string().datetime().openapi({ description: 'Project creation date' }),
     updatedDate: z.string().datetime().openapi({ description: 'Last update date' }),
+    // Access permissions (only set when user is authenticated)
+    access: z
+      .object({
+        isOwner: z.boolean().openapi({ description: 'Whether user is project owner' }),
+        canRead: z.boolean().openapi({ description: 'Whether user can read project content' }),
+        canWrite: z.boolean().openapi({ description: 'Whether user can edit project content' }),
+        canAdmin: z
+          .boolean()
+          .openapi({ description: 'Whether user can manage project settings and collaborators' }),
+        role: z
+          .enum(['viewer', 'editor', 'admin'])
+          .nullable()
+          .openapi({ description: 'Collaborator role if not owner' }),
+      })
+      .optional()
+      .openapi({ description: 'User access permissions for this project' }),
   })
   .openapi('Project');
 

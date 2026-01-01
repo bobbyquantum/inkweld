@@ -69,8 +69,10 @@
 <!-- Tab Context Menu -->
 <ng-template #tabContextMenu>
   <div class="tab-context-menu" cdkMenu>
-    <!-- Only show rename for document/folder tabs (not for system tabs) -->
-    @if (contextTab && contextTab.type !== 'system') {
+    <!-- Only show rename for document/folder tabs (not for system tabs) and users with write access -->
+    @if (
+      contextTab && contextTab.type !== 'system' && projectState.canWrite()
+    ) {
       <button
         type="button"
         class="context-menu-item"

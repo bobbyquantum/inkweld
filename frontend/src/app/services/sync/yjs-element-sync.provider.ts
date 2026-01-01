@@ -914,27 +914,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
   /**
    * Load elements and publish plans from the Yjs document and emit them.
-   * If elements are empty, creates a default README document.
+   * Note: We no longer create default elements here - this caused issues when
+   * local storage was empty but server had data (the default would conflict).
+   * Default element creation is now handled by the backend on project creation.
    */
   private loadElementsFromDoc(): void {
     if (!this.doc) return;
 
     // Load elements
     const elementsArray = this.doc.getArray<Element>('elements');
-    let elements = elementsArray.toArray();
-
-    // If no elements exist, create default README document
-    if (elements.length === 0) {
-      this.logger.info(
-        'YjsSync',
-        'No elements found - creating default README document'
-      );
-      const defaultElements = this.createDefaultElements();
-      this.doc.transact(() => {
-        elementsArray.insert(0, defaultElements);
-      });
-      elements = elementsArray.toArray();
-    }
+    const elements = elementsArray.toArray();
 
     this.logger.debug('YjsSync', `Loaded ${elements.length} elements from Yjs`);
     this.elementsSubject.next(elements);

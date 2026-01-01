@@ -1,3 +1,8 @@
 <mat-card class="project-card" appearance="outlined" data-testid="project-card">
   <app-project-cover [project]="project" variant="card"></app-project-cover>
+  @if (isShared) {
+    <div class="shared-badge" [matTooltip]="'Shared by ' + sharedByUsername">
+      <mat-icon>group</mat-icon>
+    </div>
+  }
 </mat-card>

@@ -51,6 +51,9 @@ export class ImageProfilesService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);

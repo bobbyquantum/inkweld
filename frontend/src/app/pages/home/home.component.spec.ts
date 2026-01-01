@@ -9,12 +9,19 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
+import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { Project, User } from '@inkweld/index';
+import {
+  CollaboratedProject,
+  CollaboratorRole,
+  PendingInvitation,
+} from '@inkweld/model/models';
+import { SetupService } from '@services/core/setup.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
 import { HomeComponent } from './home.component';
@@ -28,6 +35,8 @@ describe('HomeComponent', () => {
   let themeService: MockedObject<ThemeService>;
   let userService: MockedObject<UnifiedUserService>;
   let projectService: Partial<UnifiedProjectService>;
+  let collaborationApiService: Partial<CollaborationApiService>;
+  let setupService: Partial<SetupService>;
   let breakpointObserver: MockedObject<BreakpointObserver>;
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
@@ -37,6 +46,29 @@ describe('HomeComponent', () => {
   const mockIsAuthenticated = signal(true);
   const mockUserInitialized = signal(true);
   const mockProjectInitialized = signal(true);
+
+  const mockPendingInvitations: PendingInvitation[] = [
+    {
+      projectId: 'proj-1',
+      projectTitle: 'Invited Project',
+      projectSlug: 'invited-project',
+      ownerUsername: 'owner1',
+      role: CollaboratorRole.Viewer,
+      invitedAt: Date.now(),
+      invitedByUsername: 'owner1',
+    },
+  ];
+
+  const mockCollaboratedProjects: CollaboratedProject[] = [
+    {
+      projectId: 'proj-2',
+      projectTitle: 'Collaborated Project',
+      projectSlug: 'collaborated-project',
+      ownerUsername: 'owner2',
+      role: CollaboratorRole.Editor,
+      acceptedAt: Date.now(),
+    },
+  ];
 
   const mockProjects: Project[] = [
     {
@@ -101,6 +133,19 @@ describe('HomeComponent', () => {
       loadProjects: vi.fn().mockResolvedValue(undefined),
     };
 
+    // Setup mock collaboration service
+    collaborationApiService = {
+      getPendingInvitations: vi.fn().mockReturnValue(of([])),
+      getCollaboratedProjects: vi.fn().mockReturnValue(of([])),
+      acceptInvitation: vi.fn().mockReturnValue(of({ message: 'accepted' })),
+      declineInvitation: vi.fn().mockReturnValue(of({ message: 'declined' })),
+    };
+
+    // Setup mock setup service (server mode by default for collaboration tests)
+    setupService = {
+      getMode: vi.fn().mockReturnValue('server'),
+    };
+
     await TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
@@ -113,6 +158,8 @@ describe('HomeComponent', () => {
         { provide: ThemeService, useValue: themeService },
         { provide: UnifiedUserService, useValue: userService },
         { provide: UnifiedProjectService, useValue: projectService },
+        { provide: CollaborationApiService, useValue: collaborationApiService },
+        { provide: SetupService, useValue: setupService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
@@ -354,6 +401,150 @@ describe('HomeComponent', () => {
 
       expect(nextSpy).toHaveBeenCalled();
       expect(completeSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('collaboration features', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
+    describe('loadCollaborationData', () => {
+      it('should load pending invitations and collaborated projects', async () => {
+        (collaborationApiService.getPendingInvitations as any).mockReturnValue(
+          of(mockPendingInvitations)
+        );
+        (
+          collaborationApiService.getCollaboratedProjects as any
+        ).mockReturnValue(of(mockCollaboratedProjects));
+
+        await component.loadCollaborationData();
+
+        expect(
+          collaborationApiService.getPendingInvitations
+        ).toHaveBeenCalled();
+        expect(
+          collaborationApiService.getCollaboratedProjects
+        ).toHaveBeenCalled();
+        expect(component.pendingInvitations()).toEqual(mockPendingInvitations);
+        expect(component.collaboratedProjects()).toEqual(
+          mockCollaboratedProjects
+        );
+      });
+
+      it('should not load if not authenticated', async () => {
+        // Clear any previous calls
+        vi.clearAllMocks();
+        // Set to unauthenticated
+        mockIsAuthenticated.set(false);
+        fixture.detectChanges();
+
+        await component.loadCollaborationData();
+
+        expect(
+          collaborationApiService.getPendingInvitations
+        ).not.toHaveBeenCalled();
+        expect(
+          collaborationApiService.getCollaboratedProjects
+        ).not.toHaveBeenCalled();
+      });
+
+      it('should handle errors gracefully', async () => {
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        (collaborationApiService.getPendingInvitations as any).mockReturnValue(
+          throwError(() => new Error('Network error'))
+        );
+
+        await component.loadCollaborationData();
+
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
+      });
+    });
+
+    describe('acceptInvitation', () => {
+      it('should accept invitation and update state', async () => {
+        const invitation = mockPendingInvitations[0];
+        component.pendingInvitations.set([...mockPendingInvitations]);
+        (
+          collaborationApiService.getCollaboratedProjects as any
+        ).mockReturnValue(of(mockCollaboratedProjects));
+
+        await component.acceptInvitation(invitation);
+
+        expect(collaborationApiService.acceptInvitation).toHaveBeenCalledWith(
+          invitation.projectId
+        );
+        expect(
+          component
+            .pendingInvitations()
+            .find(i => i.projectId === invitation.projectId)
+        ).toBeUndefined();
+      });
+
+      it('should handle accept errors', async () => {
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        const invitation = mockPendingInvitations[0];
+        component.pendingInvitations.set([...mockPendingInvitations]);
+        (collaborationApiService.acceptInvitation as any).mockReturnValue(
+          throwError(() => new Error('Failed'))
+        );
+
+        await component.acceptInvitation(invitation);
+
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
+      });
+    });
+
+    describe('declineInvitation', () => {
+      it('should decline invitation and remove from list', async () => {
+        const invitation = mockPendingInvitations[0];
+        component.pendingInvitations.set([...mockPendingInvitations]);
+
+        await component.declineInvitation(invitation);
+
+        expect(collaborationApiService.declineInvitation).toHaveBeenCalledWith(
+          invitation.projectId
+        );
+        expect(
+          component
+            .pendingInvitations()
+            .find(i => i.projectId === invitation.projectId)
+        ).toBeUndefined();
+      });
+
+      it('should handle decline errors', async () => {
+        const consoleSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        const invitation = mockPendingInvitations[0];
+        component.pendingInvitations.set([...mockPendingInvitations]);
+        (collaborationApiService.declineInvitation as any).mockReturnValue(
+          throwError(() => new Error('Failed'))
+        );
+
+        await component.declineInvitation(invitation);
+
+        expect(consoleSpy).toHaveBeenCalled();
+        consoleSpy.mockRestore();
+      });
+    });
+
+    describe('openCollaboratedProject', () => {
+      it('should navigate to collaborated project', () => {
+        const project = mockCollaboratedProjects[0];
+        component.openCollaboratedProject(project);
+
+        expect(router.navigate).toHaveBeenCalledWith([
+          project.ownerUsername,
+          project.projectSlug,
+        ]);
+      });
     });
   });
 });

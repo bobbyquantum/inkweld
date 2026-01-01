@@ -3,6 +3,7 @@ import { upgradeWebSocket } from 'hono/bun';
 import { yjsService } from '../services/yjs.service';
 import { authService } from '../services/auth.service';
 import { projectService } from '../services/project.service';
+import { collaborationService } from '../services/collaboration.service';
 import { type AppContext } from '../types/context';
 
 const app = new Hono<AppContext>();
@@ -44,6 +45,7 @@ app.get(
 
     // Connection state
     let authenticated = false;
+    let canWrite = false; // Viewers can receive but not send updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
     let doc: any = null;
     let pingInterval: Timer | null = null;
@@ -99,12 +101,28 @@ app.get(
 
             // Check access - owner or collaborator
             if (project.userId !== sessionData.userId) {
-              console.error(
-                `User ${sessionData.username} attempted to access project ${projectOwner}/${slug}`
+              // Not the owner, check if they're a collaborator
+              const access = await collaborationService.checkAccess(
+                db,
+                project.id,
+                sessionData.userId
               );
-              ws.send('access-denied:forbidden');
-              ws.close(4003, 'Access denied');
-              return;
+              if (!access) {
+                console.error(
+                  `User ${sessionData.username} attempted to access project ${projectOwner}/${slug}`
+                );
+                ws.send('access-denied:forbidden');
+                ws.close(4003, 'Access denied');
+                return;
+              }
+              // Collaborator access granted - set write permission based on role
+              canWrite = access.canWrite;
+              console.log(
+                `Collaborator ${sessionData.username} (${access.role}, canWrite: ${canWrite}) accessing project ${projectOwner}/${slug}`
+              );
+            } else {
+              // Owner always has write access
+              canWrite = true;
             }
 
             // Authentication successful!
@@ -153,6 +171,38 @@ app.get(
         if (event.data instanceof ArrayBuffer) {
           if (authenticated && doc) {
             const buffer = Buffer.from(event.data);
+
+            // For read-only viewers, only allow sync step 1 requests (asking for state)
+            // Block: update messages (type 2) and sync step 2 (type 0, subtype 1) which sends updates
+            if (!canWrite) {
+              // Message type 0 = sync, type 1 = awareness, type 2 = update
+              const messageType = buffer[0];
+
+              // Block update messages entirely
+              if (messageType === 2) {
+                console.log(`[Yjs] Blocked update message from read-only viewer for ${documentId}`);
+                return;
+              }
+
+              // For sync messages (type 0), check the sync message type
+              // Sync step 1 (subtype 0) = request state - allowed (read-only)
+              // Sync step 2 (subtype 1) = send updates - blocked (write)
+              // Sync update (subtype 2) = send update - blocked (write)
+              if (messageType === 0 && buffer.length > 1) {
+                const syncMessageType = buffer[1];
+                if (syncMessageType === 1) {
+                  console.log(
+                    `[Yjs] Blocked sync-step-2 (client sending updates) from read-only viewer for ${documentId}`
+                  );
+                  return;
+                }
+                if (syncMessageType === 2) {
+                  console.log(`[Yjs] Blocked sync-update from read-only viewer for ${documentId}`);
+                  return;
+                }
+              }
+            }
+
             yjsService.handleMessage(ws.raw, doc, buffer);
           } else {
             // Queue message until authenticated

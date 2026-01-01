@@ -81,7 +81,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   slug = input.required<string>();
 
   private worldbuildingService = inject(WorldbuildingService);
-  private projectState = inject(ProjectStateService);
+  protected readonly projectState = inject(ProjectStateService);
   private dialogGateway = inject(DialogGatewayService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
@@ -115,8 +115,23 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
       // Only load when all required values are available
       if (id && username && slug) {
-        void this.loadElementData(id);
-        void this.setupRealtimeSync(id);
+        // Load data first, then setup realtime sync
+        // This ensures the form is built before the observer can fire
+        void this.loadElementData(id).then(() => {
+          void this.setupRealtimeSync(id);
+        });
+      }
+    });
+
+    // React to access changes and disable/enable form accordingly
+    effect(() => {
+      const canWrite = this.projectState.canWrite();
+      if (this.form) {
+        if (canWrite) {
+          this.form.enable({ emitEvent: false });
+        } else {
+          this.form.disable({ emitEvent: false });
+        }
       }
     });
   }
@@ -147,27 +162,31 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       this.schema.set(loadedSchema);
 
       if (!loadedSchema && username && slug) {
-        const elements = this.projectState.elements();
-        const element: ApiElement | undefined = elements.find(
-          (el: ApiElement) => el.id === elementId
-        );
-        if (element) {
-          await this.worldbuildingService.initializeWorldbuildingElement(
-            element,
-            username,
-            slug
+        // Only allow initialization for users with write access
+        // Viewers should never initialize elements - just display what exists
+        if (this.projectState.canWrite()) {
+          const elements = this.projectState.elements();
+          const element: ApiElement | undefined = elements.find(
+            (el: ApiElement) => el.id === elementId
           );
-
-          // Re-fetch the schema after initialization
-          const reinitializedSchema =
-            await this.worldbuildingService.getSchemaForElement(
-              elementId,
+          if (element) {
+            await this.worldbuildingService.initializeWorldbuildingElement(
+              element,
               username,
               slug
             );
-          this.schema.set(reinitializedSchema);
-          if (reinitializedSchema) {
-            this.buildFormFromSchema(reinitializedSchema);
+
+            // Re-fetch the schema after initialization
+            const reinitializedSchema =
+              await this.worldbuildingService.getSchemaForElement(
+                elementId,
+                username,
+                slug
+              );
+            this.schema.set(reinitializedSchema);
+            if (reinitializedSchema) {
+              this.buildFormFromSchema(reinitializedSchema);
+            }
           }
         }
       } else if (loadedSchema) {
@@ -181,6 +200,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       );
       if (data) {
         this.updateFormFromData(data);
+      }
+
+      // Apply read-only state AFTER loading data to ensure values display correctly
+      if (!this.projectState.canWrite()) {
+        this.form.disable({ emitEvent: false });
       }
     } catch (error) {
       console.error('[WorldbuildingEditor] Error loading element data:', error);
@@ -242,6 +266,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
     this.form = new FormGroup(formGroup);
     this.setupFormSubscription();
+    // Note: Read-only state is applied AFTER data loading in loadElementData()
+    // to avoid issues with disabled forms not displaying values correctly
   }
 
   private setupFormSubscription(): void {
@@ -325,9 +351,31 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     this.unsubscribeObserver = await this.worldbuildingService.observeChanges(
       elementId,
       data => {
-        this.isUpdatingFromRemote = true;
-        this.updateFormFromData(data);
-        this.isUpdatingFromRemote = false;
+        void (async () => {
+          this.isUpdatingFromRemote = true;
+
+          // If we don't have a schema yet, try to get it from the synced data
+          // This handles the case where WebSocket sync completes after initial load
+          if (!this.schema() && data['schemaId']) {
+            const username = this.username();
+            const slug = this.slug();
+            if (username && slug) {
+              const syncedSchema =
+                await this.worldbuildingService.getSchemaForElement(
+                  elementId,
+                  username,
+                  slug
+                );
+              if (syncedSchema) {
+                this.schema.set(syncedSchema);
+                this.buildFormFromSchema(syncedSchema);
+              }
+            }
+          }
+
+          this.updateFormFromData(data);
+          this.isUpdatingFromRemote = false;
+        })();
       },
       this.username(),
       this.slug()

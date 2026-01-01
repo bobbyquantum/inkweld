@@ -9,20 +9,25 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { Project } from '@inkweld/index';
+import { CollaboratedProject, PendingInvitation } from '@inkweld/model/models';
+import { SetupService } from '@services/core/setup.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
-import { Subject } from 'rxjs';
+import { firstValueFrom, Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 
 @Component({
@@ -30,6 +35,7 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
   standalone: true,
   imports: [
     MatButtonModule,
+    MatCardModule,
     MatIconModule,
     MatInputModule,
     MatFormFieldModule,
@@ -49,6 +55,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected userService = inject(UnifiedUserService);
   protected projectService = inject(UnifiedProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
+  private readonly collaborationApiService = inject(CollaborationApiService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly setupService = inject(SetupService);
 
   // Component state
   loadError = false;
@@ -59,12 +68,64 @@ export class HomeComponent implements OnInit, OnDestroy {
   mobileSearchActive = signal(false); // Track mobile search mode
   isInitializing = signal(true); // Track if we're still initializing user state
 
+  // Collaboration state
+  pendingInvitations = signal<PendingInvitation[]>([]);
+  collaboratedProjects = signal<CollaboratedProject[]>([]);
+  loadingInvitations = signal(false);
+
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;
   protected isAuthenticated = this.userService.isAuthenticated;
   protected destroy$ = new Subject<void>();
 
-  // Computed state
+  // Computed state - unified project list combining owned and shared projects
+  protected allProjects = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    const ownProjects = this.projectService.projects();
+    const sharedProjects = this.collaboratedProjects();
+
+    // Convert shared projects to unified format
+    const unifiedOwn = ownProjects.map(p => ({
+      project: p,
+      isShared: false as const,
+      sharedByUsername: undefined as string | undefined,
+    }));
+
+    const unifiedShared = sharedProjects.map(cp => ({
+      project: {
+        id: cp.projectId,
+        slug: cp.projectSlug,
+        title: cp.projectTitle,
+        description: null,
+        username: cp.ownerUsername,
+        coverImage: null,
+        createdDate: new Date(cp.acceptedAt).toISOString(),
+        updatedDate: new Date(cp.acceptedAt).toISOString(),
+      } as Project,
+      isShared: true as const,
+      sharedByUsername: cp.ownerUsername,
+    }));
+
+    // Combine both lists
+    const combined = [...unifiedOwn, ...unifiedShared];
+
+    // Apply search filter if there's a search term
+    if (!term) {
+      return combined;
+    }
+
+    return combined.filter(item => {
+      const p = item.project;
+      return (
+        p.title.toLowerCase().includes(term) ||
+        p.slug.toLowerCase().includes(term) ||
+        p.description?.toLowerCase().includes(term) ||
+        p.username.toLowerCase().includes(term)
+      );
+    });
+  });
+
+  // Keep filteredProjects for side-nav compatibility (owned projects only)
   protected filteredProjects = computed(() => {
     const term = this.searchTerm().toLowerCase();
     if (!term) {
@@ -99,12 +160,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   async loadProjects() {
-    // If we already have projects and are initialized, skip loading
+    // If we already have projects and are initialized, just refresh collaboration data
     if (
       this.projectService.initialized() &&
       this.projectService.projects().length > 0
     ) {
       this.isInitializing.set(false);
+      // Always reload collaboration data when returning to home
+      await this.loadCollaborationData();
       return;
     }
 
@@ -129,6 +192,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.loadError = false;
     try {
       await this.projectService.loadProjects();
+      // Also load collaboration data
+      await this.loadCollaborationData();
     } catch (error: unknown) {
       // Check if this is a session expired error
       if (
@@ -201,6 +266,93 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   navigateToRegister(): void {
     void this.router.navigate(['/register']);
+  }
+
+  /**
+   * Load pending invitations and collaborated projects.
+   * Skipped in offline mode since collaboration requires a server.
+   */
+  async loadCollaborationData(): Promise<void> {
+    // Skip collaboration API calls in offline mode
+    if (this.setupService.getMode() === 'offline') {
+      return;
+    }
+
+    if (!this.isAuthenticated()) {
+      return;
+    }
+
+    this.loadingInvitations.set(true);
+    try {
+      const [invitations, collaborated] = await Promise.all([
+        firstValueFrom(this.collaborationApiService.getPendingInvitations()),
+        firstValueFrom(this.collaborationApiService.getCollaboratedProjects()),
+      ]);
+      this.pendingInvitations.set(invitations);
+      this.collaboratedProjects.set(collaborated);
+    } catch (error) {
+      console.error('Failed to load collaboration data:', error);
+    } finally {
+      this.loadingInvitations.set(false);
+    }
+  }
+
+  /**
+   * Accept a project invitation
+   */
+  async acceptInvitation(invitation: PendingInvitation): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.collaborationApiService.acceptInvitation(invitation.projectId)
+      );
+      // Remove from pending invitations
+      this.pendingInvitations.update(invitations =>
+        invitations.filter(i => i.projectId !== invitation.projectId)
+      );
+      // Reload collaborated projects
+      const collaborated = await firstValueFrom(
+        this.collaborationApiService.getCollaboratedProjects()
+      );
+      this.collaboratedProjects.set(collaborated);
+      this.snackBar.open(
+        `You are now a collaborator on "${invitation.projectTitle}"`,
+        'Close',
+        { duration: 3000 }
+      );
+    } catch (error) {
+      console.error('Failed to accept invitation:', error);
+      this.snackBar.open('Failed to accept invitation', 'Close', {
+        duration: 3000,
+      });
+    }
+  }
+
+  /**
+   * Decline a project invitation
+   */
+  async declineInvitation(invitation: PendingInvitation): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.collaborationApiService.declineInvitation(invitation.projectId)
+      );
+      // Remove from pending invitations
+      this.pendingInvitations.update(invitations =>
+        invitations.filter(i => i.projectId !== invitation.projectId)
+      );
+      this.snackBar.open('Invitation declined', 'Close', { duration: 3000 });
+    } catch (error) {
+      console.error('Failed to decline invitation:', error);
+      this.snackBar.open('Failed to decline invitation', 'Close', {
+        duration: 3000,
+      });
+    }
+  }
+
+  /**
+   * Navigate to a collaborated project
+   */
+  openCollaboratedProject(project: CollaboratedProject): void {
+    void this.router.navigate([project.ownerUsername, project.projectSlug]);
   }
 
   ngOnDestroy() {

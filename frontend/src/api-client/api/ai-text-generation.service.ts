@@ -57,6 +57,9 @@ export class AITextGenerationService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);
@@ -108,6 +111,9 @@ export class AITextGenerationService extends BaseService {
     public getTextGenerationStatus(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
@@ -161,6 +167,9 @@ export class AITextGenerationService extends BaseService {
     public optimizeImagePrompt(optimizeImagePromptRequest?: OptimizeImagePromptRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'

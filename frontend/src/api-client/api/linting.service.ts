@@ -53,6 +53,9 @@ export class LintingService extends BaseService {
 
         let localVarHeaders = this.defaultHeaders;
 
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'
         ]);
@@ -103,6 +106,9 @@ export class LintingService extends BaseService {
     public lintParagraph(lintRequest?: LintRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
 
         const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
             'application/json'

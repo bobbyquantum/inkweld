@@ -157,7 +157,7 @@
         <app-side-nav
           [isOpen]="sideNavOpen"
           [isMobile]="isMobile"
-          [projects]="filteredProjects()"
+          [projectItems]="allProjects()"
           [selectedProject]="selectedProject"
           (projectSelected)="selectProject($event)">
         </app-side-nav>
@@ -274,42 +274,103 @@
                 Retry
               </button>
             </div>
-          } @else if (filteredProjects().length === 0 && !searchControl.value) {
-            <div class="empty-state">
-              <mat-icon class="empty-icon">add_circle_outline</mat-icon>
-              <h2>Create Your First Project</h2>
-              <p>Get started by creating a new project</p>
-              <button
-                mat-button
-                data-testid="create-first-project-button"
-                (click)="openNewProjectDialog()">
-                Create Project
-              </button>
-            </div>
-          } @else if (filteredProjects().length === 0 && searchControl.value) {
-            <div class="empty-search-results">
-              <mat-icon>search_off</mat-icon>
-              <h3>No projects found</h3>
-              <p>Try a different search term</p>
-            </div>
           } @else {
-            <!-- Responsive cover grid -->
-            <div class="covers-grid">
-              @for (project of filteredProjects(); track project.id) {
-                <div
-                  class="cover-item"
-                  data-testid="project-card"
-                  [class.selected]="selectedProject?.id === project.id"
-                  (click)="selectProject(project)"
-                  (keyup.enter)="selectProject(project)"
-                  tabindex="0"
-                  role="button"
-                  [title]="project.title"
-                  [attr.aria-label]="'Open project ' + project.title">
-                  <app-project-card [project]="project"></app-project-card>
+            <!-- Pending Invitations Section -->
+            @if (pendingInvitations().length > 0) {
+              <div
+                class="invitations-section"
+                data-testid="invitations-section">
+                <h3 class="section-title">
+                  <mat-icon>mail_outline</mat-icon>
+                  Pending Invitations
+                </h3>
+                <div class="invitations-list">
+                  @for (
+                    invitation of pendingInvitations();
+                    track invitation.projectId
+                  ) {
+                    <mat-card class="invitation-card">
+                      <mat-card-content>
+                        <div class="invitation-info">
+                          <div class="invitation-details">
+                            <span class="project-title">{{
+                              invitation.projectTitle
+                            }}</span>
+                            <span class="owner-info"
+                              >by {{ invitation.ownerUsername }}</span
+                            >
+                            <span class="role-badge">{{
+                              invitation.role
+                            }}</span>
+                          </div>
+                          <div class="invitation-actions">
+                            <button
+                              mat-button
+                              color="warn"
+                              (click)="declineInvitation(invitation)"
+                              data-testid="decline-invitation">
+                              Decline
+                            </button>
+                            <button
+                              mat-raised-button
+                              color="primary"
+                              (click)="acceptInvitation(invitation)"
+                              data-testid="accept-invitation">
+                              Accept
+                            </button>
+                          </div>
+                        </div>
+                      </mat-card-content>
+                    </mat-card>
+                  }
                 </div>
-              }
-            </div>
+              </div>
+            }
+
+            <!-- Collaborated Projects Section -->
+
+            <!-- All Projects Section (owned + shared) -->
+            @if (allProjects().length === 0 && !searchControl.value) {
+              <div class="empty-state">
+                <mat-icon class="empty-icon">add_circle_outline</mat-icon>
+                <h2>Create Your First Project</h2>
+                <p>Get started by creating a new project</p>
+                <button
+                  mat-button
+                  data-testid="create-first-project-button"
+                  (click)="openNewProjectDialog()">
+                  Create Project
+                </button>
+              </div>
+            } @else if (allProjects().length === 0 && searchControl.value) {
+              <div class="empty-search-results">
+                <mat-icon>search_off</mat-icon>
+                <h3>No projects found</h3>
+                <p>Try a different search term</p>
+              </div>
+            } @else {
+              <!-- Responsive cover grid with unified projects -->
+              <div class="covers-grid">
+                @for (item of allProjects(); track item.project.id) {
+                  <div
+                    class="cover-item"
+                    data-testid="project-card"
+                    [class.selected]="selectedProject?.id === item.project.id"
+                    (click)="selectProject(item.project)"
+                    (keyup.enter)="selectProject(item.project)"
+                    tabindex="0"
+                    role="button"
+                    [title]="item.project.title"
+                    [attr.aria-label]="'Open project ' + item.project.title">
+                    <app-project-card
+                      [project]="item.project"
+                      [isShared]="item.isShared"
+                      [sharedByUsername]="item.sharedByUsername">
+                    </app-project-card>
+                  </div>
+                }
+              </div>
+            }
           }
         }
       </div>

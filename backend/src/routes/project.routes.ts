@@ -3,6 +3,7 @@ import { z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
+import { collaborationService } from '../services/collaboration.service';
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -140,7 +141,11 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
     throw new NotFoundError('Project not found');
   }
 
-  if (project.userId !== userId) {
+  // Get access level for the user
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+
+  // Check if user has read access
+  if (!access.canRead) {
     throw new ForbiddenError('Access denied');
   }
 
@@ -155,6 +160,13 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
       coverImage: project.coverImage ?? null,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
+      access: {
+        isOwner: access.isOwner,
+        canRead: access.canRead,
+        canWrite: access.canWrite,
+        canAdmin: access.canAdmin,
+        role: access.role,
+      },
     },
     200
   );
@@ -250,6 +262,14 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
       coverImage: project.coverImage ?? null,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
+      // Creator is always the owner with full access
+      access: {
+        isOwner: true,
+        canRead: true,
+        canWrite: true,
+        canAdmin: true,
+        role: null,
+      },
     },
     201
   );
@@ -325,7 +345,11 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
     throw new NotFoundError('Project not found');
   }
 
-  if (project.userId !== userId) {
+  // Get access level for the user
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+
+  // Check if user has admin access (required for project updates)
+  if (!access.canAdmin) {
     throw new ForbiddenError('Access denied');
   }
 
@@ -347,6 +371,13 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
       coverImage: updated.coverImage ?? null,
       createdDate: new Date(updated.createdDate).toISOString(),
       updatedDate: new Date(updated.updatedDate).toISOString(),
+      access: {
+        isOwner: access.isOwner,
+        canRead: access.canRead,
+        canWrite: access.canWrite,
+        canAdmin: access.canAdmin,
+        role: access.role,
+      },
     },
     200
   );

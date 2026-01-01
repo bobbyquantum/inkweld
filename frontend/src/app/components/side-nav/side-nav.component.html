@@ -19,31 +19,38 @@
     </mat-nav-list>
 
     <!-- Projects section -->
-    @if (projects.length > 0) {
+    @if (projectItems.length > 0) {
       <div class="projects-section">
         <div class="section-header">
           <mat-icon>collections_bookmark</mat-icon>
           <span>Projects</span>
         </div>
         <div class="project-tiles">
-          @for (project of projects; track project.id) {
+          @for (item of projectItems; track item.project.id) {
             <div
               class="project-tile"
-              (click)="onProjectClick(project)"
-              (keyup.enter)="onProjectClick(project)"
-              [class.selected]="selectedProject?.id === project.id"
+              (click)="onProjectClick(item.project)"
+              (keyup.enter)="onProjectClick(item.project)"
+              [class.selected]="selectedProject?.id === item.project.id"
               tabindex="0"
               role="button"
-              [attr.data-testid]="'project-' + project.slug"
-              [title]="project.title">
+              [attr.data-testid]="'project-' + item.project.slug"
+              [title]="item.project.title">
               <div class="tile-cover">
                 <app-project-cover
-                  [project]="project"
+                  [project]="item.project"
                   variant="small"></app-project-cover>
+                @if (item.isShared) {
+                  <div
+                    class="shared-indicator"
+                    [matTooltip]="'Shared by ' + item.sharedByUsername">
+                    <mat-icon>group</mat-icon>
+                  </div>
+                }
               </div>
               <div class="tile-info">
-                <span class="tile-title">{{ project.title }}</span>
-                <span class="tile-author">{{ project.username }}</span>
+                <span class="tile-title">{{ item.project.title }}</span>
+                <span class="tile-author">{{ item.project.username }}</span>
               </div>
             </div>
           }

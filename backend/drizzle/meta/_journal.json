@@ -64,6 +64,13 @@
       "when": 1766790677429,
       "tag": "0008_moaning_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1767043469216,
+      "tag": "0009_add-project-collaborators",
+      "breakpoints": true
     }
   ]
 }

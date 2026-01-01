@@ -48,6 +48,35 @@ app-identity-panel {
     display: flex;
     flex-direction: column;
     min-height: 0;
+
+    // Improve disabled state styling for read-only viewers
+    // Make it look more like the readonly description field
+    &.ng-invalid,
+    &[class] {
+      .mat-mdc-form-field.mat-form-field-disabled {
+        opacity: 1;
+
+        .mdc-text-field--disabled {
+          background-color: transparent;
+        }
+
+        .mat-mdc-input-element:disabled,
+        textarea:disabled {
+          color: var(--sys-on-surface);
+          -webkit-text-fill-color: var(--sys-on-surface);
+        }
+
+        .mdc-floating-label--float-above {
+          color: var(--sys-on-surface-variant);
+        }
+
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+          border-color: var(--sys-outline-variant);
+        }
+      }
+    }
   }
 
   // Aria tabs styling

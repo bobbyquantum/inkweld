@@ -18,8 +18,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
-import { McpPermission, McpPublicKey } from '@inkweld/index';
+import {
+  Collaborator,
+  CollaboratorRole,
+  InvitationStatus,
+  McpPermission,
+  McpPublicKey,
+} from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { MediaSyncService } from '@services/offline/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -50,6 +57,7 @@ describe('SettingsTabComponent', () => {
   let fixture: ComponentFixture<SettingsTabComponent>;
   let projectStateService: Partial<ProjectStateService>;
   let mcpKeysService: Partial<MCPKeysService>;
+  let collaborationService: Partial<CollaborationApiService>;
   let snackBar: Partial<MatSnackBar>;
   let setupService: Partial<SetupService>;
   let mediaSyncService: Partial<MediaSyncService>;
@@ -64,6 +72,35 @@ describe('SettingsTabComponent', () => {
     updatedDate: new Date().toISOString(),
     description: 'Test description',
   };
+
+  const mockCollaborators: Collaborator[] = [
+    {
+      projectId: '123',
+      userId: 'user-1',
+      username: 'collaborator1',
+      name: 'Collaborator One',
+      email: 'collab1@example.com',
+      role: CollaboratorRole.Editor,
+      status: InvitationStatus.Accepted,
+      invitedBy: 'testuser-id',
+      invitedByUsername: 'testuser',
+      invitedAt: Date.now() - 86400000,
+      acceptedAt: Date.now() - 43200000,
+    },
+    {
+      projectId: '123',
+      userId: 'user-2',
+      username: 'collaborator2',
+      name: 'Collaborator Two',
+      email: 'collab2@example.com',
+      role: CollaboratorRole.Viewer,
+      status: InvitationStatus.Pending,
+      invitedBy: 'testuser-id',
+      invitedByUsername: 'testuser',
+      invitedAt: Date.now() - 3600000,
+      acceptedAt: null,
+    },
+  ];
 
   const mockMcpKeys: McpPublicKey[] = [
     {
@@ -91,6 +128,9 @@ describe('SettingsTabComponent', () => {
   beforeEach(async () => {
     projectStateService = {
       project: signal(mockProject),
+      canWrite: signal(true),
+      isOwner: signal(true),
+      accessLoaded: signal(true),
     };
 
     mcpKeysService = {
@@ -112,6 +152,32 @@ describe('SettingsTabComponent', () => {
       ),
       revokeMcpKey: vi.fn().mockReturnValue(of({ message: 'Key revoked' })),
       deleteMcpKey: vi.fn().mockReturnValue(of({ message: 'Key deleted' })),
+    };
+
+    collaborationService = {
+      listCollaborators: vi.fn().mockReturnValue(of(mockCollaborators)),
+      inviteCollaborator: vi.fn().mockReturnValue(
+        of({
+          projectId: '123',
+          userId: 'new-user',
+          username: 'newuser',
+          name: 'New User',
+          email: 'newuser@example.com',
+          role: CollaboratorRole.Editor,
+          status: InvitationStatus.Pending,
+          invitedBy: 'testuser-id',
+          invitedByUsername: 'testuser',
+          invitedAt: Date.now(),
+          acceptedAt: null,
+        })
+      ),
+      updateCollaborator: vi.fn().mockReturnValue(
+        of({
+          ...mockCollaborators[0],
+          role: CollaboratorRole.Admin,
+        })
+      ),
+      removeCollaborator: vi.fn().mockReturnValue(of({ message: 'Removed' })),
     };
 
     snackBar = {
@@ -158,6 +224,7 @@ describe('SettingsTabComponent', () => {
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: MCPKeysService, useValue: mcpKeysService },
+        { provide: CollaborationApiService, useValue: collaborationService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: SetupService, useValue: setupService },
         { provide: MediaSyncService, useValue: mediaSyncService },
@@ -584,6 +651,132 @@ describe('SettingsTabComponent', () => {
       });
 
       expect(component.getLocalFileCount()).toBe(2);
+    });
+  });
+
+  describe('Collaboration Management', () => {
+    it('should load collaborators on init when in server mode', async () => {
+      await component.loadCollaborators();
+      await fixture.whenStable();
+
+      expect(collaborationService.listCollaborators).toHaveBeenCalledWith(
+        'testuser',
+        'test-project'
+      );
+      expect(component['collaborators']().length).toBe(2);
+    });
+
+    it('should get active collaborators count', async () => {
+      await component.loadCollaborators();
+      await fixture.whenStable();
+
+      expect(component.getActiveCollaboratorsCount()).toBe(1);
+    });
+
+    it('should get pending invitations count', async () => {
+      await component.loadCollaborators();
+      await fixture.whenStable();
+
+      expect(component.getPendingInvitationsCount()).toBe(1);
+    });
+
+    it('should invite a collaborator', async () => {
+      await component.loadCollaborators();
+      component.inviteUsername = 'newuser';
+      component.inviteRole = CollaboratorRole.Editor;
+
+      await component.inviteCollaborator();
+      await fixture.whenStable();
+
+      expect(collaborationService.inviteCollaborator).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        {
+          username: 'newuser',
+          role: CollaboratorRole.Editor,
+        }
+      );
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('should not invite if username is empty', async () => {
+      component.inviteUsername = '';
+
+      await component.inviteCollaborator();
+      await fixture.whenStable();
+
+      expect(collaborationService.inviteCollaborator).not.toHaveBeenCalled();
+    });
+
+    it('should update collaborator role', async () => {
+      await component.loadCollaborators();
+      await fixture.whenStable();
+
+      const collaborator = mockCollaborators[0];
+      await component.updateCollaboratorRole(
+        collaborator,
+        CollaboratorRole.Admin
+      );
+      await fixture.whenStable();
+
+      expect(collaborationService.updateCollaborator).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        collaborator.userId,
+        { role: CollaboratorRole.Admin }
+      );
+    });
+
+    it('should remove a collaborator', async () => {
+      await component.loadCollaborators();
+      await fixture.whenStable();
+
+      const collaborator = mockCollaborators[0];
+      await component.removeCollaborator(collaborator);
+      await fixture.whenStable();
+
+      expect(collaborationService.removeCollaborator).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        collaborator.userId
+      );
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('should return correct role icon', () => {
+      expect(component.getRoleIcon(CollaboratorRole.Viewer)).toBe('visibility');
+      expect(component.getRoleIcon(CollaboratorRole.Editor)).toBe('edit');
+      expect(component.getRoleIcon(CollaboratorRole.Admin)).toBe(
+        'admin_panel_settings'
+      );
+    });
+
+    it('should handle error when loading collaborators', async () => {
+      // Reset collaborators first and set up error mock
+      component['collaborators'].set([]);
+      (
+        collaborationService.listCollaborators as ReturnType<typeof vi.fn>
+      ).mockReturnValue(throwError(() => new Error('Network error')));
+
+      await component.loadCollaborators();
+      await fixture.whenStable();
+
+      // Should remain empty after error
+      expect(component['collaborators']().length).toBe(0);
+    });
+
+    it('should handle error when inviting collaborator', async () => {
+      (
+        collaborationService.inviteCollaborator as ReturnType<typeof vi.fn>
+      ).mockReturnValue(throwError(() => new Error('User not found')));
+
+      component.inviteUsername = 'nonexistent';
+      component.inviteRole = CollaboratorRole.Editor;
+
+      await component.inviteCollaborator();
+      await fixture.whenStable();
+
+      expect(snackBar.open).toHaveBeenCalled();
     });
   });
 });

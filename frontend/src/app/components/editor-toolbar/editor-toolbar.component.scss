@@ -182,3 +182,16 @@
 button[matTooltip] {
   position: relative;
 }
+
+// Read-only mode - formatting buttons are hidden via template,
+// remaining buttons (tags, snapshots, meta panel) stay functional
+.editor-toolbar.readonly {
+  // Keep toolbar interactive for remaining buttons
+  pointer-events: auto;
+  opacity: 1;
+
+  // Style adjustments for minimal toolbar
+  .toolbar-spacer {
+    flex: 1;
+  }
+}

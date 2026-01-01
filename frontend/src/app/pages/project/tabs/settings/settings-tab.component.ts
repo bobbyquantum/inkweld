@@ -24,9 +24,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import {
+  Collaborator,
+  CollaboratorRole,
   CreateMcpKeyRequest,
+  InvitationStatus,
   McpPermission,
   McpPublicKey,
 } from '@inkweld/index';
@@ -100,6 +104,7 @@ export class SettingsTabComponent implements AfterViewInit {
   protected readonly canScrollRight = signal(false);
   protected readonly projectState = inject(ProjectStateService);
   private readonly mcpKeysService = inject(MCPKeysService);
+  private readonly collaborationService = inject(CollaborationApiService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly setupService = inject(SetupService);
   private readonly mediaSyncService = inject(MediaSyncService);
@@ -112,6 +117,37 @@ export class SettingsTabComponent implements AfterViewInit {
   protected readonly mcpKeys = signal<McpPublicKey[]>([]);
   protected readonly isLoadingKeys = signal(true);
   protected readonly keysError = signal<string | null>(null);
+
+  // Reset local data state
+  protected readonly isResettingLocalData = signal(false);
+
+  // Collaboration state
+  protected readonly collaborators = signal<Collaborator[]>([]);
+  protected readonly isLoadingCollaborators = signal(true);
+  protected readonly collaboratorsError = signal<string | null>(null);
+  protected readonly showInviteForm = signal(false);
+  protected readonly isInviting = signal(false);
+  inviteUsername = '';
+  inviteRole: CollaboratorRole = CollaboratorRole.Viewer;
+
+  // Role options for dropdown
+  protected readonly roleOptions = [
+    {
+      value: CollaboratorRole.Viewer,
+      label: 'Viewer',
+      description: 'Can view project content',
+    },
+    {
+      value: CollaboratorRole.Editor,
+      label: 'Editor',
+      description: 'Can view and edit content',
+    },
+    {
+      value: CollaboratorRole.Admin,
+      label: 'Admin',
+      description: 'Full access including settings',
+    },
+  ];
 
   // New key creation state
   protected readonly isCreatingKey = signal(false);
@@ -189,6 +225,7 @@ export class SettingsTabComponent implements AfterViewInit {
       if (key && this.currentMode === 'server') {
         void this.checkMediaSyncStatus();
         void this.loadMcpKeys();
+        void this.loadCollaborators();
       }
     });
 
@@ -271,7 +308,12 @@ export class SettingsTabComponent implements AfterViewInit {
 
   async loadMcpKeys(): Promise<void> {
     const project = this.projectState.project();
-    if (!project || this.currentMode !== 'server') {
+    // MCP keys are owner-only (not available to editors or viewers)
+    if (
+      !project ||
+      this.currentMode !== 'server' ||
+      !this.projectState.isOwner()
+    ) {
       this.mcpKeys.set([]);
       this.isLoadingKeys.set(false);
       return;
@@ -495,6 +537,306 @@ export class SettingsTabComponent implements AfterViewInit {
 
   getActiveKeysCount(): number {
     return this.mcpKeys().filter(k => !k.revoked).length;
+  }
+
+  // =====================
+  // Collaboration
+  // =====================
+
+  async loadCollaborators(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project || this.currentMode !== 'server') {
+      this.collaborators.set([]);
+      this.isLoadingCollaborators.set(false);
+      return;
+    }
+
+    this.isLoadingCollaborators.set(true);
+    this.collaboratorsError.set(null);
+
+    try {
+      const collabs = await firstValueFrom(
+        this.collaborationService.listCollaborators(
+          project.username,
+          project.slug
+        )
+      );
+      this.collaborators.set(collabs);
+    } catch (error) {
+      console.error('Failed to load collaborators:', error);
+      this.collaboratorsError.set('Failed to load collaborators');
+    } finally {
+      this.isLoadingCollaborators.set(false);
+    }
+  }
+
+  toggleInviteForm(): void {
+    this.showInviteForm.update(show => !show);
+    if (!this.showInviteForm()) {
+      this.resetInviteForm();
+    }
+  }
+
+  resetInviteForm(): void {
+    this.inviteUsername = '';
+    this.inviteRole = CollaboratorRole.Viewer;
+  }
+
+  async inviteCollaborator(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project || !this.inviteUsername.trim()) {
+      return;
+    }
+
+    this.isInviting.set(true);
+
+    try {
+      const collaborator = await firstValueFrom(
+        this.collaborationService.inviteCollaborator(
+          project.username,
+          project.slug,
+          { username: this.inviteUsername.trim(), role: this.inviteRole }
+        )
+      );
+
+      this.collaborators.update(collabs => [...collabs, collaborator]);
+      this.snackBar.open(
+        `Invited ${this.inviteUsername} as ${this.inviteRole}`,
+        'Close',
+        {
+          duration: 3000,
+        }
+      );
+      this.resetInviteForm();
+      this.showInviteForm.set(false);
+    } catch (error) {
+      console.error('Failed to invite collaborator:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to invite collaborator';
+      this.snackBar.open(message, 'Close', { duration: 5000 });
+    } finally {
+      this.isInviting.set(false);
+    }
+  }
+
+  async updateCollaboratorRole(
+    collaborator: Collaborator,
+    newRole: CollaboratorRole
+  ): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    try {
+      await firstValueFrom(
+        this.collaborationService.updateCollaborator(
+          project.username,
+          project.slug,
+          collaborator.userId,
+          { role: newRole }
+        )
+      );
+
+      this.collaborators.update(collabs =>
+        collabs.map(c =>
+          c.userId === collaborator.userId ? { ...c, role: newRole } : c
+        )
+      );
+
+      this.snackBar.open(
+        `Updated ${collaborator.username}'s role to ${newRole}`,
+        'Close',
+        {
+          duration: 3000,
+        }
+      );
+    } catch (error) {
+      console.error('Failed to update collaborator:', error);
+      this.snackBar.open('Failed to update role', 'Close', { duration: 3000 });
+    }
+  }
+
+  async removeCollaborator(collaborator: Collaborator): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    try {
+      await firstValueFrom(
+        this.collaborationService.removeCollaborator(
+          project.username,
+          project.slug,
+          collaborator.userId
+        )
+      );
+
+      this.collaborators.update(collabs =>
+        collabs.filter(c => c.userId !== collaborator.userId)
+      );
+
+      this.snackBar.open(
+        `Removed ${collaborator.username} from project`,
+        'Close',
+        {
+          duration: 3000,
+        }
+      );
+    } catch (error) {
+      console.error('Failed to remove collaborator:', error);
+      this.snackBar.open('Failed to remove collaborator', 'Close', {
+        duration: 3000,
+      });
+    }
+  }
+
+  getActiveCollaboratorsCount(): number {
+    return this.collaborators().filter(
+      c => c.status === InvitationStatus.Accepted
+    ).length;
+  }
+
+  getPendingInvitationsCount(): number {
+    return this.collaborators().filter(
+      c => c.status === InvitationStatus.Pending
+    ).length;
+  }
+
+  getRoleIcon(role: CollaboratorRole): string {
+    switch (role) {
+      case CollaboratorRole.Viewer:
+        return 'visibility';
+      case CollaboratorRole.Editor:
+        return 'edit';
+      case CollaboratorRole.Admin:
+        return 'admin_panel_settings';
+      default:
+        return 'person';
+    }
+  }
+
+  // =====================
+  // Reset Local Data
+  // =====================
+
+  /**
+   * Reset all local IndexedDB data for this project.
+   * This will close connections, delete local databases, and reload the project.
+   */
+  async resetLocalData(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    const username = project.username;
+    const slug = project.slug;
+    const _projectKey = `${username}/${slug}`;
+
+    // Confirm with user
+    const confirmed = window.confirm(
+      `This will delete all locally cached data for "${project.title}" and re-download from the server.\n\n` +
+        `This can fix sync issues but any unsynced local changes will be lost.\n\n` +
+        `Continue?`
+    );
+
+    if (!confirmed) return;
+
+    this.isResettingLocalData.set(true);
+
+    try {
+      // Get all IndexedDB databases
+      const databases = await this.getProjectDatabases(username, slug);
+
+      // Delete each database
+      for (const dbName of databases) {
+        await this.deleteDatabase(dbName);
+      }
+
+      // Also clear media for this project
+      // The media service stores in 'inkweld-media' with keys like 'projectKey:mediaId'
+      // We'll let the project reload handle re-downloading
+
+      this.snackBar.open(`Local data cleared. Reloading project...`, 'Close', {
+        duration: 3000,
+      });
+
+      // Reload the page to force fresh load from server
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to reset local data:', error);
+      this.snackBar.open('Failed to reset local data', 'Close', {
+        duration: 5000,
+      });
+      this.isResettingLocalData.set(false);
+    }
+  }
+
+  /**
+   * Get all IndexedDB databases that belong to this project.
+   * y-indexeddb creates databases named after the document ID.
+   */
+  private async getProjectDatabases(
+    username: string,
+    slug: string
+  ): Promise<string[]> {
+    const projectPrefix = `${username}:${slug}`;
+    const worldbuildingPrefix = `worldbuilding:${username}:${slug}`;
+    const databases: string[] = [];
+
+    // Try to get all databases (not supported in all browsers)
+    if ('databases' in indexedDB) {
+      try {
+        const allDbs = await indexedDB.databases();
+        for (const db of allDbs) {
+          if (
+            db.name &&
+            (db.name.startsWith(projectPrefix) ||
+              db.name.startsWith(worldbuildingPrefix))
+          ) {
+            databases.push(db.name);
+          }
+        }
+      } catch {
+        // Fall through to known patterns
+      }
+    }
+
+    // If we couldn't enumerate, try known patterns
+    if (databases.length === 0) {
+      // Known document patterns:
+      // - {username}:{slug}:elements (element tree)
+      // - {username}:{slug}:elements/ (element tree with trailing slash)
+      // - {username}:{slug}:doc:{elementId} (individual documents)
+      // - worldbuilding:{username}:{slug}:{elementId} (worldbuilding data per element)
+      databases.push(`${projectPrefix}:elements`);
+      databases.push(`${projectPrefix}:elements/`);
+
+      // Try to get element IDs from current state
+      const elements = this.projectState.elements();
+      for (const element of elements) {
+        databases.push(`${projectPrefix}:doc:${element.id}`);
+        databases.push(`${worldbuildingPrefix}:${element.id}`);
+      }
+    }
+
+    return databases;
+  }
+
+  /**
+   * Delete a single IndexedDB database
+   */
+  private deleteDatabase(name: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(name);
+      request.onsuccess = () => resolve();
+      request.onerror = () =>
+        reject(new Error(`Failed to delete database: ${name}`));
+      request.onblocked = () => {
+        // Database is blocked, but we'll resolve anyway
+        console.warn(`Database ${name} delete was blocked`);
+        resolve();
+      };
+    });
   }
 
   // =====================

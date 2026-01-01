@@ -12,6 +12,7 @@ mat-card {
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
 
   &:hover {
     transform: translateY(-4px);
@@ -23,4 +24,38 @@ mat-card {
 // Add aspect-ratio styles to the project-card class for browsers that support it
 .project-card {
   aspect-ratio: 1 / 1.6;
+}
+
+// Shared badge in top-left corner
+.shared-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  cursor: default;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #fff;
+  }
+}
+
+// Light mode adjustments
+:host-context(body:not(.dark-theme)) {
+  .shared-badge {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    mat-icon {
+      color: #333;
+    }
+  }
 }

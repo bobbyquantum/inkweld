@@ -170,6 +170,7 @@ describe('ProjectComponent', () => {
         .fn()
         .mockReturnValue(signal(DocumentSyncState.Synced)),
       hasUnsyncedChanges: vi.fn().mockReturnValue(false),
+      getActiveConnections: vi.fn().mockReturnValue([]),
     };
 
     recentFilesService = {

@@ -306,6 +306,45 @@
             "type": "string",
             "format": "date-time",
             "description": "Last update date"
+          },
+          "access": {
+            "type": "object",
+            "properties": {
+              "isOwner": {
+                "type": "boolean",
+                "description": "Whether user is project owner"
+              },
+              "canRead": {
+                "type": "boolean",
+                "description": "Whether user can read project content"
+              },
+              "canWrite": {
+                "type": "boolean",
+                "description": "Whether user can edit project content"
+              },
+              "canAdmin": {
+                "type": "boolean",
+                "description": "Whether user can manage project settings and collaborators"
+              },
+              "role": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "viewer",
+                  "editor",
+                  "admin"
+                ],
+                "description": "Collaborator role if not owner"
+              }
+            },
+            "required": [
+              "isOwner",
+              "canRead",
+              "canWrite",
+              "canAdmin",
+              "role"
+            ],
+            "description": "User access permissions for this project"
           }
         },
         "required": [
@@ -2507,6 +2546,209 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "CollaboratorRole": {
+        "type": "string",
+        "enum": [
+          "viewer",
+          "editor",
+          "admin"
+        ]
+      },
+      "InvitationStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "accepted",
+          "declined"
+        ]
+      },
+      "Collaborator": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "$ref": "#/components/schemas/CollaboratorRole"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvitationStatus"
+          },
+          "invitedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "invitedByUsername": {
+            "type": "string",
+            "nullable": true
+          },
+          "invitedAt": {
+            "type": "number"
+          },
+          "acceptedAt": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "projectId",
+          "userId",
+          "username",
+          "name",
+          "email",
+          "role",
+          "status",
+          "invitedBy",
+          "invitedByUsername",
+          "invitedAt",
+          "acceptedAt"
+        ]
+      },
+      "CollaborationError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "InviteCollaboratorRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Username of user to invite"
+          },
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollaboratorRole"
+              },
+              {
+                "description": "Role to grant: viewer, editor, or admin"
+              }
+            ]
+          }
+        },
+        "required": [
+          "username",
+          "role"
+        ]
+      },
+      "UpdateCollaboratorRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollaboratorRole"
+              },
+              {
+                "description": "New role to assign"
+              }
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "CollaborationMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "PendingInvitation": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string"
+          },
+          "projectTitle": {
+            "type": "string"
+          },
+          "projectSlug": {
+            "type": "string"
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/CollaboratorRole"
+          },
+          "invitedAt": {
+            "type": "number"
+          },
+          "invitedByUsername": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "projectId",
+          "projectTitle",
+          "projectSlug",
+          "ownerUsername",
+          "role",
+          "invitedAt",
+          "invitedByUsername"
+        ]
+      },
+      "CollaboratedProject": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string"
+          },
+          "projectTitle": {
+            "type": "string"
+          },
+          "projectSlug": {
+            "type": "string"
+          },
+          "ownerUsername": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/CollaboratorRole"
+          },
+          "acceptedAt": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "projectId",
+          "projectTitle",
+          "projectSlug",
+          "ownerUsername",
+          "role",
+          "acceptedAt"
         ]
       },
       "MediaItem": {
@@ -7732,6 +7974,521 @@
                     "permissions",
                     "presets"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collaboration/{username}/{slug}/collaborators": {
+      "get": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "listCollaborators",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of collaborators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Collaborator"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "inviteCollaborator",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCollaboratorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collaborator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or user already a collaborator",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collaboration/{username}/{slug}/collaborators/{collaboratorId}": {
+      "patch": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "updateCollaborator",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "User ID of the collaborator"
+            },
+            "required": true,
+            "description": "User ID of the collaborator",
+            "name": "collaboratorId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCollaboratorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Collaborator updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collaborator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or collaborator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "removeCollaborator",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "User ID of the collaborator"
+            },
+            "required": true,
+            "description": "User ID of the collaborator",
+            "name": "collaboratorId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collaborator removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or collaborator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collaboration/invitations": {
+      "get": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "getPendingInvitations",
+        "responses": {
+          "200": {
+            "description": "List of pending invitations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingInvitation"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collaboration/invitations/{projectId}/accept": {
+      "post": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "acceptInvitation",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collaborator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invitation already processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invitation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collaboration/invitations/{projectId}/decline": {
+      "post": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "declineInvitation",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation declined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invitation already processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invitation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/collaboration/collaborated": {
+      "get": {
+        "tags": [
+          "Collaboration"
+        ],
+        "operationId": "getCollaboratedProjects",
+        "responses": {
+          "200": {
+            "description": "List of projects user collaborates on",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollaboratedProject"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollaborationError"
                 }
               }
             }

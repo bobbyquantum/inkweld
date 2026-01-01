@@ -232,6 +232,7 @@
                 <div class="tabs-header">
                   <app-tab-interface (importRequested)="onImportClicked()">
                     <!-- Projected into tab-bar-actions -->
+                    <app-presence-indicator></app-presence-indicator>
                     <button
                       mat-icon-button
                       [matMenuTriggerFor]="moreMenuDesktop"
@@ -259,6 +260,7 @@
             <div class="tabs-header">
               <app-tab-interface (importRequested)="onImportClicked()">
                 <!-- Projected into tab-bar-actions -->
+                <app-presence-indicator></app-presence-indicator>
                 <button
                   mat-icon-button
                   [matMenuTriggerFor]="moreMenuDesktop"

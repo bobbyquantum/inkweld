@@ -7,7 +7,9 @@ import * as Y from 'yjs';
 
 import { ElementTypeSchema } from '../../models/schema-types';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
+import { createAuthenticatedWebsocketProvider } from '../sync/authenticated-websocket-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
 
@@ -40,6 +42,7 @@ export interface WorldbuildingIdentity {
 export class WorldbuildingService {
   private setupService = inject(SetupService);
   private syncProviderFactory = inject(ElementSyncProviderFactory);
+  private authTokenService = inject(AuthTokenService);
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private connections = new Map<string, WorldbuildingConnection>();
@@ -153,6 +156,9 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<Y.Map<unknown>> {
+    console.log(
+      `[WorldbuildingService] createConnection START for ${elementId}`
+    );
     const ydoc = new Y.Doc();
     const dataMap = ydoc.getMap('worldbuilding');
     const identityMap = ydoc.getMap('identity');
@@ -173,7 +179,11 @@ export class WorldbuildingService {
 
     try {
       await Promise.race([syncPromise, timeoutPromise]);
+      console.log(
+        `[WorldbuildingService] IndexedDB synced for ${elementId}, dataMap size=${dataMap.size}`
+      );
     } catch {
+      console.log(`[WorldbuildingService] IndexedDB timeout for ${elementId}`);
       // Continue anyway - the document may be empty/new
     }
 
@@ -183,28 +193,41 @@ export class WorldbuildingService {
     let provider: WebsocketProvider | undefined;
 
     if (mode !== 'offline' && wsUrl && username && slug) {
-      // Build full document ID in format: username:slug:elementId
-      const fullDocId = `${username}:${slug}:${elementId}`;
+      // Build full document ID in format: username:slug:elementId/
+      // Note: trailing slash is required to match backend document ID format
+      const fullDocId = `${username}:${slug}:${elementId}/`;
       const formattedId = fullDocId.replace(/^\/+/, '');
 
-      // WebsocketProvider(url, roomName, doc, options)
-      // The roomName parameter is appended to the URL, but we want documentId as a query param
-      // So we include it in the URL and use an empty room name
-      const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
-      provider = new WebsocketProvider(
-        fullWsUrl,
-        '', // Empty room name - documentId is already in URL
-        ydoc,
-        {
-          connect: true,
-          resyncInterval: WEBSOCKET_RESYNC_INTERVAL,
-        }
-      );
+      // Get auth token for WebSocket authentication
+      const authToken = this.authTokenService.getToken();
+      if (authToken) {
+        // Use authenticated WebSocket provider (sends auth token on connect)
+        const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
+        try {
+          provider = await createAuthenticatedWebsocketProvider(
+            fullWsUrl,
+            '', // Empty room name - documentId is already in URL
+            ydoc,
+            authToken,
+            {
+              resyncInterval: WEBSOCKET_RESYNC_INTERVAL,
+            }
+          );
 
-      // Handle connection status
-      provider.on('status', ({ status: _status }: { status: string }) => {
-        // Connection status changes are handled internally
-      });
+          // Debug: log when sync happens
+          provider.on('sync', (isSynced: boolean) => {
+            console.log(
+              `[WorldbuildingService] WebSocket sync event for ${elementId}: synced=${isSynced}, dataMap size=${dataMap.size}`
+            );
+          });
+        } catch (error) {
+          console.error(
+            '[WorldbuildingService] Failed to create authenticated WebSocket:',
+            error
+          );
+          // Continue without provider - will work in offline mode
+        }
+      }
     }
 
     const connection: WorldbuildingConnection = {
@@ -248,8 +271,15 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<Record<string, unknown> | null> {
+    console.log(
+      `[WorldbuildingService] getWorldbuildingData START for ${elementId}`
+    );
     const dataMap = await this.setupCollaboration(elementId, username, slug);
     const jsonData = dataMap.toJSON() as Record<string, unknown>;
+    console.log(
+      `[WorldbuildingService] getWorldbuildingData END for ${elementId}, keys:`,
+      Object.keys(jsonData)
+    );
 
     return jsonData || null;
   }
@@ -270,6 +300,10 @@ export class WorldbuildingService {
 
     const observer = () => {
       const jsonData = dataMap.toJSON() as Record<string, unknown>;
+      console.log(
+        '[WorldbuildingService] Observer fired, data keys:',
+        Object.keys(jsonData)
+      );
       callback(jsonData);
     };
 

@@ -11,6 +11,7 @@ api/ai-providers.service.ts
 api/ai-text-generation.service.ts
 api/api.ts
 api/authentication.service.ts
+api/collaboration.service.ts
 api/configuration.service.ts
 api/documents.service.ts
 api/elements.service.ts
@@ -38,6 +39,11 @@ model/admin-list-image-providers200-response-inner.ts
 model/admin-list-pending-users200-response-inner.ts
 model/admin-set-config-request.ts
 model/admin-set-user-admin-request.ts
+model/collaborated-project.ts
+model/collaboration-error.ts
+model/collaboration-message.ts
+model/collaborator-role.ts
+model/collaborator.ts
 model/config-response.ts
 model/correction.ts
 model/create-image-model-profile-request.ts
@@ -87,6 +93,8 @@ model/image-models-response.ts
 model/image-provider-status.ts
 model/image-provider-type.ts
 model/image-size.ts
+model/invitation-status.ts
+model/invite-collaborator-request.ts
 model/json-rpc-request-id.ts
 model/json-rpc-request.ts
 model/json-rpc-response-error.ts
@@ -117,6 +125,8 @@ model/open-router-models-response.ts
 model/optimize-image-prompt-request.ts
 model/optimize-image-prompt-response.ts
 model/paginated-users-response.ts
+model/pending-invitation.ts
+model/project-access.ts
 model/project.ts
 model/provider-error.ts
 model/provider-status.ts
@@ -142,6 +152,7 @@ model/text-generation-status.ts
 model/text-model-info.ts
 model/text-provider-status.ts
 model/text-provider-type.ts
+model/update-collaborator-request.ts
 model/update-custom-image-sizes-request.ts
 model/update-image-model-profile-request.ts
 model/update-project-request.ts

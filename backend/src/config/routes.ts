@@ -21,6 +21,7 @@ import { aiTextRoutes } from '../routes/ai-text.routes';
 import { aiProvidersRoutes } from '../routes/ai-providers.routes';
 import mcpRoutes from '../routes/mcp.routes';
 import mcpKeyRoutes from '../routes/mcp-keys.routes';
+import { collaborationRoutes } from '../routes/collaboration.routes';
 import mediaRoutes from '../routes/media.routes';
 import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
@@ -72,6 +73,9 @@ export function registerCommonRoutes(app: any): void {
 
   // MCP key management (for frontend to create/manage API keys)
   app.route('/api/v1/mcp-keys', mcpKeyRoutes);
+
+  // Collaboration (project collaborators and invitations)
+  app.route('/api/v1/collaboration', collaborationRoutes);
 
   // Media sync endpoints (list/download project media files)
   app.route('/api/v1/media', mediaRoutes);
