@@ -10,6 +10,7 @@
           [elementId]="documentId"
           [elementName]="elementName()"
           [metaPanelOpen]="showMetaPanel()"
+          [disabled]="!projectState.canWrite()"
           (metaPanelToggle)="showMetaPanel.set(!showMetaPanel())"
           (tagsClick)="openTagsDialog()"
           (snapshotsClick)="openSnapshotsDialog()">

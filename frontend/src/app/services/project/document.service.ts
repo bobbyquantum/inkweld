@@ -55,7 +55,7 @@ const MAX_RECONNECT_DELAY = 30000;
 /**
  * Represents an active Yjs document connection
  */
-interface DocumentConnection {
+export interface DocumentConnection {
   /** The Yjs document instance */
   ydoc: Y.Doc;
   /** WebSocket provider for real-time sync (null in offline mode) */
@@ -258,6 +258,20 @@ export class DocumentService {
       }
       return null;
     }
+  }
+
+  /**
+   * Gets all active document connections for presence awareness.
+   *
+   * Returns an array of connections that have active WebSocket providers,
+   * useful for tracking user presence across collaborative documents.
+   *
+   * @returns Array of active document connections with their providers
+   */
+  getActiveConnections(): DocumentConnection[] {
+    return Array.from(this.connections.values()).filter(
+      conn => conn.provider !== null
+    );
   }
 
   /**

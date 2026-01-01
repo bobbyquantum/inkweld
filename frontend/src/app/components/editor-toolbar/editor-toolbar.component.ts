@@ -74,6 +74,9 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Element name for the document (used for tag dialog title) */
   @Input() elementName?: string;
 
+  /** Whether all editing actions should be disabled (read-only mode) */
+  @Input() disabled = false;
+
   /** Emitted when the meta panel toggle is clicked */
   @Output() metaPanelToggle = new EventEmitter<void>();
 
@@ -295,8 +298,11 @@ export class EditorToolbarComponent implements OnDestroy {
   /**
    * Executes a ProseMirror command on the editor.
    * Automatically refocuses the editor after the command.
+   * Does nothing if the toolbar is disabled (read-only mode).
    */
   private execCommand(cmd: Command): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -351,6 +357,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Set heading level (1-6) or paragraph (0) */
   setHeading(level: HeadingLevel | 0): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -388,6 +396,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Set text alignment */
   setAlign(align: TextAlign): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -412,6 +422,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Toggle bullet list */
   toggleBulletList(): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -432,6 +444,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Toggle ordered list */
   toggleOrderedList(): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -482,6 +496,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Toggle blockquote */
   toggleBlockquote(): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -514,6 +530,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Insert horizontal rule */
   insertHorizontalRule(): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -530,6 +548,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Clear formatting from selection */
   clearFormatting(): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -566,6 +586,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Insert or edit a link */
   insertLink(): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 
@@ -605,6 +627,8 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Remove link from selection */
   removeLink(): void {
+    if (this.disabled) return;
+
     const view = this.editor?.view;
     if (!view) return;
 

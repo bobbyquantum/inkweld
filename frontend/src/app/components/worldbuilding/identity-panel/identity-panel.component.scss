@@ -72,9 +72,9 @@
 
 // Image section
 .image-section {
-  display: flex;
-  justify-content: center;
+  display: block; // Safari handles aspect-ratio better on children of block containers
   position: relative;
+  flex-shrink: 0;
 
   @media (min-width: 760px) {
     // Make image edge-to-edge horizontally by using negative margins to offset panel padding
@@ -86,20 +86,21 @@
 .image-placeholder {
   width: 100%;
   aspect-ratio: 1;
+  // Safari fix: use grid with place-items for better aspect-ratio calculation
+  display: grid;
+  place-items: center;
+  position: relative; // For absolute positioned img
   border-radius: 0;
   background: var(--sys-surface-container-high);
   border: none;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 8px;
   transition:
     border-color 0.2s,
     background-color 0.2s;
   overflow: hidden;
   padding: 0;
+  box-sizing: border-box;
 
   // Show placeholder styling only when no image
   &.no-image {
@@ -124,6 +125,10 @@
   }
 
   img {
+    // Absolute positioning to fill the container reliably in Safari
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;

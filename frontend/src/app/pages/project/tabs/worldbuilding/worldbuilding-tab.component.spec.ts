@@ -14,6 +14,7 @@ describe('WorldbuildingTabComponent', () => {
   let mockProjectState: {
     project: ReturnType<typeof signal<Project | null>>;
     elements: ReturnType<typeof signal<Element[]>>;
+    canWrite: ReturnType<typeof signal<boolean>>;
   };
   let paramMapSubject: BehaviorSubject<any>;
 
@@ -50,6 +51,7 @@ describe('WorldbuildingTabComponent', () => {
     mockProjectState = {
       project: signal<Project | null>(null),
       elements: signal<Element[]>([]),
+      canWrite: signal<boolean>(true),
     };
 
     await TestBed.configureTestingModule({

@@ -93,6 +93,7 @@ describe('ProjectTreeComponent', () => {
         username: 'testuser',
         slug: 'testproject',
       }),
+      canWrite: signal(true),
       saveProjectElements: vi.fn().mockResolvedValue(undefined),
       showEditProjectDialog: vi.fn(),
       openDocument: vi.fn(),

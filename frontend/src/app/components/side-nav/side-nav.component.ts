@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { Project } from '@inkweld/index';
 import { UserService } from '@services/user/user.service';
@@ -23,6 +24,13 @@ export interface NavItem {
   action?: () => void;
 }
 
+/** Unified project item that can be owned or shared */
+export interface UnifiedProjectItem {
+  project: Project;
+  isShared: boolean;
+  sharedByUsername?: string;
+}
+
 @Component({
   selector: 'app-side-nav',
   standalone: true,
@@ -31,6 +39,7 @@ export interface NavItem {
     MatListModule,
     MatIconModule,
     MatButtonModule,
+    MatTooltipModule,
     RouterModule,
     ProjectCoverComponent,
   ],
@@ -43,7 +52,10 @@ export class SideNavComponent {
 
   @Input() isOpen = signal(false);
   @Input() isMobile = false;
+  /** @deprecated Use projectItems instead */
   @Input() projects: Project[] = [];
+  /** Unified project items (owned + shared) */
+  @Input() projectItems: UnifiedProjectItem[] = [];
   @Input() selectedProject: Project | null = null;
 
   @Output() projectSelected = new EventEmitter<Project>();

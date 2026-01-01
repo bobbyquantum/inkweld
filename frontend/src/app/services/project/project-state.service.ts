@@ -91,6 +91,62 @@ export class ProjectStateService implements OnDestroy {
   readonly error = signal<string | undefined>(undefined);
 
   /**
+   * Whether the current user can write (edit) the project.
+   * Returns true for owners and collaborators with editor/admin role.
+   * Returns false for viewers.
+   */
+  readonly canWrite = computed(() => {
+    const proj = this.project();
+    if (!proj) return false;
+    // In offline mode, user owns all their projects - grant full access
+    if (this.setupService.getMode() === 'offline') return true;
+    // SECURITY: Default to no write access if access info is missing in server mode
+    if (!proj.access) return false;
+    return proj.access.canWrite;
+  });
+
+  /**
+   * Whether the current user is the project owner.
+   */
+  readonly isOwner = computed(() => {
+    const proj = this.project();
+    if (!proj) return false;
+    // In offline mode, user owns all their projects
+    if (this.setupService.getMode() === 'offline') return true;
+    // SECURITY: Default to not owner if access info is missing in server mode
+    if (!proj.access) return false;
+    return proj.access.isOwner;
+  });
+
+  /**
+   * Whether the current user has admin access (owner or admin collaborator).
+   */
+  readonly isAdmin = computed(() => {
+    const proj = this.project();
+    if (!proj) return false;
+    // In offline mode, user owns all their projects - grant full admin
+    if (this.setupService.getMode() === 'offline') return true;
+    // SECURITY: Default to no admin access if access info is missing in server mode
+    if (!proj.access) return false;
+    return proj.access.canAdmin;
+  });
+
+  /**
+   * Whether access information has been loaded for the current project.
+   * Returns true in offline mode (always have full access) or when server mode
+   * project has access info populated. Use this to wait before rendering
+   * access-controlled UI elements to avoid flicker.
+   */
+  readonly accessLoaded = computed(() => {
+    const proj = this.project();
+    if (!proj) return false;
+    // In offline mode, access is always known (full access)
+    if (this.setupService.getMode() === 'offline') return true;
+    // In server mode, access is loaded when the access property is present
+    return proj.access !== undefined;
+  });
+
+  /**
    * Cover image media ID (stored in local IndexedDB media library).
    * This is separate from the API Project.coverImage URL because it enables
    * offline-first editing via Yjs sync.

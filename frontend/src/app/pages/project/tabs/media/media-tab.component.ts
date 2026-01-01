@@ -18,7 +18,9 @@ import {
   ImageGenerationService,
 } from '@services/ai/image-generation.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
+import { MediaSyncService } from '@services/offline/media-sync.service';
 import {
   MediaInfo,
   OfflineStorageService,
@@ -62,6 +64,8 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly systemConfig = inject(SystemConfigService);
   private readonly generationService = inject(ImageGenerationService);
+  private readonly mediaSyncService = inject(MediaSyncService);
+  private readonly setupService = inject(SetupService);
 
   // AI generation status - considers mode, config, and connection state
   readonly aiGenerationStatus = computed(() =>
@@ -97,6 +101,9 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
   // Poll interval for active jobs
   private jobPollInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Track if we've already synced for this project (to avoid repeated syncs)
+  private hasSyncedProject: string | null = null;
 
   // Effect to reload when project changes
   private readonly projectEffect = effect(() => {
@@ -164,7 +171,8 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load all media items for the current project
+   * Load all media items for the current project.
+   * In online mode, first syncs from server to ensure we have latest media.
    */
   async loadMedia(): Promise<void> {
     this.isLoading.set(true);
@@ -179,6 +187,19 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       }
 
       const projectKey = `${project.username}/${project.slug}`;
+
+      // In online/server mode, sync from server on first load for this project
+      const mode = this.setupService.getMode();
+      if (mode !== 'offline' && this.hasSyncedProject !== projectKey) {
+        try {
+          this.hasSyncedProject = projectKey;
+          await this.mediaSyncService.downloadAllFromServer(projectKey);
+        } catch (syncErr) {
+          // Non-fatal - we'll still show local media
+          console.warn('Failed to sync media from server:', syncErr);
+        }
+      }
+
       const mediaList = await this.offlineStorage.listMedia(projectKey);
 
       // Convert to display items with URLs for images

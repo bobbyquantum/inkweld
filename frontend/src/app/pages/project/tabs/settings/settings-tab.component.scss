@@ -576,6 +576,161 @@ mat-card {
   gap: 8px;
 }
 
+// Collaboration styles
+.collaborators-card {
+  mat-card-content {
+    padding: 0;
+  }
+}
+
+.collaborators-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.collaborator-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--sys-outline-variant);
+  gap: 16px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.pending {
+    opacity: 0.8;
+    background: var(--sys-surface-container);
+  }
+}
+
+.collaborator-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.collaborator-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--sys-primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    color: var(--sys-on-primary-container);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.collaborator-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.collaborator-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  strong {
+    font-size: 15px;
+    color: var(--sys-on-surface);
+  }
+
+  .collaborator-name {
+    font-size: 13px;
+    color: var(--sys-on-surface-variant);
+  }
+}
+
+.status-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+
+  &.pending {
+    background: var(--sys-tertiary-container);
+    color: var(--sys-on-tertiary-container);
+  }
+}
+
+.pending-badge {
+  font-size: 12px;
+  background: var(--sys-tertiary-container);
+  color: var(--sys-on-tertiary-container);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.collaborator-meta {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  display: flex;
+  gap: 8px;
+}
+
+.collaborator-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.role-select {
+  width: 120px;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    padding: 0 8px;
+  }
+}
+
+.invite-card {
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  mat-card-content {
+    padding: 16px;
+  }
+}
+
+.invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.role-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  small {
+    font-size: 11px;
+    color: var(--sys-on-surface-variant);
+  }
+}
+
 // Responsive adjustments
 @media (max-width: 600px) {
   .settings-tab {
@@ -597,5 +752,20 @@ mat-card {
   .key-meta {
     flex-direction: column;
     gap: 4px;
+  }
+
+  .collaborator-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .collaborator-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .role-select {
+    flex: 1;
   }
 }

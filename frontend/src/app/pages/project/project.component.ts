@@ -26,6 +26,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { ConnectionStatusComponent } from '@components/connection-status/connection-status.component';
+import { PresenceIndicatorComponent } from '@components/presence-indicator/presence-indicator.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Element, ElementType, Project } from '@inkweld/index';
@@ -64,6 +65,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     MatToolbarModule,
     MatMenuModule,
     ConnectionStatusComponent,
+    PresenceIndicatorComponent,
     ProjectTreeComponent,
     DocumentElementEditorComponent,
     RouterModule,

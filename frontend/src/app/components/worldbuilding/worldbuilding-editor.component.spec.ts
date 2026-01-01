@@ -20,6 +20,7 @@ describe('WorldbuildingEditorComponent', () => {
   let worldbuildingService: WorldbuildingMock;
   let mockProjectState: {
     elements: ReturnType<typeof signal<Element[]>>;
+    canWrite: ReturnType<typeof signal<boolean>>;
   };
 
   const mockCharacterSchema: ElementTypeSchema = {
@@ -107,6 +108,7 @@ describe('WorldbuildingEditorComponent', () => {
 
     mockProjectState = {
       elements: signal<Element[]>([mockElement]),
+      canWrite: signal<boolean>(true),
     };
 
     const mockDialogGateway = {

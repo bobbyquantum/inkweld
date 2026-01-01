@@ -35,50 +35,54 @@
             <mat-icon class="tab-icon">settings</mat-icon>
             <span class="tab-name">General</span>
           </button>
-          <button
-            ngTab
-            value="templates"
-            type="button"
-            role="tab"
-            (click)="onTabChange('templates')"
-            class="tab-button"
-            data-testid="settings-tab-templates">
-            <mat-icon class="tab-icon">description</mat-icon>
-            <span class="tab-name">Element Templates</span>
-          </button>
-          <button
-            ngTab
-            value="relationships"
-            type="button"
-            role="tab"
-            (click)="onTabChange('relationships')"
-            class="tab-button"
-            data-testid="settings-tab-relationships">
-            <mat-icon class="tab-icon">hub</mat-icon>
-            <span class="tab-name">Relationship Types</span>
-          </button>
-          <button
-            ngTab
-            value="tags"
-            type="button"
-            role="tab"
-            (click)="onTabChange('tags')"
-            class="tab-button"
-            data-testid="settings-tab-tags">
-            <mat-icon class="tab-icon">local_offer</mat-icon>
-            <span class="tab-name">Tags</span>
-          </button>
-          <button
-            ngTab
-            value="mcp-keys"
-            type="button"
-            role="tab"
-            (click)="onTabChange('mcp-keys')"
-            class="tab-button"
-            data-testid="settings-tab-mcp-keys">
-            <mat-icon class="tab-icon">key</mat-icon>
-            <span class="tab-name">MCP Keys</span>
-          </button>
+          @if (projectState.accessLoaded() && projectState.canWrite()) {
+            <button
+              ngTab
+              value="templates"
+              type="button"
+              role="tab"
+              (click)="onTabChange('templates')"
+              class="tab-button"
+              data-testid="settings-tab-templates">
+              <mat-icon class="tab-icon">description</mat-icon>
+              <span class="tab-name">Element Templates</span>
+            </button>
+            <button
+              ngTab
+              value="relationships"
+              type="button"
+              role="tab"
+              (click)="onTabChange('relationships')"
+              class="tab-button"
+              data-testid="settings-tab-relationships">
+              <mat-icon class="tab-icon">hub</mat-icon>
+              <span class="tab-name">Relationship Types</span>
+            </button>
+            <button
+              ngTab
+              value="tags"
+              type="button"
+              role="tab"
+              (click)="onTabChange('tags')"
+              class="tab-button"
+              data-testid="settings-tab-tags">
+              <mat-icon class="tab-icon">local_offer</mat-icon>
+              <span class="tab-name">Tags</span>
+            </button>
+          }
+          @if (projectState.accessLoaded() && projectState.isOwner()) {
+            <button
+              ngTab
+              value="mcp-keys"
+              type="button"
+              role="tab"
+              (click)="onTabChange('mcp-keys')"
+              class="tab-button"
+              data-testid="settings-tab-mcp-keys">
+              <mat-icon class="tab-icon">key</mat-icon>
+              <span class="tab-name">MCP Keys</span>
+            </button>
+          }
         </nav>
       </div>
 
@@ -204,7 +208,7 @@
                         Download All ({{ state.needsDownload }})
                       </button>
                     }
-                    @if (state.needsUpload > 0) {
+                    @if (state.needsUpload > 0 && projectState.canWrite()) {
                       <button
                         mat-raised-button
                         color="accent"
@@ -243,28 +247,275 @@
           }
         </section>
 
-        <!-- Future: Collaboration Section -->
-        <section class="settings-section coming-soon">
+        <!-- Local Data Reset Section -->
+        <section class="settings-section" data-testid="local-data-section">
           <h3>
-            <mat-icon>group</mat-icon>
-            Collaboration
-            <span class="coming-soon-badge">Coming Soon</span>
+            <mat-icon>storage</mat-icon>
+            Local Data
           </h3>
           <p class="section-description">
-            Share your project with other users and collaborate in real-time.
+            Manage locally cached project data stored in your browser.
           </p>
+
           <mat-card class="info-card">
             <mat-card-content>
               <div class="info-content">
-                <mat-icon>schedule</mat-icon>
+                <mat-icon>info</mat-icon>
                 <div>
-                  Collaboration features are coming in a future update. You'll
-                  be able to invite other users to view or edit your project.
+                  Documents and worldbuilding data are cached locally for
+                  offline access. If you experience sync issues or corrupted
+                  data, you can reset the local cache.
                 </div>
               </div>
             </mat-card-content>
           </mat-card>
+
+          <div class="action-buttons" style="margin-top: 16px">
+            <button
+              mat-raised-button
+              color="warn"
+              (click)="resetLocalData()"
+              [disabled]="isResettingLocalData()"
+              data-testid="reset-local-data-button">
+              @if (isResettingLocalData()) {
+                <mat-progress-spinner diameter="20" mode="indeterminate">
+                </mat-progress-spinner>
+              } @else {
+                <mat-icon>delete_sweep</mat-icon>
+              }
+              Reset Local Data
+            </button>
+          </div>
         </section>
+
+        <!-- Collaboration Section (owners only) -->
+        @if (projectState.isOwner()) {
+          <section class="settings-section" data-testid="collaboration-section">
+            <h3>
+              <mat-icon>group</mat-icon>
+              Collaboration
+            </h3>
+            <p class="section-description">
+              Share your project with other users and collaborate in real-time.
+            </p>
+
+            @if (currentMode === 'server') {
+              @if (isLoadingCollaborators()) {
+                <div class="loading-state">
+                  <mat-progress-spinner diameter="32" mode="indeterminate">
+                  </mat-progress-spinner>
+                  <span>Loading collaborators...</span>
+                </div>
+              } @else if (collaboratorsError()) {
+                <mat-card class="error-card">
+                  <mat-card-content>
+                    <mat-icon>error</mat-icon>
+                    <span>{{ collaboratorsError() }}</span>
+                    <button
+                      mat-button
+                      color="primary"
+                      (click)="loadCollaborators()"
+                      data-testid="collaborators-retry-button">
+                      Retry
+                    </button>
+                  </mat-card-content>
+                </mat-card>
+              } @else {
+                <!-- Collaborators List -->
+                @if (collaborators().length > 0) {
+                  <mat-card class="collaborators-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        Collaborators ({{ getActiveCollaboratorsCount() }})
+                        @if (getPendingInvitationsCount() > 0) {
+                          <span class="pending-badge">
+                            {{ getPendingInvitationsCount() }} pending
+                          </span>
+                        }
+                      </mat-card-title>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <div class="collaborators-list">
+                        @for (collab of collaborators(); track collab.userId) {
+                          <div
+                            class="collaborator-item"
+                            [class.pending]="collab.status === 'pending'"
+                            data-testid="collaborator-item">
+                            <div class="collaborator-info">
+                              <div class="collaborator-avatar">
+                                <mat-icon>{{
+                                  getRoleIcon(collab.role)
+                                }}</mat-icon>
+                              </div>
+                              <div class="collaborator-details">
+                                <div class="collaborator-header">
+                                  <strong>{{ collab.username }}</strong>
+                                  @if (collab.name) {
+                                    <span class="collaborator-name">{{
+                                      collab.name
+                                    }}</span>
+                                  }
+                                  @if (collab.status === 'pending') {
+                                    <span class="status-badge pending"
+                                      >Pending</span
+                                    >
+                                  }
+                                </div>
+                                <div class="collaborator-meta">
+                                  @if (collab.status === 'accepted') {
+                                    <span
+                                      >Joined
+                                      {{
+                                        collab.acceptedAt | date: 'mediumDate'
+                                      }}</span
+                                    >
+                                  } @else {
+                                    <span
+                                      >Invited
+                                      {{
+                                        collab.invitedAt | date: 'mediumDate'
+                                      }}</span
+                                    >
+                                    @if (collab.invitedByUsername) {
+                                      <span
+                                        >by {{ collab.invitedByUsername }}</span
+                                      >
+                                    }
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                            <div class="collaborator-actions">
+                              @if (projectState.isOwner()) {
+                                <mat-form-field
+                                  appearance="outline"
+                                  class="role-select">
+                                  <mat-select
+                                    [value]="collab.role"
+                                    (selectionChange)="
+                                      updateCollaboratorRole(
+                                        collab,
+                                        $event.value
+                                      )
+                                    "
+                                    data-testid="collaborator-role-select">
+                                    @for (opt of roleOptions; track opt.value) {
+                                      <mat-option [value]="opt.value">
+                                        {{ opt.label }}
+                                      </mat-option>
+                                    }
+                                  </mat-select>
+                                </mat-form-field>
+                                <button
+                                  mat-icon-button
+                                  color="warn"
+                                  [matTooltip]="'Remove ' + collab.username"
+                                  (click)="removeCollaborator(collab)"
+                                  data-testid="remove-collaborator-button">
+                                  <mat-icon>person_remove</mat-icon>
+                                </button>
+                              } @else {
+                                <span class="role-label">{{
+                                  collab.role
+                                }}</span>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                }
+
+                <!-- Invite Form (owners only) -->
+                @if (projectState.isOwner() && showInviteForm()) {
+                  <mat-card class="invite-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        <mat-icon>person_add</mat-icon>
+                        Invite Collaborator
+                      </mat-card-title>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <div class="invite-form">
+                        <mat-form-field appearance="outline" class="full-width">
+                          <mat-label>Username</mat-label>
+                          <input
+                            matInput
+                            [(ngModel)]="inviteUsername"
+                            placeholder="Enter username to invite"
+                            data-testid="invite-username-input" />
+                          <mat-icon matSuffix>person</mat-icon>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="full-width">
+                          <mat-label>Role</mat-label>
+                          <mat-select
+                            [(ngModel)]="inviteRole"
+                            data-testid="invite-role-select">
+                            @for (opt of roleOptions; track opt.value) {
+                              <mat-option [value]="opt.value">
+                                <div class="role-option">
+                                  <span>{{ opt.label }}</span>
+                                  <small>{{ opt.description }}</small>
+                                </div>
+                              </mat-option>
+                            }
+                          </mat-select>
+                        </mat-form-field>
+
+                        <div class="form-actions">
+                          <button
+                            mat-button
+                            (click)="toggleInviteForm()"
+                            data-testid="cancel-invite-button">
+                            Cancel
+                          </button>
+                          <button
+                            mat-raised-button
+                            color="primary"
+                            [disabled]="!inviteUsername.trim() || isInviting()"
+                            (click)="inviteCollaborator()"
+                            data-testid="send-invite-button">
+                            @if (isInviting()) {
+                              <mat-progress-spinner
+                                diameter="20"
+                                mode="indeterminate">
+                              </mat-progress-spinner>
+                            } @else {
+                              <ng-container>
+                                <mat-icon>send</mat-icon>
+                                Send Invitation
+                              </ng-container>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                } @else if (projectState.isOwner()) {
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="toggleInviteForm()"
+                    data-testid="show-invite-form-button">
+                    <mat-icon>person_add</mat-icon>
+                    Invite Collaborator
+                  </button>
+                }
+              }
+            } @else {
+              <mat-card class="info-card">
+                <mat-card-content>
+                  <div class="info-content">
+                    <mat-icon>info</mat-icon>
+                    <div>Collaboration requires a server connection.</div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
+          </section>
+        }
       </div>
     }
 

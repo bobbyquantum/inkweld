@@ -247,6 +247,7 @@ export class TagChipListComponent {
    * Remove a tag from the element
    */
   removeTag(tag: ResolvedTag): void {
+    if (this.readonly()) return;
     this.tagService.removeTag(this.elementId(), tag.definition.id);
     this.emitChange();
   }

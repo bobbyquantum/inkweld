@@ -84,7 +84,7 @@ export class DocumentElementEditorComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewChecked
 {
   private documentService = inject(DocumentService);
-  private projectState = inject(ProjectStateService);
+  protected projectState = inject(ProjectStateService);
   private settingsService = inject(SettingsService);
   private relationshipService = inject(RelationshipService);
   private dialog = inject(MatDialog);
@@ -279,6 +279,10 @@ export class DocumentElementEditorComponent
             console.log(
               `[DocumentEditor] setupCollaboration complete, editor doc size: ${this.editor.view.state.doc.nodeSize}`
             );
+
+            // Set read-only mode for viewers who can't write
+            this.updateEditableState();
+
             // Force change detection to update the view
             this.cdr.detectChanges();
 
@@ -625,6 +629,23 @@ export class DocumentElementEditorComponent
         this.contextMenuData.set(null);
         break;
       }
+    }
+  }
+
+  /**
+   * Updates the editor's editable state based on user permissions.
+   * Viewers cannot edit, so set editable to false for them.
+   */
+  private updateEditableState(): void {
+    const canWrite = this.projectState.canWrite();
+    console.log('[DocumentEditor] updateEditableState - canWrite:', canWrite);
+
+    if (!canWrite && this.editor?.view) {
+      // Dispatch UPDATE_EDITABLE meta to set editor to read-only
+      const { dispatch, state } = this.editor.view;
+      const tr = state.tr.setMeta('UPDATE_EDITABLE', false);
+      dispatch(tr);
+      console.log('[DocumentEditor] Editor set to read-only mode');
     }
   }
 

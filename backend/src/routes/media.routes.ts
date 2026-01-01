@@ -4,6 +4,7 @@ import { lookup } from 'mime-types';
 import { requireAuth } from '../middleware/auth';
 import { getStorageService } from '../services/storage.service';
 import { projectService } from '../services/project.service';
+import { collaborationService } from '../services/collaboration.service';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../errors';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
@@ -98,9 +99,9 @@ mediaRoutes.openapi(listMediaRoute, async (c): Promise<any> => {
     throw new NotFoundError('Project not found');
   }
 
-  // Check access - owner or collaborator
-  if (project.userId !== userId) {
-    // TODO: Check collaborator access when implemented
+  // Check access - owner or collaborator with read access
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+  if (!access.canRead) {
     throw new ForbiddenError('Access denied');
   }
 
@@ -201,8 +202,9 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
     throw new NotFoundError('Project not found');
   }
 
-  // Check access - owner only for upload
-  if (project.userId !== userId) {
+  // Check access - owner or collaborator with write access
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+  if (!access.canWrite) {
     throw new ForbiddenError('Access denied');
   }
 
@@ -293,9 +295,9 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
     throw new NotFoundError('Project not found');
   }
 
-  // Check access - owner or collaborator
-  if (project.userId !== userId) {
-    // TODO: Check collaborator access when implemented
+  // Check access - owner or collaborator with read access
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+  if (!access.canRead) {
     throw new ForbiddenError('Access denied');
   }
 

@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ProjectAccess } from './project-access';
 
 
 export interface Project { 
@@ -42,5 +43,6 @@ export interface Project {
      * Last update date
      */
     updatedDate: string;
+    access?: ProjectAccess;
 }
 

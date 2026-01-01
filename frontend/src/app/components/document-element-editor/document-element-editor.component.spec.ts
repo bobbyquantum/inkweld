@@ -102,6 +102,7 @@ describe('DocumentElementEditorComponent', () => {
     const isLoadingSignal = signal(false);
     const projectSignal = signal<Project | undefined>(mockProject);
     const elementsSignal = signal<Element[]>([]);
+    const canWriteSignal = signal(true);
 
     documentServiceMock = {
       setupCollaboration: vi.fn().mockResolvedValue(undefined),
@@ -114,6 +115,7 @@ describe('DocumentElementEditorComponent', () => {
       isLoading: isLoadingSignal,
       project: projectSignal,
       elements: elementsSignal,
+      canWrite: canWriteSignal,
     };
 
     settingsServiceMock = {

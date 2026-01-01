@@ -7,6 +7,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SetupService } from '@services/core/setup.service';
+import { MediaSyncService } from '@services/offline/media-sync.service';
 import {
   MediaInfo,
   OfflineStorageService,
@@ -24,6 +26,8 @@ describe('MediaTabComponent', () => {
   let projectStateService: Partial<ProjectStateService>;
   let offlineStorage: Partial<OfflineStorageService>;
   let dialogGateway: Partial<DialogGatewayService>;
+  let mediaSyncService: Partial<MediaSyncService>;
+  let setupService: Partial<SetupService>;
 
   const mockProject = {
     username: 'testuser',
@@ -80,6 +84,14 @@ describe('MediaTabComponent', () => {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
 
+    mediaSyncService = {
+      downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
+    };
+
+    setupService = {
+      getMode: vi.fn().mockReturnValue('server'),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         MatButtonModule,
@@ -96,6 +108,8 @@ describe('MediaTabComponent', () => {
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: OfflineStorageService, useValue: offlineStorage },
         { provide: DialogGatewayService, useValue: dialogGateway },
+        { provide: MediaSyncService, useValue: mediaSyncService },
+        { provide: SetupService, useValue: setupService },
       ],
     }).compileComponents();
 

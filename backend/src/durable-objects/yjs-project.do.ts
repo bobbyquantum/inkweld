@@ -321,7 +321,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         const [projectOwner] = parts;
 
         // Check access - the token's username should match the project owner
-        // TODO: Add collaborator support when implemented
+        // TODO: Add collaborator support - this requires D1 access from the DO
+        // For now, collaborators can only work on the Bun runtime, not Cloudflare Workers
+        // See yjs.routes.ts for the Bun implementation with collaborationService.checkAccess()
         if (sessionData.username !== projectOwner) {
           console.error(
             `User ${sessionData.username} attempted to access project owned by ${projectOwner}`

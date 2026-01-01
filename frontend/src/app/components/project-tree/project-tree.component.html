@@ -25,20 +25,22 @@
       <mat-icon>home</mat-icon>
     </button>
     <span class="toolbar-spacer"></span>
-    <button
-      mat-icon-button
-      (click)="onCreateNewDocument()"
-      matTooltip="New Document"
-      data-testid="toolbar-new-document-button">
-      <mat-icon>note_add</mat-icon>
-    </button>
-    <button
-      mat-icon-button
-      (click)="onCreateNewFolder()"
-      matTooltip="New Folder"
-      data-testid="toolbar-new-folder-button">
-      <mat-icon>create_new_folder</mat-icon>
-    </button>
+    @if (projectStateService.canWrite()) {
+      <button
+        mat-icon-button
+        (click)="onCreateNewDocument()"
+        matTooltip="New Document"
+        data-testid="toolbar-new-document-button">
+        <mat-icon>note_add</mat-icon>
+      </button>
+      <button
+        mat-icon-button
+        (click)="onCreateNewFolder()"
+        matTooltip="New Folder"
+        data-testid="toolbar-new-folder-button">
+        <mat-icon>create_new_folder</mat-icon>
+      </button>
+    }
   </div>
 
   <!-- Project Tree with ARIA attributes for accessibility -->
@@ -61,7 +63,7 @@
         (cdkDragStarted)="dragStarted(node)"
         (cdkDragEnded)="dragEnded()"
         (cdkDragMoved)="dragMove($event)"
-        [cdkDragDisabled]="isLoading()"
+        [cdkDragDisabled]="isLoading() || !projectStateService.canWrite()"
         [attr.data-testid]="'element-' + node.name"
         [attr.data-level]="node.level"
         [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
@@ -149,19 +151,21 @@
       </li>
     }
 
-    <!-- Create new element button at the end of the tree -->
-    <li
-      role="treeitem"
-      aria-level="1"
-      aria-selected="false"
-      class="create-item"
-      data-testid="create-new-element"
-      tabindex="0"
-      (click)="onCreateNewElement()"
-      (keyup.enter)="onCreateNewElement()">
-      <mat-icon>add</mat-icon>
-      <div class="node-title">Create</div>
-    </li>
+    <!-- Create new element button at the end of the tree (only for users with write access) -->
+    @if (projectStateService.canWrite()) {
+      <li
+        role="treeitem"
+        aria-level="1"
+        aria-selected="false"
+        class="create-item"
+        data-testid="create-new-element"
+        tabindex="0"
+        (click)="onCreateNewElement()"
+        (keyup.enter)="onCreateNewElement()">
+        <mat-icon>add</mat-icon>
+        <div class="node-title">Create</div>
+      </li>
+    }
   </ul>
 </div>
 
@@ -179,23 +183,25 @@
         <span class="context-menu-item-title">Open Document</span>
       </button>
     }
-    <button
-      type="button"
-      class="context-menu-item"
-      cdkMenuItem
-      [disabled]="isLoading()"
-      (click)="onRename(node)">
-      <mat-icon>edit_square</mat-icon>
-      <span class="context-menu-item-title">Rename</span>
-    </button>
-    <button
-      type="button"
-      class="context-menu-item"
-      cdkMenuItem
-      [disabled]="isLoading()"
-      (click)="onDelete(node)">
-      <mat-icon>delete</mat-icon>
-      <span class="context-menu-item-title">Delete</span>
-    </button>
+    @if (projectStateService.canWrite()) {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        [disabled]="isLoading()"
+        (click)="onRename(node)">
+        <mat-icon>edit_square</mat-icon>
+        <span class="context-menu-item-title">Rename</span>
+      </button>
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        [disabled]="isLoading()"
+        (click)="onDelete(node)">
+        <mat-icon>delete</mat-icon>
+        <span class="context-menu-item-title">Delete</span>
+      </button>
+    }
   </div>
 </ng-template>
