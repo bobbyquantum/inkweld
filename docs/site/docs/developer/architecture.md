@@ -644,6 +644,6 @@ Consider:
 ## Next Steps
 
 - Review [API documentation](/api)
-- Read [deployment guide](../hosting/docker)
+- Read [deployment guide](../installation/docker)
 - Check the [user guide](../user-guide/projects)
 - Explore the [features](../features)

@@ -51,7 +51,8 @@
     "e2e:docker": "playwright test --config=playwright.docker.config.ts",
     "e2e:docker:ui": "playwright test --config=playwright.docker.config.ts --ui",
     "e2e:docker:debug": "playwright test --config=playwright.docker.config.ts --debug",
-    "e2e:docker:ci": "playwright test --config=playwright.docker.config.ts --reporter=list"
+    "e2e:docker:ci": "playwright test --config=playwright.docker.config.ts --reporter=list",
+    "wrangler": "wrangler"
   },
   "private": true,
   "dependencies": {
@@ -130,7 +131,8 @@
     "unpdf": "^1.4.0",
     "vitest": "^4.0.13",
     "vitest-mock-extended": "3.1.0",
-    "wait-on": "^9.0.0"
+    "wait-on": "^9.0.0",
+    "wrangler": "^4.0.0"
   },
   "resolutions": {
     "prosemirror-commands": "1.7.1",

@@ -121,4 +121,4 @@ For those interested in what's under the hood:
 
 ---
 
-Ready to get started? Check out the [Installation Guide](./installation) or learn about [hosting options](./hosting/docker).
+Ready to get started? Check out the [Installation Guide](./installation) to deploy Inkweld.

@@ -62,13 +62,13 @@ DB_TYPE = "d1"
 ALLOWED_ORIGINS = "http://localhost:4200,http://localhost:4400"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
-RECAPTCHA_ENABLED = "false"
 SESSION_SECRET = "local-dev-session-secret-for-testing-minimum-32-chars"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "inkweld_local"
 database_id = "local"  # Wrangler creates a local SQLite automatically
+migrations_dir = "drizzle"
 
 [[durable_objects.bindings]]
 name = "YJS_PROJECTS"
@@ -97,7 +97,6 @@ DB_TYPE = "d1"
 ALLOWED_ORIGINS = "http://localhost:4200,https://staging.yourdomain.com,*.your-pages-project-staging.pages.dev"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
-RECAPTCHA_ENABLED = "false"
 SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
 
 # Create with: npx wrangler d1 create inkweld_staging
@@ -105,6 +104,7 @@ SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secr
 binding = "DB"
 database_name = "inkweld_staging"
 database_id = "YOUR_STAGING_DATABASE_ID_HERE"  # <-- REPLACE THIS
+migrations_dir = "drizzle"
 
 # R2 storage for media files (covers, avatars, inline images)
 # Create with: npx wrangler r2 bucket create inkweld-storage-staging
@@ -134,7 +134,6 @@ DB_TYPE = "d1"
 ALLOWED_ORIGINS = "https://yourdomain.com,*.your-pages-project.pages.dev"
 USER_APPROVAL_REQUIRED = "true"
 GITHUB_ENABLED = "false"
-RECAPTCHA_ENABLED = "false"
 SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
 
 # Create with: npx wrangler d1 create inkweld_prod
@@ -142,6 +141,7 @@ SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secr
 binding = "DB"
 database_name = "inkweld_prod"
 database_id = "YOUR_PROD_DATABASE_ID_HERE"  # <-- REPLACE THIS
+migrations_dir = "drizzle"
 
 # R2 storage for media files (covers, avatars, inline images)
 # Create with: npx wrangler r2 bucket create inkweld-storage

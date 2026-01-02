@@ -136,29 +136,29 @@ const config: Config = {
               to: '/docs/installation',
             },
             {
-              label: 'User Guide',
-              to: '/docs/user-guide/projects',
+              label: 'Configuration',
+              to: '/docs/configuration',
             },
             {
-              label: 'API Reference',
-              to: '/api',
+              label: 'User Guide',
+              to: '/docs/user-guide/projects',
             },
           ],
         },
         {
-          title: 'Hosting',
+          title: 'Installation',
           items: [
             {
-              label: 'Docker Deployment',
-              to: '/docs/hosting/docker',
+              label: 'Docker',
+              to: '/docs/installation/docker',
             },
             {
-              label: 'CI/CD Pipeline',
-              to: '/docs/hosting/ci-cd',
+              label: 'Cloudflare Workers',
+              to: '/docs/installation/cloudflare',
             },
             {
-              label: 'Admin CLI',
-              to: '/docs/hosting/admin-cli',
+              label: 'Native Binary',
+              to: '/docs/installation/native-bun',
             },
           ],
         },
@@ -172,6 +172,10 @@ const config: Config = {
             {
               label: 'Issues',
               href: 'https://github.com/bobbyquantum/inkweld/issues',
+            },
+            {
+              label: 'API Reference',
+              to: '/api',
             },
           ],
         },

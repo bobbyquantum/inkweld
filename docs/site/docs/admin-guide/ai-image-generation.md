@@ -245,5 +245,5 @@ API keys are stored encrypted in the database. They are never exposed in the UI 
 ## Related
 
 - [Admin CLI Reference](./admin-cli.md) - Manage configuration via command line
-- [Docker Deployment](./docker.md) - Container configuration including environment variables
+- [Docker Deployment](../installation/docker) - Container configuration including environment variables
 - [Features Overview](/docs/features) - Full feature list

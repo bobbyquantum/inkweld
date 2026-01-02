@@ -212,5 +212,5 @@ For simple exports without creating a plan:
 ## Next Steps
 
 - Explore [all features](../features) in depth
-- Learn about [hosting](../hosting/docker) for production
+- Learn about [deployment](../installation/docker) for production
 - Check the [developer guide](../developer/architecture) for customization

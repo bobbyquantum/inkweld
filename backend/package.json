@@ -28,7 +28,10 @@
     "generate:openapi": "bun run scripts/generate-openapi.ts",
     "generate:angular-client": "bun run scripts/generate-angular-client.ts",
     "admin": "bun run admin-cli.ts",
-    "init:d1-local": "bun run scripts/init-d1-local.ts"
+    "init:d1-local": "bun run scripts/init-d1-local.ts",
+    "db:migrate:staging": "wrangler d1 migrations apply inkweld_staging --env staging --remote",
+    "db:migrate:prod": "wrangler d1 migrations apply inkweld_prod --env production --remote",
+    "wrangler": "wrangler"
   },
   "dependencies": {
     "@fal-ai/client": "^1.7.2",
@@ -64,7 +67,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "1.3.5",
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^25.0.0",
+    "@types/node": "^25.0.3",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
