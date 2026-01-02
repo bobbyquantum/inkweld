@@ -67,15 +67,14 @@ export class CreateSnapshotDialogComponent {
    */
   onSubmit() {
     if (this.form.valid) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const formValue = this.form.value;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const trimmedName = ((formValue.name as string) || '').trim();
+      const name = this.form.get('name')?.value as string;
+      const description = this.form.get('description')?.value as string;
+      const trimmedName = (name || '').trim();
+
       const result: CreateSnapshotDialogResult = {
         // If name is blank, use ISO date-time format
         name: trimmedName || new Date().toISOString(),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
-        description: formValue.description?.trim() || undefined,
+        description: (description || '').trim() || undefined,
       };
       this.dialogRef.close(result);
     }

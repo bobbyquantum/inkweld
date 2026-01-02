@@ -45,10 +45,10 @@ Configure AI providers for image generation:
 - Stable Diffusion (self-hosted)
 - Fal.ai
 
-See [AI Image Generation](/docs/hosting/ai-image-generation) for detailed provider configuration.
+See [AI Image Generation](./ai-image-generation) for detailed provider configuration.
 
 ## Quick Links
 
 - [AI Kill Switch](./ai-kill-switch) - Control AI feature availability
-- [Docker Deployment](/docs/hosting/docker) - Deploy Inkweld with Docker
-- [Admin CLI](/docs/hosting/admin-cli) - Command-line administration
+- [Docker Deployment](/docs/installation/docker) - Deploy Inkweld with Docker
+- [Admin CLI](./admin-cli) - Command-line administration

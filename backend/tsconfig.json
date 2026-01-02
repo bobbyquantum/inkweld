@@ -14,12 +14,12 @@
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "types": ["bun-types"],
+    "types": ["bun-types", "node"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "scripts/**/*", "admin-cli.ts"],
   "exclude": [
     "node_modules",
     "dist",

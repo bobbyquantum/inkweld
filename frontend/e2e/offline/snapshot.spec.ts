@@ -132,6 +132,9 @@ test.describe('Document Snapshots', () => {
 
     // Create a snapshot
     await page.getByTestId('create-snapshot-btn').click();
+    await expect(page.getByTestId('snapshot-name-input')).toBeVisible({
+      timeout: 5000,
+    });
     await page.getByTestId('snapshot-name-input').fill('Before Edit');
     await page.getByTestId('create-snapshot-submit-btn').click();
     await page.waitForTimeout(1000);
@@ -217,6 +220,9 @@ test.describe('Document Snapshots', () => {
 
     // Create a snapshot
     await page.getByTestId('create-snapshot-btn').click();
+    await expect(page.getByTestId('snapshot-name-input')).toBeVisible({
+      timeout: 5000,
+    });
     await page.getByTestId('snapshot-name-input').fill('To Be Deleted');
     await page.getByTestId('create-snapshot-submit-btn').click();
     await page.waitForTimeout(1000);
@@ -365,7 +371,12 @@ test.describe('Worldbuilding Snapshots', () => {
     });
 
     await page.getByTestId('create-snapshot-btn').click();
-    await page.getByTestId('snapshot-name-input').fill('Original Location');
+
+    // Wait for the create snapshot dialog to appear
+    const snapshotNameInput = page.getByTestId('snapshot-name-input');
+    await expect(snapshotNameInput).toBeVisible({ timeout: 5000 });
+    await snapshotNameInput.fill('Original Location');
+
     await page.getByTestId('create-snapshot-submit-btn').click();
     await page.waitForTimeout(1000);
 

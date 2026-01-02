@@ -1,0 +1,368 @@
+---
+id: cloudflare
+title: Cloudflare Workers Deployment
+description: Deploy Inkweld to Cloudflare's global edge network with the interactive setup wizard.
+sidebar_position: 2
+---
+
+# Cloudflare Workers Deployment
+
+Deploy Inkweld to Cloudflare's global edge network for low-latency access worldwide. This guide walks you through the **interactive setup wizard** - the easiest way to get started.
+
+## Overview
+
+Cloudflare deployment uses:
+
+- **Cloudflare Workers** - Serverless backend API at the edge
+- **Cloudflare Pages** - Global CDN for the Angular frontend  
+- **D1 Database** - SQLite-based database for user data and projects
+- **R2 Storage** - Object storage for media files (optional)
+- **Durable Objects** - Real-time collaborative editing with Yjs
+
+## Prerequisites
+
+Before you begin:
+
+1. **Cloudflare Account** - [Sign up free](https://dash.cloudflare.com/sign-up)
+2. **Git** - For cloning the repository
+3. **Bun 1.3+** - Backend runtime and package manager
+
+:::tip Free Tier Available
+Cloudflare offers generous free tiers for all required services. You can run Inkweld without any charges for development and small-scale use.
+:::
+
+## Quick Start with Setup Wizard
+
+The setup wizard automates the entire deployment process:
+
+```bash
+# Clone the repository
+git clone https://github.com/bobbyquantum/inkweld.git
+cd inkweld
+
+# Install dependencies
+bun install
+
+# Run the Cloudflare setup wizard
+npm run cloudflare:setup
+```
+
+### What the Wizard Does
+
+The wizard guides you through each step:
+
+```
+============================================================
+  Inkweld Cloudflare Setup
+============================================================
+
+✅ Wrangler CLI is installed
+✅ Logged in to Cloudflare
+
+============================================================
+  Environment Selection
+============================================================
+
+Available environments:
+
+  staging     - Pre-production environment for testing
+  production  - Live production environment
+
+Set up STAGING environment? (y/n): y
+Set up PRODUCTION environment? (y/n): y
+```
+
+### Step 1: Worker Configuration
+
+The wizard detects your Cloudflare account and suggests unique worker names:
+
+```
+============================================================
+  Worker Configuration
+============================================================
+
+ℹ️  Worker names must be globally unique across all Cloudflare accounts.
+ℹ️  Detected account: your-account-name
+
+Worker name for STAGING (default: your-account-inkweld-staging): 
+✅ Staging worker URL: https://your-account-inkweld-staging.workers.dev
+Continue with this URL? (y/n): y
+
+Worker name for PRODUCTION (default: your-account-inkweld): 
+✅ Production worker URL: https://your-account-inkweld.workers.dev
+Continue with this URL? (y/n): y
+```
+
+:::info Worker Name Uniqueness
+Worker names must be globally unique across all Cloudflare accounts. The wizard suggests names based on your account to avoid conflicts.
+:::
+
+### Step 2: Import Existing Configuration
+
+If you're setting up on a new machine with existing deployments, the wizard can import your configuration:
+
+```
+Try to import existing environment variables from Cloudflare? (y/n): y
+✅ Found existing staging configuration
+✅ Found existing production configuration
+```
+
+### Step 3: Create Resources
+
+The wizard creates all required Cloudflare resources:
+
+```
+============================================================
+  Creating D1 Databases
+============================================================
+
+ℹ️  Creating D1 database: inkweld_staging...
+✅ Created database "inkweld_staging" with ID: abc123...
+
+ℹ️  Creating D1 database: inkweld_prod...
+✅ Created database "inkweld_prod" with ID: def456...
+
+============================================================
+  Creating R2 Storage Buckets
+============================================================
+
+✅ Created R2 bucket: inkweld-storage-staging
+✅ Created R2 bucket: inkweld-storage
+
+============================================================
+  Creating Cloudflare Pages Projects
+============================================================
+
+✅ Created Pages project: inkweld-frontend-staging
+✅ Created Pages project: inkweld-frontend
+```
+
+### Step 4: Generate Frontend Configuration
+
+The wizard automatically generates environment files for the frontend:
+
+```
+============================================================
+  Generating Frontend Environment Files
+============================================================
+
+ℹ️  Frontend environment files configure the API URLs for each environment.
+ℹ️  Workers will be available at:
+ℹ️    Staging:    https://your-account-inkweld-staging.workers.dev
+ℹ️    Production: https://your-account-inkweld.workers.dev
+
+✅ Generated environment.staging.ts
+✅ Generated environment.cloudflare.ts
+```
+
+### Step 5: Run Migrations
+
+Apply the database schema:
+
+```
+============================================================
+  Running Database Migrations
+============================================================
+
+Run database migrations now? (y/n): y
+ℹ️  Running migrations on inkweld_staging...
+✅ Staging database migrated
+ℹ️  Running migrations on inkweld_prod...
+✅ Production database migrated
+```
+
+### Step 6: Set Secrets
+
+Configure sensitive values securely:
+
+```
+============================================================
+  Setting Secrets
+============================================================
+
+ℹ️  SESSION_SECRET is required for each environment.
+ℹ️  This is a cryptographic key used to sign session cookies.
+⚠️  CRITICAL: If this key is used for database encryption, changing it will 
+    make existing data unreadable!
+
+Generate and set SESSION_SECRET automatically? (y/n): y
+✅ SESSION_SECRET set for staging
+✅ SESSION_SECRET set for production
+```
+
+## Deploy Your Application
+
+After setup, deploy with:
+
+```bash
+# Deploy to staging (for testing)
+npm run cloudflare:deploy:staging
+
+# Deploy to production
+npm run cloudflare:deploy:prod
+```
+
+The deploy commands:
+1. Build the Angular frontend with the correct environment
+2. Build the Cloudflare Worker backend
+3. Run any pending database migrations
+4. Deploy both frontend and backend
+
+## Manual Setup
+
+If you prefer manual configuration, see the detailed steps below.
+
+### 1. Login to Cloudflare
+
+```bash
+cd backend
+bun run wrangler login
+```
+
+### 2. Create D1 Databases
+
+```bash
+bun run wrangler d1 create inkweld_staging
+bun run wrangler d1 create inkweld_prod
+```
+
+Note the `database_id` values from the output.
+
+### 3. Configure wrangler.toml
+
+```bash
+cp wrangler.toml.example wrangler.toml
+```
+
+Edit `wrangler.toml` and update the database IDs:
+
+```toml
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "inkweld_staging"
+database_id = "your-staging-database-id"
+migrations_dir = "drizzle"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "inkweld_prod"  
+database_id = "your-production-database-id"
+migrations_dir = "drizzle"
+```
+
+### 4. Run Migrations
+
+```bash
+bun run db:migrate:staging
+bun run db:migrate:prod
+```
+
+### 5. Set Secrets
+
+```bash
+bun run wrangler secret put SESSION_SECRET --env staging
+bun run wrangler secret put SESSION_SECRET --env production
+```
+
+### 6. Deploy
+
+```bash
+npm run cloudflare:deploy:staging
+npm run cloudflare:deploy:prod
+```
+
+## Custom Domain
+
+To use your own domain instead of `*.workers.dev`:
+
+1. **Add domain to Cloudflare** - If not already added
+2. **Configure Worker route:**
+   - Go to **Workers & Pages** → Your worker → **Settings** → **Triggers**
+   - Click **Add Custom Domain**
+   - Enter your domain (e.g., `api.yoursite.com`)
+
+3. **Update ALLOWED_ORIGINS** in `wrangler.toml`:
+
+```toml
+[env.production.vars]
+ALLOWED_ORIGINS = "https://yoursite.com,https://app.yoursite.com"
+```
+
+4. **Redeploy** for changes to take effect
+
+## Free Tier Limits
+
+Cloudflare's free tier is generous for development and small teams:
+
+| Service | Free Tier Limit | Notes |
+|---------|----------------|-------|
+| **Workers** | 100K requests/day | 10ms CPU per request |
+| **D1 Database** | 5M reads/day, 100K writes/day | 5GB storage |
+| **Durable Objects** | 100K requests/day | 13K GB-seconds/day |
+| **R2 Storage** | 10GB storage | Requires payment method |
+| **Pages** | Unlimited sites | 500 builds/month |
+
+:::info Understanding GB-seconds
+Durable Objects are billed by memory × time. 13,000 GB-seconds translates to roughly **21 hours** of continuous real-time collaboration per day.
+:::
+
+## Workers Paid Plan
+
+For production use, consider the Workers Paid plan at **$5/month**:
+
+- 10 million requests/month (included)
+- 30 seconds CPU time per request
+- Higher D1 limits (25M reads, 50M writes/month)
+- 400K GB-seconds Durable Objects/month
+- Priority support
+
+## Monitoring
+
+### View Logs
+
+```bash
+# Stream real-time logs
+bun run wrangler tail --env staging
+bun run wrangler tail --env production
+```
+
+### Analytics
+
+In the Cloudflare dashboard:
+1. Go to **Workers & Pages**
+2. Select your worker
+3. Click **Analytics** for requests, errors, and performance
+
+## Troubleshooting
+
+### "Worker name already exists"
+
+Worker names are globally unique. Choose a different name with your account prefix.
+
+### Database connection errors
+
+Verify your `database_id` values in `wrangler.toml` match the actual D1 database IDs.
+
+### CORS errors
+
+Update `ALLOWED_ORIGINS` to include all domains that need to access the API:
+
+```toml
+ALLOWED_ORIGINS = "https://yoursite.com,https://app.yoursite.com,https://staging.yoursite.com"
+```
+
+### Real-time collaboration not working
+
+Check that Durable Objects bindings are correctly configured and the worker deployed successfully.
+
+### Migration errors
+
+Ensure `migrations_dir = "drizzle"` is set in all D1 database sections of your `wrangler.toml`.
+
+---
+
+## Next Steps
+
+- **[Configure your instance](../configuration)** - Environment variables and customization
+- **[Set up CI/CD](../admin-guide/ci-cd)** - Automate deployments
+- **[Admin CLI](../admin-guide/admin-cli)** - Manage users from the command line

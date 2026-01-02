@@ -37,7 +37,7 @@ const FeatureList: FeatureItem[] = [
       </>
     ),
     linkLabel: 'Start hosting →',
-    href: '/docs/hosting/docker',
+    href: '/docs/installation',
   },
   {
     title: 'Built for Writers',

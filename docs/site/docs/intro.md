@@ -128,10 +128,10 @@ See the [installation guide](./installation) for detailed setup instructions.
     </a>
   </div>
   <div class="col col--6" style={{marginBottom: '1rem'}}>
-    <a href="./hosting/docker" style={{textDecoration: 'none'}}>
+    <a href="./installation" style={{textDecoration: 'none'}}>
       <div style={{padding: '1.5rem', background: 'var(--ifm-color-success-lightest)', borderRadius: '12px', height: '100%'}}>
-        <h3 style={{marginTop: 0}}>🚀 Hosting</h3>
-        <p>Deploy for production with Docker and Docker Compose</p>
+        <h3 style={{marginTop: 0}}>🚀 Installation</h3>
+        <p>Deploy for production with Docker, Cloudflare, or native Bun</p>
       </div>
     </a>
   </div>

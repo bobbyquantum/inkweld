@@ -29,6 +29,19 @@ const colors = {
   cyan: '\x1b[36m',
 };
 
+interface WranglerBinding {
+  name: string;
+  type: string;
+  text?: string;
+  database_id?: string;
+}
+
+interface WranglerRemoteConfig {
+  resources: {
+    bindings: WranglerBinding[];
+  };
+}
+
 function log(message: string, color: string = colors.reset) {
   console.log(`${color}${message}${colors.reset}`);
 }
@@ -58,7 +71,11 @@ function header(message: string) {
 }
 
 function runCommand(command: string, args: string[]): { success: boolean; output: string } {
-  const result = spawnSync(command, args, {
+  // Use local wrangler if command is 'wrangler'
+  const actualCommand =
+    command === 'wrangler' ? join(BACKEND_DIR, 'node_modules', '.bin', 'wrangler') : command;
+
+  const result = spawnSync(actualCommand, args, {
     encoding: 'utf-8',
     cwd: BACKEND_DIR,
     shell: true,
@@ -91,13 +108,58 @@ async function confirm(rl: readline.Interface, question: string): Promise<boolea
 }
 
 function checkWranglerInstalled(): boolean {
-  const result = runCommand('npx', ['wrangler', '--version']);
-  return result.success;
+  // Check if wrangler is installed locally in the project
+  const localWrangler = join(BACKEND_DIR, 'node_modules', '.bin', 'wrangler');
+  return existsSync(localWrangler);
 }
 
 function checkWranglerLoggedIn(): boolean {
-  const result = runCommand('npx', ['wrangler', 'whoami']);
-  return result.success && !result.output.includes('Not logged in');
+  const result = runCommand('wrangler', ['whoami']);
+  const output = result.output.toLowerCase();
+
+  // Check if output contains an email address and doesn't indicate being unauthenticated
+  const hasEmail = output.includes('@');
+  const isUnauthenticated =
+    output.includes('not authenticated') ||
+    output.includes('not logged in') ||
+    output.includes('please run `wrangler login`');
+
+  return result.success && hasEmail && !isUnauthenticated;
+}
+
+function getAccountInfo(): { email: string; accountName: string } | null {
+  const result = runCommand('wrangler', ['whoami']);
+  if (!result.success) return null;
+
+  const emailMatch = result.output.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+
+  // Parse the table to get the account name (not the header "Account Name")
+  // Look for lines after the separator (├──) and extract the first column value
+  const lines = result.output.split('\n');
+  let accountName = emailMatch ? emailMatch[1].split('@')[0] : '';
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('├──') && i + 1 < lines.length) {
+      // Next line after separator contains the data
+      const dataLine = lines[i + 1];
+      const match = dataLine.match(/│\s*([^│]+?)\s*│/);
+      if (match && match[1]) {
+        const value = match[1].trim();
+        // Skip if it's a header or looks like an ID
+        if (value !== 'Account Name' && !/^[a-f0-9]{32}$/i.test(value)) {
+          accountName = value;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!emailMatch) return null;
+
+  return {
+    email: emailMatch[1],
+    accountName,
+  };
 }
 
 function generateSecret(length: number = 48): string {
@@ -106,7 +168,8 @@ function generateSecret(length: number = 48): string {
 
 function setSecret(envName: string, secretName: string, secretValue: string): boolean {
   info(`Setting ${secretName} for ${envName} environment...`);
-  const result = spawnSync('npx', ['wrangler', 'secret', 'put', secretName, '--env', envName], {
+  const wranglerPath = join(BACKEND_DIR, 'node_modules', '.bin', 'wrangler');
+  const result = spawnSync(wranglerPath, ['secret', 'put', secretName, '--env', envName], {
     encoding: 'utf-8',
     cwd: BACKEND_DIR,
     shell: true,
@@ -117,7 +180,7 @@ function setSecret(envName: string, secretName: string, secretValue: string): bo
 
 function createD1Database(name: string): string | null {
   info(`Creating D1 database: ${name}...`);
-  const result = runCommand('npx', ['wrangler', 'd1', 'create', name]);
+  const result = runCommand('wrangler', ['d1', 'create', name]);
 
   if (!result.success) {
     if (result.output.includes('already exists')) {
@@ -140,17 +203,17 @@ function createD1Database(name: string): string | null {
 }
 
 function getD1DatabaseId(name: string): string | null {
-  const result = runCommand('npx', ['wrangler', 'd1', 'list', '--json']);
+  const result = runCommand('wrangler', ['d1', 'list', '--json']);
   if (!result.success) {
     return null;
   }
 
   try {
     const databases = JSON.parse(result.output);
-    const db = databases.find((d: { name: string }) => d.name === name);
+    const db = databases.find((d: { name: string; uuid?: string }) => d.name === name);
     if (db) {
       success(`Found existing database "${name}" with ID: ${db.uuid}`);
-      return db.uuid;
+      return db.uuid || null;
     }
   } catch {
     // JSON parse failed
@@ -158,9 +221,64 @@ function getD1DatabaseId(name: string): string | null {
   return null;
 }
 
-function updateWranglerToml(stagingDbId: string | null, prodDbId: string | null): boolean {
+async function getRemoteConfig(envName: string): Promise<WranglerRemoteConfig | null> {
+  info(`Fetching existing configuration for ${envName}...`);
+  const listResult = runCommand('wrangler', ['versions', 'list', '--env', envName, '--json']);
+  if (!listResult.success) return null;
+
+  try {
+    const versions = JSON.parse(listResult.output);
+    if (!versions || versions.length === 0) return null;
+
+    const latestVersionId = versions[versions.length - 1].id;
+    const viewResult = runCommand('wrangler', [
+      'versions',
+      'view',
+      latestVersionId,
+      '--env',
+      envName,
+      '--json',
+    ]);
+    if (!viewResult.success) return null;
+
+    return JSON.parse(viewResult.output);
+  } catch {
+    return null;
+  }
+}
+
+function updateWranglerToml(
+  stagingDbId: string | null,
+  prodDbId: string | null,
+  stagingWorkerName?: string,
+  prodWorkerName?: string,
+  stagingRemoteConfig?: WranglerRemoteConfig | null,
+  prodRemoteConfig?: WranglerRemoteConfig | null
+): boolean {
   try {
     let content = readFileSync(WRANGLER_TOML, 'utf-8');
+
+    // Update worker names if provided
+    if (stagingWorkerName) {
+      content = content.replace(
+        /name = "inkweld-backend-staging"/,
+        `name = "${stagingWorkerName}"`
+      );
+      // Also update durable object script name
+      content = content.replace(
+        /script_name = "inkweld-backend-staging"/,
+        `script_name = "${stagingWorkerName}"`
+      );
+    }
+
+    if (prodWorkerName) {
+      content = content.replace(/name = "inkweld-backend-prod"/, `name = "${prodWorkerName}"`);
+      // Also update durable object script name
+      content = content.replace(
+        /script_name = "inkweld-backend-prod"/,
+        `script_name = "${prodWorkerName}"`
+      );
+    }
 
     if (stagingDbId) {
       content = content.replace(
@@ -176,6 +294,53 @@ function updateWranglerToml(stagingDbId: string | null, prodDbId: string | null)
       );
     }
 
+    // Ensure migrations_dir = "drizzle" is present in all D1 sections
+    // This handles cases where the template was missing it
+    const d1SectionRegex = /\[\[(?:env\.[^.]+\.)?d1_databases\]\][\s\S]*?(?=\n\[|$)/g;
+    content = content.replace(d1SectionRegex, (section) => {
+      if (!section.includes('migrations_dir')) {
+        // Insert it after database_id or database_name
+        return section.replace(/(database_id = "[^"]*")/, '$1\nmigrations_dir = "drizzle"');
+      }
+      return section;
+    });
+
+    // Import other variables for staging
+    if (stagingRemoteConfig) {
+      const bindings = stagingRemoteConfig.resources.bindings;
+      const origins = bindings.find((b: WranglerBinding) => b.name === 'ALLOWED_ORIGINS');
+      if (origins && origins.text) {
+        // Find the staging environment section and replace ALLOWED_ORIGINS within it
+        const stagingSectionMatch = content.match(/\[env\.staging\.vars\]([\s\S]*?)(?=\n\[|$)/);
+        if (stagingSectionMatch) {
+          const oldSection = stagingSectionMatch[0];
+          const newSection = oldSection.replace(
+            /ALLOWED_ORIGINS = "[^"]*"/,
+            `ALLOWED_ORIGINS = "${origins.text}"`
+          );
+          content = content.replace(oldSection, newSection);
+        }
+      }
+    }
+
+    // Import other variables for production
+    if (prodRemoteConfig) {
+      const bindings = prodRemoteConfig.resources.bindings;
+      const origins = bindings.find((b: WranglerBinding) => b.name === 'ALLOWED_ORIGINS');
+      if (origins && origins.text) {
+        // Find the production environment section and replace ALLOWED_ORIGINS within it
+        const prodSectionMatch = content.match(/\[env\.production\.vars\]([\s\S]*?)(?=\n\[|$)/);
+        if (prodSectionMatch) {
+          const oldSection = prodSectionMatch[0];
+          const newSection = oldSection.replace(
+            /ALLOWED_ORIGINS = "[^"]*"/,
+            `ALLOWED_ORIGINS = "${origins.text}"`
+          );
+          content = content.replace(oldSection, newSection);
+        }
+      }
+    }
+
     writeFileSync(WRANGLER_TOML, content);
     return true;
   } catch (e) {
@@ -188,8 +353,7 @@ function runMigration(dbName: string, envName: string): boolean {
   info(`Running migrations on ${dbName}...`);
   // Use 'd1 migrations apply' to properly track migrations
   const envFlag = envName.toLowerCase() === 'staging' ? 'staging' : 'production';
-  const result = runCommand('npx', [
-    'wrangler',
+  const result = runCommand('wrangler', [
     'd1',
     'migrations',
     'apply',
@@ -203,14 +367,14 @@ function runMigration(dbName: string, envName: string): boolean {
     return true;
   } else {
     warn(`${envName} migration may have issues. You can run it manually later.`);
-    warn(`Try: npx wrangler d1 migrations apply ${dbName} --env ${envFlag} --remote`);
+    warn(`Try: bun run wrangler d1 migrations apply ${dbName} --env ${envFlag} --remote`);
     return false;
   }
 }
 
 function createR2Bucket(name: string): boolean {
   info(`Creating R2 bucket: ${name}...`);
-  const result = runCommand('npx', ['wrangler', 'r2', 'bucket', 'create', name]);
+  const result = runCommand('wrangler', ['r2', 'bucket', 'create', name]);
 
   if (!result.success) {
     if (result.output.includes('already exists')) {
@@ -227,8 +391,7 @@ function createR2Bucket(name: string): boolean {
 
 function createPagesProject(name: string): boolean {
   info(`Creating Pages project: ${name}...`);
-  const result = runCommand('npx', [
-    'wrangler',
+  const result = runCommand('wrangler', [
     'pages',
     'project',
     'create',
@@ -254,7 +417,7 @@ function createPagesProject(name: string): boolean {
 }
 
 function generateFrontendEnvironment(
-  subdomain: string,
+  workerName: string,
   envType: 'staging' | 'cloudflare'
 ): boolean {
   const filename = `environment.${envType}.ts`;
@@ -269,7 +432,11 @@ function generateFrontendEnvironment(
 
   try {
     let content = readFileSync(examplePath, 'utf-8');
-    content = content.replace(/YOUR_SUBDOMAIN/g, subdomain);
+    // Replace the example URL with the actual worker URL
+    content = content.replace(
+      /inkweld-backend-\w+\.YOUR_SUBDOMAIN\.workers\.dev/g,
+      `${workerName}.workers.dev`
+    );
     writeFileSync(filepath, content);
     success(`Generated ${filename}`);
     return true;
@@ -289,19 +456,19 @@ async function main() {
     info('Checking prerequisites...');
 
     if (!checkWranglerInstalled()) {
-      error('Wrangler CLI is not installed. Install it with: npm install -g wrangler');
+      error('Wrangler CLI is not installed. Run: bun install from the backend directory');
       process.exit(1);
     }
     success('Wrangler CLI is installed');
 
     if (!checkWranglerLoggedIn()) {
       warn('You are not logged in to Cloudflare.');
-      info('Run: npx wrangler login');
+      info('Run: bun run wrangler login');
       const shouldLogin = await confirm(rl, 'Would you like to login now?');
       if (shouldLogin) {
-        const result = runCommand('npx', ['wrangler', 'login']);
+        const result = runCommand('wrangler', ['login']);
         if (!result.success) {
-          error('Login failed. Please run "npx wrangler login" manually.');
+          error('Login failed. Please run "bun run wrangler login" manually.');
           process.exit(1);
         }
       } else {
@@ -332,12 +499,10 @@ async function main() {
 ${colors.bright}Available environments:${colors.reset}
 
   ${colors.cyan}staging${colors.reset}     - Pre-production environment for testing
-                 Deploys to: inkweld-backend-staging.workers.dev
-
   ${colors.cyan}production${colors.reset}  - Live production environment
-                 Deploys to: inkweld-backend-prod.workers.dev
 
 ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (no setup needed).
+${colors.yellow}Note:${colors.reset} Worker names must be globally unique across all Cloudflare accounts.
 `);
 
     const setupStaging = await confirm(rl, 'Set up STAGING environment?');
@@ -348,6 +513,95 @@ ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (
       process.exit(0);
     }
 
+    // Get custom worker names
+    header('Worker Configuration');
+
+    info('Worker names must be globally unique across all Cloudflare accounts.');
+    const accountInfo = getAccountInfo();
+    if (accountInfo) {
+      info(`Detected account: ${accountInfo.accountName}`);
+    }
+    console.log();
+
+    let stagingWorkerName = 'inkweld-backend-staging';
+    let prodWorkerName = 'inkweld-backend-prod';
+
+    if (setupStaging) {
+      const suggestedStaging = accountInfo
+        ? `${accountInfo.accountName.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-inkweld-staging`
+        : 'inkweld-backend-staging';
+      const customStaging = await prompt(
+        rl,
+        `Worker name for STAGING (default: ${suggestedStaging}):`
+      );
+      if (customStaging === '.') {
+        stagingWorkerName = 'inkweld-backend-staging';
+      } else {
+        stagingWorkerName = customStaging || suggestedStaging;
+      }
+      success(`Staging worker URL: https://${stagingWorkerName}.workers.dev`);
+      const confirmStaging = await confirm(rl, 'Continue with this URL?');
+      if (!confirmStaging) {
+        warn('Setup cancelled.');
+        process.exit(0);
+      }
+    }
+
+    if (setupProd) {
+      const suggestedProd = accountInfo
+        ? `${accountInfo.accountName.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-inkweld`
+        : 'inkweld-backend-prod';
+      const customProd = await prompt(
+        rl,
+        `Worker name for PRODUCTION (default: ${suggestedProd}):`
+      );
+      if (customProd === '.') {
+        prodWorkerName = 'inkweld-backend-prod';
+      } else {
+        prodWorkerName = customProd || suggestedProd;
+      }
+      success(`Production worker URL: https://${prodWorkerName}.workers.dev`);
+      const confirmProd = await confirm(rl, 'Continue with this URL?');
+      if (!confirmProd) {
+        warn('Setup cancelled.');
+        process.exit(0);
+      }
+    }
+    console.log();
+
+    // Try to import existing config if requested
+    const shouldImport = await confirm(
+      rl,
+      'Try to import existing environment variables from Cloudflare?'
+    );
+    let stagingRemoteConfig: WranglerRemoteConfig | null = null;
+    let prodRemoteConfig: WranglerRemoteConfig | null = null;
+
+    if (shouldImport) {
+      if (setupStaging) {
+        stagingRemoteConfig = await getRemoteConfig('staging');
+        if (
+          stagingRemoteConfig &&
+          stagingRemoteConfig.resources &&
+          stagingRemoteConfig.resources.bindings
+        ) {
+          success('Found existing staging configuration');
+        } else {
+          stagingRemoteConfig = null;
+          warn('Could not find existing staging configuration');
+        }
+      }
+      if (setupProd) {
+        prodRemoteConfig = await getRemoteConfig('production');
+        if (prodRemoteConfig && prodRemoteConfig.resources && prodRemoteConfig.resources.bindings) {
+          success('Found existing production configuration');
+        } else {
+          prodRemoteConfig = null;
+          warn('Could not find existing production configuration');
+        }
+      }
+    }
+
     // Create databases
     header('Creating D1 Databases');
 
@@ -355,7 +609,20 @@ ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (
     let prodDbId: string | null = null;
 
     if (setupStaging) {
-      stagingDbId = createD1Database('inkweld_staging');
+      // Check if we already have the ID from remote config
+      if (stagingRemoteConfig) {
+        const dbBinding = stagingRemoteConfig.resources.bindings.find(
+          (b: WranglerBinding) => b.type === 'd1' && b.name === 'DB'
+        );
+        if (dbBinding) stagingDbId = dbBinding.database_id || null;
+      }
+
+      if (!stagingDbId) {
+        stagingDbId = createD1Database('inkweld_staging');
+      } else {
+        success(`Using existing staging database ID: ${stagingDbId}`);
+      }
+
       if (!stagingDbId) {
         error('Failed to create staging database');
         if (!setupProd) process.exit(1);
@@ -363,7 +630,20 @@ ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (
     }
 
     if (setupProd) {
-      prodDbId = createD1Database('inkweld_prod');
+      // Check if we already have the ID from remote config
+      if (prodRemoteConfig) {
+        const dbBinding = prodRemoteConfig.resources.bindings.find(
+          (b: WranglerBinding) => b.type === 'd1' && b.name === 'DB'
+        );
+        if (dbBinding) prodDbId = dbBinding.database_id || null;
+      }
+
+      if (!prodDbId) {
+        prodDbId = createD1Database('inkweld_prod');
+      } else {
+        success(`Using existing production database ID: ${prodDbId}`);
+      }
+
       if (!prodDbId) {
         error('Failed to create production database');
         process.exit(1);
@@ -408,39 +688,37 @@ ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (
     header('Generating Frontend Environment Files');
 
     info('Frontend environment files configure the API URLs for each environment.');
-    info('Your Cloudflare subdomain is shown in the dashboard as:');
-    info('  <worker-name>.YOUR_SUBDOMAIN.workers.dev');
+    info('Workers will be available at:');
+    if (setupStaging) info(`  Staging:    https://${stagingWorkerName}.workers.dev`);
+    if (setupProd) info(`  Production: https://${prodWorkerName}.workers.dev`);
     console.log();
 
-    const subdomain = await prompt(
-      rl,
-      'Enter your Cloudflare account subdomain (e.g., "myaccount"):'
-    );
-
-    if (subdomain) {
-      if (setupStaging) {
-        generateFrontendEnvironment(subdomain, 'staging');
-      }
-      if (setupProd) {
-        generateFrontendEnvironment(subdomain, 'cloudflare');
-      }
-    } else {
-      warn('No subdomain provided. You can manually create the environment files later.');
-      info('Copy the .example files and replace YOUR_SUBDOMAIN:');
-      info('  frontend/src/environments/environment.staging.ts.example');
-      info('  frontend/src/environments/environment.cloudflare.ts.example');
+    if (setupStaging) {
+      generateFrontendEnvironment(stagingWorkerName, 'staging');
+    }
+    if (setupProd) {
+      generateFrontendEnvironment(prodWorkerName, 'cloudflare');
     }
 
     // Update wrangler.toml with database IDs
     header('Updating Configuration');
 
-    if (updateWranglerToml(stagingDbId, prodDbId)) {
-      success('Updated wrangler.toml with database IDs');
+    if (
+      updateWranglerToml(
+        stagingDbId,
+        prodDbId,
+        setupStaging ? stagingWorkerName : undefined,
+        setupProd ? prodWorkerName : undefined,
+        stagingRemoteConfig,
+        prodRemoteConfig
+      )
+    ) {
+      success('Updated wrangler.toml with worker names, database IDs, and existing variables');
     } else {
       error('Failed to update wrangler.toml');
-      info('Please manually update the database_id values:');
-      if (stagingDbId) info(`  Staging:    ${stagingDbId}`);
-      if (prodDbId) info(`  Production: ${prodDbId}`);
+      info('Please manually update the configuration:');
+      if (stagingDbId) info(`  Staging DB ID:    ${stagingDbId}`);
+      if (prodDbId) info(`  Production DB ID: ${prodDbId}`);
     }
 
     // Run migrations
@@ -461,9 +739,43 @@ ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (
 
     info('SESSION_SECRET is required for each environment.');
     info('This is a cryptographic key used to sign session cookies.');
+    warn(
+      'CRITICAL: If this key is used for database encryption, changing it will make existing data unreadable!'
+    );
     console.log();
 
-    const setSecrets = await confirm(rl, 'Would you like to set secrets now?');
+    // Check if secrets already exist
+    let stagingSecretExists = false;
+    let prodSecretExists = false;
+
+    if (stagingRemoteConfig) {
+      stagingSecretExists = !!stagingRemoteConfig.resources.bindings.find(
+        (b: WranglerBinding) => b.name === 'SESSION_SECRET'
+      );
+      if (stagingSecretExists) success('SESSION_SECRET is already set for STAGING on Cloudflare.');
+    }
+    if (prodRemoteConfig) {
+      prodSecretExists = !!prodRemoteConfig.resources.bindings.find(
+        (b: WranglerBinding) => b.name === 'SESSION_SECRET'
+      );
+      if (prodSecretExists) success('SESSION_SECRET is already set for PRODUCTION on Cloudflare.');
+    }
+    console.log();
+
+    const allSecretsExist =
+      (!setupStaging || stagingSecretExists) && (!setupProd || prodSecretExists);
+
+    let setSecrets = false;
+    if (allSecretsExist) {
+      info('All required secrets are already present on Cloudflare.');
+      setSecrets = await confirm(
+        rl,
+        'Do you want to OVERWRITE these existing secrets? (Not recommended if you have existing data)'
+      );
+    } else {
+      setSecrets = await confirm(rl, 'Some secrets are missing. Would you like to set them now?');
+    }
+
     if (setSecrets) {
       const generateNew = await confirm(rl, 'Generate a secure random secret? (recommended)');
 
@@ -518,10 +830,10 @@ ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (
     } else {
       warn('Remember to set secrets before deploying:');
       if (stagingDbId) {
-        info('  npx wrangler secret put SESSION_SECRET --env staging');
+        info('  bun run wrangler secret put SESSION_SECRET --env staging');
       }
       if (prodDbId) {
-        info('  npx wrangler secret put SESSION_SECRET --env production');
+        info('  bun run wrangler secret put SESSION_SECRET --env production');
       }
     }
 

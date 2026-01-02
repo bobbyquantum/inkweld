@@ -128,7 +128,7 @@ For compose-based deployments:
  docker compose -f compose.yaml up -d --build
 ```
 
-See [Deployment → Docker](./hosting/docker) for production-focused guidance.
+See [Deployment → Docker](./installation/docker) for production-focused guidance.
 
 ## Cloudflare Worker / Durable Objects
 
@@ -182,7 +182,7 @@ For multi-platform testing, use BuildKit: `docker buildx build --platform linux/
 
 ## Next steps
 
-- Review the [Docker deployment guide](./hosting/docker) for production hardening.
-- Learn how CI/CD publishes the container in [Deployment → CI/CD](./hosting/ci-cd).
-- Keep commands handy with the [admin CLI reference](./hosting/admin-cli).
+- Review the [Docker deployment guide](./installation/docker) for production hardening.
+- Learn how CI/CD publishes the container in [Deployment → CI/CD](./admin-guide/ci-cd).
+- Keep commands handy with the [admin CLI reference](./admin-guide/admin-cli).
 - If something breaks in production, start with the [Troubleshooting](./troubleshooting/cookies) section.

@@ -17,7 +17,20 @@ const sidebars: SidebarsConfig = {
   projectSidebar: [
     'intro',
     'features',
-    'installation',
+    {
+      type: 'category',
+      label: 'Installation',
+      link: {
+        type: 'doc',
+        id: 'installation/index',
+      },
+      items: [
+        'installation/docker',
+        'installation/cloudflare',
+        'installation/native-bun',
+      ],
+    },
+    'configuration',
     {
       type: 'category',
       label: 'User Guide',
@@ -34,17 +47,9 @@ const sidebars: SidebarsConfig = {
       items: [
         'admin-guide/overview',
         'admin-guide/ai-kill-switch',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Hosting',
-      items: [
-        'hosting/docker',
-        'hosting/cloudflare',
-        'hosting/ci-cd',
-        'hosting/admin-cli',
-        'hosting/ai-image-generation',
+        'admin-guide/admin-cli',
+        'admin-guide/ai-image-generation',
+        'admin-guide/ci-cd',
       ],
     },
     {
