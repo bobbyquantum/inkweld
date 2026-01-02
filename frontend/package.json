@@ -77,7 +77,7 @@
     "nanoid": "5.1.6",
     "@bobbyquantum/ngx-editor": "^21.0.0-beta.1",
     "ngx-image-cropper": "9.1.5",
-    "pdfmake": "^0.2.20",
+    "pdfmake": "^0.3.0",
     "prosemirror-history": "1.5.0",
     "prosemirror-transform": "1.10.5",
     "prosemirror-view": "1.41.4",
