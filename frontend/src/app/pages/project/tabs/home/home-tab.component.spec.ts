@@ -68,6 +68,7 @@ describe('HomeTabComponent', () => {
     const elementsSignal = signal<Element[]>([]);
     const publishPlansSignal = signal<any[]>([]);
     const coverMediaIdSignal = signal<string | undefined>(undefined);
+    const canWriteSignal = signal<boolean>(true);
 
     // Mock Router
     mockRouter = {
@@ -80,6 +81,7 @@ describe('HomeTabComponent', () => {
       elements: elementsSignal,
       publishPlans: publishPlansSignal,
       coverMediaId: coverMediaIdSignal,
+      canWrite: canWriteSignal,
       openDocument: vi.fn(),
       showEditProjectDialog: vi.fn(),
       openSystemTab: vi.fn().mockReturnValue({ index: 1, wasCreated: true }),

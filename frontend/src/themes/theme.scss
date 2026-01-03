@@ -357,19 +357,90 @@ mat-toolbar.mat-toolbar {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-/* Frosted glass effect for Material dialogs */
-::ng-deep .mat-mdc-dialog-container {
-  background: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15) !important;
+
+/* Frosted glass effect for mat-card */
+mat-card.mat-mdc-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-.dark-theme ::ng-deep .mat-mdc-dialog-container {
-  background: rgba(30, 33, 34, 0.8) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+.dark-theme mat-card.mat-mdc-card {
+  background: rgba(18, 18, 20, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+/* Frosted glass effect for mat-menu */
+.mat-mdc-menu-panel {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark-theme .mat-mdc-menu-panel {
+  background: rgba(18, 18, 20, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+}
+
+/* User menu text colors */
+.mat-mdc-menu-panel .user-username,
+.mat-mdc-menu-panel .theme-label {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.dark-theme .mat-mdc-menu-panel .user-username,
+.dark-theme .mat-mdc-menu-panel .theme-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Frosted glass effect for Material dialogs */
+/* Light theme (default) */
+body:not(.dark-theme) .cdk-overlay-container .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dark theme dialog */
+body.dark-theme .cdk-overlay-container .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+  background: rgba(18, 18, 20, 0.92) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Frosted glass backdrop for dialogs */
+body:not(.dark-theme) .cdk-overlay-dark-backdrop {
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+body.dark-theme .cdk-overlay-dark-backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* Image viewer dialog - responsive fullscreen */

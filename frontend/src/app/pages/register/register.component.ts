@@ -39,6 +39,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import {
   AuthenticationService,
   UsernameAvailability,
@@ -66,6 +67,7 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
     KeyValuePipe,
     OverlayModule,
     MatProgressSpinnerModule,
+    ThemeToggleComponent,
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',

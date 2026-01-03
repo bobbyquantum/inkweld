@@ -5,7 +5,7 @@
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
-  background-image: url('/inkweld_background.jpg');
+  background-image: url('/home_background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -61,9 +61,6 @@ h1 {
 mat-card {
   margin-bottom: 24px;
   padding: 24px;
-  box-shadow: var(--mat-card-elevated-container-elevation);
-  background-color: var(--card-background-color);
-  position: relative;
 }
 
 .logo-container {
@@ -147,4 +144,11 @@ mat-divider {
     width: 18px;
     color: var(--sys-on-error-container);
   }
+}
+
+.theme-toggle-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
 }

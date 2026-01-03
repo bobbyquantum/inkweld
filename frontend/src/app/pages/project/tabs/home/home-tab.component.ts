@@ -1,4 +1,10 @@
-import { Component, EventEmitter, inject, Output } from '@angular/core';
+import {
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  Output,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -43,6 +49,12 @@ export class HomeTabComponent {
   protected readonly snackBar = inject(MatSnackBar);
   // Router for navigation
   protected readonly router = inject(Router);
+
+  protected readonly hasCover = computed(() => {
+    const project = this.projectState.project();
+    const coverMediaId = this.projectState.coverMediaId();
+    return !!(project?.coverImage || coverMediaId);
+  });
 
   constructor() {}
 

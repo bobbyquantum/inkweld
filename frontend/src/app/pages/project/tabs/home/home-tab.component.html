@@ -1,29 +1,57 @@
 <div class="home-tab-content">
   <div class="full-width-column">
-    <div class="full-width-header">
-      <div class="header-content">
-        <div
-          class="cover-image-wrapper clickable"
-          (click)="projectState.showEditProjectDialog()"
-          (keydown.enter)="projectState.showEditProjectDialog()"
-          tabindex="0"
-          role="button"
-          aria-label="Edit project cover">
-          <app-project-cover
-            [project]="projectState.project()!"
-            [coverMediaId]="projectState.coverMediaId()"
-            variant="list"></app-project-cover>
+    <div class="header-container">
+      <div
+        class="cover-image-wrapper"
+        [class.clickable]="projectState.canWrite()"
+        (click)="
+          projectState.canWrite() && projectState.showEditProjectDialog()
+        "
+        (keydown.enter)="
+          projectState.canWrite() && projectState.showEditProjectDialog()
+        "
+        [attr.tabindex]="projectState.canWrite() ? 0 : null"
+        [attr.role]="projectState.canWrite() ? 'button' : null"
+        [attr.aria-label]="
+          projectState.canWrite() ? 'Edit project cover' : null
+        ">
+        <app-project-cover
+          [project]="projectState.project()!"
+          [coverMediaId]="projectState.coverMediaId()"
+          variant="card"></app-project-cover>
+        @if (projectState.canWrite()) {
           <div class="cover-overlay">
             <mat-icon>edit</mat-icon>
           </div>
+        }
+      </div>
+
+      <div
+        class="full-width-header"
+        [class.clickable]="projectState.canWrite()"
+        [class.has-no-cover]="!hasCover()"
+        (click)="
+          projectState.canWrite() && projectState.showEditProjectDialog()
+        "
+        (keydown.enter)="
+          projectState.canWrite() && projectState.showEditProjectDialog()
+        "
+        [attr.tabindex]="projectState.canWrite() ? 0 : null"
+        [attr.role]="projectState.canWrite() ? 'button' : null"
+        [attr.aria-label]="
+          projectState.canWrite() ? 'Edit project details' : null
+        ">
+        <div class="header-content">
+          <div class="project-info">
+            <h2>{{ projectState.project()?.title }}</h2>
+            <p>{{ projectState.project()?.description }}</p>
+          </div>
         </div>
-        <div class="project-info">
-          <h2>{{ projectState.project()?.title }}</h2>
-          <p>{{ projectState.project()?.description }}</p>
-        </div>
-        <button mat-icon-button (click)="projectState.showEditProjectDialog()">
-          <mat-icon>edit</mat-icon>
-        </button>
+        @if (projectState.canWrite()) {
+          <div class="header-overlay">
+            <mat-icon>edit</mat-icon>
+          </div>
+        }
       </div>
     </div>
   </div>

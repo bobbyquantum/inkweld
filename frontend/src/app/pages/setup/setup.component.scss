@@ -5,7 +5,7 @@
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
-  background-image: url('/inkweld_background.jpg');
+  background-image: url('/home_background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -60,18 +60,8 @@
 }
 
 .setup-card {
-  box-shadow: var(--mat-card-elevated-container-elevation);
-  background-color: var(--card-background-color);
   border-radius: 16px;
   overflow: hidden;
-  position: relative;
-
-  // Ensure proper contrast in dark mode
-  .dark-theme & {
-    // Use Material Design system colors for better contrast
-    background-color: var(--sys-surface-container);
-    color: var(--sys-on-surface);
-  }
 }
 
 .setup-card mat-card-header {
@@ -293,4 +283,11 @@ mat-divider[vertical] {
   .dark-theme & {
     color: var(--sys-on-surface);
   }
+}
+
+.theme-toggle-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
 }

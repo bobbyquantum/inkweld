@@ -3,11 +3,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { SystemConfigService } from '@services/core/system-config.service';
 
 @Component({
   selector: 'app-approval-pending',
-  imports: [MatCardModule, MatButtonModule, MatIconModule, RouterLink],
+  imports: [
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    RouterLink,
+    ThemeToggleComponent,
+  ],
   templateUrl: './approval-pending.component.html',
   styleUrl: './approval-pending.component.scss',
 })

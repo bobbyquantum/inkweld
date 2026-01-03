@@ -5,7 +5,7 @@
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
-  background-image: url('/inkweld_background.jpg');
+  background-image: url('/home_background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -55,8 +55,6 @@
   mat-card {
     padding: 32px;
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    background-color: var(--card-background-color);
   }
 }
 
@@ -119,4 +117,11 @@
   .approval-pending-card mat-card {
     padding: 24px 16px;
   }
+}
+
+.theme-toggle-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
 }

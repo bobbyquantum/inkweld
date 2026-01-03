@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { UserService, UserServiceError } from '@services/user/user.service';
 
 @Component({
@@ -23,6 +24,7 @@ import { UserService, UserServiceError } from '@services/user/user.service';
     MatIconModule,
     MatDividerModule,
     OAuthProviderListComponent,
+    ThemeToggleComponent,
   ],
   templateUrl: './welcome.component.html',
   styleUrl: './welcome.component.scss',

@@ -1,14 +1,14 @@
 <h2 mat-dialog-title>Create Snapshot</h2>
 
-<mat-dialog-content>
-  @if (data.wordCount !== undefined) {
-    <p class="word-count-info">
-      Current document:
-      <strong>{{ data.wordCount.toLocaleString() }}</strong> words
-    </p>
-  }
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <mat-dialog-content>
+    @if (data.wordCount !== undefined) {
+      <p class="word-count-info">
+        Current document:
+        <strong>{{ data.wordCount.toLocaleString() }}</strong> words
+      </p>
+    }
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Snapshot Name (Optional)</mat-label>
       <input
@@ -36,23 +36,23 @@
         <mat-error>Description cannot exceed 500 characters</mat-error>
       }
     </mat-form-field>
-  </form>
-</mat-dialog-content>
+  </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button
-    mat-button
-    (click)="onCancel()"
-    data-testid="cancel-snapshot-btn"
-    type="button">
-    Cancel
-  </button>
-  <button
-    mat-raised-button
-    color="primary"
-    (click)="onSubmit()"
-    data-testid="create-snapshot-submit-btn"
-    type="submit">
-    Create Snapshot
-  </button>
-</mat-dialog-actions>
+  <mat-dialog-actions align="end">
+    <button
+      mat-button
+      (click)="onCancel()"
+      data-testid="cancel-snapshot-btn"
+      type="button">
+      Cancel
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="form.invalid"
+      data-testid="create-snapshot-submit-btn"
+      type="submit">
+      Create Snapshot
+    </button>
+  </mat-dialog-actions>
+</form>
