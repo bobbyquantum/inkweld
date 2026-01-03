@@ -366,9 +366,9 @@ test.describe('Online Publishing Workflow', () => {
         // The PDF is generated with actual document content because:
         // 1. IndexedDB stores the document content when we type
         // 2. PDF generator loads from IndexedDB using getDocumentContent()
-        // 3. The content is converted to pdfmake format and included in the PDF
+        // 3. The content is converted to PDF format and included in the PDF
         //
-        // Note: pdfmake uses CID font encoding (font subsetting), so the raw bytes
+        // Note: jsPDF uses standard PDF encoding, so the raw bytes
         // don't contain plain ASCII text - they contain glyph indices. To verify
         // the content is present, we would need a full PDF text extractor.
         //

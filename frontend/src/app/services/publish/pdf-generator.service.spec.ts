@@ -1,7 +1,57 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock typst - MUST BE BEFORE OTHER IMPORTS
+const { mockTypst } = vi.hoisted(() => ({
+  mockTypst: {
+    setCompilerInitOptions: vi.fn().mockReturnValue(undefined),
+    setRendererInitOptions: vi.fn().mockReturnValue(undefined),
+    pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    mapShadow: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('@myriaddreamin/typst.ts', () => {
+  const mockCompiler = {
+    init: vi.fn().mockResolvedValue(undefined),
+    pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    addSource: vi.fn().mockResolvedValue(undefined),
+    mapShadow: vi.fn().mockResolvedValue(undefined),
+  };
+  const mockRenderer = {
+    init: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    $typst: mockTypst,
+    createTypstCompiler: vi.fn().mockResolvedValue(mockCompiler),
+    createTypstRenderer: vi.fn().mockReturnValue(mockRenderer),
+  };
+});
+
+vi.mock('@myriaddreamin/typst.ts/contrib/snippet', () => ({
+  $typst: mockTypst,
+}));
+
+// Mock fetch for WASM loading
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockImplementation((url: string) => {
+    if (url.endsWith('.wasm')) {
+      return Promise.resolve({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+    });
+  })
+);
+
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Element, ElementType, Project } from '@inkweld/index';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { $typst } from '@myriaddreamin/typst.ts';
 
 import {
   ChapterNumbering,
@@ -21,50 +71,6 @@ import {
   PdfProgress,
   PdfResult,
 } from './pdf-generator.service';
-
-// Mock pdfmake - must define fonts that the service uses (Times, Helvetica)
-vi.mock('pdfmake/build/pdfmake', () => {
-  const mockPdfMake = {
-    vfs: {},
-    fonts: {
-      // Define the fonts that pdf-generator.service.ts uses
-      Times: {
-        normal: 'Times-Roman',
-        bold: 'Times-Bold',
-        italics: 'Times-Italic',
-        bolditalics: 'Times-BoldItalic',
-      },
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique',
-      },
-      Courier: {
-        normal: 'Courier',
-        bold: 'Courier-Bold',
-        italics: 'Courier-Oblique',
-        bolditalics: 'Courier-BoldOblique',
-      },
-      Roboto: {
-        normal: 'Roboto-Regular.ttf',
-        bold: 'Roboto-Medium.ttf',
-        italics: 'Roboto-Italic.ttf',
-        bolditalics: 'Roboto-MediumItalic.ttf',
-      },
-    },
-    createPdf: vi.fn().mockImplementation(() => ({
-      getBlob: (callback: (blob: Blob) => void) => {
-        callback(new Blob(['pdf content'], { type: 'application/pdf' }));
-      },
-    })),
-  };
-  return { default: mockPdfMake };
-});
-
-vi.mock('pdfmake/build/vfs_fonts', () => ({
-  default: { vfs: {} },
-}));
 
 describe('PdfGeneratorService', () => {
   let service: PdfGeneratorService;
@@ -165,6 +171,15 @@ describe('PdfGeneratorService', () => {
     offlineStorageMock = {
       getProjectCover: vi.fn().mockResolvedValue(null),
     };
+
+    // Reset typst mocks
+    vi.mocked($typst.setCompilerInitOptions)
+      .mockReset()
+      .mockResolvedValue(undefined);
+    vi.mocked($typst.pdf)
+      .mockReset()
+      .mockResolvedValue(new Uint8Array([1, 2, 3]));
+    vi.mocked($typst.mapShadow).mockReset().mockResolvedValue(undefined);
 
     // Mock IndexedDB for y-indexeddb
     const mockIndexedDB = {
