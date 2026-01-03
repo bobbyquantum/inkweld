@@ -12,7 +12,7 @@
 /**
  * Supported output formats for publishing
  *
- * PDF_SIMPLE: Basic PDF via pdfmake - good for text-heavy documents like novels
+ * PDF_SIMPLE: Basic PDF via jsPDF - good for text-heavy documents like novels
  * PDF_LAYOUT: (Future) Advanced PDF via pdfkit - for custom layouts, game content, print-ready
  */
 export enum PublishFormat {

@@ -1,12 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Element, ElementType } from '@inkweld/index';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
-import type {
-  Content,
-  ContentText,
-  TDocumentDefinitions,
-} from 'pdfmake/interfaces';
+import { $typst } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 import {
@@ -27,20 +21,6 @@ import { LoggerService } from '../core/logger.service';
 import { OfflineStorageService } from '../offline/offline-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
-
-// Initialize pdfmake with fonts
-pdfMake.vfs = pdfFonts.vfs;
-
-// Define fonts - the default vfs_fonts package only includes Roboto
-// Using Roboto for all text to ensure fonts are available
-pdfMake.fonts = {
-  Roboto: {
-    normal: 'Roboto-Regular.ttf',
-    bold: 'Roboto-Medium.ttf',
-    italics: 'Roboto-Italic.ttf',
-    bolditalics: 'Roboto-MediumItalic.ttf',
-  },
-};
 
 /**
  * Progress information for PDF generation
@@ -73,6 +53,21 @@ export interface PdfResult {
   error?: string;
 }
 
+/**
+ * Internal context for PDF generation state
+ */
+interface PdfContext {
+  markup: string;
+  options: PublishOptions;
+  wordCount: number;
+  chapterCount: number;
+}
+
+interface CoverImageData {
+  base64: string;
+  mimeType: string;
+}
+
 // ProseMirror node type for conversion
 type ProseMirrorNode =
   | string
@@ -82,11 +77,9 @@ type ProseMirrorNode =
   | undefined;
 
 /**
- * PDF Generator Service using pdfmake
+ * PDF Generator Service using Typst
  *
- * Generates simple PDF documents suitable for text-heavy content like novels.
- * For advanced layouts (game content, character sheets, etc.), a future
- * PDF_LAYOUT format using pdfkit will be added.
+ * Generates high-quality PDF documents using the Typst typesetting system.
  */
 @Injectable({
   providedIn: 'root',
@@ -97,7 +90,7 @@ export class PdfGeneratorService {
   private readonly projectStateService = inject(ProjectStateService);
   private readonly offlineStorage = inject(OfflineStorageService);
 
-  private coverImageData: { base64: string; mimeType: string } | null = null;
+  private coverImageData: CoverImageData | null = null;
 
   private readonly progressSubject = new BehaviorSubject<PdfProgress>({
     phase: PdfPhase.Idle,
@@ -109,11 +102,36 @@ export class PdfGeneratorService {
 
   private readonly completeSubject = new Subject<PdfResult>();
   private isCancelled = false;
+  private isInitialized = false;
 
   readonly progress$: Observable<PdfProgress> =
     this.progressSubject.asObservable();
   readonly complete$: Observable<PdfResult> =
     this.completeSubject.asObservable();
+
+  private initTypst(): void {
+    if (this.isInitialized) return;
+
+    try {
+      // Use local WASM modules for offline capability
+      $typst.setCompilerInitOptions({
+        getModule: () => '/assets/wasm/typst_ts_web_compiler_bg.wasm',
+      });
+      $typst.setRendererInitOptions({
+        getModule: () => '/assets/wasm/typst_ts_renderer_bg.wasm',
+      });
+      this.isInitialized = true;
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('initialized')) {
+        this.isInitialized = true;
+        return;
+      }
+      this.logger.error('PdfGenerator', 'Failed to initialize Typst', error);
+      throw error;
+    }
+  }
 
   cancel(): void {
     this.isCancelled = true;
@@ -136,18 +154,33 @@ export class PdfGeneratorService {
       this.updateProgress({
         phase: PdfPhase.Initializing,
         overallProgress: 5,
-        message: 'Initializing PDF generation...',
+        message: 'Initializing Typst...',
         totalItems: plan.items.length,
         completedItems: 0,
       });
+
+      this.initTypst();
 
       // Load cover image if enabled
       if (plan.options.includeCover) {
         await this.loadCoverImage();
       }
 
-      // Process content into pdfmake format
-      const content = await this.processContent(plan, result);
+      this.updateProgress({
+        phase: PdfPhase.GeneratingPdf,
+        overallProgress: 10,
+        message: 'Processing content...',
+      });
+
+      const ctx: PdfContext = {
+        markup: this.getTypstTemplate(plan),
+        options: plan.options,
+        wordCount: 0,
+        chapterCount: 0,
+      };
+
+      // Process content into Typst markup
+      await this.processContent(plan, ctx, result);
 
       if (this.isCancelled) {
         result.error = 'Generation cancelled';
@@ -158,31 +191,41 @@ export class PdfGeneratorService {
       this.updateProgress({
         phase: PdfPhase.GeneratingPdf,
         overallProgress: 80,
-        message: 'Generating PDF...',
+        message: 'Compiling PDF...',
       });
 
-      // Build document definition
-      const docDefinition = this.buildDocumentDefinition(
-        content,
-        plan.metadata,
-        plan.options
+      // Map cover image if available
+      const coverData = this.coverImageData as CoverImageData | null;
+      if (coverData) {
+        const response = await fetch(`${coverData.base64}`);
+        const buffer = await response.arrayBuffer();
+        await $typst.mapShadow('cover.jpg', new Uint8Array(buffer));
+      }
+
+      // Compile to PDF
+      this.logger.debug(
+        'PdfGenerator',
+        'Compiling Typst markup:\n' + ctx.markup
+      );
+      const pdfData = await $typst.pdf({ mainContent: ctx.markup });
+      if (!pdfData) {
+        throw new Error('Typst compilation failed to produce PDF data');
+      }
+      this.logger.debug(
+        'PdfGenerator',
+        `PDF compiled successfully, size: ${pdfData.length}`
       );
 
-      // Generate PDF
-      const blob = await this.createPdfBlob(docDefinition);
-
-      // Calculate stats
-      const wordCount = this.countWordsInContent(content);
+      const blob = new Blob([new Uint8Array(pdfData)], {
+        type: 'application/pdf',
+      });
 
       result.success = true;
       result.file = blob;
       result.filename = this.generateFilename(plan.metadata.title);
       result.stats = {
-        wordCount,
-        chapterCount: content.filter(
-          c =>
-            typeof c === 'object' && 'style' in c && c.style === 'chapterTitle'
-        ).length,
+        wordCount: ctx.wordCount,
+        chapterCount: ctx.chapterCount,
         documentCount: plan.items.filter(
           i => i.type === PublishPlanItemType.Element
         ).length,
@@ -198,9 +241,13 @@ export class PdfGeneratorService {
 
       this.completeSubject.next(result);
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error('PDF Generation Error:', error);
+      if (error instanceof Error && error.stack) {
+        console.error('Error Stack:', error.stack);
+      }
       this.logger.error('PdfGenerator', 'Generation failed', error);
-      result.error = error instanceof Error ? error.message : 'Unknown error';
+      result.error = error instanceof Error ? error.message : String(error);
 
       this.updateProgress({
         phase: PdfPhase.Error,
@@ -210,6 +257,33 @@ export class PdfGeneratorService {
       this.completeSubject.next(result);
       return result;
     }
+  }
+
+  private getTypstTemplate(plan: PublishPlan): string {
+    const fontSize = plan.options.fontSize || 12;
+    const lineHeight = plan.options.lineHeight || 1.5;
+    const sceneBreakText = this.escapeTypst(
+      plan.options.sceneBreakText || '* * *'
+    );
+
+    return `
+#set page(paper: "us-letter", margin: 1in)
+#set text(font: "Linux Libertine", size: ${fontSize}pt)
+#set par(justify: true, leading: ${lineHeight - 1}em)
+
+#let quote(body) = block(
+  inset: (left: 1em),
+  stroke: (left: 0.5pt + gray),
+  emph(body)
+)
+
+#let scene-break() = align(center)[
+  #v(1em)
+  ${sceneBreakText}
+  #v(1em)
+]
+
+`;
   }
 
   private updateProgress(updates: Partial<PdfProgress>): void {
@@ -228,7 +302,7 @@ export class PdfGeneratorService {
       );
 
       if (coverBlob) {
-        // Convert blob to base64 for pdfmake
+        // Convert blob to base64 for jsPDF
         const base64 = await this.blobToBase64(coverBlob);
         this.coverImageData = {
           base64,
@@ -255,9 +329,9 @@ export class PdfGeneratorService {
 
   private async processContent(
     plan: PublishPlan,
+    ctx: PdfContext,
     result: PdfResult
-  ): Promise<Content[]> {
-    const content: Content[] = [];
+  ): Promise<void> {
     const elements = this.projectStateService.elements();
     let chapterNumber = 0;
     let processedCount = 0;
@@ -276,16 +350,11 @@ export class PdfGeneratorService {
       });
 
       try {
-        const itemContent = await this.processItem(
-          item,
-          elements,
-          plan,
-          chapterNumber
-        );
-        content.push(...itemContent);
+        await this.processItem(item, elements, plan, ctx, chapterNumber);
 
         if (item.type === PublishPlanItemType.Element && item.isChapter) {
           chapterNumber++;
+          ctx.chapterCount++;
         }
       } catch (error) {
         const errorMsg =
@@ -301,221 +370,177 @@ export class PdfGeneratorService {
         message: `Processing content (${processedCount}/${plan.items.length})...`,
       });
     }
-
-    return content;
   }
 
   private async processItem(
     item: PublishPlanItem,
     elements: Element[],
     plan: PublishPlan,
+    ctx: PdfContext,
     chapterNumber: number
-  ): Promise<Content[]> {
+  ): Promise<void> {
     switch (item.type) {
       case PublishPlanItemType.Element:
-        return this.processElementItem(
-          item,
-          elements,
-          plan.options,
-          chapterNumber
-        );
+        await this.processElementItem(item, elements, ctx, chapterNumber);
+        break;
 
       case PublishPlanItemType.Separator:
-        return this.processSeparator(item, plan.options);
+        this.processSeparator(item, ctx);
+        break;
 
       case PublishPlanItemType.Frontmatter:
-        return this.processFrontmatter(item, plan.metadata);
+        this.processFrontmatter(item, plan.metadata, ctx);
+        break;
 
       case PublishPlanItemType.TableOfContents:
-        // TOC is handled differently in PDF - we'll add it as a placeholder
-        return [
-          { text: 'Table of Contents', style: 'tocTitle', pageBreak: 'before' },
-        ];
-
-      default:
-        return [];
+        ctx.markup += '#pagebreak(weak: true)\n';
+        ctx.markup += '= Table of Contents\n\n';
+        ctx.markup += '#outline(title: none, indent: auto)\n\n';
+        break;
     }
   }
 
   private async processElementItem(
     item: ElementItem,
     elements: Element[],
-    options: PublishOptions,
+    ctx: PdfContext,
     chapterNumber: number
-  ): Promise<Content[]> {
+  ): Promise<void> {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) {
       throw new Error(`Element not found: ${item.elementId}`);
     }
 
-    const content: Content[] = [];
-
     if (element.type === ElementType.Item) {
-      const docContent = await this.getDocumentContent(element.id);
       const title = item.titleOverride || element.name;
       const formattedTitle = this.formatChapterTitle(
         title,
         chapterNumber,
         item.isChapter ?? false,
-        options
+        ctx.options
       );
 
       // Add chapter title
-      content.push({
-        text: formattedTitle,
-        style: 'chapterTitle',
-        pageBreak: chapterNumber > 0 ? 'before' : undefined,
-      });
+      if (chapterNumber > 0 || item.isChapter) {
+        ctx.markup += '#pagebreak(weak: true)\n';
+      }
+      ctx.markup += `= ${formattedTitle}\n\n`;
 
       // Add document content
-      content.push(...docContent);
+      await this.addDocumentContent(element.id, ctx);
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
 
       for (const child of children) {
         if (child.type === ElementType.Item) {
-          const docContent = await this.getDocumentContent(child.id);
-          content.push({
-            text: child.name,
-            style: 'sectionTitle',
-          });
-          content.push(...docContent);
+          ctx.markup += `== ${child.name}\n\n`;
+          await this.addDocumentContent(child.id, ctx);
         }
       }
     }
-
-    return content;
   }
 
-  private processSeparator(
-    item: SeparatorItem,
-    options: PublishOptions
-  ): Content[] {
+  private processSeparator(item: SeparatorItem, ctx: PdfContext): void {
     switch (item.style) {
       case SeparatorStyle.PageBreak:
-        return [{ text: '', pageBreak: 'after' }];
+      case SeparatorStyle.ChapterBreak:
+        ctx.markup += '#pagebreak(weak: true)\n';
+        break;
 
       case SeparatorStyle.SceneBreak:
-        return [
-          {
-            text: item.customText || options.sceneBreakText || '* * *',
-            style: 'sceneBreak',
-            alignment: 'center',
-            margin: [0, 20, 0, 20],
-          },
-        ];
-
-      case SeparatorStyle.ChapterBreak:
-        return [{ text: '', pageBreak: 'after' }];
-
-      default:
-        return [];
+        ctx.markup += '#scene-break()\n\n';
+        break;
     }
   }
 
   private processFrontmatter(
     item: FrontmatterItem,
-    metadata: PublishMetadata
-  ): Content[] {
+    metadata: PublishMetadata,
+    ctx: PdfContext
+  ): void {
     switch (item.contentType) {
       case FrontmatterType.TitlePage:
-        return this.generateTitlePage(metadata);
+        this.generateTitlePage(metadata, ctx);
+        break;
 
       case FrontmatterType.Copyright:
-        return this.generateCopyrightPage(metadata);
+        this.generateCopyrightPage(metadata, ctx);
+        break;
 
       case FrontmatterType.Dedication:
-        return [
-          { text: '', pageBreak: 'before' },
-          {
-            text: item.customContent || '',
-            style: 'dedication',
-            alignment: 'center',
-            margin: [50, 100, 50, 0],
-          },
-        ];
+        ctx.markup += '#pagebreak(weak: true)\n';
+        ctx.markup += '#v(8em)\n';
+        ctx.markup += `#align(center)[#emph[${this.escapeTypst(
+          item.customContent || ''
+        )}]]\n\n`;
+        break;
 
       case FrontmatterType.Custom:
-        return [
-          {
-            text: item.customTitle || '',
-            style: 'sectionTitle',
-            pageBreak: 'before',
-          },
-          { text: item.customContent || '', style: 'body' },
-        ];
-
-      default:
-        return [];
+        ctx.markup += '#pagebreak(weak: true)\n';
+        if (item.customTitle) {
+          ctx.markup += `= ${item.customTitle}\n\n`;
+        }
+        ctx.markup += `${this.escapeTypst(item.customContent || '')}\n\n`;
+        break;
     }
   }
 
-  private generateTitlePage(metadata: PublishMetadata): Content[] {
-    const content: Content[] = [];
+  private generateTitlePage(metadata: PublishMetadata, ctx: PdfContext): void {
+    ctx.markup += '#pagebreak(weak: true)\n';
+    ctx.markup += '#align(center + horizon)[\n';
 
-    // Add cover image if available
     if (this.coverImageData) {
-      content.push({
-        image: this.coverImageData.base64,
-        width: 400,
-        alignment: 'center',
-        margin: [0, 0, 0, 30],
-      });
+      ctx.markup += '  #image("cover.jpg", width: 60%)\n';
+      ctx.markup += '  #v(2em)\n';
+    } else {
+      ctx.markup += '  #v(4em)\n';
     }
 
-    content.push({
-      text: metadata.title,
-      style: 'title',
-      alignment: 'center',
-      margin: [0, this.coverImageData ? 20 : 150, 0, 10],
-    });
+    ctx.markup += `  #text(size: 28pt, weight: "bold")[${this.escapeTypst(
+      metadata.title
+    )}]\n`;
 
     if (metadata.subtitle) {
-      content.push({
-        text: metadata.subtitle,
-        style: 'subtitle',
-        alignment: 'center',
-        margin: [0, 0, 0, 30],
-      });
+      ctx.markup += `  #v(1em)\n`;
+      ctx.markup += `  #text(size: 18pt, style: "italic")[${this.escapeTypst(
+        metadata.subtitle
+      )}]\n`;
     }
 
-    content.push({
-      text: metadata.author,
-      style: 'author',
-      alignment: 'center',
-      margin: [0, 30, 0, 0],
-    });
-
-    return content;
+    ctx.markup += `  #v(3em)\n`;
+    ctx.markup += `  #text(size: 16pt)[${this.escapeTypst(metadata.author)}]\n`;
+    ctx.markup += ']\n\n';
   }
 
-  private generateCopyrightPage(metadata: PublishMetadata): Content[] {
-    const year = new Date().getFullYear();
-    const lines: string[] = [];
+  private generateCopyrightPage(
+    metadata: PublishMetadata,
+    ctx: PdfContext
+  ): void {
+    ctx.markup += '#pagebreak(weak: true)\n';
+    ctx.markup += '#v(1fr)\n';
+    ctx.markup += '#set text(size: 10pt, fill: gray.darken(20%))\n';
 
-    lines.push(metadata.title);
-    if (metadata.subtitle) lines.push(metadata.subtitle);
-    lines.push('');
-    lines.push(metadata.copyright || `Copyright © ${year} ${metadata.author}`);
-    lines.push('All rights reserved.');
-    lines.push('');
+    ctx.markup += `*${this.escapeTypst(metadata.title)}*\n`;
+    if (metadata.subtitle)
+      ctx.markup += `_${this.escapeTypst(metadata.subtitle)}_\n`;
+
+    ctx.markup += '\n';
+    ctx.markup += `${this.escapeTypst(
+      metadata.copyright ||
+        `Copyright © ${new Date().getFullYear()} ${metadata.author}`
+    )}\n`;
+    ctx.markup += 'All rights reserved.\n\n';
 
     if (metadata.publisher) {
-      lines.push(`Published by ${metadata.publisher}`);
+      ctx.markup += `Published by ${this.escapeTypst(metadata.publisher)}\n`;
     }
 
     if (metadata.isbn) {
-      lines.push(`ISBN: ${metadata.isbn}`);
+      ctx.markup += `ISBN: ${this.escapeTypst(metadata.isbn)}\n`;
     }
 
-    return [
-      { text: '', pageBreak: 'before' },
-      {
-        text: lines.join('\n'),
-        style: 'copyright',
-        margin: [0, 200, 0, 0],
-      },
-    ];
+    ctx.markup += `#set text(size: ${ctx.options.fontSize || 12}pt, fill: black)\n`;
+    ctx.markup += '\n';
   }
 
   private getChildElements(parent: Element, allElements: Element[]): Element[] {
@@ -540,51 +565,53 @@ export class PdfGeneratorService {
     return `${project.username}:${project.slug}:${elementId}`;
   }
 
-  private async getDocumentContent(elementId: string): Promise<Content[]> {
+  private async addDocumentContent(
+    elementId: string,
+    ctx: PdfContext
+  ): Promise<void> {
     const fullDocId = this.getFullDocumentId(elementId);
 
     try {
       const content = await this.documentService.getDocumentContent(fullDocId);
       if (!content) {
-        return [{ text: 'Document is empty', style: 'body', italics: true }];
+        ctx.markup += '#emph[Document is empty]\n\n';
+        return;
       }
-      return this.prosemirrorToPdfContent(content);
+      this.processProseMirrorNode(content, ctx);
     } catch (error) {
       this.logger.warn(
         'PdfGenerator',
         `Failed to get document content: ${fullDocId}`,
         error
       );
-      return [{ text: 'Content unavailable', style: 'body', italics: true }];
+      ctx.markup += '#emph[Content unavailable]\n\n';
     }
   }
 
   /**
-   * Convert ProseMirror document to PDF content array
+   * Convert ProseMirror document to Typst markup
    */
-  private prosemirrorToPdfContent(data: unknown): Content[] {
-    if (!data) return [];
+  private processProseMirrorNode(data: unknown, ctx: PdfContext): void {
+    if (!data) return;
 
     if (Array.isArray(data)) {
-      return data.flatMap(node => this.nodeToContent(node as ProseMirrorNode));
+      data.forEach(node => this.nodeToTypst(node as ProseMirrorNode, ctx));
+    } else if (typeof data === 'object') {
+      this.nodeToTypst(data as ProseMirrorNode, ctx);
     }
-
-    if (typeof data === 'object') {
-      return this.nodeToContent(data as ProseMirrorNode);
-    }
-
-    return [];
   }
 
-  private nodeToContent(node: ProseMirrorNode): Content[] {
-    if (!node) return [];
+  private nodeToTypst(node: ProseMirrorNode, ctx: PdfContext): void {
+    if (!node) return;
 
     if (typeof node === 'string') {
-      return [{ text: node, style: 'body' }];
+      ctx.markup += `${this.escapeTypst(node)}\n\n`;
+      return;
     }
 
     if (Array.isArray(node)) {
-      return node.flatMap(n => this.nodeToContent(n));
+      node.forEach(n => this.nodeToTypst(n, ctx));
+      return;
     }
 
     const nodeName = this.getNodeName(node);
@@ -592,120 +619,103 @@ export class PdfGeneratorService {
 
     switch (nodeName) {
       case 'paragraph': {
-        const textParts = children.flatMap(c => this.extractText(c));
-        if (textParts.length === 0) return [];
-        return [{ text: textParts, style: 'body', margin: [0, 0, 0, 10] }];
+        const text = this.extractTypstText(node);
+        if (!text.trim()) {
+          ctx.markup += '#v(0.5em)\n\n';
+          return;
+        }
+        ctx.markup += `${text}\n\n`;
+        break;
       }
 
       case 'heading': {
         const level = this.getAttr(node, 'level', 1);
-        const headingText = children
-          .map(c => this.extractPlainText(c))
-          .join('');
-        return [
-          {
-            text: headingText,
-            style: `heading${level}`,
-            margin: [0, 15, 0, 10],
-          },
-        ];
+        const prefix = '='.repeat(level + 1); // +1 because level 1 is reserved for chapters
+        const text = children.map(c => this.extractPlainText(c)).join('');
+        ctx.markup += `${prefix} ${this.escapeTypst(text)}\n\n`;
+        break;
       }
 
       case 'blockquote':
-        return [
-          {
-            text: children.map(c => this.extractPlainText(c)).join('\n'),
-            style: 'blockquote',
-            margin: [30, 10, 30, 10],
-          },
-        ];
+        ctx.markup += '#quote[\n';
+        children.forEach(c => {
+          ctx.markup += `  ${this.extractTypstText(c)}\n`;
+        });
+        ctx.markup += ']\n\n';
+        break;
 
       case 'bullet_list':
-        return [
-          {
-            ul: children.map(c => this.extractPlainText(c)),
-            margin: [0, 5, 0, 5],
-          },
-        ];
+        children.forEach(item => {
+          ctx.markup += `- ${this.extractTypstText(item)}\n`;
+        });
+        ctx.markup += '\n';
+        break;
 
       case 'ordered_list':
-        return [
-          {
-            ol: children.map(c => this.extractPlainText(c)),
-            margin: [0, 5, 0, 5],
-          },
-        ];
+        children.forEach(item => {
+          ctx.markup += `+ ${this.extractTypstText(item)}\n`;
+        });
+        ctx.markup += '\n';
+        break;
 
       case 'hard_break':
-        return [{ text: '\n' }];
+        ctx.markup += ' #h(0pt) \\ \n';
+        break;
 
       case 'horizontal_rule':
-        return [
-          {
-            canvas: [
-              {
-                type: 'line',
-                x1: 0,
-                y1: 0,
-                x2: 515,
-                y2: 0,
-                lineWidth: 0.5,
-              },
-            ],
-            margin: [0, 10, 0, 10],
-          },
-        ];
+        ctx.markup += '#line(length: 100%, stroke: 0.5pt + gray)\n\n';
+        break;
 
       default:
         // Process children for unknown nodes
-        return children.flatMap(c => this.nodeToContent(c));
+        children.forEach(c => this.nodeToTypst(c, ctx));
     }
   }
 
-  private extractText(node: ProseMirrorNode): (string | ContentText)[] {
-    if (!node) return [];
+  private extractTypstText(node: ProseMirrorNode): string {
+    if (!node) return '';
 
     if (typeof node === 'string') {
-      return [node];
+      return this.escapeTypst(node);
     }
 
     if (Array.isArray(node)) {
-      return node.flatMap(n => this.extractText(n));
+      return node.map(n => this.extractTypstText(n)).join('');
     }
 
     const nodeName = this.getNodeName(node);
     const children = this.getChildren(node);
     const marks = this.getMarks(node);
 
-    // Handle elementRef nodes - render display text as plain text
-    // These are design-time references, no special rendering in published output
+    // Handle elementRef nodes
     if (nodeName === 'elementref') {
       const attrs = (node as Record<string, unknown>)['attrs'] as
         | Record<string, unknown>
         | undefined;
       const displayText = attrs?.['displayText'];
       return typeof displayText === 'string' && displayText
-        ? [displayText]
-        : [];
+        ? this.escapeTypst(displayText)
+        : '';
     }
 
     // Text node with marks
     if (nodeName === 'text' || !nodeName) {
       const rawText = (node as Record<string, unknown>)['text'];
-      const text = typeof rawText === 'string' ? rawText : '';
-      if (marks.length === 0) return [text];
+      let text = typeof rawText === 'string' ? this.escapeTypst(rawText) : '';
 
-      const styled: ContentText = { text };
+      if (marks.length === 0) return text;
+
       for (const mark of marks) {
-        if (mark === 'bold' || mark === 'strong') styled.bold = true;
-        if (mark === 'italic' || mark === 'em') styled.italics = true;
-        if (mark === 'underline') styled.decoration = 'underline';
-        if (mark === 'strike') styled.decoration = 'lineThrough';
+        if (mark === 'bold' || mark === 'strong') text = `*${text}*`;
+        if (mark === 'italic' || mark === 'em') text = `_${text}_`;
+        if (mark === 'underline') text = `#underline[${text}]`;
+        if (mark === 'strike') text = `#strike[${text}]`;
+        if (mark === 'code') text = `\`${text}\``;
       }
-      return [styled];
+      return text;
     }
 
-    return children.flatMap(c => this.extractText(c));
+    return children.map(c => this.extractTypstText(c)).join('');
   }
 
   private extractPlainText(node: ProseMirrorNode): string {
@@ -714,7 +724,6 @@ export class PdfGeneratorService {
     if (Array.isArray(node))
       return node.map(n => this.extractPlainText(n)).join('');
 
-    // Handle elementRef nodes - render display text as plain text
     const nodeName = this.getNodeName(node);
     if (nodeName === 'elementref') {
       const attrs = (node as Record<string, unknown>)['attrs'] as
@@ -799,6 +808,20 @@ export class PdfGeneratorService {
     return prefix + title;
   }
 
+  private escapeTypst(text: string): string {
+    if (!text) return '';
+    return text
+      .replace(/\\/g, '\\\\')
+      .replace(/#/g, '\\#')
+      .replace(/\$/g, '\\$')
+      .replace(/_/g, '\\_')
+      .replace(/\*/g, '\\*')
+      .replace(/@/g, '\\@')
+      .replace(/\[/g, '\\[')
+      .replace(/\]/g, '\\]')
+      .replace(/`/g, '\\`');
+  }
+
   private toRoman(num: number): string {
     const romanNumerals: [number, string][] = [
       [1000, 'M'],
@@ -858,129 +881,6 @@ export class PdfGeneratorService {
       return tens[t] + (u > 0 ? '-' + words[u] : '');
     }
     return String(num);
-  }
-
-  private buildDocumentDefinition(
-    content: Content[],
-    metadata: PublishMetadata,
-    options: PublishOptions
-  ): TDocumentDefinitions {
-    return {
-      info: {
-        title: metadata.title,
-        author: metadata.author,
-        subject: metadata.description || '',
-        keywords: metadata.keywords?.join(', ') || '',
-      },
-      pageSize: 'LETTER',
-      pageMargins: [72, 72, 72, 72], // 1 inch margins
-      content,
-      styles: {
-        title: {
-          fontSize: 28,
-          bold: true,
-          font: 'Roboto',
-        },
-        subtitle: {
-          fontSize: 18,
-          italics: true,
-        },
-        author: {
-          fontSize: 16,
-        },
-        chapterTitle: {
-          fontSize: 24,
-          bold: true,
-          margin: [0, 0, 0, 20],
-        },
-        sectionTitle: {
-          fontSize: 18,
-          bold: true,
-          margin: [0, 15, 0, 10],
-        },
-        body: {
-          fontSize: options.fontSize || 12,
-          lineHeight: options.lineHeight || 1.5,
-          font: 'Roboto',
-        },
-        heading1: {
-          fontSize: 20,
-          bold: true,
-        },
-        heading2: {
-          fontSize: 16,
-          bold: true,
-        },
-        heading3: {
-          fontSize: 14,
-          bold: true,
-        },
-        blockquote: {
-          fontSize: 11,
-          italics: true,
-          color: '#555555',
-        },
-        sceneBreak: {
-          fontSize: 14,
-        },
-        copyright: {
-          fontSize: 10,
-          color: '#666666',
-        },
-        dedication: {
-          fontSize: 14,
-          italics: true,
-        },
-        tocTitle: {
-          fontSize: 20,
-          bold: true,
-          margin: [0, 0, 0, 20],
-        },
-      },
-      defaultStyle: {
-        font: 'Roboto',
-        fontSize: 12,
-      },
-    };
-  }
-
-  private createPdfBlob(docDefinition: TDocumentDefinitions): Promise<Blob> {
-    return new Promise((resolve, reject) => {
-      try {
-        const pdfDoc = pdfMake.createPdf(docDefinition);
-        pdfDoc.getBlob((blob: Blob) => {
-          resolve(blob);
-        });
-      } catch (error) {
-        reject(error instanceof Error ? error : new Error(String(error)));
-      }
-    });
-  }
-
-  private countWordsInContent(content: Content[]): number {
-    let count = 0;
-    for (const item of content) {
-      if (typeof item === 'string') {
-        count += item.split(/\s+/).filter(Boolean).length;
-      } else if (typeof item === 'object' && item && 'text' in item) {
-        const text = item.text;
-        if (typeof text === 'string') {
-          count += text.split(/\s+/).filter(Boolean).length;
-        } else if (Array.isArray(text)) {
-          for (const t of text) {
-            if (typeof t === 'string') {
-              count += t.split(/\s+/).filter(Boolean).length;
-            } else if (typeof t === 'object' && t && 'text' in t) {
-              const tText = (t as { text: unknown }).text;
-              count += (typeof tText === 'string' ? tText : '')
-                .split(/\s+/)
-                .filter(Boolean).length;
-            }
-          }
-        }
-      }
-    }
-    return count;
   }
 
   private generateFilename(title: string): string {

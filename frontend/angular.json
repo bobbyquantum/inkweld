@@ -26,6 +26,16 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "typst_ts_renderer_bg.wasm",
+                "input": "node_modules/@myriaddreamin/typst-ts-renderer/pkg",
+                "output": "assets/wasm"
+              },
+              {
+                "glob": "typst_ts_web_compiler_bg.wasm",
+                "input": "node_modules/@myriaddreamin/typst-ts-web-compiler/pkg",
+                "output": "assets/wasm"
               }
             ],
             "styles": ["src/themes/theme.scss"],
