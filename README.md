@@ -42,7 +42,7 @@ Inkweld is ideal for:
 | Version History                | Track changes and revert to previous versions                               |
 | User Permissions               | Fine-grained access control and roles                                       |
 | Extensible Integrations        | Add new features via MCP (Model Context Protocol) integrations              |
-| Export Options                 | (Planned) Export to PDF, EPUB, Markdown, and print-friendly formats         |
+| Export Options                 | Export to PDF (via Typst), EPUB, and Markdown (planned)                     |
 
 ---
 
@@ -50,7 +50,7 @@ Inkweld is ideal for:
 
 ```mermaid
 flowchart TD
-    Frontend[Angular 20 PWA] -->|REST + WebSocket| Backend[Hono API]
+    Frontend[Angular 21 PWA] -->|REST + WebSocket| Backend[Hono API]
     Backend -->|Drizzle ORM| Database[(SQLite / D1)]
     Backend -->|Yjs persistence| Realtime[(LevelDB)]
     Backend -->|OpenAPI spec| APIClient[Generated SDK]

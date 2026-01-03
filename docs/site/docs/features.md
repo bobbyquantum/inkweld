@@ -100,7 +100,7 @@ Control who has access to your writing projects.
 Export your work in multiple professional formats.
 
 - **EPUB export**: Create e-books ready for Kindle, Kobo, and other readers
-- **PDF export**: Generate print-ready documents with customizable formatting
+- **PDF export**: Generate high-quality, print-ready documents using the Typst typesetting system
 - **HTML export**: Create web-ready versions of your work
 - **Markdown export**: Export to plain Markdown for maximum portability
 - **Publish plans**: Save export configurations for consistent output

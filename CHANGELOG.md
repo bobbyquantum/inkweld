@@ -20,11 +20,12 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 - **Rich Text Editor**: ProseMirror-based editor with advanced formatting options
 - **Offline Support**: IndexedDB storage for offline editing with automatic sync when reconnected
 - **Worldbuilding Templates**: Character and location templates with real-time collaboration *(Note: Not yet ported to new Hono backend on feature/new-backend branch)*
-- **Version History**: Track changes and revert to previous versions (via Yjs history)
+- **Version History**: Track changes and revert to previous versions.
 
 #### Content Export
 
 - **EPUB Export**: Export projects and documents to EPUB format for e-readers
+- **PDF Export**: High-quality PDF generation using the Typst typesetting system with full offline support
 
 #### Authentication & Security
 
@@ -44,7 +45,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 
 #### Developer Experience
 
-- **Modern Tech Stack**: Angular 20 (frontend), Hono on Bun (backend)
+- **Modern Tech Stack**: Angular 21 (frontend), Hono on Bun (backend)
 - **Comprehensive Testing**: Jest for unit tests, Playwright for e2e tests
 - **API Documentation**: Auto-generated OpenAPI specification
 - **Type Safety**: Full TypeScript implementation with strict mode
@@ -56,12 +57,12 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 - **User Management**: Username changes and profile customization not yet implemented
 - **Import/Export**: Archive import/export functionality is partially implemented
 - **Project Renaming**: Changing project slugs not yet supported
-- **Export Options**: PDF and Markdown export not yet implemented
+- **Export Options**: Markdown export not yet implemented
 - **Mobile UI**: Responsive design could be improved for mobile devices
 
 ### Technical Stack
 
-- **Frontend**: Angular 20 with standalone components, signals, and modern control flow
+- **Frontend**: Angular 21 with standalone components, signals, and modern control flow
 - **Backend**: Hono + Bun/Node/Cloudflare Workers multi-runtime
 - **Database**: Drizzle ORM with SQLite/D1 + LevelDB for document storage
 - **Real-time**: Yjs for CRDTs, WebSocket for synchronization
@@ -88,7 +89,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 
 ### Planned Features
 
-- PDF and Markdown export
+- Markdown export
 - Project renaming and slug changes
 - Complete archive import/export
 - Enhanced mobile UI
