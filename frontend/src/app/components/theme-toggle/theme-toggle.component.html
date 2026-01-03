@@ -1,0 +1,26 @@
+<div class="theme-toggle">
+  <button
+    mat-icon-button
+    (click)="onThemeChange('light-theme')"
+    matTooltip="Light theme"
+    data-testid="theme-light-button"
+    aria-label="Light theme">
+    <mat-icon>light_mode</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    (click)="onThemeChange('dark-theme')"
+    matTooltip="Dark theme"
+    data-testid="theme-dark-button"
+    aria-label="Dark theme">
+    <mat-icon>dark_mode</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    (click)="onThemeChange('system')"
+    matTooltip="Follow system"
+    data-testid="theme-system-button"
+    aria-label="Follow system theme">
+    <mat-icon>brightness_auto</mat-icon>
+  </button>
+</div>

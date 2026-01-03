@@ -6,7 +6,7 @@
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
-  background: url('/inkweld_background.jpg') center/cover no-repeat;
+  background: url('/home_background.png') center/cover no-repeat;
   position: relative;
   overflow-y: auto;
   &::before {
@@ -47,9 +47,6 @@ h1 {
 mat-card {
   margin-bottom: 24px;
   padding: 24px;
-  box-shadow: var(--mat-card-elevated-container-elevation);
-  background-color: var(--card-background-color);
-  position: relative;
 }
 
 .logo-container {
@@ -448,4 +445,11 @@ mat-divider {
 
 .requirement-text {
   line-height: 1.3;
+}
+
+.theme-toggle-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
 }

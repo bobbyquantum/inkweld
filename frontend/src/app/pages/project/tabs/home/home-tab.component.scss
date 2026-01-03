@@ -1,14 +1,17 @@
 .home-tab-content {
-  padding: 16px;
+  padding: 24px;
   // Desktop with tabs: toolbar (48px) + tabs header (~82px) = 130px
   height: calc(100vh - 130px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  background-color: var(--sys-surface-container-low);
+  transition: background-color 0.3s ease;
 
   // Mobile without tabs: only toolbar (48px) + padding (~34px) = 82px
   @media (max-width: 759px) {
     height: calc(100vh - 82px);
+    padding: 16px;
   }
 }
 
@@ -16,35 +19,130 @@
   width: 100%;
 }
 
+.header-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  margin-top: 24px;
+  margin-bottom: 32px;
+
+  @media (max-width: 759px) {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    margin-top: 0;
+  }
+}
+
 .full-width-header {
-  background-color: var(--sys-primary);
-  color: var(--sys-on-primary);
-  border-radius: 8px;
-  padding: 24px;
+  flex: 1;
+  background-color: var(--sys-surface-container-high);
+  color: var(--sys-on-surface);
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--sys-outline-variant);
+  transition: all 0.3s ease;
+  min-height: 160px;
+  display: flex;
+  align-items: flex-start;
+
+  @media (max-width: 759px) {
+    width: 100%;
+    padding: 24px;
+  }
+
+  &.clickable {
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--sys-surface-container-highest);
+      border-color: var(--sys-outline);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    &:focus {
+      outline: 2px solid var(--sys-color-primary);
+      outline-offset: 2px;
+    }
+
+    .header-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        color: var(--sys-color-primary);
+        opacity: 0.2;
+      }
+    }
+
+    &:hover .header-overlay {
+      opacity: 1;
+    }
+  }
+
+  &.has-no-cover {
+    // We no longer use the background image here to avoid redundancy 
+    // with the project cover component and to improve theme consistency.
+    // The theme-aware surface color provides better contrast.
+  }
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
+  gap: 32px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+
+  @media (max-width: 759px) {
+    flex-direction: column;
+    gap: 16px;
+  }
 }
 
 .cover-image-wrapper {
   flex-shrink: 0;
-  width: 80px;
-  height: 128px; // 1:1.6 aspect ratio
-  border-radius: 4px;
+  width: 160px;
+  height: 256px; // 1:1.6 aspect ratio
+  border-radius: 8px;
   overflow: hidden;
   position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  @media (max-width: 759px) {
+    width: 140px;
+    height: 224px;
+  }
 
   &.clickable {
     cursor: pointer;
 
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    }
+
     .cover-overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -53,9 +151,9 @@
 
       mat-icon {
         color: white;
-        font-size: 24px;
-        width: 24px;
-        height: 24px;
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
       }
     }
 
@@ -74,6 +172,29 @@
 .project-info {
   flex: 1;
   min-width: 0; // Allow text to truncate
+
+  h2 {
+    margin: 0 0 8px 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--sys-on-surface);
+
+    @media (max-width: 759px) {
+      font-size: 1.75rem;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    color: var(--sys-on-surface-variant);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 800px;
+  }
 }
 
 .columns-container {

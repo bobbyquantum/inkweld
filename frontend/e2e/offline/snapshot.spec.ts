@@ -132,10 +132,16 @@ test.describe('Document Snapshots', () => {
 
     // Create a snapshot
     await page.getByTestId('create-snapshot-btn').click();
-    await expect(page.getByTestId('snapshot-name-input')).toBeVisible({
+    const snapshotNameInput = page
+      .locator('mat-dialog-container')
+      .last()
+      .getByTestId('snapshot-name-input');
+    await expect(snapshotNameInput).toBeVisible({
       timeout: 5000,
     });
-    await page.getByTestId('snapshot-name-input').fill('Before Edit');
+    await snapshotNameInput.click();
+    await snapshotNameInput.fill('Before Edit');
+    await expect(snapshotNameInput).toHaveValue('Before Edit');
     await page.getByTestId('create-snapshot-submit-btn').click();
     await page.waitForTimeout(1000);
 
@@ -220,10 +226,16 @@ test.describe('Document Snapshots', () => {
 
     // Create a snapshot
     await page.getByTestId('create-snapshot-btn').click();
-    await expect(page.getByTestId('snapshot-name-input')).toBeVisible({
+    const snapshotNameInput = page
+      .locator('mat-dialog-container')
+      .last()
+      .getByTestId('snapshot-name-input');
+    await expect(snapshotNameInput).toBeVisible({
       timeout: 5000,
     });
-    await page.getByTestId('snapshot-name-input').fill('To Be Deleted');
+    await snapshotNameInput.click();
+    await snapshotNameInput.fill('To Be Deleted');
+    await expect(snapshotNameInput).toHaveValue('To Be Deleted');
     await page.getByTestId('create-snapshot-submit-btn').click();
     await page.waitForTimeout(1000);
 
@@ -314,9 +326,14 @@ test.describe('Worldbuilding Snapshots', () => {
     await createSnapshotBtn.click();
 
     // Fill in snapshot dialog
-    const snapshotNameInput = page.getByTestId('snapshot-name-input');
+    const snapshotNameInput = page
+      .locator('mat-dialog-container')
+      .last()
+      .getByTestId('snapshot-name-input');
     await expect(snapshotNameInput).toBeVisible({ timeout: 5000 });
+    await snapshotNameInput.click();
     await snapshotNameInput.fill('Character Snapshot');
+    await expect(snapshotNameInput).toHaveValue('Character Snapshot');
 
     // Submit the dialog
     await page.getByTestId('create-snapshot-submit-btn').click();
@@ -373,9 +390,14 @@ test.describe('Worldbuilding Snapshots', () => {
     await page.getByTestId('create-snapshot-btn').click();
 
     // Wait for the create snapshot dialog to appear
-    const snapshotNameInput = page.getByTestId('snapshot-name-input');
+    const snapshotNameInput = page
+      .locator('mat-dialog-container')
+      .last()
+      .getByTestId('snapshot-name-input');
     await expect(snapshotNameInput).toBeVisible({ timeout: 5000 });
+    await snapshotNameInput.click();
     await snapshotNameInput.fill('Original Location');
+    await expect(snapshotNameInput).toHaveValue('Original Location');
 
     await page.getByTestId('create-snapshot-submit-btn').click();
     await page.waitForTimeout(1000);

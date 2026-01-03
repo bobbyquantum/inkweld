@@ -1,10 +1,10 @@
-import { Component, inject } from '@angular/core';
 import {
-  FormBuilder,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  inject,
+} from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -46,35 +46,35 @@ export interface CreateSnapshotDialogResult {
   ],
   templateUrl: './create-snapshot-dialog.component.html',
   styleUrl: './create-snapshot-dialog.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateSnapshotDialogComponent {
-  dialogRef = inject(MatDialogRef<CreateSnapshotDialogComponent>);
+  private dialogRef = inject(MatDialogRef<CreateSnapshotDialogComponent>);
   data = inject<CreateSnapshotDialogData>(MAT_DIALOG_DATA);
-  fb = inject(FormBuilder);
+  private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
 
-  form: FormGroup;
-
-  constructor() {
-    this.form = this.fb.group({
-      name: ['', [Validators.maxLength(100)]],
-      description: ['', [Validators.maxLength(500)]],
-    });
-  }
+  form = this.fb.nonNullable.group({
+    name: ['', [Validators.maxLength(100)]],
+    description: ['', [Validators.maxLength(500)]],
+  });
 
   /**
    * Handle form submission
    * If name is left blank, auto-generates an ISO date-time name
    */
   onSubmit() {
+    // Force change detection to ensure form values are updated from inputs
+    this.cdr.detectChanges();
+
     if (this.form.valid) {
-      const name = this.form.get('name')?.value as string;
-      const description = this.form.get('description')?.value as string;
-      const trimmedName = (name || '').trim();
+      const { name, description } = this.form.getRawValue();
+      const trimmedName = name.trim();
 
       const result: CreateSnapshotDialogResult = {
         // If name is blank, use ISO date-time format
         name: trimmedName || new Date().toISOString(),
-        description: (description || '').trim() || undefined,
+        description: description.trim() || undefined,
       };
       this.dialogRef.close(result);
     }

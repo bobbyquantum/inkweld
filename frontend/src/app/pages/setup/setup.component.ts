@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { ConfigurationService } from '@inkweld/index';
 
 import { SetupService } from '../../services/core/setup.service';
@@ -40,6 +41,7 @@ interface SystemFeaturesResponse {
     MatIconModule,
     MatDividerModule,
     MatProgressBarModule,
+    ThemeToggleComponent,
   ],
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',

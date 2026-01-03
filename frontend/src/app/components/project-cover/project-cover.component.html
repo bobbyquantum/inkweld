@@ -7,12 +7,18 @@
       (error)="$any($event.target).style.display = 'none'" />
   } @else if (project) {
     <div class="no-cover-container">
-      <div class="centered-title">{{ project.title }}</div>
-      <div class="author">{{ project.username }}</div>
+      @if (variant !== 'small') {
+        <div class="text-content">
+          <div class="author">{{ project.username }}</div>
+          <div class="centered-title">{{ project.title }}</div>
+        </div>
+      }
     </div>
   } @else {
     <div class="no-cover-container">
-      <div class="centered-title">Loading...</div>
+      @if (variant !== 'small') {
+        <div class="centered-title">Loading...</div>
+      }
     </div>
   }
 </div>
