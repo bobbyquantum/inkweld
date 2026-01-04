@@ -4,7 +4,12 @@ import {
   Component,
   inject,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -30,6 +35,11 @@ export interface CreateSnapshotDialogResult {
   description?: string;
 }
 
+interface CreateSnapshotForm {
+  name: FormControl<string>;
+  description: FormControl<string>;
+}
+
 /**
  * Dialog for creating a new document snapshot
  * Prompts for snapshot name (required) and description (optional)
@@ -51,12 +61,14 @@ export interface CreateSnapshotDialogResult {
 export class CreateSnapshotDialogComponent {
   private dialogRef = inject(MatDialogRef<CreateSnapshotDialogComponent>);
   data = inject<CreateSnapshotDialogData>(MAT_DIALOG_DATA);
-  private fb = inject(FormBuilder);
+  private fb = inject(FormBuilder).nonNullable;
   private cdr = inject(ChangeDetectorRef);
 
-  form = this.fb.nonNullable.group({
-    name: ['', [Validators.maxLength(100)]],
-    description: ['', [Validators.maxLength(500)]],
+  form = this.fb.group<CreateSnapshotForm>({
+    name: this.fb.control('', { validators: [Validators.maxLength(100)] }),
+    description: this.fb.control('', {
+      validators: [Validators.maxLength(500)],
+    }),
   });
 
   /**

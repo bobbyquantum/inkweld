@@ -6,7 +6,12 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -25,6 +30,12 @@ import {
   ProjectTemplateService,
 } from '../../services/project/project-template.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
+
+interface ProjectForm {
+  title: FormControl<string>;
+  slug: FormControl<string>;
+  description: FormControl<string>;
+}
 
 @Component({
   selector: 'app-create-project',
@@ -50,7 +61,7 @@ export class CreateProjectComponent implements OnInit {
   protected unifiedUserService = inject(UnifiedUserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
-  private fb = inject(FormBuilder);
+  private fb = inject(FormBuilder).nonNullable;
 
   /** Current step (1: template selection, 2: project details) */
   step = signal<1 | 2>(1);
@@ -61,13 +72,15 @@ export class CreateProjectComponent implements OnInit {
   /** Whether templates are loading */
   loadingTemplates = signal(true);
 
-  projectForm = this.fb.group({
-    title: ['', [Validators.required]],
-    slug: [
-      '',
-      [Validators.required, Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)],
-    ],
-    description: [''],
+  readonly projectForm = this.fb.group<ProjectForm>({
+    title: this.fb.control('', { validators: [Validators.required] }),
+    slug: this.fb.control('', {
+      validators: [
+        Validators.required,
+        Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      ],
+    }),
+    description: this.fb.control(''),
   });
   projectUrl = '';
   baseUrl: string;

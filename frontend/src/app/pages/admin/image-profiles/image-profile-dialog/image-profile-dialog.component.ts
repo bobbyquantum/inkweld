@@ -1,15 +1,8 @@
-import {
-  Component,
-  computed,
-  effect,
-  inject,
-  OnInit,
-  signal,
-} from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   FormArray,
   FormBuilder,
-  FormGroup,
+  FormControl,
   FormsModule,
   ReactiveFormsModule,
   Validators,
@@ -73,6 +66,20 @@ interface FormValues {
   modelConfigJson: string;
 }
 
+interface ImageProfileForm {
+  name: FormControl<string>;
+  description: FormControl<string>;
+  provider: FormControl<string>;
+  modelId: FormControl<string>;
+  enabled: FormControl<boolean>;
+  supportsImageInput: FormControl<boolean>;
+  supportsCustomResolutions: FormControl<boolean>;
+  supportedSizes: FormArray<FormControl<string>>;
+  defaultSize: FormControl<string>;
+  sortOrder: FormControl<number>;
+  modelConfigJson: FormControl<string>;
+}
+
 @Component({
   selector: 'app-image-profile-dialog',
   standalone: true,
@@ -94,16 +101,45 @@ interface FormValues {
   templateUrl: './image-profile-dialog.component.html',
   styleUrl: './image-profile-dialog.component.scss',
 })
-export class ImageProfileDialogComponent implements OnInit {
+export class ImageProfileDialogComponent {
   private readonly dialogRef = inject(
     MatDialogRef<ImageProfileDialogComponent>
   );
-  private readonly fb = inject(FormBuilder);
+  private readonly fb = inject(FormBuilder).nonNullable;
   private readonly aiImageService = inject(AIImageGenerationService);
   private readonly aiProvidersService = inject(AIProvidersService);
   readonly data = inject<ImageProfileDialogData>(MAT_DIALOG_DATA);
 
-  form!: FormGroup;
+  readonly form = this.fb.group<ImageProfileForm>({
+    name: this.fb.control(this.data.profile?.name ?? '', {
+      validators: [Validators.required, Validators.minLength(2)],
+    }),
+    description: this.fb.control(this.data.profile?.description ?? ''),
+    provider: this.fb.control(this.data.profile?.provider ?? '', {
+      validators: [Validators.required],
+    }),
+    modelId: this.fb.control(this.data.profile?.modelId ?? '', {
+      validators: [Validators.required],
+    }),
+    enabled: this.fb.control(this.data.profile?.enabled ?? true),
+    supportsImageInput: this.fb.control(
+      this.data.profile?.supportsImageInput ?? false
+    ),
+    supportsCustomResolutions: this.fb.control(
+      this.data.profile?.supportsCustomResolutions ?? false
+    ),
+    supportedSizes: this.fb.array(
+      (this.data.profile?.supportedSizes ?? []).map(s => this.fb.control(s))
+    ),
+    defaultSize: this.fb.control(this.data.profile?.defaultSize ?? ''),
+    sortOrder: this.fb.control(this.data.profile?.sortOrder ?? 0),
+    modelConfigJson: this.fb.control(
+      this.data.profile?.modelConfig
+        ? JSON.stringify(this.data.profile.modelConfig, null, 2)
+        : ''
+    ),
+  });
+
   readonly showModelConfig = signal(false);
   readonly isLoadingModels = signal(false);
   readonly availableModels = signal<ExtendedImageModelInfo[]>([]);
@@ -194,13 +230,13 @@ export class ImageProfileDialogComponent implements OnInit {
 
   /** Check if current provider supports model browsing via API */
   canBrowseModels(): boolean {
-    const provider = this.form?.get('provider')?.value as string | undefined;
+    const provider = this.form?.get('provider')?.value;
     return !!provider && this.browsableProviders.includes(provider);
   }
 
   /** Check if provider requires manual model ID entry */
   isManualModelEntry(): boolean {
-    const provider = this.form?.get('provider')?.value as string | undefined;
+    const provider = this.form?.get('provider')?.value;
     return provider === 'stable-diffusion';
   }
 
@@ -215,51 +251,27 @@ export class ImageProfileDialogComponent implements OnInit {
         this.modelSearchTerm.set('');
       }
     });
+
+    if (
+      this.data.profile?.modelConfig &&
+      Object.keys(this.data.profile.modelConfig).length > 0
+    ) {
+      this.showModelConfig.set(true);
+    }
   }
 
   get isEditMode(): boolean {
     return this.data.mode === 'edit';
   }
 
-  get sizesArray(): FormArray {
-    return this.form.get('supportedSizes') as FormArray;
-  }
-
-  ngOnInit(): void {
-    this.initForm();
-  }
-
-  private initForm(): void {
-    const profile = this.data.profile;
-
-    this.form = this.fb.group({
-      name: [
-        profile?.name ?? '',
-        [Validators.required, Validators.minLength(2)],
-      ],
-      description: [profile?.description ?? ''],
-      provider: [profile?.provider ?? '', Validators.required],
-      modelId: [profile?.modelId ?? '', Validators.required],
-      enabled: [profile?.enabled ?? true],
-      supportsImageInput: [profile?.supportsImageInput ?? false],
-      supportsCustomResolutions: [profile?.supportsCustomResolutions ?? false],
-      supportedSizes: this.fb.array(profile?.supportedSizes ?? []),
-      defaultSize: [profile?.defaultSize ?? ''],
-      sortOrder: [profile?.sortOrder ?? 0],
-      modelConfigJson: [
-        profile?.modelConfig
-          ? JSON.stringify(profile.modelConfig, null, 2)
-          : '',
-      ],
-    });
-
-    if (profile?.modelConfig && Object.keys(profile.modelConfig).length > 0) {
-      this.showModelConfig.set(true);
-    }
+  get sizesArray(): FormArray<FormControl<string>> {
+    return this.form.controls.supportedSizes;
   }
 
   addSize(): void {
-    this.sizesArray.push(this.fb.control('', Validators.required));
+    this.sizesArray.push(
+      this.fb.control('', { validators: [Validators.required] })
+    );
   }
 
   removeSize(index: number): void {
@@ -272,7 +284,7 @@ export class ImageProfileDialogComponent implements OnInit {
 
   /** Load available models for the selected provider from dynamic API */
   async loadModelsForProvider(): Promise<void> {
-    const provider = this.form.get('provider')?.value as string | undefined;
+    const provider = this.form.get('provider')?.value;
     if (!provider || !this.browsableProviders.includes(provider)) {
       this.availableModels.set([]);
       return;

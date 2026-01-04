@@ -22,7 +22,6 @@ import {
 import {
   AbstractControl,
   FormBuilder,
-  FormGroup,
   FormsModule,
   ReactiveFormsModule,
   ValidationErrors,
@@ -80,7 +79,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
-  private fb = inject(FormBuilder);
+  private fb = inject(FormBuilder).nonNullable;
   private setupService = inject(SetupService);
   private systemConfigService = inject(SystemConfigService);
   private overlay = inject(Overlay);
@@ -94,8 +93,28 @@ export class RegisterComponent implements OnInit, OnDestroy {
   @ViewChild('passwordTooltipTemplate', { static: false })
   passwordTooltipTemplate?: TemplateRef<unknown>;
 
-  // Declare registerForm without initializing here
-  registerForm!: FormGroup;
+  // Form interface
+  readonly registerForm = this.fb.group(
+    {
+      username: this.fb.control('', {
+        validators: [Validators.required, Validators.minLength(3)],
+      }),
+      password: this.fb.control('', {
+        validators: [
+          Validators.required,
+          Validators.minLength(8),
+          this.createPasswordValidator(),
+        ],
+      }),
+      confirmPassword: this.fb.control('', {
+        validators: [Validators.required],
+      }),
+    },
+    {
+      validators: [this.passwordMatchValidator],
+    }
+  );
+
   isMobile = false;
   isRegistering = false;
   usernameSuggestions: string[] | undefined = [];
@@ -148,24 +167,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.isMobile = window.innerWidth < 768;
-
-    this.registerForm = this.fb.group(
-      {
-        username: ['', [Validators.required, Validators.minLength(3)]],
-        password: [
-          '',
-          [
-            Validators.required,
-            Validators.minLength(8),
-            this.createPasswordValidator(),
-          ],
-        ],
-        confirmPassword: ['', [Validators.required]],
-      },
-      {
-        validators: this.passwordMatchValidator,
-      }
-    );
 
     // Listen for value changes to reset validation states
     this.registerForm
