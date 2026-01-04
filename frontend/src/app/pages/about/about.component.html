@@ -1,0 +1,133 @@
+<div class="about-page">
+  <header class="about-header">
+    <button
+      mat-icon-button
+      (click)="goBack()"
+      aria-label="Go back"
+      data-testid="about-back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>About {{ appName }}</h1>
+    <div class="header-spacer"></div>
+    @if (userService.currentUser()) {
+      <app-user-menu />
+    }
+  </header>
+
+  <main class="about-content">
+    <mat-card class="version-card" data-testid="version-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>info</mat-icon>
+        <mat-card-title>{{ appName }}</mat-card-title>
+        <mat-card-subtitle>Version {{ appVersion }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="app-description">{{ appDescription }}</p>
+        <p class="copyright">
+          © {{ currentYear }} Inkweld. All rights reserved.
+        </p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="libraries-card" data-testid="libraries-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>extension</mat-icon>
+        <mat-card-title>Key Libraries</mat-card-title>
+        <mat-card-subtitle
+          >Open source technologies powering Inkweld</mat-card-subtitle
+        >
+      </mat-card-header>
+      <mat-card-content>
+        <mat-list>
+          @for (lib of keyLibraries; track lib.name) {
+            <mat-list-item class="library-item">
+              <div class="library-info">
+                <div class="library-header">
+                  <span class="library-name">{{ lib.name }}</span>
+                  <span class="library-version">v{{ lib.version }}</span>
+                </div>
+                <span class="library-description">{{ lib.description }}</span>
+              </div>
+              <button
+                mat-icon-button
+                (click)="openExternalLink(lib.url)"
+                [attr.aria-label]="'Visit ' + lib.name + ' website'"
+                matListItemMeta>
+                <mat-icon>open_in_new</mat-icon>
+              </button>
+            </mat-list-item>
+            @if (!$last) {
+              <mat-divider></mat-divider>
+            }
+          }
+        </mat-list>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="licenses-card" data-testid="licenses-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>gavel</mat-icon>
+        <mat-card-title>Open Source Licenses</mat-card-title>
+        <mat-card-subtitle>Third-party license information</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          Inkweld is built on the shoulders of giants. View the complete list of
+          third-party packages and their licenses.
+        </p>
+      </mat-card-content>
+      <mat-card-actions>
+        <button
+          mat-stroked-button
+          (click)="openLicenses()"
+          data-testid="view-licenses-button">
+          <mat-icon>description</mat-icon>
+          View All Licenses
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <mat-card class="links-card" data-testid="links-card">
+      <mat-card-header>
+        <mat-icon mat-card-avatar>link</mat-icon>
+        <mat-card-title>Links</mat-card-title>
+        <mat-card-subtitle>Helpful resources</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-list>
+          <mat-list-item class="link-item">
+            <mat-icon matListItemIcon>code</mat-icon>
+            <span matListItemTitle>Source Code</span>
+            <span matListItemLine>View the project on GitHub</span>
+            <button
+              mat-icon-button
+              (click)="
+                openExternalLink('https://github.com/bobbyquantum/inkweld')
+              "
+              aria-label="Open GitHub repository"
+              matListItemMeta>
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+          </mat-list-item>
+          <mat-divider></mat-divider>
+          <mat-list-item class="link-item">
+            <mat-icon matListItemIcon>bug_report</mat-icon>
+            <span matListItemTitle>Report Issues</span>
+            <span matListItemLine>Found a bug? Let us know</span>
+            <button
+              mat-icon-button
+              (click)="
+                openExternalLink(
+                  'https://github.com/bobbyquantum/inkweld/issues'
+                )
+              "
+              aria-label="Open GitHub issues"
+              matListItemMeta>
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+          </mat-list-item>
+        </mat-list>
+      </mat-card-content>
+    </mat-card>
+  </main>
+</div>

@@ -158,4 +158,23 @@ describe('UserMenuComponent', () => {
       expect(status.icon).toBe('cloud_off');
     });
   });
+
+  describe('template', () => {
+    it('should have an About menu link when menu is open', async () => {
+      // Open the menu first
+      const menuButton = fixture.nativeElement.querySelector(
+        '[data-testid="user-menu-button"]'
+      );
+      menuButton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      // The menu content is rendered in an overlay, check the document
+      const aboutLink = document.querySelector(
+        '[data-testid="about-menu-link"]'
+      );
+      expect(aboutLink).toBeTruthy();
+      expect(aboutLink?.textContent).toContain('About');
+    });
+  });
 });

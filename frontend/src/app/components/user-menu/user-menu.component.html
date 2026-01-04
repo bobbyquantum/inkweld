@@ -81,6 +81,10 @@
           <mat-icon>settings</mat-icon>
           <span>Settings</span>
         </button>
+        <button mat-menu-item routerLink="/about" data-testid="about-menu-link">
+          <mat-icon>info</mat-icon>
+          <span>About</span>
+        </button>
         @if (setupService.getMode() === 'server') {
           <button mat-menu-item (click)="onLogout()">
             <mat-icon>exit_to_app</mat-icon>

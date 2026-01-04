@@ -15,12 +15,24 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# WASM files are pre-compressed with Brotli to fit under Cloudflare's 25MB limit
+/assets/wasm/*.wasm
+  Content-Encoding: br
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+
 /*.js
   Cache-Control: public, max-age=31536000, immutable
 
 /*.css
   Cache-Control: public, max-age=31536000, immutable
 
-# Don't cache the index.html (for updates)
+# Don't cache the index.html, manifest, or service worker files (for updates)
 /index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+/manifest.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate
+/ngsw.json
+  Cache-Control: no-cache, no-store, must-revalidate
+/ngsw-worker.js
   Cache-Control: no-cache, no-store, must-revalidate

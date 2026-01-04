@@ -42,23 +42,33 @@ export class SetupService {
    * This allows Cloudflare/hosted deployments to skip manual setup
    */
   private autoConfigureIfNeeded(): void {
-    // Only auto-configure if no existing config AND we have a pre-configured API URL
-    if (this.getStoredConfig()) return;
+    const preConfiguredUrl = environment.apiUrl;
     if (!this.hasPreConfiguredApiUrl()) return;
 
-    console.log(
-      '[SetupService] Auto-configuring for hosted deployment:',
-      environment.apiUrl
-    );
+    const storedConfig = this.getStoredConfig();
 
-    const config: AppConfig = {
-      mode: 'server',
-      serverUrl: environment.apiUrl,
-    };
+    // If we have a pre-configured URL, and it's different from the stored one,
+    // we should update it. This ensures that if a user moves between staging/prod
+    // or if the worker URL changes, the app stays in sync with its build.
+    if (
+      !storedConfig ||
+      storedConfig.mode !== 'server' ||
+      storedConfig.serverUrl !== preConfiguredUrl
+    ) {
+      console.log(
+        '[SetupService] Auto-configuring for hosted deployment:',
+        preConfiguredUrl
+      );
 
-    this.saveConfig(config);
-    this.appConfig.set(config);
-    this.isConfigured.set(true);
+      const config: AppConfig = {
+        mode: 'server',
+        serverUrl: preConfiguredUrl,
+      };
+
+      this.saveConfig(config);
+      this.appConfig.set(config);
+      this.isConfigured.set(true);
+    }
   }
 
   /**
@@ -187,13 +197,16 @@ export class SetupService {
 
   private loadConfig(): void {
     const config = this.getStoredConfig();
+
     if (config) {
       this.appConfig.set(config);
       this.isConfigured.set(true);
-    } else {
-      // Try auto-configuring for hosted deployments
-      this.autoConfigureIfNeeded();
     }
+
+    // Always check if we should auto-configure (it will return early if already correct)
+    // This ensures that if the environment URL changes (e.g. staging to prod),
+    // the app updates its configuration automatically.
+    this.autoConfigureIfNeeded();
   }
 
   private getStoredConfig(): AppConfig | null {

@@ -294,7 +294,7 @@ function createSpaHandler(root: string, bypassPrefixes: string[]): MiddlewareHan
       return next();
     }
 
-    const assetResponse = await serveSpaAsset(root, pathname);
+    const assetResponse = await serveSpaAsset(root, pathname, c.req.header('Accept-Encoding'));
     if (assetResponse) {
       return assetResponse;
     }
@@ -313,17 +313,47 @@ function createSpaHandler(root: string, bypassPrefixes: string[]): MiddlewareHan
   };
 }
 
-async function serveSpaAsset(root: string, pathname: string): Promise<Response | null> {
+async function serveSpaAsset(
+  root: string,
+  pathname: string,
+  acceptEncoding?: string
+): Promise<Response | null> {
   const relativePath = sanitizeSpaPath(pathname);
   const filePath = join(root, relativePath);
-  const file = Bun.file(filePath);
 
+  // Check for pre-compressed Brotli asset if client supports it
+  if (acceptEncoding?.includes('br')) {
+    const brFilePath = `${filePath}.br`;
+    const brFile = Bun.file(brFilePath);
+    if (await brFile.exists()) {
+      const headers = new Headers();
+      headers.set('Content-Type', guessMimeType(relativePath));
+      headers.set('Content-Encoding', 'br');
+      headers.set(
+        'Cache-Control',
+        relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
+      );
+      return new Response(brFile, { headers });
+    }
+  }
+
+  const file = Bun.file(filePath);
   if (!(await file.exists())) {
     return null;
   }
 
   const headers = new Headers();
   headers.set('Content-Type', file.type || 'application/octet-stream');
+
+  // If the file itself is already compressed (like our large WASM files),
+  // we need to tell the browser even if it didn't ask for a .br file
+  if (relativePath.endsWith('.wasm')) {
+    // Check if it's one of our known large WASM files that we compress in-place
+    if (relativePath.includes('typst_ts_web_compiler_bg.wasm')) {
+      headers.set('Content-Encoding', 'br');
+    }
+  }
+
   headers.set(
     'Cache-Control',
     relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
@@ -395,7 +425,11 @@ function createEmbeddedSpaHandler(
     }
 
     // Try to serve embedded asset
-    const assetResponse = await serveEmbeddedAsset(embeddedFiles, pathname);
+    const assetResponse = await serveEmbeddedAsset(
+      embeddedFiles,
+      pathname,
+      c.req.header('Accept-Encoding')
+    );
     if (assetResponse) {
       return assetResponse;
     }
@@ -413,10 +447,28 @@ function createEmbeddedSpaHandler(
 
 async function serveEmbeddedAsset(
   embeddedFiles: Map<string, string | Blob>,
-  pathname: string
+  pathname: string,
+  acceptEncoding?: string
 ): Promise<Response | null> {
   const relativePath = sanitizeSpaPath(pathname);
   logger.debug('SPA', `Looking for asset: "${pathname}" -> "${relativePath}"`);
+
+  // Check for pre-compressed Brotli asset if client supports it
+  if (acceptEncoding?.includes('br')) {
+    const brPath = `${relativePath}.br`;
+    const brFile = embeddedFiles.get(brPath);
+    if (brFile) {
+      const headers = new Headers();
+      headers.set('Content-Type', guessMimeType(relativePath));
+      headers.set('Content-Encoding', 'br');
+      headers.set(
+        'Cache-Control',
+        relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
+      );
+      const content = typeof brFile === 'string' ? Bun.file(brFile) : brFile;
+      return new Response(content, { headers });
+    }
+  }
 
   // Try exact match first
   let file = embeddedFiles.get(relativePath);
@@ -439,6 +491,12 @@ async function serveEmbeddedAsset(
 
   const headers = new Headers();
   headers.set('Content-Type', guessMimeType(relativePath));
+
+  // Handle in-place compressed WASM files
+  if (relativePath.endsWith('.wasm')) {
+    headers.set('Content-Encoding', 'br');
+  }
+
   headers.set(
     'Cache-Control',
     relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'

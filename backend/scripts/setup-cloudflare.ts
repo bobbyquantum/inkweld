@@ -127,16 +127,20 @@ function checkWranglerLoggedIn(): boolean {
   return result.success && hasEmail && !isUnauthenticated;
 }
 
-function getAccountInfo(): { email: string; accountName: string } | null {
+function getAccountInfo(): { email: string; accountName: string; emailPrefix: string } | null {
   const result = runCommand('wrangler', ['whoami']);
   if (!result.success) return null;
 
   const emailMatch = result.output.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  if (!emailMatch) return null;
+
+  const email = emailMatch[1];
+  const emailPrefix = email.split('@')[0];
 
   // Parse the table to get the account name (not the header "Account Name")
   // Look for lines after the separator (├──) and extract the first column value
   const lines = result.output.split('\n');
-  let accountName = emailMatch ? emailMatch[1].split('@')[0] : '';
+  let accountName = emailPrefix;
 
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes('├──') && i + 1 < lines.length) {
@@ -154,11 +158,10 @@ function getAccountInfo(): { email: string; accountName: string } | null {
     }
   }
 
-  if (!emailMatch) return null;
-
   return {
-    email: emailMatch[1],
+    email,
     accountName,
+    emailPrefix,
   };
 }
 
@@ -175,7 +178,13 @@ function setSecret(envName: string, secretName: string, secretValue: string): bo
     shell: true,
     input: secretValue + '\n',
   });
-  return result.status === 0;
+
+  if (result.status !== 0) {
+    error(`Failed to set secret: ${result.stdout} ${result.stderr}`);
+    return false;
+  }
+
+  return true;
 }
 
 function createD1Database(name: string): string | null {
@@ -252,6 +261,8 @@ function updateWranglerToml(
   prodDbId: string | null,
   stagingWorkerName?: string,
   prodWorkerName?: string,
+  stagingPagesName?: string,
+  prodPagesName?: string,
   stagingRemoteConfig?: WranglerRemoteConfig | null,
   prodRemoteConfig?: WranglerRemoteConfig | null
 ): boolean {
@@ -293,6 +304,44 @@ function updateWranglerToml(
         `database_id = "${prodDbId}"`
       );
     }
+
+    // Update ALLOWED_ORIGINS with Pages URLs
+    if (stagingPagesName) {
+      const pagesUrl = `https://${stagingPagesName}.pages.dev`;
+      const previewUrl = `https://*.${stagingPagesName}.pages.dev`;
+      const stagingSectionMatch = content.match(/\[env\.staging\.vars\]([\s\S]*?)(?=\n\[|$)/);
+      if (stagingSectionMatch) {
+        const oldSection = stagingSectionMatch[0];
+        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, (match, p1) => {
+          const origins = p1.split(',').map((o: string) => o.trim());
+          if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
+          if (!origins.includes(previewUrl)) origins.push(previewUrl);
+          return `ALLOWED_ORIGINS = "${origins.join(',')}"`;
+        });
+        content = content.replace(oldSection, newSection);
+      }
+    }
+
+    if (prodPagesName) {
+      const pagesUrl = `https://${prodPagesName}.pages.dev`;
+      const prodSectionMatch = content.match(/\[env\.production\.vars\]([\s\S]*?)(?=\n\[|$)/);
+      if (prodSectionMatch) {
+        const oldSection = prodSectionMatch[0];
+        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, (match, p1) => {
+          const origins = p1.split(',').map((o: string) => o.trim());
+          if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
+          return `ALLOWED_ORIGINS = "${origins.join(',')}"`;
+        });
+        content = content.replace(oldSection, newSection);
+      }
+    }
+
+    // Remove SESSION_SECRET from environment-specific vars sections
+    // Cloudflare doesn't allow a variable to be both in [vars] and a secret
+    const envVarsSectionRegex = /\[env\.[^.]+\.vars\]([\s\S]*?)(?=\n\[|$)/g;
+    content = content.replace(envVarsSectionRegex, (section) => {
+      return section.replace(/\n?\s*SESSION_SECRET = "[^"]*".*/g, '');
+    });
 
     // Ensure migrations_dir = "drizzle" is present in all D1 sections
     // This handles cases where the template was missing it
@@ -418,6 +467,7 @@ function createPagesProject(name: string): boolean {
 
 function generateFrontendEnvironment(
   workerName: string,
+  subdomain: string,
   envType: 'staging' | 'cloudflare'
 ): boolean {
   const filename = `environment.${envType}.ts`;
@@ -433,10 +483,16 @@ function generateFrontendEnvironment(
   try {
     let content = readFileSync(examplePath, 'utf-8');
     // Replace the example URL with the actual worker URL
-    content = content.replace(
-      /inkweld-backend-\w+\.YOUR_SUBDOMAIN\.workers\.dev/g,
-      `${workerName}.workers.dev`
-    );
+    // Handle both with and without subdomain in the template
+    const workerUrl = subdomain
+      ? `${workerName}.${subdomain}.workers.dev`
+      : `${workerName}.workers.dev`;
+
+    content = content.replace(/inkweld-backend-\w+\.YOUR_SUBDOMAIN\.workers\.dev/g, workerUrl);
+
+    // Also handle cases where it might just be .workers.dev in the template
+    content = content.replace(/inkweld-backend-\w+\.workers\.dev/g, workerUrl);
+
     writeFileSync(filepath, content);
     success(`Generated ${filename}`);
     return true;
@@ -521,14 +577,42 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     if (accountInfo) {
       info(`Detected account: ${accountInfo.accountName}`);
     }
+
+    info('Your workers.dev subdomain is required to generate the correct API URLs.');
+    info('Find it at: https://dash.cloudflare.com → Workers & Pages → Overview (on the right)');
+    info('Example: https://my-worker.SUBDOMAIN.workers.dev');
+
+    // Prefer email prefix if account name looks like a generic "X's Account"
+    let suggestedSubdomain = '';
+    if (accountInfo) {
+      const slugifiedAccount = accountInfo.accountName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const slugifiedPrefix = accountInfo.emailPrefix.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+      // If account name is long or contains "account", prefer the email prefix
+      if (slugifiedAccount.includes('account') || slugifiedAccount.length > 20) {
+        suggestedSubdomain = slugifiedPrefix;
+      } else {
+        suggestedSubdomain = slugifiedAccount;
+      }
+    }
+
+    const subdomain =
+      (await prompt(rl, `Your workers.dev subdomain (default: ${suggestedSubdomain}):`)) ||
+      suggestedSubdomain;
+
+    if (!subdomain) {
+      warn('No subdomain provided. URLs will be generated as worker.workers.dev');
+    } else {
+      success(`Using subdomain: ${subdomain}`);
+    }
     console.log();
 
     let stagingWorkerName = 'inkweld-backend-staging';
     let prodWorkerName = 'inkweld-backend-prod';
 
     if (setupStaging) {
-      const suggestedStaging = accountInfo
-        ? `${accountInfo.accountName.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-inkweld-staging`
+      const suggestedStaging = suggestedSubdomain
+        ? `${suggestedSubdomain}-inkweld-staging`
         : 'inkweld-backend-staging';
       const customStaging = await prompt(
         rl,
@@ -539,7 +623,10 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
       } else {
         stagingWorkerName = customStaging || suggestedStaging;
       }
-      success(`Staging worker URL: https://${stagingWorkerName}.workers.dev`);
+      const stagingUrl = subdomain
+        ? `${stagingWorkerName}.${subdomain}.workers.dev`
+        : `${stagingWorkerName}.workers.dev`;
+      success(`Staging worker URL: https://${stagingUrl}`);
       const confirmStaging = await confirm(rl, 'Continue with this URL?');
       if (!confirmStaging) {
         warn('Setup cancelled.');
@@ -548,8 +635,8 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     }
 
     if (setupProd) {
-      const suggestedProd = accountInfo
-        ? `${accountInfo.accountName.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-inkweld`
+      const suggestedProd = suggestedSubdomain
+        ? `${suggestedSubdomain}-inkweld`
         : 'inkweld-backend-prod';
       const customProd = await prompt(
         rl,
@@ -560,7 +647,10 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
       } else {
         prodWorkerName = customProd || suggestedProd;
       }
-      success(`Production worker URL: https://${prodWorkerName}.workers.dev`);
+      const prodUrl = subdomain
+        ? `${prodWorkerName}.${subdomain}.workers.dev`
+        : `${prodWorkerName}.workers.dev`;
+      success(`Production worker URL: https://${prodUrl}`);
       const confirmProd = await confirm(rl, 'Continue with this URL?');
       if (!confirmProd) {
         warn('Setup cancelled.');
@@ -689,15 +779,25 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
 
     info('Frontend environment files configure the API URLs for each environment.');
     info('Workers will be available at:');
-    if (setupStaging) info(`  Staging:    https://${stagingWorkerName}.workers.dev`);
-    if (setupProd) info(`  Production: https://${prodWorkerName}.workers.dev`);
+    if (setupStaging) {
+      const stagingUrl = subdomain
+        ? `${stagingWorkerName}.${subdomain}.workers.dev`
+        : `${stagingWorkerName}.workers.dev`;
+      info(`  Staging:    https://${stagingUrl}`);
+    }
+    if (setupProd) {
+      const prodUrl = subdomain
+        ? `${prodWorkerName}.${subdomain}.workers.dev`
+        : `${prodWorkerName}.workers.dev`;
+      info(`  Production: https://${prodUrl}`);
+    }
     console.log();
 
     if (setupStaging) {
-      generateFrontendEnvironment(stagingWorkerName, 'staging');
+      generateFrontendEnvironment(stagingWorkerName, subdomain, 'staging');
     }
     if (setupProd) {
-      generateFrontendEnvironment(prodWorkerName, 'cloudflare');
+      generateFrontendEnvironment(prodWorkerName, subdomain, 'cloudflare');
     }
 
     // Update wrangler.toml with database IDs
@@ -709,6 +809,8 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
         prodDbId,
         setupStaging ? stagingWorkerName : undefined,
         setupProd ? prodWorkerName : undefined,
+        setupStaging ? 'inkweld-frontend-staging' : undefined,
+        setupProd ? 'inkweld-frontend' : undefined,
         stagingRemoteConfig,
         prodRemoteConfig
       )

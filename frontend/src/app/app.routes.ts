@@ -20,6 +20,12 @@ export const routes: Routes = [
     title: 'Reset Data',
   },
   {
+    path: 'about',
+    loadComponent: () =>
+      import('./pages/about/about.component').then(m => m.AboutComponent),
+    title: 'About Inkweld',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),

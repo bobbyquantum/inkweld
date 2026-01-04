@@ -62,3 +62,6 @@ debug-screenshot.png
 # These contain user-specific Cloudflare subdomain URLs
 /src/environments/environment.staging.ts
 /src/environments/environment.cloudflare.ts
+
+# Generated license file
+/public/3rdpartylicenses.txt
