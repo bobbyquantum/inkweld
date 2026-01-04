@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import {
   FormBuilder,
+  FormControl,
   FormsModule,
   ReactiveFormsModule,
   Validators,
@@ -52,6 +53,11 @@ interface ElementTypeOption {
   category: 'document' | 'worldbuilding';
 }
 
+interface NewElementForm {
+  name: FormControl<string>;
+  type: FormControl<ElementType>;
+}
+
 @Component({
   selector: 'app-new-element-dialog',
   templateUrl: './new-element-dialog.component.html',
@@ -77,7 +83,7 @@ export class NewElementDialogComponent {
   );
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly projectState = inject(ProjectStateService);
-  private readonly fb = inject(FormBuilder);
+  private readonly fb = inject(FormBuilder).nonNullable;
   private readonly data = inject<NewElementDialogData | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
@@ -137,9 +143,11 @@ export class NewElementDialogComponent {
   // Track selected schema ID for worldbuilding types
   selectedSchemaId = signal<string | undefined>(undefined);
 
-  readonly form = this.fb.group({
-    name: ['', [Validators.required]],
-    type: [ElementType.Item as ElementType, [Validators.required]],
+  readonly form = this.fb.group<NewElementForm>({
+    name: this.fb.control('', { validators: [Validators.required] }),
+    type: this.fb.control(ElementType.Item, {
+      validators: [Validators.required],
+    }),
   });
 
   constructor() {
@@ -231,8 +239,8 @@ export class NewElementDialogComponent {
   onCreate = (): void => {
     if (this.form.valid) {
       const result: NewElementDialogResult = {
-        name: this.form.controls.name.value!,
-        type: this.form.controls.type.value!,
+        name: this.form.controls.name.value,
+        type: this.form.controls.type.value,
         schemaId: this.selectedSchemaId(),
       };
       this.dialogRef.close(result);

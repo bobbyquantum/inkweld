@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import {
   FormBuilder,
-  FormGroup,
+  FormControl,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -42,6 +42,12 @@ export interface TemplateEditorDialogData {
   schema: ElementTypeSchema;
 }
 
+interface BasicForm {
+  name: FormControl<string>;
+  icon: FormControl<string>;
+  description: FormControl<string>;
+}
+
 @Component({
   selector: 'app-template-editor-dialog',
   templateUrl: './template-editor-dialog.component.html',
@@ -63,7 +69,7 @@ export interface TemplateEditorDialogData {
 })
 export class TemplateEditorDialogComponent implements AfterViewInit {
   private dialogRef = inject(MatDialogRef<TemplateEditorDialogComponent>);
-  private fb = inject(FormBuilder);
+  private fb = inject(FormBuilder).nonNullable;
   readonly data = inject<TemplateEditorDialogData>(MAT_DIALOG_DATA);
 
   @ViewChildren(MatExpansionPanel)
@@ -74,7 +80,15 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
   private lastFieldId: string | null = null;
 
   // Form for basic schema metadata
-  basicForm: FormGroup;
+  readonly basicForm = this.fb.group<BasicForm>({
+    name: this.fb.control(this.data.schema.name, {
+      validators: [Validators.required],
+    }),
+    icon: this.fb.control(this.data.schema.icon, {
+      validators: [Validators.required],
+    }),
+    description: this.fb.control(this.data.schema.description || ''),
+  });
 
   // Available field types
   readonly fieldTypes = [
@@ -106,13 +120,6 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
   tabs = signal<TabSchema[]>([]);
 
   constructor() {
-    // Initialize basic form
-    this.basicForm = this.fb.group({
-      name: [this.data.schema.name, Validators.required],
-      icon: [this.data.schema.icon, Validators.required],
-      description: [this.data.schema.description || ''],
-    });
-
     // Deep clone tabs to avoid mutating original
     const tabs = JSON.parse(
       JSON.stringify(this.data.schema.tabs)
