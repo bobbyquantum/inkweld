@@ -1,10 +1,17 @@
-@defer (on idle) {
-  <app-document-element-editor
-    [documentId]="fullDocumentId()"
-    [tabsDisabled]="!useTabsDesktop()"></app-document-element-editor>
-} @placeholder {
+@if (fullDocumentId()) {
+  @defer (on idle) {
+    <app-document-element-editor
+      [documentId]="fullDocumentId()"
+      [tabsDisabled]="!useTabsDesktop()"></app-document-element-editor>
+  } @placeholder {
+    <div class="editor-placeholder">
+      <mat-icon>edit_note</mat-icon>
+      <span>Loading editor...</span>
+    </div>
+  }
+} @else {
   <div class="editor-placeholder">
     <mat-icon>edit_note</mat-icon>
-    <span>Loading editor...</span>
+    <span>Loading document...</span>
   </div>
 }

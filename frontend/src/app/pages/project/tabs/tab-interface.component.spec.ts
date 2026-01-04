@@ -99,6 +99,7 @@ describe('TabInterfaceComponent', () => {
     const openTabsSignal = signal<AppTab[]>([...mockTabs]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);
+    const elementsSignal = signal<Element[]>([...mockDocuments]);
 
     // Mock project state service
     projectStateService = {
@@ -107,6 +108,7 @@ describe('TabInterfaceComponent', () => {
       openTabs: openTabsSignal,
       selectedTabIndex: selectedTabIndexSignal,
       isLoading: isLoadingSignal,
+      elements: elementsSignal,
       openDocument: vi.fn(),
       closeDocument: vi.fn(),
       closeTab: vi.fn(),

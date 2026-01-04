@@ -153,6 +153,15 @@ describe('DocumentTabComponent', () => {
       expect(fullId).toBe('');
     });
 
+    it('should return empty string when element id is empty', () => {
+      (projectStateService.openTabs as any).set([{ element: { id: '' } }]);
+      (projectStateService.selectedTabIndex as any).set(0);
+      (projectStateService.project as any).set(mockProjectWithInfo);
+
+      const fullId = (component as any).fullDocumentId();
+      expect(fullId).toBe('');
+    });
+
     it('should return empty string when project is undefined', () => {
       (projectStateService.openTabs as any).set([{ element: { id: 'doc1' } }]);
       (projectStateService.selectedTabIndex as any).set(0);
