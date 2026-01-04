@@ -24,9 +24,6 @@ test.describe('Online Infrastructure', () => {
       'http://localhost:9333/api/v1/config'
     );
     expect(configResponse.ok()).toBeTruthy();
-    const config = (await configResponse.json()) as {
-      userApprovalRequired: boolean;
-    };
 
     // Register via API first (more reliable than UI flow)
     const registerResponse = await page.request.post(
@@ -49,9 +46,6 @@ test.describe('Online Infrastructure', () => {
     // If approval is required, the test cannot continue
     // This should not happen with USER_APPROVAL_REQUIRED=false
     if (registerData.requiresApproval) {
-      console.log(
-        `Backend config: userApprovalRequired=${config.userApprovalRequired}`
-      );
       throw new Error(
         `Registration requires approval - expected USER_APPROVAL_REQUIRED=false but got requiresApproval=true`
       );

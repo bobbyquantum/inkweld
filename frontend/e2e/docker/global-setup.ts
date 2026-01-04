@@ -19,40 +19,23 @@ const HEALTH_CHECK_INTERVAL = 2000;
 export default async function globalSetup(): Promise<void> {
   const rootDir = path.resolve(__dirname, '../../..');
 
-  console.log('\n🐳 Docker E2E Setup');
-  console.log('==================\n');
-
   // Stop any existing container
-  console.log('🧹 Cleaning up existing container...');
+
   try {
     execSync(`docker stop ${CONTAINER_NAME}`, { stdio: 'pipe' });
     execSync(`docker rm ${CONTAINER_NAME}`, { stdio: 'pipe' });
-    console.log('   Removed existing container');
   } catch {
     // Container doesn't exist, that's fine
-    console.log('   No existing container to remove');
   }
 
   // Build the image using docker compose
-  console.log('\n🔨 Building Docker image...');
-  console.log('   This may take a few minutes on first run...\n');
 
-  try {
-    execSync('docker compose build inkweld', {
-      cwd: rootDir,
-      stdio: 'inherit',
-    });
-    console.log('\n✅ Image built successfully\n');
-  } catch (error) {
-    console.error('\n❌ Docker image build failed!');
-    console.error(
-      '   This is the kind of error this test suite is designed to catch.'
-    );
-    throw error;
-  }
+  execSync('docker compose build inkweld', {
+    cwd: rootDir,
+    stdio: 'inherit',
+  });
 
   // Start the container with test configuration
-  console.log('🚀 Starting test container...');
 
   const dockerArgs = [
     'run',
@@ -91,15 +74,12 @@ export default async function globalSetup(): Promise<void> {
       cwd: rootDir,
       stdio: 'pipe',
     });
-    console.log(`   Container ${CONTAINER_NAME} started`);
   } catch (error) {
-    console.error('❌ Failed to start container');
     // Show container logs if available
     try {
-      const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
+      execSync(`docker logs ${CONTAINER_NAME}`, {
         encoding: 'utf-8',
       });
-      console.error('Container logs:', logs);
     } catch {
       // Ignore
     }
@@ -107,32 +87,29 @@ export default async function globalSetup(): Promise<void> {
   }
 
   // Show initial container logs to help debug startup issues
-  console.log('\n📋 Initial container logs:');
+
   try {
-    const initialLogs = execSync(`docker logs ${CONTAINER_NAME}`, {
+    execSync(`docker logs ${CONTAINER_NAME}`, {
       encoding: 'utf-8',
     });
-    console.log(initialLogs || '   (No logs yet)');
   } catch {
-    console.log('   (Could not retrieve initial logs)');
+    // Ignore
   }
 
   // Check container status immediately
-  console.log('\n🔍 Checking container status...');
+
   try {
     const status = execSync(
       `docker inspect -f "{{.State.Status}}" ${CONTAINER_NAME}`,
       { encoding: 'utf-8' }
     ).trim();
     const cleanStatus = status.replace(/['"]/g, '');
-    console.log(`   Container status: ${cleanStatus}`);
 
     if (cleanStatus !== 'running') {
-      console.error(`\n❌ Container is not running (status: ${cleanStatus})`);
-      const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
+      execSync(`docker logs ${CONTAINER_NAME}`, {
         encoding: 'utf-8',
       });
-      console.error('Container logs:\n', logs || '(empty)');
+
       throw new Error(`Container not running: ${cleanStatus}`);
     }
   } catch (error) {
@@ -142,11 +119,10 @@ export default async function globalSetup(): Promise<void> {
     ) {
       throw error;
     }
-    console.error('   Could not check container status:', error);
   }
 
   // Wait for health check
-  console.log('\n⏳ Waiting for container to be healthy...');
+
   const startTime = Date.now();
   let lastLogTime = -10; // Start at -10 so first log happens immediately
 
@@ -165,24 +141,13 @@ export default async function globalSetup(): Promise<void> {
       clearTimeout(fetchTimeout);
 
       if (response.ok) {
-        console.log(`\n✅ Container is healthy! (${elapsed}s)\n`);
-        console.log(`   Frontend + API: http://localhost:${DOCKER_PORT}`);
-        console.log(`   Health check:   ${HEALTH_CHECK_URL}\n`);
         return;
       } else if (shouldLog) {
-        console.log(
-          `   [${elapsed}s] Health check returned status: ${response.status}`
-        );
         lastLogTime = elapsed;
       }
-    } catch (fetchError) {
+    } catch {
       // Container not ready yet - log periodically (every 10s)
       if (shouldLog) {
-        const errorMsg =
-          fetchError instanceof Error
-            ? fetchError.message
-            : 'Connection refused';
-        console.log(`   [${elapsed}s] Waiting... (${errorMsg})`);
         lastLogTime = elapsed;
       }
     }
@@ -196,13 +161,10 @@ export default async function globalSetup(): Promise<void> {
       // Status might have quotes on some platforms, strip them
       const cleanStatus = status.replace(/['"]/g, '');
       if (cleanStatus !== 'running') {
-        console.error(
-          `\n❌ Container stopped unexpectedly (status: ${cleanStatus})`
-        );
-        const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
+        execSync(`docker logs ${CONTAINER_NAME}`, {
           encoding: 'utf-8',
         });
-        console.error('Container logs:\n', logs);
+
         throw new Error('Container crashed during startup');
       }
     } catch (inspectError) {
@@ -218,12 +180,10 @@ export default async function globalSetup(): Promise<void> {
     // Every 30 seconds, show the latest logs to help debug
     if (elapsed > 0 && elapsed % 30 === 0 && elapsed !== lastLogTime) {
       try {
-        const recentLogs = execSync(`docker logs --tail 20 ${CONTAINER_NAME}`, {
+        execSync(`docker logs --tail 20 ${CONTAINER_NAME}`, {
           encoding: 'utf-8',
         });
-        console.log(`\n📋 Container logs at ${elapsed}s:`);
-        console.log(recentLogs || '(no logs)');
-        console.log(`⏳ Still waiting for health check...`);
+
         lastLogTime = elapsed;
       } catch {
         // Ignore log errors
@@ -234,16 +194,12 @@ export default async function globalSetup(): Promise<void> {
   }
 
   // Timeout - show logs and fail
-  console.error(
-    `\n\n❌ Container health check timed out after ${HEALTH_CHECK_TIMEOUT / 1000}s`
-  );
   try {
-    const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
+    execSync(`docker logs ${CONTAINER_NAME}`, {
       encoding: 'utf-8',
     });
-    console.error('Container logs:\n', logs);
   } catch {
-    console.error('Could not retrieve container logs');
+    // Ignore
   }
 
   throw new Error('Container health check timed out');

@@ -45,9 +45,6 @@ async function navigateToAdminAiViaMenu(
       await aiLink.click();
       await page.waitForLoadState('networkidle');
     } catch {
-      console.log(
-        '[navigateToAdminAiViaMenu] AI nav link not found - kill switch may be enabled'
-      );
       throw new Error(
         'AI nav link not visible - AI kill switch may be enabled in mock'
       );

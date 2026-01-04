@@ -95,7 +95,6 @@ export function setupProjectHandlers(): void {
   // Use $ to ensure exact match (not matching /projects/...)
   mockApi.addHandler('**/api/v1/projects$', async (route: Route) => {
     const method = route.request().method();
-    console.log(`Handling /api/v1/projects request - method: ${method}`);
 
     // Handle GET requests
     if (method === 'GET') {
@@ -106,18 +105,14 @@ export function setupProjectHandlers(): void {
       // Extract username from auth token
       if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
-        console.log('Auth token:', token);
+
         const parts = token.split('-');
         if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'token') {
           username = parts[2];
-          console.log('Extracted username:', username);
         }
-      } else {
-        console.log('No auth header found');
       }
 
       if (!username) {
-        console.log('No username - returning 401');
         await route.fulfill({
           status: 401,
           contentType: 'application/json',
@@ -131,10 +126,6 @@ export function setupProjectHandlers(): void {
       }
 
       const userProjects = mockProjects.getProjectsByUsername(username);
-      console.log(
-        `Found ${userProjects.length} projects for user ${username}:`,
-        userProjects.map(p => p.title)
-      );
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -218,7 +209,6 @@ export function setupProjectHandlers(): void {
       };
 
       mockProjects.addProject(newProject);
-      console.log(`Created project: ${newProject.title} (${newProject.slug})`);
 
       await route.fulfill({
         status: 201,
@@ -272,8 +262,7 @@ export function setupProjectHandlers(): void {
           contentType: 'image/png',
           body: imageBuffer,
         });
-      } catch (error) {
-        console.error(`Failed to read cover image: ${imagePath}`, error);
+      } catch {
         await route.fulfill({
           status: 404,
           contentType: 'application/json',
@@ -377,7 +366,6 @@ export function setupProjectHandlers(): void {
     }
 
     mockProjects.deleteProject(projectId);
-    console.log(`Deleted project: ${projectId}`);
 
     await route.fulfill({
       status: 204,

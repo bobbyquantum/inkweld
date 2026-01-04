@@ -28,9 +28,6 @@ const mockConfigValues: Record<string, { value: string; source: string }> = {
  * Mock system features endpoint
  */
 export async function handleSystemFeatures(route: Route): Promise<void> {
-  console.log(
-    'Handling system features request - returning aiKillSwitch: false'
-  );
   await route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -51,8 +48,6 @@ export async function handleSystemFeatures(route: Route): Promise<void> {
  * Set up all config-related mock handlers
  */
 export function setupConfigHandlers(): void {
-  console.log('Config handlers initialized');
-
   // Register the features endpoint handler
   mockApi.addHandler('**/api/v1/config/features', handleSystemFeatures);
 
@@ -64,7 +59,6 @@ export function setupConfigHandlers(): void {
 
     // Only handle exact match (no trailing path segments)
     if (url.pathname === '/api/v1/admin/config' && method === 'GET') {
-      console.log('Handling GET all admin config');
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -90,8 +84,6 @@ export function setupConfigHandlers(): void {
       return;
     }
 
-    console.log(`Handling admin config ${method} for key: ${key}`);
-
     if (method === 'GET') {
       const value = mockConfigValues[key];
       if (value) {
@@ -110,7 +102,7 @@ export function setupConfigHandlers(): void {
     } else if (method === 'PUT') {
       try {
         const rawBody = route.request().postData() || '{}';
-        const body = JSON.parse(rawBody) as { value: unknown };
+        const body = JSON.parse(rawBody) as { value: string };
         mockConfigValues[key] = { value: body.value, source: 'database' };
         await route.fulfill({
           status: 200,

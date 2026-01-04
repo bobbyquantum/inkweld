@@ -99,15 +99,12 @@ test.describe('Worldbuilding Templates', () => {
     ];
 
     for (const element of elementTypes) {
-      console.log(`Creating element of type: ${element.type}`);
-
       // Check if there's already a dialog open
       const existingDialogs = await page
         .locator('mat-dialog-container')
         .count();
-      console.log(`Existing dialogs: ${existingDialogs}`);
+
       if (existingDialogs > 0) {
-        console.log('Closing existing dialog...');
         await page.keyboard.press('Escape');
         await page.waitForSelector('mat-dialog-container', {
           state: 'detached',
@@ -118,11 +115,9 @@ test.describe('Worldbuilding Templates', () => {
       // Ensure create-new-element is visible and clickable
       const addButton = page.getByTestId('create-new-element');
       await addButton.waitFor({ state: 'visible', timeout: 5000 });
-      console.log('Add button is visible, clicking...');
 
       // Create element
       await addButton.click();
-      console.log('Add button clicked');
 
       // Wait a moment for any async operations
       await page.waitForTimeout(500);
@@ -131,7 +126,6 @@ test.describe('Worldbuilding Templates', () => {
       const dialogCountAfterClick = await page
         .locator('mat-dialog-container')
         .count();
-      console.log(`Dialogs after click: ${dialogCountAfterClick}`);
 
       // Wait for dialog content to appear (mat-dialog-title or the search field)
       try {
@@ -139,21 +133,11 @@ test.describe('Worldbuilding Templates', () => {
           state: 'visible',
           timeout: 10000,
         });
-        console.log('Dialog search field is visible');
       } catch {
         // Take screenshot on failure
         await page.screenshot({
           path: `test-results/worldbuilding-dialog-failure-${element.type}.png`,
         });
-
-        // Check console errors
-        const consoleErrors = await page.evaluate(() => {
-          return (
-            (window as unknown as { consoleErrors?: string[] }).consoleErrors ??
-            []
-          );
-        });
-        console.log('Console errors:', consoleErrors);
 
         throw new Error(
           `Dialog did not open for ${element.type}. Dialogs present: ${dialogCountAfterClick}`
@@ -172,10 +156,6 @@ test.describe('Worldbuilding Templates', () => {
         const dialogContent = await page
           .locator('mat-dialog-content')
           .textContent();
-        console.error(
-          `Dialog content when waiting for ${element.type}:`,
-          dialogContent
-        );
         throw new Error(
           `Timeout waiting for element-type-${element.type}. Dialog content: ${dialogContent}`
         );

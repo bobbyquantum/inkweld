@@ -9,8 +9,6 @@ import { mockApi } from './index';
 export function setupAiImageHandlers(): void {
   // GET /api/v1/ai/providers/status - Providers status for admin page
   mockApi.addHandler('**/api/v1/ai/providers/status', async (route: Route) => {
-    console.log('Handling AI providers status request');
-
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -46,8 +44,6 @@ export function setupAiImageHandlers(): void {
   mockApi.addHandler(
     '**/api/v1/ai/image/default-models',
     async (route: Route) => {
-      console.log('Handling AI image default-models request');
-
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -86,8 +82,6 @@ export function setupAiImageHandlers(): void {
   mockApi.addHandler(
     '**/api/v1/ai/image/custom-sizes',
     async (route: Route) => {
-      console.log('Handling AI image custom-sizes request');
-
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -100,8 +94,6 @@ export function setupAiImageHandlers(): void {
 
   // GET /api/v1/ai/image/status - Image generation status
   mockApi.addHandler('**/api/v1/ai/image/status', async (route: Route) => {
-    console.log('Handling AI image status request');
-
     // Return data matching ImageGenerationStatus type
     await route.fulfill({
       status: 200,
@@ -204,8 +196,6 @@ export function setupAiImageHandlers(): void {
     const url = new URL(route.request().url());
     const pathParts = url.pathname.split('/');
     const provider = pathParts[pathParts.length - 1];
-
-    console.log(`Handling AI image models request for provider: ${provider}`);
 
     interface ImageModelInfo {
       id: string;
@@ -327,7 +317,6 @@ export function setupAiImageHandlers(): void {
       await route.continue();
       return;
     }
-    console.log('Handling AI image profiles list request');
 
     await route.fulfill({
       status: 200,
@@ -375,7 +364,6 @@ export function setupAiImageHandlers(): void {
       }
 
       if (method === 'PATCH') {
-        console.log('Handling admin AI image profile update request');
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -397,7 +385,6 @@ export function setupAiImageHandlers(): void {
           }),
         });
       } else if (method === 'DELETE') {
-        console.log('Handling admin AI image profile delete request');
         await route.fulfill({
           status: 204,
           contentType: 'application/json',
@@ -413,8 +400,6 @@ export function setupAiImageHandlers(): void {
   mockApi.addHandler(
     '**/api/v1/admin/image-profiles/providers',
     async (route: Route) => {
-      console.log('Handling admin AI image profiles providers request');
-
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -484,8 +469,6 @@ export function setupAiImageHandlers(): void {
   mockApi.addHandler('**/api/v1/admin/image-profiles', async (route: Route) => {
     const method = route.request().method();
     if (method === 'GET') {
-      console.log('Handling admin AI image profiles list request');
-
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -541,7 +524,6 @@ export function setupAiImageHandlers(): void {
         ]),
       });
     } else if (method === 'POST') {
-      console.log('Handling admin AI image profile create request');
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
@@ -577,8 +559,6 @@ export function setupAiImageHandlers(): void {
       return;
     }
 
-    console.log('Handling AI image generation request');
-
     // Parse request body
     let body: {
       prompt: string;
@@ -593,8 +573,8 @@ export function setupAiImageHandlers(): void {
       if (postData) {
         body = JSON.parse(postData) as typeof body;
       }
-    } catch (e) {
-      console.error('Failed to parse request body:', e);
+    } catch {
+      // Ignore parse errors
     }
 
     const prompt = body.prompt || 'A beautiful image';

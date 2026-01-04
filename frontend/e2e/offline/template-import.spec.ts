@@ -223,8 +223,6 @@ test.describe('Template Worldbuilding Import', () => {
     ];
 
     for (const char of characters) {
-      console.log(`Testing character: ${char.name}`);
-
       // Click on character
       const charElement = page.getByRole('treeitem', { name: char.name });
       await expect(charElement).toBeVisible({ timeout: 5000 });

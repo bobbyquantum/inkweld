@@ -346,10 +346,6 @@ test.describe('Element Reference (@mentions)', () => {
       const ariaLabel = await elementRef.getAttribute('aria-label');
       expect(ariaLabel).toBeTruthy();
       expect(ariaLabel!.length).toBeGreaterThan(0);
-
-      // Log the element's HTML for debugging
-      const html = await elementRef.evaluate(el => el.outerHTML);
-      console.log('Element ref HTML:', html);
     }
   });
 

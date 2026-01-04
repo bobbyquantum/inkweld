@@ -283,22 +283,6 @@ test.describe('Online Publishing Workflow', () => {
         timeout: 10000,
       });
 
-      // Log debugging info about the document state
-      const docId = await page.evaluate(() => {
-        // Try to find the document ID being used
-        const projectState = (window as unknown as Record<string, unknown>)[
-          'inkweldDebug'
-        ];
-        if (projectState) {
-          console.log('Project state:', projectState);
-        }
-        // Get IndexedDB databases
-        return indexedDB.databases
-          ? indexedDB.databases()
-          : Promise.resolve([]);
-      });
-      console.log('IndexedDB databases:', docId);
-
       // Additional wait to ensure IndexedDB is persisted
       // y-indexeddb debounces writes with 1000ms timeout, and storeState needs
       // to complete before the data is available. Wait 3 seconds to be safe.
@@ -360,7 +344,7 @@ test.describe('Online Publishing Workflow', () => {
         const data = await fs.readFile(filePath);
         // PDF with actual content should be substantially larger than empty PDF (~6KB)
         // An empty PDF has only metadata/fonts, while one with content has text streams
-        console.log('PDF size:', data.length, 'bytes');
+
         expect(data.length).toBeGreaterThan(10000);
 
         // The PDF is generated with actual document content because:
@@ -429,14 +413,6 @@ test.describe('Online Publishing Workflow', () => {
         timeout: 10000,
       });
 
-      // Log debugging info about the document state
-      const docId = await page.evaluate(() => {
-        return indexedDB.databases
-          ? indexedDB.databases()
-          : Promise.resolve([]);
-      });
-      console.log('EPUB test - IndexedDB databases:', docId);
-
       // Additional wait to ensure IndexedDB is persisted
       // y-indexeddb debounces writes with 1000ms timeout
       await page.waitForTimeout(3000);
@@ -487,24 +463,20 @@ test.describe('Online Publishing Workflow', () => {
       expect(filePath).toBeTruthy();
       if (filePath) {
         const data = await fs.readFile(filePath);
-        console.log('EPUB size:', data.length, 'bytes');
+
         // EPUB should be at least 1000 bytes (basic structure + content)
         expect(data.length).toBeGreaterThan(1000);
 
         // Use AdmZip to extract and read EPUB contents (EPUB is a ZIP file)
         const zip = new AdmZip(filePath);
         const zipEntries = zip.getEntries();
-        console.log(
-          'EPUB entries:',
-          zipEntries.map(e => e.entryName)
-        );
 
         // Find and read the chapter XHTML files
         let allContent = '';
         for (const entry of zipEntries) {
           if (entry.entryName.endsWith('.xhtml')) {
             const content = entry.getData().toString('utf-8');
-            console.log(`EPUB ${entry.entryName} content:`, content);
+
             allContent += content;
           }
         }
@@ -514,7 +486,6 @@ test.describe('Online Publishing Workflow', () => {
           allContent.includes('riverbank') ||
           allContent.includes('lazy dog');
 
-        console.log('EPUB has test content:', hasTestContent);
         expect(hasTestContent).toBeTruthy();
       }
     });
@@ -623,8 +594,6 @@ test.describe('Online Publishing Workflow', () => {
       expect(filePath).toBeTruthy();
       if (filePath) {
         const data = await fs.readFile(filePath, 'utf-8');
-        console.log('Markdown size:', data.length, 'characters');
-        console.log('Markdown content preview:', data.substring(0, 500));
 
         // Markdown should contain our test content in plain text
         const hasTestContent =
@@ -632,7 +601,6 @@ test.describe('Online Publishing Workflow', () => {
           data.includes('riverbank') ||
           data.includes('lazy dog');
 
-        console.log('Markdown has test content:', hasTestContent);
         expect(hasTestContent).toBeTruthy();
       }
     });
@@ -739,8 +707,6 @@ test.describe('Online Publishing Workflow', () => {
       expect(filePath).toBeTruthy();
       if (filePath) {
         const data = await fs.readFile(filePath, 'utf-8');
-        console.log('HTML size:', data.length, 'characters');
-        console.log('HTML content preview:', data.substring(0, 500));
 
         // HTML should contain our test content
         const hasTestContent =
@@ -748,7 +714,6 @@ test.describe('Online Publishing Workflow', () => {
           data.includes('riverbank') ||
           data.includes('lazy dog');
 
-        console.log('HTML has test content:', hasTestContent);
         expect(hasTestContent).toBeTruthy();
       }
     });

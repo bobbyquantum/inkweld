@@ -111,41 +111,13 @@ test.describe('Offline to Server Migration', () => {
         .first()
     ).toBeVisible({ timeout: 60000 });
 
-    // DEBUG: Check localStorage immediately after migration success message
-    const appConfigAfterMigration = await offlinePage.evaluate(() => {
-      return {
-        appConfig: localStorage.getItem('inkweld-app-config'),
-        authToken: localStorage.getItem('auth_token') ? 'EXISTS' : 'MISSING',
-        offlineUser: localStorage.getItem('inkweld-offline-user'),
-        offlineProjects: localStorage.getItem('inkweld-offline-projects'),
-      };
-    });
-    console.log(
-      '[TEST] After migration success, localStorage:',
-      JSON.stringify(appConfigAfterMigration, null, 2)
-    );
-
     // Step 13: Page will reload automatically after migration (1 second delay)
     // Wait for reload to complete
     await offlinePage.waitForLoadState('domcontentloaded', { timeout: 10000 });
 
-    // DEBUG: Check localStorage immediately AFTER reload
-    const appConfigAfterReload = await offlinePage.evaluate(() => {
-      return {
-        appConfig: localStorage.getItem('inkweld-app-config'),
-        authToken: localStorage.getItem('auth_token') ? 'EXISTS' : 'MISSING',
-        offlineUser: localStorage.getItem('inkweld-offline-user'),
-        offlineProjects: localStorage.getItem('inkweld-offline-projects'),
-      };
-    });
-    console.log(
-      '[TEST] AFTER reload, localStorage:',
-      JSON.stringify(appConfigAfterReload, null, 2)
-    );
-
     // Step 14: Verify we're now in server mode
     const finalMode = await getAppMode(offlinePage);
-    console.log('[TEST] Final mode from getAppMode():', finalMode);
+
     expect(finalMode).toBe('server');
 
     // Step 15: Close settings dialog if it's still open (should have closed during reload)
