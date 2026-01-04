@@ -9,8 +9,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { By } from '@angular/platform-browser';
 import { Event, Router } from '@angular/router';
+import { SwUpdate } from '@angular/service-worker';
 import { Configuration, UsersService } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
+import { UpdateService } from '@services/core/update.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
@@ -84,10 +86,22 @@ describe('AppComponent', () => {
           },
         },
         {
+          provide: UpdateService,
+          useValue: {},
+        },
+        {
+          provide: SwUpdate,
+          useValue: {
+            isEnabled: false,
+            versionUpdates: new Subject(),
+          },
+        },
+        {
           provide: Router,
           useValue: {
             events: routerEvents.asObservable(),
             navigate: vi.fn().mockResolvedValue(true),
+            url: '/',
           },
         },
       ],
@@ -275,6 +289,7 @@ describe('AppComponent', () => {
         writable: true,
       });
 
+      vi.clearAllMocks();
       component.ngOnInit();
       await fixture.whenStable();
 
@@ -289,6 +304,7 @@ describe('AppComponent', () => {
         writable: true,
       });
 
+      vi.clearAllMocks();
       component.ngOnInit();
       await fixture.whenStable();
 
@@ -303,6 +319,7 @@ describe('AppComponent', () => {
         writable: true,
       });
 
+      vi.clearAllMocks();
       component.ngOnInit();
       await fixture.whenStable();
 

@@ -6,6 +6,7 @@ import { Router, RouterOutlet } from '@angular/router';
 
 import { ThemeService } from '../themes/theme.service';
 import { SetupService } from './services/core/setup.service';
+import { UpdateService } from './services/core/update.service';
 import { UnifiedUserService } from './services/user/unified-user.service';
 
 @Component({
@@ -24,6 +25,7 @@ export class AppComponent implements OnInit {
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);
   protected readonly setupService = inject(SetupService);
+  protected readonly updateService = inject(UpdateService);
   protected readonly unifiedUserService = inject(UnifiedUserService);
   protected readonly router = inject(Router);
 
