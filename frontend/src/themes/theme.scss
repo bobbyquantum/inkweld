@@ -4,6 +4,10 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 // Note: Color palettes are generated from primary: #ffffff
 $_palettes: (
   primary: (

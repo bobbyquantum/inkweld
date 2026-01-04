@@ -17,6 +17,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
+import { AnnouncementFeedComponent } from '@components/announcement-feed/announcement-feed.component';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
@@ -42,6 +43,7 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     MatProgressSpinnerModule,
     ReactiveFormsModule,
     RouterModule,
+    AnnouncementFeedComponent,
     ProjectCardComponent,
     UserMenuComponent,
     SideNavComponent,

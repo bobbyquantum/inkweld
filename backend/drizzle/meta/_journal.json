@@ -71,6 +71,13 @@
       "when": 1767043469216,
       "tag": "0009_add-project-collaborators",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1767554700552,
+      "tag": "0010_aromatic_harpoon",
+      "breakpoints": true
     }
   ]
 }

@@ -28,6 +28,11 @@ import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
 import { adminConfigRoutes } from '../routes/admin-config.routes';
 import { imageProfileUserRoutes, imageProfileAdminRoutes } from '../routes/image-profile.routes';
+import {
+  publicAnnouncementRoutes,
+  announcementRoutes,
+  adminAnnouncementRoutes,
+} from '../routes/announcement.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -85,4 +90,9 @@ export function registerCommonRoutes(app: any): void {
 
   // Public share endpoints (no auth required)
   app.route('/api/v1/share', shareRoutes);
+
+  // Announcements
+  app.route('/api/v1/announcements', publicAnnouncementRoutes);
+  app.route('/api/v1/announcements', announcementRoutes);
+  app.route('/api/v1/admin/announcements', adminAnnouncementRoutes);
 }

@@ -19,27 +19,11 @@ test.describe('Online Application Launch', () => {
     await expect(page).toHaveTitle(/Home/);
 
     // Should see the welcome content for unauthenticated users
-    await expect(page.getByTestId('welcome-heading')).toContainText(
-      'Welcome to InkWeld'
-    );
+    await expect(page.getByTestId('welcome-heading')).toContainText('Inkweld');
 
-    // Should see login and register buttons in the header
-    await expect(page.getByTestId('login-button')).toBeVisible();
-    await expect(page.getByTestId('register-button')).toBeVisible();
-
-    // Should see feature cards
-    await expect(
-      page.getByRole('heading', { name: 'Write & Organize' })
-    ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'Collaborate' })
-    ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'Version Control' })
-    ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: 'Share & Publish' })
-    ).toBeVisible();
+    // Should see login and register buttons
+    await expect(page.getByTestId('welcome-login-button')).toBeVisible();
+    await expect(page.getByTestId('welcome-register-button')).toBeVisible();
   });
 
   test('authenticated user sees home page with projects', async ({

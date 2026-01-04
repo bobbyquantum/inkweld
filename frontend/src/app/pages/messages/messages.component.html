@@ -1,0 +1,51 @@
+<div class="messages-page" data-testid="messages-page">
+  <mat-toolbar class="messages-toolbar">
+    <button mat-icon-button routerLink="/" aria-label="Back to home">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="toolbar-title">Messages</span>
+    <span class="spacer"></span>
+    @if (hasUnread) {
+      <button
+        mat-button
+        (click)="onMarkAllAsRead()"
+        data-testid="mark-all-read-btn">
+        <mat-icon>done_all</mat-icon>
+        Mark all as read
+      </button>
+    }
+  </mat-toolbar>
+
+  <div class="messages-content">
+    @if (announcementService.isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Loading messages...</p>
+      </div>
+    } @else if (!hasAnnouncements) {
+      <div class="empty-state">
+        <mat-icon class="empty-icon">inbox</mat-icon>
+        <h2>No messages</h2>
+        <p>You're all caught up! Check back later for updates.</p>
+        <button mat-stroked-button color="primary" routerLink="/">
+          <mat-icon>home</mat-icon>
+          Back to Home
+        </button>
+      </div>
+    } @else {
+      <div class="messages-list" data-testid="messages-list">
+        @for (
+          announcement of announcementService.announcements();
+          track announcement.id
+        ) {
+          <app-announcement-card
+            [announcement]="announcement"
+            [showReadStatus]="true"
+            [compact]="false"
+            (markAsRead)="onMarkAsRead($event)">
+          </app-announcement-card>
+        }
+      </div>
+    }
+  </div>
+</div>

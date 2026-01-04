@@ -1,0 +1,21 @@
+@if (announcementService.isLoading()) {
+  <div class="loading-container">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+} @else if (hasAnnouncements) {
+  <div class="announcement-feed" data-testid="announcement-feed">
+    <div class="feed-header">
+      <mat-icon>campaign</mat-icon>
+      <h3>Latest Updates</h3>
+    </div>
+    <div class="feed-content">
+      @for (announcement of displayedAnnouncements; track announcement.id) {
+        <app-announcement-card
+          [announcement]="announcement"
+          [compact]="compact"
+          [showReadStatus]="false">
+        </app-announcement-card>
+      }
+    </div>
+  </div>
+}

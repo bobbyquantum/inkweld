@@ -1,4 +1,5 @@
-import { Component, computed, inject, Input } from '@angular/core';
+import { Component, computed, inject, Input, OnInit } from '@angular/core';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,6 +7,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { User } from '@inkweld/index';
+import { AnnouncementService } from '@services/announcement/announcement.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
@@ -23,6 +25,7 @@ interface AdminUser extends User {
   selector: 'app-user-menu',
   standalone: true,
   imports: [
+    MatBadgeModule,
     MatButtonModule,
     MatMenuModule,
     MatIconModule,
@@ -34,9 +37,10 @@ interface AdminUser extends User {
   templateUrl: './user-menu.component.html',
   styleUrl: './user-menu.component.scss',
 })
-export class UserMenuComponent {
+export class UserMenuComponent implements OnInit {
   protected userService = inject(UnifiedUserService);
   protected setupService = inject(SetupService);
+  protected announcementService = inject(AnnouncementService);
   private dialogGateway = inject(DialogGatewayService);
   private themeService = inject(ThemeService);
 
@@ -52,6 +56,18 @@ export class UserMenuComponent {
     const currentUser = this.userService.currentUser() as AdminUser | undefined;
     return currentUser?.isAdmin === true;
   });
+
+  // Unread announcement count
+  protected unreadCount = computed(() =>
+    this.announcementService.unreadCount()
+  );
+
+  ngOnInit(): void {
+    // Load unread count when in server mode
+    if (this.setupService.getMode() === 'server') {
+      void this.announcementService.loadUnreadCount();
+    }
+  }
 
   async onLogout() {
     try {

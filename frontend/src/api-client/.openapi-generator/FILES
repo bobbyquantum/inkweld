@@ -9,6 +9,7 @@ api/admin.service.ts
 api/ai-image-generation.service.ts
 api/ai-providers.service.ts
 api/ai-text-generation.service.ts
+api/announcements.service.ts
 api/api.ts
 api/authentication.service.ts
 api/collaboration.service.ts
@@ -32,6 +33,7 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/admin-create-announcement-request.ts
 model/admin-get-all-config200-response-value.ts
 model/admin-image-model-profile.ts
 model/admin-list-config-keys200-response-inner.ts
@@ -39,6 +41,7 @@ model/admin-list-image-providers200-response-inner.ts
 model/admin-list-pending-users200-response-inner.ts
 model/admin-set-config-request.ts
 model/admin-set-user-admin-request.ts
+model/admin-update-announcement-request.ts
 model/collaborated-project.ts
 model/collaboration-error.ts
 model/collaboration-message.ts
@@ -79,6 +82,7 @@ model/get-mcp-permissions200-response-permissions-inner.ts
 model/get-mcp-permissions200-response.ts
 model/get-provider-models200-response.ts
 model/get-shared-file-info200-response.ts
+model/get-unread-announcement-count200-response.ts
 model/health-response.ts
 model/image-error.ts
 model/image-generate-request.ts
@@ -104,6 +108,8 @@ model/lint-error.ts
 model/lint-request.ts
 model/lint-response.ts
 model/lint-status.ts
+model/list-announcements200-response-inner.ts
+model/list-public-announcements200-response-inner.ts
 model/login-request.ts
 model/login-response.ts
 model/mcp-error.ts
