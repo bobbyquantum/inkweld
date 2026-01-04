@@ -1,0 +1,113 @@
+.changelog-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+
+  .changelog-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+  }
+
+  .loading-state, .error-state {
+    text-align: center;
+    padding: 3rem;
+    
+    mat-icon {
+      font-size: 3rem;
+      width: 3rem;
+      height: 3rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  mat-accordion {
+    .mat-expansion-panel {
+      margin-bottom: 0.5rem;
+      border-radius: 8px !important;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+      &::before {
+        display: none;
+      }
+    }
+
+    .mat-expansion-panel-header {
+      padding: 0 1.5rem;
+      height: 64px;
+    }
+
+    .mat-panel-title {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .version-tag {
+      font-weight: bold;
+      padding: 0.25rem 0.75rem;
+      background: var(--mat-sys-primary-container);
+      color: var(--mat-sys-on-primary-container);
+      border-radius: 16px;
+      font-size: 0.9rem;
+
+      &.unreleased {
+        background: var(--mat-sys-tertiary-container);
+        color: var(--mat-sys-on-tertiary-container);
+      }
+    }
+
+    .version-date {
+      color: var(--mat-sys-on-surface-variant);
+      font-size: 0.9rem;
+    }
+  }
+
+  .changelog-content {
+    padding: 1rem 0;
+    line-height: 1.6;
+
+    ::ng-deep {
+      h3 {
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 1.2rem;
+        color: var(--mat-sys-primary);
+      }
+
+      h4 {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        font-weight: bold;
+      }
+
+      ul {
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+
+        li {
+          margin-bottom: 0.5rem;
+        }
+      }
+
+      p {
+        margin-bottom: 1rem;
+      }
+
+      code {
+        background: var(--mat-sys-surface-container-highest);
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+    }
+  }
+}

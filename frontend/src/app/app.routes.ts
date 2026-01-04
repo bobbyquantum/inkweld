@@ -26,6 +26,14 @@ export const routes: Routes = [
     title: 'About Inkweld',
   },
   {
+    path: 'about/changelog',
+    loadComponent: () =>
+      import('./pages/about/changelog/changelog.component').then(
+        m => m.ChangelogComponent
+      ),
+    title: 'Changelog',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),
