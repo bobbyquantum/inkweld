@@ -4,15 +4,7 @@ import { Routes } from '@angular/router';
 import { adminGuard } from './guards/admin.guard';
 import { authGuard } from './guards/auth.guard';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
-import { ProjectComponent } from './pages/project/project.component';
-import { DocumentTabComponent } from './pages/project/tabs/document/document-tab.component';
-import { DocumentsListTabComponent } from './pages/project/tabs/documents-list/documents-list-tab.component';
-import { FolderTabComponent } from './pages/project/tabs/folder/folder-tab.component';
-import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
-import { MediaTabComponent } from './pages/project/tabs/media/media-tab.component';
-import { PublishPlanTabComponent } from './pages/project/tabs/publish-plan/publish-plan-tab.component';
-import { SettingsTabComponent } from './pages/project/tabs/settings/settings-tab.component';
-import { WorldbuildingTabComponent } from './pages/project/tabs/worldbuilding/worldbuilding-tab.component';
+import type { ProjectComponent } from './pages/project/project.component';
 
 export const routes: Routes = [
   {
@@ -143,32 +135,47 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        component: HomeTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/home/home-tab.component').then(
+            m => m.HomeTabComponent
+          ),
       },
       {
         path: 'document/:tabId',
-        component: DocumentTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/document/document-tab.component').then(
+            m => m.DocumentTabComponent
+          ),
         data: {
           reuseComponent: false, // Prevent component reuse
         },
       },
       {
         path: 'folder/:tabId',
-        component: FolderTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/folder/folder-tab.component').then(
+            m => m.FolderTabComponent
+          ),
         data: {
           reuseComponent: false, // Prevent component reuse
         },
       },
       {
         path: 'documents-list',
-        component: DocumentsListTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/documents-list/documents-list-tab.component').then(
+            m => m.DocumentsListTabComponent
+          ),
         data: {
           reuseComponent: false,
         },
       },
       {
         path: 'media',
-        component: MediaTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/media/media-tab.component').then(
+            m => m.MediaTabComponent
+          ),
         data: {
           reuseComponent: false,
         },
@@ -187,7 +194,10 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        component: SettingsTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/settings/settings-tab.component').then(
+            m => m.SettingsTabComponent
+          ),
         data: {
           reuseComponent: false,
         },
@@ -200,14 +210,20 @@ export const routes: Routes = [
       },
       {
         path: 'worldbuilding/:tabId',
-        component: WorldbuildingTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/worldbuilding/worldbuilding-tab.component').then(
+            m => m.WorldbuildingTabComponent
+          ),
         data: {
           reuseComponent: false,
         },
       },
       {
         path: 'publish-plan/:tabId',
-        component: PublishPlanTabComponent,
+        loadComponent: () =>
+          import('./pages/project/tabs/publish-plan/publish-plan-tab.component').then(
+            m => m.PublishPlanTabComponent
+          ),
         data: {
           reuseComponent: false,
         },

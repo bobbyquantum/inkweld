@@ -15,11 +15,17 @@
         <mat-icon>close</mat-icon>
       </button>
       @if (getCurrentDocumentId()) {
-        <app-document-element-editor
-          [documentId]="getCurrentDocumentId()!"
-          [tabsDisabled]="!useTabsDesktop()"
-          [zenMode]="true">
-        </app-document-element-editor>
+        @defer (on idle) {
+          <app-document-element-editor
+            [documentId]="getCurrentDocumentId()!"
+            [tabsDisabled]="!useTabsDesktop()"
+            [zenMode]="true">
+          </app-document-element-editor>
+        } @placeholder {
+          <div class="zen-editor-placeholder">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        }
       }
     </div>
   </div>
@@ -47,8 +53,14 @@
           </div>
         </div>
       </div>
-      <app-project-tree
-        (documentOpened)="onDocumentOpened($event)"></app-project-tree>
+      @defer (on idle) {
+        <app-project-tree
+          (documentOpened)="onDocumentOpened($event)"></app-project-tree>
+      } @placeholder {
+        <div class="tree-placeholder">
+          <mat-spinner diameter="30"></mat-spinner>
+        </div>
+      }
     </mat-sidenav>
   }
   <mat-sidenav-content [class.no-toolbar]="!isMobile() && useTabsDesktop()">
@@ -177,14 +189,26 @@
           <!-- Sidebar area -->
           <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
             <div class="sidebar-area">
-              <app-project-tree
-                (documentOpened)="onDocumentOpened($event)"></app-project-tree>
+              @defer (on idle) {
+                <app-project-tree
+                  (documentOpened)="
+                    onDocumentOpened($event)
+                  "></app-project-tree>
+              } @placeholder {
+                <div class="tree-placeholder">
+                  <mat-spinner diameter="30"></mat-spinner>
+                </div>
+              }
               <!-- Connection Status -->
-              <app-connection-status
-                [syncState]="projectSyncState()"
-                (syncRequested)="onRetrySyncConnection()"
-                data-testid="sidebar-connection-status">
-              </app-connection-status>
+              @defer (on idle) {
+                <app-connection-status
+                  [syncState]="projectSyncState()"
+                  (syncRequested)="onRetrySyncConnection()"
+                  data-testid="sidebar-connection-status">
+                </app-connection-status>
+              } @placeholder {
+                <div class="connection-placeholder"></div>
+              }
               <!-- Fixed bottom navigation -->
               <div class="sidebar-bottom-nav">
                 <div

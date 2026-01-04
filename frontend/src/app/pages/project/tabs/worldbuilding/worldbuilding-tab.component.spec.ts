@@ -1,5 +1,9 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  DeferBlockState,
+  TestBed,
+} from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { BehaviorSubject } from 'rxjs';
@@ -323,10 +327,14 @@ describe('WorldbuildingTabComponent', () => {
   });
 
   describe('template rendering', () => {
-    it('should show worldbuilding editor when elementId and elementType are set', () => {
+    it('should show worldbuilding editor when elementId and elementType are set', async () => {
       mockProjectState.project.set(mockProject);
       mockProjectState.elements.set([mockElement]);
       fixture.detectChanges();
+
+      // Trigger the defer block
+      const deferBlocks = await fixture.getDeferBlocks();
+      await deferBlocks[0].render(DeferBlockState.Complete);
 
       const compiled = fixture.nativeElement;
       const editor = compiled.querySelector('app-worldbuilding-editor');

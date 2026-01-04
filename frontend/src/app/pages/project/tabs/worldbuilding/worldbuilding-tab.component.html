@@ -1,9 +1,15 @@
 @if (elementId() && elementType() && username() && slug()) {
-  <app-worldbuilding-editor
-    [elementId]="elementId()"
-    [elementType]="elementType()!"
-    [username]="username()!"
-    [slug]="slug()!"></app-worldbuilding-editor>
+  @defer (on idle) {
+    <app-worldbuilding-editor
+      [elementId]="elementId()"
+      [elementType]="elementType()!"
+      [username]="username()!"
+      [slug]="slug()!"></app-worldbuilding-editor>
+  } @placeholder {
+    <div class="editor-placeholder">
+      <span>Loading worldbuilding editor...</span>
+    </div>
+  }
 } @else {
   <div class="error-message">
     <p>Unable to load worldbuilding element.</p>
