@@ -364,8 +364,9 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     if (item.isImage) return 'image';
     if (item.mimeType.includes('pdf')) return 'picture_as_pdf';
     if (item.mimeType.includes('epub')) return 'book';
-    if (item.mimeType.includes('zip') || item.mimeType.includes('html'))
-      return 'folder_zip';
+    if (item.mimeType.includes('html') || item.mimeType.includes('markdown'))
+      return 'article';
+    if (item.mimeType.includes('zip')) return 'folder_zip';
     return 'insert_drive_file';
   }
 

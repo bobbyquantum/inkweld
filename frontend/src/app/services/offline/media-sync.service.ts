@@ -464,6 +464,15 @@ export class MediaSyncService {
       'image/gif': 'gif',
       'image/webp': 'webp',
       'image/svg+xml': 'svg',
+      'application/pdf': 'pdf',
+      'application/epub+zip': 'epub',
+      'text/html': 'html',
+      'text/markdown': 'md',
+      'audio/mpeg': 'mp3',
+      'audio/wav': 'wav',
+      'audio/ogg': 'ogg',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
     };
     return extensions[mimeType] || 'bin';
   }

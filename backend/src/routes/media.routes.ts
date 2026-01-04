@@ -108,16 +108,20 @@ mediaRoutes.openapi(listMediaRoute, async (c): Promise<any> => {
   // List files from storage
   const files = await storage.listProjectFiles(username, slug, prefix);
 
-  // Filter to only include media files (images, audio, video)
+  // Filter to only include media files (images, audio, video, and published exports)
   const mediaFiles = files.filter((file) => {
     if (!file.mimeType) {
       // Include common media extensions without mime type
-      return /\.(jpg|jpeg|png|gif|webp|svg|mp3|mp4|wav|ogg)$/i.test(file.filename);
+      return /\.(jpg|jpeg|png|gif|webp|svg|mp3|mp4|wav|ogg|pdf|epub|html|md)$/i.test(file.filename);
     }
     return (
       file.mimeType.startsWith('image/') ||
       file.mimeType.startsWith('audio/') ||
-      file.mimeType.startsWith('video/')
+      file.mimeType.startsWith('video/') ||
+      file.mimeType === 'application/pdf' ||
+      file.mimeType === 'application/epub+zip' ||
+      file.mimeType === 'text/html' ||
+      file.mimeType === 'text/markdown'
     );
   });
 
@@ -217,10 +221,30 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
   }
 
   // Validate file type
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-  if (!allowedTypes.includes(file.type)) {
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml',
+    'audio/mpeg',
+    'audio/wav',
+    'audio/ogg',
+    'video/mp4',
+    'video/webm',
+    'application/pdf',
+    'application/epub+zip',
+    'text/html',
+    'text/markdown',
+  ];
+  if (
+    !allowedTypes.includes(file.type) &&
+    !file.type.startsWith('image/') &&
+    !file.type.startsWith('audio/') &&
+    !file.type.startsWith('video/')
+  ) {
     throw new BadRequestError(
-      `Invalid file type: ${file.type}. Allowed: ${allowedTypes.join(', ')}`
+      `Invalid file type: ${file.type}. Allowed: images, audio, video, PDF, EPUB, HTML, Markdown`
     );
   }
 

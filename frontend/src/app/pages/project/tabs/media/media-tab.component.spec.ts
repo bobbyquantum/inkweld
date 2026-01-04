@@ -276,6 +276,14 @@ describe('MediaTabComponent', () => {
       isImage: false,
       mimeType: 'application/zip',
     } as MediaItem;
+    const htmlItem = {
+      isImage: false,
+      mimeType: 'text/html',
+    } as MediaItem;
+    const mdItem = {
+      isImage: false,
+      mimeType: 'text/markdown',
+    } as MediaItem;
     const otherItem = {
       isImage: false,
       mimeType: 'text/plain',
@@ -285,6 +293,8 @@ describe('MediaTabComponent', () => {
     expect(component.getMediaIcon(epubItem)).toBe('book');
     expect(component.getMediaIcon(pdfItem)).toBe('picture_as_pdf');
     expect(component.getMediaIcon(zipItem)).toBe('folder_zip');
+    expect(component.getMediaIcon(htmlItem)).toBe('article');
+    expect(component.getMediaIcon(mdItem)).toBe('article');
     expect(component.getMediaIcon(otherItem)).toBe('insert_drive_file');
   });
 
