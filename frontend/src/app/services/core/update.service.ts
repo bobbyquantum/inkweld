@@ -1,5 +1,7 @@
 import { inject, Injectable } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import { filter } from 'rxjs/operators';
 
 @Injectable({
@@ -7,6 +9,7 @@ import { filter } from 'rxjs/operators';
 })
 export class UpdateService {
   private swUpdate = inject(SwUpdate);
+  private dialog = inject(MatDialog);
 
   constructor() {
     if (this.swUpdate.isEnabled) {
@@ -20,9 +23,7 @@ export class UpdateService {
         )
         .subscribe(evt => {
           console.log('New version available!', evt);
-          if (confirm('A new version of Inkweld is available. Update now?')) {
-            window.location.reload();
-          }
+          this.showUpdateDialog();
         });
 
       // Check for updates every hour
@@ -30,5 +31,22 @@ export class UpdateService {
         void this.swUpdate.checkForUpdate();
       }, 3600000);
     }
+  }
+
+  private showUpdateDialog(): void {
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Update Available',
+        message: 'A new version of Inkweld is available. Update now?',
+        confirmText: 'Update',
+        cancelText: 'Later',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        window.location.reload();
+      }
+    });
   }
 }
