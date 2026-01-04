@@ -23,9 +23,9 @@ export class DocumentTabComponent {
     // selectedTabIndex directly indexes into openTabs (home is at index 0)
     if (selectedIndex >= 0 && selectedIndex < tabs.length) {
       const tab = tabs[selectedIndex];
-      if (tab?.element) {
+      if (tab?.element?.id) {
         const project = this.projectState.project();
-        if (project) {
+        if (project?.username && project?.slug) {
           // Return the properly formatted ID: username:slug:elementId
           return `${project.username}:${project.slug}:${tab.element.id}`;
         }

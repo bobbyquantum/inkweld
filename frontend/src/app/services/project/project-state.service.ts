@@ -1160,7 +1160,8 @@ export class ProjectStateService implements OnDestroy {
             selectedIndex = validTabs.findIndex(
               t => t.systemType === 'templates-list'
             );
-          } else if (lastSegment.match(/^[a-f0-9-]+$/)) {
+          } else if (lastSegment && lastSegment !== project.slug) {
+            // Match any element ID (slugs like 'doc-moonveil-accord' or UUIDs)
             selectedIndex = validTabs.findIndex(t => t.id === lastSegment);
           }
 

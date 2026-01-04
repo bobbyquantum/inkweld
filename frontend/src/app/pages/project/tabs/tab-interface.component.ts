@@ -177,11 +177,22 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       const isLoading = this.projectState.isLoading();
       const project = this.projectState.project();
+      const elements = this.projectState.elements();
       const currentUrl = this.router.url;
+
+      // For document/folder tabs, we need elements to be loaded first
+      // Check if the URL contains a document/folder path that needs elements
+      const urlParts = currentUrl.split('/').filter(p => p);
+      const tabType = urlParts[2]; // 'document', 'folder', etc.
+      const needsElements = tabType === 'document' || tabType === 'folder';
+
+      // Wait for elements if we need them for this URL
+      if (needsElements && elements.length === 0) {
+        return; // Elements haven't loaded yet, effect will re-run when they do
+      }
 
       if (!isLoading && !this.initialSyncDone && project) {
         // Verify the project matches the current URL before syncing
-        const urlParts = currentUrl.split('/').filter(p => p);
         const urlUsername = urlParts[0];
         const urlSlug = urlParts[1];
 
@@ -476,6 +487,20 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       tabIndex = this.projectState
         .openTabs()
         .findIndex(tab => tab.id === tabId);
+
+      // If tab not found, try to find and open the element
+      if (tabIndex === -1) {
+        const elements = this.projectState.elements();
+        const element = elements.find(el => el.id === tabId);
+        if (element) {
+          // Open the document/folder which will create the tab
+          this.projectState.openDocument(element);
+          // Re-find the tab index after creating
+          tabIndex = this.projectState
+            .openTabs()
+            .findIndex(tab => tab.id === tabId);
+        }
+      }
     }
     if (tabIndex !== -1) {
       this.projectState.selectTab(tabIndex);

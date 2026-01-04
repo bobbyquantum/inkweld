@@ -322,7 +322,6 @@ export class DocumentElementEditorComponent
       }
 
       // Only setup new connection if we have a valid new documentId
-      // (not empty, not 'invalid', and not just username:slug:)
       if (newDocId && newDocId !== 'invalid' && !newDocId.endsWith(':')) {
         this.idFormatted = false;
         this.collaborationSetup = false; // Reset collaboration flag
