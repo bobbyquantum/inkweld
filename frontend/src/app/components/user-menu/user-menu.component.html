@@ -77,6 +77,21 @@
             <span>Admin</span>
           </button>
         }
+        @if (setupService.getMode() === 'server') {
+          <button
+            mat-menu-item
+            routerLink="/messages"
+            data-testid="messages-menu-link">
+            <mat-icon
+              [matBadge]="unreadCount()"
+              [matBadgeHidden]="unreadCount() === 0"
+              matBadgeColor="warn"
+              matBadgeSize="small">
+              mail
+            </mat-icon>
+            <span>Messages</span>
+          </button>
+        }
         <button mat-menu-item (click)="onSettings()">
           <mat-icon>settings</mat-icon>
           <span>Settings</span>

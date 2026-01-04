@@ -9447,6 +9447,1186 @@
           }
         }
       }
+    },
+    "/api/v1/announcements/public": {
+      "get": {
+        "tags": [
+          "Announcements"
+        ],
+        "summary": "List public announcements",
+        "description": "Get a list of published public announcements (no authentication required)",
+        "operationId": "listPublicAnnouncements",
+        "responses": {
+          "200": {
+            "description": "List of public announcements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "announcement",
+                          "update",
+                          "maintenance"
+                        ]
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "normal",
+                          "high"
+                        ]
+                      },
+                      "isPublic": {
+                        "type": "boolean"
+                      },
+                      "publishedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "expiresAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "content",
+                      "type",
+                      "priority",
+                      "isPublic",
+                      "publishedAt",
+                      "expiresAt",
+                      "createdAt",
+                      "updatedAt",
+                      "createdBy"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/announcements": {
+      "get": {
+        "tags": [
+          "Announcements"
+        ],
+        "summary": "List announcements",
+        "description": "Get a list of published announcements with read status for the current user",
+        "operationId": "listAnnouncements",
+        "responses": {
+          "200": {
+            "description": "List of announcements with read status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "announcement",
+                          "update",
+                          "maintenance"
+                        ]
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "normal",
+                          "high"
+                        ]
+                      },
+                      "isPublic": {
+                        "type": "boolean"
+                      },
+                      "publishedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "expiresAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      },
+                      "isRead": {
+                        "type": "boolean"
+                      },
+                      "readAt": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "content",
+                      "type",
+                      "priority",
+                      "isPublic",
+                      "publishedAt",
+                      "expiresAt",
+                      "createdAt",
+                      "updatedAt",
+                      "createdBy",
+                      "isRead",
+                      "readAt"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/announcements/unread-count": {
+      "get": {
+        "tags": [
+          "Announcements"
+        ],
+        "summary": "Get unread count",
+        "description": "Get the count of unread announcements for the current user",
+        "operationId": "getUnreadAnnouncementCount",
+        "responses": {
+          "200": {
+            "description": "Unread count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "count"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/announcements/{announcementId}/read": {
+      "post": {
+        "tags": [
+          "Announcements"
+        ],
+        "summary": "Mark as read",
+        "description": "Mark an announcement as read for the current user",
+        "operationId": "markAnnouncementAsRead",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Announcement ID"
+            },
+            "required": true,
+            "description": "Announcement ID",
+            "name": "announcementId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Announcement marked as read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Announcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/announcements/read-all": {
+      "post": {
+        "tags": [
+          "Announcements"
+        ],
+        "summary": "Mark all as read",
+        "description": "Mark all announcements as read for the current user",
+        "operationId": "markAllAnnouncementsAsRead",
+        "responses": {
+          "200": {
+            "description": "All announcements marked as read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List all announcements",
+        "description": "Get a list of all announcements including drafts (admin only)",
+        "operationId": "adminListAnnouncements",
+        "responses": {
+          "200": {
+            "description": "List of all announcements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "announcement",
+                          "update",
+                          "maintenance"
+                        ]
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "normal",
+                          "high"
+                        ]
+                      },
+                      "isPublic": {
+                        "type": "boolean"
+                      },
+                      "publishedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "expiresAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      },
+                      "createdBy": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "content",
+                      "type",
+                      "priority",
+                      "isPublic",
+                      "publishedAt",
+                      "expiresAt",
+                      "createdAt",
+                      "updatedAt",
+                      "createdBy"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create announcement",
+        "description": "Create a new announcement (admin only)",
+        "operationId": "adminCreateAnnouncement",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "announcement",
+                      "update",
+                      "maintenance"
+                    ]
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "normal",
+                      "high"
+                    ]
+                  },
+                  "isPublic": {
+                    "type": "boolean"
+                  },
+                  "publishedAt": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "title",
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Announcement created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "announcement",
+                        "update",
+                        "maintenance"
+                      ]
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ]
+                    },
+                    "isPublic": {
+                      "type": "boolean"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "content",
+                    "type",
+                    "priority",
+                    "isPublic",
+                    "publishedAt",
+                    "expiresAt",
+                    "createdAt",
+                    "updatedAt",
+                    "createdBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements/{announcementId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get announcement",
+        "description": "Get a single announcement by ID (admin only)",
+        "operationId": "adminGetAnnouncement",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Announcement ID"
+            },
+            "required": true,
+            "description": "Announcement ID",
+            "name": "announcementId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Announcement details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "announcement",
+                        "update",
+                        "maintenance"
+                      ]
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ]
+                    },
+                    "isPublic": {
+                      "type": "boolean"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "content",
+                    "type",
+                    "priority",
+                    "isPublic",
+                    "publishedAt",
+                    "expiresAt",
+                    "createdAt",
+                    "updatedAt",
+                    "createdBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Announcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update announcement",
+        "description": "Update an existing announcement (admin only)",
+        "operationId": "adminUpdateAnnouncement",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Announcement ID"
+            },
+            "required": true,
+            "description": "Announcement ID",
+            "name": "announcementId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "announcement",
+                      "update",
+                      "maintenance"
+                    ]
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "normal",
+                      "high"
+                    ]
+                  },
+                  "isPublic": {
+                    "type": "boolean"
+                  },
+                  "publishedAt": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Announcement updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "announcement",
+                        "update",
+                        "maintenance"
+                      ]
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ]
+                    },
+                    "isPublic": {
+                      "type": "boolean"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "content",
+                    "type",
+                    "priority",
+                    "isPublic",
+                    "publishedAt",
+                    "expiresAt",
+                    "createdAt",
+                    "updatedAt",
+                    "createdBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Announcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete announcement",
+        "description": "Delete an announcement (admin only)",
+        "operationId": "adminDeleteAnnouncement",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Announcement ID"
+            },
+            "required": true,
+            "description": "Announcement ID",
+            "name": "announcementId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Announcement deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Announcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements/{announcementId}/publish": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Publish announcement",
+        "description": "Publish a draft announcement (admin only)",
+        "operationId": "adminPublishAnnouncement",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Announcement ID"
+            },
+            "required": true,
+            "description": "Announcement ID",
+            "name": "announcementId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Announcement published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "announcement",
+                        "update",
+                        "maintenance"
+                      ]
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ]
+                    },
+                    "isPublic": {
+                      "type": "boolean"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "content",
+                    "type",
+                    "priority",
+                    "isPublic",
+                    "publishedAt",
+                    "expiresAt",
+                    "createdAt",
+                    "updatedAt",
+                    "createdBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Announcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/announcements/{announcementId}/unpublish": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Unpublish announcement",
+        "description": "Unpublish an announcement (convert to draft) (admin only)",
+        "operationId": "adminUnpublishAnnouncement",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Announcement ID"
+            },
+            "required": true,
+            "description": "Announcement ID",
+            "name": "announcementId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Announcement unpublished",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "announcement",
+                        "update",
+                        "maintenance"
+                      ]
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "normal",
+                        "high"
+                      ]
+                    },
+                    "isPublic": {
+                      "type": "boolean"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "content",
+                    "type",
+                    "priority",
+                    "isPublic",
+                    "publishedAt",
+                    "expiresAt",
+                    "createdAt",
+                    "updatedAt",
+                    "createdBy"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Announcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

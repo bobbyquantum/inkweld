@@ -1,0 +1,125 @@
+<div class="announcements-page" data-testid="admin-announcements-page">
+  <div class="page-header">
+    <h1>Announcements</h1>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="openCreateDialog()"
+      data-testid="create-announcement-btn">
+      <mat-icon>add</mat-icon>
+      Create Announcement
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading announcements...</p>
+    </div>
+  } @else if (announcements().length === 0) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">campaign</mat-icon>
+      <h2>No announcements yet</h2>
+      <p>Create your first announcement to notify users about updates.</p>
+      <button mat-raised-button color="primary" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Create Announcement
+      </button>
+    </div>
+  } @else {
+    <div class="announcements-list" data-testid="admin-announcements-list">
+      @for (announcement of announcements(); track announcement.id) {
+        <mat-card
+          class="announcement-item"
+          [attr.data-testid]="'announcement-card-' + announcement.id">
+          <mat-card-header>
+            <div class="header-row">
+              <div class="type-badge">
+                <mat-icon>{{ getTypeIcon(announcement.type) }}</mat-icon>
+                <span>{{ announcement.type | titlecase }}</span>
+              </div>
+              <div class="status-chips">
+                <mat-chip
+                  [class]="getStatusClass(announcement)"
+                  data-testid="announcement-status-chip">
+                  {{ getStatusLabel(announcement) }}
+                </mat-chip>
+                @if (announcement.isPublic) {
+                  <mat-chip class="public-chip" data-testid="public-chip">
+                    <mat-icon>public</mat-icon>
+                    Public
+                  </mat-chip>
+                } @else {
+                  <mat-chip class="private-chip" data-testid="private-chip">
+                    <mat-icon>lock</mat-icon>
+                    Members Only
+                  </mat-chip>
+                }
+                @if (announcement.priority === 'high') {
+                  <mat-chip
+                    class="priority-high"
+                    data-testid="high-priority-chip"
+                    >High Priority</mat-chip
+                  >
+                }
+              </div>
+            </div>
+            <mat-card-title>{{ announcement.title }}</mat-card-title>
+            <mat-card-subtitle>
+              Created: {{ announcement.createdAt | date: 'medium' }}
+              @if (announcement.publishedAt) {
+                • Published: {{ announcement.publishedAt | date: 'medium' }}
+              }
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div
+              class="announcement-preview"
+              [innerHTML]="announcement.content"></div>
+          </mat-card-content>
+
+          <mat-card-actions align="end">
+            @if (!announcement.publishedAt) {
+              <button
+                mat-button
+                color="primary"
+                (click)="publishAnnouncement(announcement)"
+                matTooltip="Publish announcement">
+                <mat-icon>publish</mat-icon>
+                Publish
+              </button>
+            } @else {
+              <button
+                mat-button
+                (click)="unpublishAnnouncement(announcement)"
+                matTooltip="Convert to draft">
+                <mat-icon>unpublished</mat-icon>
+                Unpublish
+              </button>
+            }
+            <button
+              mat-button
+              (click)="openEditDialog(announcement)"
+              matTooltip="Edit announcement">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              matTooltip="More options">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="confirmDelete(announcement)">
+                <mat-icon color="warn">delete</mat-icon>
+                <span>Delete</span>
+              </button>
+            </mat-menu>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

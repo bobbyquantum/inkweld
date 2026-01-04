@@ -1,0 +1,154 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.announcement-card {
+  margin: 0 auto 16px;
+  width: 100%;
+  max-width: 600px;
+  box-sizing: border-box;
+  min-width: 0;
+
+  &.compact {
+    mat-card-content {
+      max-height: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &.unread {
+    border-left: 4px solid var(--mat-sys-primary);
+    background-color: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+
+  &.priority-high {
+    border-left-color: var(--mat-sys-error);
+
+    .type-badge {
+      color: var(--mat-sys-error);
+    }
+  }
+
+  &.priority-normal {
+    .type-badge {
+      color: var(--mat-sys-primary);
+    }
+  }
+
+  &.priority-low {
+    .type-badge {
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+}
+
+mat-card-header {
+  position: relative;
+  padding-top: 16px;
+
+  @media (max-width: 600px) {
+    padding: 12px 12px 0;
+  }
+}
+
+mat-card-content {
+  @media (max-width: 600px) {
+    padding: 8px 12px 12px !important;
+  }
+}
+
+.subtitle-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.type-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  line-height: 1;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.date-separator {
+  color: var(--mat-sys-on-surface-variant);
+  opacity: 0.5;
+}
+
+.published-date {
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.unread-indicator-top {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+
+  mat-icon {
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
+    color: var(--mat-sys-primary);
+  }
+}
+
+mat-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 0;
+  color: var(--mat-sys-on-surface);
+
+  @media (max-width: 600px) {
+    font-size: 16px;
+  }
+}
+
+mat-card-subtitle {
+  margin-bottom: 0;
+}
+
+.announcement-content {
+  line-height: 1.6;
+  color: var(--mat-sys-on-surface);
+  margin-top: 8px;
+
+  p {
+    margin: 0 0 12px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  a {
+    color: var(--mat-sys-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+mat-card-actions {
+  padding: 8px 16px;
+}

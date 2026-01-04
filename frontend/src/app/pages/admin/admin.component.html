@@ -24,6 +24,14 @@
         <mat-icon matListItemIcon>settings</mat-icon>
         <span matListItemTitle>Settings</span>
       </a>
+      <a
+        mat-list-item
+        routerLink="announcements"
+        routerLinkActive="active"
+        data-testid="admin-nav-announcements">
+        <mat-icon matListItemIcon>campaign</mat-icon>
+        <span matListItemTitle>Announcements</span>
+      </a>
       @if (!isAiKillSwitchEnabled()) {
         <a
           mat-list-item

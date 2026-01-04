@@ -1,0 +1,44 @@
+<mat-card
+  class="announcement-card"
+  [class.compact]="compact"
+  [class.unread]="showReadStatus && !isRead"
+  [class]="priorityClass"
+  [attr.data-testid]="'announcement-card-' + announcement.id">
+  <mat-card-header>
+    <mat-card-title>{{ announcement.title }}</mat-card-title>
+    <mat-card-subtitle>
+      <div class="subtitle-row">
+        <div class="type-badge">
+          <mat-icon>{{ typeIcon }}</mat-icon>
+          <span class="type-label">{{ typeLabel }}</span>
+        </div>
+        <span class="date-separator">•</span>
+        <span class="published-date">{{
+          announcement.publishedAt | date: 'medium'
+        }}</span>
+      </div>
+    </mat-card-subtitle>
+    @if (showReadStatus && !isRead) {
+      <div class="unread-indicator-top" matTooltip="Unread">
+        <mat-icon>fiber_manual_record</mat-icon>
+      </div>
+    }
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="announcement-content" [innerHTML]="announcement.content"></div>
+  </mat-card-content>
+
+  @if (showReadStatus && !isRead) {
+    <mat-card-actions align="end">
+      <button
+        mat-button
+        color="primary"
+        (click)="onMarkAsRead()"
+        data-testid="mark-as-read-btn">
+        <mat-icon>check</mat-icon>
+        Mark as read
+      </button>
+    </mat-card-actions>
+  }
+</mat-card>

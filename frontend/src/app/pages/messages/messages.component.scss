@@ -1,0 +1,93 @@
+.messages-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mat-sys-surface);
+}
+
+.messages-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+
+  .toolbar-title {
+    font-size: 20px;
+    font-weight: 500;
+    margin-left: 8px;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+}
+
+.messages-content {
+  flex: 1;
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 16px;
+
+  p {
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--mat-sys-on-surface);
+
+  .empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: var(--mat-sys-on-surface-variant);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 0 0 24px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .messages-content {
+    padding: 16px;
+  }
+
+  .messages-toolbar {
+    .toolbar-title {
+      font-size: 18px;
+    }
+  }
+}

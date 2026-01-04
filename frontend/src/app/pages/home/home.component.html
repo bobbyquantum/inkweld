@@ -10,69 +10,24 @@
 } @else {
   <div class="content-container" [class.is-mobile]="isMobile">
     <!-- Header section with logo and search bar (always visible) -->
-    <div class="header-section">
-      <div
-        class="search-container"
-        [class.mobile-search-mode]="mobileSearchActive()">
-        <!-- Mobile search mode: Back button + Search field -->
-        @if (isMobile && mobileSearchActive()) {
-          <div class="left-section">
-            <button
-              mat-icon-button
-              (click)="toggleMobileSearch()"
-              aria-label="Close search"
-              class="back-btn">
-              <mat-icon>arrow_back</mat-icon>
-            </button>
-          </div>
-
-          <div class="center-section mobile-search">
-            <mat-form-field
-              appearance="outline"
-              density="compact"
-              class="custom-search-field"
-              hideRequiredMarker="true"
-              subscriptSizing="dynamic">
-              <input
-                matInput
-                placeholder="Search projects"
-                [formControl]="searchControl" />
-              <mat-icon matPrefix>search</mat-icon>
-              @if (searchControl.value) {
-                <button
-                  matSuffix
-                  mat-icon-button
-                  aria-label="Clear"
-                  (click)="searchControl.setValue('')">
-                  <mat-icon>close</mat-icon>
-                </button>
-              }
-            </mat-form-field>
-          </div>
-
-          <div class="right-section"></div>
-        } @else {
-          <!-- Normal mode: Hamburger/Logo + Search icon + User menu -->
-          <!-- Left section: Hamburger (mobile) + Logo -->
-          <div class="left-section">
-            @if (isAuthenticated() && isMobile) {
+    @if (isAuthenticated()) {
+      <div class="header-section">
+        <div
+          class="search-container"
+          [class.mobile-search-mode]="mobileSearchActive()">
+          <!-- Mobile search mode: Back button + Search field -->
+          @if (isMobile && mobileSearchActive()) {
+            <div class="left-section">
               <button
                 mat-icon-button
-                (click)="toggleSideNav()"
-                aria-label="Toggle navigation menu"
-                class="hamburger-btn">
-                <mat-icon>menu</mat-icon>
+                (click)="toggleMobileSearch()"
+                aria-label="Close search"
+                class="back-btn">
+                <mat-icon>arrow_back</mat-icon>
               </button>
-            }
-            <div class="logo-container">
-              <img class="app-logo" src="logo.png" alt="InkWeld logo" />
-              <span class="app-name">Inkweld</span>
             </div>
-          </div>
 
-          <!-- Center section: Search box (desktop only) -->
-          @if (isAuthenticated() && !isMobile) {
-            <div class="center-section">
+            <div class="center-section mobile-search">
               <mat-form-field
                 appearance="outline"
                 density="compact"
@@ -95,63 +50,92 @@
                 }
               </mat-form-field>
             </div>
-          }
 
-          <!-- Right section: Search icon (mobile) + Create button + User menu -->
-          <div class="right-section">
-            @if (isAuthenticated() && isMobile) {
-              <button
-                mat-icon-button
-                (click)="toggleMobileSearch()"
-                aria-label="Search projects"
-                class="search-icon-btn">
-                <mat-icon>search</mat-icon>
-              </button>
+            <div class="right-section"></div>
+          } @else {
+            <!-- Normal mode: Hamburger/Logo + Search icon + User menu -->
+            <!-- Left section: Hamburger (mobile) + Logo -->
+            <div class="left-section">
+              @if (isAuthenticated() && isMobile) {
+                <button
+                  mat-icon-button
+                  (click)="toggleSideNav()"
+                  aria-label="Toggle navigation menu"
+                  class="hamburger-btn">
+                  <mat-icon>menu</mat-icon>
+                </button>
+              }
+              <div class="logo-container">
+                <img class="app-logo" src="logo.png" alt="InkWeld logo" />
+                <span class="app-name">Inkweld</span>
+              </div>
+            </div>
+
+            <!-- Center section: Search box (desktop only) -->
+            @if (isAuthenticated() && !isMobile) {
+              <div class="center-section">
+                <mat-form-field
+                  appearance="outline"
+                  density="compact"
+                  class="custom-search-field"
+                  hideRequiredMarker="true"
+                  subscriptSizing="dynamic">
+                  <input
+                    matInput
+                    placeholder="Search projects"
+                    [formControl]="searchControl" />
+                  <mat-icon matPrefix>search</mat-icon>
+                  @if (searchControl.value) {
+                    <button
+                      matSuffix
+                      mat-icon-button
+                      aria-label="Clear"
+                      (click)="searchControl.setValue('')">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  }
+                </mat-form-field>
+              </div>
             }
 
-            @if (isAuthenticated()) {
-              <button
-                mat-button
-                (click)="openNewProjectDialog()"
-                aria-label="Create new project"
-                class="create-btn">
-                <mat-icon>add</mat-icon>
-                <span>Create</span>
-              </button>
-            }
+            <!-- Right section: Search icon (mobile) + Create button + User menu -->
+            <div class="right-section">
+              @if (isAuthenticated() && isMobile) {
+                <button
+                  mat-icon-button
+                  (click)="toggleMobileSearch()"
+                  aria-label="Search projects"
+                  class="search-icon-btn">
+                  <mat-icon>search</mat-icon>
+                </button>
+              }
 
-            <!-- Show user menu if authenticated, otherwise show login/register buttons -->
-            @if (isAuthenticated()) {
+              @if (isAuthenticated()) {
+                <button
+                  mat-button
+                  (click)="openNewProjectDialog()"
+                  aria-label="Create new project"
+                  class="create-btn">
+                  <mat-icon>add</mat-icon>
+                  <span>Create</span>
+                </button>
+              }
+
+              <!-- Show user menu if authenticated -->
               <app-user-menu
                 [user]="userService.currentUser()"
                 [miniMode]="true"></app-user-menu>
-            } @else {
-              <div class="auth-buttons">
-                <button
-                  mat-stroked-button
-                  color="primary"
-                  (click)="navigateToLogin()"
-                  class="login-btn"
-                  data-testid="login-button">
-                  Login
-                </button>
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="navigateToRegister()"
-                  class="register-btn"
-                  data-testid="register-button">
-                  Register
-                </button>
-              </div>
-            }
-          </div>
-        }
+            </div>
+          }
+        </div>
       </div>
-    </div>
+    }
 
     <!-- Main content area with side nav -->
-    <div class="main-layout" [class.has-sidenav]="isAuthenticated()">
+    <div
+      class="main-layout"
+      [class.has-sidenav]="isAuthenticated()"
+      [class.no-header]="!isAuthenticated()">
       <!-- Side navigation with project list -->
       @if (isAuthenticated()) {
         <app-side-nav
@@ -179,79 +163,34 @@
           <!-- Content for unauthenticated users -->
           <div class="welcome-content">
             <div class="hero-section">
-              <h1 data-testid="welcome-heading">Welcome to InkWeld</h1>
-              <p class="hero-description">
-                InkWeld is a collaborative writing platform designed for anyone
-                who wants to write. Organize your projects, collaborate with
-                others, and bring your stories to life.
-              </p>
+              <img class="large-logo" src="logo.png" alt="InkWeld logo" />
+              <h1 data-testid="welcome-heading">Inkweld</h1>
             </div>
 
-            <div class="features-section">
-              <div class="feature-grid">
-                <div class="feature-card">
-                  <mat-icon class="feature-icon">edit_note</mat-icon>
-                  <h3>Write & Organize</h3>
-                  <p>
-                    Organize your manuscripts, scripts, and creative projects
-                    with intuitive folder structures and document management.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <mat-icon class="feature-icon">group</mat-icon>
-                  <h3>Collaborate</h3>
-                  <p>
-                    Work together with co-authors, editors, and beta readers.
-                    Share projects and get feedback in real-time.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <mat-icon class="feature-icon">history</mat-icon>
-                  <h3>Version Control</h3>
-                  <p>
-                    Track changes, manage revisions, and never lose your work
-                    with built-in version control for writers.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <mat-icon class="feature-icon">publish</mat-icon>
-                  <h3>Share & Publish</h3>
-                  <p>
-                    Export your work in multiple formats and share your projects
-                    with the community.
-                  </p>
-                </div>
-              </div>
+            <div class="welcome-auth-buttons">
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="navigateToLogin()"
+                class="welcome-login-btn"
+                data-testid="welcome-login-button">
+                Login
+              </button>
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="navigateToRegister()"
+                class="welcome-register-btn"
+                data-testid="welcome-register-button">
+                Register
+              </button>
             </div>
 
-            <div class="cta-section">
-              <h2>Ready to start writing?</h2>
-              <p>
-                Please note this is a development version of InkWeld. Some
-                features may not be available. Data may be erased without
-                warning.
-              </p>
-              <div class="cta-buttons">
-                <button
-                  mat-raised-button
-                  color="primary"
-                  size="large"
-                  (click)="navigateToRegister()"
-                  class="cta-register">
-                  Get Started
-                </button>
-                <button
-                  mat-stroked-button
-                  color="primary"
-                  size="large"
-                  (click)="navigateToLogin()"
-                  class="cta-login">
-                  Sign In
-                </button>
-              </div>
+            <!-- Announcements Section -->
+            <div class="announcements-container">
+              <app-announcement-feed
+                [maxItems]="5"
+                [compact]="false"></app-announcement-feed>
             </div>
           </div>
         } @else {

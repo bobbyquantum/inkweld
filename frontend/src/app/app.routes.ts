@@ -91,6 +91,14 @@ export const routes: Routes = [
           ),
         title: 'Admin - AI Text Settings',
       },
+      {
+        path: 'announcements',
+        loadComponent: () =>
+          import('./pages/admin/announcements/announcements.component').then(
+            m => m.AdminAnnouncementsComponent
+          ),
+        title: 'Admin - Announcements',
+      },
     ],
   },
   {
@@ -100,6 +108,15 @@ export const routes: Routes = [
         m => m.CreateProjectComponent
       ),
     title: 'Create New Project',
+    canActivate: [authGuard],
+  },
+  {
+    path: 'messages',
+    loadComponent: () =>
+      import('./pages/messages/messages.component').then(
+        m => m.MessagesComponent
+      ),
+    title: 'Messages',
     canActivate: [authGuard],
   },
   {
