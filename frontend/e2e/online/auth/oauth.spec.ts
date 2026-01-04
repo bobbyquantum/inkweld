@@ -127,7 +127,6 @@
 //       // Should be redirected away from dashboard
 //       await expect(page).not.toHaveURL('/dashboard');
 //     } catch (error) {
-//       console.warn('Could not perform logout action:', error);
 //       // Test is still valuable even if we can't find the logout button
 //     }
 //   });

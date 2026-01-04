@@ -29,8 +29,6 @@ export class MockApi {
    * @param page - Playwright page to configure
    */
   public async setupPageInterception(page: Page): Promise<void> {
-    console.log('Setting up API mocking for page');
-
     // Register default handlers
     await this.registerDefaultHandlers(page);
 
@@ -48,14 +46,10 @@ export class MockApi {
     // Default handler for all API requests that don't match specific handlers
     // Use regex to match localhost:8333 which is a different origin from the page
     await page.route(/localhost:8333.*\/api\//, async route => {
-      const url = route.request().url();
-      console.log(`Handling request: ${url}`);
-
       // Check if we have a specific handler for this route
       const handled = await this.registry.tryHandleRoute(route);
       if (!handled) {
         // Default behavior for unhandled requests is to return 404
-        console.warn(`No handler found for ${url}, returning 404`);
         await route.fulfill({
           status: 404,
           contentType: 'application/json',

@@ -141,7 +141,6 @@ export function setupUserHandlers(): void {
 
     // If no auth token found, return 401 Unauthorized
     if (!token) {
-      console.log('Unauthorized request to /api/v1/users/me (no auth token)');
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
@@ -165,14 +164,12 @@ export function setupUserHandlers(): void {
 
     // If a user was found for the token, return 200 OK
     if (user) {
-      console.log(`Returning mock user for token: ${user.name}`);
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(user),
       });
     } else {
-      console.warn('No matching user found for token');
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
@@ -188,7 +185,7 @@ export function setupUserHandlers(): void {
   // GET /api/v1/users - List all users (admin endpoint)
   mockApi.addHandler('**/api/v1/users', async (route: Route) => {
     const users = mockUsers.getUsers();
-    console.log(`Returning ${users.length} users for admin list`);
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -206,7 +203,6 @@ export function setupUserHandlers(): void {
 
   // GET /api/v1/admin/users/pending - Get pending users
   mockApi.addHandler('**/api/v1/admin/users/pending', async (route: Route) => {
-    console.log('Returning empty pending users list');
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

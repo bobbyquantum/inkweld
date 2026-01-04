@@ -1,4 +1,5 @@
 import { Page, test as base } from '@playwright/test';
+export type { Page };
 
 /**
  * Online Test Fixtures
@@ -78,6 +79,9 @@ export const test = base.extend<OnlineTestFixtures>({
     const context = await browser.newContext();
     const page = await context.newPage();
 
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
     const apiUrl = getApiBaseUrl();
 
     // Set up app configuration for server mode
@@ -102,6 +106,9 @@ export const test = base.extend<OnlineTestFixtures>({
     // Create a new context for isolation
     const context = await browser.newContext();
     const page = await context.newPage();
+
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
 
     const testId = generateTestId();
     const username = `testuser-${testId}`;
@@ -175,6 +182,9 @@ export const test = base.extend<OnlineTestFixtures>({
     // Create a new context for isolation
     const context = await browser.newContext();
     const page = await context.newPage();
+
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
 
     // Login as the pre-seeded admin user (created by DEFAULT_ADMIN_USERNAME/PASSWORD env vars)
     const token = await authenticateUser(
@@ -250,6 +260,9 @@ export const test = base.extend<OnlineTestFixtures>({
     // Create a new context for isolation
     const context = await browser.newContext();
     const page = await context.newPage();
+
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
 
     const testId = generateTestId();
     const username = `offline-user-${testId}`;

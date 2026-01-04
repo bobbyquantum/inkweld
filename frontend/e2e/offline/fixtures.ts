@@ -39,6 +39,9 @@ export type OfflineTestFixtures = {
 export const test = base.extend<OfflineTestFixtures>({
   // Offline page with user configured (no project)
   offlinePage: async ({ page }, use) => {
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
     // Track API requests - any API call should fail the test
     const apiRequests: string[] = [];
 
@@ -46,7 +49,6 @@ export const test = base.extend<OfflineTestFixtures>({
     await page.route('**/api/**', async route => {
       const url = route.request().url();
       apiRequests.push(url);
-      console.error(`[OFFLINE TEST FAILURE] Unexpected API request: ${url}`);
       await route.abort('failed');
     });
 
@@ -54,9 +56,6 @@ export const test = base.extend<OfflineTestFixtures>({
     await page.route('**/ws/**', async route => {
       const url = route.request().url();
       apiRequests.push(url);
-      console.error(
-        `[OFFLINE TEST FAILURE] Unexpected WebSocket request: ${url}`
-      );
       await route.abort('failed');
     });
 
@@ -81,8 +80,6 @@ export const test = base.extend<OfflineTestFixtures>({
       localStorage.setItem('inkweld-offline-user', JSON.stringify(userProfile));
     });
 
-    console.log('Setting up page for OFFLINE mode (API requests will fail)');
-
     // Navigate to home
     await page.goto('/');
 
@@ -99,6 +96,9 @@ export const test = base.extend<OfflineTestFixtures>({
 
   // Offline page with a project already created
   offlinePageWithProject: async ({ page }, use) => {
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
     // Track API requests
     const apiRequests: string[] = [];
 
@@ -106,16 +106,12 @@ export const test = base.extend<OfflineTestFixtures>({
     await page.route('**/api/**', async route => {
       const url = route.request().url();
       apiRequests.push(url);
-      console.error(`[OFFLINE TEST FAILURE] Unexpected API request: ${url}`);
       await route.abort('failed');
     });
 
     await page.route('**/ws/**', async route => {
       const url = route.request().url();
       apiRequests.push(url);
-      console.error(
-        `[OFFLINE TEST FAILURE] Unexpected WebSocket request: ${url}`
-      );
       await route.abort('failed');
     });
 
@@ -138,8 +134,6 @@ export const test = base.extend<OfflineTestFixtures>({
 
       localStorage.setItem('inkweld-offline-user', JSON.stringify(userProfile));
     });
-
-    console.log('Setting up page for OFFLINE mode with test project');
 
     // Navigate to home
     await page.goto('/');

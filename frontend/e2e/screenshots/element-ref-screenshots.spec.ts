@@ -258,9 +258,7 @@ test.describe('Element Reference Screenshots', () => {
           state: 'visible',
           timeout: 3000,
         })
-        .catch(() => {
-          console.log('Popup not visible - may need elements');
-        });
+        .catch(() => {});
 
       await page.waitForTimeout(400);
 
@@ -272,7 +270,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-01-popup-light.png'),
         32
       );
-      console.log('✓ Captured popup opening (light mode)');
 
       // Step 3: Type search query
       await page.keyboard.type('chap');
@@ -285,7 +282,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-02-search-light.png'),
         32
       );
-      console.log('✓ Captured search in progress (light mode)');
 
       // Step 4: Select the first result
       const resultItem = page
@@ -310,7 +306,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-03-link-light.png'),
         32
       );
-      console.log('✓ Captured link in document (light mode)');
 
       // Step 5: Hover over the link to show tooltip
       const elementRef = page.locator('.element-ref').first();
@@ -326,7 +321,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-04-tooltip-light.png'),
           24
         );
-        console.log('✓ Captured tooltip on hover (light mode)');
       }
     });
 
@@ -393,7 +387,6 @@ test.describe('Element Reference Screenshots', () => {
           fullPage: false,
         });
       }
-      console.log('✓ Captured editor focused view (light mode)');
     });
 
     test('capture character reference showcase - light mode', async ({
@@ -435,7 +428,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-character-search-light.png'),
         32
       );
-      console.log('✓ Captured character search (light mode)');
 
       // Select the character result
       const characterResult = page
@@ -464,7 +456,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-character-link-light.png'),
         32
       );
-      console.log('✓ Captured character link in text (light mode)');
 
       // Hover over the character reference to show tooltip
       const characterRef = page.locator('.element-ref').first();
@@ -479,7 +470,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-character-tooltip-light.png'),
           24
         );
-        console.log('✓ Captured character tooltip (light mode)');
       }
     });
   });
@@ -514,9 +504,7 @@ test.describe('Element Reference Screenshots', () => {
           state: 'visible',
           timeout: 3000,
         })
-        .catch(() => {
-          console.log('Popup not visible');
-        });
+        .catch(() => {});
 
       await page.waitForTimeout(400);
 
@@ -527,7 +515,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-01-popup-dark.png'),
         32
       );
-      console.log('✓ Captured popup opening (dark mode)');
 
       // Step 3: Type search query
       await page.keyboard.type('chap');
@@ -540,7 +527,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-02-search-dark.png'),
         32
       );
-      console.log('✓ Captured search in progress (dark mode)');
 
       // Step 4: Select the first result
       const resultItem = page
@@ -564,7 +550,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-03-link-dark.png'),
         32
       );
-      console.log('✓ Captured link in document (dark mode)');
 
       // Step 5: Hover over the link to show tooltip
       const elementRef = page.locator('.element-ref').first();
@@ -579,7 +564,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-04-tooltip-dark.png'),
           24
         );
-        console.log('✓ Captured tooltip on hover (dark mode)');
       }
     });
 
@@ -649,7 +633,6 @@ test.describe('Element Reference Screenshots', () => {
           fullPage: false,
         });
       }
-      console.log('✓ Captured editor focused view (dark mode)');
     });
 
     test('capture character reference showcase - dark mode', async ({
@@ -694,7 +677,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-character-search-dark.png'),
         32
       );
-      console.log('✓ Captured character search (dark mode)');
 
       // Select the character result
       const characterResult = page
@@ -723,7 +705,6 @@ test.describe('Element Reference Screenshots', () => {
         join(screenshotsDir, 'element-ref-character-link-dark.png'),
         32
       );
-      console.log('✓ Captured character link in text (dark mode)');
 
       // Hover over the character reference to show tooltip
       const characterRef = page.locator('.element-ref').first();
@@ -738,7 +719,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-character-tooltip-dark.png'),
           24
         );
-        console.log('✓ Captured character tooltip (dark mode)');
       }
     });
   });
@@ -770,7 +750,7 @@ test.describe('Element Reference Screenshots', () => {
           state: 'visible',
           timeout: 3000,
         })
-        .catch(() => console.log('Popup may not be visible'));
+        .catch(() => {});
 
       // Type to search for character
       await page.keyboard.type('lyra');
@@ -781,8 +761,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-feature.png'),
         fullPage: false,
       });
-
-      console.log('✓ Captured combined feature screenshot');
     });
   });
 
@@ -845,7 +823,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-tooltip-light.png'),
         fullPage: false,
       });
-      console.log('✓ Captured rich tooltip screenshot (light mode)');
     });
 
     test('capture tooltip on hover - dark mode', async ({
@@ -910,7 +887,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-tooltip-dark.png'),
         fullPage: false,
       });
-      console.log('✓ Captured rich tooltip screenshot (dark mode)');
     });
   });
 
@@ -971,7 +947,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-context-menu-light.png'),
         fullPage: false,
       });
-      console.log('✓ Captured context menu screenshot (light mode)');
     });
 
     test('capture context menu - dark mode', async ({ offlinePage: page }) => {
@@ -1034,7 +1009,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-context-menu-dark.png'),
         fullPage: false,
       });
-      console.log('✓ Captured context menu screenshot (dark mode)');
     });
 
     test('capture context menu edit mode - light mode', async ({
@@ -1103,7 +1077,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-edit-mode-light.png'),
         fullPage: false,
       });
-      console.log('✓ Captured edit mode screenshot (light mode)');
     });
   });
 
@@ -1169,9 +1142,7 @@ test.describe('Element Reference Screenshots', () => {
           state: 'visible',
           timeout: 5000,
         })
-        .catch(() => {
-          console.log('Worldbuilding editor may not be visible');
-        });
+        .catch(() => {});
 
       // Open the meta panel to see relationships
       const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
@@ -1203,7 +1174,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-backlinks-character-light.png'),
         fullPage: false,
       });
-      console.log('✓ Captured character backlinks screenshot (light mode)');
 
       // Capture a focused view of the worldbuilding editor container with meta panel
       const worldbuildingContainer = page.locator(
@@ -1216,9 +1186,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-backlinks-worldbuilding-light.png'),
           16
         );
-        console.log(
-          '✓ Captured worldbuilding editor with backlinks (light mode)'
-        );
       }
 
       // Also capture a cropped version focusing on just the meta panel
@@ -1230,7 +1197,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-backlinks-panel-light.png'),
           16
         );
-        console.log('✓ Captured meta panel with backlinks (light mode)');
       }
     });
 
@@ -1299,9 +1265,7 @@ test.describe('Element Reference Screenshots', () => {
           state: 'visible',
           timeout: 5000,
         })
-        .catch(() => {
-          console.log('Worldbuilding editor may not be visible');
-        });
+        .catch(() => {});
 
       // Open the meta panel to see relationships
       const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
@@ -1333,7 +1297,6 @@ test.describe('Element Reference Screenshots', () => {
         path: join(screenshotsDir, 'element-ref-backlinks-character-dark.png'),
         fullPage: false,
       });
-      console.log('✓ Captured character backlinks screenshot (dark mode)');
 
       // Capture a focused view of the worldbuilding editor container with meta panel
       const worldbuildingContainer = page.locator(
@@ -1346,9 +1309,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-backlinks-worldbuilding-dark.png'),
           16
         );
-        console.log(
-          '✓ Captured worldbuilding editor with backlinks (dark mode)'
-        );
       }
 
       // Also capture a cropped version focusing on just the meta panel
@@ -1360,7 +1320,6 @@ test.describe('Element Reference Screenshots', () => {
           join(screenshotsDir, 'element-ref-backlinks-panel-dark.png'),
           16
         );
-        console.log('✓ Captured meta panel with backlinks (dark mode)');
       }
     });
   });

@@ -196,11 +196,6 @@ test.describe('Offline Publishing Workflow', () => {
           .then(() => 'button-back'),
       ]);
 
-      // Log any console errors for debugging
-      if (consoleErrors.length > 0) {
-        console.log('Console errors during generation:', consoleErrors);
-      }
-
       if (dialogOrError === 'error') {
         const errorText = await page
           .locator('.mat-mdc-snack-bar-label')

@@ -23,7 +23,6 @@ export function setupAuthHandlers(): void {
   mockApi.addHandler('**/csrf/token**', async (route: Route) => {
     // Return a mock CSRF token
     const csrfToken = `mock-csrf-${Date.now()}`;
-    console.log(`Providing CSRF token: ${csrfToken}`);
 
     await route.fulfill({
       status: 200,
@@ -123,9 +122,6 @@ export function setupAuthHandlers(): void {
     // Check if username is already taken
     const existingUser = mockUsers.findByUsername(body.username);
     if (existingUser) {
-      console.log(
-        `Registration failed: Username ${body.username} already taken`
-      );
       await route.fulfill({
         status: 400,
         contentType: 'application/json',
@@ -191,7 +187,6 @@ export function setupAuthHandlers(): void {
 
     try {
       mockUsers.addUser(newUser);
-      console.log(`Created new user: ${newUser.username}`);
 
       // Generate auth token for auto-login after registration
       const token = `mock-token-${newUser.username}`;
@@ -209,8 +204,7 @@ export function setupAuthHandlers(): void {
           requiresApproval: false,
         }),
       });
-    } catch (error) {
-      console.error('Failed to create user:', error);
+    } catch {
       await route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -247,7 +241,6 @@ export function setupAuthHandlers(): void {
     const validPassword = body.password === 'correct-password';
 
     if (!user || !validPassword) {
-      console.log(`Login failed for user: ${body.username}`);
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
@@ -262,7 +255,6 @@ export function setupAuthHandlers(): void {
     // Generate mock token
     const token = `mock-token-${user.username}`;
 
-    console.log(`Login successful for user: ${user.username}, returning token`);
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -323,7 +315,6 @@ export function setupAuthHandlers(): void {
       // Generate token
       const token = `mock-oauth-token-${oauthUser.username}-${Date.now()}`;
 
-      console.log(`OAuth login successful for: ${oauthUser.username}`);
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

@@ -86,6 +86,9 @@ export type ScreenshotFixtures = {
 export const test = base.extend<ScreenshotFixtures>({
   // Authenticated user with demo projects
   authenticatedPage: async ({ page }, use) => {
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
     // Initialize mock API handlers for this test
     initializeMockApi();
 
@@ -94,10 +97,6 @@ export const test = base.extend<ScreenshotFixtures>({
     demoProjects.forEach(project => {
       mockProjects.addProject(project);
     });
-
-    console.log(
-      `[Fixture] Added ${demoProjects.length} demo projects, total: ${mockProjects.getProjectsByUsername('testuser').length} for testuser`
-    );
 
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
@@ -118,8 +117,6 @@ export const test = base.extend<ScreenshotFixtures>({
       localStorage.setItem('auth_token', 'mock-token-testuser');
     });
 
-    console.log('Setting up screenshot page with demo projects');
-
     // First, do a blank navigation to establish the page context with localStorage
     await page.goto('about:blank');
 
@@ -133,9 +130,8 @@ export const test = base.extend<ScreenshotFixtures>({
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // Wait for user API to respond first
-    console.log('[Fixture] Waiting for user API response...');
+
     await userApiPromise;
-    console.log('[Fixture] User API responded');
 
     // Now wait for projects API - it should be called after user is authenticated
     // But if isAuthenticated() was checked before user loaded, projects won't load
@@ -145,17 +141,15 @@ export const test = base.extend<ScreenshotFixtures>({
         state: 'visible',
         timeout: 3000,
       });
-      console.log('[Fixture] Projects loaded successfully');
     } catch {
       // Projects didn't load - this means the race condition happened
       // Reload the page now that user is cached
-      console.log('[Fixture] Projects not loaded, reloading...');
+
       await page.reload({ waitUntil: 'domcontentloaded' });
       await page.waitForSelector('.project-card', {
         state: 'visible',
         timeout: 5000,
       });
-      console.log('[Fixture] Projects loaded after reload');
     }
 
     await use(page);
@@ -163,6 +157,9 @@ export const test = base.extend<ScreenshotFixtures>({
 
   // Admin page fixture - ensures user is loaded before navigating to admin routes
   adminPage: async ({ page }, use) => {
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
     // Initialize mock API handlers for this test
     initializeMockApi();
 
@@ -185,8 +182,6 @@ export const test = base.extend<ScreenshotFixtures>({
       localStorage.setItem('auth_token', 'mock-token-testuser');
     });
 
-    console.log('[AdminFixture] Setting up admin page');
-
     // First, navigate to home to establish user session
     await page.goto('about:blank');
 
@@ -204,17 +199,15 @@ export const test = base.extend<ScreenshotFixtures>({
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // Wait for user API to respond
-    console.log('[AdminFixture] Waiting for user API...');
+
     await userApiPromise;
-    console.log('[AdminFixture] User API responded');
 
     // Also wait for features API (needed for AI kill switch state)
-    console.log('[AdminFixture] Waiting for features API...');
+
     try {
       await featuresApiPromise;
-      console.log('[AdminFixture] Features API responded');
     } catch {
-      console.log('[AdminFixture] Features API timeout, proceeding...');
+      // Ignore features API timeout
     }
 
     // Wait for the page to fully render and Angular to process the user
@@ -228,20 +221,20 @@ export const test = base.extend<ScreenshotFixtures>({
           timeout: 5000,
         }
       );
-      console.log('[AdminFixture] User menu visible - user is authenticated');
     } catch {
-      console.log('[AdminFixture] User menu not found, waiting longer...');
       await page.waitForTimeout(2000);
     }
 
     // The adminPage fixture is ready - tests can navigate to admin routes
-    console.log('[AdminFixture] Admin page ready');
 
     await use(page);
   },
 
   // Offline mode page for editor screenshots
   offlinePage: async ({ page }, use) => {
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
     // Configure offline mode to avoid WebSocket connection attempts
     await page.addInitScript(() => {
       localStorage.setItem(
