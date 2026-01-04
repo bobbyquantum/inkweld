@@ -99,6 +99,11 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   version: process.env.INKWELD_VERSION || '0.1.0',
 
+  // Logging
+  // LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error' | 'none'
+  // Defaults to 'debug' in development, 'info' in production
+  logLevel: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+
   // Database
   database: {
     type: (process.env.DB_TYPE || 'sqlite') as 'sqlite' | 'd1',

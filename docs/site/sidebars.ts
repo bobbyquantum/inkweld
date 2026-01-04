@@ -60,7 +60,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Troubleshooting',
-      items: ['troubleshooting/cookies'],
+      items: ['troubleshooting/cookies', 'troubleshooting/logging'],
     },
   ],
   // Auto-generated API documentation sidebar

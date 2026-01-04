@@ -2,8 +2,10 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { openAILintService } from '../services/openai-lint.service';
+import { logger } from '../services/logger.service';
 import type { AppContext } from '../types/context';
 
+const lintLog = logger.child('Lint');
 const lintRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all lint routes
@@ -178,7 +180,7 @@ lintRoutes.openapi(lintRoute, async (c) => {
 
     return c.json(result, 200);
   } catch (error: unknown) {
-    console.error('Error in lint endpoint:', error);
+    lintLog.error('Error in lint endpoint', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     if (error instanceof Error && error.name === 'ZodError') {
       return c.json({ error: 'Invalid request body' }, 400);

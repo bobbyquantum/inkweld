@@ -9,6 +9,9 @@ import { registerResourceHandler } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { Element } from '../../schemas/element.schemas';
+import { logger } from '../../services/logger.service';
+
+const mcpResourceLog = logger.child('MCP-Resources');
 
 /**
  * Read elements from Yjs document
@@ -17,7 +20,7 @@ async function readElementsFromYjs(username: string, slug: string): Promise<Elem
   try {
     return await yjsService.getElements(username, slug);
   } catch (err) {
-    console.error('Error reading elements from Yjs:', err);
+    mcpResourceLog.error('Error reading elements from Yjs', err);
     return [];
   }
 }

@@ -7,6 +7,7 @@ import {
   McpPermission,
   MCP_PERMISSIONS,
 } from '../db/schema/mcp-access-keys';
+import { logger } from './logger.service';
 
 /**
  * Generate a cryptographically secure random string
@@ -211,7 +212,7 @@ class McpKeyService {
         lastUsedIp: clientIp ?? null,
       })
       .where(eq(mcpAccessKeys.id, key.id))
-      .catch((err) => console.error('Failed to update key lastUsedAt:', err));
+      .catch((err) => logger.error('McpKey', 'Failed to update key lastUsedAt', err));
 
     return {
       valid: true,

@@ -8,7 +8,10 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
+import { logger } from '../services/logger.service';
 import type { AppContext } from '../types/context';
+
+const providerLog = logger.child('AIProviders');
 
 const aiProvidersRoutes = new OpenAPIHono<AppContext>();
 
@@ -595,7 +598,7 @@ aiProvidersRoutes.openapi(getOpenRouterModelsRoute, async (c) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[OpenRouter] Failed to fetch models:', response.status, errorText);
+      providerLog.error('Failed to fetch models', { status: response.status, error: errorText });
       return c.json({ error: `OpenRouter API error: ${response.status}` }, 502);
     }
 
@@ -648,7 +651,7 @@ aiProvidersRoutes.openapi(getOpenRouterModelsRoute, async (c) => {
       200
     );
   } catch (err) {
-    console.error('[OpenRouter] Error fetching models:', err);
+    providerLog.error(' Error fetching models:', err);
     return c.json({ error: 'Failed to fetch models from OpenRouter' }, 502);
   }
 });
@@ -722,7 +725,10 @@ aiProvidersRoutes.openapi(getOpenRouterImageModelsRoute, async (c) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[OpenRouter] Failed to fetch image models:', response.status, errorText);
+      providerLog.error('Failed to fetch image models', {
+        status: response.status,
+        error: errorText,
+      });
       return c.json({ error: `OpenRouter API error: ${response.status}` }, 502);
     }
 
@@ -763,7 +769,7 @@ aiProvidersRoutes.openapi(getOpenRouterImageModelsRoute, async (c) => {
       200
     );
   } catch (err) {
-    console.error('[OpenRouter] Error fetching image models:', err);
+    providerLog.error(' Error fetching image models:', err);
     return c.json({ error: 'Failed to fetch image models from OpenRouter' }, 502);
   }
 });
@@ -873,7 +879,7 @@ aiProvidersRoutes.openapi(getFalaiModelsRoute, async (c) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Fal.ai] Failed to fetch models:', response.status, errorText);
+      providerLog.error('Failed to fetch models', { status: response.status, error: errorText });
       return c.json({ error: `Fal.ai API error: ${response.status}` }, 502);
     }
 
@@ -918,7 +924,7 @@ aiProvidersRoutes.openapi(getFalaiModelsRoute, async (c) => {
       200
     );
   } catch (err) {
-    console.error('[Fal.ai] Error fetching models:', err);
+    providerLog.error(' Error fetching models:', err);
     return c.json({ error: 'Failed to fetch models from Fal.ai' }, 502);
   }
 });
@@ -1035,7 +1041,7 @@ aiProvidersRoutes.openapi(getFalaiModelMetadataRoute, async (c) => {
 
     return c.json(parsed, 200);
   } catch (err) {
-    console.error('[Fal.ai] Error fetching model metadata:', err);
+    providerLog.error(' Error fetching model metadata:', err);
     return c.json({ error: 'Failed to fetch model metadata from Fal.ai' }, 502);
   }
 });

@@ -9,6 +9,9 @@ import { WebSocket } from 'ws';
 import { fileStorageService } from './file-storage.service';
 import * as path from 'path';
 import { Element, ElementType } from '../schemas/element.schemas';
+import { logger } from './logger.service';
+
+const yjsLog = logger.child('Yjs');
 
 const messageSync = 0;
 const messageAwareness = 1;
@@ -68,7 +71,7 @@ export class YjsService {
     // Parse documentId format: username:projectSlug:docName
     const parts = documentId.split(':');
     if (parts.length < 3) {
-      console.error('Invalid documentId format:', documentId);
+      yjsLog.error(`Invalid documentId format: ${documentId}`);
       return;
     }
 
@@ -104,7 +107,7 @@ export class YjsService {
           if (currentPersistence) {
             await currentPersistence.storeUpdate(documentId, update);
           } else {
-            console.warn(`No persistence available for project ${projectKey}, update not saved`);
+            yjsLog.warn(`No persistence available for project ${projectKey}, update not saved`);
           }
 
           // Broadcast update to all connected WebSocket clients
@@ -118,11 +121,11 @@ export class YjsService {
             this.broadcastMessage(sharedDoc, message, origin);
           }
         } catch (error) {
-          console.error(`Error persisting/broadcasting update for ${documentId}:`, error);
+          yjsLog.error(`Error persisting/broadcasting update for ${documentId}`, error);
         }
       });
     } catch (error) {
-      console.error('Error loading persisted state:', error);
+      yjsLog.error('Error loading persisted state', error);
     }
   }
 
@@ -228,7 +231,7 @@ export class YjsService {
           break;
       }
     } catch (error) {
-      console.error('Error handling message:', error);
+      yjsLog.error('Error handling message', error);
     }
   }
 
@@ -245,7 +248,7 @@ export class YjsService {
       setTimeout(async () => {
         if (doc.conns.size === 0) {
           this.docs.delete(doc.name);
-          console.log(`Document ${doc.name} cleaned up after inactivity`);
+          yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
 
           // Check if there are any other documents from the same project still active
           const projectKey = this.getProjectKey(doc.name);
@@ -260,9 +263,9 @@ export class YjsService {
               try {
                 await persistence.destroy();
                 this.persistences.delete(projectKey);
-                console.log(`Closed LevelDB persistence for project ${projectKey}`);
+                yjsLog.debug(`Closed LevelDB persistence for project ${projectKey}`);
               } catch (error) {
-                console.error(`Error closing persistence for project ${projectKey}:`, error);
+                yjsLog.error(`Error closing persistence for project ${projectKey}`, error);
               }
             }
           }
@@ -281,7 +284,7 @@ export class YjsService {
         try {
           conn.send(message);
         } catch (error) {
-          console.error('Error broadcasting message:', error);
+          yjsLog.error('Error broadcasting message', error);
         }
       }
     });
@@ -297,7 +300,7 @@ export class YjsService {
         try {
           ws.close();
         } catch (error) {
-          console.error('Error closing WebSocket:', error);
+          yjsLog.error('Error closing WebSocket', error);
         }
       });
       doc.doc.destroy();
@@ -308,9 +311,9 @@ export class YjsService {
       async ([projectKey, persistence]) => {
         try {
           await persistence.destroy();
-          console.log(`Closed persistence for project ${projectKey}`);
+          yjsLog.debug(`Closed persistence for project ${projectKey}`);
         } catch (error) {
-          console.error(`Error closing persistence for project ${projectKey}:`, error);
+          yjsLog.error(`Error closing persistence for project ${projectKey}`, error);
         }
       }
     );

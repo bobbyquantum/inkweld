@@ -8,6 +8,10 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { logger } from '../services/logger.service';
+
+const docDOLog = logger.child('YjsDocumentDO');
+
 // Cloudflare Workers types - these are available at runtime but not during development
 declare const WebSocketPair: any;
 interface DurableObjectState {
@@ -103,7 +107,7 @@ export class YjsDocument extends DurableObject {
       // Only persist if this wasn't from storage loading
       if (origin !== 'storage') {
         this.persistUpdate(update).catch((err: any) => {
-          console.error('Error persisting update:', err);
+          docDOLog.error('Error persisting update:', err);
         });
       }
     });
@@ -170,7 +174,7 @@ export class YjsDocument extends DurableObject {
       this.awareness.setLocalStateField('user', { id: userId });
     }
 
-    console.log(`WS connected: ${this.documentId} (${this.connections.size} connections)`);
+    docDOLog.debug(`WS connected: ${this.documentId} (${this.connections.size} connections)`);
 
     // Return the client side of the WebSocket pair
     return new Response(null, {
@@ -186,7 +190,7 @@ export class YjsDocument extends DurableObject {
    */
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string) {
     if (typeof message === 'string') {
-      console.warn('Received string message, expected binary');
+      docDOLog.warn('Received string message, expected binary');
       return;
     }
 
@@ -197,7 +201,7 @@ export class YjsDocument extends DurableObject {
     // Log stats periodically (every 100 messages)
     if (this.messageCount % 100 === 0) {
       const estimatedSize = this.estimateMemoryUsage();
-      console.log(
+      docDOLog.debug(
         `[${this.documentId}] Stats: ${this.messageCount} messages, ` +
           `${this.connections.size} connections, ~${estimatedSize}KB memory`
       );
@@ -246,10 +250,10 @@ export class YjsDocument extends DurableObject {
         }
 
         default:
-          console.warn('Unknown message type:', messageType);
+          docDOLog.warn('Unknown message type:', messageType);
       }
     } catch (error) {
-      console.error('Error handling WebSocket message:', error);
+      docDOLog.error('Error handling WebSocket message:', error);
     }
 
     // After this function returns, the Durable Object automatically hibernates
@@ -288,7 +292,7 @@ export class YjsDocument extends DurableObject {
     const allSockets = this.ctx.getWebSockets();
 
     if (allSockets.length === 0) {
-      console.log(`No connections for ${this.documentId} - hibernating`);
+      docDOLog.debug(`No connections for ${this.documentId} - hibernating`);
       // Durable Object will fully hibernate (zero CPU, minimal memory cost)
       // Persistent data remains in SQLite storage
       // Next connection will wake it up instantly
@@ -299,7 +303,7 @@ export class YjsDocument extends DurableObject {
    * Handle WebSocket errors
    */
   async webSocketError(ws: WebSocket, error: unknown) {
-    console.error(`WebSocket error for ${this.documentId}:`, error);
+    docDOLog.error(`WebSocket error for ${this.documentId}:`, error);
     this.connections.delete(ws);
   }
 
@@ -355,7 +359,7 @@ export class YjsDocument extends DurableObject {
         try {
           ws.send(message);
         } catch (error) {
-          console.error('Error broadcasting message:', error);
+          docDOLog.error('Error broadcasting message:', error);
         }
       }
     });
@@ -369,14 +373,14 @@ export class YjsDocument extends DurableObject {
       // Load all stored updates
       const updates = await this.ctx.storage.get<StoredUpdate[]>('updates');
       if (updates && updates.length > 0) {
-        console.log(`Loading ${updates.length} persisted updates for ${this.documentId}`);
+        docDOLog.debug(`Loading ${updates.length} persisted updates for ${this.documentId}`);
         updates.forEach((stored: StoredUpdate) => {
           const update = new Uint8Array(stored.update);
           Y.applyUpdate(this.doc, update);
         });
       }
     } catch (error) {
-      console.error('Error loading persisted state:', error);
+      docDOLog.error('Error loading persisted state:', error);
     }
   }
 
@@ -401,7 +405,7 @@ export class YjsDocument extends DurableObject {
         await this.compactUpdates();
       }
     } catch (error) {
-      console.error('Error persisting update:', error);
+      docDOLog.error('Error persisting update:', error);
     }
   }
 
@@ -410,7 +414,7 @@ export class YjsDocument extends DurableObject {
    */
   private async compactUpdates() {
     try {
-      console.log(`Compacting updates for ${this.documentId}`);
+      docDOLog.debug(`Compacting updates for ${this.documentId}`);
 
       // Get current document state
       const state = Y.encodeStateAsUpdate(this.doc);
@@ -424,9 +428,9 @@ export class YjsDocument extends DurableObject {
       ]);
 
       this.lastCompaction = Date.now();
-      console.log(`Compaction complete for ${this.documentId}`);
+      docDOLog.debug(`Compaction complete for ${this.documentId}`);
     } catch (error) {
-      console.error('Error compacting updates:', error);
+      docDOLog.error('Error compacting updates:', error);
     }
   }
 }

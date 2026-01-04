@@ -1,6 +1,9 @@
 import OpenAI from 'openai';
 import { createHash } from 'crypto';
 import { config } from '../config/env';
+import { logger } from './logger.service';
+
+const lintLog = logger.child('OpenAI-Lint');
 
 interface CacheEntry<T> {
   value: T;
@@ -38,12 +41,12 @@ export class OpenAILintService {
   constructor() {
     const apiKey = config.openai.apiKey;
     if (!apiKey) {
-      console.warn('OPENAI_API_KEY not configured. AI linting disabled.');
+      lintLog.warn('OPENAI_API_KEY not configured. AI linting disabled.');
       this.isEnabled = false;
     } else {
       this.openai = new OpenAI({ apiKey });
       this.isEnabled = true;
-      console.log('OpenAI lint service initialized');
+      lintLog.info('OpenAI lint service initialized');
     }
   }
 
@@ -123,7 +126,7 @@ The JSON must follow this format:
     const cacheKey = this.generateCacheKey(paragraph, style, level);
     const cached = this.cacheGet(cacheKey);
     if (cached) {
-      console.log('Returning cached lint results');
+      lintLog.debug('Returning cached lint results');
       return cached;
     }
 
@@ -172,7 +175,7 @@ The JSON must follow this format:
       if (err.name === 'AbortError') {
         throw new Error('Linting service timed out after 15 seconds');
       }
-      console.error(`Error calling OpenAI: ${err.message || 'Unknown error'}`);
+      lintLog.error(`Error calling OpenAI: ${err.message || 'Unknown error'}`);
       throw new Error('Failed to process text with OpenAI');
     }
   }

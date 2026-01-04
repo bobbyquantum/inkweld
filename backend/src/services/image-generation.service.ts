@@ -17,6 +17,9 @@ import type {
   ImageProviderType,
 } from '../types/image-generation';
 import type { DatabaseInstance } from '../types/context';
+import { logger } from './logger.service';
+
+const imgLog = logger.child('ImageGeneration');
 
 /**
  * Service for managing image generation across multiple providers.
@@ -38,12 +41,12 @@ class ImageGenerationService {
    * Should be called before using the service.
    */
   async configure(db: DatabaseInstance): Promise<void> {
-    console.log('[ImageGenerationService] Configuring providers from database...');
+    imgLog.info('Configuring providers from database...');
 
     // Check if image generation is globally enabled
     const globalEnabled = await configService.getBoolean(db, 'AI_IMAGE_ENABLED');
     if (!globalEnabled) {
-      console.log('[ImageGenerationService] Image generation is globally disabled');
+      imgLog.info('Image generation is globally disabled');
       // Disable all providers
       for (const provider of this.providers.values()) {
         (provider as OpenAIImageProvider).configure({ enabled: false });
@@ -76,10 +79,10 @@ class ImageGenerationService {
         const customModels = JSON.parse(openaiModelsJson);
         if (Array.isArray(customModels) && customModels.length > 0) {
           openaiProvider.setModels(customModels);
-          console.log(`[ImageGenerationService] OpenAI using ${customModels.length} custom models`);
+          imgLog.debug(`OpenAI using ${customModels.length} custom models`);
         }
       } catch (e) {
-        console.warn('[ImageGenerationService] Failed to parse OpenAI models config:', e);
+        imgLog.warn('Failed to parse OpenAI models config', { error: e });
       }
     }
 
@@ -105,12 +108,10 @@ class ImageGenerationService {
         const customModels = JSON.parse(openrouterModelsJson);
         if (Array.isArray(customModels) && customModels.length > 0) {
           openrouterProvider.setModels(customModels);
-          console.log(
-            `[ImageGenerationService] OpenRouter using ${customModels.length} custom models`
-          );
+          imgLog.debug(`OpenRouter using ${customModels.length} custom models`);
         }
       } catch (e) {
-        console.warn('[ImageGenerationService] Failed to parse OpenRouter models config:', e);
+        imgLog.warn('Failed to parse OpenRouter models config', { error: e });
       }
     }
 
@@ -149,15 +150,15 @@ class ImageGenerationService {
         const customModels = JSON.parse(falaiModelsJson);
         if (Array.isArray(customModels) && customModels.length > 0) {
           falaiProvider.setModels(customModels);
-          console.log(`[ImageGenerationService] Fal.ai using ${customModels.length} custom models`);
+          imgLog.debug(`Fal.ai using ${customModels.length} custom models`);
         }
       } catch (e) {
-        console.warn('[ImageGenerationService] Failed to parse Fal.ai models config:', e);
+        imgLog.warn('Failed to parse Fal.ai models config', { error: e });
       }
     }
 
     this.initialized = true;
-    console.log('[ImageGenerationService] Provider configuration complete');
+    imgLog.info('Provider configuration complete');
   }
 
   /**
@@ -234,9 +235,7 @@ class ImageGenerationService {
       );
     }
 
-    console.log(
-      `[ImageGenerationService] Generating image with provider: ${provider.name}, model: ${request.model}`
-    );
+    imgLog.info(`Generating image with provider: ${provider.name}`, { model: request.model });
 
     return provider.generate(request);
   }

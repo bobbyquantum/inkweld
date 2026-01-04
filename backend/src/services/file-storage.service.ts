@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { lookup } from 'mime-types';
 import { config } from '../config/env';
+import { logger } from './logger.service';
 
 export class FileStorageService {
   private basePath: string;
@@ -81,7 +82,7 @@ export class FileStorageService {
     try {
       await fs.rm(projectPath, { recursive: true, force: true });
     } catch (error) {
-      console.error('Error deleting project directory:', error);
+      logger.error('FileStorage', 'Error deleting project directory', error);
     }
   }
 

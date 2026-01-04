@@ -3,6 +3,8 @@
 let sharpInstance: any = null;
 let sharpLoadAttempted = false;
 
+import { logger } from './logger.service';
+
 async function getSharp() {
   if (sharpLoadAttempted) return sharpInstance;
 
@@ -42,7 +44,7 @@ export class ImageService {
 
     // In Workers, skip processing and return original buffer
     if (!sharp) {
-      console.warn('[ImageService] Running in Workers mode - image processing disabled');
+      logger.warn('ImageService', 'Running in Workers mode - image processing disabled');
       return buffer;
     }
 

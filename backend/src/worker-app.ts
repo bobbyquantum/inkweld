@@ -5,9 +5,9 @@
  */
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
+import { requestLogger } from './middleware/request-logger';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import { d1DatabaseMiddleware, type D1AppContext } from './middleware/database.d1.middleware';
@@ -27,7 +27,7 @@ type WorkerAppContext = {
 const app = new OpenAPIHono<WorkerAppContext>();
 
 // Global middleware
-app.use('*', logger());
+app.use('*', requestLogger());
 app.use('*', prettyJSON());
 app.use('*', secureHeaders());
 

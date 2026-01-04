@@ -53,7 +53,6 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 
 ### Known Limitations
 
-- **Logging**: Currently uses console logging; a proper logging framework is recommended for production deployments
 - **User Management**: Username changes and profile customization not yet implemented
 - **Import/Export**: Archive import/export functionality is partially implemented
 - **Project Renaming**: Changing project slugs not yet supported

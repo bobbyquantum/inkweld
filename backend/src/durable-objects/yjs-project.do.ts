@@ -26,6 +26,9 @@ import { createEncoder, toUint8Array, writeVarUint, writeVarUint8Array } from 'l
 import { encodeAwarenessUpdate } from 'y-protocols/awareness';
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
+import { logger } from '../services/logger.service';
+
+const projDOLog = logger.child('YjsProjectDO');
 
 declare const WebSocketPair: any;
 
@@ -112,7 +115,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
       const valid = await crypto.subtle.verify('HMAC', key, sigBytes, data);
       if (!valid) {
-        console.error('JWT signature verification failed');
+        projDOLog.error('JWT signature verification failed');
         return null;
       }
 
@@ -123,13 +126,13 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
       // Check expiration
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        console.error('JWT token expired');
+        projDOLog.error('JWT token expired');
         return null;
       }
 
       return payload;
     } catch (err) {
-      console.error('Failed to verify token:', err);
+      projDOLog.error('Failed to verify token', err);
       return null;
     }
   }
@@ -181,7 +184,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     // Note: We do NOT set up Yjs here - we wait for authentication
     // The client must send a JWT token as the first text message
 
-    console.log(
+    projDOLog.debug(
       `WS connected: ${documentId}, awaiting authentication... (${this.connections.size} total connections, DO: ${this.projectId})`
     );
 
@@ -210,7 +213,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       });
 
       this.documents.set(documentId, sharedDoc);
-      console.log(`Created new shared doc for ${documentId}`);
+      projDOLog.debug(`Created new shared doc for ${documentId}`);
     }
 
     return sharedDoc;
@@ -226,7 +229,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         try {
           ws.send(message);
         } catch (error) {
-          console.error(`Error sending to WebSocket for ${documentId}:`, error);
+          projDOLog.error(`Error sending to WebSocket for ${documentId}:`, error);
         }
       }
     });
@@ -261,7 +264,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         writeSyncStep1(encoder, sharedDoc);
         const syncMessage = toUint8Array(encoder);
         ws.send(syncMessage);
-        console.log(`📤 Sent sync step 1 for ${documentId} (${syncMessage.byteLength} bytes)`);
+        projDOLog.debug(`📤 Sent sync step 1 for ${documentId} (${syncMessage.byteLength} bytes)`);
       }
 
       // Send awareness state
@@ -276,11 +279,11 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
           );
           writeVarUint8Array(encoder, awarenessUpdate);
           ws.send(toUint8Array(encoder));
-          console.log(`📤 Sent awareness for ${documentId} (${awarenessStates.size} clients)`);
+          projDOLog.debug(`📤 Sent awareness for ${documentId} (${awarenessStates.size} clients)`);
         }
       }
     } catch (error) {
-      console.error(`Error sending initial sync state for ${documentId}:`, error);
+      projDOLog.error(`Error sending initial sync state for ${documentId}:`, error);
     }
   }
 
@@ -292,7 +295,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   async webSocketMessage(ws: WebSocket, message: ArrayBuffer | string): Promise<void> {
     const connInfo = this.connections.get(ws);
     if (!connInfo) {
-      console.warn('Received message from unknown connection');
+      projDOLog.warn('Received message from unknown connection');
       return;
     }
 
@@ -310,7 +313,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         // Verify the token
         const sessionData = await this.verifyToken(token);
         if (!sessionData) {
-          console.error(`Invalid auth token for ${connInfo.documentId}`);
+          projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
           ws.send('access-denied:invalid-token');
           ws.close(4001, 'Invalid token');
           return;
@@ -325,7 +328,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         // For now, collaborators can only work on the Bun runtime, not Cloudflare Workers
         // See yjs.routes.ts for the Bun implementation with collaborationService.checkAccess()
         if (sessionData.username !== projectOwner) {
-          console.error(
+          projDOLog.error(
             `User ${sessionData.username} attempted to access project owned by ${projectOwner}`
           );
           ws.send('access-denied:forbidden');
@@ -336,7 +339,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         // Authentication successful!
         connInfo.authenticated = true;
         connInfo.userId = sessionData.userId;
-        console.log(`WS authenticated for ${connInfo.documentId} (user: ${sessionData.username})`);
+        projDOLog.debug(
+          `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username})`
+        );
 
         // Send success message
         ws.send('authenticated');
@@ -352,11 +357,11 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         }
         connInfo.pendingMessages = [];
 
-        console.log(
+        projDOLog.debug(
           `Yjs sync started for ${connInfo.documentId} (${this.documents.size} docs in DO)`
         );
       } catch (error) {
-        console.error(`Auth error for ${connInfo.documentId}:`, error);
+        projDOLog.error(`Auth error for ${connInfo.documentId}:`, error);
         ws.send('access-denied:error');
         ws.close(4000, 'Authentication error');
       }
@@ -373,7 +378,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
     const sharedDoc = connInfo.sharedDoc;
     if (!sharedDoc) {
-      console.warn(`No document state for ${connInfo.documentId}`);
+      projDOLog.warn(`No document state for ${connInfo.documentId}`);
       return;
     }
 
@@ -381,7 +386,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       // Let the shared doc handle the message
       sharedDoc.update(new Uint8Array(message));
     } catch (error) {
-      console.error('Error handling WebSocket message:', error);
+      projDOLog.error('Error handling WebSocket message:', error);
     }
   }
 
@@ -407,7 +412,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
     const allSockets = this.state.getWebSockets();
     if (allSockets.length === 0) {
-      console.log(`No connections for project ${this.projectId} - can hibernate`);
+      projDOLog.debug(`No connections for project ${this.projectId} - can hibernate`);
     }
   }
 
@@ -415,7 +420,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    * Handle WebSocket errors
    */
   async webSocketError(ws: WebSocket) {
-    console.error(`WebSocket error for project ${this.projectId}`);
+    projDOLog.error(`WebSocket error for project ${this.projectId}`);
     const connInfo = this.connections.get(ws);
 
     // Unsubscribe from document updates
@@ -426,7 +431,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     this.connections.delete(ws);
 
     if (connInfo) {
-      console.error(`Error was for document: ${connInfo.documentId}`);
+      projDOLog.error(`Error was for document: ${connInfo.documentId}`);
     }
   }
 
@@ -444,19 +449,19 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       });
 
       if (updates.size > 0) {
-        console.log(`📦 Loading ${updates.size} persisted updates for ${documentId}`);
+        projDOLog.debug(`📦 Loading ${updates.size} persisted updates for ${documentId}`);
 
         for (const [_key, updateArray] of updates.entries()) {
           const update = new Uint8Array(updateArray);
           sharedDoc.update(update);
         }
 
-        console.log(`📦 Loaded document ${documentId} from storage`);
+        projDOLog.debug(`📦 Loaded document ${documentId} from storage`);
       } else {
-        console.log(`📦 No persisted updates found for ${documentId} - starting fresh`);
+        projDOLog.debug(`📦 No persisted updates found for ${documentId} - starting fresh`);
       }
     } catch (error) {
-      console.error(`❌ Error loading document ${documentId} from storage:`, error);
+      projDOLog.error(`❌ Error loading document ${documentId} from storage:`, error);
     }
   }
 
@@ -472,7 +477,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
       await this.state.storage.put(key, Array.from(update));
     } catch (error) {
-      console.error(`Error persisting update for ${documentId}:`, error);
+      projDOLog.error(`Error persisting update for ${documentId}:`, error);
     }
   }
 }

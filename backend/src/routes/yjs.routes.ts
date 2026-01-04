@@ -5,7 +5,9 @@ import { authService } from '../services/auth.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { type AppContext } from '../types/context';
+import { logger } from '../services/logger.service';
 
+const wsLog = logger.child('WebSocket');
 const app = new Hono<AppContext>();
 
 /**
@@ -36,7 +38,7 @@ app.get(
     const documentId = c.req.query('documentId');
 
     if (!documentId) {
-      console.error('Missing documentId parameter');
+      wsLog.error('Missing documentId parameter');
       return {};
     }
 
@@ -55,7 +57,7 @@ app.get(
     return {
       onOpen(_event, _ws) {
         // Don't set up Yjs yet - wait for authentication
-        console.log(`WebSocket connected for ${documentId}, awaiting authentication...`);
+        wsLog.debug(`Connected for ${documentId}, awaiting authentication...`);
       },
 
       async onMessage(event, ws) {
@@ -73,7 +75,7 @@ app.get(
             // Validate the token
             const sessionData = await authService.verifyToken(token, c);
             if (!sessionData) {
-              console.error(`Invalid auth token for ${documentId}`);
+              wsLog.warn(`Invalid auth token for ${documentId}`);
               ws.send('access-denied:invalid-token');
               ws.close(4001, 'Invalid token');
               return;
@@ -82,7 +84,7 @@ app.get(
             // Validate document access (format: username:slug:documentId or username:slug:elements)
             const parts = documentId.split(':');
             if (parts.length < 2) {
-              console.error(`Invalid document ID format: ${documentId}`);
+              wsLog.error(`Invalid document ID format: ${documentId}`);
               ws.send('access-denied:invalid-document');
               ws.close(4002, 'Invalid document ID');
               return;
@@ -93,7 +95,7 @@ app.get(
             // Verify project exists and user has access
             const project = await projectService.findByUsernameAndSlug(db, projectOwner, slug);
             if (!project) {
-              console.error(`Project not found: ${projectOwner}/${slug}`);
+              wsLog.warn(`Project not found: ${projectOwner}/${slug}`);
               ws.send('access-denied:project-not-found');
               ws.close(4003, 'Project not found');
               return;
@@ -108,7 +110,7 @@ app.get(
                 sessionData.userId
               );
               if (!access) {
-                console.error(
+                wsLog.warn(
                   `User ${sessionData.username} attempted to access project ${projectOwner}/${slug}`
                 );
                 ws.send('access-denied:forbidden');
@@ -117,7 +119,7 @@ app.get(
               }
               // Collaborator access granted - set write permission based on role
               canWrite = access.canWrite;
-              console.log(
+              wsLog.info(
                 `Collaborator ${sessionData.username} (${access.role}, canWrite: ${canWrite}) accessing project ${projectOwner}/${slug}`
               );
             } else {
@@ -127,9 +129,7 @@ app.get(
 
             // Authentication successful!
             authenticated = true;
-            console.log(
-              `WebSocket authenticated for ${documentId} (user: ${sessionData.username})`
-            );
+            wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
 
             // Send success message
             ws.send('authenticated');
@@ -150,7 +150,7 @@ app.get(
               try {
                 ws.raw.ping();
               } catch (error) {
-                console.error(`Error sending ping for ${documentId}, closing connection:`, error);
+                wsLog.error(`Error sending ping for ${documentId}, closing connection`, error);
                 ws.close();
                 if (pingInterval) {
                   clearInterval(pingInterval);
@@ -159,7 +159,7 @@ app.get(
               }
             }, PING_INTERVAL);
           } catch (error) {
-            console.error(`Auth error for ${documentId}:`, error);
+            wsLog.error(`Auth error for ${documentId}`, error);
             ws.send('access-denied:error');
             ws.close(4000, 'Authentication error');
           }
@@ -180,7 +180,7 @@ app.get(
 
               // Block update messages entirely
               if (messageType === 2) {
-                console.log(`[Yjs] Blocked update message from read-only viewer for ${documentId}`);
+                wsLog.debug(`Blocked update message from read-only viewer for ${documentId}`);
                 return;
               }
 
@@ -191,13 +191,13 @@ app.get(
               if (messageType === 0 && buffer.length > 1) {
                 const syncMessageType = buffer[1];
                 if (syncMessageType === 1) {
-                  console.log(
-                    `[Yjs] Blocked sync-step-2 (client sending updates) from read-only viewer for ${documentId}`
+                  wsLog.debug(
+                    `Blocked sync-step-2 (client sending updates) from read-only viewer for ${documentId}`
                   );
                   return;
                 }
                 if (syncMessageType === 2) {
-                  console.log(`[Yjs] Blocked sync-update from read-only viewer for ${documentId}`);
+                  wsLog.debug(`Blocked sync-update from read-only viewer for ${documentId}`);
                   return;
                 }
               }
@@ -212,7 +212,7 @@ app.get(
       },
 
       onClose(_event, ws) {
-        console.log(`WebSocket closed for ${documentId}`);
+        wsLog.debug(`Closed for ${documentId}`);
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;
@@ -223,7 +223,7 @@ app.get(
       },
 
       onError(evt, _ws) {
-        console.error(`WebSocket error for ${documentId}:`, evt);
+        wsLog.error(`Error for ${documentId}`, evt);
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;

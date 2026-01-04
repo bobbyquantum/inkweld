@@ -95,6 +95,7 @@ The deployment supports the following environment variables:
 - `GITHUB_REPOSITORY_OWNER` - **Required**: Your GitHub username/organization
 - `IMAGE_TAG` - Image tag to deploy (default: `latest`)
 - `PORT` - Port to expose the application on (default: `8333`)
+- `LOG_LEVEL` - Logging level: `debug`, `info`, `warn`, `error`, or `none` (default: `info` in production, `debug` in development)
 - `SERVE_FRONTEND` - Serve embedded frontend (default: `true`). Set to `false` for API-only mode
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
 - `SESSION_SECRET` - Secret used to sign session cookies (must be 32+ characters)

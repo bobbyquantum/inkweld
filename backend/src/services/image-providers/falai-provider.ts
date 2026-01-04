@@ -18,6 +18,9 @@ import type {
   ImageSize,
 } from '../../types/image-generation';
 import { BaseImageProvider } from './base-provider';
+import { logger } from '../logger.service';
+
+const falLog = logger.child('Fal.ai');
 
 /**
  * Size mode determines how size is passed to the model.
@@ -396,11 +399,7 @@ export class FalAiImageProvider extends BaseImageProvider {
     // Get size parameters based on model's size mode
     const sizeParams = this.buildSizeParams(model, request.size || '1024x1024');
 
-    console.log(
-      `[Fal.ai] Generating image with model: ${model}, params:`,
-      sizeParams,
-      `count: ${numImages}`
-    );
+    falLog.info(`Generating image`, { model, sizeParams, count: numImages });
 
     try {
       // Ensure fal client is configured with current API key
@@ -434,17 +433,15 @@ export class FalAiImageProvider extends BaseImageProvider {
         logs: true,
         onQueueUpdate: (update) => {
           if (update.status === 'IN_PROGRESS') {
-            console.log(`[Fal.ai] Generation in progress...`);
+            falLog.debug('Generation in progress...');
             if ('logs' in update && Array.isArray(update.logs)) {
-              update.logs
-                .map((log) => log.message)
-                .forEach((msg) => console.log(`[Fal.ai] ${msg}`));
+              update.logs.map((log) => log.message).forEach((msg) => falLog.debug(msg));
             }
           }
         },
       })) as FalAiResult;
 
-      console.log(`[Fal.ai] Response received. Request ID: ${result.requestId}`);
+      falLog.debug(`Response received`, { requestId: result.requestId });
 
       // Extract images from response
       // Different models return images in different formats
@@ -476,11 +473,11 @@ export class FalAiImageProvider extends BaseImageProvider {
       }
 
       if (images.length === 0) {
-        console.error(`[Fal.ai] No images in response. Response:`, JSON.stringify(result, null, 2));
+        falLog.error('No images in response', { response: JSON.stringify(result, null, 2) });
         throw new Error('Fal.ai did not return any images.');
       }
 
-      console.log(`[Fal.ai] Image generated successfully. ${images.length} image(s) received.`);
+      falLog.info(`Image generated successfully`, { count: images.length });
 
       return {
         created: Math.floor(Date.now() / 1000),
@@ -497,7 +494,7 @@ export class FalAiImageProvider extends BaseImageProvider {
     } catch (error: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
       const err = error as any;
-      console.error(`[Fal.ai] Error generating image: ${err.message || 'Unknown error'}`);
+      falLog.error(`Error generating image: ${err.message || 'Unknown error'}`);
       throw new Error(`Failed to generate image with Fal.ai: ${err.message || 'Unknown error'}`);
     }
   }

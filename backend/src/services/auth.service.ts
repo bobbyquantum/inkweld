@@ -4,6 +4,9 @@ import { config } from '../config/env';
 import { userService } from './user.service';
 import type { User } from '../db/schema/users';
 import type { DatabaseInstance } from '../types/context';
+import { logger } from './logger.service';
+
+const authLog = logger.child('Auth');
 
 const TOKEN_EXPIRY = 30 * 24 * 60 * 60; // 30 days in seconds
 
@@ -105,7 +108,7 @@ class AuthService {
 
       return data;
     } catch (err) {
-      console.error('Failed to get session:', err);
+      authLog.error('Failed to get session', err);
       return null;
     }
   }
@@ -139,7 +142,7 @@ class AuthService {
 
       return user;
     } catch (err) {
-      console.error('Authentication failed:', err);
+      authLog.error('Authentication failed', err);
       return null;
     }
   }
@@ -156,7 +159,7 @@ class AuthService {
     try {
       return (await userService.findById(db, session.userId)) ?? null;
     } catch (err) {
-      console.error('Failed to get user from session:', err);
+      authLog.error('Failed to get user from session', err);
       return null;
     }
   }
@@ -196,7 +199,7 @@ class AuthService {
 
       return data;
     } catch (err) {
-      console.error('Failed to verify token:', err);
+      authLog.error('Failed to verify token', err);
       return null;
     }
   }
