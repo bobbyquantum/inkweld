@@ -9,6 +9,9 @@ import type {
   ImageProviderType,
 } from '../../types/image-generation';
 import { BaseImageProvider } from './base-provider';
+import { logger } from '../logger.service';
+
+const sdLog = logger.child('StableDiffusion');
 
 // Default models - actual models depend on the server configuration
 const DEFAULT_SD_MODELS: ImageModelInfo[] = [
@@ -109,7 +112,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
       });
 
       if (!response.ok) {
-        console.warn(`[StableDiffusion] Failed to fetch models: ${response.status}`);
+        sdLog.warn(`Failed to fetch models: ${response.status}`);
         return DEFAULT_SD_MODELS;
       }
 
@@ -129,7 +132,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
       this.lastModelFetch = Date.now();
       return this.cachedModels;
     } catch (error) {
-      console.warn(`[StableDiffusion] Error fetching models: ${error}`);
+      sdLog.warn(`Error fetching models`, { error });
       return DEFAULT_SD_MODELS;
     }
   }
@@ -145,7 +148,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
     // Parse size into width/height
     const [width, height] = this.parseSize(request.size || '1024x1024');
 
-    console.log(`[StableDiffusion] Generating image: ${width}x${height}`);
+    sdLog.info(`Generating image: ${width}x${height}`);
 
     const sdRequest: SDTxt2ImgRequest = {
       prompt,
@@ -181,13 +184,13 @@ export class StableDiffusionProvider extends BaseImageProvider {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        console.error(`[StableDiffusion] API error: ${response.status} - ${errorBody}`);
+        sdLog.error(`API error: ${response.status}`, { body: errorBody });
         throw new Error(`Stable Diffusion API error: ${response.status}`);
       }
 
       const data = (await response.json()) as SDTxt2ImgResponse;
 
-      console.log(`[StableDiffusion] Generated ${data.images.length} images`);
+      sdLog.info(`Generated ${data.images.length} images`);
 
       return {
         created: Math.floor(Date.now() / 1000),
@@ -208,7 +211,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
       if (err.name === 'AbortError') {
         throw new Error('Stable Diffusion image generation timed out');
       }
-      console.error(`[StableDiffusion] Error generating image: ${err.message || 'Unknown error'}`);
+      sdLog.error(`Error generating image: ${err.message || 'Unknown error'}`);
       throw new Error(
         `Failed to generate image with Stable Diffusion: ${err.message || 'Unknown error'}`
       );

@@ -3,10 +3,12 @@ import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { yjsService } from '../services/yjs.service';
 import { requireAuth } from '../middleware/auth';
+import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 import { ElementSchema, ElementErrorSchema } from '../schemas/element.schemas';
 
+const elementLog = logger.child('Elements');
 const elementRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all element routes
@@ -89,7 +91,7 @@ elementRoutes.openapi(listElementsRoute, async (c) => {
     const elements = await yjsService.getElements(username, slug);
     return c.json(elements, 200);
   } catch (error) {
-    console.error('Error fetching elements:', error);
+    elementLog.error('Error fetching elements', error);
     return c.json({ error: 'Failed to fetch elements' }, 500);
   }
 });

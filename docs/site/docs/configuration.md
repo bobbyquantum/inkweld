@@ -137,6 +137,29 @@ Controls various behaviors like logging verbosity and security settings.
 NODE_ENV=production
 ```
 
+### LOG_LEVEL
+
+**Default:** `debug` (development) / `info` (production) | `debug` | `info` | `warn` | `error` | `none`
+
+Controls the verbosity of server logs.
+
+```bash
+LOG_LEVEL=debug    # All logs (default in development)
+LOG_LEVEL=info     # Info and above (default in production)
+LOG_LEVEL=warn     # Warnings and errors only
+LOG_LEVEL=error    # Errors only
+LOG_LEVEL=none     # Disable logging
+```
+
+**Log Output Format:**
+- **Development**: Human-readable, colored output to the terminal
+- **Production**: Structured JSON for log aggregators (Docker, Cloudflare, etc.)
+
+**Features:**
+- Request correlation IDs (`X-Correlation-ID` header) for tracing
+- Automatic timing of request/response cycles
+- Structured error logging with stack traces
+
 ---
 
 ## Database Configuration

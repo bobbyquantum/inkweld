@@ -18,6 +18,9 @@ import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
+import { logger } from '../../services/logger.service';
+
+const mcpSearchLog = logger.child('MCP-Search');
 
 interface SearchResult {
   elementId: string;
@@ -35,7 +38,7 @@ async function getElements(username: string, slug: string): Promise<Element[]> {
   try {
     return await yjsService.getElements(username, slug);
   } catch (err) {
-    console.error('[MCP Search] Error getting elements:', err);
+    mcpSearchLog.error('Error getting elements', err);
     return [];
   }
 }

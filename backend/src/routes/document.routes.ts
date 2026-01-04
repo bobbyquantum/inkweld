@@ -3,9 +3,11 @@ import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { yjsService } from '../services/yjs.service';
 import { requireAuth } from '../middleware/auth';
+import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
+const documentLog = logger.child('Documents');
 const documentRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all document routes
@@ -112,7 +114,7 @@ documentRoutes.openapi(listDocsRoute, async (c) => {
     const documents = elements.filter((e) => e.type === 'ITEM');
     return c.json(documents, 200);
   } catch (error) {
-    console.error('Error fetching documents:', error);
+    documentLog.error('Error fetching documents', error);
     return c.json({ error: 'Failed to fetch documents' }, 500);
   }
 });

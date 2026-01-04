@@ -9,6 +9,9 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import * as schema from './schema';
 import { config } from '../config/env';
+import { logger } from '../services/logger.service';
+
+const dbLogger = logger.child('Database');
 
 let db: BunSQLiteDatabase<typeof schema> | null = null;
 let sqlite: BunDatabase | null = null;
@@ -22,7 +25,7 @@ export async function setupBunDatabase(dbPath: string): Promise<BunSQLiteDatabas
     const dbDir = dirname(dbPath);
     if (!existsSync(dbDir)) {
       mkdirSync(dbDir, { recursive: true });
-      console.log(`[database] Created directory: ${dbDir}`);
+      dbLogger.info(`Created directory: ${dbDir}`);
     }
   }
 
@@ -54,8 +57,8 @@ async function runMigrations(database: BunDatabaseInstance): Promise<void> {
   const migrationsFolder = process.env.DRIZZLE_MIGRATIONS_DIR || join(process.cwd(), 'drizzle');
 
   if (!existsSync(migrationsFolder)) {
-    console.warn(
-      `[drizzle] migrations folder not found at "${migrationsFolder}". Skipping automatic migrations.`
+    dbLogger.warn(
+      `Migrations folder not found at "${migrationsFolder}". Skipping automatic migrations.`
     );
     migrationsApplied = true;
     return;
@@ -66,17 +69,17 @@ async function runMigrations(database: BunDatabaseInstance): Promise<void> {
     // It will only run migrations that haven't been applied yet via __drizzle_migrations table
     await migrate(database, { migrationsFolder });
     migrationsApplied = true;
-    console.log('[drizzle] Migrations completed successfully');
+    dbLogger.info('Migrations completed successfully');
   } catch (error) {
     // If the error is about tables already existing, it's safe to continue
     // This happens when the database is already initialized
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes('already exists')) {
-      console.log('[drizzle] Database tables already exist, skipping migrations');
+      dbLogger.info('Database tables already exist, skipping migrations');
       migrationsApplied = true;
       return;
     }
-    console.error('[drizzle] Failed to run migrations:', error);
+    dbLogger.error('Failed to run migrations', error);
     throw error;
   }
 }
@@ -110,7 +113,7 @@ async function seedDefaultAdmin(database: BunDatabaseInstance): Promise<void> {
         await userService.setUserAdmin(database, existingUser.id, true);
         await userService.approveUser(database, existingUser.id);
         await userService.setUserEnabled(database, existingUser.id, true);
-        console.log(`[seed] Updated existing user "${username}" to admin status`);
+        dbLogger.info(`Updated existing user "${username}" to admin status`);
       }
     } else {
       // Create new admin user
@@ -127,10 +130,10 @@ async function seedDefaultAdmin(database: BunDatabaseInstance): Promise<void> {
 
       // Set as admin
       await userService.setUserAdmin(database, newUser.id, true);
-      console.log(`[seed] Created default admin user "${username}"`);
+      dbLogger.info(`Created default admin user "${username}"`);
     }
   } catch (error) {
-    console.error('[seed] Failed to seed default admin:', error);
+    dbLogger.error('Failed to seed default admin', error);
     // Don't throw - this shouldn't prevent the app from starting
   }
 }

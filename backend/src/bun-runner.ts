@@ -15,8 +15,12 @@ if (isCompiled && isInteractive) {
 
 // Import config and app AFTER setup wizard has run
 const { config } = await import('./config/env');
+const { logger } = await import('./services/logger.service');
 const bunAppModule = await import('./bun-app');
 
-console.log(`[bun-runner] Server starting on port ${config.port}`);
+logger.info('BunRunner', `Server starting on port ${config.port}`, {
+  nodeEnv: config.nodeEnv,
+  version: config.version,
+});
 
 export default bunAppModule.default;

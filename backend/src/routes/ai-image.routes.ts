@@ -10,6 +10,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth';
 import { imageGenerationService } from '../services/image-generation.service';
 import { imageProfileService } from '../services/image-profile.service';
 import { configService } from '../services/config.service';
+import { logger } from '../services/logger.service';
 import { DEFAULT_OPENAI_MODELS } from '../services/image-providers/openai-provider';
 import { DEFAULT_OPENROUTER_MODELS } from '../services/image-providers/openrouter-provider';
 import { DEFAULT_FALAI_MODELS } from '../services/image-providers/falai-provider';
@@ -21,6 +22,7 @@ import type {
   CustomImageSize,
 } from '../types/image-generation';
 
+const aiImageLog = logger.child('AIImage');
 const aiImageRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all routes
@@ -365,7 +367,7 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
     const err = error as any;
-    console.error('[AI Image] Error in generate endpoint:', err);
+    aiImageLog.error(' Error in generate endpoint:', err);
 
     if (err.name === 'ZodError') {
       return c.json({ error: 'Invalid request body' }, 400);
@@ -454,7 +456,7 @@ aiImageRoutes.openapi(getCustomSizesRoute, async (c) => {
       sizesJson && typeof sizesJson === 'string' ? JSON.parse(sizesJson) : [];
     return c.json({ sizes }, 200);
   } catch (error) {
-    console.error('[AI Image] Error getting custom sizes:', error);
+    aiImageLog.error(' Error getting custom sizes:', error);
     return c.json({ sizes: [] }, 200);
   }
 });
@@ -524,7 +526,7 @@ aiImageRoutes.openapi(updateCustomSizesRoute, async (c) => {
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
     const err = error as any;
-    console.error('[AI Image] Error updating custom sizes:', err);
+    aiImageLog.error(' Error updating custom sizes:', err);
 
     if (err.name === 'ZodError') {
       return c.json({ error: 'Invalid request body' }, 400);

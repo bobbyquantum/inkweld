@@ -23,6 +23,9 @@ import {
   JSON_RPC_ERRORS,
 } from './mcp.types';
 import { requirePermission } from './mcp.auth';
+import { logger } from '../services/logger.service';
+
+const mcpLog = logger.child('MCP');
 import { MCP_PERMISSIONS } from '../db/schema/mcp-access-keys';
 import { projectService } from '../services/project.service';
 
@@ -427,7 +430,7 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     }
 
     // Handle unexpected errors
-    console.error('MCP handler error:', err);
+    mcpLog.error('MCP handler error', err);
     return c.json(
       createErrorResponse(
         requestId ?? 0,

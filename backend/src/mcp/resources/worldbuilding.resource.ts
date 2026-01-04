@@ -10,6 +10,9 @@ import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { Element } from '../../schemas/element.schemas';
 import { getElementsDocId } from '../tools/tree-helpers';
+import { logger } from '../../services/logger.service';
+
+const wbLog = logger.child('MCP-Worldbuilding');
 
 /**
  * Check if an element type is a worldbuilding type
@@ -34,7 +37,7 @@ async function getWorldbuildingElements(username: string, slug: string): Promise
     const elements = await yjsService.getElements(username, slug);
     return elements.filter((e) => isWorldbuildingType(e.type));
   } catch (err) {
-    console.error('Error reading worldbuilding elements:', err);
+    wbLog.error('Error reading worldbuilding elements', err);
     return [];
   }
 }
@@ -72,7 +75,7 @@ async function readWorldbuildingData(
       data,
     };
   } catch (err) {
-    console.error('Error reading worldbuilding data:', err);
+    wbLog.error('Error reading worldbuilding data', err);
     return null;
   }
 }
@@ -121,7 +124,7 @@ async function readRelationships(username: string, slug: string): Promise<unknow
 
     return relationshipsArray.toJSON() as unknown[];
   } catch (err) {
-    console.error('Error reading relationships:', err);
+    wbLog.error('Error reading relationships', err);
     return [];
   }
 }

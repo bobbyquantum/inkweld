@@ -19,6 +19,9 @@ import type {
   ResolvedImageRequest,
 } from '../../types/image-generation';
 import type { DatabaseInstance } from '../../types/context';
+import { logger } from '../../services/logger.service';
+
+const mcpImageLog = logger.child('MCP-Image');
 
 // ============================================
 // Helper functions
@@ -187,7 +190,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error generating image:', err);
+      mcpImageLog.error('Error generating image', err);
       return {
         content: [{ type: 'text', text: `Error generating image: ${err}` }],
         isError: true,
@@ -302,7 +305,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error setting element image:', err);
+      mcpImageLog.error('Error setting element image', err);
       return {
         content: [{ type: 'text', text: `Error setting element image: ${err}` }],
         isError: true,
@@ -471,7 +474,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error generating and setting element image:', err);
+      mcpImageLog.error('Error generating and setting element image', err);
       return {
         content: [{ type: 'text', text: `Error generating and setting element image: ${err}` }],
         isError: true,
@@ -571,7 +574,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error setting project cover:', err);
+      mcpImageLog.error('Error setting project cover', err);
       return {
         content: [{ type: 'text', text: `Error setting project cover: ${err}` }],
         isError: true,
@@ -720,7 +723,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error generating project cover:', err);
+      mcpImageLog.error('Error generating project cover', err);
       return {
         content: [{ type: 'text', text: `Error generating project cover: ${err}` }],
         isError: true,

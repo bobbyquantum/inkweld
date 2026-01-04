@@ -5,9 +5,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
+import { requestLogger } from './middleware/request-logger';
+import { logger } from './services/logger.service';
 import { websocket } from 'hono/bun';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -53,7 +54,7 @@ if (isCompiled) {
   if (getAllFrontendAssets) {
     const assets = getAllFrontendAssets();
     if (assets.size > 0) {
-      console.log(`[SPA] Loaded ${assets.size} assets from generated imports`);
+      logger.info('SPA', `Loaded ${assets.size} assets from generated imports`);
       embeddedFrontendFiles = assets;
     }
   }
@@ -61,7 +62,7 @@ if (isCompiled) {
   else if (getFrontendAssets) {
     const assets = getFrontendAssets();
     if (assets.size > 0) {
-      console.log(`[SPA] Loaded ${assets.size} explicitly imported frontend assets`);
+      logger.info('SPA', `Loaded ${assets.size} explicitly imported frontend assets`);
       embeddedFrontendFiles = assets;
     }
   }
@@ -95,14 +96,14 @@ if (isCompiled) {
       embeddedFrontendFiles = new Map();
     }
     bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles.set(name, blob));
-    console.log(`[SPA] Added ${bunEmbedded.length} files from Bun.embeddedFiles`);
+    logger.info('SPA', `Added ${bunEmbedded.length} files from Bun.embeddedFiles`);
   }
 
   if (embeddedFrontendFiles && embeddedFrontendFiles.size > 0) {
-    console.log('[SPA] Total embedded files:', embeddedFrontendFiles.size);
+    logger.info('SPA', `Total embedded files: ${embeddedFrontendFiles.size}`);
     // Log a few sample keys to debug path matching
     const sampleKeys = Array.from(embeddedFrontendFiles.keys()).slice(0, 5);
-    console.log('[SPA] Sample keys:', sampleKeys);
+    logger.debug('SPA', 'Sample keys:', { sampleKeys });
   }
 }
 
@@ -113,13 +114,13 @@ const hasExternalFrontend = frontendDistPath && existsSync(join(frontendDistPath
 const spaEnabled = config.serveFrontend && (hasEmbeddedFrontend || hasExternalFrontend);
 
 if (!config.serveFrontend) {
-  console.log('[SPA] Frontend serving disabled via SERVE_FRONTEND=false');
+  logger.info('SPA', 'Frontend serving disabled via SERVE_FRONTEND=false');
 }
 
 const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp'];
 
 // Global middleware
-app.use('*', logger());
+app.use('*', requestLogger());
 app.use('*', prettyJSON());
 app.use('*', secureHeaders());
 
@@ -219,11 +220,11 @@ if (spaEnabled) {
   // This is important for Docker where FRONTEND_DIST points to the full built frontend
   // while the embedded frontend may only have index.html without JS bundles
   if (hasExternalFrontend && frontendDistPath) {
-    console.log(`[SPA] Using external frontend from: ${frontendDistPath}`);
+    logger.info('SPA', `Using external frontend from: ${frontendDistPath}`);
     const spaHandler = createSpaHandler(frontendDistPath, SPA_BYPASS_PREFIXES);
     app.get('*', spaHandler);
   } else if (hasEmbeddedFrontend && embeddedFrontendFiles) {
-    console.log(`[SPA] Using embedded frontend (${embeddedFrontendFiles.size} files)`);
+    logger.info('SPA', `Using embedded frontend (${embeddedFrontendFiles.size} files)`);
     const spaHandler = createEmbeddedSpaHandler(embeddedFrontendFiles, SPA_BYPASS_PREFIXES);
     app.get('*', spaHandler);
   }
@@ -246,16 +247,16 @@ async function bootstrap() {
         ? ':memory:'
         : process.env.DB_PATH || './data/inkweld.db';
     await setupBunDatabase(dbPath);
-    console.log(`Bun SQLite database initialized (${dbPath})`);
+    logger.info('Database', `Bun SQLite database initialized (${dbPath})`);
 
     const port = config.port;
-    console.log(`Inkweld backend (Bun) ready on port ${port}`);
+    logger.info('Server', `Inkweld backend (Bun) ready on port ${port}`);
 
     // Open browser if requested during setup
     const globals = globalThis as { __openBrowserOnStart?: boolean; __serverPort?: string };
     if (globals.__openBrowserOnStart) {
       const url = `http://localhost:${port}`;
-      console.log(`\n🌐 Opening browser: ${url}`);
+      logger.info('Server', `Opening browser: ${url}`);
 
       // Use platform-specific open command
       const { spawn } = await import('child_process');
@@ -265,7 +266,7 @@ async function bootstrap() {
       spawn(command, [url], { detached: true, stdio: 'ignore' }).unref();
     }
   } catch (error) {
-    console.error('Failed to start Bun server:', error);
+    logger.error('Server', 'Failed to start Bun server', error);
     process.exit(1);
   }
 }
@@ -364,21 +365,22 @@ function createEmbeddedSpaHandler(
   bypassPrefixes: string[]
 ): MiddlewareHandler {
   // Find index.html in embedded files
-  console.log('[SPA] Searching for index.html in', embeddedFiles.size, 'embedded files');
+  logger.debug('SPA', `Searching for index.html in ${embeddedFiles.size} embedded files`);
 
   let indexFile: string | Blob | undefined;
   for (const [name, content] of embeddedFiles.entries()) {
     const isIndex = name === 'index.html' || name.endsWith('/index.html');
     if (isIndex) {
-      console.log(`[SPA] Found index.html as: ${name}`);
+      logger.debug('SPA', `Found index.html as: ${name}`);
       indexFile = content;
       break;
     }
   }
 
   if (!indexFile) {
-    console.warn('[SPA] No index.html found in embedded files');
-    console.warn('[SPA] Available:', Array.from(embeddedFiles.keys()).slice(0, 10));
+    logger.warn('SPA', 'No index.html found in embedded files', {
+      available: Array.from(embeddedFiles.keys()).slice(0, 10),
+    });
     return async (c, next) => next();
   }
 
@@ -414,7 +416,7 @@ async function serveEmbeddedAsset(
   pathname: string
 ): Promise<Response | null> {
   const relativePath = sanitizeSpaPath(pathname);
-  console.log(`[SPA] Looking for asset: "${pathname}" -> "${relativePath}"`);
+  logger.debug('SPA', `Looking for asset: "${pathname}" -> "${relativePath}"`);
 
   // Try exact match first
   let file = embeddedFiles.get(relativePath);
@@ -424,14 +426,14 @@ async function serveEmbeddedAsset(
     const basename = relativePath.split('/').pop() || '';
     file = embeddedFiles.get(basename);
     if (file) {
-      console.log(`[SPA] Found by basename: "${basename}"`);
+      logger.debug('SPA', `Found by basename: "${basename}"`);
     }
   }
 
   if (!file) {
-    console.log(
-      `[SPA] Asset not found. Available: ${Array.from(embeddedFiles.keys()).slice(0, 10)}`
-    );
+    logger.debug('SPA', 'Asset not found', {
+      available: Array.from(embeddedFiles.keys()).slice(0, 10),
+    });
     return null;
   }
 

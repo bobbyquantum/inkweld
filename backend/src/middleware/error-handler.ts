@@ -1,7 +1,16 @@
 import { ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { logger } from '../services/logger.service';
+import { getRequestCorrelationId } from './request-logger';
+
+const log = logger.child('ErrorHandler');
 
 export const errorHandler: ErrorHandler = (err, c) => {
+  // Get correlation ID from request context
+  const correlationId = getRequestCorrelationId(c);
+  const path = c.req.path;
+  const method = c.req.method;
+
   // Don't log expected client errors (400/401/403/404) - they're normal flow
   const isExpectedError =
     err.name === 'UnauthorizedError' ||
@@ -12,7 +21,14 @@ export const errorHandler: ErrorHandler = (err, c) => {
     (err instanceof HTTPException && err.status < 500);
 
   if (!isExpectedError) {
-    console.error('Error:', err);
+    log.error(`Unhandled error on ${method} ${path}`, err, { method, path }, correlationId);
+  } else {
+    // Log expected errors at debug level for troubleshooting
+    log.debug(
+      `Client error on ${method} ${path}: ${err.name}`,
+      { method, path, errorName: err.name },
+      correlationId
+    );
   }
 
   // Handle Hono HTTPException (legacy, prefer domain errors)

@@ -8,6 +8,7 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { configService } from '../services/config.service';
+import { logger } from '../services/logger.service';
 import {
   DEFAULT_OPENAI_TEXT_MODELS,
   DEFAULT_OPENROUTER_TEXT_MODELS,
@@ -16,6 +17,7 @@ import {
 import type { AppContext } from '../types/context';
 import type { TextProviderType } from '../types/text-generation';
 
+const aiTextLog = logger.child('AIText');
 const aiTextRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all routes
@@ -450,7 +452,7 @@ ${body.maxLength ? `Maximum length: approximately ${body.maxLength} characters` 
         return c.json({ error: 'Invalid provider' }, 400);
     }
   } catch (error) {
-    console.error('Error optimizing prompt:', error);
+    aiTextLog.error('Error optimizing prompt', error);
     return c.json(
       { error: error instanceof Error ? error.message : 'Failed to optimize prompt' },
       503

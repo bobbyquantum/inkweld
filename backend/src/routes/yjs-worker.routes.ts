@@ -12,8 +12,10 @@
  */
 
 import { Hono } from 'hono';
+import { logger } from '../services/logger.service';
 import type { CloudflareAppContext } from '../types/cloudflare';
 
+const yjsWorkerLog = logger.child('YjsWorker');
 const app = new Hono<CloudflareAppContext>();
 
 /**
@@ -41,7 +43,7 @@ app.get('/yjs', async (c) => {
     // Get Durable Object namespace binding
     const namespace = c.env.YJS_PROJECTS;
     if (!namespace) {
-      console.error('YJS_PROJECTS binding not found');
+      yjsWorkerLog.error('YJS_PROJECTS binding not found');
       return c.json({ error: 'WebSocket service unavailable' }, 503);
     }
 
@@ -51,13 +53,13 @@ app.get('/yjs', async (c) => {
     const id = namespace.idFromName(projectId);
     const stub = namespace.get(id);
 
-    console.log(`Routing WebSocket to project DO: ${projectId} for document: ${documentId}`);
+    yjsWorkerLog.debug(`Routing WebSocket to project DO: ${projectId} for document: ${documentId}`);
 
     // Forward the request to the Durable Object
     // The DO will handle authentication over the WebSocket connection
     return stub.fetch(c.req.raw);
   } catch (error) {
-    console.error('Error routing to Durable Object:', error);
+    yjsWorkerLog.error('Error routing to Durable Object', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });

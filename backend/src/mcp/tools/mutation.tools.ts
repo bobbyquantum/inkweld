@@ -19,6 +19,9 @@ import type { McpContext, McpToolResult } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { Element, ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
+import { logger } from '../../services/logger.service';
+
+const mcpMutLog = logger.child('MCP-Mutation');
 import {
   getElementsDocId,
   getWorldbuildingDocId,
@@ -145,7 +148,7 @@ Use move_elements or reorder_element to reposition after creation.`,
         },
       };
     } catch (err) {
-      console.error('Error creating element:', err);
+      mcpMutLog.error('Error creating element', err);
       return {
         content: [{ type: 'text', text: `Error creating element: ${err}` }],
         isError: true,
@@ -266,7 +269,7 @@ WARNING: This will delete all existing elements and replace them.`,
         },
       };
     } catch (err) {
-      console.error('Error replacing elements:', err);
+      mcpMutLog.error('Error replacing elements', err);
       return {
         content: [{ type: 'text', text: `Error replacing elements: ${err}` }],
         isError: true,
@@ -391,7 +394,7 @@ This tool only updates name and type without changing position.`,
         },
       };
     } catch (err) {
-      console.error('Error updating element:', err);
+      mcpMutLog.error('Error updating element', err);
       return {
         content: [{ type: 'text', text: `Error updating element: ${err}` }],
         isError: true,
@@ -479,7 +482,7 @@ this element in the array at deeper levels).`,
         },
       };
     } catch (err) {
-      console.error('Error deleting element:', err);
+      mcpMutLog.error('Error deleting element', err);
       return {
         content: [{ type: 'text', text: `Error deleting element: ${err}` }],
         isError: true,
@@ -608,7 +611,7 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
         },
       };
     } catch (err) {
-      console.error('Error moving elements:', err);
+      mcpMutLog.error('Error moving elements', err);
       return {
         content: [{ type: 'text', text: `Error moving elements: ${err}` }],
         isError: true,
@@ -768,7 +771,7 @@ to a new position among its siblings.`,
         },
       };
     } catch (err) {
-      console.error('Error reordering element:', err);
+      mcpMutLog.error('Error reordering element', err);
       return {
         content: [{ type: 'text', text: `Error reordering element: ${err}` }],
         isError: true,
@@ -901,7 +904,7 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
         },
       };
     } catch (err) {
-      console.error('Error sorting elements:', err);
+      mcpMutLog.error('Error sorting elements', err);
       return {
         content: [{ type: 'text', text: `Error sorting elements: ${err}` }],
         isError: true,
@@ -1003,7 +1006,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error updating worldbuilding:', err);
+      mcpMutLog.error('Error updating worldbuilding', err);
       return {
         content: [{ type: 'text', text: `Error updating worldbuilding: ${err}` }],
         isError: true,
@@ -1099,7 +1102,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error creating relationship:', err);
+      mcpMutLog.error('Error creating relationship', err);
       return {
         content: [{ type: 'text', text: `Error creating relationship: ${err}` }],
         isError: true,
@@ -1177,7 +1180,7 @@ registerTool({
         },
       };
     } catch (err) {
-      console.error('Error deleting relationship:', err);
+      mcpMutLog.error('Error deleting relationship', err);
       return {
         content: [{ type: 'text', text: `Error deleting relationship: ${err}` }],
         isError: true,

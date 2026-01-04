@@ -8,6 +8,9 @@ import type { McpContext, McpResource, McpResourceContents } from '../mcp.types'
 import { registerResourceHandler } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
+import { logger } from '../../services/logger.service';
+
+const schemaLog = logger.child('MCP-Schemas');
 
 /**
  * Get the schemas Yjs document ID for a project
@@ -51,7 +54,7 @@ async function readSchemas(username: string, slug: string): Promise<SchemaInfo[]
 
     return schemas;
   } catch (err) {
-    console.error('Error reading schemas:', err);
+    schemaLog.error('Error reading schemas', err);
     return [];
   }
 }
@@ -80,7 +83,7 @@ async function readSchema(
 
     return schema;
   } catch (err) {
-    console.error('Error reading schema:', err);
+    schemaLog.error('Error reading schema', err);
     return null;
   }
 }

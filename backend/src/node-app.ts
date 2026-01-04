@@ -5,9 +5,10 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
-import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
+import { requestLogger } from './middleware/request-logger';
+import { logger } from './services/logger.service';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import {
@@ -22,7 +23,7 @@ import { registerCommonRoutes } from './config/routes';
 const app = new OpenAPIHono<BetterSqliteAppContext>();
 
 // Global middleware
-app.use('*', logger());
+app.use('*', requestLogger());
 app.use('*', prettyJSON());
 app.use('*', secureHeaders());
 
@@ -132,12 +133,12 @@ async function bootstrap() {
   try {
     const dbPath = process.env.DB_PATH || './data/inkweld.db';
     await setupBetterSqliteDatabase(dbPath);
-    console.log('Better-sqlite3 database initialized');
+    logger.info('Bootstrap', 'Better-sqlite3 database initialized');
 
     const port = config.port;
-    console.log(`Inkweld backend (Node.js) ready on port ${port}`);
+    logger.info('Bootstrap', `Inkweld backend (Node.js) ready on port ${port}`);
   } catch (error) {
-    console.error('Failed to start Node.js server:', error);
+    logger.error('Bootstrap', 'Failed to start Node.js server', error);
     process.exit(1);
   }
 }

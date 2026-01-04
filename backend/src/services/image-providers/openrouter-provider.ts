@@ -14,6 +14,9 @@ import type {
   ImageSize,
 } from '../../types/image-generation';
 import { BaseImageProvider } from './base-provider';
+import { logger } from '../logger.service';
+
+const orLog = logger.child('OpenRouter');
 
 /**
  * Default OpenRouter image models.
@@ -286,9 +289,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
     // Convert size to aspect ratio for OpenRouter image_config
     const aspectRatio = this.sizeToAspectRatio(request.size || '1024x1024');
 
-    console.log(
-      `[OpenRouter] Generating image with model: ${model}, size: ${request.size}, aspect_ratio: ${aspectRatio}`
-    );
+    orLog.info(`Generating image`, { model, size: request.size, aspectRatio });
 
     try {
       const controller = new AbortController();
@@ -335,7 +336,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        console.error(`[OpenRouter] API error: ${response.status} - ${errorBody}`);
+        orLog.error(`API error: ${response.status}`, { body: errorBody });
         throw new Error(`OpenRouter API error: ${response.status} - ${errorBody}`);
       }
 
@@ -368,7 +369,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
             details = ` - ${metadata.raw}`;
           }
         }
-        console.error(`[OpenRouter] Provider error: ${errorMsg}${details}`);
+        orLog.error(`Provider error: ${errorMsg}${details}`);
         throw new Error(`OpenRouter provider error: ${errorMsg}${details}`);
       }
 
@@ -452,10 +453,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       }
 
       if (images.length === 0) {
-        console.error(
-          `[OpenRouter] No images in response. Response:`,
-          JSON.stringify(data, null, 2)
-        );
+        orLog.error('No images in response', { response: JSON.stringify(data, null, 2) });
         throw new Error(
           'OpenRouter did not return any images. The model may not support image generation.'
         );
@@ -479,7 +477,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       if (err.name === 'AbortError') {
         throw new Error('OpenRouter image generation timed out');
       }
-      console.error(`[OpenRouter] Error generating image: ${err.message || 'Unknown error'}`);
+      orLog.error(`Error generating image: ${err.message || 'Unknown error'}`);
       throw new Error(
         `Failed to generate image with OpenRouter: ${err.message || 'Unknown error'}`
       );

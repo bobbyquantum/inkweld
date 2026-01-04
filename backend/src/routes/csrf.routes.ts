@@ -1,7 +1,9 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { config } from '../config/env';
+import { logger } from '../services/logger.service';
 
+const csrfLog = logger.child('CSRF');
 const csrfRoutes = new OpenAPIHono();
 
 // Schema definitions
@@ -104,7 +106,7 @@ csrfRoutes.openapi(tokenRoute, async (c) => {
     // Return the token in the response body
     return c.json({ token }, 200);
   } catch (error: unknown) {
-    console.error('Error generating CSRF token:', error);
+    csrfLog.error('Error generating CSRF token', error);
     return c.json(
       {
         message: 'Failed to generate CSRF token',

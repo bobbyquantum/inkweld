@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypt
 import { config as envConfig } from '../config/env';
 import { config, CONFIG_KEYS, type ConfigKey, type ConfigCategory } from '../db/schema/config';
 import type { DatabaseInstance } from '../types/context';
+import { logger } from './logger.service';
 
 /**
  * Configuration value with metadata
@@ -153,7 +154,7 @@ class ConfigService {
           value = this.decrypt(value);
         } catch {
           // If decryption fails, fall back to env/default
-          console.warn(`Failed to decrypt config value for ${key}, using default`);
+          logger.warn('Config', `Failed to decrypt config value for ${key}, using default`);
         }
       }
 

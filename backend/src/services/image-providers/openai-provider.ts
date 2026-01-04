@@ -11,6 +11,9 @@ import type {
   ImageProviderType,
 } from '../../types/image-generation';
 import { BaseImageProvider } from './base-provider';
+import { logger } from '../logger.service';
+
+const oaiLog = logger.child('OpenAI-Image');
 
 /**
  * Default OpenAI image models.
@@ -117,7 +120,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
     // Build prompt with worldbuilding context
     const prompt = this.buildPromptWithContext(request);
 
-    console.log(`[OpenAI] Generating image with model: ${model}, size: ${size}, n: ${n}`);
+    oaiLog.info(`Generating image`, { model, size, n });
 
     // Build request parameters for GPT image models
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI SDK has complex types
@@ -152,7 +155,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
 
       clearTimeout(timeoutId);
 
-      console.log(`[OpenAI] Image generated successfully. Created: ${response.created}`);
+      oaiLog.info(`Image generated successfully`, { created: response.created });
 
       return {
         created: response.created,
@@ -177,7 +180,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
       if (err.name === 'AbortError') {
         throw new Error('OpenAI image generation timed out');
       }
-      console.error(`[OpenAI] Error generating image: ${err.message || 'Unknown error'}`);
+      oaiLog.error(`Error generating image: ${err.message || 'Unknown error'}`);
       throw new Error(`Failed to generate image with OpenAI: ${err.message || 'Unknown error'}`);
     }
   }
