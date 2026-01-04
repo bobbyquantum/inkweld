@@ -74,6 +74,12 @@ mat-card {
     font-size: 0.875rem;
     margin: 0;
   }
+
+  .about-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
 }
 
 .libraries-card {

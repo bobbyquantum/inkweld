@@ -28,6 +28,11 @@
                 "input": "public"
               },
               {
+                "glob": "CHANGELOG.md",
+                "input": "../",
+                "output": "./assets"
+              },
+              {
                 "glob": "typst_ts_renderer_bg.wasm",
                 "input": "node_modules/@myriaddreamin/typst-ts-renderer/pkg",
                 "output": "assets/wasm"

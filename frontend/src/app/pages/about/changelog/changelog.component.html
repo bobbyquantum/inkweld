@@ -1,0 +1,42 @@
+<div class="changelog-container">
+  <header class="changelog-header">
+    <button mat-icon-button (click)="goBack()" aria-label="Back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Project Changelog</h1>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <p>Loading changelog...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-state">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ error() }}</p>
+    </div>
+  } @else {
+    <mat-accordion multi="false">
+      @for (version of versions(); track version.version; let first = $first) {
+        <mat-expansion-panel [expanded]="first">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <span
+                class="version-tag"
+                [class.unreleased]="version.isUnreleased">
+                {{ version.version }}
+              </span>
+              @if (version.date) {
+                <span class="version-date">{{ version.date }}</span>
+              }
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="changelog-content" [innerHTML]="version.content"></div>
+        </mat-expansion-panel>
+      } @empty {
+        <p>No changelog entries found.</p>
+      }
+    </mat-accordion>
+  }
+</div>
