@@ -70,7 +70,9 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByRole('button', { name: 'Delete' }).click();
 
     // Wait for the dialog to disappear
-    await expect(page.getByRole('button', { name: 'Delete' })).not.toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Delete' })
+    ).not.toBeVisible();
 
     // Verify template was deleted (check specifically for the card, not general text)
     await expect(
@@ -226,7 +228,9 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByTestId('clone-template-button').click();
     await page.getByLabel(/name/i).fill('Test Template');
     await page.getByRole('button', { name: 'Rename' }).click();
-    await expect(page.getByRole('button', { name: 'Rename' })).not.toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Rename' })
+    ).not.toBeVisible();
 
     // Now edit the custom template
     await page
@@ -304,7 +308,9 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByRole('button', { name: 'Rename' }).click();
 
     // Wait for template to be created (dialog closes)
-    await expect(page.getByRole('button', { name: 'Rename' })).not.toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Rename' })
+    ).not.toBeVisible();
 
     // Go back to project home to create element
     await page.getByTestId('toolbar-home-button').click();
