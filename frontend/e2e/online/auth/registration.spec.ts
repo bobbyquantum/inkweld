@@ -8,6 +8,12 @@ async function openRegisterDialog(page: import('@playwright/test').Page) {
     state: 'visible',
     timeout: 5000,
   });
+  // Wait for OAuth providers to load (which enables the register button once form is valid)
+  // The register button is disabled until providersLoaded is true
+  await page.waitForSelector('mat-progress-spinner', {
+    state: 'hidden',
+    timeout: 10000,
+  });
 }
 
 test.describe('User Registration', () => {
@@ -20,8 +26,11 @@ test.describe('User Registration', () => {
     // Fill registration form with unique username and strong password
     const uniqueUsername = `newuser${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
+    await page.getByTestId('username-input').blur();
     await page.getByTestId('password-input').fill('ValidPass123!');
+    await page.getByTestId('password-input').blur();
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('confirm-password-input').blur();
 
     // Submit the form
     await page
@@ -211,9 +220,10 @@ test.describe('User Registration', () => {
 
     // Fill all fields
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('confirm-password-input').blur();
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled();
+    ).toBeEnabled({ timeout: 15000 });
   });
 
   test('should validate minimum username length', async ({
@@ -235,15 +245,22 @@ test.describe('User Registration', () => {
       page.locator('mat-dialog-container [data-testid="register-button"]')
     ).toBeDisabled();
 
-    // Fill valid fields
-    await page.getByTestId('username-input').fill('abc');
+    // Fill valid fields - use a unique username to avoid any potential "taken" issues
+    // and blur the inputs to ensure Angular's validation cycle completes
+    const validUsername = `valid${Date.now()}`;
+    await page.getByTestId('username-input').fill(validUsername);
+    await page.getByTestId('username-input').blur();
+
     await page.getByTestId('password-input').fill('ValidPass123!');
+    await page.getByTestId('password-input').blur();
+
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('confirm-password-input').blur();
 
     // Now button should be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled();
+    ).toBeEnabled({ timeout: 15000 });
   });
 
   test('should allow selection of username suggestions', async ({
