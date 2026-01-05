@@ -17,6 +17,7 @@ import {
 } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 
+import { ElementType } from '../../../api-client';
 import { ElementRefClickEvent, ElementRefNodeAttrs } from './element-ref.model';
 import { ELEMENT_REF_NODE_NAME } from './element-ref-schema';
 import type { ElementRefTooltipData } from './element-ref-tooltip/element-ref-tooltip.component';
@@ -332,6 +333,49 @@ export function createElementRefPlugin(
       handleDOMEvents: {
         // Right-click context menu
         contextmenu(view: EditorView, event: MouseEvent): boolean {
+          // First, try to detect if the click target is an element reference
+          // This is more reliable than coordinate-based resolution, especially on CI
+          const target = event.target as HTMLElement;
+          const refSpan = target.closest('span[data-element-ref]');
+
+          if (refSpan) {
+            event.preventDefault();
+
+            // Extract attributes directly from DOM for reliability
+            const elementId = refSpan.getAttribute('data-element-id') || '';
+            const elementTypeStr = refSpan.getAttribute('data-element-type');
+            const elementType =
+              (elementTypeStr as ElementType) || ElementType.Item;
+            const displayText = refSpan.textContent || '';
+            const originalName =
+              refSpan.getAttribute('data-original-name') || '';
+            const relationshipId =
+              refSpan.getAttribute('data-relationship-id') || undefined;
+
+            // Try to get node position from ProseMirror, fall back to -1 if not found
+            let nodePos = -1;
+            try {
+              nodePos = view.posAtDOM(refSpan, 0);
+            } catch {
+              // Position resolution failed, but we can still show the menu
+              // The nodePos is only needed for edit/delete operations
+            }
+
+            callbacks.onRefClick({
+              elementId,
+              elementType,
+              displayText,
+              originalName,
+              relationshipId,
+              nodePos,
+              mouseEvent: event,
+              isContextMenu: true,
+            });
+
+            return true;
+          }
+
+          // Fallback to coordinate-based resolution
           const pos = view.posAtCoords({
             left: event.clientX,
             top: event.clientY,
