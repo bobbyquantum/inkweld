@@ -40,7 +40,7 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByRole('tab', { name: 'Element Templates' }).click();
 
     // Wait for templates to load
-    await page.waitForTimeout(500);
+    await expect(page.locator('mat-card')).toBeVisible({ timeout: 10000 });
 
     // Find a template card and open its menu
     const templateCards = page
@@ -69,8 +69,8 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByTestId('delete-template-button').click();
     await page.getByRole('button', { name: 'Delete' }).click();
 
-    // Wait for the dialog and snackbar to disappear
-    await page.waitForTimeout(500);
+    // Wait for the dialog to disappear
+    await expect(page.getByRole('button', { name: 'Delete' })).not.toBeVisible();
 
     // Verify template was deleted (check specifically for the card, not general text)
     await expect(
@@ -213,11 +213,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Click the Element Templates inner tab
     await page.getByRole('tab', { name: 'Element Templates' }).click();
-    await page.waitForSelector('mat-card', {
-      state: 'visible',
-      timeout: 10000,
-    });
-    await page.waitForTimeout(500);
+    await expect(page.locator('mat-card')).toBeVisible({ timeout: 10000 });
 
     // Clone Character template
     const templateCards = page
@@ -230,7 +226,7 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByTestId('clone-template-button').click();
     await page.getByLabel(/name/i).fill('Test Template');
     await page.getByRole('button', { name: 'Rename' }).click();
-    await page.waitForTimeout(500);
+    await expect(page.getByRole('button', { name: 'Rename' })).not.toBeVisible();
 
     // Now edit the custom template
     await page
@@ -290,11 +286,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Click the Element Templates inner tab
     await page.getByRole('tab', { name: 'Element Templates' }).click();
-    await page.waitForSelector('mat-card', {
-      state: 'visible',
-      timeout: 10000,
-    });
-    await page.waitForTimeout(500);
+    await expect(page.locator('mat-card')).toBeVisible({ timeout: 10000 });
 
     // Find Character template and clone it
     const templateCards = page
@@ -311,12 +303,14 @@ test.describe('Worldbuilding Templates', () => {
 
     await page.getByRole('button', { name: 'Rename' }).click();
 
-    // Wait for template to be created and snackbar
-    await page.waitForTimeout(500);
+    // Wait for template to be created (dialog closes)
+    await expect(page.getByRole('button', { name: 'Rename' })).not.toBeVisible();
 
     // Go back to project home to create element
     await page.getByTestId('toolbar-home-button').click();
-    await page.waitForTimeout(300);
+    await expect(page.getByTestId('create-new-element')).toBeVisible({
+      timeout: 5000,
+    });
 
     // Create element using custom template
     await page.getByTestId('create-new-element').click();

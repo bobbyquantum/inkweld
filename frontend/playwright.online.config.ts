@@ -32,11 +32,11 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
 
   /* Test timeout - longer for full-stack tests */
-  timeout: 20000,
+  timeout: 60000,
 
   /* Expect timeout */
   expect: {
-    timeout: 5000,
+    timeout: 15000,
   },
 
   /* Shared settings for all the projects below */
@@ -67,7 +67,7 @@ export default defineConfig({
       cwd: '../backend',
       url: 'http://localhost:9333/api/v1/health',
       reuseExistingServer: false,
-      timeout: 30000,
+      timeout: 60000,
       env: {
         NODE_ENV: 'test',
         PORT: '9333',
@@ -86,10 +86,12 @@ export default defineConfig({
     },
     {
       // Frontend server (dedicated e2e port to avoid clashing with dev server)
-      command: 'npm start -- --port 4400',
+      command: process.env['E2E_MODE'] === 'prod'
+        ? 'npx http-server dist/browser -p 4400 -c-1 --proxy http://localhost:4400?'
+        : 'npm start -- --port 4400',
       url: 'http://localhost:4400',
-      reuseExistingServer: false,
-      timeout: 30000,
+      reuseExistingServer: !process.env['CI'],
+      timeout: 120000,
     },
   ],
 

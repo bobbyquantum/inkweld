@@ -16,7 +16,7 @@ export default defineConfig({
   testDir: './e2e/offline',
 
   /* Disable parallel - Angular app is heavy and causes timeouts when parallel */
-  fullyParallel: true,
+  fullyParallel: false,
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env['CI'],
@@ -28,11 +28,11 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
 
   /* Test timeout */
-  timeout: 30000,
+  timeout: 60000,
 
   /* Expect timeout */
   expect: {
-    timeout: 10000,
+    timeout: 15000,
   },
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */

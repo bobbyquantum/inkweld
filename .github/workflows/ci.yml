@@ -138,15 +138,18 @@ jobs:
       - name: Initialize local D1 database
         run: cd backend && bun run init:d1-local
 
-      # Run all e2e tests sequentially
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      # Run all e2e tests sequentially using production build
       - name: Run offline e2e tests
-        run: cd frontend && npm run e2e:offline:ci
+        run: cd frontend && cross-env E2E_MODE=prod npm run e2e:offline:ci
 
       - name: Run online e2e tests
-        run: cd frontend && npm run e2e:online:ci
+        run: cd frontend && cross-env E2E_MODE=prod npm run e2e:online:ci
 
       - name: Run wrangler e2e tests
-        run: cd frontend && npm run e2e:wrangler:ci
+        run: cd frontend && cross-env E2E_MODE=prod npm run e2e:wrangler:ci
 
       - name: Run Docker e2e tests
         run: cd frontend && npm run e2e:docker:ci
