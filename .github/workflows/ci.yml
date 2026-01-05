@@ -143,13 +143,19 @@ jobs:
 
       # Run all e2e tests sequentially using production build
       - name: Run offline e2e tests
-        run: cd frontend && cross-env E2E_MODE=prod npm run e2e:offline:ci
+        run: cd frontend && npm run e2e:offline:ci
+        env:
+          E2E_MODE: prod
 
       - name: Run online e2e tests
-        run: cd frontend && cross-env E2E_MODE=prod npm run e2e:online:ci
+        run: cd frontend && npm run e2e:online:ci
+        env:
+          E2E_MODE: prod
 
       - name: Run wrangler e2e tests
-        run: cd frontend && cross-env E2E_MODE=prod npm run e2e:wrangler:ci
+        run: cd frontend && npm run e2e:wrangler:ci
+        env:
+          E2E_MODE: prod
 
       - name: Run Docker e2e tests
         run: cd frontend && npm run e2e:docker:ci
