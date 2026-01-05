@@ -269,7 +269,7 @@ export class UserService {
         this.authenticationService.logout() as Observable<any>
       );
       await this.clearCurrentUser();
-      await this.router.navigate(['/welcome']);
+      await this.router.navigate(['/']);
     } catch (err) {
       const error = this.formatError(err);
       this.error.set(error);

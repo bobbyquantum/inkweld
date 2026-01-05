@@ -642,3 +642,11 @@
     gap: 4px;
   }
 }
+
+// Theme toggle for unauthenticated view
+.theme-toggle-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+}

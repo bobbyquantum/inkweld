@@ -20,7 +20,10 @@ import { Router, RouterModule } from '@angular/router';
 import { AnnouncementFeedComponent } from '@components/announcement-feed/announcement-feed.component';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
+import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
+import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { Project } from '@inkweld/index';
 import { CollaboratedProject, PendingInvitation } from '@inkweld/model/models';
@@ -47,6 +50,7 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     ProjectCardComponent,
     UserMenuComponent,
     SideNavComponent,
+    ThemeToggleComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
@@ -262,12 +266,46 @@ export class HomeComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/create-project']);
   }
 
+  openLoginDialog(): void {
+    const dialogRef = this.dialog.open(LoginDialogComponent, {
+      autoFocus: true,
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'register') {
+        // User wants to switch to register dialog
+        this.openRegisterDialog();
+      } else if (result === true) {
+        // Login successful - reload projects
+        void this.loadProjects();
+      }
+    });
+  }
+
+  openRegisterDialog(): void {
+    const dialogRef = this.dialog.open(RegisterDialogComponent, {
+      autoFocus: true,
+      disableClose: false,
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'login') {
+        // User wants to switch to login dialog
+        this.openLoginDialog();
+      } else if (result === true) {
+        // Registration successful - reload projects
+        void this.loadProjects();
+      }
+    });
+  }
+
   navigateToLogin(): void {
-    void this.router.navigate(['/welcome']);
+    this.openLoginDialog();
   }
 
   navigateToRegister(): void {
-    void this.router.navigate(['/register']);
+    this.openRegisterDialog();
   }
 
   /**

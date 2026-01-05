@@ -171,7 +171,7 @@
               <button
                 mat-raised-button
                 color="primary"
-                (click)="navigateToLogin()"
+                (click)="openLoginDialog()"
                 class="welcome-login-btn"
                 data-testid="welcome-login-button">
                 Login
@@ -179,7 +179,7 @@
               <button
                 mat-stroked-button
                 color="primary"
-                (click)="navigateToRegister()"
+                (click)="openRegisterDialog()"
                 class="welcome-register-btn"
                 data-testid="welcome-register-button">
                 Register
@@ -192,6 +192,11 @@
                 [maxItems]="5"
                 [compact]="false"></app-announcement-feed>
             </div>
+          </div>
+
+          <!-- Theme toggle in bottom right corner for unauthenticated users -->
+          <div class="theme-toggle-container">
+            <app-theme-toggle></app-theme-toggle>
           </div>
         } @else {
           <!-- Content for authenticated users - responsive cover grid -->

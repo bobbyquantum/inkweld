@@ -161,7 +161,7 @@ export class SetupComponent implements OnInit {
       this.snackBar.open('Server configuration saved!', 'Close', {
         duration: 3000,
       });
-      await this.router.navigate(['/welcome']);
+      await this.router.navigate(['/']);
     } catch {
       this.snackBar.open(
         'Failed to connect to server. Please check the URL and try again.',

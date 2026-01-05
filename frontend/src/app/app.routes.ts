@@ -120,20 +120,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'welcome',
-    loadComponent: () =>
-      import('./pages/welcome/welcome.component').then(m => m.WelcomeComponent),
-    title: 'Welcome',
-  },
-  {
-    path: 'register',
-    loadComponent: () =>
-      import('./pages/register/register.component').then(
-        m => m.RegisterComponent
-      ),
-    title: 'Register',
-  },
-  {
     path: 'approval-pending',
     loadComponent: () =>
       import('./pages/approval-pending/approval-pending.component').then(

@@ -1,0 +1,76 @@
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .logo-image {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+  }
+}
+
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 350px;
+  max-width: 400px;
+
+  @media (max-width: 450px) {
+    min-width: unset;
+    width: 100%;
+  }
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+mat-divider {
+  margin: 24px 0;
+}
+
+.oauth-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.register-button {
+  width: 100%;
+}
+
+// Updated password error message with proper Material Design styling
+.password-error-message {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: -4px 0 12px 0;
+  border-radius: 4px;
+  background-color: var(--sys-error-container);
+  color: var(--sys-on-error-container);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.15px;
+
+  // Add a subtle border for better definition
+  border: 1px solid var(--sys-error);
+
+  // Style the error icon
+  .error-icon {
+    margin-right: 8px;
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    color: var(--sys-on-error-container);
+  }
+}
