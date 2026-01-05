@@ -385,48 +385,44 @@ test.describe('Element Reference (@mentions)', () => {
     // Create an element reference
     await page.keyboard.type('@');
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    await expect(popup).toBeVisible({ timeout: 5000 });
 
     const resultItem = page
       .locator('[data-testid="element-ref-result-item"]')
       .first();
-    if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await resultItem.click();
-      await expect(popup).not.toBeVisible({ timeout: 5000 });
+    await resultItem.waitFor({ state: 'visible', timeout: 5000 });
+    await resultItem.click();
+    await expect(popup).not.toBeVisible({ timeout: 5000 });
 
-      // Find the element reference
-      const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 10000 });
+    // Find the element reference
+    const elementRef = page.locator('.element-ref').first();
+    await expect(elementRef).toBeVisible({ timeout: 10000 });
 
-      // Right-click on the element reference using coordinates for better reliability on CI
-      const box = await elementRef.boundingBox();
-      if (box) {
-        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, {
-          button: 'right',
-        });
-      } else {
-        await elementRef.click({ button: 'right' });
-      }
+    // Wait a tiny bit for the editor to settle after insertion
+    await page.waitForTimeout(200);
 
-      // Wait for context menu
-      const contextMenu = page.locator(
-        '[data-testid="element-ref-context-menu"]'
-      );
-      await expect(contextMenu).toBeVisible({ timeout: 10000 });
+    // Right-click on the element reference
+    // We use force: true and multiple attempts if needed for CI reliability
+    await elementRef.click({ button: 'right', force: true });
 
-      // Verify menu items are present
-      const navigateBtn = page.locator('[data-testid="context-menu-navigate"]');
-      const editBtn = page.locator('[data-testid="context-menu-edit"]');
-      const deleteBtn = page.locator('[data-testid="context-menu-delete"]');
+    // Wait for context menu
+    const contextMenu = page.locator(
+      '[data-testid="element-ref-context-menu"]'
+    );
+    await expect(contextMenu).toBeVisible({ timeout: 10000 });
 
-      await expect(navigateBtn).toBeVisible();
-      await expect(editBtn).toBeVisible();
-      await expect(deleteBtn).toBeVisible();
+    // Verify menu items are present
+    const navigateBtn = page.locator('[data-testid="context-menu-navigate"]');
+    const editBtn = page.locator('[data-testid="context-menu-edit"]');
+    const deleteBtn = page.locator('[data-testid="context-menu-delete"]');
 
-      // Close menu by pressing Escape
-      await page.keyboard.press('Escape');
-      await expect(contextMenu).not.toBeVisible({ timeout: 1000 });
-    }
+    await expect(navigateBtn).toBeVisible();
+    await expect(editBtn).toBeVisible();
+    await expect(deleteBtn).toBeVisible();
+
+    // Close menu by pressing Escape
+    await page.keyboard.press('Escape');
+    await expect(contextMenu).not.toBeVisible({ timeout: 1000 });
   });
 
   test('context menu edit mode allows changing display text', async ({
@@ -465,57 +461,52 @@ test.describe('Element Reference (@mentions)', () => {
     // Create an element reference
     await page.keyboard.type('@');
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    await expect(popup).toBeVisible({ timeout: 5000 });
 
     const resultItem = page
       .locator('[data-testid="element-ref-result-item"]')
       .first();
-    if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await resultItem.click();
-      await expect(popup).not.toBeVisible({ timeout: 5000 });
+    await resultItem.waitFor({ state: 'visible', timeout: 5000 });
+    await resultItem.click();
+    await expect(popup).not.toBeVisible({ timeout: 5000 });
 
-      // Find the element reference and get its original text
-      const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 10000 });
-      const originalText = await elementRef.textContent();
+    // Find the element reference and get its original text
+    const elementRef = page.locator('.element-ref').first();
+    await expect(elementRef).toBeVisible({ timeout: 10000 });
+    const originalText = await elementRef.textContent();
 
-      // Right-click and open context menu using coordinates for better reliability on CI
-      const box = await elementRef.boundingBox();
-      if (box) {
-        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, {
-          button: 'right',
-        });
-      } else {
-        await elementRef.click({ button: 'right' });
-      }
+    // Wait a tiny bit for the editor to settle after insertion
+    await page.waitForTimeout(200);
 
-      const contextMenu = page.locator(
-        '[data-testid="element-ref-context-menu"]'
-      );
-      await expect(contextMenu).toBeVisible({ timeout: 10000 });
+    // Right-click and open context menu
+    await elementRef.click({ button: 'right', force: true });
 
-      // Click edit button
-      const editBtn = page.locator('[data-testid="context-menu-edit"]');
-      await editBtn.click();
+    const contextMenu = page.locator(
+      '[data-testid="element-ref-context-menu"]'
+    );
+    await expect(contextMenu).toBeVisible({ timeout: 10000 });
 
-      // Wait for edit input to appear
-      const editInput = page.locator('[data-testid="context-menu-edit-input"]');
-      await expect(editInput).toBeVisible({ timeout: 1000 });
+    // Click edit button
+    const editBtn = page.locator('[data-testid="context-menu-edit"]');
+    await editBtn.click();
 
-      // Clear and type new text
-      await editInput.clear();
-      await editInput.fill('My Custom Reference');
+    // Wait for edit input to appear
+    const editInput = page.locator('[data-testid="context-menu-edit-input"]');
+    await expect(editInput).toBeVisible({ timeout: 1000 });
 
-      // Save
-      const saveBtn = page.locator('[data-testid="context-menu-save"]');
-      await saveBtn.click();
+    // Clear and type new text
+    await editInput.clear();
+    await editInput.fill('My Custom Reference');
 
-      // Verify the text changed
-      await page.waitForTimeout(300);
-      const newText = await elementRef.textContent();
-      expect(newText).toBe('My Custom Reference');
-      expect(newText).not.toBe(originalText);
-    }
+    // Save
+    const saveBtn = page.locator('[data-testid="context-menu-save"]');
+    await saveBtn.click();
+
+    // Verify the text changed
+    await page.waitForTimeout(300);
+    const newText = await elementRef.textContent();
+    expect(newText).toBe('My Custom Reference');
+    expect(newText).not.toBe(originalText);
   });
 
   test('context menu delete removes element reference', async ({ page }) => {
@@ -552,46 +543,41 @@ test.describe('Element Reference (@mentions)', () => {
     // Create an element reference
     await page.keyboard.type('@');
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    await expect(popup).toBeVisible({ timeout: 5000 });
 
     const resultItem = page
       .locator('[data-testid="element-ref-result-item"]')
       .first();
-    if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
-      await resultItem.click();
-      await expect(popup).not.toBeVisible({ timeout: 5000 });
+    await resultItem.waitFor({ state: 'visible', timeout: 5000 });
+    await resultItem.click();
+    await expect(popup).not.toBeVisible({ timeout: 5000 });
 
-      // Find the element reference and count how many there are
-      const elementRefsBefore = await page.locator('.element-ref').count();
-      expect(elementRefsBefore).toBeGreaterThan(0);
+    // Find the element reference and count how many there are
+    const elementRefsBefore = await page.locator('.element-ref').count();
+    expect(elementRefsBefore).toBeGreaterThan(0);
 
-      // Find the first element reference
-      const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 10000 });
+    // Find the first element reference
+    const elementRef = page.locator('.element-ref').first();
+    await expect(elementRef).toBeVisible({ timeout: 10000 });
 
-      // Right-click and open context menu using coordinates for better reliability on CI
-      const box = await elementRef.boundingBox();
-      if (box) {
-        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, {
-          button: 'right',
-        });
-      } else {
-        await elementRef.click({ button: 'right' });
-      }
+    // Wait a tiny bit for the editor to settle after insertion
+    await page.waitForTimeout(200);
 
-      const contextMenu = page.locator(
-        '[data-testid="element-ref-context-menu"]'
-      );
-      await expect(contextMenu).toBeVisible({ timeout: 10000 });
+    // Right-click and open context menu
+    await elementRef.click({ button: 'right', force: true });
 
-      // Click delete button
-      const deleteBtn = page.locator('[data-testid="context-menu-delete"]');
-      await deleteBtn.click();
+    const contextMenu = page.locator(
+      '[data-testid="element-ref-context-menu"]'
+    );
+    await expect(contextMenu).toBeVisible({ timeout: 10000 });
 
-      // Verify the element reference count decreased
-      await page.waitForTimeout(300);
-      const elementRefsAfter = await page.locator('.element-ref').count();
-      expect(elementRefsAfter).toBe(elementRefsBefore - 1);
-    }
+    // Click delete button
+    const deleteBtn = page.locator('[data-testid="context-menu-delete"]');
+    await deleteBtn.click();
+
+    // Verify the element reference count decreased
+    await page.waitForTimeout(300);
+    const elementRefsAfter = await page.locator('.element-ref').count();
+    expect(elementRefsAfter).toBe(elementRefsBefore - 1);
   });
 });

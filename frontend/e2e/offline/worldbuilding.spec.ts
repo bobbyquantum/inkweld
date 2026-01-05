@@ -293,7 +293,7 @@ test.describe('Worldbuilding Templates', () => {
     });
 
     // Click the Element Templates inner tab
-    await page.getByRole('tab', { name: 'Element Templates' }).click();
+    await page.getByTestId('settings-tab-templates').click();
     await expect(page.getByTestId('template-card').first()).toBeVisible({
       timeout: 10000,
     });
@@ -302,10 +302,7 @@ test.describe('Worldbuilding Templates', () => {
     const templateCards = page
       .getByTestId('template-card')
       .filter({ hasText: 'Character' });
-    await templateCards
-      .locator('button[aria-label="Template actions"]')
-      .first()
-      .click();
+    await templateCards.getByTestId('template-menu-button').first().click();
     await page.getByTestId('clone-template-button').click();
 
     // Fill in the rename dialog
