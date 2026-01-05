@@ -1,4 +1,8 @@
-import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpErrorResponse,
+  provideHttpClient,
+} from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -8,7 +12,7 @@ import { provideRouter, Router } from '@angular/router';
 import { AuthenticationService, User } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { UserService } from '@services/user/user.service';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
 import { RegisterDialogComponent } from './register-dialog.component';
@@ -116,6 +120,12 @@ describe('RegisterDialogComponent', () => {
       expect(component.passwordRequirements.special.met).toBe(false);
     });
 
+    it('should validate password min length', () => {
+      const control = component.passwordControl;
+      control?.setValue('Short1!');
+      expect(control?.hasError('minLength')).toBe(true);
+    });
+
     it('should return true for isPasswordValid when all requirements are met', () => {
       component.registerForm.get('password')?.setValue('ValidPass123!');
       expect(component.isPasswordValid()).toBe(true);
@@ -152,6 +162,14 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.markAsTouched();
       expect(component.getUsernameErrorMessage()).toBe(
         'Username must be at least 3 characters'
+      );
+    });
+
+    it('should return password mismatch error', () => {
+      component.confirmPasswordControl!.setValue('password123');
+      component.registerForm.setErrors({ passwordMismatch: true });
+      expect(component.getConfirmPasswordErrorMessage()).toBe(
+        'Passwords do not match'
       );
     });
 
@@ -335,33 +353,188 @@ describe('RegisterDialogComponent', () => {
       await registerPromise;
       expect(component.isRegistering).toBe(false);
     });
+
+    it('should handle server validation errors', async () => {
+      component.registerForm.get('username')?.setValue('testuser');
+      component.registerForm.get('password')?.setValue('ValidPass123!');
+      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.providersLoaded = true;
+
+      const errorResponse = new HttpErrorResponse({
+        error: {
+          errors: {
+            username: ['Username already exists'],
+          },
+        },
+        status: 400,
+      });
+
+      const registerUserMock = authService.registerUser as ReturnType<
+        typeof vi.fn
+      >;
+      registerUserMock.mockReturnValue(throwError(() => errorResponse));
+
+      await component.onRegister();
+
+      expect(component.serverValidationErrors).toEqual({
+        username: ['Username already exists'],
+      });
+      expect(
+        component.registerForm.get('username')?.hasError('serverValidation')
+      ).toBe(true);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Please fix the validation errors',
+        'Close',
+        { duration: 5000 }
+      );
+    });
+
+    it('should handle general server errors', async () => {
+      component.registerForm.get('username')?.setValue('testuser');
+      component.registerForm.get('password')?.setValue('ValidPass123!');
+      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.providersLoaded = true;
+
+      const errorResponse = new HttpErrorResponse({
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
+
+      const registerUserMock = authService.registerUser as ReturnType<
+        typeof vi.fn
+      >;
+      registerUserMock.mockReturnValue(throwError(() => errorResponse));
+
+      await component.onRegister();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('Registration failed'),
+        'Close',
+        { duration: 5000 }
+      );
+    });
+
+    it('should handle unknown errors', async () => {
+      component.registerForm.get('username')?.setValue('testuser');
+      component.registerForm.get('password')?.setValue('ValidPass123!');
+      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.providersLoaded = true;
+
+      const registerUserMock = authService.registerUser as ReturnType<
+        typeof vi.fn
+      >;
+      registerUserMock.mockReturnValue(throwError(() => new Error('Unknown')));
+
+      await component.onRegister();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'An unknown error occurred during registration. Please try again.',
+        'Close',
+        { duration: 5000 }
+      );
+    });
+
+    it('should show snackbar on password mismatch during registration', async () => {
+      component.registerForm.patchValue({
+        password: 'Password1!',
+        confirmPassword: 'DifferentPassword1!',
+      });
+      component.registerForm.setErrors({ passwordMismatch: true });
+
+      await component.onRegister();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Passwords do not match',
+        'Close',
+        { duration: 3000 }
+      );
+    });
   });
 
-  describe('onLoginClick', () => {
-    it('should close dialog with "login" result', () => {
+  describe('username availability', () => {
+    it('should check username availability successfully', async () => {
+      component.registerForm.get('username')?.setValue('newuser');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(of({ available: true }));
+
+      await component.checkUsernameAvailability();
+
+      // Wait for setTimeout
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(component.usernameAvailability).toBe('available');
+      expect(component.usernameSuggestions).toEqual([]);
+    });
+
+    it('should handle unavailable username with suggestions', async () => {
+      component.registerForm.get('username')?.setValue('taken');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        of({ available: false, suggestions: ['taken1', 'taken2'] })
+      );
+
+      await component.checkUsernameAvailability();
+
+      // Wait for setTimeout
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(component.usernameAvailability).toBe('unavailable');
+      expect(component.usernameSuggestions).toEqual(['taken1', 'taken2']);
+      expect(
+        component.registerForm.get('username')?.hasError('usernameTaken')
+      ).toBe(true);
+    });
+
+    it('should handle error during username check', async () => {
+      component.registerForm.get('username')?.setValue('erroruser');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              statusText: 'Network error',
+              status: 0,
+            })
+        )
+      );
+
+      await component.checkUsernameAvailability();
+
+      // Wait for setTimeout
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(component.usernameAvailability).toBe('unknown');
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('Error checking username'),
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should reset availability when username changes', () => {
+      component.usernameAvailability = 'available';
+      component.registerForm.get('username')?.setValue('changed');
+      expect(component.usernameAvailability).toBe('unknown');
+    });
+  });
+
+  describe('UI interactions', () => {
+    it('should handle login click', () => {
       component.onLoginClick();
       expect(dialogRef.close).toHaveBeenCalledWith('login');
     });
-  });
 
-  describe('onProvidersLoaded', () => {
-    it('should set providersLoaded to true', async () => {
-      component.providersLoaded = false;
+    it('should handle providers loaded', async () => {
       component.onProvidersLoaded();
-      // Wait for setTimeout in the method
+      // Wait for setTimeout
       await new Promise(resolve => setTimeout(resolve, 0));
       expect(component.providersLoaded).toBe(true);
     });
-  });
 
-  describe('password focus handlers', () => {
-    it('should set isPasswordFocused to true on focus', () => {
+    it('should handle password focus and blur', () => {
       component.onPasswordFocus();
       expect(component.isPasswordFocused).toBe(true);
-    });
 
-    it('should set isPasswordFocused to false on blur', () => {
-      component.isPasswordFocused = true;
       component.onPasswordBlur();
       expect(component.isPasswordFocused).toBe(false);
     });

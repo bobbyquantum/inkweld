@@ -8,7 +8,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e/screenshots',
-  fullyParallel: true, // Run sequentially for consistent screenshots
+  fullyParallel: false, // Run sequentially for consistent screenshots
   forbidOnly: !!process.env['CI'],
   retries: 0, // No retries for screenshot generation
   reporter: [['list'], ['html', { open: 'never' }]],

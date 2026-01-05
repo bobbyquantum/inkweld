@@ -3,12 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   ActivatedRoute,
   convertToParamMap,
   provideRouter,
   Router,
 } from '@angular/router';
+import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
+import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { Project, User } from '@inkweld/index';
 import {
@@ -22,7 +26,16 @@ import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  MockedObject,
+  vi,
+} from 'vitest';
 
 import { HomeComponent } from './home.component';
 
@@ -40,6 +53,16 @@ describe('HomeComponent', () => {
   let breakpointObserver: MockedObject<BreakpointObserver>;
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
+  let matDialog: MockedObject<MatDialog>;
+  let snackBar: MockedObject<MatSnackBar>;
+
+  beforeAll(() => {
+    vi.useFakeTimers();
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
 
   const mockLoadingSignal = signal(false);
   const mockProjectsSignal = signal<Project[]>([]);
@@ -109,13 +132,33 @@ describe('HomeComponent', () => {
       delete: vi.fn(),
     } as unknown as MockedObject<HttpClient>;
 
-    router = { navigate: vi.fn() } as unknown as MockedObject<Router>;
+    router = {
+      navigate: vi.fn(),
+      url: '/',
+    } as unknown as MockedObject<Router>;
+
+    matDialog = {
+      open: vi.fn(),
+    } as unknown as MockedObject<MatDialog>;
+
+    snackBar = {
+      open: vi.fn(),
+    } as unknown as MockedObject<MatSnackBar>;
+
+    const mockUser: User = {
+      id: 'user-1',
+      username: 'testuser',
+      email: 'test@example.com',
+      name: 'Test User',
+      enabled: true,
+    };
 
     userService = {
-      currentUser: signal<User | undefined>(undefined),
+      currentUser: signal<User | undefined>(mockUser),
       isAuthenticated: mockIsAuthenticated,
       initialized: mockUserInitialized,
       initialize: vi.fn().mockResolvedValue(undefined),
+      getMode: vi.fn().mockReturnValue('server'),
     } as unknown as MockedObject<UnifiedUserService>;
 
     // Reset mock signals once before all tests
@@ -163,6 +206,8 @@ describe('HomeComponent', () => {
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
+        { provide: MatDialog, useValue: matDialog },
+        { provide: MatSnackBar, useValue: snackBar },
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(convertToParamMap({ id: '123' })) },
@@ -545,6 +590,139 @@ describe('HomeComponent', () => {
           project.ownerUsername,
           project.projectSlug,
         ]);
+      });
+    });
+
+    describe('dialogs', () => {
+      let matDialog: MockedObject<MatDialog>;
+
+      beforeEach(() => {
+        matDialog = TestBed.inject(MatDialog) as MockedObject<MatDialog>;
+      });
+
+      it('should open login dialog', () => {
+        const dialogRef = {
+          afterClosed: vi.fn().mockReturnValue(of(true)),
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        matDialog.open.mockReturnValue(dialogRef as any);
+
+        component.openLoginDialog();
+
+        expect(matDialog.open).toHaveBeenCalledWith(
+          LoginDialogComponent,
+          expect.any(Object)
+        );
+      });
+
+      it('should open register dialog when login dialog returns "register"', () => {
+        const loginDialogRef = {
+          afterClosed: vi.fn().mockReturnValue(of('register')),
+        };
+        const registerDialogRef = {
+          afterClosed: vi.fn().mockReturnValue(of(true)),
+        };
+
+        matDialog.open
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          .mockReturnValueOnce(loginDialogRef as any)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          .mockReturnValueOnce(registerDialogRef as any);
+
+        component.openLoginDialog();
+
+        expect(matDialog.open).toHaveBeenCalledWith(
+          LoginDialogComponent,
+          expect.any(Object)
+        );
+        expect(matDialog.open).toHaveBeenCalledWith(
+          RegisterDialogComponent,
+          expect.any(Object)
+        );
+      });
+
+      it('should open register dialog', () => {
+        const dialogRef = {
+          afterClosed: vi.fn().mockReturnValue(of(true)),
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        matDialog.open.mockReturnValue(dialogRef as any);
+
+        component.openRegisterDialog();
+
+        expect(matDialog.open).toHaveBeenCalledWith(
+          RegisterDialogComponent,
+          expect.any(Object)
+        );
+      });
+
+      it('should open login dialog when register dialog returns "login"', () => {
+        const registerDialogRef = {
+          afterClosed: vi.fn().mockReturnValue(of('login')),
+        };
+        const loginDialogRef = {
+          afterClosed: vi.fn().mockReturnValue(of(true)),
+        };
+
+        matDialog.open
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          .mockReturnValueOnce(registerDialogRef as any)
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          .mockReturnValueOnce(loginDialogRef as any);
+
+        component.openRegisterDialog();
+
+        expect(matDialog.open).toHaveBeenCalledWith(
+          RegisterDialogComponent,
+          expect.any(Object)
+        );
+        expect(matDialog.open).toHaveBeenCalledWith(
+          LoginDialogComponent,
+          expect.any(Object)
+        );
+      });
+
+      it('should navigate to login/register', () => {
+        const dialogRef = {
+          afterClosed: vi.fn().mockReturnValue(of(true)),
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        matDialog.open.mockReturnValue(dialogRef as any);
+
+        const openLoginSpy = vi.spyOn(component, 'openLoginDialog');
+        const openRegisterSpy = vi.spyOn(component, 'openRegisterDialog');
+
+        component.navigateToLogin();
+        expect(openLoginSpy).toHaveBeenCalled();
+
+        component.navigateToRegister();
+        expect(openRegisterSpy).toHaveBeenCalled();
+      });
+    });
+
+    describe('allProjects computed', () => {
+      it('should combine own and shared projects', () => {
+        mockProjectsSignal.set(mockProjects);
+        component.collaboratedProjects.set(mockCollaboratedProjects);
+
+        const all = component['allProjects']();
+        expect(all.length).toBe(3);
+        expect(all.find(p => p.isShared)).toBeTruthy();
+        expect(all.find(p => !p.isShared)).toBeTruthy();
+      });
+
+      it('should filter projects by search term', () => {
+        mockProjectsSignal.set(mockProjects);
+        component.collaboratedProjects.set(mockCollaboratedProjects);
+
+        // Search for "Another" (matches one own project)
+        component.searchControl.setValue('Another');
+        // Wait for debounce
+        vi.advanceTimersByTime(300);
+
+        const filtered = component['allProjects']();
+        expect(filtered.length).toBe(1);
+        expect(filtered[0].project.title).toBe('Another Project');
       });
     });
   });

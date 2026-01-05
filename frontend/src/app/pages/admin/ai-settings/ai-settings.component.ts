@@ -765,7 +765,7 @@ export class AdminAiSettingsComponent implements OnInit {
   ): ModelConfig[] {
     const defaults = this.getDefaultModelsForProvider(provider);
 
-    if (!json) {
+    if (!json || !json.trim()) {
       return defaults;
     }
 
