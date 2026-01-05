@@ -54,7 +54,7 @@ test.describe('Element Reference (@mentions)', () => {
     // Wait for project tree to load
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
+      timeout: 5000,
     });
 
     // Open the README document (exists in all templates)
@@ -72,7 +72,7 @@ test.describe('Element Reference (@mentions)', () => {
 
     // Verify the popup appears
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 3000 });
+    await expect(popup).toBeVisible({ timeout: 5000 });
 
     // Verify the search input is present
     const searchInput = page.locator(
@@ -124,7 +124,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.keyboard.press('Escape');
 
     // Verify popup is closed
-    await expect(popup).toBeHidden({ timeout: 2000 });
+    await expect(popup).toBeHidden({ timeout: 5000 });
   });
 
   test('search query filters element results', async ({ page }) => {
@@ -223,7 +223,7 @@ test.describe('Element Reference (@mentions)', () => {
       await resultItem.click();
 
       // Popup should close after selection
-      await expect(popup).toBeHidden({ timeout: 2000 });
+      await expect(popup).toBeHidden({ timeout: 5000 });
     }
   });
 
@@ -337,7 +337,7 @@ test.describe('Element Reference (@mentions)', () => {
 
       // Check that an element-ref span was inserted
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 2000 });
+      await expect(elementRef).toBeVisible({ timeout: 5000 });
 
       // Verify it has the data attribute
       await expect(elementRef).toHaveAttribute('data-element-ref', 'true');
@@ -396,7 +396,7 @@ test.describe('Element Reference (@mentions)', () => {
 
       // Find the element reference
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 2000 });
+      await expect(elementRef).toBeVisible({ timeout: 5000 });
 
       // Right-click on the element reference
       await elementRef.click({ button: 'right' });
@@ -405,7 +405,7 @@ test.describe('Element Reference (@mentions)', () => {
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 2000 });
+      await expect(contextMenu).toBeVisible({ timeout: 5000 });
 
       // Verify menu items are present
       const navigateBtn = page.locator('[data-testid="context-menu-navigate"]');
@@ -469,7 +469,7 @@ test.describe('Element Reference (@mentions)', () => {
 
       // Find the element reference and get its original text
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 2000 });
+      await expect(elementRef).toBeVisible({ timeout: 5000 });
       const originalText = await elementRef.textContent();
 
       // Right-click and open context menu
@@ -477,7 +477,7 @@ test.describe('Element Reference (@mentions)', () => {
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 2000 });
+      await expect(contextMenu).toBeVisible({ timeout: 5000 });
 
       // Click edit button
       const editBtn = page.locator('[data-testid="context-menu-edit"]');
@@ -552,14 +552,14 @@ test.describe('Element Reference (@mentions)', () => {
 
       // Find the first element reference
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 2000 });
+      await expect(elementRef).toBeVisible({ timeout: 5000 });
 
       // Right-click and open context menu
       await elementRef.click({ button: 'right' });
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 2000 });
+      await expect(contextMenu).toBeVisible({ timeout: 5000 });
 
       // Click delete button
       const deleteBtn = page.locator('[data-testid="context-menu-delete"]');

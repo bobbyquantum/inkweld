@@ -15,5 +15,10 @@ if (!process.env.DRIZZLE_MIGRATIONS_DIR) {
   process.env.DRIZZLE_MIGRATIONS_DIR = join(__dirname, '../drizzle');
 }
 
+// Disable user approval for tests
+if (!process.env.USER_APPROVAL_REQUIRED) {
+  process.env.USER_APPROVAL_REQUIRED = 'false';
+}
+
 console.log(`[test setup] DB_DATABASE set to: ${process.env.DB_DATABASE}`);
 console.log(`[test setup] DRIZZLE_MIGRATIONS_DIR set to: ${process.env.DRIZZLE_MIGRATIONS_DIR}`);

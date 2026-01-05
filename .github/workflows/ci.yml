@@ -97,7 +97,7 @@ jobs:
         run: bun install
 
       - name: Run backend tests
-        run: cd backend && DB_DATABASE=":memory:" bun test
+        run: cd backend && DB_DATABASE=":memory:" USER_APPROVAL_REQUIRED="false" bun test
 
   # ===========================================
   # E2E Tests - All (Sequential)
