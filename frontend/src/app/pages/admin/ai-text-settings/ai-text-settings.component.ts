@@ -452,7 +452,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
   ): ModelConfig[] {
     const defaultModels = this.getDefaultModelsForProvider(provider);
 
-    if (!modelsJson) {
+    if (!modelsJson || !modelsJson.trim()) {
       // No stored config - use API defaults (all enabled)
       return defaultModels.map(m => this.apiModelToModelConfig(m));
     }
