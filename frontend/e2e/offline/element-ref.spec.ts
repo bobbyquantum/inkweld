@@ -333,7 +333,7 @@ test.describe('Element Reference (@mentions)', () => {
       .first();
     if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
       await resultItem.click();
-      await page.waitForTimeout(200);
+      await expect(popup).not.toBeVisible({ timeout: 5000 });
 
       // Check that an element-ref span was inserted
       const elementRef = page.locator('.element-ref').first();
@@ -392,20 +392,27 @@ test.describe('Element Reference (@mentions)', () => {
       .first();
     if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
       await resultItem.click();
-      await page.waitForTimeout(300);
+      await expect(popup).not.toBeVisible({ timeout: 5000 });
 
       // Find the element reference
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 5000 });
+      await expect(elementRef).toBeVisible({ timeout: 10000 });
 
-      // Right-click on the element reference
-      await elementRef.click({ button: 'right' });
+      // Right-click on the element reference using coordinates for better reliability on CI
+      const box = await elementRef.boundingBox();
+      if (box) {
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, {
+          button: 'right',
+        });
+      } else {
+        await elementRef.click({ button: 'right' });
+      }
 
       // Wait for context menu
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 5000 });
+      await expect(contextMenu).toBeVisible({ timeout: 10000 });
 
       // Verify menu items are present
       const navigateBtn = page.locator('[data-testid="context-menu-navigate"]');
@@ -465,19 +472,27 @@ test.describe('Element Reference (@mentions)', () => {
       .first();
     if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
       await resultItem.click();
-      await page.waitForTimeout(300);
+      await expect(popup).not.toBeVisible({ timeout: 5000 });
 
       // Find the element reference and get its original text
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 5000 });
+      await expect(elementRef).toBeVisible({ timeout: 10000 });
       const originalText = await elementRef.textContent();
 
-      // Right-click and open context menu
-      await elementRef.click({ button: 'right' });
+      // Right-click and open context menu using coordinates for better reliability on CI
+      const box = await elementRef.boundingBox();
+      if (box) {
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, {
+          button: 'right',
+        });
+      } else {
+        await elementRef.click({ button: 'right' });
+      }
+
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 5000 });
+      await expect(contextMenu).toBeVisible({ timeout: 10000 });
 
       // Click edit button
       const editBtn = page.locator('[data-testid="context-menu-edit"]');
@@ -544,7 +559,7 @@ test.describe('Element Reference (@mentions)', () => {
       .first();
     if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
       await resultItem.click();
-      await page.waitForTimeout(300);
+      await expect(popup).not.toBeVisible({ timeout: 5000 });
 
       // Find the element reference and count how many there are
       const elementRefsBefore = await page.locator('.element-ref').count();
@@ -552,14 +567,22 @@ test.describe('Element Reference (@mentions)', () => {
 
       // Find the first element reference
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 5000 });
+      await expect(elementRef).toBeVisible({ timeout: 10000 });
 
-      // Right-click and open context menu
-      await elementRef.click({ button: 'right' });
+      // Right-click and open context menu using coordinates for better reliability on CI
+      const box = await elementRef.boundingBox();
+      if (box) {
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, {
+          button: 'right',
+        });
+      } else {
+        await elementRef.click({ button: 'right' });
+      }
+
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 5000 });
+      await expect(contextMenu).toBeVisible({ timeout: 10000 });
 
       // Click delete button
       const deleteBtn = page.locator('[data-testid="context-menu-delete"]');

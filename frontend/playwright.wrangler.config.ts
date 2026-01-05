@@ -79,7 +79,9 @@ export default defineConfig({
     },
     {
       // Frontend server (dedicated e2e port to avoid clashing with dev server)
-      command: 'npm start -- --port 4400',
+      command: process.env['E2E_MODE'] === 'prod'
+        ? 'npx http-server dist/browser -p 4400 -c-1 --proxy http://localhost:4400?'
+        : 'npm start -- --port 4400',
       url: 'http://localhost:4400',
       reuseExistingServer: !process.env['CI'],
       timeout: 120000,
