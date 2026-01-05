@@ -8,9 +8,34 @@
  * - Keyboard navigation works (up/down arrows, Enter, Escape)
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, Locator, Page, test } from '@playwright/test';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
+
+/**
+ * Helper to trigger a contextmenu event on an element reference.
+ * Uses JavaScript evaluation to dispatch the event directly on the element,
+ * which is more reliable on CI than Playwright's click({ button: 'right' }).
+ */
+async function triggerContextMenu(
+  page: Page,
+  elementRef: Locator
+): Promise<void> {
+  // Get the element handle and dispatch contextmenu event with proper coordinates
+  await elementRef.evaluate((el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    const event = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      button: 2,
+      buttons: 2,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2,
+    });
+    el.dispatchEvent(event);
+  });
+}
 
 test.describe('Element Reference (@mentions)', () => {
   test.beforeEach(async ({ page }) => {
@@ -401,9 +426,8 @@ test.describe('Element Reference (@mentions)', () => {
     // Wait a tiny bit for the editor to settle after insertion
     await page.waitForTimeout(200);
 
-    // Right-click on the element reference
-    // We use force: true and multiple attempts if needed for CI reliability
-    await elementRef.click({ button: 'right', force: true });
+    // Right-click on the element reference using JS dispatch for CI reliability
+    await triggerContextMenu(page, elementRef);
 
     // Wait for context menu
     const contextMenu = page.locator(
@@ -478,8 +502,8 @@ test.describe('Element Reference (@mentions)', () => {
     // Wait a tiny bit for the editor to settle after insertion
     await page.waitForTimeout(200);
 
-    // Right-click and open context menu
-    await elementRef.click({ button: 'right', force: true });
+    // Right-click and open context menu using JS dispatch for CI reliability
+    await triggerContextMenu(page, elementRef);
 
     const contextMenu = page.locator(
       '[data-testid="element-ref-context-menu"]'
@@ -563,8 +587,8 @@ test.describe('Element Reference (@mentions)', () => {
     // Wait a tiny bit for the editor to settle after insertion
     await page.waitForTimeout(200);
 
-    // Right-click and open context menu
-    await elementRef.click({ button: 'right', force: true });
+    // Right-click and open context menu using JS dispatch for CI reliability
+    await triggerContextMenu(page, elementRef);
 
     const contextMenu = page.locator(
       '[data-testid="element-ref-context-menu"]'
