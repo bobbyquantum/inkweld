@@ -104,7 +104,7 @@ jobs:
   # ===========================================
   e2e:
     name: E2E Tests
-    runs-on: [self-hosted, Linux, X64, e2e]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
