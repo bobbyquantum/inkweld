@@ -39,12 +39,14 @@ test.describe('Worldbuilding Templates', () => {
     // Click the Element Templates inner tab
     await page.getByRole('tab', { name: 'Element Templates' }).click();
 
-    // Wait for templates to load
-    await expect(page.locator('mat-card')).toBeVisible({ timeout: 10000 });
+    // Wait for templates to load (use specific data-testid and first() to avoid strict mode violation)
+    await expect(page.getByTestId('template-card').first()).toBeVisible({
+      timeout: 10000,
+    });
 
     // Find a template card and open its menu
     const templateCards = page
-      .locator('mat-card')
+      .getByTestId('template-card')
       .filter({ hasText: 'Character' });
     await templateCards
       .locator('button[aria-label="Template actions"]')
@@ -63,7 +65,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Test deleting the custom template
     const heroCard = page
-      .locator('mat-card')
+      .getByTestId('template-card')
       .filter({ hasText: 'Hero Template' });
     await heroCard.locator('button[aria-label="Template actions"]').click();
     await page.getByTestId('delete-template-button').click();
@@ -76,7 +78,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Verify template was deleted (check specifically for the card, not general text)
     await expect(
-      page.locator('mat-card').filter({ hasText: 'Hero Template' })
+      page.getByTestId('template-card').filter({ hasText: 'Hero Template' })
     ).not.toBeVisible();
   });
 
@@ -215,11 +217,13 @@ test.describe('Worldbuilding Templates', () => {
 
     // Click the Element Templates inner tab
     await page.getByRole('tab', { name: 'Element Templates' }).click();
-    await expect(page.locator('mat-card')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('template-card').first()).toBeVisible({
+      timeout: 10000,
+    });
 
     // Clone Character template
     const templateCards = page
-      .locator('mat-card')
+      .getByTestId('template-card')
       .filter({ hasText: 'Character' });
     await templateCards
       .locator('button[aria-label="Template actions"]')
@@ -234,7 +238,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Now edit the custom template
     await page
-      .locator('mat-card')
+      .getByTestId('template-card')
       .filter({ hasText: 'Test Template' })
       .locator('button[aria-label="Template actions"]')
       .click();
@@ -290,11 +294,13 @@ test.describe('Worldbuilding Templates', () => {
 
     // Click the Element Templates inner tab
     await page.getByRole('tab', { name: 'Element Templates' }).click();
-    await expect(page.locator('mat-card')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('template-card').first()).toBeVisible({
+      timeout: 10000,
+    });
 
     // Find Character template and clone it
     const templateCards = page
-      .locator('mat-card')
+      .getByTestId('template-card')
       .filter({ hasText: 'Character' });
     await templateCards
       .locator('button[aria-label="Template actions"]')
