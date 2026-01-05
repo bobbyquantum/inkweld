@@ -7,31 +7,49 @@
 import { generateUniqueUsername } from '../common';
 import { expect, test } from './fixtures';
 
+// Helper to open register dialog
+async function openRegisterDialog(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await page.locator('[data-testid="welcome-register-button"]').click();
+  await page.waitForSelector('mat-dialog-container', {
+    state: 'visible',
+    timeout: 5000,
+  });
+}
+
+// Helper to open login dialog
+async function openLoginDialog(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await page.locator('[data-testid="welcome-login-button"]').click();
+  await page.waitForSelector('mat-dialog-container', {
+    state: 'visible',
+    timeout: 5000,
+  });
+}
+
 test.describe('Error Handling and Edge Cases', () => {
   test.describe('Input Validation Edge Cases', () => {
     test('should handle special characters in username', async ({
       anonymousPage: page,
     }) => {
-      await page.goto('/register');
+      await openRegisterDialog(page);
 
       // Try special characters - should show validation error or server error
       await page.getByTestId('username-input').fill('user@#$%');
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
-      // Wait for username check to complete (may show error snackbar)
+      // Wait for username check to complete (may show error)
       await page.waitForTimeout(1000);
 
-      // The app should handle this gracefully - we should still be on the register page
-      // (not navigated away or crashed)
-      const url = page.url();
-      expect(url).toContain('register');
+      // The dialog should still be open and handling the error gracefully
+      await expect(page.locator('mat-dialog-container')).toBeVisible();
     });
 
     test('should handle extremely long input strings', async ({
       anonymousPage: page,
     }) => {
-      await page.goto('/register');
+      await openRegisterDialog(page);
 
       const veryLongString = 'a'.repeat(500);
 
@@ -41,15 +59,14 @@ test.describe('Error Handling and Edge Cases', () => {
 
       await page.waitForTimeout(500);
 
-      // Should handle gracefully without crashing
-      const url = page.url();
-      expect(url).toContain('register');
+      // Should handle gracefully without crashing - dialog still open
+      await expect(page.locator('mat-dialog-container')).toBeVisible();
     });
 
     test('should handle unicode and emoji in input', async ({
       anonymousPage: page,
     }) => {
-      await page.goto('/register');
+      await openRegisterDialog(page);
 
       await page.getByTestId('username-input').fill('user👨‍💻😀');
       await page.getByTestId('password-input').fill('ValidPass123!');
@@ -65,7 +82,7 @@ test.describe('Error Handling and Edge Cases', () => {
     test('should handle SQL injection attempts safely', async ({
       anonymousPage: page,
     }) => {
-      await page.goto('/welcome');
+      await openLoginDialog(page);
 
       // Try SQL injection in username
       await page.getByTestId('username-input').fill("' OR '1'='1' --");
@@ -74,8 +91,8 @@ test.describe('Error Handling and Edge Cases', () => {
 
       await page.waitForTimeout(1000);
 
-      // Should not succeed - should show error or stay on page
-      await expect(page).toHaveURL('/welcome');
+      // Should not succeed - should show error and stay in dialog
+      await expect(page.locator('mat-dialog-container')).toBeVisible();
     });
 
     test('should handle XSS attempts in project creation', async ({
@@ -125,7 +142,7 @@ test.describe('Error Handling and Edge Cases', () => {
     test('should handle page refresh during form submission', async ({
       anonymousPage: page,
     }) => {
-      await page.goto('/register');
+      await openRegisterDialog(page);
 
       const uniqueUsername = generateUniqueUsername('refresh');
       await page.getByTestId('username-input').fill(uniqueUsername);
@@ -136,19 +153,16 @@ test.describe('Error Handling and Edge Cases', () => {
 
       // Start submission but immediately refresh
       await Promise.all([
-        page.getByTestId('register-button').click(),
+        page
+          .locator('mat-dialog-container [data-testid="register-button"]')
+          .click(),
         page.waitForTimeout(100).then(() => page.reload()),
       ]);
 
-      // Should handle gracefully - either stay on register or go to home if registered
+      // Should handle gracefully - dialog might be closed or page reloaded
       await page.waitForTimeout(1000);
-      const url = page.url();
-      const baseUrl =
-        test.info().project.use.baseURL ?? 'http://localhost:4400/';
-      const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-      expect(
-        url.includes('register') || url === normalizedBaseUrl
-      ).toBeTruthy();
+      // After refresh, we should be on home page
+      await expect(page).toHaveURL('/');
     });
 
     test('should handle window resize gracefully', async ({
@@ -178,7 +192,7 @@ test.describe('Error Handling and Edge Cases', () => {
     test('should handle rapid form submissions (button disables)', async ({
       anonymousPage: page,
     }) => {
-      await page.goto('/register');
+      await openRegisterDialog(page);
 
       const uniqueUsername = generateUniqueUsername('rapid');
       await page.getByTestId('username-input').fill(uniqueUsername);
@@ -189,13 +203,18 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
       // Click submit button once (button disables after first click)
-      const button = page.getByTestId('register-button');
+      const button = page.locator(
+        'mat-dialog-container [data-testid="register-button"]'
+      );
       await button.click();
 
       await page.waitForTimeout(2000);
 
-      // Should have navigated to home after successful registration
-      await expect(page).toHaveURL('/');
+      // Dialog should have closed after successful registration
+      await page.waitForSelector('mat-dialog-container', {
+        state: 'hidden',
+        timeout: 10000,
+      });
     });
   });
 

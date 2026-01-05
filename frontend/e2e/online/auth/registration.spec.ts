@@ -1,11 +1,21 @@
 import { expect, test } from '../fixtures';
 
+// Helper to open register dialog
+async function openRegisterDialog(page: import('@playwright/test').Page) {
+  await page.goto('/');
+  await page.locator('[data-testid="welcome-register-button"]').click();
+  await page.waitForSelector('mat-dialog-container', {
+    state: 'visible',
+    timeout: 5000,
+  });
+}
+
 test.describe('User Registration', () => {
   test('should register a new user successfully with valid credentials', async ({
     anonymousPage: page,
   }) => {
-    // Go to registration page
-    await page.goto('/register');
+    // Go to home page and open registration dialog
+    await openRegisterDialog(page);
 
     // Fill registration form with unique username and strong password
     const uniqueUsername = `newuser${Date.now()}`;
@@ -14,9 +24,17 @@ test.describe('User Registration', () => {
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
     // Submit the form
-    await page.getByTestId('register-button').click();
+    await page
+      .locator('mat-dialog-container [data-testid="register-button"]')
+      .click();
 
-    // Should redirect to home page after successful registration
+    // Dialog should close after successful registration
+    await page.waitForSelector('mat-dialog-container', {
+      state: 'hidden',
+      timeout: 15000,
+    });
+
+    // Should be on home page
     await expect(page).toHaveURL('/');
   });
 
@@ -43,8 +61,8 @@ test.describe('User Registration', () => {
     const checkData = await checkResponse.json();
     expect(checkData.available).toBe(false); // Username should NOT be available
 
-    // Go to registration page
-    await page.goto('/register');
+    // Open registration dialog
+    await openRegisterDialog(page);
 
     // Fill registration form with the existing username
     await page.getByTestId('username-input').fill(existingUsername);
@@ -67,7 +85,9 @@ test.describe('User Registration', () => {
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
     // Register button should be disabled due to username being taken
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Should show username taken error
     await expect(page.getByTestId('username-error')).toContainText(
@@ -91,7 +111,7 @@ test.describe('User Registration', () => {
     );
     expect(registerResponse.ok()).toBeTruthy();
 
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
     // Fill with the existing username
     await page.getByTestId('username-input').fill(existingUsername);
@@ -108,7 +128,7 @@ test.describe('User Registration', () => {
   test('should validate password confirmation matches', async ({
     anonymousPage: page,
   }) => {
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
     // Fill registration form with mismatched passwords
     const uniqueUsername = `user${Date.now()}`;
@@ -120,20 +140,24 @@ test.describe('User Registration', () => {
     await page.getByTestId('confirm-password-input').fill('DifferentPass123!');
 
     // Register button should be disabled due to password mismatch
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Now fix the password to match
     await page.getByTestId('confirm-password-input').clear();
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
     // Button should now be enabled
-    await expect(page.getByTestId('register-button')).toBeEnabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeEnabled();
   });
 
   test('should enforce password strength requirements', async ({
     anonymousPage: page,
   }) => {
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
     const uniqueUsername = `user${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
@@ -143,45 +167,59 @@ test.describe('User Registration', () => {
     await page.getByTestId('confirm-password-input').fill('weak');
 
     // Button should be disabled
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Try a stronger password (still missing requirements)
     await page.getByTestId('password-input').fill('weakpassword');
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Use a valid strong password
     await page.getByTestId('password-input').fill('StrongPass123!');
     await page.getByTestId('confirm-password-input').fill('StrongPass123!');
 
     // Now button should be enabled
-    await expect(page.getByTestId('register-button')).toBeEnabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeEnabled();
   });
 
   test('should prevent empty form submission', async ({
     anonymousPage: page,
   }) => {
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
     // Register button should be disabled when form is empty
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Fill only username
     await page.getByTestId('username-input').fill('testusername');
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Fill username and password
     await page.getByTestId('password-input').fill('ValidPass123!');
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Fill all fields
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-    await expect(page.getByTestId('register-button')).toBeEnabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeEnabled();
   });
 
   test('should validate minimum username length', async ({
     anonymousPage: page,
   }) => {
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
     // Try a username that's too short
     await page.getByTestId('username-input').fill('ab');
@@ -193,7 +231,9 @@ test.describe('User Registration', () => {
     );
 
     // Register button should be disabled
-    await expect(page.getByTestId('register-button')).toBeDisabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeDisabled();
 
     // Fill valid fields
     await page.getByTestId('username-input').fill('abc');
@@ -201,7 +241,9 @@ test.describe('User Registration', () => {
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
     // Now button should be enabled
-    await expect(page.getByTestId('register-button')).toBeEnabled();
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeEnabled();
   });
 
   test('should allow selection of username suggestions', async ({
@@ -220,7 +262,7 @@ test.describe('User Registration', () => {
     );
     expect(registerResponse.ok()).toBeTruthy();
 
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
     // Fill with the existing username to get suggestions
     await page.getByTestId('username-input').fill(existingUsername);
@@ -243,7 +285,7 @@ test.describe('User Registration', () => {
   test('should automatically login after successful registration', async ({
     anonymousPage: page,
   }) => {
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
     // Register a new user
     const uniqueUsername = `autouser${Date.now()}`;
@@ -251,9 +293,17 @@ test.describe('User Registration', () => {
     await page.getByTestId('password-input').fill('AutoPass123!');
     await page.getByTestId('confirm-password-input').fill('AutoPass123!');
 
-    await page.getByTestId('register-button').click();
+    await page
+      .locator('mat-dialog-container [data-testid="register-button"]')
+      .click();
 
-    // Should redirect to home
+    // Dialog should close
+    await page.waitForSelector('mat-dialog-container', {
+      state: 'hidden',
+      timeout: 15000,
+    });
+
+    // Should be on home and authenticated
     await expect(page).toHaveURL('/');
 
     // User should be authenticated (we can verify by checking if login button is not visible)
@@ -263,16 +313,22 @@ test.describe('User Registration', () => {
   });
 
   test('should have link to login page', async ({ anonymousPage: page }) => {
-    await page.goto('/register');
+    await openRegisterDialog(page);
 
-    // Should have a link back to login
+    // Should have a link/button back to login within the dialog
     const loginLink = page.locator(
-      'button:has-text("Already have an account")'
+      'mat-dialog-container button:has-text("Already have an account")'
     );
     await expect(loginLink).toBeVisible();
 
-    // Click should navigate to welcome/login page
+    // Click should close register dialog and open login dialog
     await loginLink.click();
-    await expect(page).toHaveURL('/welcome');
+
+    // Wait for login dialog to appear (register dialog should close and login should open)
+    await page.waitForTimeout(500);
+
+    // We should still be on home page with a dialog open
+    await expect(page).toHaveURL('/');
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
   });
 });

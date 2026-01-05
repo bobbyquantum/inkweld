@@ -29,34 +29,26 @@ import {
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router, RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
-import {
-  AuthenticationService,
-  UsernameAvailability,
-  UsersService,
-} from '@inkweld/index';
-import { XsrfService } from '@services/auth/xsrf.service';
+import { AuthenticationService, UsernameAvailability } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
-import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 
 @Component({
-  selector: 'app-register',
+  selector: 'app-register-dialog',
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    RouterModule,
-    MatCardModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
@@ -66,22 +58,19 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
     KeyValuePipe,
     OverlayModule,
     MatProgressSpinnerModule,
-    ThemeToggleComponent,
   ],
-  templateUrl: './register.component.html',
-  styleUrl: './register.component.scss',
+  templateUrl: './register-dialog.component.html',
+  styleUrl: './register-dialog.component.scss',
 })
-export class RegisterComponent implements OnInit, OnDestroy {
+export class RegisterDialogComponent implements OnInit, OnDestroy {
+  private dialogRef = inject(MatDialogRef<RegisterDialogComponent>);
   private httpClient = inject(HttpClient);
-  private usersApiService = inject(UsersService);
   private authService = inject(AuthenticationService);
   private userService = inject(UserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
-  private xsrfService = inject(XsrfService);
   private fb = inject(FormBuilder).nonNullable;
   private setupService = inject(SetupService);
-  private systemConfigService = inject(SystemConfigService);
   private overlay = inject(Overlay);
   private overlayPositionBuilder = inject(OverlayPositionBuilder);
   private viewContainerRef = inject(ViewContainerRef);
@@ -150,8 +139,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
   };
 
   private destroy$ = new Subject<void>();
-
-  constructor() {}
 
   get usernameControl() {
     return this.registerForm.get('username');
@@ -380,7 +367,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
     if (control?.hasError('special')) {
       return 'Password must contain at least one special character (@$!%*?&)';
     }
-    // Don't show server validation errors here - they'll be shown in the dedicated list
     return '';
   }
 
@@ -438,7 +424,8 @@ export class RegisterComponent implements OnInit, OnDestroy {
 
       // Check if approval is required
       if (response.requiresApproval) {
-        // Redirect to dedicated pending approval page
+        // Close dialog and redirect to dedicated pending approval page
+        this.dialogRef.close(false);
         void this.router.navigate(['/approval-pending'], {
           queryParams: {
             username: response.user.username,
@@ -460,6 +447,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
         this.snackBar.open('Registration successful!', 'Close', {
           duration: 3000,
         });
+        this.dialogRef.close(true); // Close with success result
         void this.router.navigate(['/']);
       }
     } catch (error: unknown) {
@@ -493,6 +481,10 @@ export class RegisterComponent implements OnInit, OnDestroy {
       // Always reset loading state when done
       this.isRegistering = false;
     }
+  }
+
+  onLoginClick(): void {
+    this.dialogRef.close('login'); // Signal to open login dialog
   }
 
   private createPasswordValidator(): ValidatorFn {
@@ -551,6 +543,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
       this.changeDetectorRef.detectChanges();
     }
   }
+
   private showGeneralError(error: HttpErrorResponse): void {
     this.snackBar.open(`Registration failed: ${error.message}`, 'Close', {
       duration: 5000,

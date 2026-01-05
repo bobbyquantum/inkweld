@@ -403,8 +403,18 @@ export async function registerUser(
   username: string,
   password: string
 ): Promise<void> {
-  await page.goto('/register');
+  // Go to home page and open register dialog
+  await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
+
+  // Click the register button on the welcome section to open the dialog
+  await page.locator('[data-testid="welcome-register-button"]').click();
+
+  // Wait for the dialog to appear
+  await page.waitForSelector('mat-dialog-container', {
+    state: 'visible',
+    timeout: 5000,
+  });
 
   await page.locator('[data-testid="username-input"]').fill(username);
   await page.locator('[data-testid="username-input"]').blur();
@@ -415,17 +425,22 @@ export async function registerUser(
 
   // Wait for the register button to be enabled
   await page
-    .locator('[data-testid="register-button"]')
+    .locator('mat-dialog-container [data-testid="register-button"]')
     .waitFor({ state: 'visible' });
 
-  // Click register and wait for navigation
-  await Promise.all([
-    page.waitForURL('/', { timeout: 15000 }),
-    page.locator('[data-testid="register-button"]').click(),
-  ]);
+  // Click register and wait for dialog to close
+  await page
+    .locator('mat-dialog-container [data-testid="register-button"]')
+    .click();
 
   // Wait for network to settle
   await page.waitForLoadState('networkidle');
+
+  // Wait for dialog to close (indicates success)
+  await page.waitForSelector('mat-dialog-container', {
+    state: 'hidden',
+    timeout: 15000,
+  });
 
   // Verify token was stored (registration should auto-login)
   const token = await page.evaluate(() => localStorage.getItem('auth_token'));

@@ -51,16 +51,12 @@ export class AuthInterceptor implements HttpInterceptor {
           // Clear invalid token
           localStorage.removeItem('auth_token');
 
-          // Don't redirect if we're already on the welcome/login page
+          // Don't redirect if we're already on the home page
           const currentUrl = this.router.url;
-          if (
-            !currentUrl.startsWith('/welcome') &&
-            !currentUrl.startsWith('/register') &&
-            currentUrl !== '/'
-          ) {
-            // Navigate to welcome page
-            this.router.navigate(['/welcome']).catch(navError => {
-              console.error('Failed to navigate to welcome page:', navError);
+          if (currentUrl !== '/') {
+            // Navigate to home page (which shows login dialog for unauthenticated users)
+            this.router.navigate(['/']).catch(navError => {
+              console.error('Failed to navigate to home page:', navError);
             });
           }
         }

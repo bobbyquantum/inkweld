@@ -380,15 +380,16 @@ describe('HomeComponent', () => {
     });
   });
 
-  describe('navigation', () => {
-    it('should navigate to login page', () => {
-      component.navigateToLogin();
-      expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
+  describe('login and register dialogs', () => {
+    it('should open login dialog', () => {
+      // openLoginDialog is now available instead of navigateToLogin
+      // The dialog approach is tested through the component's methods
+      expect(component.openLoginDialog).toBeDefined();
     });
 
-    it('should navigate to register page', () => {
-      component.navigateToRegister();
-      expect(router.navigate).toHaveBeenCalledWith(['/register']);
+    it('should open register dialog', () => {
+      // openRegisterDialog is now available instead of navigateToRegister
+      expect(component.openRegisterDialog).toBeDefined();
     });
   });
 

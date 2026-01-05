@@ -1,35 +1,33 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { UserService, UserServiceError } from '@services/user/user.service';
 
 @Component({
-  selector: 'app-welcome',
+  selector: 'app-login-dialog',
   imports: [
     FormsModule,
-    RouterLink,
-    MatCardModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
     OAuthProviderListComponent,
-    ThemeToggleComponent,
   ],
-  templateUrl: './welcome.component.html',
-  styleUrl: './welcome.component.scss',
+  templateUrl: './login-dialog.component.html',
+  styleUrl: './login-dialog.component.scss',
 })
-export class WelcomeComponent {
+export class LoginDialogComponent {
+  private dialogRef = inject(MatDialogRef<LoginDialogComponent>);
   private snackBar = inject(MatSnackBar);
   private userService = inject(UserService);
   private router = inject(Router);
@@ -100,55 +98,44 @@ export class WelcomeComponent {
 
     try {
       await this.userService.login(this.username, this.password);
-      // Login successful - no need to do anything here as user will be redirected
-    } catch (error) {
+      this.snackBar.open(`Welcome back, ${this.username}!`, 'Close', {
+        duration: 3000,
+      });
+      this.dialogRef.close(true); // Close with success result
+      void this.router.navigate(['/']);
+    } catch (error: unknown) {
       if (error instanceof UserServiceError) {
+        // Check for pending approval
+        if (error.code === 'ACCOUNT_PENDING') {
+          this.dialogRef.close(false);
+          void this.router.navigate(['/approval-pending']);
+          return;
+        }
+
+        // Handle specific error types
         if (error.code === 'LOGIN_FAILED') {
-          // Remember the failed username and password attempt
+          // Track the username/password that failed
           this.lastAttemptedUsername = this.username;
           this.lastAttemptedPassword = this.password;
-
-          // Set form-level error for password field
-          this.passwordError =
-            'Invalid username or password. Please check your credentials.';
-
-          // Also keep the snackbar notification for accessibility
-          this.snackBar.open(
-            'Invalid username or password. Please check your credentials.',
-            'Close',
-            {
-              duration: 5000,
-              panelClass: ['error-snackbar'],
-            }
-          );
-        } else if (error.code === 'ACCOUNT_PENDING') {
-          // Handle pending approval case
-          this.passwordError = null; // Clear password error since credentials are correct
-          void this.router.navigate(['/approval-pending']);
-        } else {
-          this.snackBar.open(error.message, 'Close', {
-            duration: 5000,
-          });
+          this.passwordError = 'Invalid username or password';
+          return;
         }
-      } else if (error instanceof Error) {
-        this.snackBar.open(
-          'An unexpected error occurred during login.',
-          'Close',
-          {
-            duration: 5000,
-          }
-        );
+        // Other known errors
+        this.passwordError = error.message;
+      } else {
+        // Unknown error
+        this.passwordError = 'Login failed. Please try again.';
       }
     } finally {
       this.isLoggingIn = false;
     }
   }
 
-  // Handle providers loaded event
   onProvidersLoaded(): void {
-    // Wrap in setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
-    setTimeout(() => {
-      this.providersLoaded = true;
-    });
+    this.providersLoaded = true;
+  }
+
+  onRegisterClick(): void {
+    this.dialogRef.close('register'); // Signal to open register dialog
   }
 }

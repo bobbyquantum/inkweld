@@ -359,7 +359,7 @@ describe('SetupComponent', () => {
         'Close',
         { duration: 3000 }
       );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/welcome']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
     });
 
     it('should trim server URL before configuring', async () => {

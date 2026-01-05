@@ -64,7 +64,7 @@ describe('AuthInterceptor', () => {
             expect(err).toBe(error);
             // Wait for the navigate promise to resolve
             await Promise.resolve();
-            expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
+            expect(router.navigate).toHaveBeenCalledWith(['/']);
             resolve();
           } catch (e) {
             reject(e instanceof Error ? e : new Error(String(e)));
@@ -91,8 +91,8 @@ describe('AuthInterceptor', () => {
     });
   });
 
-  it('should not redirect when already on welcome page', () => {
-    router.url = '/welcome';
+  it('should not redirect when already on home page', () => {
+    router.url = '/';
     const request = new HttpRequest('GET', '/api/test');
     const error = new HttpErrorResponse({ status: 401 });
 
@@ -178,7 +178,7 @@ describe('AuthInterceptor', () => {
               await Promise.resolve();
               await Promise.resolve();
               expect(consoleSpy).toHaveBeenCalledWith(
-                'Failed to navigate to welcome page:',
+                'Failed to navigate to home page:',
                 expect.any(Error)
               );
               consoleSpy.mockRestore();
