@@ -8,12 +8,12 @@
 .publish-plan-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 130px);
+  height: var(--app-height-offset-130);
   overflow-y: auto;
   padding: 16px;
 
   @media (max-width: 759px) {
-    height: calc(100vh - 82px);
+    height: var(--app-height-offset-82);
   }
 
   &.loading {

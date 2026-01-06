@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
+  min-height: var(--app-height);
   width: 100%;
   overflow-x: hidden;
   background-image: url('/home_background.png');

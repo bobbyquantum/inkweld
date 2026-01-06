@@ -27,9 +27,9 @@
   min-height: 0;
   overflow: hidden;
   transition: flex 200ms ease-out;
-  height: calc(100vh - 50px);
+  height: var(--app-height-offset-50);
   &.no-tabs {
-    height: calc(100vh);
+    height: var(--app-height);
   }
 }
 
@@ -105,7 +105,7 @@
   }
 
   &.zen-mode-container {
-    height: 100vh;
+    height: var(--app-height);
     padding: 0;
     margin: 0;
     transition: all 0.3s ease;
@@ -334,13 +334,45 @@
   }
 }
 
-// Hide editor toolbar on mobile and adjust editor height
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile Keyboard Adaptivity
+// ─────────────────────────────────────────────────────────────────────────────
+// On mobile, the virtual keyboard overlays content. We use --visual-viewport-*
+// CSS variables (set by ViewportService) to ensure the editor fits within the
+// visible area above the keyboard, keeping the status bar visible.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Hide editor toolbar on mobile and use dynamic viewport height
 @media (max-width: 759px) {
   .editor-toolbar {
     display: none !important;
   }
+
+  // Use visual viewport height so editor fits above keyboard
+  // The -48px accounts for the tab bar when present
   .editor-section {
-    height: calc(100vh - 48px) !important;
+    height: var(--visual-viewport-height-48) !important;
+    max-height: var(--visual-viewport-height-48) !important;
+    transition: height 0.15s ease-out, max-height 0.15s ease-out;
+  }
+
+  .editor-section.no-tabs {
+    height: var(--visual-viewport-height) !important;
+    max-height: var(--visual-viewport-height) !important;
+  }
+
+  // Ensure scrollable area within editor adapts properly
+  .editor-wrapper {
+    // Use flex layout to ensure content + status bar fit in available space
+    max-height: 100%;
+  }
+
+  // When keyboard is open, ensure status bar is always visible
+  .editor-status-bar {
+    // Status bar uses position sticky at bottom to stay visible
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
   }
 }
 

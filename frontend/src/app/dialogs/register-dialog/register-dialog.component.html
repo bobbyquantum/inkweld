@@ -1,9 +1,7 @@
-<h2 mat-dialog-title>
-  <div class="dialog-title">
-    <img src="logo.png" alt="Inkweld Logo" class="logo-image" />
-    <span>Register for Inkweld</span>
-  </div>
-</h2>
+<div class="dialog-header">
+  <img src="logo.png" alt="Inkweld Logo" class="logo-image" />
+  <h2 mat-dialog-title>Register for Inkweld</h2>
+</div>
 
 <mat-dialog-content [class.mobile]="isMobile">
   <form [formGroup]="registerForm" (ngSubmit)="onRegister()">

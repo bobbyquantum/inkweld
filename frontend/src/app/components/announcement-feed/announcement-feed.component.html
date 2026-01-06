@@ -5,8 +5,10 @@
 } @else if (hasAnnouncements) {
   <div class="announcement-feed" data-testid="announcement-feed">
     <div class="feed-header">
-      <mat-icon>campaign</mat-icon>
-      <h3>Latest Updates</h3>
+      <mat-card class="header-card">
+        <mat-icon>campaign</mat-icon>
+        <h3>Latest Updates</h3>
+      </mat-card>
     </div>
     <div class="feed-content">
       @for (announcement of displayedAnnouncements; track announcement.id) {
