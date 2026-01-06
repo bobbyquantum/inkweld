@@ -139,32 +139,35 @@ export const test = base.extend<OnlineTestFixtures>({
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Wait for the app to fully initialize and cache the user
-    // This ensures the auth guard will find a cached user on subsequent navigations
-    await page.waitForFunction(
-      () => {
-        const path = window.location.pathname;
-        // Check that we're not on a redirect page (setup/welcome/login/approval-pending)
-        return (
-          !path.includes('setup') &&
-          !path.includes('welcome') &&
-          !path.includes('login') &&
-          !path.includes('approval-pending')
-        );
-      },
-      { timeout: 10000 }
-    );
+    // Wait for the user menu button to be visible - this is the most reliable
+    // indicator that authentication succeeded and the app is fully initialized
+    try {
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ state: 'visible', timeout: 15000 });
+    } catch {
+      // If user menu didn't appear, check what state we're in for better error message
+      const welcomeHeading = await page
+        .locator('[data-testid="welcome-heading"]')
+        .isVisible()
+        .catch(() => false);
+      const approvalPending = page.url().includes('approval-pending');
+      const currentUrl = page.url();
 
-    // Double-check we're not on an auth page (if waitForFunction passed but we're still redirected)
-    const currentUrl = page.url();
-    if (
-      currentUrl.includes('/login') ||
-      currentUrl.includes('/approval-pending')
-    ) {
-      throw new Error(
-        `authenticatedPage fixture failed: landed on ${currentUrl} instead of authenticated page. ` +
-          `Token may be invalid or user not approved.`
-      );
+      if (welcomeHeading) {
+        throw new Error(
+          `authenticatedPage fixture failed: app shows welcome/login screen instead of authenticated state. ` +
+            `Token may be invalid or not being sent. URL: ${currentUrl}`
+        );
+      } else if (approvalPending) {
+        throw new Error(
+          `authenticatedPage fixture failed: user is pending approval. URL: ${currentUrl}`
+        );
+      } else {
+        throw new Error(
+          `authenticatedPage fixture failed: user menu not visible after 15s. URL: ${currentUrl}`
+        );
+      }
     }
 
     // Store credentials for potential later use
@@ -216,29 +219,35 @@ export const test = base.extend<OnlineTestFixtures>({
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    // Wait for the app to fully initialize
-    await page.waitForFunction(
-      () => {
-        const path = window.location.pathname;
-        return (
-          !path.includes('setup') &&
-          !path.includes('welcome') &&
-          !path.includes('login') &&
-          !path.includes('approval-pending')
-        );
-      },
-      { timeout: 10000 }
-    );
+    // Wait for the user menu button to be visible - this is the most reliable
+    // indicator that authentication succeeded and the app is fully initialized
+    try {
+      await page
+        .locator('[data-testid="user-menu-button"]')
+        .waitFor({ state: 'visible', timeout: 15000 });
+    } catch {
+      // If user menu didn't appear, check what state we're in for better error message
+      const welcomeHeading = await page
+        .locator('[data-testid="welcome-heading"]')
+        .isVisible()
+        .catch(() => false);
+      const approvalPending = page.url().includes('approval-pending');
+      const currentUrl = page.url();
 
-    // Double-check we're not on an auth page
-    const currentUrl = page.url();
-    if (
-      currentUrl.includes('/login') ||
-      currentUrl.includes('/approval-pending')
-    ) {
-      throw new Error(
-        `adminPage fixture failed: landed on ${currentUrl} instead of authenticated page.`
-      );
+      if (welcomeHeading) {
+        throw new Error(
+          `adminPage fixture failed: app shows welcome/login screen instead of authenticated state. ` +
+            `Token may be invalid or not being sent. URL: ${currentUrl}`
+        );
+      } else if (approvalPending) {
+        throw new Error(
+          `adminPage fixture failed: admin user is pending approval. URL: ${currentUrl}`
+        );
+      } else {
+        throw new Error(
+          `adminPage fixture failed: user menu not visible after 15s. URL: ${currentUrl}`
+        );
+      }
     }
 
     // Store admin credentials for potential later use
