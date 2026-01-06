@@ -198,6 +198,61 @@ describe('AdminService', () => {
     });
   });
 
+  describe('loadAllUsers', () => {
+    it('should fetch both users and pending users and update state atomically', async () => {
+      apiMock.adminListPendingUsers.mockReturnValue(of(PENDING_USERS));
+
+      const result = service.loadAllUsers();
+
+      // Request for users should be made (no query params when no options provided)
+      const req = httpMock.expectOne('/api/v1/users');
+      expect(req.request.method).toBe('GET');
+      req.flush(PAGINATED_RESPONSE);
+
+      await result;
+
+      expect(service.users()).toEqual(TEST_USERS);
+      expect(service.pendingUsers()).toEqual(PENDING_USERS);
+      expect(service.totalUsers()).toBe(TEST_USERS.length);
+      expect(service.hasMoreUsers()).toBe(false);
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should handle errors in loadAllUsers', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 403,
+        statusText: 'Forbidden',
+      });
+      apiMock.adminListPendingUsers.mockReturnValue(
+        throwError(() => httpError)
+      );
+
+      const resultPromise = service.loadAllUsers();
+
+      // Both requests could be made, but one will fail (no query params when no options provided)
+      const req = httpMock.expectOne('/api/v1/users');
+      req.flush(PAGINATED_RESPONSE);
+
+      await expect(resultPromise).rejects.toThrow(AdminServiceError);
+      expect(service.error()?.code).toBe('FORBIDDEN');
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should support search parameter in loadAllUsers', async () => {
+      apiMock.adminListPendingUsers.mockReturnValue(of(PENDING_USERS));
+
+      const result = service.loadAllUsers({ search: 'test', limit: 10 });
+
+      const req = httpMock.expectOne('/api/v1/users?search=test&limit=10');
+      expect(req.request.method).toBe('GET');
+      req.flush(PAGINATED_RESPONSE);
+
+      await result;
+
+      expect(service.users()).toEqual(TEST_USERS);
+    });
+  });
+
   describe('listPendingUsers', () => {
     it('should fetch pending users and update state', async () => {
       apiMock.adminListPendingUsers.mockReturnValue(of(PENDING_USERS));

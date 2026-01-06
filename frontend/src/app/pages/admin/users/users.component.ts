@@ -122,14 +122,11 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   async loadUsers(): Promise<void> {
     try {
-      await Promise.all([
-        this.adminService.listUsers({
-          search: this.searchQuery() || undefined,
-          limit: PAGE_SIZE,
-          offset: 0,
-        }),
-        this.adminService.listPendingUsers(),
-      ]);
+      await this.adminService.loadAllUsers({
+        search: this.searchQuery() || undefined,
+        limit: PAGE_SIZE,
+        offset: 0,
+      });
     } catch (err) {
       console.error('Failed to load users:', err);
     }

@@ -123,6 +123,8 @@ export class AdminService {
 
   /**
    * Fetch pending users awaiting approval (admin only)
+   * Note: When called standalone, this manages its own loading state.
+   * For combined loading, use loadAllUsers() instead.
    */
   async listPendingUsers(): Promise<AdminUser[]> {
     this.isLoading.set(true);
@@ -143,6 +145,67 @@ export class AdminService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Load all users and pending users in a single operation.
+   * This properly manages loading state to avoid race conditions when
+   * both listUsers and listPendingUsers are called concurrently.
+   */
+  async loadAllUsers(options?: ListUsersOptions): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(undefined);
+
+    try {
+      // Fetch both in parallel but manage loading state once
+      const [usersResult, pendingResult] = await Promise.all([
+        this.fetchUsers(options),
+        this.fetchPendingUsers(),
+      ]);
+
+      // Update state only after both succeed
+      this.users.set(usersResult.users);
+      this.totalUsers.set(usersResult.total);
+      this.hasMoreUsers.set(usersResult.hasMore);
+      this.pendingUsers.set(pendingResult);
+    } catch (error) {
+      this.logger.error('AdminService', 'Failed to load all users', error);
+      throw error;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Internal method to fetch users without managing loading state.
+   */
+  private async fetchUsers(
+    options?: ListUsersOptions
+  ): Promise<PaginatedUsersResponse> {
+    const params = new URLSearchParams();
+    if (options?.search) params.set('search', options.search);
+    if (options?.limit) params.set('limit', options.limit.toString());
+    if (options?.offset) params.set('offset', options.offset.toString());
+
+    const queryString = params.toString();
+    const url = `${this.basePath}/api/v1/users${queryString ? `?${queryString}` : ''}`;
+
+    return firstValueFrom(
+      this.http
+        .get<PaginatedUsersResponse>(url, { withCredentials: true })
+        .pipe(catchError(this.handleError.bind(this)))
+    );
+  }
+
+  /**
+   * Internal method to fetch pending users without managing loading state.
+   */
+  private async fetchPendingUsers(): Promise<AdminUser[]> {
+    return firstValueFrom(
+      this.apiService
+        .adminListPendingUsers()
+        .pipe(catchError(this.handleError.bind(this)))
+    );
   }
 
   /**

@@ -95,6 +95,7 @@ describe('AdminUsersComponent', () => {
     error: ReturnType<typeof signal<Error | null>>;
     listUsers: ReturnType<typeof vi.fn>;
     listPendingUsers: ReturnType<typeof vi.fn>;
+    loadAllUsers: ReturnType<typeof vi.fn>;
     approveUser: ReturnType<typeof vi.fn>;
     rejectUser: ReturnType<typeof vi.fn>;
     enableUser: ReturnType<typeof vi.fn>;
@@ -126,6 +127,7 @@ describe('AdminUsersComponent', () => {
         hasMore: false,
       }),
       listPendingUsers: vi.fn().mockResolvedValue(undefined),
+      loadAllUsers: vi.fn().mockResolvedValue(undefined),
       approveUser: vi.fn().mockResolvedValue(undefined),
       rejectUser: vi.fn().mockResolvedValue(undefined),
       enableUser: vi.fn().mockResolvedValue(undefined),
@@ -181,8 +183,8 @@ describe('AdminUsersComponent', () => {
     fixture.detectChanges();
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    expect(adminServiceMock.listUsers).toHaveBeenCalled();
-    expect(adminServiceMock.listPendingUsers).toHaveBeenCalled();
+    // Component now uses loadAllUsers which combines listUsers and listPendingUsers
+    expect(adminServiceMock.loadAllUsers).toHaveBeenCalled();
   });
 
   it('should compute active users correctly', { timeout: 5000 }, () => {
