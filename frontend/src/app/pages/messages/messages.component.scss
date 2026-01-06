@@ -1,5 +1,5 @@
 .messages-page {
-  min-height: 100vh;
+  min-height: var(--app-height);
   display: flex;
   flex-direction: column;
   background-color: var(--mat-sys-surface);

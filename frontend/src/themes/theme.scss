@@ -179,6 +179,71 @@ $dark-theme: mat.define-theme(
 
 @import '@angular/cdk/overlay-prebuilt.css';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Mobile Keyboard Viewport Handling
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The problem: On iOS Safari and Android Chrome, virtual keyboards overlay
+// content instead of resizing the viewport. CSS units like `vh` and even `dvh`
+// don't reliably update when the keyboard appears.
+//
+// Solution: ViewportService uses the Visual Viewport API to detect the actual
+// visible area and sets --visual-viewport-* CSS variables dynamically.
+//
+// For components that need to adapt to keyboard:
+//   - Use var(--visual-viewport-height) for the actual visible height
+//   - Use var(--visual-viewport-height-48) etc. for offset variants
+//   - Check var(--keyboard-open) (0 or 1) for conditional styling
+//
+// Fallback: These variables are initialized to 100vh/dvh and only become
+// dynamic once the ViewportService initializes in the browser.
+// ─────────────────────────────────────────────────────────────────────────────
+
+:root {
+  // Static fallback heights (using vh/dvh)
+  --app-height: 100vh;
+  --app-height-offset-48: calc(100vh - 48px);
+  --app-height-offset-50: calc(100vh - 50px);
+  --app-height-offset-82: calc(100vh - 82px);
+  --app-height-offset-130: calc(100vh - 130px);
+
+  @supports (height: 100dvh) {
+    --app-height: 100dvh;
+    --app-height-offset-48: calc(100dvh - 48px);
+    --app-height-offset-50: calc(100dvh - 50px);
+    --app-height-offset-82: calc(100dvh - 82px);
+    --app-height-offset-130: calc(100dvh - 130px);
+  }
+
+  // Dynamic viewport heights (set by ViewportService via JavaScript)
+  // These are initialized to match --app-height and will be updated
+  // in real-time when the virtual keyboard opens/closes.
+  --visual-viewport-height: 100vh;
+  --visual-viewport-height-48: calc(100vh - 48px);
+  --visual-viewport-height-50: calc(100vh - 50px);
+  --visual-viewport-height-82: calc(100vh - 82px);
+  --visual-viewport-height-130: calc(100vh - 130px);
+
+  // Keyboard state (0 = closed, 1 = open) - set by ViewportService
+  --keyboard-open: 0;
+  --keyboard-height: 0px;
+
+  @supports (height: 100dvh) {
+    --visual-viewport-height: 100dvh;
+    --visual-viewport-height-48: calc(100dvh - 48px);
+    --visual-viewport-height-50: calc(100dvh - 50px);
+    --visual-viewport-height-82: calc(100dvh - 82px);
+    --visual-viewport-height-130: calc(100dvh - 130px);
+  }
+}
+
+// Override CDK overlay to use dynamic viewport height for mobile keyboard support
+.cdk-overlay-container,
+.cdk-global-overlay-wrapper {
+  height: var(--app-height);
+  max-height: var(--app-height);
+}
+
 :root {
   /* Scrollbar styles for light theme */
   --scrollbar-thumb-color: #006874; /* primary-40 */
@@ -288,20 +353,15 @@ body {
   background-color: var(--mat-app-background-color);
   color: var(--mat-app-text-color);
 }
-html,
-body {
-  height: 100%;
+html {
+  height: var(--app-height);
 }
 body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
-}
-
-body {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  min-height: var(--app-height);
   background-color: var(--mat-app-background-color);
   color: var(--mat-app-text-color);
 }
@@ -447,24 +507,39 @@ body.dark-theme .cdk-overlay-dark-backdrop {
   -webkit-backdrop-filter: blur(4px);
 }
 
+/* Login/Register dialog - allow logo overflow */
+.login-dialog-panel,
+.register-dialog-panel {
+  overflow: visible !important;
+  margin-top: 60px !important; // Space for logo extending outside
+
+  .mat-mdc-dialog-surface {
+    overflow: visible !important;
+  }
+
+  .mat-mdc-dialog-container {
+    overflow: visible !important;
+  }
+}
+
 /* Image viewer dialog - responsive fullscreen */
 .image-viewer-dialog-panel {
   /* Desktop: inset from edges to allow click-outside */
   @media (min-width: 769px) {
     margin: 24px !important;
     width: calc(100vw - 48px) !important;
-    height: calc(100vh - 48px) !important;
+    height: var(--app-height-offset-48) !important;
     max-width: calc(100vw - 48px) !important;
-    max-height: calc(100vh - 48px) !important;
+    max-height: var(--app-height-offset-48) !important;
   }
 
   /* Mobile: true fullscreen */
   @media (max-width: 768px) {
     margin: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
+    height: var(--app-height) !important;
     max-width: 100vw !important;
-    max-height: 100vh !important;
+    max-height: var(--app-height) !important;
     border-radius: 0 !important;
   }
 

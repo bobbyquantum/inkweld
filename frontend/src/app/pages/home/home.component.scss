@@ -112,15 +112,15 @@
 }
 
 .empty-state {
-  height: calc(100vh - 200px);
+  height: calc(var(--app-height) - 200px);
 }
 
 // Main layout
 .content-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  height: 100vh;
+  min-height: var(--app-height);
+  height: var(--app-height);
   overflow: hidden;
   position: relative;
   background: url('/home_background.png') center/cover no-repeat fixed;
@@ -146,11 +146,11 @@
   position: relative;
   z-index: 1;
   margin-top: 56px;
-  height: calc(100vh - 56px);
+  height: calc(var(--app-height) - 56px);
 
   &.no-header {
     margin-top: 0;
-    height: 100vh;
+    height: var(--app-height);
   }
 
   &.has-sidenav .main-content {
@@ -220,6 +220,7 @@
     font-weight: 600;
     color: var(--t1);
     letter-spacing: 0.5px;
+    padding:0;
   }
 
   .center-section {

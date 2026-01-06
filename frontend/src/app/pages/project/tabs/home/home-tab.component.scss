@@ -1,7 +1,7 @@
 .home-tab-content {
   padding: 24px;
   // Desktop with tabs: toolbar (48px) + tabs header (~82px) = 130px
-  height: calc(100vh - 130px);
+  height: var(--app-height-offset-130);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -10,7 +10,7 @@
 
   // Mobile without tabs: only toolbar (48px) + padding (~34px) = 82px
   @media (max-width: 759px) {
-    height: calc(100vh - 82px);
+    height: var(--app-height-offset-82);
     padding: 16px;
   }
 }

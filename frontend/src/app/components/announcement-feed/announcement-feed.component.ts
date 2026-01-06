@@ -1,4 +1,5 @@
 import { Component, inject, Input, OnInit } from '@angular/core';
+import { MatCard, MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AnnouncementCardComponent } from '@components/announcement-card/announcement-card.component';
@@ -7,7 +8,13 @@ import { AnnouncementService } from '@services/announcement/announcement.service
 @Component({
   selector: 'app-announcement-feed',
   standalone: true,
-  imports: [MatProgressSpinnerModule, MatIconModule, AnnouncementCardComponent],
+  imports: [
+    MatProgressSpinnerModule,
+    MatCardModule,
+    MatIconModule,
+    AnnouncementCardComponent,
+    MatCard,
+  ],
   templateUrl: './announcement-feed.component.html',
   styleUrl: './announcement-feed.component.scss',
 })

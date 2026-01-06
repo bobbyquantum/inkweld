@@ -270,6 +270,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(LoginDialogComponent, {
       autoFocus: true,
       disableClose: false,
+      panelClass: 'login-dialog-panel',
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -287,6 +288,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(RegisterDialogComponent, {
       autoFocus: true,
       disableClose: false,
+      panelClass: 'register-dialog-panel',
     });
 
     dialogRef.afterClosed().subscribe(result => {

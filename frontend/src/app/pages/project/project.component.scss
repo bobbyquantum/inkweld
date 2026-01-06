@@ -1,6 +1,6 @@
 // Main layout structure
 .main-container {
-  height: 100vh;
+  height: var(--app-height);
   position: fixed;
   inset: 0; // Shorthand for top, right, bottom, left: 0
 }
@@ -144,6 +144,90 @@ as-split {
 .mobile-sidenav {
   width: 80%;
   max-width: 300px;
+}
+
+// Mobile sidenav content wrapper - manages the flex layout
+.mobile-sidenav-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; // Prevent this container from scrolling
+
+  // The project tree should take remaining space and scroll
+  app-project-tree {
+    flex: 1;
+    min-height: 0; // Important for flex children to allow shrinking
+    overflow-y: auto;
+  }
+
+  // Connection status in mobile sidenav
+  app-connection-status {
+    flex-shrink: 0;
+  }
+
+  // Placeholder for connection status when deferred
+  .connection-placeholder {
+    height: 32px;
+    flex-shrink: 0;
+  }
+}
+
+// Mobile open tabs - fixed at top
+.mobile-open-tabs {
+  flex-shrink: 0;
+}
+
+// Mobile sidenav bottom navigation
+.mobile-sidenav-bottom-nav {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container);
+  flex-shrink: 0; // Never shrink - always visible at bottom
+
+  .mobile-nav-item {
+    display: flex;
+    align-items: center;
+    min-height: 44px; // Larger touch target for mobile
+    padding: 8px 16px;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 150ms ease;
+    color: var(--sys-on-surface);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+    }
+
+    .nav-title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &:focus {
+      background-color: var(--sys-surface-container-high);
+    }
+
+    &:hover,
+    &:active {
+      background-color: var(--sys-surface-container-highest);
+    }
+
+    &.selected-item {
+      background-color: var(--sys-surface-container-highest);
+    }
+
+    &.exit-item {
+      color: var(--sys-on-surface-variant);
+      border-top: 1px solid var(--sys-outline-variant);
+      margin-top: 4px;
+    }
+  }
 }
 
 // Mobile open tabs section
@@ -392,7 +476,7 @@ app-home-tab {
     app-document-element-editor {
       width: 100%;
       max-width: 900px;
-      height: 100vh;
+      height: var(--app-height);
       margin: 0 auto;
     }
 

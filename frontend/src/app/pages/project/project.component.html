@@ -38,29 +38,79 @@
       mode="over"
       [opened]="false"
       class="sidenav-content mobile-sidenav">
-      <div class="mobile-open-tabs">
-        <div class="mobile-tabs-list">
+      <div class="mobile-sidenav-content">
+        <div class="mobile-open-tabs">
+          <div class="mobile-tabs-list">
+            <div
+              class="mobile-tab-item"
+              (click)="goHome()"
+              tabindex="0"
+              role="button"
+              (keydown.enter)="goHome()"
+              (keydown.space)="goHome()"
+              [class.active]="projectState.selectedTabIndex() === 0">
+              <mat-icon>home</mat-icon>
+              <span class="mobile-tab-name">Home</span>
+            </div>
+          </div>
+        </div>
+        @defer (on idle) {
+          <app-project-tree
+            (documentOpened)="onDocumentOpened($event)"></app-project-tree>
+        } @placeholder {
+          <div class="tree-placeholder">
+            <mat-spinner diameter="30"></mat-spinner>
+          </div>
+        }
+        <!-- Connection Status -->
+        @defer (on idle) {
+          <app-connection-status
+            [syncState]="projectSyncState()"
+            (syncRequested)="onRetrySyncConnection()"
+            data-testid="mobile-connection-status">
+          </app-connection-status>
+        } @placeholder {
+          <div class="connection-placeholder"></div>
+        }
+        <!-- Fixed bottom navigation -->
+        <div class="mobile-sidenav-bottom-nav">
           <div
-            class="mobile-tab-item"
-            (click)="goHome()"
+            class="mobile-nav-item"
+            [class.selected-item]="isSystemTabSelected('media')"
+            data-testid="mobile-media-button"
             tabindex="0"
             role="button"
-            (keydown.enter)="goHome()"
-            (keydown.space)="goHome()"
-            [class.active]="projectState.selectedTabIndex() === 0">
-            <mat-icon>home</mat-icon>
-            <span class="mobile-tab-name">Home</span>
+            (click)="onShowMediaLibrary(); toggleSidebar()"
+            (keyup.enter)="onShowMediaLibrary(); toggleSidebar()"
+            aria-label="Media Library">
+            <mat-icon>perm_media</mat-icon>
+            <span class="nav-title">Media Library</span>
+          </div>
+          <div
+            class="mobile-nav-item"
+            [class.selected-item]="isSystemTabSelected('settings')"
+            data-testid="mobile-settings-button"
+            tabindex="0"
+            role="button"
+            (click)="onShowSettings(); toggleSidebar()"
+            (keyup.enter)="onShowSettings(); toggleSidebar()"
+            aria-label="Project Settings">
+            <mat-icon>settings</mat-icon>
+            <span class="nav-title">Project Settings</span>
+          </div>
+          <div
+            class="mobile-nav-item exit-item"
+            data-testid="mobile-exit-button"
+            tabindex="0"
+            role="button"
+            (click)="exitProject()"
+            (keyup.enter)="exitProject()"
+            aria-label="Exit Project">
+            <mat-icon>exit_to_app</mat-icon>
+            <span class="nav-title">Exit Project</span>
           </div>
         </div>
       </div>
-      @defer (on idle) {
-        <app-project-tree
-          (documentOpened)="onDocumentOpened($event)"></app-project-tree>
-      } @placeholder {
-        <div class="tree-placeholder">
-          <mat-spinner diameter="30"></mat-spinner>
-        </div>
-      }
     </mat-sidenav>
   }
   <mat-sidenav-content [class.no-toolbar]="!isMobile() && useTabsDesktop()">
