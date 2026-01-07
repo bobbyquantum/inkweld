@@ -712,8 +712,8 @@ describe('PublishPlanTabComponent', () => {
     });
 
     it('should return working plan', () => {
-      expect(component['workingPlan']).toBeTruthy();
-      expect(component['workingPlan']?.name).toBe('Default Export');
+      expect(component['workingPlan']()).toBeTruthy();
+      expect(component['workingPlan']()?.name).toBe('Default Export');
     });
   });
 });

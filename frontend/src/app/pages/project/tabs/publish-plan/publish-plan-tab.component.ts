@@ -127,9 +127,9 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   );
 
   /** Get the working plan (local copy or original) */
-  protected get workingPlan(): PublishPlan | null {
+  protected workingPlan = computed((): PublishPlan | null => {
     return this.localPlan() ?? this.plan();
-  }
+  });
 
   constructor() {
     // Watch for plan changes and update local copy
@@ -488,7 +488,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   protected isGenerating = signal(false);
 
   async generatePublication(): Promise<void> {
-    const plan = this.workingPlan;
+    const plan = this.workingPlan();
     if (!plan || plan.items.length === 0) return;
 
     // Save any pending changes first

@@ -621,9 +621,10 @@ export class ProjectStateService implements OnDestroy {
     const updatedElements = [...elements];
     updatedElements.splice(parentIndex + 1, 0, newElement);
 
-    this.updateElements(
-      this.elementTreeService.recomputeOrder(updatedElements)
-    );
+    const recomputedElements =
+      this.elementTreeService.recomputeOrder(updatedElements);
+    this.elements.set(recomputedElements);
+    this.updateElements(recomputedElements);
 
     // Auto-expand parent
     if (parentId) {
@@ -654,7 +655,10 @@ export class ProjectStateService implements OnDestroy {
     subtree.forEach(e => newExpanded.delete(e.id));
     this.expandedNodeIds.set(newExpanded);
 
-    this.updateElements(this.elementTreeService.recomputeOrder(newElements));
+    const recomputedElements =
+      this.elementTreeService.recomputeOrder(newElements);
+    this.elements.set(recomputedElements);
+    this.updateElements(recomputedElements);
   }
 
   renameNode(node: Element, newName: string): void {
@@ -665,7 +669,10 @@ export class ProjectStateService implements OnDestroy {
     const newElements = [...elements];
     const updatedNode = { ...newElements[index], name: newName };
     newElements[index] = updatedNode;
-    this.updateElements(this.elementTreeService.recomputeOrder(newElements));
+    const recomputedElements =
+      this.elementTreeService.recomputeOrder(newElements);
+    this.elements.set(recomputedElements);
+    this.updateElements(recomputedElements);
 
     // Update the tab name if this element is open in a tab
     this.tabManager.updateTabElement(node.id, updatedNode);
@@ -680,6 +687,7 @@ export class ProjectStateService implements OnDestroy {
       newLevel
     );
     if (newElements !== elements) {
+      this.elements.set(newElements);
       this.updateElements(newElements);
     }
   }
@@ -722,6 +730,7 @@ export class ProjectStateService implements OnDestroy {
    */
   createPublishPlan(plan: PublishPlan): void {
     const plans = [...this.publishPlans(), plan];
+    this.publishPlans.set(plans);
     this.updatePublishPlans(plans);
     this.logger.info('ProjectState', `Created publish plan: ${plan.name}`);
   }
@@ -741,6 +750,7 @@ export class ProjectStateService implements OnDestroy {
     const updatedPlan = { ...plan, updatedAt: new Date().toISOString() };
     const updatedPlans = [...plans];
     updatedPlans[index] = updatedPlan;
+    this.publishPlans.set(updatedPlans);
     this.updatePublishPlans(updatedPlans);
 
     // Update any open tab for this plan
@@ -762,6 +772,7 @@ export class ProjectStateService implements OnDestroy {
     }
 
     const updatedPlans = plans.filter(p => p.id !== planId);
+    this.publishPlans.set(updatedPlans);
     this.updatePublishPlans(updatedPlans);
 
     // Close any open tab for this plan
