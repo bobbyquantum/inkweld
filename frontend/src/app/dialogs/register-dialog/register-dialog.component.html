@@ -17,10 +17,20 @@
         data-testid="username-input" />
       @switch (usernameAvailability) {
         @case ('available') {
-          <mat-icon matSuffix color="primary" data-testid="username-available-icon">check_circle</mat-icon>
+          <mat-icon
+            matSuffix
+            color="primary"
+            data-testid="username-available-icon"
+            >check_circle</mat-icon
+          >
         }
         @case ('unavailable') {
-          <mat-icon matSuffix color="warn" data-testid="username-unavailable-icon">cancel</mat-icon>
+          <mat-icon
+            matSuffix
+            color="warn"
+            data-testid="username-unavailable-icon"
+            >cancel</mat-icon
+          >
         }
       }
       <mat-error data-testid="username-error">{{
