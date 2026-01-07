@@ -19,6 +19,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e/online',
 
+  /* Global setup - verifies backend health and admin user exists */
+  globalSetup: require.resolve('./e2e/online-setup.ts'),
+
   /* Run tests in files in parallel */
   fullyParallel: true, // Sequential for database state management
 
@@ -65,6 +68,9 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 60000,
       env: {
+        // Inherit existing environment (includes PATH, HOME, etc. needed for Bun to run)
+        ...process.env,
+        // Override with test-specific values
         NODE_ENV: 'test',
         PORT: '9333',
         DB_TYPE: 'sqlite',
