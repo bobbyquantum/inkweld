@@ -101,7 +101,7 @@ describe('OAuthProviderListComponent', () => {
 
       // Initial state should be empty
       expect(component.enabledProviders()).toEqual([]);
-      expect(component.isLoadingProviders()).toBeFalsy();
+      expect(component.isLoadingProviders()).toBeTruthy();
       expect(component.githubEnabled()).toBeFalsy();
       expect(component.googleEnabled()).toBeFalsy();
 
@@ -128,7 +128,7 @@ describe('OAuthProviderListComponent', () => {
 
       // Initial state should be empty
       expect(component.enabledProviders()).toEqual([]);
-      expect(component.isLoadingProviders()).toBeFalsy();
+      expect(component.isLoadingProviders()).toBeTruthy();
 
       // Trigger ngOnInit via detectChanges
       fixture.detectChanges();

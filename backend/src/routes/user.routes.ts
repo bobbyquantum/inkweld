@@ -7,16 +7,30 @@ import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
 import { ErrorResponseSchema } from '../schemas/common.schemas';
+import { authService } from '../services/auth.service';
 
 const userRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to protected routes
-userRoutes.use('/me', requireAuth);
+// Note: /me uses custom auth handling to return anonymous user instead of 401
+userRoutes.use('/me', optionalAuth);
 userRoutes.use('/avatar', requireAuth);
-// Optional auth for user list - admins get full details, others get limited info
-userRoutes.use('/', optionalAuth);
+
+// Optional auth for user list and search - admins get full details, others get limited info
+// We apply it specifically to these routes to avoid any interference with public routes like /check-username
+userRoutes.use('/search', optionalAuth);
+// For the root / path of the router (which is /api/v1/users)
+userRoutes.use('/', async (c, next) => {
+  // Only apply to the exact root path, not subpaths (which are handled by their own definitions)
+  if (c.req.path === '/api/v1/users' || c.req.path === '/api/v1/users/') {
+    return optionalAuth(c, next);
+  }
+  await next();
+});
 
 // Get current user route
+// Returns the authenticated user, or an anonymous user if no auth is present.
+// Only returns 401 for invalid/expired tokens (not for missing auth).
 const getCurrentUserRoute = createRoute({
   method: 'get',
   path: '/me',
@@ -29,7 +43,7 @@ const getCurrentUserRoute = createRoute({
           schema: UserSchema,
         },
       },
-      description: 'Current user',
+      description: 'Current user (or anonymous user if not authenticated)',
     },
     401: {
       content: {
@@ -37,31 +51,57 @@ const getCurrentUserRoute = createRoute({
           schema: ErrorResponseSchema,
         },
       },
-      description: 'Not authenticated',
+      description: 'Invalid or expired token (client should clear credentials)',
     },
-    404: {
+    403: {
       content: {
         'application/json': {
           schema: ErrorResponseSchema,
         },
       },
-      description: 'User not found',
+      description: 'Account disabled or pending approval',
     },
   },
 });
 
+// Anonymous user response for unauthenticated requests
+const ANONYMOUS_USER = {
+  id: '',
+  username: 'anonymous',
+  name: null,
+  enabled: false,
+  approved: false,
+  isAdmin: false,
+  hasAvatar: false,
+} as const;
+
 userRoutes.openapi(getCurrentUserRoute, async (c) => {
-  const contextUser = c.get('user');
-  if (!contextUser) {
-    return c.json({ error: 'Not authenticated' }, 401);
+  const db = c.get('db');
+
+  // Use detailed session check to distinguish no-auth from invalid token
+  const sessionResult = await authService.getSessionWithReason(c);
+
+  if (sessionResult.status === 'no-auth') {
+    // No auth header present - return anonymous user (not an error)
+    return c.json(ANONYMOUS_USER, 200);
   }
 
-  const userId = contextUser.id;
-  const db = c.get('db');
-  const user = await userService.findById(db, userId);
+  if (sessionResult.status === 'invalid-token' || sessionResult.status === 'expired-token') {
+    // Token was provided but is invalid/expired - client should clear credentials
+    return c.json({ error: 'Invalid or expired token' }, 401);
+  }
+
+  // Token is valid - look up the user
+  const user = await userService.findById(db, sessionResult.session.userId);
 
   if (!user || !user.username) {
-    return c.json({ error: 'User not found' }, 404);
+    // User no longer exists - treat as invalid token
+    return c.json({ error: 'User not found' }, 401);
+  }
+
+  // Check if user can log in (approved and enabled)
+  if (!userService.canLogin(user)) {
+    return c.json({ error: 'Account not approved or disabled' }, 403);
   }
 
   return c.json(

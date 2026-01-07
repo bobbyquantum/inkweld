@@ -179,6 +179,24 @@ describe('UserService', () => {
       await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
       expect(service.error()?.code).toBe('SESSION_EXPIRED');
     });
+
+    it('should handle anonymous user response (not authenticated)', async () => {
+      const anonymousUser: User = {
+        id: '',
+        username: 'anonymous',
+        name: null,
+        enabled: false,
+      };
+      userServiceMock.getCurrentUser.mockReturnValue(of(anonymousUser));
+
+      // Should NOT throw - anonymous user is a valid response for unauthenticated
+      await service.loadCurrentUser();
+
+      expect(service.currentUser()).toEqual(anonymousUser);
+      expect(service.isAuthenticated()).toBe(false);
+      expect(service.error()).toBeUndefined();
+      expect(service.isLoading()).toBe(false);
+    });
   });
 
   describe('user management', () => {

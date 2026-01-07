@@ -121,7 +121,7 @@ export class OAuthProviderListComponent implements OnInit {
   @Input() isRegisterContext = false;
   @Output() loaded = new EventEmitter<void>();
 
-  isLoadingProviders = signal(false);
+  isLoadingProviders = signal(true);
   enabledProviders = signal<string[]>([]);
 
   githubEnabled = signal(false);

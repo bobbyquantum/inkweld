@@ -277,6 +277,7 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
   onProvidersLoaded(): void {
     // Signal handles change detection properly, no setTimeout needed
     this.providersLoaded.set(true);
+    this.changeDetectorRef.detectChanges();
   }
 
   // Check if username is available
@@ -284,50 +285,49 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
     const username = this.registerForm.get('username')?.value as string;
 
     if (!username || username.length < 3) {
-      setTimeout(() => {
-        this.usernameAvailability = 'unknown';
-        this.usernameSuggestions = [];
-      });
+      this.usernameAvailability = 'unknown';
+      this.usernameSuggestions = [];
+      this.changeDetectorRef.detectChanges();
       return;
     }
 
     try {
       // Build the URL based on server mode configuration
       const serverUrl = this.setupService.getServerUrl() || '';
-      const checkUrl = `${serverUrl}/api/v1/users/check-username?username=${encodeURIComponent(username)}`;
+      const checkUrl = `${serverUrl}/api/v1/users/check-username?username=${encodeURIComponent(
+        username
+      )}`;
 
       const response = await firstValueFrom(
         this.httpClient.get<UsernameAvailability>(checkUrl)
       );
 
-      setTimeout(() => {
-        if (response.available) {
-          this.usernameAvailability = 'available';
-          this.usernameSuggestions = [];
-          this.registerForm.get('username')?.setErrors(null);
-        } else {
-          this.usernameAvailability = 'unavailable';
-          this.usernameSuggestions = response.suggestions || [];
-          // Set error on the form control to trigger Material's error state
-          this.registerForm.get('username')?.setErrors({ usernameTaken: true });
-        }
-      });
-    } catch (error: unknown) {
-      setTimeout(() => {
-        this.usernameAvailability = 'unknown';
+      if (response.available) {
+        this.usernameAvailability = 'available';
         this.usernameSuggestions = [];
-        if (error instanceof HttpErrorResponse) {
-          this.snackBar.open(
-            `Error checking username: ${error.message}`,
-            'Close',
-            { duration: 3000 }
-          );
-        } else {
-          this.snackBar.open('Error checking username availability', 'Close', {
-            duration: 3000,
-          });
-        }
-      });
+        this.registerForm.get('username')?.setErrors(null);
+      } else {
+        this.usernameAvailability = 'unavailable';
+        this.usernameSuggestions = response.suggestions || [];
+        // Set error on the form control to trigger Material's error state
+        this.registerForm.get('username')?.setErrors({ usernameTaken: true });
+      }
+      this.changeDetectorRef.detectChanges();
+    } catch (error: unknown) {
+      this.usernameAvailability = 'unknown';
+      this.usernameSuggestions = [];
+      if (error instanceof HttpErrorResponse) {
+        this.snackBar.open(
+          `Error checking username: ${error.message}`,
+          'Close',
+          { duration: 3000 }
+        );
+      } else {
+        this.snackBar.open('Error checking username availability', 'Close', {
+          duration: 3000,
+        });
+      }
+      this.changeDetectorRef.detectChanges();
     }
   }
 

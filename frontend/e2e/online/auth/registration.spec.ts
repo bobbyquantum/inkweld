@@ -307,8 +307,16 @@ test.describe('User Registration', () => {
     // Register a new user
     const uniqueUsername = `autouser${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
+    await page.getByTestId('username-input').blur();
     await page.getByTestId('password-input').fill('AutoPass123!');
+    await page.getByTestId('password-input').blur();
     await page.getByTestId('confirm-password-input').fill('AutoPass123!');
+    await page.getByTestId('confirm-password-input').blur();
+
+    // Wait for the button to be enabled (gives time for async validation and providers loaded signal)
+    await expect(
+      page.locator('mat-dialog-container [data-testid="register-button"]')
+    ).toBeEnabled({ timeout: 10000 });
 
     await page
       .locator('mat-dialog-container [data-testid="register-button"]')

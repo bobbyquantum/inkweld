@@ -104,11 +104,15 @@ describe('Authentication', () => {
       expect(data).toHaveProperty('username', 'testuser');
     });
 
-    it('should return 401 when not authenticated', async () => {
+    it('should return anonymous user when not authenticated', async () => {
       // Create a new client without login
       const unauthClient = new TestClient(testServer.baseUrl);
-      const { response } = await unauthClient.request('/api/v1/users/me');
-      expect(response.status).toBe(401);
+      const { response, json } = await unauthClient.request('/api/v1/users/me');
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data).toHaveProperty('username', 'anonymous');
+      expect(data).toHaveProperty('id', '');
+      expect(data).toHaveProperty('enabled', false);
     });
   });
 

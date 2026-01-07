@@ -3149,7 +3149,7 @@
         "operationId": "getCurrentUser",
         "responses": {
           "200": {
-            "description": "Current user",
+            "description": "Current user (or anonymous user if not authenticated)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3159,7 +3159,7 @@
             }
           },
           "401": {
-            "description": "Not authenticated",
+            "description": "Invalid or expired token (client should clear credentials)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3168,8 +3168,8 @@
               }
             }
           },
-          "404": {
-            "description": "User not found",
+          "403": {
+            "description": "Account disabled or pending approval",
             "content": {
               "application/json": {
                 "schema": {
