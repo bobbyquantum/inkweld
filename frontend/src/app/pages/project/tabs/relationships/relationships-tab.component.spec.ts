@@ -9,11 +9,11 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DocumentSyncState } from '../../../../models/document-sync-state';
 import {
   RelationshipCategory,
   RelationshipTypeDefinition,
 } from '../../../../components/element-ref/element-ref.model';
+import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { RelationshipsTabComponent } from './relationships-tab.component';
 
 describe('RelationshipsTabComponent', () => {
