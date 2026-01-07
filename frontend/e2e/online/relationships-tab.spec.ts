@@ -294,7 +294,10 @@ test.describe('Relationships Tab', () => {
       await page.waitForTimeout(1000);
 
       // Find the custom type card and open its menu
-      const customCard = page.locator('.type-card.custom').filter({ hasText: originalName }).first();
+      const customCard = page
+        .locator('.type-card.custom')
+        .filter({ hasText: originalName })
+        .first();
       await customCard.locator('[data-testid="type-menu-button"]').click();
 
       // Click Edit
@@ -322,12 +325,16 @@ test.describe('Relationships Tab', () => {
 
       // Should no longer see original name in the title (using exact regex to be safe)
       await expect(
-        page.getByTestId('relationship-type-title').filter({ hasText: new RegExp(`^${originalName}$`) })
+        page
+          .getByTestId('relationship-type-title')
+          .filter({ hasText: new RegExp(`^${originalName}$`) })
       ).toHaveCount(0, { timeout: 15000 });
 
       // Should see the updated name in the title
       await expect(
-        page.getByTestId('relationship-type-title').filter({ hasText: new RegExp(`^${updatedName}$`) })
+        page
+          .getByTestId('relationship-type-title')
+          .filter({ hasText: new RegExp(`^${updatedName}$`) })
       ).toBeVisible({ timeout: 15000 });
     });
 
@@ -353,11 +360,7 @@ test.describe('Relationships Tab', () => {
 
       // Create a relationship type first (new projects start empty)
       const typeName = `Editable Type ${Date.now()}`;
-      await createCustomRelationshipType(
-        page,
-        typeName,
-        'Editable Inverse'
-      );
+      await createCustomRelationshipType(page, typeName, 'Editable Inverse');
 
       // Find the specific card and open its menu
       const typeCard = page
@@ -408,11 +411,7 @@ test.describe('Relationships Tab', () => {
 
       // First create a custom type
       const deleteName = `Type to Delete ${Date.now()}`;
-      await createCustomRelationshipType(
-        page,
-        deleteName,
-        'Delete Inverse'
-      );
+      await createCustomRelationshipType(page, deleteName, 'Delete Inverse');
 
       // Wait for any snackbars/dialogs to clear
       await page.waitForTimeout(1000);
@@ -485,9 +484,11 @@ test.describe('Relationships Tab', () => {
       await page.waitForTimeout(4000);
 
       // Find the specific card we created instead of .first()
-      const typeCard = page.getByTestId('relationship-type-card').filter({ hasText: originalName });
+      const typeCard = page
+        .getByTestId('relationship-type-card')
+        .filter({ hasText: originalName });
       await expect(typeCard).toBeVisible({ timeout: 10000 });
-      
+
       // Open its menu using the data-testid I added
       await typeCard.getByTestId('type-menu-button').click();
 
@@ -511,9 +512,9 @@ test.describe('Relationships Tab', () => {
       await page.getByTestId('rename-confirm-button').click();
 
       // Wait for dialog to close
-      await expect(
-        page.locator('app-rename-dialog')
-      ).not.toBeVisible({ timeout: 10000 });
+      await expect(page.locator('app-rename-dialog')).not.toBeVisible({
+        timeout: 10000,
+      });
 
       // Should see success snackbar for cloning
       await expect(
