@@ -130,7 +130,7 @@ export class UserService {
       // Try cached user first if storage is available - show immediately for fast UI
       if (this.storage.isAvailable()) {
         cachedUser = await this.getCachedUser();
-        if (cachedUser) {
+        if (cachedUser && cachedUser.username !== 'anonymous') {
           this.currentUser.set(cachedUser);
           // Don't return - continue to validate/refresh from server
         }
@@ -146,6 +146,7 @@ export class UserService {
               // If we have cached user and it's a network/server error, use cache
               if (
                 cachedUser &&
+                cachedUser.username !== 'anonymous' &&
                 (userError.code === 'NETWORK_ERROR' ||
                   userError.code === 'SERVER_ERROR')
               ) {
@@ -165,15 +166,27 @@ export class UserService {
         );
         this.logger.debug('UserService', 'User result', user);
         if (user) {
-          this.logger.debug('UserService', 'Saving user', user);
-          await this.setCurrentUser(user);
+          // Check if this is an anonymous user response (not authenticated)
+          if (user.username === 'anonymous') {
+            this.logger.debug(
+              'UserService',
+              'Received anonymous user - not authenticated'
+            );
+            // Clear any cached user since we're not authenticated
+            await this.clearCurrentUser();
+            // Set the anonymous user (this is not an error condition)
+            this.currentUser.set(user);
+          } else {
+            this.logger.debug('UserService', 'Saving user', user);
+            await this.setCurrentUser(user);
+          }
         }
       } catch (refreshErr) {
         // If refresh failed but we have cache (network issue), that's OK
         const canRecover =
           refreshErr instanceof Error &&
           refreshErr.message === 'Refresh failed, using cache';
-        if (canRecover && cachedUser) {
+        if (canRecover && cachedUser && cachedUser.username !== 'anonymous') {
           this.logger.info(
             'UserService',
             'Using cached user due to network error'

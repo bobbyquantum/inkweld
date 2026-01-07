@@ -18,6 +18,12 @@ export interface SessionData {
   [key: string]: string | number | undefined; // Index signature for JWT compatibility
 }
 
+export type SessionResult =
+  | { status: 'valid'; session: SessionData }
+  | { status: 'no-auth' } // No Authorization header present
+  | { status: 'invalid-token' } // Token present but invalid/expired
+  | { status: 'expired-token' }; // Token present but expired
+
 /**
  * Auth service using Hono's signed cookies for session management
  */
@@ -110,6 +116,58 @@ class AuthService {
     } catch (err) {
       authLog.error('Failed to get session', err);
       return null;
+    }
+  }
+
+  /**
+   * Get session data with detailed reason for failure.
+   * This is used by endpoints like /user/me that need to distinguish between
+   * "no auth" (anonymous user) vs "invalid token" (should clear credentials).
+   */
+  async getSessionWithReason(c: Context): Promise<SessionResult> {
+    try {
+      const authHeader = c.req.header('Authorization');
+
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return { status: 'no-auth' };
+      }
+
+      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+      if (!token) {
+        return { status: 'no-auth' };
+      }
+
+      // Verify and decode JWT using request-context secret
+      const secret = this.getSecret(c);
+      let payload;
+      try {
+        payload = await verify(token, secret);
+      } catch {
+        // JWT verification failed (invalid signature, malformed, etc.)
+        return { status: 'invalid-token' };
+      }
+
+      if (!payload) {
+        return { status: 'invalid-token' };
+      }
+
+      const data = payload as SessionData;
+
+      // Validate required fields
+      if (!data.userId || !data.username) {
+        return { status: 'invalid-token' };
+      }
+
+      // Check expiration
+      if (data.exp && data.exp < Math.floor(Date.now() / 1000)) {
+        return { status: 'expired-token' };
+      }
+
+      return { status: 'valid', session: data };
+    } catch (err) {
+      authLog.error('Failed to get session', err);
+      return { status: 'invalid-token' };
     }
   }
 
