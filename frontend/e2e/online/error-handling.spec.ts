@@ -158,14 +158,19 @@ test.describe('Error Handling and Edge Cases', () => {
       );
       await expect(registerButton).toBeEnabled({ timeout: 15000 });
 
-      // Start submission but immediately refresh
-      await Promise.all([
-        registerButton.click(),
-        page.waitForTimeout(100).then(() => page.reload()),
-      ]);
+      // Start submission but immediately refresh - use try/catch since click may fail
+      // when page reloads mid-action (this is expected behavior)
+      try {
+        await Promise.all([
+          registerButton.click().catch(() => {}), // Ignore click errors from page reload
+          page.waitForTimeout(100).then(() => page.reload()),
+        ]);
+      } catch {
+        // Expected - page may close during the race
+      }
 
-      // Should handle gracefully - dialog might be closed or page reloaded
-      await page.waitForTimeout(1000);
+      // Wait for reload to complete
+      await page.waitForLoadState('domcontentloaded');
       // After refresh, we should be on home page
       await expect(page).toHaveURL('/');
     });
