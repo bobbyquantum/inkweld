@@ -160,7 +160,7 @@ test.describe('User Registration', () => {
     // Button should now be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled();
+    ).toBeEnabled({ timeout: 15000 });
   });
 
   test('should enforce password strength requirements', async ({
@@ -193,7 +193,7 @@ test.describe('User Registration', () => {
     // Now button should be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled();
+    ).toBeEnabled({ timeout: 15000 });
   });
 
   test('should prevent empty form submission', async ({
@@ -257,6 +257,9 @@ test.describe('User Registration', () => {
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
     await page.getByTestId('confirm-password-input').blur();
 
+    // Give Angular a moment to settle in slow environments
+    await page.waitForTimeout(500);
+
     // Now button should be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
@@ -316,7 +319,7 @@ test.describe('User Registration', () => {
     // Wait for the button to be enabled (gives time for async validation and providers loaded signal)
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled({ timeout: 10000 });
+    ).toBeEnabled({ timeout: 20000 });
 
     await page
       .locator('mat-dialog-container [data-testid="register-button"]')

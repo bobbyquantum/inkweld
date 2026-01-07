@@ -11,7 +11,7 @@
  * - Real-time sync via Yjs
  */
 
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, NgZone, signal } from '@angular/core';
 import { nanoid } from 'nanoid';
 
 import {
@@ -32,6 +32,7 @@ export class RelationshipService {
   private logger = inject(LoggerService);
   private projectState = inject(ProjectStateService);
   private syncProviderFactory = inject(ElementSyncProviderFactory);
+  private ngZone = inject(NgZone);
 
   /** Get the active sync provider */
   private get syncProvider() {
@@ -59,12 +60,16 @@ export class RelationshipService {
   constructor() {
     // Subscribe to relationships from sync provider
     this.syncProvider.relationships$.subscribe(relationships => {
-      this.relationshipsSignal.set(relationships);
+      this.ngZone.run(() => {
+        this.relationshipsSignal.set(relationships);
+      });
     });
 
     // Subscribe to custom types from sync provider
     this.syncProvider.customRelationshipTypes$.subscribe(types => {
-      this.customTypesSignal.set(types);
+      this.ngZone.run(() => {
+        this.customTypesSignal.set(types);
+      });
     });
   }
 

@@ -63,7 +63,7 @@ export default defineConfig({
       // Wrangler dev server (Workers runtime locally)
       // Uses --local for local persistence, --port to avoid clashing with dev server
       // Note: Run `bun run init:d1-local` in backend/ first to initialize the database
-      command: 'npx wrangler dev --local --port 9333',
+      command: 'npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port 9333',
       cwd: '../backend',
       url: 'http://localhost:9333/api/v1/health',
       reuseExistingServer: !process.env['CI'],

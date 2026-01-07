@@ -68,14 +68,18 @@ async function createCustomRelationshipType(
   await input.fill(inverseName);
   await page.locator('app-rename-dialog button:has-text("Rename")').click();
 
-  // Wait for dialog to close
+  // Wait for dialogs to completely close
   await expect(page.locator('app-rename-dialog')).not.toBeVisible({
-    timeout: 5000,
+    timeout: 10000,
   });
 
   // Wait for the type card to appear
-  await expect(page.locator(`mat-card-title:has-text("${name}")`)).toBeVisible({
-    timeout: 10000,
+  await expect(
+    page
+      .getByTestId('relationship-type-title')
+      .filter({ hasText: new RegExp(`^${name}$`) })
+  ).toBeVisible({
+    timeout: 15000,
   });
 }
 
@@ -172,7 +176,7 @@ test.describe('Relationships Tab', () => {
   test.describe('Create Custom Type', () => {
     // TODO: These tests require backend API support for custom relationship types
     // Skip until backend endpoints are implemented
-    test.skip('should create a new custom relationship type', async ({
+    test('should create a new custom relationship type', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -192,31 +196,20 @@ test.describe('Relationships Tab', () => {
       const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
-      // Click "New Type" button
-      await page.getByTestId('create-type-button').click();
-
-      // Wait for rename dialog
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-
-      // Enter the type name
-      const nameInput = page.locator('app-rename-dialog input');
-      await nameInput.fill('Nemesis of');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
-
-      // Wait for inverse label dialog
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-
-      // Enter the inverse label
-      await nameInput.fill('Hunted by');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
+      // Use helper for robust type creation
+      await createCustomRelationshipType(page, 'Nemesis of', 'Hunted by');
 
       // Should see success snackbar
-      await expect(page.locator('.mat-mdc-snack-bar-container')).toContainText(
-        'Created relationship type'
-      );
+      await expect(
+        page.locator('.mat-mdc-snack-bar-container').filter({
+          hasText: 'Created relationship type',
+        })
+      ).toBeVisible();
 
       await expect(
-        page.locator('mat-card-title:has-text("Nemesis of")')
+        page
+          .getByTestId('relationship-type-title')
+          .filter({ hasText: 'Nemesis of' })
       ).toBeVisible();
     });
 
@@ -268,7 +261,7 @@ test.describe('Relationships Tab', () => {
 
   test.describe('Edit Custom Type', () => {
     // TODO: These tests require backend API support for custom relationship types
-    test.skip('should edit a custom relationship type name', async ({
+    test('should edit a custom relationship type name', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -289,19 +282,19 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // First create a custom type
-      await page.getByTestId('create-type-button').click();
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-      await page.locator('app-rename-dialog input').fill('Original Name');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-      await page.locator('app-rename-dialog input').fill('Original Inverse');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
+      const originalName = `Original Name ${Date.now()}`;
+      const updatedName = `Updated Name ${Date.now()}`;
+      await createCustomRelationshipType(
+        page,
+        originalName,
+        'Original Inverse'
+      );
 
-      // Wait for snackbar to disappear
-      await page.waitForTimeout(500);
+      // Wait for snackbar to disappear or dialog to clear
+      await page.waitForTimeout(1000);
 
       // Find the custom type card and open its menu
-      const customCard = page.locator('.type-card.custom').first();
+      const customCard = page.locator('.type-card.custom').filter({ hasText: originalName }).first();
       await customCard.locator('[data-testid="type-menu-button"]').click();
 
       // Click Edit
@@ -309,18 +302,33 @@ test.describe('Relationships Tab', () => {
 
       // Edit the name
       await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-      await page.locator('app-rename-dialog input').fill('Updated Name');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
+      const renameInput = page.getByTestId('rename-input');
+      await renameInput.click();
+      await renameInput.fill(updatedName);
+      await page.getByTestId('rename-confirm-button').click();
+
+      // Wait for dialog to close
+      await expect(page.locator('app-rename-dialog')).not.toBeVisible();
 
       // Should see success snackbar
-      await expect(page.locator('.mat-mdc-snack-bar-container')).toContainText(
-        'Updated relationship type'
-      );
-
-      // Should see the updated name
       await expect(
-        page.locator('mat-card-title:has-text("Updated Name")')
+        page.locator('.mat-mdc-snack-bar-container').filter({
+          hasText: 'Updated relationship type',
+        })
       ).toBeVisible();
+
+      // Wait a moment for signal propagation and re-render
+      await page.waitForTimeout(2000);
+
+      // Should no longer see original name in the title (using exact regex to be safe)
+      await expect(
+        page.getByTestId('relationship-type-title').filter({ hasText: new RegExp(`^${originalName}$`) })
+      ).toHaveCount(0, { timeout: 15000 });
+
+      // Should see the updated name in the title
+      await expect(
+        page.getByTestId('relationship-type-title').filter({ hasText: new RegExp(`^${updatedName}$`) })
+      ).toBeVisible({ timeout: 15000 });
     });
 
     test('should allow editing types (all types are per-project)', async ({
@@ -344,15 +352,19 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // Create a relationship type first (new projects start empty)
+      const typeName = `Editable Type ${Date.now()}`;
       await createCustomRelationshipType(
         page,
-        'Editable Type',
+        typeName,
         'Editable Inverse'
       );
 
-      // Find a relationship type card and open its menu (all types are editable now)
-      const typeCard = page.getByTestId('relationship-type-card').first();
-      await typeCard.locator('button[mat-icon-button]').click();
+      // Find the specific card and open its menu
+      const typeCard = page
+        .getByTestId('relationship-type-card')
+        .filter({ hasText: typeName });
+      await expect(typeCard).toBeVisible({ timeout: 10000 });
+      await typeCard.getByTestId('type-menu-button').click();
 
       // Wait for the menu to be visible (in CDK overlay)
       await page.waitForSelector('.mat-mdc-menu-panel', { state: 'visible' });
@@ -374,7 +386,7 @@ test.describe('Relationships Tab', () => {
 
   test.describe('Delete Custom Type', () => {
     // TODO: These tests require backend API support for custom relationship types
-    test.skip('should delete a custom relationship type', async ({
+    test('should delete a custom relationship type', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -395,21 +407,21 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // First create a custom type
-      await page.getByTestId('create-type-button').click();
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-      await page.locator('app-rename-dialog input').fill('Type to Delete');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-      await page.locator('app-rename-dialog input').fill('Delete Inverse');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
+      const deleteName = `Type to Delete ${Date.now()}`;
+      await createCustomRelationshipType(
+        page,
+        deleteName,
+        'Delete Inverse'
+      );
 
-      // Wait for creation to complete
-      await expect(
-        page.locator('mat-card-title:has-text("Type to Delete")')
-      ).toBeVisible();
+      // Wait for any snackbars/dialogs to clear
+      await page.waitForTimeout(1000);
 
       // Open the menu and click Delete
-      const customCard = page.locator('.type-card.custom').first();
+      const customCard = page
+        .locator('.type-card.custom')
+        .filter({ hasText: deleteName })
+        .first();
       await customCard.locator('[data-testid="type-menu-button"]').click();
       await page.locator('[data-testid="delete-type-button"]').click();
 
@@ -421,15 +433,22 @@ test.describe('Relationships Tab', () => {
         .locator('app-confirmation-dialog button:has-text("Delete")')
         .click();
 
+      // Wait for dialog to close
+      await expect(page.locator('app-confirmation-dialog')).not.toBeVisible();
+
       // Should see success snackbar
-      await expect(page.locator('.mat-mdc-snack-bar-container')).toContainText(
-        'Deleted relationship type'
-      );
+      await expect(
+        page.locator('.mat-mdc-snack-bar-container').filter({
+          hasText: 'Deleted relationship type',
+        })
+      ).toBeVisible();
 
       // Type should be gone
       await expect(
-        page.locator('mat-card-title:has-text("Type to Delete")')
-      ).not.toBeVisible();
+        page
+          .getByTestId('relationship-type-title')
+          .filter({ hasText: deleteName })
+      ).not.toBeVisible({ timeout: 15000 });
     });
   });
 
@@ -453,18 +472,24 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // Create a relationship type first (new projects start empty)
+      const originalName = `Original Type ${Date.now()}`;
+      const cloneName = 'My Custom Clone';
+
       await createCustomRelationshipType(
         page,
-        'Original Type',
+        originalName,
         'Original Inverse'
       );
 
       // Wait for any snackbars to clear
-      await page.waitForTimeout(3500);
+      await page.waitForTimeout(4000);
 
-      // Find a relationship type card and open its menu
-      const typeCard = page.getByTestId('relationship-type-card').first();
-      await typeCard.locator('button[mat-icon-button]').click();
+      // Find the specific card we created instead of .first()
+      const typeCard = page.getByTestId('relationship-type-card').filter({ hasText: originalName });
+      await expect(typeCard).toBeVisible({ timeout: 10000 });
+      
+      // Open its menu using the data-testid I added
+      await typeCard.getByTestId('type-menu-button').click();
 
       // Wait for the menu to be visible (in CDK overlay)
       await page.waitForSelector('.mat-mdc-menu-panel', { state: 'visible' });
@@ -474,20 +499,35 @@ test.describe('Relationships Tab', () => {
         .locator('.mat-mdc-menu-panel button:has-text("Clone")')
         .click();
 
-      // Enter new name for the clone
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-      await page.locator('app-rename-dialog input').fill('My Custom Clone');
-      await page.locator('app-rename-dialog button:has-text("Rename")').click();
+      // Should see Rename dialog with title "Clone Relationship Type"
+      await expect(
+        page.locator('app-rename-dialog h2:has-text("Clone Relationship Type")')
+      ).toBeVisible({ timeout: 10000 });
+
+      // Enter new name for the clone using data-testid from RenameDialog
+      const input = page.getByTestId('rename-input');
+      await input.clear();
+      await input.fill(cloneName);
+      await page.getByTestId('rename-confirm-button').click();
+
+      // Wait for dialog to close
+      await expect(
+        page.locator('app-rename-dialog')
+      ).not.toBeVisible({ timeout: 10000 });
 
       // Should see success snackbar for cloning
       await expect(
-        page.locator('.mat-mdc-snack-bar-container:has-text("Cloned")')
-      ).toBeVisible();
+        page.locator('simple-snack-bar').filter({
+          hasText: `Cloned relationship type: ${cloneName}`,
+        })
+      ).toBeVisible({ timeout: 15000 });
 
       // Should see the cloned type in the list
       await expect(
-        page.locator('mat-card-title:has-text("My Custom Clone")')
-      ).toBeVisible();
+        page
+          .getByTestId('relationship-type-title')
+          .filter({ hasText: new RegExp(`^${cloneName}$`) })
+      ).toBeVisible({ timeout: 20000 });
     });
   });
 
