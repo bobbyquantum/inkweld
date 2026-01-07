@@ -68,7 +68,7 @@ export default async function globalSetup(): Promise<void> {
 
       // Step 3: Test admin API endpoint with the auth token
       console.log('3️⃣  Testing admin API endpoint...');
-      const adminResponse = await context.get('/api/v1/admin/users', {
+      const adminResponse = await context.get('/api/v1/users', {
         headers: {
           Authorization: `Bearer ${loginData.token}`,
         },
