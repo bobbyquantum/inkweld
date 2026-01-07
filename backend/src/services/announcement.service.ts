@@ -85,6 +85,8 @@ class AnnouncementService {
   ): Promise<AnnouncementWithReadStatus[]> {
     const now = new Date();
 
+    // Use (db as any) because the union of database instances makes .select({ ... }) hard to type check
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (db as any)
       .select({
         announcement: announcements,
@@ -107,7 +109,7 @@ class AnnouncementService {
       )
       .orderBy(desc(announcements.publishedAt));
 
-    return result.map((row: any) => ({
+    return result.map((row: { announcement: Announcement; readAt: Date | null }) => ({
       ...row.announcement,
       isRead: row.readAt !== null && row.readAt !== undefined,
       readAt: row.readAt || null,
@@ -120,6 +122,8 @@ class AnnouncementService {
   async getUnreadCount(db: DatabaseInstance, userId: string): Promise<number> {
     const now = new Date();
 
+    // Use (db as any) because the union of database instances makes .select({ ... }) hard to type check
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (db as any)
       .select({ count: sql<number>`count(*)` })
       .from(announcements)
@@ -253,6 +257,8 @@ class AnnouncementService {
     const now = new Date();
 
     // Get all unread published announcements
+    // Use (db as any) because the union of database instances makes .select({ ... }) hard to type check
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unreadAnnouncements = await (db as any)
       .select({ id: announcements.id })
       .from(announcements)
@@ -274,7 +280,7 @@ class AnnouncementService {
 
     // Insert read records for all unread announcements
     if (unreadAnnouncements.length > 0) {
-      const readRecords = unreadAnnouncements.map((a: any) => ({
+      const readRecords = unreadAnnouncements.map((a: { id: string }) => ({
         id: crypto.randomUUID(),
         announcementId: a.id,
         userId,
