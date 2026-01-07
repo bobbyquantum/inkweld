@@ -21,9 +21,11 @@ import {
   PendingInvitation,
 } from '@inkweld/model/models';
 import { SetupService } from '@services/core/setup.service';
+import { OfflineStorageService } from '@services/offline/offline-storage.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { UserService } from '@services/user/user.service';
 import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
 import {
@@ -47,7 +49,9 @@ describe('HomeComponent', () => {
   let fixture: ComponentFixture<HomeComponent>;
   let themeService: MockedObject<ThemeService>;
   let userService: MockedObject<UnifiedUserService>;
+  let avatarUserService: Partial<UserService>;
   let projectService: Partial<UnifiedProjectService>;
+  let offlineStorageService: Partial<OfflineStorageService>;
   let collaborationApiService: Partial<CollaborationApiService>;
   let setupService: Partial<SetupService>;
   let breakpointObserver: MockedObject<BreakpointObserver>;
@@ -184,6 +188,19 @@ describe('HomeComponent', () => {
       declineInvitation: vi.fn().mockReturnValue(of({ message: 'declined' })),
     };
 
+    // Setup mock offline storage service (for UserAvatarComponent)
+    offlineStorageService = {
+      getUserAvatarUrl: vi.fn().mockResolvedValue(undefined),
+      saveUserAvatar: vi.fn().mockResolvedValue(undefined),
+      getMediaUrl: vi.fn().mockResolvedValue(undefined),
+    };
+
+    // Setup mock user service (for UserAvatarComponent avatar loading)
+    // Note: SideNavComponent now uses UnifiedUserService which is already mocked above
+    avatarUserService = {
+      getUserAvatar: vi.fn().mockReturnValue(of(new Blob())),
+    };
+
     // Setup mock setup service (server mode by default for collaboration tests)
     setupService = {
       getMode: vi.fn().mockReturnValue('server'),
@@ -203,6 +220,8 @@ describe('HomeComponent', () => {
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: CollaborationApiService, useValue: collaborationApiService },
         { provide: SetupService, useValue: setupService },
+        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: UserService, useValue: avatarUserService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
