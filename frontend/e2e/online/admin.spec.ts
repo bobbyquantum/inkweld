@@ -17,6 +17,44 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
+/**
+ * Helper to wait for admin page to finish loading.
+ * Waits for either the tabs to appear (success) or error state.
+ * Throws descriptive error if loading times out or errors.
+ */
+async function waitForAdminPageLoaded(page: Page): Promise<void> {
+  // Wait for either tabs (success) or error state
+  const tabsLocator = page.locator('[data-testid="admin-tabs"]');
+  const errorLocator = page.locator('[data-testid="admin-error"]');
+  const loadingLocator = page.locator('[data-testid="admin-loading"]');
+
+  // First wait for loading to disappear (give it more time on CI)
+  try {
+    await loadingLocator.waitFor({ state: 'hidden', timeout: 30000 });
+  } catch {
+    // Loading might have already finished, that's fine
+  }
+
+  // Now check if we have tabs or error
+  const [tabsVisible, errorVisible] = await Promise.all([
+    tabsLocator.isVisible().catch(() => false),
+    errorLocator.isVisible().catch(() => false),
+  ]);
+
+  if (errorVisible) {
+    const errorMessage = await page
+      .locator('[data-testid="admin-error-message"]')
+      .textContent()
+      .catch(() => 'Unknown error');
+    throw new Error(`Admin page failed to load: ${errorMessage}`);
+  }
+
+  if (!tabsVisible) {
+    // Wait a bit more for tabs
+    await tabsLocator.waitFor({ state: 'visible', timeout: 15000 });
+  }
+}
+
 test.describe('Admin Dashboard', () => {
   test.describe('Access Control', () => {
     test('should show admin link in user menu for admin users', async ({
@@ -73,11 +111,7 @@ test.describe('Admin Dashboard', () => {
   test.describe('Dashboard Display', () => {
     test('should display admin dashboard with tabs', async ({ adminPage }) => {
       await navigateToAdminViaMenu(adminPage);
-
-      // Wait for loading to complete - tabs should be visible
-      await adminPage
-        .locator('[data-testid="admin-tabs"]')
-        .waitFor({ state: 'visible', timeout: 10000 });
+      await waitForAdminPageLoaded(adminPage);
 
       // Check tab labels are displayed (using role-based selectors since mat-tab doesn't pass data-testid to rendered element)
       const pendingTab = adminPage.getByRole('tab', { name: /pending/i });
@@ -89,11 +123,7 @@ test.describe('Admin Dashboard', () => {
 
     test('should show at least 1 user in stats', async ({ adminPage }) => {
       await navigateToAdminViaMenu(adminPage);
-
-      // Wait for tabs to load
-      await adminPage
-        .locator('[data-testid="admin-tabs"]')
-        .waitFor({ state: 'visible', timeout: 10000 });
+      await waitForAdminPageLoaded(adminPage);
 
       // Get the total user count from "All Users" tab label
       const allUsersTab = adminPage.getByRole('tab', { name: /all users/i });
@@ -110,11 +140,7 @@ test.describe('Admin Dashboard', () => {
       adminPage,
     }) => {
       await navigateToAdminViaMenu(adminPage);
-
-      // Check tabs are displayed
-      await expect(
-        adminPage.locator('[data-testid="admin-tabs"]')
-      ).toBeVisible();
+      await waitForAdminPageLoaded(adminPage);
 
       // Check tab labels contain expected text
       const pendingTab = adminPage.getByRole('tab', { name: /pending/i });
@@ -130,6 +156,7 @@ test.describe('Admin Dashboard', () => {
       adminPage,
     }) => {
       await navigateToAdminViaMenu(adminPage);
+      await waitForAdminPageLoaded(adminPage);
 
       // Click on All Users tab
       const allUsersTab = adminPage.getByRole('tab', { name: /all users/i });
@@ -164,6 +191,7 @@ test.describe('Admin Dashboard', () => {
       adminPage,
     }) => {
       await navigateToAdminViaMenu(adminPage);
+      await waitForAdminPageLoaded(adminPage);
 
       // Click on All Users tab
       const allUsersTab = adminPage.getByRole('tab', { name: /all users/i });
@@ -226,6 +254,7 @@ test.describe('Admin User Management', () => {
     // For our test setup, USER_APPROVAL_REQUIRED is false, so this test checks the empty state
 
     await navigateToAdminViaMenu(adminPage);
+    await waitForAdminPageLoaded(adminPage);
 
     // Click on Pending tab (should be default)
     const pendingTab = adminPage.getByRole('tab', { name: /pending/i });
@@ -253,6 +282,7 @@ test.describe('Admin User Management', () => {
     adminPage,
   }) => {
     await navigateToAdminViaMenu(adminPage);
+    await waitForAdminPageLoaded(adminPage);
 
     // Click on All Users tab
     const allUsersTab = adminPage.getByRole('tab', { name: /all users/i });

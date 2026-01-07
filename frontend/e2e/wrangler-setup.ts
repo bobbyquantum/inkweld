@@ -6,7 +6,7 @@
 import { execSync } from 'child_process';
 import { join } from 'path';
 
-async function globalSetup() {
+function globalSetup() {
   console.log('🗃️  Initializing D1 database for Wrangler e2e tests...');
 
   const backendDir = join(__dirname, '../../backend');
