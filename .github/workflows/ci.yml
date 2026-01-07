@@ -136,6 +136,9 @@ jobs:
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium
 
+      - name: Copy wrangler.toml for CI
+        run: cp backend/wrangler.toml.example backend/wrangler.toml
+
       - name: Initialize local D1 database
         run: cd backend && bun run init:d1-local
 
