@@ -129,6 +129,8 @@ test.describe('User Login', () => {
 
     // Fill both to verify button becomes enabled
     await page.getByTestId('username-input').fill('someuser');
+    // Wait for Angular form validation to update
+    await page.waitForTimeout(100);
     await expect(page.getByTestId('login-button')).toBeEnabled();
   });
 

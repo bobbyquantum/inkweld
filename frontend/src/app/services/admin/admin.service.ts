@@ -3,7 +3,6 @@ import { inject, Injectable, signal } from '@angular/core';
 import { AdminService as ApiAdminService } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 
@@ -56,9 +55,9 @@ export class AdminService {
   private readonly logger = inject(LoggerService);
 
   private get basePath(): string {
-    return environment.production
-      ? ''
-      : (this.setupService.getServerUrl() ?? '');
+    // Always use the configured server URL if available
+    // This ensures API calls work both in dev (with proxy) and production (separate servers)
+    return this.setupService.getServerUrl() ?? '';
   }
 
   readonly users = signal<AdminUser[]>([]);
