@@ -9,6 +9,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DocumentSyncState } from '../../../../models/document-sync-state';
 import {
   RelationshipCategory,
   RelationshipTypeDefinition,
@@ -56,6 +57,7 @@ describe('RelationshipsTabComponent', () => {
 
   beforeEach(async () => {
     relationshipServiceMock = {
+      allTypes: signal(mockTypes),
       getAllTypes: vi.fn().mockReturnValue(mockTypes),
       getTypeById: vi
         .fn()
@@ -71,6 +73,8 @@ describe('RelationshipsTabComponent', () => {
 
     projectStateMock = {
       project: signal(mockProject as any),
+      isLoading: signal(false),
+      getSyncState: signal(DocumentSyncState.Synced),
       openSystemTab: vi.fn(),
     };
 
@@ -108,7 +112,6 @@ describe('RelationshipsTabComponent', () => {
   it('should load relationship types on init', () => {
     component.loadRelationshipTypes();
 
-    expect(relationshipServiceMock.getAllTypes).toHaveBeenCalled();
     expect(component.relationshipTypes().length).toBe(2);
   });
 
@@ -225,7 +228,7 @@ describe('RelationshipsTabComponent', () => {
   });
 
   it('should show loading state', () => {
-    component.isLoading.set(true);
+    (projectStateMock.isLoading as any).set(true);
     fixture.detectChanges();
 
     expect(component.isLoading()).toBe(true);
