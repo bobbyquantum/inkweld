@@ -42,8 +42,8 @@ WORKDIR /app/backend
 # - sharp: downloads prebuilt libvips binaries
 COPY backend/bun.lock backend/package.json ./
 RUN bun install --frozen-lockfile --ignore-scripts && \
-    node node_modules/esbuild/install.js && \
-    cd node_modules/sharp && node install/check.js || true
+  node node_modules/esbuild/install.js && \
+  cd node_modules/sharp && node install/check.js || true
 
 # Copy source and build scripts
 COPY backend .

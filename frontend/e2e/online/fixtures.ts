@@ -360,7 +360,7 @@ export async function authenticateUser(
           continue;
         }
         throw new Error(
-          `Registration failed after ${maxRetries} network error attempts: ${networkError}`
+          `Registration failed after ${maxRetries} network error attempts: ${String(networkError)}`
         );
       }
 
