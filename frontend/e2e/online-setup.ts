@@ -65,6 +65,40 @@ export default async function globalSetup(): Promise<void> {
           '   ⚠️  User exists but isAdmin flag not confirmed in response\n'
         );
       }
+
+      // Step 3: Test admin API endpoint with the auth token
+      console.log('3️⃣  Testing admin API endpoint...');
+      const adminResponse = await context.get('/api/v1/admin/users', {
+        headers: {
+          Authorization: `Bearer ${loginData.token}`,
+        },
+      });
+
+      if (adminResponse.ok()) {
+        console.log('   ✅ Admin API endpoint is accessible\n');
+      } else {
+        const contentType = adminResponse.headers()['content-type'] || '';
+        const body = await adminResponse.text();
+        console.log(`   ❌ Admin API failed: ${adminResponse.status()}`);
+        console.log(`   Content-Type: ${contentType}`);
+        console.log(
+          `   Response body (first 200 chars): ${body.substring(0, 200)}\n`
+        );
+
+        if (body.includes('<!doctype') || body.includes('<!DOCTYPE')) {
+          console.log(
+            '   🔴 DIAGNOSIS: Admin API is returning HTML instead of JSON!'
+          );
+          console.log('   This usually means:');
+          console.log(
+            '   1. The admin endpoint is not found (404 returning HTML fallback)'
+          );
+          console.log(
+            '   2. The backend is returning an error page instead of JSON error'
+          );
+          console.log('   3. There may be a routing issue in the backend\n');
+        }
+      }
     } else {
       const errorText = await loginResponse.text();
       console.log(
