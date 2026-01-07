@@ -1,4 +1,4 @@
-import { Page, test as base } from '@playwright/test';
+import { expect, Page, test as base } from '@playwright/test';
 export type { Page };
 
 /**
@@ -331,20 +331,38 @@ export async function authenticateUser(
   const retryDelay = 500;
 
   if (isRegister) {
-    // Register via API with retry for transient approval-required errors
+    // Register via API with retry for transient approval-required errors and network issues
     // This can happen when another test temporarily toggles USER_APPROVAL_REQUIRED
+    // or when the server is under heavy load during parallel tests
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const usernameToTry =
         attempt > 1 ? `${username}-retry${attempt}` : username;
-      const registerResponse = await page.request.post(
-        `${apiUrl}/api/v1/auth/register`,
-        {
-          data: {
-            username: usernameToTry,
-            password,
-          },
+
+      let registerResponse;
+      try {
+        registerResponse = await page.request.post(
+          `${apiUrl}/api/v1/auth/register`,
+          {
+            data: {
+              username: usernameToTry,
+              password,
+            },
+          }
+        );
+      } catch (networkError) {
+        // Handle network errors (socket hang up, connection refused, etc.)
+        if (attempt < maxRetries) {
+          console.warn(
+            `Network error during registration (attempt ${attempt}/${maxRetries}):`,
+            networkError
+          );
+          await new Promise(r => setTimeout(r, retryDelay * attempt));
+          continue;
         }
-      );
+        throw new Error(
+          `Registration failed after ${maxRetries} network error attempts: ${networkError}`
+        );
+      }
 
       if (!registerResponse.ok()) {
         throw new Error(
@@ -427,20 +445,27 @@ export async function registerUser(
 
   await page.locator('[data-testid="username-input"]').fill(username);
   await page.locator('[data-testid="username-input"]').blur();
-  await page.waitForTimeout(500); // Wait for username availability check
+
+  // Wait for username availability check (async validation) - longer timeout for Docker
+  await page.waitForTimeout(2000);
 
   await page.locator('[data-testid="password-input"]').fill(password);
   await page.locator('[data-testid="confirm-password-input"]').fill(password);
 
-  // Wait for the register button to be enabled
-  await page
-    .locator('mat-dialog-container [data-testid="register-button"]')
-    .waitFor({ state: 'visible' });
+  // Blur the last field to trigger validation
+  await page.locator('[data-testid="confirm-password-input"]').blur();
+
+  // Wait a bit for all validations to complete
+  await page.waitForTimeout(1000);
+
+  // Wait for the register button to be enabled (not just visible)
+  const registerButton = page.locator(
+    'mat-dialog-container [data-testid="register-button"]'
+  );
+  await expect(registerButton).toBeEnabled({ timeout: 20000 });
 
   // Click register and wait for dialog to close
-  await page
-    .locator('mat-dialog-container [data-testid="register-button"]')
-    .click();
+  await registerButton.click();
 
   // Wait for network to settle
   await page.waitForLoadState('networkidle');

@@ -147,15 +147,20 @@ test.describe('Error Handling and Edge Cases', () => {
       const uniqueUsername = generateUniqueUsername('refresh');
       await page.getByTestId('username-input').fill(uniqueUsername);
       await page.getByTestId('username-input').blur();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1500); // Wait for username availability check
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+      await page.getByTestId('confirm-password-input').blur();
+
+      // Wait for button to be enabled before attempting to click
+      const registerButton = page.locator(
+        'mat-dialog-container [data-testid="register-button"]'
+      );
+      await expect(registerButton).toBeEnabled({ timeout: 15000 });
 
       // Start submission but immediately refresh
       await Promise.all([
-        page
-          .locator('mat-dialog-container [data-testid="register-button"]')
-          .click(),
+        registerButton.click(),
         page.waitForTimeout(100).then(() => page.reload()),
       ]);
 
@@ -197,11 +202,11 @@ test.describe('Error Handling and Edge Cases', () => {
       const uniqueUsername = generateUniqueUsername('rapid');
       await page.getByTestId('username-input').fill(uniqueUsername);
       await page.getByTestId('username-input').blur();
-      await page.waitForTimeout(500); // Wait for username check
+      await page.waitForTimeout(1000); // Wait for username check
 
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-
+      await page.waitForTimeout(1000); // Wait for password check
       // Click submit button once (button disables after first click)
       const button = page.locator(
         'mat-dialog-container [data-testid="register-button"]'

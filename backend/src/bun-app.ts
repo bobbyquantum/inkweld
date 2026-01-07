@@ -86,7 +86,8 @@ if (isCompiled) {
         name.endsWith('.woff2') ||
         name.endsWith('.ttf') ||
         name.endsWith('.json') ||
-        name.endsWith('.webmanifest')
+        name.endsWith('.webmanifest') ||
+        name.endsWith('.wasm')
       );
     })
     .map((f) => [f.name, f] as [string, Blob]);
@@ -492,7 +493,7 @@ async function serveEmbeddedAsset(
   const headers = new Headers();
   headers.set('Content-Type', guessMimeType(relativePath));
 
-  // Handle in-place compressed WASM files
+  // WASM files are pre-compressed with Brotli during build (see compress-wasm.js)
   if (relativePath.endsWith('.wasm')) {
     headers.set('Content-Encoding', 'br');
   }
@@ -522,6 +523,7 @@ function guessMimeType(path: string): string {
     woff: 'font/woff',
     woff2: 'font/woff2',
     ttf: 'font/ttf',
+    wasm: 'application/wasm',
   };
   return mimeTypes[ext || ''] || 'application/octet-stream';
 }

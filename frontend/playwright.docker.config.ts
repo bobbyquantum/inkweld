@@ -25,24 +25,18 @@ export default defineConfig({
   // Reuse the online tests - Docker serves both frontend and API on port 8333
   testDir: './e2e/online',
 
-  /* Run tests in files in parallel */
-  fullyParallel: false, // Sequential for database state management
-
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env['CI'],
-
-  /* Retry on CI only */
-  retries: process.env['CI'] ? 2 : 0,
 
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
 
-  /* Test timeout - longer for Docker tests (image build can be slow) */
+  /* Test timeout - Docker is slower, needs more time */
   timeout: 60000,
 
   /* Expect timeout */
   expect: {
-    timeout: 10000,
+    timeout: 30000,
   },
 
   /* Global setup/teardown for Docker container management */

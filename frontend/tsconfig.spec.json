@@ -10,7 +10,8 @@
       "@components/*": ["app/components/*"],
       "@dialogs/*": ["app/dialogs/*"],
       "@services/*": ["app/services/*"],
-      "@themes/*": ["themes/*"]
+      "@themes/*": ["themes/*"],
+      "@package": ["../package.json"]
     }
   },
   "include": [

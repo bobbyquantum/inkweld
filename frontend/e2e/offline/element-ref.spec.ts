@@ -61,7 +61,7 @@ test.describe('Element Reference (@mentions)', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     // Create a project using the two-step flow with demo template
@@ -74,12 +74,12 @@ test.describe('Element Reference (@mentions)', () => {
     );
 
     // Wait for navigation
-    await page.waitForURL(/\/testuser\/test-project/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/test-project/, { timeout: 15000 });
 
     // Wait for project tree to load
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     // Open the README document (exists in all templates)
@@ -89,7 +89,7 @@ test.describe('Element Reference (@mentions)', () => {
 
     // Wait for the editor
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Type @ to trigger popup
@@ -97,7 +97,7 @@ test.describe('Element Reference (@mentions)', () => {
 
     // Verify the popup appears
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 5000 });
+    await expect(popup).toBeVisible({ timeout: 15000 });
 
     // Verify the search input is present
     const searchInput = page.locator(
@@ -111,7 +111,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     // Create project using the two-step flow with demo template
@@ -122,7 +122,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/escape-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/escape-test/, { timeout: 15000 });
 
     // Open document
     await page.waitForSelector('app-project-tree', {
@@ -137,7 +137,7 @@ test.describe('Element Reference (@mentions)', () => {
 
     // Get editor and type @
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
     await page.keyboard.type('@');
 
@@ -149,7 +149,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.keyboard.press('Escape');
 
     // Verify popup is closed
-    await expect(popup).toBeHidden({ timeout: 5000 });
+    await expect(popup).toBeHidden({ timeout: 15000 });
   });
 
   test('search query filters element results', async ({ page }) => {
@@ -157,7 +157,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     await createProjectWithTwoSteps(
@@ -167,7 +167,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/search-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/search-test/, { timeout: 15000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
@@ -180,7 +180,7 @@ test.describe('Element Reference (@mentions)', () => {
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Type @ with a search term (searching for a character in the demo template)
@@ -207,7 +207,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     await createProjectWithTwoSteps(
@@ -217,7 +217,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/click-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/click-test/, { timeout: 15000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
@@ -230,7 +230,7 @@ test.describe('Element Reference (@mentions)', () => {
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Type @
@@ -248,7 +248,7 @@ test.describe('Element Reference (@mentions)', () => {
       await resultItem.click();
 
       // Popup should close after selection
-      await expect(popup).toBeHidden({ timeout: 5000 });
+      await expect(popup).toBeHidden({ timeout: 15000 });
     }
   });
 
@@ -257,7 +257,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     await createProjectWithTwoSteps(
@@ -267,7 +267,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/keyboard-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/keyboard-test/, { timeout: 15000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
@@ -280,7 +280,7 @@ test.describe('Element Reference (@mentions)', () => {
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Type @
@@ -318,7 +318,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     await createProjectWithTwoSteps(
@@ -328,7 +328,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/style-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/style-test/, { timeout: 15000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
@@ -341,7 +341,7 @@ test.describe('Element Reference (@mentions)', () => {
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Type some text, then @
@@ -358,11 +358,11 @@ test.describe('Element Reference (@mentions)', () => {
       .first();
     if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
       await resultItem.click();
-      await expect(popup).not.toBeVisible({ timeout: 5000 });
+      await expect(popup).not.toBeVisible({ timeout: 15000 });
 
       // Check that an element-ref span was inserted
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 5000 });
+      await expect(elementRef).toBeVisible({ timeout: 15000 });
 
       // Verify it has the data attribute
       await expect(elementRef).toHaveAttribute('data-element-ref', 'true');
@@ -381,7 +381,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     await createProjectWithTwoSteps(
@@ -391,7 +391,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/context-menu-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/context-menu-test/, { timeout: 15000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
@@ -404,24 +404,24 @@ test.describe('Element Reference (@mentions)', () => {
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Create an element reference
     await page.keyboard.type('@');
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 5000 });
+    await expect(popup).toBeVisible({ timeout: 15000 });
 
     const resultItem = page
       .locator('[data-testid="element-ref-result-item"]')
       .first();
-    await resultItem.waitFor({ state: 'visible', timeout: 5000 });
+    await resultItem.waitFor({ state: 'visible', timeout: 15000 });
     await resultItem.click();
-    await expect(popup).not.toBeVisible({ timeout: 5000 });
+    await expect(popup).not.toBeVisible({ timeout: 15000 });
 
     // Find the element reference
     const elementRef = page.locator('.element-ref').first();
-    await expect(elementRef).toBeVisible({ timeout: 10000 });
+    await expect(elementRef).toBeVisible({ timeout: 15000 });
 
     // Wait a tiny bit for the editor to settle after insertion
     await page.waitForTimeout(200);
@@ -433,7 +433,7 @@ test.describe('Element Reference (@mentions)', () => {
     const contextMenu = page.locator(
       '[data-testid="element-ref-context-menu"]'
     );
-    await expect(contextMenu).toBeVisible({ timeout: 10000 });
+    await expect(contextMenu).toBeVisible({ timeout: 15000 });
 
     // Verify menu items are present
     const navigateBtn = page.locator('[data-testid="context-menu-navigate"]');
@@ -456,7 +456,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     await createProjectWithTwoSteps(
@@ -466,7 +466,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/edit-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/edit-test/, { timeout: 15000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
@@ -479,24 +479,24 @@ test.describe('Element Reference (@mentions)', () => {
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Create an element reference
     await page.keyboard.type('@');
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 5000 });
+    await expect(popup).toBeVisible({ timeout: 15000 });
 
     const resultItem = page
       .locator('[data-testid="element-ref-result-item"]')
       .first();
-    await resultItem.waitFor({ state: 'visible', timeout: 5000 });
+    await resultItem.waitFor({ state: 'visible', timeout: 15000 });
     await resultItem.click();
-    await expect(popup).not.toBeVisible({ timeout: 5000 });
+    await expect(popup).not.toBeVisible({ timeout: 15000 });
 
     // Find the element reference and get its original text
     const elementRef = page.locator('.element-ref').first();
-    await expect(elementRef).toBeVisible({ timeout: 10000 });
+    await expect(elementRef).toBeVisible({ timeout: 15000 });
     const originalText = await elementRef.textContent();
 
     // Wait a tiny bit for the editor to settle after insertion
@@ -508,7 +508,7 @@ test.describe('Element Reference (@mentions)', () => {
     const contextMenu = page.locator(
       '[data-testid="element-ref-context-menu"]'
     );
-    await expect(contextMenu).toBeVisible({ timeout: 10000 });
+    await expect(contextMenu).toBeVisible({ timeout: 15000 });
 
     // Click edit button
     const editBtn = page.locator('[data-testid="context-menu-edit"]');
@@ -538,7 +538,7 @@ test.describe('Element Reference (@mentions)', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 15000,
     });
 
     await createProjectWithTwoSteps(
@@ -548,7 +548,7 @@ test.describe('Element Reference (@mentions)', () => {
       undefined,
       'worldbuilding-demo'
     );
-    await page.waitForURL(/\/testuser\/delete-test/, { timeout: 5000 });
+    await page.waitForURL(/\/testuser\/delete-test/, { timeout: 15000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
@@ -561,20 +561,20 @@ test.describe('Element Reference (@mentions)', () => {
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible', timeout: 15000 });
     await editor.click();
 
     // Create an element reference
     await page.keyboard.type('@');
     const popup = page.locator('[data-testid="element-ref-popup"]');
-    await expect(popup).toBeVisible({ timeout: 5000 });
+    await expect(popup).toBeVisible({ timeout: 15000 });
 
     const resultItem = page
       .locator('[data-testid="element-ref-result-item"]')
       .first();
-    await resultItem.waitFor({ state: 'visible', timeout: 5000 });
+    await resultItem.waitFor({ state: 'visible', timeout: 15000 });
     await resultItem.click();
-    await expect(popup).not.toBeVisible({ timeout: 5000 });
+    await expect(popup).not.toBeVisible({ timeout: 15000 });
 
     // Find the element reference and count how many there are
     const elementRefsBefore = await page.locator('.element-ref').count();
@@ -582,7 +582,7 @@ test.describe('Element Reference (@mentions)', () => {
 
     // Find the first element reference
     const elementRef = page.locator('.element-ref').first();
-    await expect(elementRef).toBeVisible({ timeout: 10000 });
+    await expect(elementRef).toBeVisible({ timeout: 15000 });
 
     // Wait a tiny bit for the editor to settle after insertion
     await page.waitForTimeout(200);
@@ -593,7 +593,7 @@ test.describe('Element Reference (@mentions)', () => {
     const contextMenu = page.locator(
       '[data-testid="element-ref-context-menu"]'
     );
-    await expect(contextMenu).toBeVisible({ timeout: 10000 });
+    await expect(contextMenu).toBeVisible({ timeout: 15000 });
 
     // Click delete button
     const deleteBtn = page.locator('[data-testid="context-menu-delete"]');

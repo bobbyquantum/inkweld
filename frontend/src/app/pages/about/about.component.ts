@@ -7,9 +7,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterModule } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import packageJson from '@package';
 import { UnifiedUserService } from '@services/user/unified-user.service';
-
-import packageJson from '../../../../../package.json';
 
 interface LibraryInfo {
   name: string;
