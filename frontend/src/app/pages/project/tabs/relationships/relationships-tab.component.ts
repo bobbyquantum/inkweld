@@ -9,7 +9,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
@@ -18,6 +17,7 @@ import {
   RelationshipCategory,
   RelationshipTypeDefinition,
 } from '../../../../components/element-ref/element-ref.model';
+import { DocumentSyncState } from '../../../../models/document-sync-state';
 
 /**
  * View model for relationship types displayed in the list
