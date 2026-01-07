@@ -47,7 +47,6 @@ jobs:
   # Unit Tests - Frontend (Vitest)
   # ===========================================
   test-frontend:
-    if: false # Temporarily disabled to save CI minutes
     name: Unit Tests (Frontend)
     runs-on: ubuntu-latest
     steps:
@@ -147,7 +146,6 @@ jobs:
 
       # Run all e2e tests sequentially using production build
       - name: Run offline e2e tests
-        if: false # Temporarily disabled to save CI minutes
         run: cd frontend && npm run e2e:offline:ci
         env:
           E2E_MODE: prod
@@ -177,11 +175,10 @@ jobs:
   # Docker Publish - Only on main branch
   # ===========================================
   docker-publish:
-    if: false # Temporarily disabled to save CI minutes
     name: Docker Publish
     needs: [lint, test-frontend, test-backend, e2e]
     runs-on: ubuntu-latest
-    # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
