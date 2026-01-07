@@ -1,4 +1,11 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  NgZone,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -9,6 +16,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { DocumentSyncState } from '@models/document-sync-state';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
@@ -60,11 +68,34 @@ export class RelationshipsTabComponent {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
+  private readonly ngZone = inject(NgZone);
 
   readonly project = this.projectState.project;
-  readonly relationshipTypes = signal<RelationshipTypeView[]>([]);
-  readonly isLoading = signal(false);
+  readonly isLoading = computed(
+    () =>
+      this.projectState.isLoading() ||
+      (this.projectState.getSyncState() === DocumentSyncState.Syncing &&
+        !this.hasTypes())
+  );
   readonly error = signal<string | null>(null);
+
+  protected readonly allTypes = this.relationshipService.allTypes;
+
+  readonly relationshipTypes = computed(() => {
+    const types = this.allTypes();
+    const views = types.map(type => this.toView(type));
+
+    // Sort: custom first, then by category, then by name
+    return [...views].sort((a, b) => {
+      if (a.isBuiltIn !== b.isBuiltIn) {
+        return a.isBuiltIn ? 1 : -1; // Custom first
+      }
+      if (a.category !== b.category) {
+        return a.categoryLabel.localeCompare(b.categoryLabel);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  });
 
   readonly hasTypes = computed(() => this.relationshipTypes().length > 0);
   readonly builtInTypes = computed(() =>
@@ -75,55 +106,16 @@ export class RelationshipsTabComponent {
   );
 
   constructor() {
-    // Load relationship types when project changes
-    effect(() => {
-      const project = this.project();
-      if (project) {
-        void this.loadRelationshipTypes();
-      }
-    });
+    // We no longer need the effect to manually load types
+    // as it's now a computed signal based on the service's signal.
   }
 
   /**
-   * Load all relationship types (built-in + custom)
+   * Load all relationship types - keep for backwards compatibility if needed,
+   * but now it's mostly a no-op that just clears errors.
    */
   loadRelationshipTypes(): void {
-    const project = this.project();
-    if (!project) {
-      return;
-    }
-
-    this.isLoading.set(true);
     this.error.set(null);
-
-    try {
-      const allTypes = this.relationshipService.getAllTypes();
-
-      const views: RelationshipTypeView[] = allTypes.map(type =>
-        this.toView(type)
-      );
-
-      // Sort: custom first, then by category, then by name
-      views.sort((a, b) => {
-        if (a.isBuiltIn !== b.isBuiltIn) {
-          return a.isBuiltIn ? 1 : -1; // Custom first
-        }
-        if (a.category !== b.category) {
-          return a.categoryLabel.localeCompare(b.categoryLabel);
-        }
-        return a.name.localeCompare(b.name);
-      });
-
-      this.relationshipTypes.set(views);
-    } catch (err: unknown) {
-      console.error(
-        '[RelationshipsTab] Error loading relationship types:',
-        err instanceof Error ? err.message : err
-      );
-      this.error.set('Failed to load relationship types');
-    } finally {
-      this.isLoading.set(false);
-    }
   }
 
   /**
@@ -256,24 +248,24 @@ export class RelationshipsTabComponent {
     }
 
     try {
-      const newType = this.relationshipService.addCustomType({
-        name,
-        inverseLabel,
-        showInverse: true,
-        category: RelationshipCategory.Custom,
-        sourceEndpoint: { allowedSchemas: [] },
-        targetEndpoint: { allowedSchemas: [] },
+      this.ngZone.run(() => {
+        const newType = this.relationshipService.addCustomType({
+          name,
+          inverseLabel,
+          showInverse: true,
+          category: RelationshipCategory.Custom,
+          sourceEndpoint: { allowedSchemas: [] },
+          targetEndpoint: { allowedSchemas: [] },
+        });
+
+        this.snackBar.open(
+          `✓ Created relationship type: ${newType.name}`,
+          'Close',
+          {
+            duration: 3000,
+          }
+        );
       });
-
-      this.snackBar.open(
-        `✓ Created relationship type: ${newType.name}`,
-        'Close',
-        {
-          duration: 3000,
-        }
-      );
-
-      this.loadRelationshipTypes();
     } catch (err: unknown) {
       console.error(
         '[RelationshipsTab] Error creating type:',
@@ -301,20 +293,21 @@ export class RelationshipsTabComponent {
     }
 
     try {
-      const updated = this.relationshipService.updateCustomType(type.id, {
-        name: newName,
-      });
+      this.ngZone.run(() => {
+        const updated = this.relationshipService.updateCustomType(type.id, {
+          name: newName,
+        });
 
-      if (updated) {
-        this.snackBar.open(`✓ Updated relationship type`, 'Close', {
-          duration: 3000,
-        });
-        this.loadRelationshipTypes();
-      } else {
-        this.snackBar.open('Failed to update relationship type', 'Close', {
-          duration: 5000,
-        });
-      }
+        if (updated) {
+          this.snackBar.open(`✓ Updated relationship type`, 'Close', {
+            duration: 3000,
+          });
+        } else {
+          this.snackBar.open('Failed to update relationship type', 'Close', {
+            duration: 5000,
+          });
+        }
+      });
     } catch (err: unknown) {
       console.error(
         '[RelationshipsTab] Error updating type:',
@@ -343,22 +336,23 @@ export class RelationshipsTabComponent {
     }
 
     try {
-      const removed = this.relationshipService.removeCustomType(type.id);
+      this.ngZone.run(() => {
+        const removed = this.relationshipService.removeCustomType(type.id);
 
-      if (removed) {
-        this.snackBar.open(
-          `✓ Deleted relationship type: ${type.name}`,
-          'Close',
-          {
-            duration: 3000,
-          }
-        );
-        this.loadRelationshipTypes();
-      } else {
-        this.snackBar.open('Failed to delete relationship type', 'Close', {
-          duration: 5000,
-        });
-      }
+        if (removed) {
+          this.snackBar.open(
+            `✓ Deleted relationship type: ${type.name}`,
+            'Close',
+            {
+              duration: 3000,
+            }
+          );
+        } else {
+          this.snackBar.open('Failed to delete relationship type', 'Close', {
+            duration: 5000,
+          });
+        }
+      });
     } catch (err: unknown) {
       console.error(
         '[RelationshipsTab] Error deleting type:',
@@ -390,32 +384,32 @@ export class RelationshipsTabComponent {
     }
 
     try {
-      // Get the original type to copy all properties
-      const original = this.relationshipService.getTypeById(type.id);
-      if (!original) {
-        throw new Error('Original type not found');
-      }
-
-      const newType = this.relationshipService.addCustomType({
-        name: newName,
-        inverseLabel: original.inverseLabel,
-        showInverse: original.showInverse,
-        icon: original.icon,
-        category: RelationshipCategory.Custom,
-        color: original.color,
-        sourceEndpoint: { ...original.sourceEndpoint },
-        targetEndpoint: { ...original.targetEndpoint },
-      });
-
-      this.snackBar.open(
-        `✓ Cloned relationship type: ${newType.name}`,
-        'Close',
-        {
-          duration: 3000,
+      this.ngZone.run(() => {
+        // Get the original type to copy all properties
+        const original = this.relationshipService.getTypeById(type.id);
+        if (!original) {
+          throw new Error('Original type not found');
         }
-      );
 
-      this.loadRelationshipTypes();
+        const newType = this.relationshipService.addCustomType({
+          name: newName,
+          inverseLabel: original.inverseLabel,
+          showInverse: original.showInverse,
+          icon: original.icon,
+          category: RelationshipCategory.Custom,
+          color: original.color,
+          sourceEndpoint: { ...original.sourceEndpoint },
+          targetEndpoint: { ...original.targetEndpoint },
+        });
+
+        this.snackBar.open(
+          `✓ Cloned relationship type: ${newType.name}`,
+          'Close',
+          {
+            duration: 3000,
+          }
+        );
+      });
     } catch (err: unknown) {
       console.error(
         '[RelationshipsTab] Error cloning type:',
