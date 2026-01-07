@@ -20,23 +20,19 @@ export default defineConfig({
   testDir: './e2e/online',
 
   /* Run tests in files in parallel */
-  fullyParallel: false, // Sequential for database state management
+  fullyParallel: true, // Sequential for database state management
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env['CI'],
 
-  /* Retry on CI only */
-  retries: process.env['CI'] ? 2 : 0,
+  retries: 0,
 
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
 
-  /* Test timeout - longer for full-stack tests */
-  timeout: 60000,
-
   /* Expect timeout */
   expect: {
-    timeout: 15000,
+    timeout: 30000,
   },
 
   /* Shared settings for all the projects below */

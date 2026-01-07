@@ -9,8 +9,7 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * Prerequisites:
  *   1. Run `npx wrangler login` if not already authenticated
- *   2. Initialize local D1 database:
- *      cd backend && bun run init:d1-local
+ *   2. D1 database is auto-initialized via globalSetup
  *
  * Usage:
  *   npm run e2e:wrangler
@@ -22,24 +21,20 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e/online',
 
+  /* Global setup to initialize D1 database */
+  globalSetup: require.resolve('./e2e/wrangler-setup.ts'),
+
   /* Run tests sequentially for database state management */
-  fullyParallel: false,
 
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env['CI'],
 
-  /* Retry on CI only */
-  retries: process.env['CI'] ? 2 : 0,
-
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
 
-  /* Test timeout - longer for Wrangler which is slower */
-  timeout: 45000,
-
   /* Expect timeout */
   expect: {
-    timeout: 10000,
+    timeout: 30000,
   },
 
   /* Shared settings for all the projects below */

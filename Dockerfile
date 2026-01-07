@@ -18,12 +18,14 @@ RUN bun install --frozen-lockfile
 
 COPY frontend .
 # Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
+# Then compress WASM files with Brotli (they're served with Content-Encoding: br)
 RUN bun run build \
   && if [ ! -d /app/frontend/dist ]; then \
   echo "ERROR: frontend build did not produce /app/frontend/dist"; \
   ls -la /app/frontend || true; \
   exit 1; \
-  fi
+  fi \
+  && node scripts/compress-wasm.js
 
 # Backend builder stage - produces a single compiled binary
 FROM oven/bun:1.3.5 AS backend-builder

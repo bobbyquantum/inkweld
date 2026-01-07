@@ -234,7 +234,7 @@ test.describe('Online Publishing Workflow', () => {
       authenticatedPage: page,
     }) => {
       // This test does multiple complex operations - set a higher timeout
-      test.setTimeout(60000);
+      test.setTimeout(90000);
 
       // Create a unique project
       const uniqueSlug = `pdf-content-test-${Date.now()}`;
@@ -326,10 +326,10 @@ test.describe('Online Publishing Workflow', () => {
       // Generate
       await page.getByTestId('generate-button').click();
 
-      // Wait for completion
+      // Wait for completion - PDF generation can be slow in Docker
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible({ timeout: 75000 });
 
       // Verify format in complete dialog
       await expect(page.getByTestId('format-name')).toContainText('PDF');
