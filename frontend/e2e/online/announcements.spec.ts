@@ -135,6 +135,9 @@ test.describe('Admin Announcements', () => {
       await adminPage.getByRole('option', { name: /normal/i }).click();
 
       // Submit the form
+      await expect(
+        adminPage.locator('[data-testid="announcement-submit-btn"]')
+      ).toBeEnabled();
       await adminPage
         .locator('[data-testid="announcement-submit-btn"]')
         .click();
@@ -185,7 +188,23 @@ test.describe('Admin Announcements', () => {
         await publicCheckbox.click();
       }
 
+      // Select type and priority explicitly to ensure form is valid and stable in CI
+      await adminPage
+        .locator('[data-testid="announcement-type-select"]')
+        .click();
+      await adminPage
+        .getByRole('option', { name: /announcement/i })
+        .first()
+        .click();
+      await adminPage
+        .locator('[data-testid="announcement-priority-select"]')
+        .click();
+      await adminPage.getByRole('option', { name: /normal/i }).first().click();
+
       // Submit
+      await expect(
+        adminPage.locator('[data-testid="announcement-submit-btn"]')
+      ).toBeEnabled();
       await adminPage
         .locator('[data-testid="announcement-submit-btn"]')
         .click();
@@ -240,6 +259,23 @@ test.describe('Admin Announcements', () => {
       await adminPage
         .locator('[data-testid="announcement-content-input"]')
         .fill(testData.content);
+
+      // Select type and priority explicitly to ensure form is valid and stable in CI
+      await adminPage
+        .locator('[data-testid="announcement-type-select"]')
+        .click();
+      await adminPage
+        .getByRole('option', { name: /announcement/i })
+        .first()
+        .click();
+      await adminPage
+        .locator('[data-testid="announcement-priority-select"]')
+        .click();
+      await adminPage.getByRole('option', { name: /normal/i }).first().click();
+
+      await expect(
+        adminPage.locator('[data-testid="announcement-submit-btn"]')
+      ).toBeEnabled();
       await adminPage
         .locator('[data-testid="announcement-submit-btn"]')
         .click();
@@ -375,6 +411,17 @@ test.describe('Public Announcement Feed', () => {
       .locator('[data-testid="announcement-content-input"]')
       .fill(testData.content);
 
+    // Select type and priority explicitly to ensure form is valid and stable in CI
+    await adminPage.locator('[data-testid="announcement-type-select"]').click();
+    await adminPage
+      .getByRole('option', { name: /announcement/i })
+      .first()
+      .click();
+    await adminPage
+      .locator('[data-testid="announcement-priority-select"]')
+      .click();
+    await adminPage.getByRole('option', { name: /normal/i }).first().click();
+
     // Check public checkbox
     // Ensure the public checkbox is checked
     const publicCheckbox = adminPage.locator('mat-checkbox').filter({
@@ -387,6 +434,9 @@ test.describe('Public Announcement Feed', () => {
       await publicCheckbox.click();
     }
 
+    await expect(
+      adminPage.locator('[data-testid="announcement-submit-btn"]')
+    ).toBeEnabled();
     await adminPage.locator('[data-testid="announcement-submit-btn"]').click();
 
     // Wait for creation
@@ -448,6 +498,21 @@ test.describe('Unread Badge', () => {
     await adminPage
       .locator('[data-testid="announcement-content-input"]')
       .fill(testData.content);
+
+    // Select type and priority explicitly to ensure form is valid and stable in CI
+    await adminPage.locator('[data-testid="announcement-type-select"]').click();
+    await adminPage
+      .getByRole('option', { name: /announcement/i })
+      .first()
+      .click();
+    await adminPage
+      .locator('[data-testid="announcement-priority-select"]')
+      .click();
+    await adminPage.getByRole('option', { name: /normal/i }).first().click();
+
+    await expect(
+      adminPage.locator('[data-testid="announcement-submit-btn"]')
+    ).toBeEnabled();
     await adminPage.locator('[data-testid="announcement-submit-btn"]').click();
 
     await adminPage
@@ -490,6 +555,21 @@ test.describe('Mark as Read', () => {
     await adminPage
       .locator('[data-testid="announcement-content-input"]')
       .fill(testData.content);
+
+    // Select type and priority explicitly to ensure form is valid and stable in CI
+    await adminPage.locator('[data-testid="announcement-type-select"]').click();
+    await adminPage
+      .getByRole('option', { name: /announcement/i })
+      .first()
+      .click();
+    await adminPage
+      .locator('[data-testid="announcement-priority-select"]')
+      .click();
+    await adminPage.getByRole('option', { name: /normal/i }).first().click();
+
+    await expect(
+      adminPage.locator('[data-testid="announcement-submit-btn"]')
+    ).toBeEnabled();
     await adminPage.locator('[data-testid="announcement-submit-btn"]').click();
 
     await adminPage
