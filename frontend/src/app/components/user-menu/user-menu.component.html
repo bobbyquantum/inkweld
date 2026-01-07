@@ -6,8 +6,8 @@
     aria-label="User menu"
     data-testid="user-menu-button">
     <app-user-avatar
-      [username]="userService.currentUser()!.username"
-      [hasAvatar]="userService.currentUser()?.hasAvatar"
+      [username]="userService.currentUser().username"
+      [hasAvatar]="userService.currentUser().hasAvatar"
       size="small" />
   </button>
 
@@ -21,11 +21,11 @@
         <button
           class="user-info"
           mat-menu-item
-          [routerLink]="['/', userService.currentUser()!.username]">
+          [routerLink]="['/', userService.currentUser().username]">
           <div class="user-info-content">
             <app-user-avatar
-              [username]="userService.currentUser()!.username"
-              [hasAvatar]="userService.currentUser()?.hasAvatar"
+              [username]="userService.currentUser().username"
+              [hasAvatar]="userService.currentUser().hasAvatar"
               size="small" />
             <div class="user-details">
               <span class="user-name">{{
