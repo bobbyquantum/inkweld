@@ -179,6 +179,34 @@ vi.mock('prosemirror-commands', () => ({
     },
 }));
 
+// Mock prosemirror-schema-list for list operations (wrapInList, liftListItem, etc.)
+vi.mock('prosemirror-schema-list', () => ({
+  wrapInList:
+    () =>
+    (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
+      if (dispatch) dispatch({});
+      return true;
+    },
+  liftListItem:
+    () =>
+    (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
+      if (dispatch) dispatch({});
+      return true;
+    },
+  sinkListItem:
+    () =>
+    (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
+      if (dispatch) dispatch({});
+      return true;
+    },
+  splitListItem:
+    () =>
+    (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
+      if (dispatch) dispatch({});
+      return true;
+    },
+}));
+
 // Mock File.arrayBuffer for jsdom (only if not already defined)
 if (!File.prototype.arrayBuffer) {
   Object.defineProperty(File.prototype, 'arrayBuffer', {

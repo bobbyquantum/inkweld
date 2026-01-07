@@ -171,6 +171,12 @@ test.describe('User Registration', () => {
     const uniqueUsername = `user${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
 
+    // Blur username to trigger availability check
+    await page.keyboard.press('Tab');
+
+    // Wait for username availability check to complete
+    await page.waitForTimeout(500);
+
     // Try a weak password (too short, no special char, no uppercase)
     await page.getByTestId('password-input').fill('weak');
     await page.getByTestId('confirm-password-input').fill('weak');
@@ -189,6 +195,12 @@ test.describe('User Registration', () => {
     // Use a valid strong password
     await page.getByTestId('password-input').fill('StrongPass123!');
     await page.getByTestId('confirm-password-input').fill('StrongPass123!');
+
+    // Tab away to trigger blur and form validation update
+    await page.keyboard.press('Tab');
+
+    // Wait for Angular change detection
+    await page.waitForTimeout(200);
 
     // Now button should be enabled
     await expect(
@@ -233,7 +245,7 @@ test.describe('User Registration', () => {
 
     // Try a username that's too short
     await page.getByTestId('username-input').fill('ab');
-    await page.getByTestId('username-input').blur();
+    await page.keyboard.press('Tab'); // Blur to trigger validation
 
     // Should show error about minimum length
     await expect(page.getByTestId('username-error')).toContainText(
@@ -246,24 +258,28 @@ test.describe('User Registration', () => {
     ).toBeDisabled();
 
     // Fill valid fields - use a unique username to avoid any potential "taken" issues
-    // and blur the inputs to ensure Angular's validation cycle completes
     const validUsername = `valid${Date.now()}`;
     await page.getByTestId('username-input').fill(validUsername);
-    await page.getByTestId('username-input').blur();
 
+    // Tab to trigger blur and start username availability check
+    await page.keyboard.press('Tab');
+
+    // Wait for the availability check to complete (check icon appears)
+    await expect(page.getByTestId('username-available-icon')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Fill password fields with proper blur triggering
     await page.getByTestId('password-input').fill('ValidPass123!');
-    await page.getByTestId('password-input').blur();
+    await page.keyboard.press('Tab'); // Move to confirm password
 
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-    await page.getByTestId('confirm-password-input').blur();
+    await page.keyboard.press('Tab'); // Blur confirm password
 
-    // Give Angular a moment to settle in slow environments
-    await page.waitForTimeout(500);
-
-    // Now button should be enabled
+    // Now button should be enabled - use a longer timeout for CI
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled({ timeout: 15000 });
+    ).toBeEnabled({ timeout: 20000 });
   });
 
   test('should allow selection of username suggestions', async ({

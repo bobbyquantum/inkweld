@@ -33,15 +33,7 @@ vi.mock('prosemirror-history', () => ({
   },
 }));
 
-// Mock prosemirror-schema-list
-vi.mock('prosemirror-schema-list', () => ({
-  wrapInList:
-    () =>
-    (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
-      if (dispatch) dispatch({});
-      return true;
-    },
-}));
+// prosemirror-schema-list is mocked globally in setup-vitest.ts
 
 describe('EditorToolbarComponent', () => {
   let component: EditorToolbarComponent;
