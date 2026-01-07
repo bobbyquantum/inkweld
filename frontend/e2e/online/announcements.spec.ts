@@ -514,6 +514,10 @@ test.describe('Unread Badge', () => {
       .getByRole('option', { name: /announcement/i })
       .first()
       .click();
+
+    // Wait for dropdown to close before opening next one
+    await adminPage.waitForTimeout(200);
+
     await adminPage
       .locator('[data-testid="announcement-priority-select"]')
       .click();
@@ -522,9 +526,12 @@ test.describe('Unread Badge', () => {
       .first()
       .click();
 
+    // Wait for Angular change detection after form field changes
+    await adminPage.waitForTimeout(300);
+
     await expect(
       adminPage.locator('[data-testid="announcement-submit-btn"]')
-    ).toBeEnabled();
+    ).toBeEnabled({ timeout: 10000 });
     await adminPage.locator('[data-testid="announcement-submit-btn"]').click();
 
     await adminPage

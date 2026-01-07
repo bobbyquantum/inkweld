@@ -76,18 +76,13 @@ test.describe('User Registration', () => {
     // Fill registration form with the existing username
     await page.getByTestId('username-input').fill(existingUsername);
 
-    // Blur to trigger username availability check
-    await page.getByTestId('username-input').blur();
+    // Tab to trigger username availability check (more reliable than blur)
+    await page.keyboard.press('Tab');
 
-    // Wait for the availability check to complete (network request)
-    await page.waitForResponse(
-      resp =>
-        resp.url().includes('/api/v1/users/check-username') &&
-        resp.status() === 200
-    );
-
-    // Give the UI time to update
-    await page.waitForTimeout(500);
+    // Wait for the unavailable icon to appear (indicates check completed)
+    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible({
+      timeout: 15000,
+    });
 
     // Fill in password fields with valid passwords
     await page.getByTestId('password-input').fill('ValidPass123!');
