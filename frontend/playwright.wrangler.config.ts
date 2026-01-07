@@ -69,6 +69,8 @@ export default defineConfig({
       reuseExistingServer: !process.env['CI'],
       timeout: 90000, // Wrangler is slower to start
       env: {
+        // Inherit existing environment (includes PATH, etc. needed for wrangler/npx)
+        ...process.env,
         NODE_ENV: 'test',
       },
     },
