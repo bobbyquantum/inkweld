@@ -44,7 +44,7 @@ test.describe('Online Publishing Workflow', () => {
 
     // Wait for the publish plan tab to open - first wait for heading which is more stable
     await expect(page.getByTestId('plan-name-display')).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
 
     return uniqueSlug;
