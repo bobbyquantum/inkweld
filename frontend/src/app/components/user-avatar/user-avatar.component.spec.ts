@@ -154,5 +154,50 @@ describe('UserAvatarComponent', () => {
       });
       expect(loadAvatarSpy).toHaveBeenCalled();
     });
+
+    it('should trigger loadAvatar when hasAvatar changes', () => {
+      const loadAvatarSpy = vi.spyOn(component, 'loadAvatar');
+      component.username = 'testuser';
+      component.hasAvatar = true;
+      component.ngOnChanges({
+        hasAvatar: {
+          currentValue: true,
+          previousValue: undefined,
+          firstChange: true,
+          isFirstChange: () => true,
+        },
+      });
+      expect(loadAvatarSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('hasAvatar input', () => {
+    it('should skip server request when hasAvatar is false', async () => {
+      component.username = 'testuser';
+      component.hasAvatar = false;
+      await component.loadAvatar();
+
+      expect(mockOfflineStorageService.getUserAvatarUrl).not.toHaveBeenCalled();
+      expect(mockUserService.getUserAvatar).not.toHaveBeenCalled();
+      expect(component['error']).toBe(true);
+    });
+
+    it('should try server request when hasAvatar is true', async () => {
+      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(null);
+      component.username = 'testuser';
+      component.hasAvatar = true;
+      await component.loadAvatar();
+
+      expect(mockUserService.getUserAvatar).toHaveBeenCalledWith('testuser');
+    });
+
+    it('should try server request when hasAvatar is undefined', async () => {
+      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(null);
+      component.username = 'testuser';
+      component.hasAvatar = undefined;
+      await component.loadAvatar();
+
+      expect(mockUserService.getUserAvatar).toHaveBeenCalledWith('testuser');
+    });
   });
 });

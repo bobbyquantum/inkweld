@@ -92,38 +92,38 @@ describe('LoginDialogComponent', () => {
     it('should disable login button when form is invalid', () => {
       component.username = '';
       component.password = '';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
       expect(component.isLoginButtonDisabled()).toBe(true);
     });
 
     it('should disable login button when providers not loaded', () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = false;
+      component.providersLoaded.set(false);
       expect(component.isLoginButtonDisabled()).toBe(true);
     });
 
     it('should enable login button when form is valid and providers loaded', () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
       expect(component.isLoginButtonDisabled()).toBe(false);
     });
 
     it('should disable login button when logging in', () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = true;
-      component.isLoggingIn = true;
+      component.providersLoaded.set(true);
+      component.isLoggingIn.set(true);
       expect(component.isLoginButtonDisabled()).toBe(true);
     });
   });
 
   describe('input change handlers', () => {
     it('should clear password error when username changes', () => {
-      component.passwordError = 'Some error';
+      component.passwordError.set('Some error');
       component.onUsernameChange();
-      expect(component.passwordError).toBeNull();
+      expect(component.passwordError()).toBeNull();
     });
 
     it('should clear lastAttemptedUsername when username differs from last attempt', () => {
@@ -134,9 +134,9 @@ describe('LoginDialogComponent', () => {
     });
 
     it('should clear password error when password changes', () => {
-      component.passwordError = 'Some error';
+      component.passwordError.set('Some error');
       component.onPasswordChange();
-      expect(component.passwordError).toBeNull();
+      expect(component.passwordError()).toBeNull();
     });
 
     it('should clear lastAttemptedPassword when password differs from last attempt', () => {
@@ -154,7 +154,7 @@ describe('LoginDialogComponent', () => {
 
       await component.onLogin();
 
-      expect(component.passwordError).toBe(
+      expect(component.passwordError()).toBe(
         'Please enter both username and password.'
       );
       expect(userService.login).not.toHaveBeenCalled();
@@ -163,7 +163,7 @@ describe('LoginDialogComponent', () => {
     it('should call userService.login with correct credentials', async () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
       userService.login.mockResolvedValue(undefined);
 
       await component.onLogin();
@@ -174,7 +174,7 @@ describe('LoginDialogComponent', () => {
     it('should close dialog on successful login', async () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
       userService.login.mockResolvedValue(undefined);
 
       await component.onLogin();
@@ -186,7 +186,7 @@ describe('LoginDialogComponent', () => {
     it('should show success snackbar on successful login', async () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
       userService.login.mockResolvedValue(undefined);
 
       await component.onLogin();
@@ -201,21 +201,21 @@ describe('LoginDialogComponent', () => {
     it('should handle LOGIN_FAILED error', async () => {
       component.username = 'testuser';
       component.password = 'wrongpassword';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
       userService.login.mockRejectedValue(
         new UserServiceError('LOGIN_FAILED', 'Invalid credentials')
       );
 
       await component.onLogin();
 
-      expect(component.passwordError).toBe('Invalid username or password');
+      expect(component.passwordError()).toBe('Invalid username or password');
       expect(component.lastAttemptedPassword).toBe('wrongpassword');
     });
 
     it('should redirect to approval-pending on ACCOUNT_PENDING error', async () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
       userService.login.mockRejectedValue(
         new UserServiceError('ACCOUNT_PENDING', 'Account pending approval')
       );
@@ -229,7 +229,7 @@ describe('LoginDialogComponent', () => {
     it('should set isLoggingIn to true during login', async () => {
       component.username = 'testuser';
       component.password = 'password123';
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       let resolveLogin: () => void;
       const loginPromise = new Promise<void>(resolve => {
@@ -238,11 +238,11 @@ describe('LoginDialogComponent', () => {
       userService.login.mockReturnValue(loginPromise);
 
       const loginPromiseResult = component.onLogin();
-      expect(component.isLoggingIn).toBe(true);
+      expect(component.isLoggingIn()).toBe(true);
 
       resolveLogin!();
       await loginPromiseResult;
-      expect(component.isLoggingIn).toBe(false);
+      expect(component.isLoggingIn()).toBe(false);
     });
   });
 

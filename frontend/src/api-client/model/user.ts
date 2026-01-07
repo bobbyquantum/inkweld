@@ -17,5 +17,6 @@ export interface User {
     approved?: boolean;
     enabled: boolean;
     isAdmin?: boolean;
+    hasAvatar?: boolean;
 }
 

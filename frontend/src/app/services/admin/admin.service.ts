@@ -31,6 +31,7 @@ export interface AdminUser {
   approved?: boolean;
   isAdmin?: boolean;
   githubId?: string | null;
+  hasAvatar?: boolean;
 }
 
 export interface PaginatedUsersResponse {

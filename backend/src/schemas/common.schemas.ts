@@ -45,6 +45,7 @@ export const UserSchema = z
     approved: z.boolean().optional(),
     enabled: z.boolean(),
     isAdmin: z.boolean().optional(),
+    hasAvatar: z.boolean().optional(),
   })
   .openapi('User', {
     example: {
@@ -55,5 +56,6 @@ export const UserSchema = z
       approved: true,
       enabled: true,
       isAdmin: false,
+      hasAvatar: false,
     },
   });

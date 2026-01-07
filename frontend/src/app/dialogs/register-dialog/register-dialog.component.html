@@ -98,13 +98,13 @@
       mat-raised-button
       color="primary"
       type="submit"
-      [disabled]="registerForm.invalid || isRegistering || !providersLoaded"
+      [disabled]="registerForm.invalid || isRegistering() || !providersLoaded()"
       class="register-button"
       data-testid="register-button">
-      @if (!isRegistering) {
+      @if (!isRegistering()) {
         <span>Register</span>
       }
-      @if (isRegistering) {
+      @if (isRegistering()) {
         <span>Creating account...</span>
       }
     </button>

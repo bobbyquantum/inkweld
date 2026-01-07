@@ -32,10 +32,10 @@
     </mat-form-field>
 
     <!-- Custom error message with icon -->
-    @if (passwordError) {
+    @if (passwordError()) {
       <div class="password-error-message" data-testid="password-error">
         <mat-icon class="error-icon">error_outline</mat-icon>
-        <span>{{ passwordError }}</span>
+        <span>{{ passwordError() }}</span>
       </div>
     }
 
@@ -46,10 +46,10 @@
       [disabled]="isLoginButtonDisabled()"
       data-testid="login-button"
       class="login-button">
-      @if (!isLoggingIn) {
+      @if (!isLoggingIn()) {
         <span>Login</span>
       }
-      @if (isLoggingIn) {
+      @if (isLoggingIn()) {
         <span>Logging in...</span>
       }
     </button>

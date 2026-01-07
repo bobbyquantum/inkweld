@@ -78,6 +78,13 @@
       "when": 1767554700552,
       "tag": "0010_aromatic_harpoon",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1767752931522,
+      "tag": "0011_sudden_excalibur",
+      "breakpoints": true
     }
   ]
 }

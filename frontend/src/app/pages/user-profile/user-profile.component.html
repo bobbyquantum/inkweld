@@ -44,7 +44,10 @@
           (click)="isOwner && openEditAvatarDialog()"
           (keydown.enter)="isOwner && openEditAvatarDialog()"
           (keydown.space)="isOwner && openEditAvatarDialog()">
-          <app-user-avatar [username]="profileUser.username" size="large">
+          <app-user-avatar
+            [username]="profileUser.username"
+            [hasAvatar]="profileUser.hasAvatar"
+            size="large">
           </app-user-avatar>
           @if (isOwner) {
             <mat-icon class="edit-avatar-icon">edit</mat-icon>

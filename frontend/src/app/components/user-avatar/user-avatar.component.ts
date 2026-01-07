@@ -32,6 +32,8 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
 
   @Input() username!: string;
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
+  /** When false, skip server request and use fallback directly. Undefined = unknown, try server. */
+  @Input() hasAvatar?: boolean;
 
   protected avatarUrl: SafeUrl | undefined;
   protected fallbackAvatarUrl: string | undefined;
@@ -46,7 +48,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['username']) {
+    if (changes['username'] || changes['hasAvatar']) {
       void this.loadAvatar();
     }
   }
@@ -87,6 +89,14 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
 
     // Always generate fallback avatar first
     this.generateFallbackAvatar();
+
+    // If we know the user has no avatar, use fallback directly without server request
+    if (this.hasAvatar === false) {
+      this.error = true;
+      this.isLoading.set(false);
+      this.cdr.detectChanges();
+      return;
+    }
 
     const mode = this.unifiedUserService.getMode();
 
