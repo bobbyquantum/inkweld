@@ -1,6 +1,10 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
-import { announcementService } from '../services/announcement.service';
+import {
+  announcementService,
+  type AnnouncementWithReadStatus,
+} from '../services/announcement.service';
+import type { Announcement } from '../db/schema';
 import type { AppContext } from '../types/context';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 import { UnauthorizedError } from '../errors';
@@ -57,7 +61,12 @@ const UnreadCountSchema = z.object({
 });
 
 // Helper to format announcement response
-function formatAnnouncementResponse(announcement: any) {
+function formatAnnouncementResponse(announcement: Announcement | AnnouncementWithReadStatus) {
+  const isRead =
+    'isRead' in announcement ? (announcement as AnnouncementWithReadStatus).isRead : false;
+  const readAt =
+    'readAt' in announcement ? (announcement as AnnouncementWithReadStatus).readAt : null;
+
   return {
     id: announcement.id,
     title: announcement.title,
@@ -75,20 +84,15 @@ function formatAnnouncementResponse(announcement: any) {
         : announcement.expiresAt || null,
     createdAt:
       announcement.createdAt instanceof Date
-        ? announcement.createdAt.toISOString()
-        : announcement.createdAt,
+        ? (announcement.createdAt as Date).toISOString()
+        : (announcement.createdAt as string),
     updatedAt:
       announcement.updatedAt instanceof Date
-        ? announcement.updatedAt.toISOString()
-        : announcement.updatedAt,
+        ? (announcement.updatedAt as Date).toISOString()
+        : (announcement.updatedAt as string),
     createdBy: announcement.createdBy,
-    ...(announcement.isRead !== undefined && {
-      isRead: !!announcement.isRead,
-      readAt:
-        announcement.readAt instanceof Date
-          ? announcement.readAt.toISOString()
-          : announcement.readAt || null,
-    }),
+    isRead,
+    readAt: readAt instanceof Date ? readAt.toISOString() : null,
   };
 }
 
@@ -256,7 +260,7 @@ announcementRoutes.openapi(listAnnouncementsRoute, async (c) => {
   if (!user) throw new UnauthorizedError('Not authenticated');
 
   const announcements = await announcementService.listPublishedWithReadStatus(db, user.id);
-  return c.json(announcements.map(formatAnnouncementResponse) as any, 200);
+  return c.json(announcements.map(formatAnnouncementResponse), 200);
 });
 
 announcementRoutes.openapi(getUnreadCountRoute, async (c) => {
