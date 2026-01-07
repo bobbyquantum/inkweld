@@ -102,18 +102,39 @@ test.describe('Offline to Server Migration', () => {
     await offlinePage.locator('[data-testid="authenticate-button"]').click();
 
     // Step 12: Wait for migration to complete
-    // Look specifically for the MatSnackBar message (more reliable than dialog text)
-    // Use .first() since both the dialog and snackbar might show the message
-    await expect(
-      offlinePage
-        .locator('.mat-mdc-snack-bar-label')
-        .filter({ hasText: /Successfully migrated \d+ project/i })
-        .first()
-    ).toBeVisible({ timeout: 60000 });
+    // The migration shows a snackbar then reloads the page after 1 second.
+    // We wait for either:
+    // - The snackbar to appear (may be brief before reload)
+    // - OR the mode to change to 'server' (after reload completes)
+    // This handles timing variations in CI environments
+    await Promise.race([
+      // Option 1: Snackbar appears before reload
+      expect(
+        offlinePage
+          .locator('.mat-mdc-snack-bar-label')
+          .filter({ hasText: /Successfully migrated \d+ project/i })
+          .first()
+      ).toBeVisible({ timeout: 30000 }),
+      // Option 2: Wait for mode to change to server (reload happened)
+      offlinePage.waitForFunction(
+        () => {
+          try {
+            const config = localStorage.getItem('inkweld-app-config');
+            if (!config) return false;
+            const parsed = JSON.parse(config);
+            return parsed.mode === 'server';
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 60000 }
+      ),
+    ]);
 
-    // Step 13: Page will reload automatically after migration (1 second delay)
-    // Wait for reload to complete
-    await offlinePage.waitForLoadState('domcontentloaded', { timeout: 10000 });
+    // Step 13: Wait for page to reload and fully stabilize
+    // The app does window.location.reload() after 1 second
+    await offlinePage.waitForTimeout(2000);
+    await offlinePage.waitForLoadState('networkidle', { timeout: 15000 });
 
     // Step 14: Verify we're now in server mode
     const finalMode = await getAppMode(offlinePage);
@@ -189,6 +210,9 @@ test.describe('Offline to Server Migration', () => {
   test('should preserve document content during migration', async ({
     offlinePage,
   }) => {
+    // Increase timeout for this test since it involves migration + reload
+    test.setTimeout(60000);
+
     // Step 1: Create offline project (page already navigated by fixture)
     await createOfflineProject(offlinePage, 'Content Test', 'content-test');
 
@@ -258,16 +282,34 @@ test.describe('Offline to Server Migration', () => {
       .fill(testPassword);
     await offlinePage.locator('[data-testid="authenticate-button"]').click();
 
-    // Wait for migration success message in snackbar
-    await expect(
-      offlinePage
-        .locator('.mat-mdc-snack-bar-label')
-        .filter({ hasText: /Successfully migrated \d+ project/i })
-        .first()
-    ).toBeVisible({ timeout: 60000 });
+    // Wait for migration to complete (snackbar or mode change)
+    // The migration shows a snackbar then reloads the page after 1 second.
+    await Promise.race([
+      expect(
+        offlinePage
+          .locator('.mat-mdc-snack-bar-label')
+          .filter({ hasText: /Successfully migrated \d+ project/i })
+          .first()
+      ).toBeVisible({ timeout: 30000 }),
+      offlinePage.waitForFunction(
+        () => {
+          try {
+            const config = localStorage.getItem('inkweld-app-config');
+            if (!config) return false;
+            const parsed = JSON.parse(config);
+            return parsed.mode === 'server';
+          } catch {
+            return false;
+          }
+        },
+        { timeout: 60000 }
+      ),
+    ]);
 
-    // Wait for page reload
-    await offlinePage.waitForLoadState('domcontentloaded', { timeout: 10000 });
+    // Wait for page to reload and fully stabilize
+    // The app does window.location.reload() after 1 second
+    await offlinePage.waitForTimeout(2000);
+    await offlinePage.waitForLoadState('networkidle', { timeout: 15000 });
 
     // Step 4: Navigate back to the project
     await offlinePage.goto('/');

@@ -245,11 +245,17 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByRole('menuitem', { name: 'Edit' }).click();
     await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
 
-    // Try to clear required template name field
-    await page.getByTestId('template-name-input').clear();
+    // Clear the required template name field by selecting all and deleting
+    // This is more reliable than .clear() for Angular reactive forms
+    const nameInput = page.getByTestId('template-name-input');
+    await nameInput.click();
+    await nameInput.fill('');
 
-    // Blur the field to trigger validation (more reliable than timeout)
-    await page.getByTestId('template-name-input').blur();
+    // Tab away to trigger validation and blur event
+    await page.keyboard.press('Tab');
+
+    // Wait for Angular change detection to update the form state
+    await page.waitForTimeout(200);
 
     // Verify the save button is disabled due to validation (use longer timeout for CI)
     await expect(page.getByTestId('save-template-button')).toBeDisabled({

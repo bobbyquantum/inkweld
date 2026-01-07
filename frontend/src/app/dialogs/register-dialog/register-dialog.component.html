@@ -15,16 +15,14 @@
         (blur)="checkUsernameAvailability()"
         aria-label="Username"
         data-testid="username-input" />
-      <mat-icon matSuffix>
-        @switch (usernameAvailability) {
-          @case ('available') {
-            <mat-icon color="primary">check_circle</mat-icon>
-          }
-          @case ('unavailable') {
-            <mat-icon color="warn">cancel</mat-icon>
-          }
+      @switch (usernameAvailability) {
+        @case ('available') {
+          <mat-icon matSuffix color="primary" data-testid="username-available-icon">check_circle</mat-icon>
         }
-      </mat-icon>
+        @case ('unavailable') {
+          <mat-icon matSuffix color="warn" data-testid="username-unavailable-icon">cancel</mat-icon>
+        }
+      }
       <mat-error data-testid="username-error">{{
         getUsernameErrorMessage()
       }}</mat-error>
