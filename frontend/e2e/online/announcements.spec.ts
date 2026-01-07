@@ -199,7 +199,10 @@ test.describe('Admin Announcements', () => {
       await adminPage
         .locator('[data-testid="announcement-priority-select"]')
         .click();
-      await adminPage.getByRole('option', { name: /normal/i }).first().click();
+      await adminPage
+        .getByRole('option', { name: /normal/i })
+        .first()
+        .click();
 
       // Submit
       await expect(
@@ -271,7 +274,10 @@ test.describe('Admin Announcements', () => {
       await adminPage
         .locator('[data-testid="announcement-priority-select"]')
         .click();
-      await adminPage.getByRole('option', { name: /normal/i }).first().click();
+      await adminPage
+        .getByRole('option', { name: /normal/i })
+        .first()
+        .click();
 
       await expect(
         adminPage.locator('[data-testid="announcement-submit-btn"]')
@@ -420,7 +426,10 @@ test.describe('Public Announcement Feed', () => {
     await adminPage
       .locator('[data-testid="announcement-priority-select"]')
       .click();
-    await adminPage.getByRole('option', { name: /normal/i }).first().click();
+    await adminPage
+      .getByRole('option', { name: /normal/i })
+      .first()
+      .click();
 
     // Check public checkbox
     // Ensure the public checkbox is checked
@@ -508,7 +517,10 @@ test.describe('Unread Badge', () => {
     await adminPage
       .locator('[data-testid="announcement-priority-select"]')
       .click();
-    await adminPage.getByRole('option', { name: /normal/i }).first().click();
+    await adminPage
+      .getByRole('option', { name: /normal/i })
+      .first()
+      .click();
 
     await expect(
       adminPage.locator('[data-testid="announcement-submit-btn"]')
@@ -565,7 +577,10 @@ test.describe('Mark as Read', () => {
     await adminPage
       .locator('[data-testid="announcement-priority-select"]')
       .click();
-    await adminPage.getByRole('option', { name: /normal/i }).first().click();
+    await adminPage
+      .getByRole('option', { name: /normal/i })
+      .first()
+      .click();
 
     await expect(
       adminPage.locator('[data-testid="announcement-submit-btn"]')
