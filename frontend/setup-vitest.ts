@@ -15,12 +15,43 @@
 import 'fake-indexeddb/auto';
 import '@angular/compiler'; // Required for JIT compilation in tests
 
+import { vi } from 'vitest';
+
+// Mock @myriaddreamin/typst.ts globally BEFORE any imports that might use it
+// This is needed for non-isolated test mode where module cache is shared
+const mockTypstGlobal = {
+  setCompilerInitOptions: vi.fn().mockReturnValue(undefined),
+  setRendererInitOptions: vi.fn().mockReturnValue(undefined),
+  pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+  mapShadow: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock('@myriaddreamin/typst.ts', () => {
+  const mockCompiler = {
+    init: vi.fn().mockResolvedValue(undefined),
+    pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    addSource: vi.fn().mockResolvedValue(undefined),
+    mapShadow: vi.fn().mockResolvedValue(undefined),
+  };
+  const mockRenderer = {
+    init: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    $typst: mockTypstGlobal,
+    createTypstCompiler: vi.fn().mockResolvedValue(mockCompiler),
+    createTypstRenderer: vi.fn().mockReturnValue(mockRenderer),
+  };
+});
+
+vi.mock('@myriaddreamin/typst.ts/contrib/snippet', () => ({
+  $typst: mockTypstGlobal,
+}));
+
 import { getTestBed } from '@angular/core/testing';
 import {
   BrowserTestingModule,
   platformBrowserTesting,
 } from '@angular/platform-browser/testing';
-import { vi } from 'vitest';
 
 // Initialize Angular testing environment for zoneless mode
 // Only initialize if not already initialized (prevents errors in watch mode)

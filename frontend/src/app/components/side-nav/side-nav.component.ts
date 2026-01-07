@@ -13,7 +13,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { Project } from '@inkweld/index';
-import { UserService } from '@services/user/user.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';
 
@@ -48,7 +48,7 @@ export interface UnifiedProjectItem {
 })
 export class SideNavComponent {
   protected router = inject(Router);
-  private userService = inject(UserService);
+  private userService = inject(UnifiedUserService);
 
   @Input() isOpen = signal(false);
   @Input() isMobile = false;
