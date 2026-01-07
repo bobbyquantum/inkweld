@@ -84,6 +84,7 @@ authRoutes.openapi(registerRoute, async (c) => {
             email: newUser.email || undefined,
             approved: newUser.approved,
             enabled: newUser.enabled,
+            hasAvatar: newUser.hasAvatar,
           },
           token,
           requiresApproval: false,
@@ -104,6 +105,7 @@ authRoutes.openapi(registerRoute, async (c) => {
           email: newUser.email || undefined,
           approved: newUser.approved,
           enabled: newUser.enabled,
+          hasAvatar: newUser.hasAvatar,
         },
         requiresApproval: true,
       },
@@ -195,6 +197,7 @@ authRoutes.openapi(loginRoute, async (c) => {
         approved: user.approved,
         enabled: user.enabled,
         isAdmin: user.isAdmin,
+        hasAvatar: user.hasAvatar,
       },
       token, // Return JWT token for client to store
     },

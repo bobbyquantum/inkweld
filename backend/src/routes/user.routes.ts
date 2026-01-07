@@ -73,6 +73,7 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
       enabled: user.enabled,
       approved: user.approved,
       isAdmin: user.isAdmin,
+      hasAvatar: user.hasAvatar,
     },
     200
   );
@@ -140,6 +141,7 @@ userRoutes.openapi(getUsersRoute, async (c) => {
           enabled: u.enabled,
           approved: u.approved,
           isAdmin: u.isAdmin,
+          hasAvatar: u.hasAvatar,
         };
       } else {
         // Regular users get limited info
@@ -148,6 +150,7 @@ userRoutes.openapi(getUsersRoute, async (c) => {
           username: u.username,
           name: u.name,
           enabled: u.enabled,
+          hasAvatar: u.hasAvatar,
         };
       }
     });
@@ -213,6 +216,7 @@ userRoutes.openapi(searchUsersRoute, async (c) => {
           enabled: u.enabled,
           approved: u.approved,
           isAdmin: u.isAdmin,
+          hasAvatar: u.hasAvatar,
         };
       } else {
         return {
@@ -220,6 +224,7 @@ userRoutes.openapi(searchUsersRoute, async (c) => {
           username: u.username,
           name: u.name,
           enabled: u.enabled,
+          hasAvatar: u.hasAvatar,
         };
       }
     });
@@ -432,6 +437,7 @@ userRoutes.openapi(uploadAvatarRoute, async (c) => {
 
   const processedAvatar = await imageService.processAvatar(buffer);
   await fileStorageService.saveUserAvatar(user.username, processedAvatar);
+  await userService.setHasAvatar(db, userId, true);
 
   return c.json({ message: 'Avatar uploaded successfully' }, 200);
 });
@@ -490,6 +496,7 @@ userRoutes.openapi(deleteAvatarRoute, async (c) => {
   }
 
   await fileStorageService.deleteUserAvatar(user.username);
+  await userService.setHasAvatar(db, userId, false);
 
   return c.json({ message: 'Avatar deleted successfully' }, 200);
 });

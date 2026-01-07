@@ -15,6 +15,7 @@ function formatUserResponse(user: User) {
     enabled: user.enabled,
     isAdmin: user.isAdmin,
     githubId: user.githubId,
+    hasAvatar: user.hasAvatar,
   };
 }
 

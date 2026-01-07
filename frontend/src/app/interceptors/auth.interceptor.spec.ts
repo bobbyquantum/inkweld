@@ -124,6 +124,40 @@ describe('AuthInterceptor', () => {
     });
   });
 
+  it('should not redirect on 401 for login endpoint', () => {
+    router.url = '/';
+    const request = new HttpRequest('POST', '/api/v1/auth/login', {});
+    const error = new HttpErrorResponse({ status: 401 });
+
+    const mockHandler = {
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
+    };
+
+    interceptor.intercept(request, mockHandler).subscribe({
+      error: err => {
+        expect(err).toBe(error);
+        expect(router.navigate).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  it('should not redirect on 401 for register endpoint', () => {
+    router.url = '/';
+    const request = new HttpRequest('POST', '/api/v1/auth/register', {});
+    const error = new HttpErrorResponse({ status: 401 });
+
+    const mockHandler = {
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
+    };
+
+    interceptor.intercept(request, mockHandler).subscribe({
+      error: err => {
+        expect(err).toBe(error);
+        expect(router.navigate).not.toHaveBeenCalled();
+      },
+    });
+  });
+
   it('should pass through successful requests', () => {
     const request = new HttpRequest('GET', '/api/test');
     const response = new HttpResponse({ status: 200 });

@@ -214,7 +214,7 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = false;
+      component.providersLoaded.set(false);
 
       await component.onRegister();
       expect(authService.registerUser).not.toHaveBeenCalled();
@@ -224,7 +224,7 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       const mockUser: User = {
         id: '1',
@@ -256,7 +256,7 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       const mockUser: User = {
         id: '1',
@@ -291,7 +291,7 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       const mockUser: User = {
         id: '1',
@@ -327,7 +327,7 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       const mockUser: User = {
         id: '1',
@@ -349,16 +349,16 @@ describe('RegisterDialogComponent', () => {
 
       const registerPromise = component.onRegister();
       // isRegistering should be true immediately after calling
-      expect(component.isRegistering).toBe(true);
+      expect(component.isRegistering()).toBe(true);
       await registerPromise;
-      expect(component.isRegistering).toBe(false);
+      expect(component.isRegistering()).toBe(false);
     });
 
     it('should handle server validation errors', async () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       const errorResponse = new HttpErrorResponse({
         error: {
@@ -393,7 +393,7 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       const errorResponse = new HttpErrorResponse({
         status: 500,
@@ -418,7 +418,7 @@ describe('RegisterDialogComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       component.registerForm.get('password')?.setValue('ValidPass123!');
       component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
-      component.providersLoaded = true;
+      component.providersLoaded.set(true);
 
       const registerUserMock = authService.registerUser as ReturnType<
         typeof vi.fn
@@ -524,11 +524,10 @@ describe('RegisterDialogComponent', () => {
       expect(dialogRef.close).toHaveBeenCalledWith('login');
     });
 
-    it('should handle providers loaded', async () => {
+    it('should handle providers loaded', () => {
       component.onProvidersLoaded();
-      // Wait for setTimeout
-      await new Promise(resolve => setTimeout(resolve, 0));
-      expect(component.providersLoaded).toBe(true);
+      // Signal handles change detection properly, no setTimeout needed
+      expect(component.providersLoaded()).toBe(true);
     });
 
     it('should handle password focus and blur', () => {

@@ -30,6 +30,7 @@ import { AdminUsersComponent } from './users.component';
 class MockUserAvatarComponent {
   @Input() username?: string;
   @Input() size?: 'small' | 'medium' | 'large';
+  @Input() hasAvatar?: boolean;
 }
 
 const MOCK_USERS: AdminUser[] = [

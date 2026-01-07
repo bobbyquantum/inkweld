@@ -18,47 +18,6 @@
   ],
   "components": {
     "schemas": {
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string",
-            "nullable": true
-          },
-          "email": {
-            "type": "string"
-          },
-          "approved": {
-            "type": "boolean"
-          },
-          "enabled": {
-            "type": "boolean"
-          },
-          "isAdmin": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "username",
-          "enabled"
-        ],
-        "example": {
-          "id": "user-123",
-          "username": "johndoe",
-          "name": "John Doe",
-          "email": "john@example.com",
-          "approved": true,
-          "enabled": true,
-          "isAdmin": false
-        }
-      },
       "RegisterResponse": {
         "type": "object",
         "properties": {
@@ -85,6 +44,51 @@
           "message",
           "user"
         ]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string"
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "hasAvatar": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "enabled"
+        ],
+        "example": {
+          "id": "user-123",
+          "username": "johndoe",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "approved": true,
+          "enabled": true,
+          "isAdmin": false,
+          "hasAvatar": false
+        }
       },
       "ErrorResponse": {
         "type": "object",
@@ -332,7 +336,8 @@
                 "enum": [
                   "viewer",
                   "editor",
-                  "admin"
+                  "admin",
+                  null
                 ],
                 "description": "Collaborator role if not owner"
               }
@@ -445,14 +450,6 @@
           "error"
         ]
       },
-      "ElementType": {
-        "type": "string",
-        "enum": [
-          "FOLDER",
-          "ITEM",
-          "WORLDBUILDING"
-        ]
-      },
       "Element": {
         "type": "object",
         "properties": {
@@ -528,6 +525,14 @@
           "expandable",
           "version",
           "metadata"
+        ]
+      },
+      "ElementType": {
+        "type": "string",
+        "enum": [
+          "FOLDER",
+          "ITEM",
+          "WORLDBUILDING"
         ]
       },
       "ElementError": {
@@ -887,6 +892,44 @@
           "service"
         ]
       },
+      "LintResponse": {
+        "type": "object",
+        "properties": {
+          "original_paragraph": {
+            "type": "string",
+            "description": "The original paragraph"
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Correction"
+            },
+            "description": "List of corrections"
+          },
+          "style_recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StyleRecommendation"
+            },
+            "description": "List of style recommendations"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "languagetool"
+            ],
+            "example": "openai",
+            "description": "The linting service source"
+          }
+        },
+        "required": [
+          "original_paragraph",
+          "corrections",
+          "style_recommendations",
+          "source"
+        ]
+      },
       "Correction": {
         "type": "object",
         "properties": {
@@ -949,44 +992,6 @@
           "reason"
         ]
       },
-      "LintResponse": {
-        "type": "object",
-        "properties": {
-          "original_paragraph": {
-            "type": "string",
-            "description": "The original paragraph"
-          },
-          "corrections": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Correction"
-            },
-            "description": "List of corrections"
-          },
-          "style_recommendations": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StyleRecommendation"
-            },
-            "description": "List of style recommendations"
-          },
-          "source": {
-            "type": "string",
-            "enum": [
-              "openai",
-              "languagetool"
-            ],
-            "example": "openai",
-            "description": "The linting service source"
-          }
-        },
-        "required": [
-          "original_paragraph",
-          "corrections",
-          "style_recommendations",
-          "source"
-        ]
-      },
       "LintError": {
         "type": "object",
         "properties": {
@@ -1029,6 +1034,74 @@
           "paragraph",
           "style",
           "level"
+        ]
+      },
+      "ImageGenerationStatus": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether any provider is available"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageProviderStatus"
+            },
+            "description": "All configured providers"
+          },
+          "defaultProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageProviderType"
+              },
+              {
+                "description": "Default provider"
+              }
+            ]
+          }
+        },
+        "required": [
+          "available",
+          "providers"
+        ]
+      },
+      "ImageProviderStatus": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ImageProviderType"
+          },
+          "name": {
+            "type": "string",
+            "description": "Provider display name"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Whether provider is available"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether provider is enabled"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageModelInfo"
+            },
+            "description": "Available models"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if unavailable"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "available",
+          "enabled",
+          "models"
         ]
       },
       "ImageProviderType": {
@@ -1088,74 +1161,6 @@
           "maxImages"
         ]
       },
-      "ImageProviderStatus": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "$ref": "#/components/schemas/ImageProviderType"
-          },
-          "name": {
-            "type": "string",
-            "description": "Provider display name"
-          },
-          "available": {
-            "type": "boolean",
-            "description": "Whether provider is available"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "Whether provider is enabled"
-          },
-          "models": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ImageModelInfo"
-            },
-            "description": "Available models"
-          },
-          "error": {
-            "type": "string",
-            "description": "Error message if unavailable"
-          }
-        },
-        "required": [
-          "type",
-          "name",
-          "available",
-          "enabled",
-          "models"
-        ]
-      },
-      "ImageGenerationStatus": {
-        "type": "object",
-        "properties": {
-          "available": {
-            "type": "boolean",
-            "description": "Whether any provider is available"
-          },
-          "providers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ImageProviderStatus"
-            },
-            "description": "All configured providers"
-          },
-          "defaultProvider": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ImageProviderType"
-              },
-              {
-                "description": "Default provider"
-              }
-            ]
-          }
-        },
-        "required": [
-          "available",
-          "providers"
-        ]
-      },
       "ImageGenerationError": {
         "type": "object",
         "properties": {
@@ -1166,30 +1171,6 @@
         },
         "required": [
           "error"
-        ]
-      },
-      "GeneratedImage": {
-        "type": "object",
-        "properties": {
-          "b64Json": {
-            "type": "string",
-            "description": "Base64-encoded image data"
-          },
-          "url": {
-            "type": "string",
-            "description": "URL to the image"
-          },
-          "revisedPrompt": {
-            "type": "string",
-            "description": "Revised prompt if modified"
-          },
-          "index": {
-            "type": "number",
-            "description": "Image index in batch"
-          }
-        },
-        "required": [
-          "index"
         ]
       },
       "ImageGenerateResponse": {
@@ -1248,6 +1229,90 @@
           "provider",
           "model",
           "request"
+        ]
+      },
+      "GeneratedImage": {
+        "type": "object",
+        "properties": {
+          "b64Json": {
+            "type": "string",
+            "description": "Base64-encoded image data"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to the image"
+          },
+          "revisedPrompt": {
+            "type": "string",
+            "description": "Revised prompt if modified"
+          },
+          "index": {
+            "type": "number",
+            "description": "Image index in batch"
+          }
+        },
+        "required": [
+          "index"
+        ]
+      },
+      "ImageGenerateRequest": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "example": "A fantasy castle on a misty mountain",
+            "description": "The image generation prompt"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Image model profile ID - determines provider, model, and default settings"
+          },
+          "n": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4,
+            "example": 1,
+            "description": "Number of images to generate"
+          },
+          "size": {
+            "$ref": "#/components/schemas/ImageSize"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "hd"
+            ],
+            "example": "standard",
+            "description": "Image quality (overrides profile config)"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "vivid",
+              "natural"
+            ],
+            "example": "vivid",
+            "description": "Image style (overrides profile config)"
+          },
+          "negativePrompt": {
+            "type": "string",
+            "description": "Negative prompt (for Stable Diffusion models)"
+          },
+          "worldbuildingContext": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorldbuildingContext"
+            },
+            "description": "Worldbuilding elements to include in the prompt"
+          }
+        },
+        "required": [
+          "prompt",
+          "profileId"
         ]
       },
       "ImageSize": {
@@ -1322,64 +1387,19 @@
           "data"
         ]
       },
-      "ImageGenerateRequest": {
+      "CustomSizesResponse": {
         "type": "object",
         "properties": {
-          "prompt": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4000,
-            "example": "A fantasy castle on a misty mountain",
-            "description": "The image generation prompt"
-          },
-          "profileId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Image model profile ID - determines provider, model, and default settings"
-          },
-          "n": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 4,
-            "example": 1,
-            "description": "Number of images to generate"
-          },
-          "size": {
-            "$ref": "#/components/schemas/ImageSize"
-          },
-          "quality": {
-            "type": "string",
-            "enum": [
-              "standard",
-              "hd"
-            ],
-            "example": "standard",
-            "description": "Image quality (overrides profile config)"
-          },
-          "style": {
-            "type": "string",
-            "enum": [
-              "vivid",
-              "natural"
-            ],
-            "example": "vivid",
-            "description": "Image style (overrides profile config)"
-          },
-          "negativePrompt": {
-            "type": "string",
-            "description": "Negative prompt (for Stable Diffusion models)"
-          },
-          "worldbuildingContext": {
+          "sizes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/WorldbuildingContext"
+              "$ref": "#/components/schemas/CustomImageSize"
             },
-            "description": "Worldbuilding elements to include in the prompt"
+            "description": "Custom image sizes"
           }
         },
         "required": [
-          "prompt",
-          "profileId"
+          "sizes"
         ]
       },
       "CustomImageSize": {
@@ -1415,21 +1435,6 @@
           "name",
           "width",
           "height"
-        ]
-      },
-      "CustomSizesResponse": {
-        "type": "object",
-        "properties": {
-          "sizes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CustomImageSize"
-            },
-            "description": "Custom image sizes"
-          }
-        },
-        "required": [
-          "sizes"
         ]
       },
       "DefaultTextToImageModelsResponse": {
@@ -1514,58 +1519,6 @@
           "providers"
         ]
       },
-      "TextProviderType": {
-        "type": "string",
-        "enum": [
-          "openai",
-          "openrouter",
-          "anthropic"
-        ]
-      },
-      "TextModelInfo": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Model ID"
-          },
-          "name": {
-            "type": "string",
-            "description": "Model display name"
-          },
-          "provider": {
-            "$ref": "#/components/schemas/TextProviderType"
-          },
-          "maxTokens": {
-            "type": "number",
-            "description": "Maximum context tokens"
-          },
-          "supportsJsonMode": {
-            "type": "boolean",
-            "description": "Whether JSON mode is supported"
-          },
-          "supportsStreaming": {
-            "type": "boolean",
-            "description": "Whether streaming is supported"
-          },
-          "description": {
-            "type": "string",
-            "description": "Model description"
-          },
-          "costTier": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 5,
-            "description": "Cost tier (1=cheapest, 5=most expensive)"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "provider",
-          "maxTokens"
-        ]
-      },
       "DefaultTextModelsResponse": {
         "type": "object",
         "properties": {
@@ -1648,6 +1601,58 @@
           "providers"
         ]
       },
+      "TextModelInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Model ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Model display name"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/TextProviderType"
+          },
+          "maxTokens": {
+            "type": "number",
+            "description": "Maximum context tokens"
+          },
+          "supportsJsonMode": {
+            "type": "boolean",
+            "description": "Whether JSON mode is supported"
+          },
+          "supportsStreaming": {
+            "type": "boolean",
+            "description": "Whether streaming is supported"
+          },
+          "description": {
+            "type": "string",
+            "description": "Model description"
+          },
+          "costTier": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Cost tier (1=cheapest, 5=most expensive)"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "provider",
+          "maxTokens"
+        ]
+      },
+      "TextProviderType": {
+        "type": "string",
+        "enum": [
+          "openai",
+          "openrouter",
+          "anthropic"
+        ]
+      },
       "TextGenerationError": {
         "type": "object",
         "properties": {
@@ -1658,44 +1663,6 @@
         },
         "required": [
           "error"
-        ]
-      },
-      "TextProviderStatus": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "$ref": "#/components/schemas/TextProviderType"
-          },
-          "name": {
-            "type": "string",
-            "description": "Provider display name"
-          },
-          "available": {
-            "type": "boolean",
-            "description": "Whether provider is available"
-          },
-          "enabled": {
-            "type": "boolean",
-            "description": "Whether provider is enabled"
-          },
-          "models": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TextModelInfo"
-            },
-            "description": "Available models"
-          },
-          "error": {
-            "type": "string",
-            "description": "Error message if unavailable"
-          }
-        },
-        "required": [
-          "type",
-          "name",
-          "available",
-          "enabled",
-          "models"
         ]
       },
       "TextGenerationStatus": {
@@ -1734,6 +1701,44 @@
         "required": [
           "available",
           "providers"
+        ]
+      },
+      "TextProviderStatus": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/TextProviderType"
+          },
+          "name": {
+            "type": "string",
+            "description": "Provider display name"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Whether provider is available"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether provider is enabled"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TextModelInfo"
+            },
+            "description": "Available models"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if unavailable"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "available",
+          "enabled",
+          "models"
         ]
       },
       "OptimizeImagePromptResponse": {
@@ -1792,6 +1797,21 @@
           "rawInput"
         ]
       },
+      "ProvidersStatusResponse": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderStatus"
+            },
+            "description": "All AI providers"
+          }
+        },
+        "required": [
+          "providers"
+        ]
+      },
       "ProviderStatus": {
         "type": "object",
         "properties": {
@@ -1843,21 +1863,6 @@
           "description",
           "supportsImages",
           "supportsText"
-        ]
-      },
-      "ProvidersStatusResponse": {
-        "type": "object",
-        "properties": {
-          "providers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ProviderStatus"
-            },
-            "description": "All AI providers"
-          }
-        },
-        "required": [
-          "providers"
         ]
       },
       "ProviderError": {
@@ -1921,6 +1926,30 @@
           "enabled"
         ]
       },
+      "OpenRouterModelsResponse": {
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterModel"
+            },
+            "description": "Available models"
+          },
+          "cached": {
+            "type": "boolean",
+            "description": "Whether the response was from cache"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "description": "ISO timestamp of last update"
+          }
+        },
+        "required": [
+          "models",
+          "cached"
+        ]
+      },
       "OpenRouterModel": {
         "type": "object",
         "properties": {
@@ -1960,15 +1989,15 @@
           "name"
         ]
       },
-      "OpenRouterModelsResponse": {
+      "ImageModelsResponse": {
         "type": "object",
         "properties": {
           "models": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/OpenRouterModel"
+              "$ref": "#/components/schemas/ImageModel"
             },
-            "description": "Available models"
+            "description": "Available image models"
           },
           "cached": {
             "type": "boolean",
@@ -2012,30 +2041,6 @@
           "id",
           "name",
           "provider"
-        ]
-      },
-      "ImageModelsResponse": {
-        "type": "object",
-        "properties": {
-          "models": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ImageModel"
-            },
-            "description": "Available image models"
-          },
-          "cached": {
-            "type": "boolean",
-            "description": "Whether the response was from cache"
-          },
-          "lastUpdated": {
-            "type": "string",
-            "description": "ISO timestamp of last update"
-          }
-        },
-        "required": [
-          "models",
-          "cached"
         ]
       },
       "FalaiModelMetadata": {
@@ -2123,9 +2128,6 @@
               },
               {
                 "type": "number"
-              },
-              {
-                "nullable": true
               },
               {
                 "nullable": true
@@ -2428,17 +2430,6 @@
           }
         }
       },
-      "McpPermission": {
-        "type": "string",
-        "enum": [
-          "read:project",
-          "read:elements",
-          "read:worldbuilding",
-          "read:schemas",
-          "write:elements",
-          "write:worldbuilding"
-        ]
-      },
       "McpPublicKey": {
         "type": "object",
         "properties": {
@@ -2481,6 +2472,17 @@
           "lastUsedAt",
           "createdAt",
           "revoked"
+        ]
+      },
+      "McpPermission": {
+        "type": "string",
+        "enum": [
+          "read:project",
+          "read:elements",
+          "read:worldbuilding",
+          "read:schemas",
+          "write:elements",
+          "write:worldbuilding"
         ]
       },
       "McpKeyError": {
@@ -2548,22 +2550,6 @@
           "message"
         ]
       },
-      "CollaboratorRole": {
-        "type": "string",
-        "enum": [
-          "viewer",
-          "editor",
-          "admin"
-        ]
-      },
-      "InvitationStatus": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "accepted",
-          "declined"
-        ]
-      },
       "Collaborator": {
         "type": "object",
         "properties": {
@@ -2618,6 +2604,22 @@
           "invitedByUsername",
           "invitedAt",
           "acceptedAt"
+        ]
+      },
+      "CollaboratorRole": {
+        "type": "string",
+        "enum": [
+          "viewer",
+          "editor",
+          "admin"
+        ]
+      },
+      "InvitationStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "accepted",
+          "declined"
         ]
       },
       "CollaborationError": {
@@ -2751,6 +2753,27 @@
           "acceptedAt"
         ]
       },
+      "MediaListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaItem"
+            },
+            "description": "List of media files"
+          },
+          "total": {
+            "type": "number",
+            "example": 5,
+            "description": "Total number of items"
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
       "MediaItem": {
         "type": "object",
         "properties": {
@@ -2778,27 +2801,6 @@
         "required": [
           "filename",
           "size"
-        ]
-      },
-      "MediaListResponse": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MediaItem"
-            },
-            "description": "List of media files"
-          },
-          "total": {
-            "type": "number",
-            "example": 5,
-            "description": "Total number of items"
-          }
-        },
-        "required": [
-          "items",
-          "total"
         ]
       },
       "MediaError": {

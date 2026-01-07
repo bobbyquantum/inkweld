@@ -46,18 +46,25 @@ export class AuthInterceptor implements HttpInterceptor {
         // 401 means the session is invalid - user MUST re-authenticate
         // Do not fall back to cache for auth errors
         if (error.status === 401 && this.setupService.getMode() === 'server') {
-          console.warn('Session expired or invalid, redirecting to login');
+          // Don't redirect on auth endpoints - let login/register handle their own 401s
+          const isAuthEndpoint =
+            request.url.includes('/auth/login') ||
+            request.url.includes('/auth/register');
 
-          // Clear invalid token
-          localStorage.removeItem('auth_token');
+          if (!isAuthEndpoint) {
+            console.warn('Session expired or invalid, redirecting to login');
 
-          // Don't redirect if we're already on the home page
-          const currentUrl = this.router.url;
-          if (currentUrl !== '/') {
-            // Navigate to home page (which shows login dialog for unauthenticated users)
-            this.router.navigate(['/']).catch(navError => {
-              console.error('Failed to navigate to home page:', navError);
-            });
+            // Clear invalid token
+            localStorage.removeItem('auth_token');
+
+            // Don't redirect if we're already on the home page
+            const currentUrl = this.router.url;
+            if (currentUrl !== '/') {
+              // Navigate to home page (which shows login dialog for unauthenticated users)
+              this.router.navigate(['/']).catch(navError => {
+                console.error('Failed to navigate to home page:', navError);
+              });
+            }
           }
         }
 

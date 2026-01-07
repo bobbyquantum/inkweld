@@ -7,6 +7,7 @@
     data-testid="user-menu-button">
     <app-user-avatar
       [username]="userService.currentUser()!.username"
+      [hasAvatar]="userService.currentUser()?.hasAvatar"
       size="small" />
   </button>
 
@@ -24,6 +25,7 @@
           <div class="user-info-content">
             <app-user-avatar
               [username]="userService.currentUser()!.username"
+              [hasAvatar]="userService.currentUser()?.hasAvatar"
               size="small" />
             <div class="user-details">
               <span class="user-name">{{
@@ -86,7 +88,8 @@
               [matBadge]="unreadCount()"
               [matBadgeHidden]="unreadCount() === 0"
               matBadgeColor="warn"
-              matBadgeSize="small">
+              matBadgeSize="small"
+              aria-hidden="false">
               mail
             </mat-icon>
             <span>Messages</span>

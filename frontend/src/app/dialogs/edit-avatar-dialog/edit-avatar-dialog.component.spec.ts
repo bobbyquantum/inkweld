@@ -14,7 +14,10 @@ import { EditAvatarDialogComponent } from './edit-avatar-dialog.component';
 describe('EditAvatarDialogComponent', () => {
   let component: EditAvatarDialogComponent;
   let fixture: ComponentFixture<EditAvatarDialogComponent>;
-  let userServiceMock: { uploadAvatar: ReturnType<typeof vi.fn> };
+  let userServiceMock: {
+    uploadAvatar: ReturnType<typeof vi.fn>;
+    setCurrentUser: ReturnType<typeof vi.fn>;
+  };
   let dialogRefMock: { close: ReturnType<typeof vi.fn> };
   let setupServiceMock: { getMode: ReturnType<typeof vi.fn> };
   let offlineStorageMock: { saveUserAvatar: ReturnType<typeof vi.fn> };
@@ -23,14 +26,19 @@ describe('EditAvatarDialogComponent', () => {
   };
 
   beforeEach(async () => {
-    userServiceMock = { uploadAvatar: vi.fn() };
+    userServiceMock = {
+      uploadAvatar: vi.fn(),
+      setCurrentUser: vi.fn().mockResolvedValue(undefined),
+    };
     dialogRefMock = { close: vi.fn() };
     setupServiceMock = { getMode: vi.fn().mockReturnValue('server') };
     offlineStorageMock = {
       saveUserAvatar: vi.fn().mockResolvedValue(undefined),
     };
     unifiedUserServiceMock = {
-      currentUser: vi.fn().mockReturnValue({ username: 'testuser' }),
+      currentUser: vi
+        .fn()
+        .mockReturnValue({ username: 'testuser', hasAvatar: false }),
     };
 
     await TestBed.configureTestingModule({

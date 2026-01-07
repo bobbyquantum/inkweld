@@ -12,6 +12,7 @@ export const users = sqliteTable('users', {
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
   approved: integer('approved', { mode: 'boolean' }).notNull().default(false),
   isAdmin: integer('isAdmin', { mode: 'boolean' }).notNull().default(false),
+  hasAvatar: integer('hasAvatar', { mode: 'boolean' }).notNull().default(false),
 });
 
 export type User = typeof users.$inferSelect;

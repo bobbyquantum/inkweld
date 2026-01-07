@@ -111,6 +111,16 @@ export class EditAvatarDialogComponent {
         // Also cache locally for offline access
         await this.offlineStorage.saveUserAvatar(username, this.croppedBlob);
       }
+
+      // Update the current user's hasAvatar flag so avatar component reloads properly
+      const currentUser = this.unifiedUserService.currentUser();
+      if (currentUser) {
+        await this.userService.setCurrentUser({
+          ...currentUser,
+          hasAvatar: true,
+        });
+      }
+
       this.dialogRef.close(true);
     } catch (error) {
       console.error('Failed to upload avatar:', error);

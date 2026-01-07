@@ -15,6 +15,7 @@ import {
   inject,
   OnDestroy,
   OnInit,
+  signal,
   TemplateRef,
   ViewChild,
   ViewContainerRef,
@@ -105,11 +106,11 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
   );
 
   isMobile = false;
-  isRegistering = false;
+  readonly isRegistering = signal(false);
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
-  providersLoaded = false;
+  readonly providersLoaded = signal(false);
 
   // Password focus state for showing requirements callout
   isPasswordFocused = false;
@@ -274,10 +275,8 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
 
   // Handle providers loaded event
   onProvidersLoaded(): void {
-    // Wrap in setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
-    setTimeout(() => {
-      this.providersLoaded = true;
-    });
+    // Signal handles change detection properly, no setTimeout needed
+    this.providersLoaded.set(true);
   }
 
   // Check if username is available
@@ -399,12 +398,12 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
     }
 
     // Ensure providers are loaded before allowing registration
-    if (!this.providersLoaded) {
+    if (!this.providersLoaded()) {
       return;
     }
 
     // Set loading state
-    this.isRegistering = true;
+    this.isRegistering.set(true);
 
     try {
       const formValues = this.registerForm.value as {
@@ -479,7 +478,7 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
       }
     } finally {
       // Always reset loading state when done
-      this.isRegistering = false;
+      this.isRegistering.set(false);
     }
   }
 

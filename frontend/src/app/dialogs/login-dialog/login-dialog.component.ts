@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -34,16 +34,16 @@ export class LoginDialogComponent {
 
   username = '';
   password = '';
-  passwordError: string | null = null;
-  isLoggingIn = false;
+  readonly passwordError = signal<string | null>(null);
+  readonly isLoggingIn = signal(false);
   lastAttemptedUsername = '';
   lastAttemptedPassword = '';
-  providersLoaded = false;
+  readonly providersLoaded = signal(false);
 
   // Clear error when username is changed
   onUsernameChange(): void {
-    if (this.passwordError) {
-      this.passwordError = null;
+    if (this.passwordError()) {
+      this.passwordError.set(null);
     }
 
     // If username is different from the last attempt, clear the lastAttemptedUsername
@@ -54,8 +54,8 @@ export class LoginDialogComponent {
 
   // Clear error when password is changed
   onPasswordChange(): void {
-    if (this.passwordError) {
-      this.passwordError = null;
+    if (this.passwordError()) {
+      this.passwordError.set(null);
     }
 
     // If password is different from the last attempt, clear the lastAttemptedPassword
@@ -80,21 +80,21 @@ export class LoginDialogComponent {
 
   // Check if login button should be disabled
   isLoginButtonDisabled(): boolean {
-    return !this.isFormValid() || this.isLoggingIn || !this.providersLoaded;
+    return !this.isFormValid() || this.isLoggingIn() || !this.providersLoaded();
   }
 
   async onLogin(): Promise<void> {
     // Clear previous error messages
-    this.passwordError = null;
+    this.passwordError.set(null);
 
     // Validate form before submission
     if (!this.isFormValid()) {
-      this.passwordError = 'Please enter both username and password.';
+      this.passwordError.set('Please enter both username and password.');
       return;
     }
 
     // Set loading state
-    this.isLoggingIn = true;
+    this.isLoggingIn.set(true);
 
     try {
       await this.userService.login(this.username, this.password);
@@ -117,22 +117,22 @@ export class LoginDialogComponent {
           // Track the username/password that failed
           this.lastAttemptedUsername = this.username;
           this.lastAttemptedPassword = this.password;
-          this.passwordError = 'Invalid username or password';
+          this.passwordError.set('Invalid username or password');
           return;
         }
         // Other known errors
-        this.passwordError = error.message;
+        this.passwordError.set(error.message);
       } else {
         // Unknown error
-        this.passwordError = 'Login failed. Please try again.';
+        this.passwordError.set('Login failed. Please try again.');
       }
     } finally {
-      this.isLoggingIn = false;
+      this.isLoggingIn.set(false);
     }
   }
 
   onProvidersLoaded(): void {
-    this.providersLoaded = true;
+    this.providersLoaded.set(true);
   }
 
   onRegisterClick(): void {

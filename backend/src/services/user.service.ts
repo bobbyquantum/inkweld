@@ -200,6 +200,13 @@ class UserService {
   }
 
   /**
+   * Set user hasAvatar flag
+   */
+  async setHasAvatar(db: DatabaseInstance, userId: string, hasAvatar: boolean): Promise<void> {
+    await db.update(users).set({ hasAvatar }).where(eq(users.id, userId));
+  }
+
+  /**
    * Delete user (admin only)
    */
   async deleteUser(db: DatabaseInstance, userId: string): Promise<void> {
