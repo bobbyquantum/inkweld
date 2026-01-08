@@ -278,4 +278,3 @@ jobs:
           name: playwright-report-docker
           path: frontend/playwright-report/
           retention-days: 7
-
