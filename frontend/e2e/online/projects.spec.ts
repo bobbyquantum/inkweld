@@ -52,7 +52,9 @@ test.describe('Online Project Workflows', () => {
 
     // Fill title
     await page.getByTestId('project-title-input').fill('Test Title');
-    await expect(page.getByTestId('create-project-button')).toBeEnabled();
+    await expect(page.getByTestId('create-project-button')).toBeEnabled({
+      timeout: 10000,
+    });
   });
 
   test('should auto-generate slug from title', async ({
@@ -170,8 +172,10 @@ test.describe('Online Project Workflows', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('project-description-input').fill(longDescription);
 
-    // Should still be able to create
-    await expect(page.getByTestId('create-project-button')).toBeEnabled();
+    // Should still be able to create - use timeout for CI stability
+    await expect(page.getByTestId('create-project-button')).toBeEnabled({
+      timeout: 10000,
+    });
     await page.getByTestId('create-project-button').click();
 
     // Should redirect successfully

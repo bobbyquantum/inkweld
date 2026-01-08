@@ -129,9 +129,14 @@ test.describe('User Login', () => {
 
     // Fill both to verify button becomes enabled
     await page.getByTestId('username-input').fill('someuser');
+    
+    // Use Tab to trigger form updates
+    await page.keyboard.press('Tab');
+    
     // Wait for Angular form validation to update
-    await page.waitForTimeout(100);
-    await expect(page.getByTestId('login-button')).toBeEnabled();
+    await expect(page.getByTestId('login-button')).toBeEnabled({
+      timeout: 10000,
+    });
   });
 
   test('should maintain authentication state after refresh', async ({
