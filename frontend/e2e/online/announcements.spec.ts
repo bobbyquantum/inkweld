@@ -31,6 +31,65 @@ function generateTestAnnouncement() {
   };
 }
 
+/**
+ * Helper to fill and submit the announcement form with proper waits for CI stability.
+ */
+async function fillAndSubmitAnnouncementForm(
+  page: Page,
+  testData: { title: string; content: string },
+  options?: { checkPublic?: boolean }
+): Promise<void> {
+  await page.locator('[data-testid="create-announcement-btn"]').click();
+  await page
+    .locator('[data-testid="announcement-title-input"]')
+    .fill(testData.title);
+  await page
+    .locator('[data-testid="announcement-content-input"]')
+    .fill(testData.content);
+
+  // Handle public checkbox if needed
+  if (options?.checkPublic) {
+    const publicCheckbox = page.locator('mat-checkbox').filter({
+      hasText: /unauthenticated/i,
+    });
+    const isChecked = await publicCheckbox
+      .locator('input[type="checkbox"]')
+      .isChecked();
+    if (!isChecked) {
+      await publicCheckbox.click();
+    }
+  }
+
+  // Select type with proper waits for dropdown animation
+  await page.locator('[data-testid="announcement-type-select"]').click();
+  await page
+    .getByRole('option', { name: /announcement/i })
+    .first()
+    .click();
+  await page.waitForTimeout(300); // Wait for dropdown to close
+
+  // Select priority with proper waits
+  await page.locator('[data-testid="announcement-priority-select"]').click();
+  await page
+    .getByRole('option', { name: /normal/i })
+    .first()
+    .click();
+  await page.waitForTimeout(300); // Wait for Angular change detection
+
+  // Submit
+  await expect(
+    page.locator('[data-testid="announcement-submit-btn"]')
+  ).toBeEnabled({ timeout: 10000 });
+  await page.locator('[data-testid="announcement-submit-btn"]').click();
+
+  // Wait for creation confirmation
+  await page
+    .locator('.mat-mdc-snack-bar-label')
+    .first()
+    .filter({ hasText: /created/i })
+    .waitFor({ state: 'visible', timeout: 5000 });
+}
+
 test.describe('Admin Announcements', () => {
   test.describe('Announcements Page', () => {
     test('should navigate to announcements page from admin sidebar', async ({
@@ -252,47 +311,8 @@ test.describe('Admin Announcements', () => {
 
       const testData = generateTestAnnouncement();
 
-      // First create an announcement
-      await adminPage
-        .locator('[data-testid="create-announcement-btn"]')
-        .click();
-      await adminPage
-        .locator('[data-testid="announcement-title-input"]')
-        .fill(testData.title);
-      await adminPage
-        .locator('[data-testid="announcement-content-input"]')
-        .fill(testData.content);
-
-      // Select type and priority explicitly to ensure form is valid and stable in CI
-      await adminPage
-        .locator('[data-testid="announcement-type-select"]')
-        .click();
-      await adminPage
-        .getByRole('option', { name: /announcement/i })
-        .first()
-        .click();
-      await adminPage
-        .locator('[data-testid="announcement-priority-select"]')
-        .click();
-      await adminPage
-        .getByRole('option', { name: /normal/i })
-        .first()
-        .click();
-
-      await expect(
-        adminPage.locator('[data-testid="announcement-submit-btn"]')
-      ).toBeEnabled();
-      await adminPage
-        .locator('[data-testid="announcement-submit-btn"]')
-        .click();
-
-      // Wait for creation
-      await adminPage
-        .locator('.mat-mdc-snack-bar-label')
-        .first()
-        .filter({ hasText: /created/i })
-        .first()
-        .waitFor({ state: 'visible', timeout: 5000 });
+      // Use helper for stable form filling
+      await fillAndSubmitAnnouncementForm(adminPage, testData);
 
       // Wait for snackbar to disappear
       await adminPage.waitForTimeout(500);
@@ -408,52 +428,10 @@ test.describe('Public Announcement Feed', () => {
       content: 'This should appear in the public feed',
     };
 
-    // Create announcement
-    await adminPage.locator('[data-testid="create-announcement-btn"]').click();
-    await adminPage
-      .locator('[data-testid="announcement-title-input"]')
-      .fill(testData.title);
-    await adminPage
-      .locator('[data-testid="announcement-content-input"]')
-      .fill(testData.content);
-
-    // Select type and priority explicitly to ensure form is valid and stable in CI
-    await adminPage.locator('[data-testid="announcement-type-select"]').click();
-    await adminPage
-      .getByRole('option', { name: /announcement/i })
-      .first()
-      .click();
-    await adminPage
-      .locator('[data-testid="announcement-priority-select"]')
-      .click();
-    await adminPage
-      .getByRole('option', { name: /normal/i })
-      .first()
-      .click();
-
-    // Check public checkbox
-    // Ensure the public checkbox is checked
-    const publicCheckbox = adminPage.locator('mat-checkbox').filter({
-      hasText: /unauthenticated/i,
+    // Use helper for stable form filling with public checkbox
+    await fillAndSubmitAnnouncementForm(adminPage, testData, {
+      checkPublic: true,
     });
-    const isChecked = await publicCheckbox
-      .locator('input[type="checkbox"]')
-      .isChecked();
-    if (!isChecked) {
-      await publicCheckbox.click();
-    }
-
-    await expect(
-      adminPage.locator('[data-testid="announcement-submit-btn"]')
-    ).toBeEnabled();
-    await adminPage.locator('[data-testid="announcement-submit-btn"]').click();
-
-    // Wait for creation
-    await adminPage
-      .locator('.mat-mdc-snack-bar-label')
-      .first()
-      .filter({ hasText: /created/i })
-      .waitFor({ state: 'visible', timeout: 5000 });
 
     // Publish the announcement
     const announcementCard = adminPage
@@ -500,45 +478,8 @@ test.describe('Unread Badge', () => {
       content: 'This tests the unread badge',
     };
 
-    await adminPage.locator('[data-testid="create-announcement-btn"]').click();
-    await adminPage
-      .locator('[data-testid="announcement-title-input"]')
-      .fill(testData.title);
-    await adminPage
-      .locator('[data-testid="announcement-content-input"]')
-      .fill(testData.content);
-
-    // Select type and priority explicitly to ensure form is valid and stable in CI
-    await adminPage.locator('[data-testid="announcement-type-select"]').click();
-    await adminPage
-      .getByRole('option', { name: /announcement/i })
-      .first()
-      .click();
-
-    // Wait for dropdown to close before opening next one
-    await adminPage.waitForTimeout(200);
-
-    await adminPage
-      .locator('[data-testid="announcement-priority-select"]')
-      .click();
-    await adminPage
-      .getByRole('option', { name: /normal/i })
-      .first()
-      .click();
-
-    // Wait for Angular change detection after form field changes
-    await adminPage.waitForTimeout(300);
-
-    await expect(
-      adminPage.locator('[data-testid="announcement-submit-btn"]')
-    ).toBeEnabled({ timeout: 10000 });
-    await adminPage.locator('[data-testid="announcement-submit-btn"]').click();
-
-    await adminPage
-      .locator('.mat-mdc-snack-bar-label')
-      .first()
-      .filter({ hasText: /created/i })
-      .waitFor({ state: 'visible', timeout: 5000 });
+    // Use helper for stable form filling
+    await fillAndSubmitAnnouncementForm(adminPage, testData);
 
     // Publish it
     const announcementCard = adminPage
@@ -567,38 +508,8 @@ test.describe('Mark as Read', () => {
       content: 'This tests marking as read',
     };
 
-    await adminPage.locator('[data-testid="create-announcement-btn"]').click();
-    await adminPage
-      .locator('[data-testid="announcement-title-input"]')
-      .fill(testData.title);
-    await adminPage
-      .locator('[data-testid="announcement-content-input"]')
-      .fill(testData.content);
-
-    // Select type and priority explicitly to ensure form is valid and stable in CI
-    await adminPage.locator('[data-testid="announcement-type-select"]').click();
-    await adminPage
-      .getByRole('option', { name: /announcement/i })
-      .first()
-      .click();
-    await adminPage
-      .locator('[data-testid="announcement-priority-select"]')
-      .click();
-    await adminPage
-      .getByRole('option', { name: /normal/i })
-      .first()
-      .click();
-
-    await expect(
-      adminPage.locator('[data-testid="announcement-submit-btn"]')
-    ).toBeEnabled();
-    await adminPage.locator('[data-testid="announcement-submit-btn"]').click();
-
-    await adminPage
-      .locator('.mat-mdc-snack-bar-label')
-      .first()
-      .filter({ hasText: /created/i })
-      .waitFor({ state: 'visible', timeout: 5000 });
+    // Use helper for stable form filling
+    await fillAndSubmitAnnouncementForm(adminPage, testData);
 
     // Publish it
     const announcementCard = adminPage

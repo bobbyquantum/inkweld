@@ -30,29 +30,31 @@ test.describe('Online Publishing Workflow', () => {
     await page.getByTestId('create-project-button').click();
 
     // Wait for project page
-    await page.waitForURL(new RegExp(uniqueSlug), { timeout: 10000 });
+    await page.waitForURL(new RegExp(uniqueSlug), { timeout: 15000 });
 
     // Wait for project home to load - use role to avoid multiple matches
     await expect(
       page.getByRole('heading', { name: 'Publish Plans' })
     ).toBeVisible({
-      timeout: 10000,
+      timeout: 15000,
     });
 
     // Create a new publish plan
     await page.getByTestId('create-publish-plan-button').click();
 
-    // Wait for navigation and the publish plan tab to load
-    // First wait for URL to change (plan gets a new route)
-    await page.waitForTimeout(500); // Brief pause for navigation to start
+    // Wait for navigation to complete - the plan page should load
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
 
-    // Then wait for the plan name display - may take time in CI
+    // Then wait for the plan name display
     await expect(page.getByTestId('plan-name-display')).toBeVisible({
-      timeout: 45000,
+      timeout: 30000,
     });
 
     return uniqueSlug;
   }
+
+  // Increase timeout for tests using setupProjectAndCreatePlan
+  test.setTimeout(60000);
 
   test.describe('Publish Plan Creation', () => {
     test('should show publish plans section on project home', async ({
