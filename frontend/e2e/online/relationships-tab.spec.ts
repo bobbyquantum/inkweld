@@ -24,13 +24,18 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
   });
 
   // Click on the "Relationship Types" tab within the mat-tab-group
-  await page.getByRole('tab', { name: 'Relationship Types' }).click();
+  const tab = page.getByRole('tab', { name: 'Relationship Types' });
+  await tab.waitFor({ state: 'visible', timeout: 10000 });
+  await tab.click();
 
-  // Wait for the relationships tab container to be visible
+  // Wait for the relationships tab container to be visible and have content
   await page.waitForSelector('.relationships-tab-container', {
     state: 'visible',
-    timeout: 10000,
+    timeout: 15000,
   });
+
+  // Ensure the page is settled
+  await page.waitForLoadState('networkidle');
 }
 
 /**
@@ -42,12 +47,16 @@ async function createCustomRelationshipType(
   name: string,
   inverseName: string
 ) {
-  // Click "New Type" button (works from both empty and populated state)
+  // Wait for the "New Type" button to be visible and stable
   const createButton = page.getByRole('button', { name: /new type/i });
+  await createButton.waitFor({ state: 'visible', timeout: 15000 });
   await createButton.click();
 
   // Wait for the first dialog (Create Relationship Type)
-  await page.waitForSelector('app-rename-dialog', { state: 'visible' });
+  await page.waitForSelector('app-rename-dialog', {
+    state: 'visible',
+    timeout: 10000,
+  });
   await expect(
     page.locator('app-rename-dialog h2:has-text("Create Relationship Type")')
   ).toBeVisible();
@@ -82,6 +91,9 @@ async function createCustomRelationshipType(
     timeout: 15000,
   });
 }
+
+// Increase timeout for tests in this file as it involves multiple navigations and dialogs
+test.setTimeout(90000);
 
 test.describe('Relationships Tab', () => {
   test.describe('View Relationship Types', () => {

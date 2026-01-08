@@ -131,8 +131,10 @@ test.describe('Online Publishing Workflow', () => {
         'Table of Contents'
       );
 
-      // Generate button should be enabled now
-      await expect(page.getByTestId('generate-button')).toBeEnabled();
+      // Generate button should be enabled now - give it time for processing in CI
+      await expect(page.getByTestId('generate-button')).toBeEnabled({
+        timeout: 15000,
+      });
     });
 
     test('should remove content items', async ({ authenticatedPage: page }) => {
