@@ -82,7 +82,7 @@
     "lodash-es": "4.17.22",
     "marked": "^17.0.1",
     "nanoid": "5.1.6",
-    "ngx-image-cropper": "9.1.5",
+    "ngx-image-cropper": "9.1.6",
     "prosemirror-history": "1.5.0",
     "prosemirror-transform": "1.10.5",
     "prosemirror-view": "1.41.4",
