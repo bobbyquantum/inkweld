@@ -30,31 +30,19 @@ test.describe('Online Publishing Workflow', () => {
     await page.getByTestId('create-project-button').click();
 
     // Wait for project page
-    await page.waitForURL(new RegExp(uniqueSlug), { timeout: 15000 });
+    await page.waitForURL(new RegExp(uniqueSlug));
 
     // Wait for project home to load - use role to avoid multiple matches
     await expect(
       page.getByRole('heading', { name: 'Publish Plans' })
-    ).toBeVisible({
-      timeout: 15000,
-    });
+    ).toBeVisible();
 
-    // Create a new publish plan
     await page.getByTestId('create-publish-plan-button').click();
-
-    // Wait for navigation to complete - the plan page should load
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
-
-    // Then wait for the plan name display
-    await expect(page.getByTestId('plan-name-display')).toBeVisible({
-      timeout: 30000,
-    });
+    await page.waitForURL(/\/publish-plan\//);
+    await expect(page.getByTestId('plan-name-display')).toBeVisible();
 
     return uniqueSlug;
   }
-
-  // Increase timeout for tests using setupProjectAndCreatePlan
-  test.setTimeout(60000);
 
   test.describe('Publish Plan Creation', () => {
     test('should show publish plans section on project home', async ({
@@ -71,14 +59,12 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('project-title-input').fill('Plan Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug), { timeout: 10000 });
+      await page.waitForURL(new RegExp(uniqueSlug));
 
       // Should see the Publish Plans heading
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({
-        timeout: 10000,
-      });
+      ).toBeVisible();
 
       // Should see the create button
       await expect(
@@ -108,9 +94,7 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('save-changes-button').click();
 
       // Save button should disappear after saving
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible({
-        timeout: 5000,
-      });
+      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
     });
   });
 
@@ -132,9 +116,7 @@ test.describe('Online Publishing Workflow', () => {
       );
 
       // Generate button should be enabled now - give it time for processing in CI
-      await expect(page.getByTestId('generate-button')).toBeEnabled({
-        timeout: 15000,
-      });
+      await expect(page.getByTestId('generate-button')).toBeEnabled();
     });
 
     test('should remove content items', async ({ authenticatedPage: page }) => {
@@ -185,23 +167,17 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByRole('option', { name: 'PDF' }).click();
 
       // Wait for save button to appear (format change triggers hasChanges)
-      await expect(page.getByTestId('save-changes-button')).toBeVisible({
-        timeout: 5000,
-      });
+      await expect(page.getByTestId('save-changes-button')).toBeVisible();
 
       // Save
       await page.getByTestId('save-changes-button').click();
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible({
-        timeout: 5000,
-      });
+      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
 
       // Reload - the tab should remain open
       await page.reload();
 
       // The publish plan should still be visible
-      await expect(page.getByTestId('publish-plan-container')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
 
       // Generate button should show PDF
       await expect(page.getByTestId('generate-button')).toContainText('PDF');
@@ -227,7 +203,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for publish complete dialog
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Should show file info
       await expect(page.getByTestId('filename')).toBeVisible();
@@ -241,9 +217,6 @@ test.describe('Online Publishing Workflow', () => {
     test('should generate PDF format with actual document content', async ({
       authenticatedPage: page,
     }) => {
-      // This test does multiple complex operations - set a higher timeout
-      test.setTimeout(90000);
-
       // Create a unique project
       const uniqueSlug = `pdf-content-test-${Date.now()}`;
       const testContent =
@@ -260,36 +233,32 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('create-project-button').click();
 
       // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug), { timeout: 10000 });
+      await page.waitForURL(new RegExp(uniqueSlug));
 
       // Wait for project home to fully load
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Online projects now have a default README document
       // Click on README using treeitem role
       const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible({ timeout: 5000 });
+      await expect(readme).toBeVisible();
       await readme.click();
 
       // Wait for editor to load
       const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible({ timeout: 10000 });
+      await expect(editor).toBeVisible();
 
       // Wait for sync status to show "synced" (initial load)
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Click into editor and add content
       await editor.click();
       await editor.pressSequentially(testContent, { delay: 5 });
 
       // Wait for sync status to return to "synced" after edits
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Additional wait to ensure IndexedDB is persisted
       // y-indexeddb debounces writes with 1000ms timeout, and storeState needs
@@ -302,20 +271,18 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for project home to load
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Create a new publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(page.getByTestId('plan-name-display')).toBeVisible();
 
       // Select PDF format
       await page.getByTestId('format-select').click();
       await page.getByRole('option', { name: 'PDF' }).click();
 
       // Wait for format dropdown to close before clicking document select
-      await page.waitForTimeout(500);
+      await expect(page.getByRole('listbox')).not.toBeVisible();
 
       // Add README document to the plan using the dropdown
       // Use force: true because mat-label may intercept pointer events
@@ -327,9 +294,7 @@ test.describe('Online Publishing Workflow', () => {
       await expect(page.getByTestId('item-name')).toContainText('README');
 
       // Wait for the item count to update
-      await expect(page.locator('text=/Contents.*1 item/i')).toBeVisible({
-        timeout: 5000,
-      });
+      await expect(page.locator('text=/Contents.*1 item/i')).toBeVisible();
 
       // Generate
       await page.getByTestId('generate-button').click();
@@ -337,7 +302,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for completion - PDF generation can be slow in Docker
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 75000 });
+      ).toBeVisible();
 
       // Verify format in complete dialog
       await expect(page.getByTestId('format-name')).toContainText('PDF');
@@ -371,9 +336,6 @@ test.describe('Online Publishing Workflow', () => {
     test('should generate EPUB format with actual document content', async ({
       authenticatedPage: page,
     }) => {
-      // This test does multiple complex operations - set a higher timeout
-      test.setTimeout(60000);
-
       // Create a unique project
       const uniqueSlug = `epub-content-test-${Date.now()}`;
       const testContent =
@@ -390,40 +352,33 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('create-project-button').click();
 
       // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug), { timeout: 10000 });
+      await page.waitForURL(new RegExp(uniqueSlug));
 
       // Wait for project home to fully load
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Online projects now have a default README document
       // Click on README using treeitem role
       const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible({ timeout: 5000 });
+      await expect(readme).toBeVisible();
       await readme.click();
 
       // Wait for editor to load
       const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible({ timeout: 10000 });
+      await expect(editor).toBeVisible();
 
       // Wait for sync status to show "synced" (initial load)
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Click into editor and add content
       await editor.click();
       await editor.pressSequentially(testContent, { delay: 5 });
 
       // Wait for sync status to return to "synced" after edits
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
-
-      // Additional wait to ensure IndexedDB is persisted
-      // y-indexeddb debounces writes with 1000ms timeout
-      await page.waitForTimeout(3000);
+      // y-indexeddb debounces writes, so we wait for the status to clearly indicate completion
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Go back to project home
       await page.getByTestId('toolbar-home-button').click();
@@ -431,21 +386,18 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for project home to load
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Create a new publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(page.getByTestId('plan-name-display')).toBeVisible();
 
       // EPUB is the default format, no need to change it
 
-      // Wait for format dropdown to close before clicking document select
-      await page.waitForTimeout(500);
-
       // Add README document to the plan using the dropdown
-      await page.getByTestId('add-document-select').click({ force: true });
+      const addDocSelect = page.getByTestId('add-document-select');
+      await expect(addDocSelect).toBeVisible();
+      await addDocSelect.click({ force: true });
       await page.getByRole('option', { name: 'README' }).click();
 
       // Verify document was added
@@ -458,7 +410,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for completion
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Verify format in complete dialog
       await expect(page.getByTestId('format-name')).toContainText('EPUB');
@@ -501,9 +453,6 @@ test.describe('Online Publishing Workflow', () => {
     test('should generate Markdown format with actual document content', async ({
       authenticatedPage: page,
     }) => {
-      // This test does multiple complex operations - set a higher timeout
-      test.setTimeout(60000);
-
       // Create a unique project
       const uniqueSlug = `markdown-content-test-${Date.now()}`;
       const testContent =
@@ -522,38 +471,31 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('create-project-button').click();
 
       // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug), { timeout: 10000 });
+      await page.waitForURL(new RegExp(uniqueSlug));
 
       // Wait for project home to fully load
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Click on README document
       const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible({ timeout: 5000 });
+      await expect(readme).toBeVisible();
       await readme.click();
 
       // Wait for editor to load
       const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible({ timeout: 10000 });
+      await expect(editor).toBeVisible();
 
       // Wait for sync status to show "synced"
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Add content
       await editor.click();
       await editor.pressSequentially(testContent, { delay: 5 });
 
       // Wait for sync
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
-
-      // Wait for IndexedDB persistence
-      await page.waitForTimeout(3000);
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Go back to project home
       await page.getByTestId('toolbar-home-button').click();
@@ -561,19 +503,18 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for project home
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Create publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(page.getByTestId('plan-name-display')).toBeVisible();
 
       // Select Markdown format
       await page.getByTestId('format-select').click();
       await page.getByRole('option', { name: 'Markdown' }).click();
 
-      await page.waitForTimeout(500);
+      // Wait for format dropdown to close
+      await expect(page.getByRole('listbox')).not.toBeVisible();
 
       // Add README document
       await page.getByTestId('add-document-select').click({ force: true });
@@ -589,7 +530,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for completion
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Verify format
       await expect(page.getByTestId('format-name')).toContainText('Markdown');
@@ -616,9 +557,6 @@ test.describe('Online Publishing Workflow', () => {
     test('should generate HTML format with actual document content', async ({
       authenticatedPage: page,
     }) => {
-      // This test does multiple complex operations - set a higher timeout
-      test.setTimeout(60000);
-
       // Create a unique project
       const uniqueSlug = `html-content-test-${Date.now()}`;
       const testContent =
@@ -635,38 +573,31 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('create-project-button').click();
 
       // Wait for project page
-      await page.waitForURL(new RegExp(uniqueSlug), { timeout: 10000 });
+      await page.waitForURL(new RegExp(uniqueSlug));
 
       // Wait for project home to fully load
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Click on README document
       const readme = page.getByRole('treeitem', { name: /readme/i });
-      await expect(readme).toBeVisible({ timeout: 5000 });
+      await expect(readme).toBeVisible();
       await readme.click();
 
       // Wait for editor to load
       const editor = page.locator('.ProseMirror').first();
-      await expect(editor).toBeVisible({ timeout: 10000 });
+      await expect(editor).toBeVisible();
 
       // Wait for sync status
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Add content
       await editor.click();
       await editor.pressSequentially(testContent, { delay: 5 });
 
       // Wait for sync
-      await expect(page.locator('.sync-status')).toContainText('synced', {
-        timeout: 10000,
-      });
-
-      // Wait for IndexedDB persistence
-      await page.waitForTimeout(3000);
+      await expect(page.locator('.sync-status')).toContainText('synced');
 
       // Go back to project home
       await page.getByTestId('toolbar-home-button').click();
@@ -674,19 +605,18 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for project home
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Create publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(page.getByTestId('plan-name-display')).toBeVisible();
 
       // Select HTML format
       await page.getByTestId('format-select').click();
       await page.getByRole('option', { name: 'HTML' }).click();
 
-      await page.waitForTimeout(500);
+      // Wait for format dropdown to close
+      await expect(page.getByRole('listbox')).not.toBeVisible();
 
       // Add README document
       await page.getByTestId('add-document-select').click({ force: true });
@@ -702,7 +632,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for completion
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Verify format
       await expect(page.getByTestId('format-name')).toContainText('HTML');
@@ -744,7 +674,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for completion
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Verify format in complete dialog
       await expect(page.getByTestId('format-name')).toContainText('Markdown');
@@ -766,7 +696,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for completion
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Verify format in complete dialog
       await expect(page.getByTestId('format-name')).toContainText('HTML');
@@ -786,7 +716,7 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for complete dialog
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Prepare to intercept download
       const downloadPromise = page.waitForEvent('download');
@@ -815,17 +745,13 @@ test.describe('Online Publishing Workflow', () => {
 
       // Save
       await page.getByTestId('save-changes-button').click();
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible({
-        timeout: 5000,
-      });
+      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
 
       // Reload
       await page.reload();
 
       // The publish plan should still be open - wait for plan name display which is more stable
-      await expect(page.getByTestId('plan-name-display')).toBeVisible({
-        timeout: 15000,
-      });
+      await expect(page.getByTestId('plan-name-display')).toBeVisible();
 
       // Verify persistence
       await expect(page.getByTestId('book-title-input')).toHaveValue(

@@ -11,12 +11,12 @@ async function navigateToAdminAnnouncements(page: Page): Promise<void> {
   // Click admin link
   await page.locator('[data-testid="admin-menu-link"]').click();
   // Wait for admin page to load
-  await page.waitForURL('**/admin/**');
+  await expect(page).toHaveURL(/.*\/admin\/.*/);
   await page.waitForLoadState('networkidle');
 
   // Navigate to announcements via sidebar
   await page.locator('[data-testid="admin-nav-announcements"]').click();
-  await page.waitForURL('**/admin/announcements');
+  await expect(page).toHaveURL(/.*\/admin\/announcements/);
   await page.waitForLoadState('networkidle');
 }
 
@@ -67,7 +67,6 @@ async function fillAndSubmitAnnouncementForm(
     .first()
     .click();
   await page.keyboard.press('Tab'); // Blur to trigger form update
-  await page.waitForTimeout(500); // Wait for dropdown animation and form settlement
 
   // Select priority with proper waits
   await page.locator('[data-testid="announcement-priority-select"]').click();
@@ -76,12 +75,11 @@ async function fillAndSubmitAnnouncementForm(
     .first()
     .click();
   await page.keyboard.press('Tab'); // Blur to trigger form update
-  await page.waitForTimeout(500); // Wait for Angular change detection and form settlement
 
-  // Submit - Use longer timeout for slow CI environments
+  // Submit - Use global expect timeout
   await expect(
     page.locator('[data-testid="announcement-submit-btn"]')
-  ).toBeEnabled({ timeout: 20000 });
+  ).toBeEnabled();
   await page.locator('[data-testid="announcement-submit-btn"]').click();
 
   // Wait for creation confirmation
@@ -89,7 +87,7 @@ async function fillAndSubmitAnnouncementForm(
     .locator('.mat-mdc-snack-bar-label')
     .first()
     .filter({ hasText: /created/i })
-    .waitFor({ state: 'visible', timeout: 5000 });
+    .waitFor();
 }
 
 test.describe('Admin Announcements', () => {
@@ -127,10 +125,8 @@ test.describe('Admin Announcements', () => {
 
       // Wait for either to be visible
       await Promise.race([
-        emptyState.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
-        announcementsList
-          .waitFor({ state: 'visible', timeout: 5000 })
-          .catch(() => {}),
+        emptyState.waitFor().catch(() => {}),
+        announcementsList.waitFor().catch(() => {}),
       ]);
 
       const isEmptyVisible = await emptyState.isVisible().catch(() => false);
@@ -210,11 +206,11 @@ test.describe('Admin Announcements', () => {
         .first()
         .filter({ hasText: /published/i })
         .first()
-        .waitFor({ state: 'visible', timeout: 5000 });
+        .waitFor();
 
       // Should show "Public" chip now
       const finalCard = adminPage
-        .locator('mat-card')
+        .getByTestId('announcement-card')
         .filter({ hasText: testData.title });
       await expect(finalCard.getByTestId('public-chip').first()).toBeVisible();
     });
@@ -227,12 +223,9 @@ test.describe('Admin Announcements', () => {
       // Use helper for stable form filling
       await fillAndSubmitAnnouncementForm(adminPage, testData);
 
-      // Wait for snackbar to disappear
-      await adminPage.waitForTimeout(500);
-
       // Find the announcement card
       const announcementCard = adminPage
-        .locator('mat-card')
+        .getByTestId('announcement-card')
         .filter({ hasText: testData.title });
       await expect(announcementCard).toBeVisible();
 
@@ -255,7 +248,7 @@ test.describe('Admin Announcements', () => {
         .first()
         .filter({ hasText: /deleted/i })
         .first()
-        .waitFor({ state: 'visible', timeout: 5000 });
+        .waitFor();
 
       // Announcement should no longer be visible
       await expect(
@@ -291,7 +284,7 @@ test.describe('User Messages', () => {
       .click();
 
     // Should navigate to messages page
-    await authenticatedPage.waitForURL('**/messages');
+    await expect(authenticatedPage).toHaveURL(/.*\/messages/);
     await expect(
       authenticatedPage.locator('[data-testid="messages-page"]')
     ).toBeVisible();
@@ -317,8 +310,8 @@ test.describe('User Messages', () => {
 
     // Wait for either to appear
     await Promise.race([
-      emptyState.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
-      messagesList.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+      emptyState.waitFor().catch(() => {}),
+      messagesList.waitFor().catch(() => {}),
     ]);
 
     const isEmptyVisible = await emptyState.isVisible().catch(() => false);
@@ -356,7 +349,7 @@ test.describe('Public Announcement Feed', () => {
       .locator('.mat-mdc-snack-bar-label')
       .first()
       .filter({ hasText: /published/i })
-      .waitFor({ state: 'visible', timeout: 5000 });
+      .waitFor();
 
     // Now check the anonymous page
     await anonymousPage.goto('/');
@@ -364,9 +357,6 @@ test.describe('Public Announcement Feed', () => {
 
     // The announcement feed should be visible with the public announcement
     const feed = anonymousPage.locator('[data-testid="announcement-feed"]');
-
-    // Wait a bit for the feed to load
-    await anonymousPage.waitForTimeout(1000);
 
     // Check if feed is visible and contains our announcement
     const isFeedVisible = await feed.isVisible().catch(() => false);
@@ -396,7 +386,7 @@ test.describe('Unread Badge', () => {
 
     // Publish it
     const announcementCard = adminPage
-      .locator('mat-card')
+      .getByTestId('announcement-card')
       .filter({ hasText: testData.title });
     await announcementCard.locator('button:has-text("Publish")').click();
 
@@ -404,7 +394,7 @@ test.describe('Unread Badge', () => {
       .locator('.mat-mdc-snack-bar-label')
       .first()
       .filter({ hasText: /published/i })
-      .waitFor({ state: 'visible', timeout: 5000 });
+      .waitFor();
   });
 });
 
@@ -426,7 +416,7 @@ test.describe('Mark as Read', () => {
 
     // Publish it
     const announcementCard = adminPage
-      .locator('mat-card')
+      .getByTestId('announcement-card')
       .filter({ hasText: testData.title });
     await announcementCard.locator('button:has-text("Publish")').click();
 
@@ -434,16 +424,14 @@ test.describe('Mark as Read', () => {
       .locator('.mat-mdc-snack-bar-label')
       .first()
       .filter({ hasText: /published/i })
-      .waitFor({ state: 'visible', timeout: 5000 });
+      .waitFor();
 
     // Now check the authenticated user page
     await authenticatedPage.goto('/messages');
     await authenticatedPage.waitForLoadState('networkidle');
 
     // Wait for page to load
-    await authenticatedPage
-      .locator('[data-testid="messages-page"]')
-      .waitFor({ state: 'visible', timeout: 10000 });
+    await authenticatedPage.locator('[data-testid="messages-page"]').waitFor();
 
     // Check if mark all as read button is visible (indicates unread messages)
     const markAllButton = authenticatedPage.locator(
@@ -455,9 +443,6 @@ test.describe('Mark as Read', () => {
     if (isButtonVisible) {
       // Click mark all as read
       await markAllButton.click();
-
-      // Wait for the action to complete
-      await authenticatedPage.waitForTimeout(500);
 
       // Button should disappear after marking all as read
       await expect(markAllButton).not.toBeVisible();

@@ -151,7 +151,7 @@
 
   <!-- Empty state -->
   @if (!isLoading() && !error() && filteredItems().length === 0) {
-    <mat-card class="empty-card">
+    <mat-card class="empty-card" data-testid="empty-card">
       <mat-card-content>
         <mat-icon>perm_media</mat-icon>
         @if (selectedCategory() === 'all') {
@@ -169,7 +169,7 @@
 
   <!-- Media grid -->
   @if (!isLoading() && !error() && filteredItems().length > 0) {
-    <div class="media-grid">
+    <div class="media-grid" data-testid="media-grid">
       @for (item of filteredItems(); track item.mediaId) {
         <div class="media-item" [class.is-image]="item.isImage">
           <!-- Thumbnail / Icon -->

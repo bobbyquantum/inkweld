@@ -42,6 +42,10 @@ export default defineConfig({
     /* Base URL - frontend served separately (dedicated e2e port to avoid clashing with dev server) */
     baseURL: 'http://localhost:4400',
 
+    /* Action timeout for slow CI environments */
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
+
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
 

@@ -3,7 +3,7 @@
   [class.compact]="compact"
   [class.unread]="showReadStatus && !isRead"
   [class]="priorityClass"
-  [attr.data-testid]="'announcement-card-' + announcement.id">
+  data-testid="announcement-card">
   <mat-card-header>
     <mat-card-title>{{ announcement.title }}</mat-card-title>
     <mat-card-subtitle>

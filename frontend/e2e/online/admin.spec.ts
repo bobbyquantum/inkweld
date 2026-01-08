@@ -28,9 +28,9 @@ async function waitForAdminPageLoaded(page: Page): Promise<void> {
   const errorLocator = page.locator('[data-testid="admin-error"]');
   const loadingLocator = page.locator('[data-testid="admin-loading"]');
 
-  // First wait for loading to disappear (give it more time on CI)
+  // First wait for loading to disappear
   try {
-    await loadingLocator.waitFor({ state: 'hidden', timeout: 30000 });
+    await loadingLocator.waitFor({ state: 'hidden' });
   } catch {
     // Loading might have already finished, that's fine
   }
@@ -51,7 +51,7 @@ async function waitForAdminPageLoaded(page: Page): Promise<void> {
 
   if (!tabsVisible) {
     // Wait a bit more for tabs
-    await tabsLocator.waitFor({ state: 'visible', timeout: 15000 });
+    await tabsLocator.waitFor({ state: 'visible' });
   }
 }
 
@@ -163,9 +163,9 @@ test.describe('Admin Dashboard', () => {
       await allUsersTab.click();
 
       // Wait for tab content
-      await adminPage
-        .locator('[data-testid="all-users-tab"]')
-        .waitFor({ state: 'visible', timeout: 10000 });
+      await expect(
+        adminPage.locator('[data-testid="all-users-tab"]')
+      ).toBeVisible();
 
       // Should have at least the admin user card
       const userList = adminPage.locator('[data-testid="all-users-list"]');
@@ -198,9 +198,9 @@ test.describe('Admin Dashboard', () => {
       await allUsersTab.click();
 
       // Wait for user list
-      await adminPage
-        .locator('[data-testid="all-users-tab"]')
-        .waitFor({ state: 'visible', timeout: 10000 });
+      await expect(
+        adminPage.locator('[data-testid="all-users-tab"]')
+      ).toBeVisible();
 
       // Find admin user card and check status
       const adminCard = adminPage.locator(
@@ -261,9 +261,9 @@ test.describe('Admin User Management', () => {
     await pendingTab.click();
 
     // Wait for tab content
-    await adminPage
-      .locator('[data-testid="pending-users-tab"]')
-      .waitFor({ state: 'visible', timeout: 10000 });
+    await expect(
+      adminPage.locator('[data-testid="pending-users-tab"]')
+    ).toBeVisible();
 
     // With USER_APPROVAL_REQUIRED=false, pending list should be empty
     const emptyState = adminPage.locator('[data-testid="pending-users-empty"]');
@@ -289,9 +289,9 @@ test.describe('Admin User Management', () => {
     await allUsersTab.click();
 
     // Wait for user list
-    await adminPage
-      .locator('[data-testid="all-users-tab"]')
-      .waitFor({ state: 'visible', timeout: 10000 });
+    await expect(
+      adminPage.locator('[data-testid="all-users-tab"]')
+    ).toBeVisible();
 
     // Find the admin's own card
     const adminCard = adminPage.locator('[data-testid="user-card-e2e-admin"]');
@@ -330,7 +330,7 @@ test.describe('Admin Settings', () => {
     const toggle = adminPage.locator(
       '[data-testid="setting-toggle-user-approval"]'
     );
-    await expect(toggle).toBeVisible({ timeout: 10000 });
+    await expect(toggle).toBeVisible();
   });
 
   test('should toggle user approval setting and persist', async ({
@@ -366,7 +366,7 @@ test.describe('Admin Settings', () => {
     const toggle = adminPage.locator(
       '[data-testid="setting-toggle-user-approval"]'
     );
-    await expect(toggle).toBeVisible({ timeout: 10000 });
+    await expect(toggle).toBeVisible();
 
     // Verify the toggle is in the expected unchecked state (USER_APPROVAL_REQUIRED=false)
     const isInitiallyChecked = await toggle.evaluate(el =>
@@ -382,7 +382,7 @@ test.describe('Admin Settings', () => {
       .locator('.mat-mdc-snack-bar-label')
       .filter({ hasText: /Setting saved/i })
       .first();
-    await snackbar.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(snackbar).toBeVisible();
 
     // Verify the toggle changed state
     const isNowChecked = await toggle.evaluate(el =>
@@ -404,7 +404,7 @@ test.describe('Admin Settings', () => {
 
     // Reload the page to verify the API restore worked
     await adminPage.reload();
-    await expect(toggle).toBeVisible({ timeout: 10000 });
+    await expect(toggle).toBeVisible();
 
     // Verify the setting was restored to unchecked
     const isRestoredChecked = await toggle.evaluate(el =>

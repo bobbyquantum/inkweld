@@ -27,22 +27,18 @@ test.describe('Worldbuilding Templates', () => {
 
     // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
     const settingsButton = page.getByTestId('sidebar-settings-button');
-    await expect(settingsButton).toBeVisible({ timeout: 5000 });
+    await expect(settingsButton).toBeVisible();
     await settingsButton.click();
     await page.waitForURL(/\/settings$/);
 
     // Wait for settings content to load
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
     // Click the Element Templates inner tab
     await page.getByRole('tab', { name: 'Element Templates' }).click();
 
     // Wait for templates to load (use specific data-testid and first() to avoid strict mode violation)
-    await expect(page.getByTestId('template-card').first()).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('template-card').first()).toBeVisible();
 
     // Find a template card and open its menu
     const templateCards = page
@@ -89,7 +85,7 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByTestId('project-card').first().click();
 
     // Wait for project to fully load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Create different types of worldbuilding elements
     const elementTypes = [
@@ -110,50 +106,26 @@ test.describe('Worldbuilding Templates', () => {
 
       if (existingDialogs > 0) {
         await page.keyboard.press('Escape');
-        await page.waitForSelector('mat-dialog-container', {
-          state: 'detached',
-          timeout: 5000,
-        });
+        await expect(page.locator('mat-dialog-container')).not.toBeVisible();
       }
 
       // Ensure create-new-element is visible and clickable
       const addButton = page.getByTestId('create-new-element');
-      await addButton.waitFor({ state: 'visible', timeout: 5000 });
+      await expect(addButton).toBeVisible();
 
       // Create element
       await addButton.click();
 
-      // Wait a moment for any async operations
-      await page.waitForTimeout(500);
-
-      // Check dialog count after click
-      const dialogCountAfterClick = await page
-        .locator('mat-dialog-container')
-        .count();
-
       // Wait for dialog content to appear (mat-dialog-title or the search field)
-      try {
-        await page.waitForSelector('mat-form-field input[matInput]', {
-          state: 'visible',
-          timeout: 10000,
-        });
-      } catch {
-        // Take screenshot on failure
-        await page.screenshot({
-          path: `test-results/worldbuilding-dialog-failure-${element.type}.png`,
-        });
-
-        throw new Error(
-          `Dialog did not open for ${element.type}. Dialogs present: ${dialogCountAfterClick}`
-        );
-      }
+      await expect(
+        page.locator('mat-form-field input[matInput]')
+      ).toBeVisible();
 
       // Wait for worldbuilding options to load (async from schema library)
       // Give more time since schemas are loaded asynchronously
       try {
         await page.waitForSelector(
-          `[data-testid="element-type-${element.type}"]`,
-          { state: 'visible', timeout: 15000 }
+          `[data-testid="element-type-${element.type}"]`
         );
       } catch {
         // Debug: capture current state of dialog
@@ -170,10 +142,7 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('create-element-button').click();
 
       // Wait for dialog to fully close before continuing
-      await page.waitForSelector('mat-dialog-container', {
-        state: 'detached',
-        timeout: 5000,
-      });
+      await expect(page.locator('mat-dialog-container')).toBeHidden();
 
       // Open element and verify schema initialization
       await page.getByTestId(`element-${element.name}`).click();
@@ -186,7 +155,7 @@ test.describe('Worldbuilding Templates', () => {
       await page.getByTestId('toolbar-home-button').click();
 
       // Wait for navigation to complete
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
     }
   });
 
@@ -206,20 +175,16 @@ test.describe('Worldbuilding Templates', () => {
 
     // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
     const settingsButton = page.getByTestId('sidebar-settings-button');
-    await expect(settingsButton).toBeVisible({ timeout: 5000 });
+    await expect(settingsButton).toBeVisible();
     await settingsButton.click();
     await page.waitForURL(/\/settings$/);
 
     // Wait for settings content to load
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
     // Click the Element Templates inner tab
     await page.getByRole('tab', { name: 'Element Templates' }).click();
-    await expect(page.getByTestId('template-card').first()).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('template-card').first()).toBeVisible();
 
     // Clone Character template
     const templateCards = page
@@ -254,21 +219,14 @@ test.describe('Worldbuilding Templates', () => {
     // Tab away to trigger validation and blur event
     await page.keyboard.press('Tab');
 
-    // Wait for Angular change detection to update the form state
-    await page.waitForTimeout(200);
-
-    // Verify the save button is disabled due to validation (use longer timeout for CI)
-    await expect(page.getByTestId('save-template-button')).toBeDisabled({
-      timeout: 10000,
-    });
+    // Verify the save button is disabled due to validation (use global baseline timeout)
+    await expect(page.getByTestId('save-template-button')).toBeDisabled();
 
     // Fix validation error
     await page.getByTestId('template-name-input').fill('Valid Name');
 
-    // Now button should be enabled and save should work (use longer timeout for CI)
-    await expect(page.getByTestId('save-template-button')).toBeEnabled({
-      timeout: 10000,
-    });
+    // Now button should be enabled and save should work
+    await expect(page.getByTestId('save-template-button')).toBeEnabled();
     await page.getByTestId('save-template-button').click();
     await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
   });
@@ -289,20 +247,16 @@ test.describe('Worldbuilding Templates', () => {
 
     // Navigate to Settings via sidebar button (preserves SPA state unlike page.goto)
     const settingsButton = page.getByTestId('sidebar-settings-button');
-    await expect(settingsButton).toBeVisible({ timeout: 5000 });
+    await expect(settingsButton).toBeVisible();
     await settingsButton.click();
     await page.waitForURL(/\/settings$/);
 
     // Wait for settings content to load
-    await expect(page.getByTestId('settings-tab-content')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
     // Click the Element Templates inner tab
     await page.getByTestId('settings-tab-templates').click();
-    await expect(page.getByTestId('template-card').first()).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('template-card').first()).toBeVisible();
 
     // Find Character template and clone it
     const templateCards = page
@@ -323,9 +277,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Go back to project home to create element
     await page.getByTestId('toolbar-home-button').click();
-    await expect(page.getByTestId('create-new-element')).toBeVisible({
-      timeout: 5000,
-    });
+    await expect(page.getByTestId('create-new-element')).toBeVisible();
 
     // Create element using custom template
     await page.getByTestId('create-new-element').click();
@@ -336,7 +288,7 @@ test.describe('Worldbuilding Templates', () => {
       .filter({ hasText: 'Custom Hero' });
 
     // Wait for the custom template option to appear (async from schema library)
-    await expect(customHeroOption).toBeVisible({ timeout: 10000 });
+    await expect(customHeroOption).toBeVisible();
 
     // Get the data-testid attribute to verify it has the expected format
     const testId = await customHeroOption.getAttribute('data-testid');

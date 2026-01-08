@@ -3,17 +3,11 @@ import { expect, test } from '../fixtures';
 // Helper to open register dialog
 async function openRegisterDialog(page: import('@playwright/test').Page) {
   await page.goto('/');
-  await page.locator('[data-testid="welcome-register-button"]').click();
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'visible',
-    timeout: 5000,
-  });
-  // Wait for OAuth providers to load (which enables the register button once form is valid)
-  // The register button is disabled until providersLoaded is true
-  await page.waitForSelector('mat-progress-spinner', {
-    state: 'hidden',
-    timeout: 10000,
-  });
+  await page.getByTestId('welcome-register-button').click();
+  // Wait for register dialog to appear
+  await expect(page.getByTestId('register-dialog')).toBeVisible();
+  // Wait for OAuth providers to load (spinner disappears)
+  await expect(page.locator('mat-progress-spinner')).toBeHidden();
 }
 
 test.describe('User Registration', () => {
@@ -31,9 +25,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab');
 
     // Wait for availability check to complete (button depends on it)
-    await expect(page.getByTestId('username-available-icon')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
     await page.getByTestId('password-input').fill('ValidPass123!');
     await page.getByTestId('password-input').blur();
@@ -48,10 +40,7 @@ test.describe('User Registration', () => {
       .click();
 
     // Dialog should close after successful registration
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'hidden',
-      timeout: 15000,
-    });
+    await expect(page.getByTestId('register-dialog')).toBeHidden();
 
     // Should be on home page
     await expect(page).toHaveURL('/');
@@ -90,9 +79,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab');
 
     // Wait for the unavailable icon to appear (indicates check completed)
-    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible({
-      timeout: 15000,
-    });
+    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible();
 
     // Fill in password fields with valid passwords
     await page.getByTestId('password-input').fill('ValidPass123!');
@@ -132,9 +119,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab');
 
     // Wait for availability check to show it's taken
-    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible();
 
     // Should show suggestions
     await expect(page.getByTestId('username-suggestions')).toBeVisible();
@@ -152,9 +137,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab'); // Trigger username check
 
     // Wait for username check to complete
-    await expect(page.getByTestId('username-available-icon')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
     await page.getByTestId('password-input').fill('ValidPass123!');
     await page.getByTestId('confirm-password-input').fill('DifferentPass123!');
@@ -171,7 +154,7 @@ test.describe('User Registration', () => {
     // Button should now be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled({ timeout: 15000 });
+    ).toBeEnabled();
   });
 
   test('should enforce password strength requirements', async ({
@@ -186,9 +169,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab');
 
     // Wait for username availability check to complete
-    await expect(page.getByTestId('username-available-icon')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
     // Try a weak password (too short, no special char, no uppercase)
     await page.getByTestId('password-input').fill('weak');
@@ -212,13 +193,10 @@ test.describe('User Registration', () => {
     // Tab away to trigger blur and form validation update
     await page.keyboard.press('Tab');
 
-    // Wait for Angular change detection
-    await page.waitForTimeout(200);
-
     // Now button should be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled({ timeout: 15000 });
+    ).toBeEnabled();
   });
 
   test('should prevent empty form submission', async ({
@@ -233,35 +211,36 @@ test.describe('User Registration', () => {
 
     // Fill only username with a unique one to ensure availability check passes
     const uniqueUsername = `emptycheck${Date.now()}`;
+    await page.getByTestId('username-input').click();
     await page.getByTestId('username-input').fill(uniqueUsername);
 
     // Trigger check
     await page.keyboard.press('Tab');
 
+    // Wait for username availability check to complete
+    await expect(page.getByTestId('username-available-icon')).toBeVisible();
+
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
     ).toBeDisabled();
 
-    // Fill username and password
+    // Fill password (button should still be disabled - missing confirm password)
+    await page.getByTestId('password-input').click();
     await page.getByTestId('password-input').fill('ValidPass123!');
+    await page.keyboard.press('Tab');
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
     ).toBeDisabled();
 
-    // Fill all fields
+    // Fill confirm password - now all fields are filled
+    await page.getByTestId('confirm-password-input').click();
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-
-    // Tab away to trigger blur and ensure all validations are captured
     await page.keyboard.press('Tab');
 
-    // Wait for username availability check to complete as it's required for button enablement
-    await expect(page.getByTestId('username-available-icon')).toBeVisible({
-      timeout: 15000,
-    });
-
+    // Now button should be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled({ timeout: 15000 });
+    ).toBeEnabled();
   });
 
   test('should validate minimum username length', async ({
@@ -291,9 +270,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab');
 
     // Wait for the availability check to complete (check icon appears)
-    await expect(page.getByTestId('username-available-icon')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
     // Fill password fields with proper blur triggering
     await page.getByTestId('password-input').fill('ValidPass123!');
@@ -302,10 +279,10 @@ test.describe('User Registration', () => {
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
     await page.keyboard.press('Tab'); // Blur confirm password
 
-    // Now button should be enabled - use a longer timeout for CI
+    // Now button should be enabled
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled({ timeout: 20000 });
+    ).toBeEnabled();
   });
 
   test('should allow selection of username suggestions', async ({
@@ -331,9 +308,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab');
 
     // Wait for suggestions to appear (triggered by unavailable status)
-    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible();
     await expect(page.getByTestId('username-suggestions')).toBeVisible();
 
     // Click on a suggestion
@@ -357,9 +332,7 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab'); // Trigger check
 
     // Wait for availability check to complete
-    await expect(page.getByTestId('username-available-icon')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
     await page.getByTestId('password-input').fill('AutoPass123!');
     await page.keyboard.press('Tab');
@@ -369,17 +342,14 @@ test.describe('User Registration', () => {
     // Wait for the button to be enabled (gives time for async validation and providers loaded signal)
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled({ timeout: 20000 });
+    ).toBeEnabled();
 
     await page
       .locator('mat-dialog-container [data-testid="register-button"]')
       .click();
 
     // Dialog should close
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'hidden',
-      timeout: 15000,
-    });
+    await expect(page.getByTestId('register-dialog')).toBeHidden();
 
     // Should be on home and authenticated
     await expect(page).toHaveURL('/');
@@ -402,11 +372,10 @@ test.describe('User Registration', () => {
     // Click should close register dialog and open login dialog
     await loginLink.click();
 
-    // Wait for login dialog to appear (register dialog should close and login should open)
-    await page.waitForTimeout(500);
-
-    // We should still be on home page with a dialog open
+    // We should still be on home page with a dialog open (now it's the login one)
     await expect(page).toHaveURL('/');
-    await expect(page.locator('mat-dialog-container')).toBeVisible();
+    await expect(
+      page.locator('mat-dialog-container h2:has-text("Login")')
+    ).toBeVisible();
   });
 });

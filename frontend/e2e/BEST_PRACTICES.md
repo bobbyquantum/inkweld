@@ -222,12 +222,12 @@ await page.waitForTimeout(1000);
 ### Wait for Specific Conditions
 ```typescript
 // ✅ Good - Wait for specific element
-await page.waitForSelector('[data-testid="project-card"]');
+await expect(offlinePage.locator('[data-testid="user-menu-button"]')).toBeVisible()
 
 // ✅ Good - Wait for URL change
 await page.waitForURL('/projects');
 
-// ✅ Good - Wait for network idle
+// ❌ Bad - Wait for network idle, use element assertions instead
 await page.waitForLoadState('networkidle');
 
 // ❌ Bad - Arbitrary timeouts
@@ -346,7 +346,7 @@ npx playwright test --headed
 ### Optimize Waits
 ```typescript
 // ✅ Good - Specific wait
-await page.waitForSelector('[data-testid="result"]', { timeout: 5000 });
+await page.waitForSelector('[data-testid="result"]');
 
 // ❌ Bad - Arbitrary long wait
 await page.waitForTimeout(10000);

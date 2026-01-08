@@ -61,9 +61,7 @@ async function navigateToAdminSettingsViaMenu(
 ): Promise<void> {
   // Open user menu
   await page.locator('[data-testid="user-menu-button"]').click();
-  // Wait for menu to open
-  await page.waitForTimeout(300);
-  // Click admin link
+  // Click admin link (Playwright clicks wait for visibility)
   await page.locator('[data-testid="admin-menu-link"]').click();
   // Wait for admin page to load
   await page.waitForURL('**/admin/**');
@@ -108,9 +106,6 @@ test.describe('Admin Kill Switch Screenshots', () => {
       document.documentElement.classList.add('light-mode');
     });
 
-    // Wait a moment for theme to apply
-    await adminPage.waitForTimeout(300);
-
     // Take screenshot of the full page
     await adminPage.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-settings-light.png'),
@@ -127,9 +122,6 @@ test.describe('Admin Kill Switch Screenshots', () => {
       document.documentElement.classList.add('dark-mode');
     });
 
-    // Wait a moment for theme to apply
-    await adminPage.waitForTimeout(300);
-
     // Take screenshot of the full page
     await adminPage.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'admin-kill-switch-settings-dark.png'),
@@ -143,8 +135,6 @@ test.describe('Admin Kill Switch Screenshots', () => {
       document.documentElement.classList.remove('dark-mode');
       document.documentElement.classList.add('light-mode');
     });
-
-    await adminPage.waitForTimeout(300);
 
     // Find and screenshot just the AI kill switch card
     const killSwitchCard = adminPage.locator('.kill-switch-card');
@@ -161,8 +151,6 @@ test.describe('Admin Kill Switch Screenshots', () => {
       document.documentElement.classList.remove('light-mode');
       document.documentElement.classList.add('dark-mode');
     });
-
-    await adminPage.waitForTimeout(300);
 
     // Find and screenshot just the AI kill switch card
     const killSwitchCard = adminPage.locator('.kill-switch-card');

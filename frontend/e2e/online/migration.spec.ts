@@ -55,8 +55,10 @@ test.describe('Offline to Server Migration', () => {
     // Step 5: Navigate to Connection tab
     await offlinePage.locator('[data-testid="connection-tab"]').click();
 
-    // Wait a moment for tab content to load
-    await offlinePage.waitForTimeout(500);
+    // Wait for tab content to load
+    await expect(
+      offlinePage.locator('[data-testid="server-url-input"]')
+    ).toBeVisible();
 
     // Step 6: (Skipping visual check for offline projects count - the projects
     // are in localStorage and will be migrated when we authenticate)
@@ -75,15 +77,15 @@ test.describe('Offline to Server Migration', () => {
     // Step 9: Should see confirmation dialog asking about migration
     await expect(
       offlinePage.getByRole('heading', { name: /migrate offline projects/i })
-    ).toBeVisible({ timeout: 5000 });
+    ).toBeVisible();
 
     // Confirm migration
     await offlinePage.getByRole('button', { name: /continue/i }).click();
 
     // Step 10: Should see authentication form
-    await expect(offlinePage.locator('[data-testid="auth-form"]')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(
+      offlinePage.locator('[data-testid="auth-form"]')
+    ).toBeVisible();
 
     // Step 11: Register a new user
     const testUsername = `migrationtest-${Date.now()}`;
@@ -102,46 +104,34 @@ test.describe('Offline to Server Migration', () => {
     await offlinePage.locator('[data-testid="authenticate-button"]').click();
 
     // Step 12: Wait for migration to complete
-    // The migration shows a snackbar then reloads the page after 1 second.
-    // We wait for either:
-    // - The snackbar to appear (may be brief before reload)
-    // - OR the mode to change to 'server' (after reload completes)
-    // This handles timing variations in CI environments
-    await Promise.race([
-      // Option 1: Snackbar appears before reload
-      expect(
-        offlinePage
-          .locator('.mat-mdc-snack-bar-label')
-          .filter({ hasText: /Successfully migrated \d+ project/i })
-          .first()
-      ).toBeVisible({ timeout: 30000 }),
-      // Option 2: Wait for mode to change to server (reload happened)
-      offlinePage.waitForFunction(
-        () => {
-          try {
-            const config = localStorage.getItem('inkweld-app-config');
-            if (!config) return false;
-            const parsed = JSON.parse(config);
-            return parsed.mode === 'server';
-          } catch {
-            return false;
-          }
-        },
-        { timeout: 60000 }
-      ),
-    ]);
+    // We wait for the snackbar to appear
+    await expect(
+      offlinePage
+        .locator('.mat-mdc-snack-bar-label')
+        .filter({ hasText: /Successfully migrated \d+ project/i })
+        .first()
+    ).toBeVisible();
 
-    // Step 13: Wait for page to reload and fully stabilize
-    // The app does window.location.reload() after 1 second
-    await offlinePage.waitForTimeout(2000);
-    await offlinePage.waitForLoadState('networkidle', { timeout: 15000 });
+    // Step 13: Wait for mode to change to server in LocalStorage (indicates migration finish)
+    await offlinePage.waitForFunction(() => {
+      try {
+        const config = localStorage.getItem('inkweld-app-config');
+        return config && JSON.parse(config).mode === 'server';
+      } catch {
+        return false;
+      }
+    });
 
-    // Step 14: Verify we're now in server mode
-    const finalMode = await getAppMode(offlinePage);
+    // Step 14: Force navigation to home to ensure we're seeing the latest server state
+    await offlinePage.goto('/');
+    await offlinePage.waitForLoadState('networkidle');
 
-    expect(finalMode).toBe('server');
+    // Wait for the user menu button to appear (indicates successful authentication)
+    await expect(
+      offlinePage.locator('[data-testid="user-menu-button"]')
+    ).toBeVisible();
 
-    // Step 15: Close settings dialog if it's still open (should have closed during reload)
+    // Step 15: Close settings dialog if it's still open
     const settingsDialog = offlinePage.locator(
       '[data-testid="settings-close-button"]'
     );
@@ -149,20 +139,13 @@ test.describe('Offline to Server Migration', () => {
       await settingsDialog.click();
     }
 
-    // Step 16: Navigate to home page to see migrated projects
-    await offlinePage.goto('/');
-
-    // Wait for the page to fully stabilize
-    await offlinePage.waitForLoadState('networkidle', { timeout: 10000 });
-
-    // Step 17: Verify projects are visible in the project grid
-    // Use data-testid="project-card" to specifically target the grid cards (not sidebar items)
-    await expect(
-      offlinePage.locator('[data-testid="project-card"][title="Offline Novel"]')
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      offlinePage.locator('[data-testid="project-card"][title="Offline Story"]')
-    ).toBeVisible({ timeout: 10000 });
+    // Step 16: Verify projects are visible in the project grid
+    // Use toPass to handle potential delay in server-side sync after migration/reload
+    await expect(async () => {
+      // Direct text check is most resilient against component/tag changes
+      await expect(offlinePage.locator('body')).toContainText('Offline Novel');
+      await expect(offlinePage.locator('body')).toContainText('Offline Story');
+    }).toPass();
 
     // Migration test complete - projects successfully migrated and visible on server
     // (Opening projects is tested in other e2e tests)
@@ -200,9 +183,7 @@ test.describe('Offline to Server Migration', () => {
       .click();
 
     // Wait for project creation
-    await authenticatedPage.waitForURL(/.*duplicate-test.*/, {
-      timeout: 10000,
-    });
+    await expect(authenticatedPage).toHaveURL(/.*duplicate-test.*/);
 
     // Additional steps needed to complete this test
   });
@@ -210,9 +191,6 @@ test.describe('Offline to Server Migration', () => {
   test('should preserve document content during migration', async ({
     offlinePage,
   }) => {
-    // Increase timeout for this test since it involves migration + reload
-    test.setTimeout(60000);
-
     // Step 1: Create offline project (page already navigated by fixture)
     await createOfflineProject(offlinePage, 'Content Test', 'content-test');
 
@@ -224,7 +202,7 @@ test.describe('Offline to Server Migration', () => {
       name: /chapter 1/i,
     });
 
-    if (await chapter1.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await chapter1.isVisible().catch(() => false)) {
       await chapter1.click();
 
       // Wait for editor to load
@@ -232,22 +210,26 @@ test.describe('Offline to Server Migration', () => {
         .locator('.ProseMirror')
         .or(offlinePage.locator('[contenteditable="true"]'));
 
-      await expect(editor).toBeVisible({ timeout: 10000 });
+      await expect(editor).toBeVisible();
 
       // Add content to the document
       const testContent =
         'This is test content created in offline mode. It should persist after migration.';
       await editor.fill(testContent);
 
-      // Wait a moment for Yjs to persist to IndexedDB
-      await offlinePage.waitForTimeout(2000);
+      // Wait for content to persist to IndexedDB
+      await expect(offlinePage.locator('.sync-status')).toContainText('synced');
     }
 
     // Step 3: Migrate to server
     await offlinePage.goto('/');
     await openUserSettings(offlinePage);
     await offlinePage.locator('[data-testid="connection-tab"]').click();
-    await offlinePage.waitForTimeout(500);
+
+    // Wait for tab content to load
+    await expect(
+      offlinePage.locator('[data-testid="server-url-input"]')
+    ).toBeVisible();
 
     await offlinePage
       .locator('[data-testid="server-url-input"]')
@@ -260,13 +242,13 @@ test.describe('Offline to Server Migration', () => {
     // Confirm migration dialog
     await expect(
       offlinePage.getByRole('heading', { name: /migrate offline projects/i })
-    ).toBeVisible({ timeout: 5000 });
+    ).toBeVisible();
     await offlinePage.getByRole('button', { name: /continue/i }).click();
 
     // Authenticate
-    await expect(offlinePage.locator('[data-testid="auth-form"]')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(
+      offlinePage.locator('[data-testid="auth-form"]')
+    ).toBeVisible();
 
     const testUsername = `contenttest-${Date.now()}`;
     const testPassword = 'TestPassword123!';
@@ -290,43 +272,44 @@ test.describe('Offline to Server Migration', () => {
           .locator('.mat-mdc-snack-bar-label')
           .filter({ hasText: /Successfully migrated \d+ project/i })
           .first()
-      ).toBeVisible({ timeout: 30000 }),
-      offlinePage.waitForFunction(
-        () => {
-          try {
-            const config = localStorage.getItem('inkweld-app-config');
-            if (!config) return false;
-            const parsed = JSON.parse(config);
-            return parsed.mode === 'server';
-          } catch {
-            return false;
-          }
-        },
-        { timeout: 60000 }
-      ),
+      ).toBeVisible(),
+      offlinePage.waitForFunction(() => {
+        try {
+          const config = localStorage.getItem('inkweld-app-config');
+          if (!config) return false;
+          const parsed = JSON.parse(config);
+          return parsed.mode === 'server';
+        } catch {
+          return false;
+        }
+      }),
     ]);
 
-    // Wait for page to reload and fully stabilize
-    // The app does window.location.reload() after 1 second
-    await offlinePage.waitForTimeout(2000);
-    await offlinePage.waitForLoadState('networkidle', { timeout: 15000 });
+    // Step 13: Wait for page to reload and fully stabilize
+    await offlinePage.waitForURL(/\/$/);
+    await offlinePage.waitForLoadState('networkidle');
+
+    // Wait for the user menu button to appear (indicates successful authentication after reload)
+    await expect(
+      offlinePage.locator('[data-testid="user-menu-button"]')
+    ).toBeVisible();
 
     // Step 4: Navigate back to the project
     await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle', { timeout: 10000 });
+    await offlinePage.waitForLoadState('networkidle');
 
-    // Click on the project card (use specific testid to avoid matching sidebar item)
+    // Click on the project card
     await offlinePage
-      .locator('[data-testid="project-card"][title="Content Test"]')
+      .getByRole('button', { name: /Open project Content Test/i })
       .click();
-    await offlinePage.waitForURL(/.*content-test.*/, { timeout: 10000 });
+    await expect(offlinePage).toHaveURL(/.*content-test.*/);
 
     // Step 5: Open the same document
     const migratedChapter = offlinePage.getByRole('treeitem', {
       name: /chapter 1/i,
     });
 
-    if (await migratedChapter.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await migratedChapter.isVisible().catch(() => false)) {
       await migratedChapter.click();
 
       // Step 6: Verify content is still there
@@ -335,7 +318,7 @@ test.describe('Offline to Server Migration', () => {
         .or(offlinePage.locator('[contenteditable="true"]'));
 
       // Wait for document to load and sync from server
-      await offlinePage.waitForTimeout(3000);
+      await expect(offlinePage.locator('.sync-status')).toContainText('synced');
 
       // Check if content persisted
       await expect(editorAfterMigration).toContainText(

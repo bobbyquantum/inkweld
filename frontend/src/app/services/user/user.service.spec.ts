@@ -462,7 +462,7 @@ describe('UserService', () => {
         username: 'anonymous',
         enabled: false,
       });
-      expect(routerMock.navigate).toHaveBeenCalledWith(['/welcome']);
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
     });
 
     it('should handle logout failure', async () => {

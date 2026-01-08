@@ -11,20 +11,14 @@ import { expect, test } from './fixtures';
 async function openRegisterDialog(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.locator('[data-testid="welcome-register-button"]').click();
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'visible',
-    timeout: 5000,
-  });
+  await expect(page.locator('mat-dialog-container')).toBeVisible();
 }
 
 // Helper to open login dialog
 async function openLoginDialog(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.locator('[data-testid="welcome-login-button"]').click();
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'visible',
-    timeout: 5000,
-  });
+  await expect(page.locator('mat-dialog-container')).toBeVisible();
 }
 
 test.describe('Error Handling and Edge Cases', () => {
@@ -36,11 +30,9 @@ test.describe('Error Handling and Edge Cases', () => {
 
       // Try special characters - should show validation error or server error
       await page.getByTestId('username-input').fill('user@#$%');
+      await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-
-      // Wait for username check to complete (may show error)
-      await page.waitForTimeout(1000);
 
       // The dialog should still be open and handling the error gracefully
       await expect(page.locator('mat-dialog-container')).toBeVisible();
@@ -54,10 +46,9 @@ test.describe('Error Handling and Edge Cases', () => {
       const veryLongString = 'a'.repeat(500);
 
       await page.getByTestId('username-input').fill(veryLongString);
+      await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-
-      await page.waitForTimeout(500);
 
       // Should handle gracefully without crashing - dialog still open
       await expect(page.locator('mat-dialog-container')).toBeVisible();
@@ -69,14 +60,12 @@ test.describe('Error Handling and Edge Cases', () => {
       await openRegisterDialog(page);
 
       await page.getByTestId('username-input').fill('user👨‍💻😀');
+      await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
-      await page.waitForTimeout(500);
-
       // Should handle unicode gracefully (likely reject as invalid username)
-      const value = await page.getByTestId('username-input').inputValue();
-      expect(value).toBeTruthy();
+      await expect(page.getByTestId('username-input')).toHaveValue('user👨‍💻😀');
     });
 
     test('should handle SQL injection attempts safely', async ({
@@ -89,10 +78,9 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.getByTestId('password-input').fill("' OR '1'='1' --");
       await page.getByTestId('login-button').click();
 
-      await page.waitForTimeout(1000);
-
       // Should not succeed - should show error and stay in dialog
       await expect(page.locator('mat-dialog-container')).toBeVisible();
+      await expect(page).not.toHaveURL(/\/dashboard/);
     });
 
     test('should handle XSS attempts in project creation', async ({
@@ -111,8 +99,8 @@ test.describe('Error Handling and Edge Cases', () => {
 
       await page.getByTestId('create-project-button').click();
 
-      // Wait for navigation or error
-      await page.waitForTimeout(2000);
+      // Wait for navigation (username is dynamic: testuser-test-xxx-xxx)
+      await page.waitForURL(/\/testuser-[^/]+\/xss-test/);
 
       // Check that script didn't execute - content should be escaped
       const hasRawScript = await page.evaluate(() => {
@@ -135,7 +123,7 @@ test.describe('Error Handling and Edge Cases', () => {
       }
 
       // Should end up on last page without errors
-      await page.waitForTimeout(1000);
+      await page.waitForURL('/create-project');
       await expect(page).toHaveURL('/create-project');
     });
 
@@ -146,28 +134,33 @@ test.describe('Error Handling and Edge Cases', () => {
 
       const uniqueUsername = generateUniqueUsername('refresh');
       await page.getByTestId('username-input').fill(uniqueUsername);
-      await page.getByTestId('username-input').blur();
-      await page.waitForTimeout(1500); // Wait for username availability check
+      await page.keyboard.press('Tab'); // Trigger blur and Angular updateOn: blur
+
+      // Wait for availability check to complete using UI signal
+      await expect(
+        page.locator('mat-icon:has-text("check_circle")')
+      ).toBeVisible();
+
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-      await page.getByTestId('confirm-password-input').blur();
+      await page.keyboard.press('Tab'); // Trigger second blur
 
       // Wait for button to be enabled before attempting to click
       const registerButton = page.locator(
         'mat-dialog-container [data-testid="register-button"]'
       );
-      await expect(registerButton).toBeEnabled({ timeout: 15000 });
+      await expect(registerButton).toBeEnabled();
 
       // Start submission but immediately refresh - this tests that the app handles
       // the race gracefully. The page may close during reload which is expected.
       try {
         // Click and immediately reload - don't wait for click to complete
         await registerButton.click({ noWaitAfter: true });
-        await page.reload({ timeout: 5000 });
+        await page.reload();
 
         // Wait for reload to complete and verify we're on home page
-        await page.waitForLoadState('domcontentloaded', { timeout: 5000 });
-        await expect(page).toHaveURL('/', { timeout: 5000 });
+        await page.waitForLoadState('domcontentloaded');
+        await expect(page).toHaveURL('/');
       } catch {
         // If page context was destroyed during the race, that's acceptable behavior.
         // The test verifies the app doesn't crash - not that a specific outcome occurs.
@@ -182,15 +175,12 @@ test.describe('Error Handling and Edge Cases', () => {
 
       // Resize to tablet
       await page.setViewportSize({ width: 768, height: 1024 });
-      await page.waitForTimeout(500);
 
       // Resize to mobile
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.waitForTimeout(500);
 
       // Resize back to desktop
       await page.setViewportSize({ width: 1920, height: 1080 });
-      await page.waitForTimeout(500);
 
       // Should still be functional
       await expect(page).toHaveURL('/');
@@ -205,25 +195,25 @@ test.describe('Error Handling and Edge Cases', () => {
 
       const uniqueUsername = generateUniqueUsername('rapid');
       await page.getByTestId('username-input').fill(uniqueUsername);
-      await page.getByTestId('username-input').blur();
-      await page.waitForTimeout(1000); // Wait for username check
+      await page.keyboard.press('Tab');
+
+      // Wait for username check
+      await expect(
+        page.locator('mat-icon:has-text("check_circle")')
+      ).toBeVisible();
 
       await page.getByTestId('password-input').fill('ValidPass123!');
       await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-      await page.waitForTimeout(1000); // Wait for password check
+      await page.keyboard.press('Tab');
+
       // Click submit button once (button disables after first click)
       const button = page.locator(
         'mat-dialog-container [data-testid="register-button"]'
       );
       await button.click();
 
-      await page.waitForTimeout(2000);
-
       // Dialog should have closed after successful registration
-      await page.waitForSelector('mat-dialog-container', {
-        state: 'hidden',
-        timeout: 10000,
-      });
+      await expect(page.locator('mat-dialog-container')).not.toBeVisible();
     });
   });
 
@@ -239,7 +229,6 @@ test.describe('Error Handling and Edge Cases', () => {
       }
 
       // Should still be responsive
-      await page.waitForTimeout(1000);
       await expect(page).toHaveURL('/');
     });
   });

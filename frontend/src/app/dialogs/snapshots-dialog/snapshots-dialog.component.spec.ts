@@ -156,8 +156,10 @@ describe('SnapshotsDialogComponent', () => {
   });
 
   it('should delete snapshot and show success message', async () => {
-    // Mock window.confirm
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    // Mock dialog to return true (user confirms)
+    dialogMock.open.mockReturnValue({
+      afterClosed: vi.fn().mockReturnValue(of(true)),
+    } as unknown as MatDialogRef<unknown>);
 
     await component.deleteSnapshot(mockSnapshots[0]);
 
@@ -170,7 +172,10 @@ describe('SnapshotsDialogComponent', () => {
   });
 
   it('should not delete snapshot if user cancels', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    // Mock dialog to return false (user cancels)
+    dialogMock.open.mockReturnValue({
+      afterClosed: vi.fn().mockReturnValue(of(false)),
+    } as unknown as MatDialogRef<unknown>);
 
     await component.deleteSnapshot(mockSnapshots[0]);
 
@@ -178,7 +183,10 @@ describe('SnapshotsDialogComponent', () => {
   });
 
   it('should handle delete snapshot error', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    // Mock dialog to return true (user confirms)
+    dialogMock.open.mockReturnValue({
+      afterClosed: vi.fn().mockReturnValue(of(true)),
+    } as unknown as MatDialogRef<unknown>);
     snapshotServiceMock.deleteSnapshot.mockRejectedValue(
       new Error('Delete failed')
     );

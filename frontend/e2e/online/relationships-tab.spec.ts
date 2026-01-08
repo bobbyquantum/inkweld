@@ -18,21 +18,15 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
   await page.goto(`${projectBaseUrl}/settings`);
 
   // Wait for settings tab content to load
-  await page.waitForSelector('[data-testid="settings-tab-content"]', {
-    state: 'visible',
-    timeout: 10000,
-  });
+  await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
   // Click on the "Relationship Types" tab within the mat-tab-group
   const tab = page.getByRole('tab', { name: 'Relationship Types' });
-  await tab.waitFor({ state: 'visible', timeout: 10000 });
+  await expect(tab).toBeVisible();
   await tab.click();
 
   // Wait for the relationships tab container to be visible and have content
-  await page.waitForSelector('.relationships-tab-container', {
-    state: 'visible',
-    timeout: 15000,
-  });
+  await expect(page.locator('.relationships-tab-container')).toBeVisible();
 
   // Ensure the page is settled
   await page.waitForLoadState('networkidle');
@@ -49,14 +43,10 @@ async function createCustomRelationshipType(
 ) {
   // Wait for the "New Type" button to be visible and stable
   const createButton = page.getByRole('button', { name: /new type/i });
-  await createButton.waitFor({ state: 'visible', timeout: 15000 });
+  await expect(createButton).toBeVisible();
   await createButton.click();
 
   // Wait for the first dialog (Create Relationship Type)
-  await page.waitForSelector('app-rename-dialog', {
-    state: 'visible',
-    timeout: 10000,
-  });
   await expect(
     page.locator('app-rename-dialog h2:has-text("Create Relationship Type")')
   ).toBeVisible();
@@ -70,7 +60,7 @@ async function createCustomRelationshipType(
   // Wait for first dialog to close and second to open
   await expect(
     page.locator('app-rename-dialog h2:has-text("Inverse Label")')
-  ).toBeVisible({ timeout: 5000 });
+  ).toBeVisible();
 
   // Fill in the inverse name (it's pre-filled with "name (inverse)")
   await input.clear();
@@ -78,22 +68,15 @@ async function createCustomRelationshipType(
   await page.locator('app-rename-dialog button:has-text("Rename")').click();
 
   // Wait for dialogs to completely close
-  await expect(page.locator('app-rename-dialog')).not.toBeVisible({
-    timeout: 10000,
-  });
+  await expect(page.locator('app-rename-dialog')).not.toBeVisible();
 
   // Wait for the type card to appear
   await expect(
     page
       .getByTestId('relationship-type-title')
       .filter({ hasText: new RegExp(`^${name}$`) })
-  ).toBeVisible({
-    timeout: 15000,
-  });
+  ).toBeVisible();
 }
-
-// Increase timeout for tests in this file as it involves multiple navigations and dialogs
-test.setTimeout(90000);
 
 test.describe('Relationships Tab', () => {
   test.describe('View Relationship Types', () => {
@@ -257,7 +240,7 @@ test.describe('Relationships Tab', () => {
       await page.getByTestId('create-type-button').click();
 
       // Wait for rename dialog
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
+      await expect(page.locator('app-rename-dialog')).toBeVisible();
 
       // Click cancel
       await page.locator('app-rename-dialog button:has-text("Cancel")').click();
@@ -302,9 +285,6 @@ test.describe('Relationships Tab', () => {
         'Original Inverse'
       );
 
-      // Wait for snackbar to disappear or dialog to clear
-      await page.waitForTimeout(1000);
-
       // Find the custom type card and open its menu
       const customCard = page
         .locator('.type-card.custom')
@@ -316,7 +296,7 @@ test.describe('Relationships Tab', () => {
       await page.locator('button:has-text("Edit")').click();
 
       // Edit the name
-      await page.waitForSelector('app-rename-dialog', { state: 'visible' });
+      await expect(page.locator('app-rename-dialog')).toBeVisible();
       const renameInput = page.getByTestId('rename-input');
       await renameInput.click();
       await renameInput.fill(updatedName);
@@ -332,22 +312,19 @@ test.describe('Relationships Tab', () => {
         })
       ).toBeVisible();
 
-      // Wait a moment for signal propagation and re-render
-      await page.waitForTimeout(2000);
-
       // Should no longer see original name in the title (using exact regex to be safe)
       await expect(
         page
           .getByTestId('relationship-type-title')
           .filter({ hasText: new RegExp(`^${originalName}$`) })
-      ).toHaveCount(0, { timeout: 15000 });
+      ).toHaveCount(0);
 
       // Should see the updated name in the title
       await expect(
         page
           .getByTestId('relationship-type-title')
           .filter({ hasText: new RegExp(`^${updatedName}$`) })
-      ).toBeVisible({ timeout: 15000 });
+      ).toBeVisible();
     });
 
     test('should allow editing types (all types are per-project)', async ({
@@ -378,24 +355,19 @@ test.describe('Relationships Tab', () => {
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: typeName });
-      await expect(typeCard).toBeVisible({ timeout: 10000 });
+      await expect(typeCard).toBeVisible();
       await typeCard.getByTestId('type-menu-button').click();
 
       // Wait for the menu to be visible (in CDK overlay)
-      await page.waitForSelector('.mat-mdc-menu-panel', { state: 'visible' });
+      const menu = page.locator('.mat-mdc-menu-panel');
+      await expect(menu).toBeVisible();
 
       // Should see Edit option (all types are now editable per-project)
-      await expect(
-        page.locator('.mat-mdc-menu-panel button:has-text("Edit")')
-      ).toBeVisible();
+      await expect(menu.locator('button:has-text("Edit")')).toBeVisible();
 
       // Should also see Clone and Delete options
-      await expect(
-        page.locator('.mat-mdc-menu-panel button:has-text("Clone")')
-      ).toBeVisible();
-      await expect(
-        page.locator('.mat-mdc-menu-panel button:has-text("Delete")')
-      ).toBeVisible();
+      await expect(menu.locator('button:has-text("Clone")')).toBeVisible();
+      await expect(menu.locator('button:has-text("Delete")')).toBeVisible();
     });
   });
 
@@ -425,9 +397,6 @@ test.describe('Relationships Tab', () => {
       const deleteName = `Type to Delete ${Date.now()}`;
       await createCustomRelationshipType(page, deleteName, 'Delete Inverse');
 
-      // Wait for any snackbars/dialogs to clear
-      await page.waitForTimeout(1000);
-
       // Open the menu and click Delete
       const customCard = page
         .locator('.type-card.custom')
@@ -437,9 +406,7 @@ test.describe('Relationships Tab', () => {
       await page.locator('[data-testid="delete-type-button"]').click();
 
       // Confirm deletion in dialog
-      await page.waitForSelector('app-confirmation-dialog', {
-        state: 'visible',
-      });
+      await expect(page.locator('app-confirmation-dialog')).toBeVisible();
       await page
         .locator('app-confirmation-dialog button:has-text("Delete")')
         .click();
@@ -459,7 +426,7 @@ test.describe('Relationships Tab', () => {
         page
           .getByTestId('relationship-type-title')
           .filter({ hasText: deleteName })
-      ).not.toBeVisible({ timeout: 15000 });
+      ).not.toBeVisible();
     });
   });
 
@@ -492,30 +459,26 @@ test.describe('Relationships Tab', () => {
         'Original Inverse'
       );
 
-      // Wait for any snackbars to clear
-      await page.waitForTimeout(4000);
-
       // Find the specific card we created instead of .first()
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: originalName });
-      await expect(typeCard).toBeVisible({ timeout: 10000 });
+      await expect(typeCard).toBeVisible();
 
       // Open its menu using the data-testid I added
       await typeCard.getByTestId('type-menu-button').click();
 
       // Wait for the menu to be visible (in CDK overlay)
-      await page.waitForSelector('.mat-mdc-menu-panel', { state: 'visible' });
+      const menu = page.locator('.mat-mdc-menu-panel');
+      await expect(menu).toBeVisible();
 
       // Click "Clone" - it's a menu item, not a testid button
-      await page
-        .locator('.mat-mdc-menu-panel button:has-text("Clone")')
-        .click();
+      await menu.locator('button:has-text("Clone")').click();
 
       // Should see Rename dialog with title "Clone Relationship Type"
       await expect(
         page.locator('app-rename-dialog h2:has-text("Clone Relationship Type")')
-      ).toBeVisible({ timeout: 10000 });
+      ).toBeVisible();
 
       // Enter new name for the clone using data-testid from RenameDialog
       const input = page.getByTestId('rename-input');
@@ -524,23 +487,21 @@ test.describe('Relationships Tab', () => {
       await page.getByTestId('rename-confirm-button').click();
 
       // Wait for dialog to close
-      await expect(page.locator('app-rename-dialog')).not.toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('app-rename-dialog')).not.toBeVisible();
 
       // Should see success snackbar for cloning
       await expect(
         page.locator('simple-snack-bar').filter({
           hasText: `Cloned relationship type: ${cloneName}`,
         })
-      ).toBeVisible({ timeout: 15000 });
+      ).toBeVisible();
 
       // Should see the cloned type in the list
       await expect(
         page
           .getByTestId('relationship-type-title')
           .filter({ hasText: new RegExp(`^${cloneName}$`) })
-      ).toBeVisible({ timeout: 20000 });
+      ).toBeVisible();
     });
   });
 

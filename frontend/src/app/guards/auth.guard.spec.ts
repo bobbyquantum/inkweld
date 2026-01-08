@@ -117,18 +117,18 @@ describe('authGuard', () => {
     ).toBe(true);
   });
 
-  it('should redirect to welcome when no cached user in server mode', async () => {
+  it('should redirect to home when no cached user in server mode', async () => {
     mockCurrentUser.set(undefined);
     (unifiedUserService.hasCachedUser as Mock).mockResolvedValue(false);
-    const welcomeUrlTree = new UrlTree();
-    (router.createUrlTree as Mock).mockReturnValue(welcomeUrlTree);
+    const homeUrlTree = new UrlTree();
+    (router.createUrlTree as Mock).mockReturnValue(homeUrlTree);
 
     const result = await executeGuard(
       {} as ActivatedRouteSnapshot,
       {} as RouterStateSnapshot
     );
-    expect(result).toBe(welcomeUrlTree);
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+    expect(result).toBe(homeUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/']);
   });
 
   it('should try to initialize user when cached user exists in server mode', async () => {
@@ -145,38 +145,38 @@ describe('authGuard', () => {
     expect(unifiedUserService.initialize).toHaveBeenCalled();
   });
 
-  it('should redirect to welcome when initialization fails in server mode', async () => {
+  it('should redirect to home when initialization fails in server mode', async () => {
     mockCurrentUser.set(undefined);
     (unifiedUserService.hasCachedUser as Mock).mockResolvedValue(true);
     (unifiedUserService.initialize as Mock).mockRejectedValue(
       new Error('Failed to initialize')
     );
-    const welcomeUrlTree = new UrlTree();
-    (router.createUrlTree as Mock).mockReturnValue(welcomeUrlTree);
+    const homeUrlTree = new UrlTree();
+    (router.createUrlTree as Mock).mockReturnValue(homeUrlTree);
 
     const result = await executeGuard(
       {} as ActivatedRouteSnapshot,
       {} as RouterStateSnapshot
     );
-    expect(result).toBe(welcomeUrlTree);
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+    expect(result).toBe(homeUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/']);
   });
 
-  it('should redirect to welcome when user is not authenticated after initialization in server mode', async () => {
+  it('should redirect to home when user is not authenticated after initialization in server mode', async () => {
     mockCurrentUser.set(undefined);
     (unifiedUserService.hasCachedUser as Mock).mockResolvedValue(true);
     (unifiedUserService.initialize as Mock).mockResolvedValue(undefined);
     mockIsAuthenticated.set(false); // Not authenticated after initialization
 
-    const welcomeUrlTree = new UrlTree();
-    (router.createUrlTree as Mock).mockReturnValue(welcomeUrlTree);
+    const homeUrlTree = new UrlTree();
+    (router.createUrlTree as Mock).mockReturnValue(homeUrlTree);
 
     const result = await executeGuard(
       {} as ActivatedRouteSnapshot,
       {} as RouterStateSnapshot
     );
-    expect(result).toBe(welcomeUrlTree);
-    expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+    expect(result).toBe(homeUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/']);
   });
 
   it('should redirect to setup when mode is null', async () => {

@@ -109,6 +109,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -122,10 +126,6 @@ jobs:
             ${{ runner.os }}-bun-
       - name: Install dependencies
         run: bun install
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium
       - name: Build frontend
@@ -148,6 +148,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -161,10 +165,6 @@ jobs:
             ${{ runner.os }}-bun-
       - name: Install dependencies
         run: bun install
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium
       - name: Build frontend
@@ -188,6 +188,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -203,11 +208,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
 
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium
@@ -241,6 +241,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -259,11 +264,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
 
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium
