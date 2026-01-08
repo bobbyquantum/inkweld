@@ -55,15 +55,14 @@ test.describe('Online Application Launch', () => {
     // Refresh the page
     await page.reload();
 
-    // Wait for app to reinitialize
-    await page.waitForTimeout(1000);
-
     // Verify config is still server mode
-    const configAfter = await page.evaluate(() => {
-      return localStorage.getItem('inkweld-app-config');
-    });
-    const parsedAfter = JSON.parse(configAfter!);
-    expect(parsedAfter.mode).toBe('server');
+    await expect(async () => {
+      const configAfter = await page.evaluate(() => {
+        return localStorage.getItem('inkweld-app-config');
+      });
+      const parsedAfter = JSON.parse(configAfter!);
+      expect(parsedAfter.mode).toBe('server');
+    }).toPass();
   });
 
   test('should handle browser back/forward navigation', async ({

@@ -137,49 +137,43 @@ export const test = base.extend<OfflineTestFixtures>({
 
     // Navigate to home
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
-
-    // Wait for app to fully initialize
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // Create a test project
     const createButton = page.getByRole('button', { name: /create project/i });
-    await createButton.waitFor({ state: 'visible', timeout: 15000 });
+    await createButton.waitFor();
     await createButton.click();
 
     // Step 1: Template Selection
     // Wait for template to be selected (defaults to 'empty')
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 10000 });
+    await nextButton.waitFor();
     await nextButton.click();
 
     // Step 2: Fill in project details
     const titleInput = page.getByLabel(/project title/i);
-    await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+    await titleInput.waitFor();
     await titleInput.fill('Test Project');
 
     const slugInput = page.getByLabel(/project slug/i);
-    await slugInput.waitFor({ state: 'visible', timeout: 5000 });
+    await slugInput.waitFor();
     await slugInput.fill('test-project');
 
     // Submit the form
     const submitButton = page.getByRole('button', { name: /create project/i });
-    await submitButton.waitFor({ state: 'visible', timeout: 5000 });
+    await submitButton.waitFor();
     await submitButton.click();
 
     // Wait for navigation to project page
-    await page.waitForURL(/.*testuser.*test-project.*/, { timeout: 15000 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForURL(/.*testuser.*test-project.*/);
+    await page.waitForLoadState('domcontentloaded');
 
     // Navigate back to home to see the project card
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for the project card to appear
-    await page.waitForSelector('[data-testid="project-card"]', {
-      state: 'visible',
-      timeout: 15000,
-    });
+    await page.locator('[data-testid="project-card"]').first().waitFor();
 
     await use(page);
 
@@ -252,25 +246,21 @@ export async function createOfflineProject(
   await page.locator('[data-testid="create-project-button"]').click();
 
   // Wait for project to be created
-  await page.waitForURL(new RegExp(`.*${slug}.*`), { timeout: 5000 });
+  await page.waitForURL(new RegExp(`.*${slug}.*`));
 
   // Wait for localStorage to be updated
-  await page.waitForFunction(
-    expectedSlug => {
-      const stored = localStorage.getItem('inkweld-offline-projects');
-      if (!stored) return false;
-      try {
-        const projects = JSON.parse(stored) as Array<{ slug: string }>;
-        return (
-          Array.isArray(projects) && projects.some(p => p.slug === expectedSlug)
-        );
-      } catch {
-        return false;
-      }
-    },
-    slug,
-    { timeout: 5000 }
-  );
+  await page.waitForFunction(expectedSlug => {
+    const stored = localStorage.getItem('inkweld-offline-projects');
+    if (!stored) return false;
+    try {
+      const projects = JSON.parse(stored) as Array<{ slug: string }>;
+      return (
+        Array.isArray(projects) && projects.some(p => p.slug === expectedSlug)
+      );
+    } catch {
+      return false;
+    }
+  }, slug);
 }
 
 /**
@@ -280,12 +270,12 @@ export async function createOfflineProject(
 export async function openUserSettings(page: Page): Promise<void> {
   // Click the user menu button
   const userMenuButton = page.locator('[data-testid="user-menu-button"]');
-  await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
+  await userMenuButton.waitFor();
   await userMenuButton.click();
 
   // Click settings option
   const settingsOption = page.getByRole('menuitem', { name: /settings/i });
-  await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
+  await settingsOption.waitFor();
   await settingsOption.click();
 }
 

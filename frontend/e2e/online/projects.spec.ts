@@ -15,7 +15,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection (default 'empty' is already selected)
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.waitFor();
     await nextButton.click();
 
     // Step 2: Fill in project details
@@ -40,7 +40,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection (default 'empty' is already selected)
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(nextButton).toBeVisible();
     await nextButton.click();
 
     // Step 2: Try to submit without filling required fields
@@ -52,9 +52,7 @@ test.describe('Online Project Workflows', () => {
 
     // Fill title
     await page.getByTestId('project-title-input').fill('Test Title');
-    await expect(page.getByTestId('create-project-button')).toBeEnabled({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('create-project-button')).toBeEnabled();
   });
 
   test('should auto-generate slug from title', async ({
@@ -64,7 +62,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(nextButton).toBeVisible();
     await nextButton.click();
 
     // Step 2: Fill in title
@@ -73,10 +71,8 @@ test.describe('Online Project Workflows', () => {
     // Blur to trigger slug generation
     await page.getByTestId('project-title-input').blur();
 
-    // Wait a bit for auto-generation
-    await page.waitForTimeout(300);
-
     // Check if slug was auto-generated
+    await expect(page.getByTestId('project-slug-input')).not.toHaveValue('');
     const slugValue = await page.getByTestId('project-slug-input').inputValue();
     expect(slugValue).toBeTruthy();
     expect(slugValue).toMatch(/^[a-z0-9-]+$/);
@@ -89,7 +85,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(nextButton).toBeVisible();
     await nextButton.click();
 
     // Step 2: Fill in some data
@@ -109,7 +105,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(nextButton).toBeVisible();
     await nextButton.click();
 
     const uniqueSlug = `persist-test-${Date.now()}`;
@@ -128,8 +124,7 @@ test.describe('Online Project Workflows', () => {
     await page.goto(page.url().replace('/', `/${uniqueSlug}`));
 
     // Navigating directly to project should work
-    // (we can't easily get the username from the fixture, so just check we're on a project page)
-    await page.waitForTimeout(1000);
+    await expect(page).toHaveURL(new RegExp(uniqueSlug));
   });
 
   test('should show project URL preview during creation', async ({
@@ -139,7 +134,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(nextButton).toBeVisible();
     await nextButton.click();
 
     await page.waitForLoadState('networkidle');
@@ -161,7 +156,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(nextButton).toBeVisible();
     await nextButton.click();
 
     const longTitle = 'A'.repeat(100);
@@ -172,10 +167,8 @@ test.describe('Online Project Workflows', () => {
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('project-description-input').fill(longDescription);
 
-    // Should still be able to create - use timeout for CI stability
-    await expect(page.getByTestId('create-project-button')).toBeEnabled({
-      timeout: 10000,
-    });
+    // Should still be able to create
+    await expect(page.getByTestId('create-project-button')).toBeEnabled();
     await page.getByTestId('create-project-button').click();
 
     // Should redirect successfully
@@ -189,7 +182,7 @@ test.describe('Online Project Workflows', () => {
 
     // Step 1: Template selection
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(nextButton).toBeVisible();
     await nextButton.click();
 
     await page.getByTestId('project-title-input').fill('Loading Test');
@@ -210,11 +203,8 @@ test.describe('Online Project Workflows', () => {
     // Try to access create project page without authentication
     await page.goto('/create-project');
 
-    // Should redirect to home page (where login dialog can be opened)
-    await page.waitForTimeout(1000);
-    const url = page.url();
-    // After route changes, unauthenticated users are redirected to home page
-    expect(url.endsWith('/') || url.includes('/create-project')).toBeTruthy();
+    // Should redirect to home page for unauthenticated users
+    await expect(page).toHaveURL('/');
   });
 
   test('should require authentication to view projects', async ({
@@ -223,12 +213,7 @@ test.describe('Online Project Workflows', () => {
     // Try to access a project page without authentication
     await page.goto('/testuser/test-project');
 
-    // Should redirect to home page (where login dialog can be opened)
-    await page.waitForTimeout(1000);
-    const url = page.url();
-    // After route changes, unauthenticated users are redirected to home page
-    expect(
-      url.endsWith('/') || url.includes('/testuser/test-project')
-    ).toBeTruthy();
+    // Should redirect to home page for unauthenticated users
+    await expect(page).toHaveURL('/');
   });
 });

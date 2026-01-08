@@ -49,9 +49,7 @@ test.describe('Offline Project Export', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Wait for project to load
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open the more menu
     await page.getByTestId('project-more-menu-button').click();
@@ -95,9 +93,7 @@ test.describe('Offline Project Export', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Wait for project to load
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open the more menu
     await page.getByTestId('project-more-menu-button').click();
@@ -133,9 +129,7 @@ test.describe('Offline Project Import', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Wait for project to load
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open the more menu
     await page.getByTestId('project-more-menu-button').click();
@@ -157,9 +151,7 @@ test.describe('Offline Project Import', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Wait for project to load
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open the more menu and click import
     await page.getByTestId('project-more-menu-button').click();
@@ -181,9 +173,7 @@ test.describe('Offline Project Import', () => {
     // First, export the existing project
     await page.getByTestId('project-card').first().click();
     await expect(page).toHaveURL(/\/.+\/.+/);
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Export the project
     await page.getByTestId('project-more-menu-button').click();
@@ -207,28 +197,19 @@ test.describe('Offline Project Import', () => {
     await fileInput.setInputFiles(exportedFile);
 
     // Wait for parsing to complete - configure step should show
-    await expect(page.getByTestId('import-archive-info')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('import-archive-info')).toBeVisible();
     await expect(page.getByTestId('import-slug-input')).toBeVisible();
 
     // Enter a new unique slug
     const newSlug = `imported-${Date.now()}`;
     await page.getByTestId('import-slug-input').fill(newSlug);
 
-    // Wait for slug validation to complete
-    await page.waitForTimeout(500);
-
     // Click import button
-    await expect(page.getByTestId('import-start-button')).toBeEnabled({
-      timeout: 5000,
-    });
+    await expect(page.getByTestId('import-start-button')).toBeEnabled();
     await page.getByTestId('import-start-button').click();
 
     // Wait for import to complete
-    await expect(page.getByTestId('import-success')).toBeVisible({
-      timeout: 30000,
-    });
+    await expect(page.getByTestId('import-success')).toBeVisible();
 
     // Verify the slug is shown
     await expect(page.getByTestId('import-result-slug')).toContainText(newSlug);
@@ -238,7 +219,7 @@ test.describe('Offline Project Import', () => {
 
     // Navigate home and verify the new project exists
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should now have 2 projects (check using the cover-item class which is unique per project)
     const projectCards = page.locator(
@@ -256,9 +237,7 @@ test.describe('Offline Project Import', () => {
     // Navigate to the project
     await page.getByTestId('project-card').first().click();
     await expect(page).toHaveURL(/\/.+\/.+/);
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open import dialog
     await page.getByTestId('project-more-menu-button').click();
@@ -274,9 +253,7 @@ test.describe('Offline Project Import', () => {
     await fileInput.setInputFiles(invalidZipPath);
 
     // Should show parse error
-    await expect(page.getByTestId('import-parse-error')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('import-parse-error')).toBeVisible();
 
     // Cleanup
     fs.unlinkSync(invalidZipPath);
@@ -287,9 +264,7 @@ test.describe('Offline Project Import', () => {
   }) => {
     // Export a project first
     await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Export
     await page.getByTestId('project-more-menu-button').click();
@@ -306,25 +281,19 @@ test.describe('Offline Project Import', () => {
 
     // Upload the file
     await page.getByTestId('import-file-input').setInputFiles(exportedFile);
-    await expect(page.getByTestId('import-slug-input')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('import-slug-input')).toBeVisible();
 
     // Test invalid slug with uppercase
     await page.getByTestId('import-slug-input').fill('Invalid-SLUG');
-    await page.waitForTimeout(300);
 
     // Import button should be disabled for invalid slug
     await expect(page.getByTestId('import-start-button')).toBeDisabled();
 
     // Test valid slug
     await page.getByTestId('import-slug-input').fill('valid-slug-123');
-    await page.waitForTimeout(500);
 
     // Import button should be enabled for valid slug
-    await expect(page.getByTestId('import-start-button')).toBeEnabled({
-      timeout: 5000,
-    });
+    await expect(page.getByTestId('import-start-button')).toBeEnabled();
 
     // Cleanup
     fs.unlinkSync(exportedFile);
@@ -335,9 +304,7 @@ test.describe('Offline Project Import', () => {
   }) => {
     // Export the existing project
     await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     await page.getByTestId('project-more-menu-button').click();
     const downloadPromise = page.waitForEvent('download');
@@ -353,27 +320,19 @@ test.describe('Offline Project Import', () => {
 
     // Upload the file
     await page.getByTestId('import-file-input').setInputFiles(exportedFile);
-    await expect(page.getByTestId('import-slug-input')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('import-slug-input')).toBeVisible();
 
     // First enter a unique slug to make sure import works
     await page.getByTestId('import-slug-input').fill('unique-slug-test');
-    await page.waitForTimeout(500);
 
     // Verify import button is enabled for unique slug
-    await expect(page.getByTestId('import-start-button')).toBeEnabled({
-      timeout: 5000,
-    });
+    await expect(page.getByTestId('import-start-button')).toBeEnabled();
 
     // Now try to use the existing slug (test-project)
     await page.getByTestId('import-slug-input').fill('test-project');
-    await page.waitForTimeout(800);
 
     // Import button should be disabled (slug already taken)
-    await expect(page.getByTestId('import-start-button')).toBeDisabled({
-      timeout: 5000,
-    });
+    await expect(page.getByTestId('import-start-button')).toBeDisabled();
 
     // Cleanup
     fs.unlinkSync(exportedFile);
@@ -386,9 +345,7 @@ test.describe('Export/Import Round-Trip', () => {
   }) => {
     // Navigate to the project
     await page.getByTestId('project-card').first().click();
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Export the project
     await page.getByTestId('project-more-menu-button').click();
@@ -411,24 +368,20 @@ test.describe('Export/Import Round-Trip', () => {
     await page.getByTestId('project-more-menu-button').click();
     await page.getByTestId('import-project-button').click();
     await page.getByTestId('import-file-input').setInputFiles(exportedFile);
-    await expect(page.getByTestId('import-slug-input')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('import-slug-input')).toBeVisible();
 
     const newSlug = `roundtrip-${Date.now()}`;
     await page.getByTestId('import-slug-input').fill(newSlug);
-    await page.waitForTimeout(500);
+    await expect(page.getByTestId('import-start-button')).toBeEnabled();
     await page.getByTestId('import-start-button').click();
 
     // Wait for success
-    await expect(page.getByTestId('import-success')).toBeVisible({
-      timeout: 30000,
-    });
+    await expect(page.getByTestId('import-success')).toBeVisible();
     await page.getByTestId('import-done-button').click();
 
     // Navigate to the imported project
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should have 2 projects now (original + imported)
     // Use .cover-item selector to avoid nested mat-card duplicates

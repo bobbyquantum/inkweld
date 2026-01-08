@@ -29,9 +29,7 @@
   } @else {
     <div class="announcements-list" data-testid="admin-announcements-list">
       @for (announcement of announcements(); track announcement.id) {
-        <mat-card
-          class="announcement-item"
-          [attr.data-testid]="'announcement-card-' + announcement.id">
+        <mat-card class="announcement-item" data-testid="announcement-card">
           <mat-card-header>
             <div class="header-row">
               <div class="type-badge">

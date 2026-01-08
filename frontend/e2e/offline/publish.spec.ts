@@ -20,17 +20,13 @@ test.describe('Offline Publishing Workflow', () => {
     // Wait for project to load
     await expect(
       page.getByRole('heading', { name: 'Publish Plans' })
-    ).toBeVisible({
-      timeout: 10000,
-    });
+    ).toBeVisible();
 
     // Click the create publish plan button
     await page.getByTestId('create-publish-plan-button').click();
 
     // Wait for the publish plan tab to open
-    await expect(page.getByTestId('publish-plan-container')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
   }
 
   test.describe('Publish Plan Creation', () => {
@@ -44,9 +40,7 @@ test.describe('Offline Publishing Workflow', () => {
       // Should see the Publish Plans heading
       await expect(
         page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible({
-        timeout: 10000,
-      });
+      ).toBeVisible();
 
       // Should see the create button
       await expect(
@@ -182,17 +176,17 @@ test.describe('Offline Publishing Workflow', () => {
       const dialogOrError = await Promise.race([
         page
           .getByTestId('publish-complete-dialog-title')
-          .waitFor({ state: 'visible', timeout: 30000 })
+          .waitFor()
           .then(() => 'dialog'),
         page
           .locator('.mat-mdc-snack-bar-label')
           .filter({ hasText: /error/i })
-          .waitFor({ state: 'visible', timeout: 30000 })
+          .waitFor()
           .then(() => 'error'),
         // Also wait for generate button to come back (indicates completion or error)
         page
           .getByTestId('generate-button')
-          .waitFor({ state: 'visible', timeout: 30000 })
+          .waitFor()
           .then(() => 'button-back'),
       ]);
 
@@ -240,7 +234,7 @@ test.describe('Offline Publishing Workflow', () => {
       // Wait for complete dialog
       await expect(
         page.getByTestId('publish-complete-dialog-title')
-      ).toBeVisible({ timeout: 30000 });
+      ).toBeVisible();
 
       // Prepare to intercept download
       const downloadPromise = page.waitForEvent('download');
@@ -267,17 +261,13 @@ test.describe('Offline Publishing Workflow', () => {
       await page.getByTestId('save-changes-button').click();
 
       // Save button should disappear after saving
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible({
-        timeout: 5000,
-      });
+      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
 
       // Reload the page
       await page.reload();
 
       // The publish plan tab should still be open after reload
-      await expect(page.getByTestId('publish-plan-container')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
 
       // Verify the saved value persisted
       await expect(page.getByTestId('book-title-input')).toHaveValue(

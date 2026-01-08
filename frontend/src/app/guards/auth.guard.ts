@@ -35,8 +35,8 @@ export const authGuard: CanActivateFn = async () => {
     ) {
       const hasCached = await unifiedUserService.hasCachedUser();
       if (!hasCached) {
-        // No cached user, redirect to welcome
-        return router.createUrlTree(['/welcome']);
+        // No cached user, redirect to home page (where login dialog can be opened)
+        return router.createUrlTree(['/']);
       }
     }
 
@@ -44,8 +44,8 @@ export const authGuard: CanActivateFn = async () => {
     try {
       await unifiedUserService.initialize();
     } catch {
-      // Any error during load should redirect to welcome
-      return router.createUrlTree(['/welcome']);
+      // Any error during load should redirect to home page
+      return router.createUrlTree(['/']);
     }
 
     // Allow navigation if authenticated
@@ -53,8 +53,8 @@ export const authGuard: CanActivateFn = async () => {
       return true;
     }
 
-    // Redirect to welcome page if not authenticated
-    return router.createUrlTree(['/welcome']);
+    // Redirect to home page if not authenticated
+    return router.createUrlTree(['/']);
   }
 
   // Fallback to setup if no valid mode

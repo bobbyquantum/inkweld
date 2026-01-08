@@ -23,26 +23,22 @@ test.describe('User Login', () => {
     await page.goto('/');
 
     // Click login button to open dialog
-    await page.locator('[data-testid="welcome-login-button"]').click();
+    await page.getByTestId('welcome-login-button').click();
 
-    // Wait for dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-      timeout: 5000,
-    });
+    // Wait for login dialog to appear
+    await expect(page.getByTestId('login-dialog')).toBeVisible();
 
     // Fill login form with the newly created user credentials
+    await page.getByTestId('username-input').click();
     await page.getByTestId('username-input').fill(testUsername);
+    await page.getByTestId('password-input').click();
     await page.getByTestId('password-input').fill(testPassword);
 
     // Submit the form
     await page.getByTestId('login-button').click();
 
     // Wait for dialog to close and user to be logged in
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'hidden',
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('login-dialog')).toBeHidden();
 
     // Should be on home page and authenticated
     await expect(page).toHaveURL('/');
@@ -60,29 +56,25 @@ test.describe('User Login', () => {
 
     // Go to home page and open login dialog
     await page.goto('/');
-    await page.locator('[data-testid="welcome-login-button"]').click();
+    await page.getByTestId('welcome-login-button').click();
 
-    // Wait for dialog to appear and OAuth providers to load
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-      timeout: 5000,
-    });
+    // Wait for login dialog to appear
+    await expect(page.getByTestId('login-dialog')).toBeVisible();
 
     // Fill login form with wrong password
+    await page.getByTestId('username-input').click();
     await page.getByTestId('username-input').fill(testUsername);
+    await page.getByTestId('password-input').click();
     await page.getByTestId('password-input').fill('wrong-password');
 
     // Wait for button to be enabled (OAuth providers loaded)
-    await expect(page.getByTestId('login-button')).toBeEnabled({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('login-button')).toBeEnabled();
 
     // Click the login button and wait for the response
     const [response] = await Promise.all([
       page.waitForResponse(
         resp =>
-          resp.url().includes('/api/v1/auth/login') && resp.status() === 401,
-        { timeout: 10000 }
+          resp.url().includes('/api/v1/auth/login') && resp.status() === 401
       ),
       page.getByTestId('login-button').click(),
     ]);
@@ -91,15 +83,13 @@ test.describe('User Login', () => {
     expect(response.status()).toBe(401);
 
     // Wait for the error to appear in the UI
-    await expect(page.getByTestId('password-error')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('password-error')).toBeVisible();
     await expect(page.getByTestId('password-error')).toContainText(
       'Invalid username or password'
     );
 
     // Dialog should still be open
-    await expect(page.locator('mat-dialog-container')).toBeVisible();
+    await expect(page.getByTestId('login-dialog')).toBeVisible();
   });
 
   test('should prevent empty form submission', async ({
@@ -107,36 +97,34 @@ test.describe('User Login', () => {
   }) => {
     // Go to home page and open login dialog
     await page.goto('/');
-    await page.locator('[data-testid="welcome-login-button"]').click();
+    await page.getByTestId('welcome-login-button').click();
 
-    // Wait for dialog to appear
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-      timeout: 5000,
-    });
+    // Wait for login dialog to appear
+    await expect(page.getByTestId('login-dialog')).toBeVisible();
 
     // Check that login button is disabled when form is empty
     await expect(page.getByTestId('login-button')).toBeDisabled();
 
     // Let's also test partial form filling - only username
+    await page.getByTestId('username-input').click();
     await page.getByTestId('username-input').fill('someuser');
     await expect(page.getByTestId('login-button')).toBeDisabled();
 
     // Clear username and only fill password
     await page.getByTestId('username-input').fill('');
+    await page.getByTestId('password-input').click();
     await page.getByTestId('password-input').fill('password123');
     await expect(page.getByTestId('login-button')).toBeDisabled();
 
     // Fill both to verify button becomes enabled
+    await page.getByTestId('username-input').click();
     await page.getByTestId('username-input').fill('someuser');
-    
+
     // Use Tab to trigger form updates
     await page.keyboard.press('Tab');
-    
+
     // Wait for Angular form validation to update
-    await expect(page.getByTestId('login-button')).toBeEnabled({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('login-button')).toBeEnabled();
   });
 
   test('should maintain authentication state after refresh', async ({

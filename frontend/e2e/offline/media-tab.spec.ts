@@ -37,11 +37,11 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Click the Media Library button on the home tab
       const mediaButton = page.getByTestId('sidebar-media-button');
-      await expect(mediaButton).toBeVisible({ timeout: 5000 });
+      await expect(mediaButton).toBeVisible();
       await mediaButton.click();
 
       // Should navigate to media route
@@ -58,11 +58,11 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check that media library button is visible in the sidebar
       const mediaButton = page.getByTestId('sidebar-media-button');
-      await expect(mediaButton).toBeVisible({ timeout: 3000 });
+      await expect(mediaButton).toBeVisible();
     });
   });
 
@@ -73,7 +73,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Navigate to media tab
       const mediaButton = page.getByTestId('sidebar-media-button');
@@ -81,7 +81,7 @@ test.describe('Media Tab', () => {
       await page.waitForURL(/\/media$/);
 
       // Should show empty state
-      await expect(page.locator('.empty-card')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId('empty-card')).toBeVisible();
       await expect(
         page.getByText(/No media stored locally for this project/i)
       ).toBeVisible();
@@ -95,7 +95,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project to get the project key
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Get the project key from URL
       const projectKey = getProjectKeyFromUrl(page.url());
@@ -129,7 +129,7 @@ test.describe('Media Tab', () => {
       await page.waitForURL(/\/media$/);
 
       // Should show media grid with items
-      await expect(page.locator('.media-grid')).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId('media-grid')).toBeVisible();
       const mediaItems = page.locator('.media-item');
       await expect(mediaItems).toHaveCount(3);
     });
@@ -140,7 +140,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const url = page.url();
       const projectKey = getProjectKeyFromUrl(url);
@@ -169,12 +169,10 @@ test.describe('Media Tab', () => {
 
       // Navigate to media tab
       await page.goto(`${url}/media`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should show header stats
-      await expect(page.locator('.header-stats')).toBeVisible({
-        timeout: 5000,
-      });
+      await expect(page.locator('.header-stats')).toBeVisible();
 
       // Should have category filter buttons (in the .category-filter section)
       const filterSection = page.locator('.category-filter');
@@ -194,7 +192,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const url = page.url();
       const projectKey = getProjectKeyFromUrl(url);
@@ -224,34 +222,28 @@ test.describe('Media Tab', () => {
 
       // Navigate to media tab
       await page.goto(`${url}/media`);
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('.media-grid')).toBeVisible({ timeout: 5000 });
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Should show all 3 items initially
-      let mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('.media-item');
       await expect(mediaItems).toHaveCount(3);
 
       // Click "Cover" filter
       await page.getByRole('button', { name: /^Cover$/i }).click();
-      await page.waitForTimeout(300);
 
       // Should show only 1 cover
-      mediaItems = page.locator('.media-item');
       await expect(mediaItems).toHaveCount(1);
 
       // Click "Inline Images" filter
       await page.getByRole('button', { name: /Inline Images/i }).click();
-      await page.waitForTimeout(300);
 
       // Should show 2 inline images
-      mediaItems = page.locator('.media-item');
       await expect(mediaItems).toHaveCount(2);
 
       // Click "All" to show everything again
       await page.getByRole('button', { name: /All/i }).click();
-      await page.waitForTimeout(300);
 
-      mediaItems = page.locator('.media-item');
       await expect(mediaItems).toHaveCount(3);
     });
   });
@@ -263,7 +255,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const url = page.url();
       const projectKey = getProjectKeyFromUrl(url);
@@ -279,16 +271,14 @@ test.describe('Media Tab', () => {
 
       // Navigate to media tab
       await page.goto(`${url}/media`);
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('.media-grid')).toBeVisible({ timeout: 5000 });
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Click on the media item to open preview
       await page.locator('.media-item').first().click();
 
       // Should open image viewer dialog
-      await expect(page.locator('app-image-viewer-dialog')).toBeVisible({
-        timeout: 3000,
-      });
+      await expect(page.locator('app-image-viewer-dialog')).toBeVisible();
     });
   });
 
@@ -299,7 +289,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const url = page.url();
       const projectKey = getProjectKeyFromUrl(url);
@@ -315,11 +305,11 @@ test.describe('Media Tab', () => {
 
       // Navigate to media tab
       await page.goto(`${url}/media`);
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('.media-grid')).toBeVisible({ timeout: 5000 });
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Set up download listener
-      const downloadPromise = page.waitForEvent('download', { timeout: 5000 });
+      const downloadPromise = page.waitForEvent('download');
 
       // Click download button on the media item (button with "Download" tooltip)
       await page
@@ -340,7 +330,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const url = page.url();
       const projectKey = getProjectKeyFromUrl(url);
@@ -363,11 +353,11 @@ test.describe('Media Tab', () => {
 
       // Navigate to media tab
       await page.goto(`${url}/media`);
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('.media-grid')).toBeVisible({ timeout: 5000 });
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Should have 2 items
-      let mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('.media-item');
       await expect(mediaItems).toHaveCount(2);
 
       // Click delete button on first item (button with "delete" icon)
@@ -378,18 +368,12 @@ test.describe('Media Tab', () => {
         .click();
 
       // Should show confirmation dialog
-      await expect(page.locator('app-confirmation-dialog')).toBeVisible({
-        timeout: 3000,
-      });
+      await expect(page.locator('app-confirmation-dialog')).toBeVisible();
 
       // Confirm deletion (use the specific confirm button)
       await page.getByTestId('confirm-delete-button').click();
 
-      // Wait for deletion to complete
-      await page.waitForTimeout(500);
-
       // Should now have 1 item
-      mediaItems = page.locator('.media-item');
       await expect(mediaItems).toHaveCount(1);
     });
   });
@@ -401,7 +385,7 @@ test.describe('Media Tab', () => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const url = page.url();
       const projectKey = getProjectKeyFromUrl(url);
@@ -422,8 +406,8 @@ test.describe('Media Tab', () => {
 
       // Navigate to media tab
       await page.goto(`${url}/media`);
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('.media-grid')).toBeVisible({ timeout: 5000 });
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Should show published items
       const mediaItems = page.locator('.media-item');
@@ -431,7 +415,6 @@ test.describe('Media Tab', () => {
 
       // Filter to show only published files
       await page.getByRole('button', { name: /Published/i }).click();
-      await page.waitForTimeout(300);
 
       // Should still show 2 (both are published)
       await expect(mediaItems).toHaveCount(2);

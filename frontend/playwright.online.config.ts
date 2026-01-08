@@ -43,6 +43,10 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')` */
     baseURL: 'http://localhost:4400',
 
+    /* Action timeout for slow CI environments */
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
+
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
 

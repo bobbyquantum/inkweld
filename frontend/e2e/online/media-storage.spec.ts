@@ -34,7 +34,7 @@ test.describe('Online Media Storage', () => {
 
       // Check that the project cover component exists
       const coverComponent = page.locator('app-project-cover');
-      await expect(coverComponent).toBeVisible({ timeout: 10000 });
+      await expect(coverComponent).toBeVisible();
     });
 
     test('should display uploaded cover on project page', async ({
@@ -57,7 +57,7 @@ test.describe('Online Media Storage', () => {
 
       // Verify the cover component is rendered
       const coverComponent = page.locator('app-project-cover');
-      await expect(coverComponent).toBeVisible({ timeout: 10000 });
+      await expect(coverComponent).toBeVisible();
     });
 
     test('should persist cover after page reload', async ({
@@ -90,7 +90,7 @@ test.describe('Online Media Storage', () => {
 
       // Verify cover component is still visible
       const coverComponent = page.locator('app-project-cover');
-      await expect(coverComponent).toBeVisible({ timeout: 10000 });
+      await expect(coverComponent).toBeVisible();
     });
   });
 
@@ -197,9 +197,7 @@ test.describe('Online Media Storage', () => {
       expect(page.url()).toContain(uniqueSlug);
 
       // Project tree should be visible (indicating project loaded)
-      await expect(page.locator('app-project-tree')).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.locator('app-project-tree')).toBeVisible();
     });
 
     test('should show cover placeholder for projects without cover', async ({
@@ -222,7 +220,7 @@ test.describe('Online Media Storage', () => {
 
       // Cover component should exist even without an actual cover
       const coverComponent = page.locator('app-project-cover');
-      await expect(coverComponent).toBeVisible({ timeout: 10000 });
+      await expect(coverComponent).toBeVisible();
 
       // Should show a placeholder or empty state
       // (The component handles the case when there's no cover)
@@ -254,7 +252,7 @@ test.describe('Online Media Storage', () => {
 
       // Project card should be visible
       const projectCard = page.getByTestId('project-card').first();
-      await expect(projectCard).toBeVisible({ timeout: 10000 });
+      await expect(projectCard).toBeVisible();
     });
   });
 
@@ -265,15 +263,8 @@ test.describe('Online Media Storage', () => {
       // Try to access a project page without authentication
       await page.goto('/someuser/someproject');
 
-      // Should redirect to home page where login dialog can be opened
-      await page.waitForTimeout(1000);
-      const url = page.url();
-      // Either redirects to '/' or stays on same page with 401/403
-      expect(
-        url === 'http://localhost:4200/' ||
-          url.endsWith('/') ||
-          url.includes('someproject')
-      ).toBeTruthy();
+      // Should redirect to home page for unauthenticated users
+      await expect(page).toHaveURL('/');
     });
   });
 });

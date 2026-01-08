@@ -275,7 +275,7 @@
 
             <!-- All Projects Section (owned + shared) -->
             @if (allProjects().length === 0 && !searchControl.value) {
-              <div class="empty-state">
+              <div class="empty-state" data-testid="empty-state">
                 <mat-icon class="empty-icon">add_circle_outline</mat-icon>
                 <h2>Create Your First Project</h2>
                 <p>Get started by creating a new project</p>

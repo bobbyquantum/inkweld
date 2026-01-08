@@ -48,6 +48,10 @@ export default defineConfig({
     /* Base URL - Docker container serves both frontend and backend on 9333 */
     baseURL: 'http://localhost:9333',
 
+    /* Action timeout for slow CI environments */
+    actionTimeout: 15000,
+    navigationTimeout: 30000,
+
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
 

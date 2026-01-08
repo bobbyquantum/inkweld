@@ -17,6 +17,10 @@ import {
 } from '@services/project/unified-snapshot.service';
 
 import {
+  ConfirmationDialogComponent,
+  ConfirmationDialogData,
+} from '../confirmation-dialog/confirmation-dialog.component';
+import {
   CreateSnapshotDialogComponent,
   CreateSnapshotDialogData,
   CreateSnapshotDialogResult,
@@ -192,11 +196,21 @@ export class SnapshotsDialogComponent implements OnInit {
    * Delete a snapshot
    */
   async deleteSnapshot(snapshot: UnifiedSnapshot): Promise<void> {
-    if (
-      !confirm(
-        `Are you sure you want to delete the snapshot "${snapshot.name}"? This cannot be undone.`
-      )
-    ) {
+    const dialogRef = this.dialog.open<
+      ConfirmationDialogComponent,
+      ConfirmationDialogData,
+      boolean
+    >(ConfirmationDialogComponent, {
+      data: {
+        title: 'Delete Snapshot',
+        message: `Are you sure you want to delete the snapshot "${snapshot.name}"? This cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      },
+    });
+
+    const confirmed = await dialogRef.afterClosed().toPromise();
+    if (!confirmed) {
       return;
     }
 

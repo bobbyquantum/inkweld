@@ -123,7 +123,7 @@ test.describe('Offline Media Storage', () => {
       await page.waitForURL(/\/.+\/.+/);
 
       // Wait for project to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Create a test image
       await createTestImageBlob(page, 'blue', 400, 600);
@@ -171,9 +171,6 @@ test.describe('Offline Media Storage', () => {
             }
           }, 'image/png');
         });
-
-        // Wait for blob to be created
-        await page.waitForTimeout(500);
       }
 
       // Verify the app is still in offline mode
@@ -195,7 +192,7 @@ test.describe('Offline Media Storage', () => {
 
       // Check that the project cover component exists
       const coverComponent = page.locator('app-project-cover');
-      await expect(coverComponent).toBeVisible({ timeout: 10000 });
+      await expect(coverComponent).toBeVisible();
 
       // The cover component should be rendered (even if empty/placeholder)
       // In offline mode, it should attempt to load from IndexedDB
@@ -207,14 +204,14 @@ test.describe('Offline Media Storage', () => {
       // Navigate to project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Get current URL
       const projectUrl = page.url();
 
       // Reload the page
       await page.reload();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Verify we're still on the same project page
       expect(page.url()).toBe(projectUrl);
@@ -235,7 +232,7 @@ test.describe('Offline Media Storage', () => {
       offlinePage: page,
     }) => {
       // Trigger media database creation by navigating
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check if the database exists
       const dbExists = await page.evaluate(async () => {
@@ -330,7 +327,7 @@ test.describe('Offline Media Storage', () => {
     test('should create inkweld-sync database for tracking sync state', async ({
       offlinePage: page,
     }) => {
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check if the sync database can be created
       const dbExists = await page.evaluate(async () => {

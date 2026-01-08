@@ -90,12 +90,12 @@ describe('adminGuard', () => {
     expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/']);
   });
 
-  it('should redirect to /welcome if not authenticated', async () => {
+  it('should redirect to / if not authenticated', async () => {
     userServiceMock.isAuthenticated.mockReturnValue(false);
 
     await runGuard();
 
-    expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+    expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/']);
   });
 
   it('should redirect to / if user is not admin', async () => {
@@ -142,7 +142,7 @@ describe('adminGuard', () => {
 
     await runGuard();
 
-    // With no cached user, it should redirect to welcome
-    expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+    // With no cached user, it should redirect to home
+    expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/']);
   });
 });

@@ -142,9 +142,7 @@ export const test = base.extend<OnlineTestFixtures>({
     // Wait for the user menu button to be visible - this is the most reliable
     // indicator that authentication succeeded and the app is fully initialized
     try {
-      await page
-        .locator('[data-testid="user-menu-button"]')
-        .waitFor({ state: 'visible', timeout: 15000 });
+      await page.locator('[data-testid="user-menu-button"]').waitFor();
     } catch {
       // If user menu didn't appear, check what state we're in for better error message
       const welcomeHeading = await page
@@ -222,9 +220,7 @@ export const test = base.extend<OnlineTestFixtures>({
     // Wait for the user menu button to be visible - this is the most reliable
     // indicator that authentication succeeded and the app is fully initialized
     try {
-      await page
-        .locator('[data-testid="user-menu-button"]')
-        .waitFor({ state: 'visible', timeout: 15000 });
+      await page.locator('[data-testid="user-menu-button"]').waitFor();
     } catch {
       // If user menu didn't appear, check what state we're in for better error message
       const welcomeHeading = await page
@@ -438,16 +434,24 @@ export async function registerUser(
   await page.locator('[data-testid="welcome-register-button"]').click();
 
   // Wait for the dialog to appear
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'visible',
-    timeout: 5000,
-  });
+  await expect(page.getByTestId('register-dialog')).toBeVisible();
+
+  // Wait for OAuth providers to load (which enables the register button once form is valid)
+  // Register button remains disabled until providersLoaded is true
+  const loadingSpinner = page.locator(
+    'mat-dialog-container mat-progress-spinner'
+  );
+  if (await loadingSpinner.isVisible().catch(() => false)) {
+    await loadingSpinner.waitFor({ state: 'hidden' });
+  }
 
   await page.locator('[data-testid="username-input"]').fill(username);
   await page.locator('[data-testid="username-input"]').blur();
 
-  // Wait for username availability check (async validation) - longer timeout for Docker
-  await page.waitForTimeout(2000);
+  // Wait for username availability check (async validation)
+  await expect(
+    page.locator('[data-testid="username-available-icon"]')
+  ).toBeVisible();
 
   await page.locator('[data-testid="password-input"]').fill(password);
   await page.locator('[data-testid="confirm-password-input"]').fill(password);
@@ -455,14 +459,11 @@ export async function registerUser(
   // Blur the last field to trigger validation
   await page.locator('[data-testid="confirm-password-input"]').blur();
 
-  // Wait a bit for all validations to complete
-  await page.waitForTimeout(1000);
-
   // Wait for the register button to be enabled (not just visible)
   const registerButton = page.locator(
     'mat-dialog-container [data-testid="register-button"]'
   );
-  await expect(registerButton).toBeEnabled({ timeout: 20000 });
+  await expect(registerButton).toBeEnabled();
 
   // Click register and wait for dialog to close
   await registerButton.click();
@@ -471,10 +472,7 @@ export async function registerUser(
   await page.waitForLoadState('networkidle');
 
   // Wait for dialog to close (indicates success)
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'hidden',
-    timeout: 15000,
-  });
+  await expect(page.getByTestId('register-dialog')).toBeHidden();
 
   // Verify token was stored (registration should auto-login)
   const token = await page.evaluate(() => localStorage.getItem('auth_token'));
@@ -486,10 +484,9 @@ export async function registerUser(
 
   // Wait for the user menu to appear (indicates successful authentication)
   try {
-    await page.locator('[data-testid="user-menu-button"]').waitFor({
-      state: 'visible',
-      timeout: 10000,
-    });
+    await expect(
+      page.locator('[data-testid="user-menu-button"]')
+    ).toBeVisible();
   } catch {
     // Log diagnostic info
     const url = page.url();
@@ -527,7 +524,11 @@ export async function createProject(
   // Step 1: Template selection - default template is pre-selected
   // Click Next to proceed to step 2
   await page.getByRole('button', { name: /next/i }).click();
-  await page.waitForTimeout(200);
+
+  // Wait for Step 2 elements to be visible
+  await expect(
+    page.locator('[data-testid="project-title-input"]')
+  ).toBeVisible();
 
   // Step 2: Fill in project details
   await page.locator('[data-testid="project-title-input"]').fill(title);
@@ -542,7 +543,7 @@ export async function createProject(
   await page.locator('[data-testid="create-project-button"]').click();
 
   // Wait for navigation to project page
-  await page.waitForURL(new RegExp(`.*${slug}.*`), { timeout: 10000 });
+  await expect(page).toHaveURL(new RegExp(`.*${slug}.*`));
 }
 
 /**
@@ -561,7 +562,11 @@ export async function createOfflineProject(
   // Step 1: Template selection - default template is pre-selected
   // Click Next to proceed to step 2
   await page.getByRole('button', { name: /next/i }).click();
-  await page.waitForTimeout(200);
+
+  // Wait for Step 2 elements to be visible
+  await expect(
+    page.locator('[data-testid="project-title-input"]')
+  ).toBeVisible();
 
   // Step 2: Fill project form using data-testids
   await page.locator('[data-testid="project-title-input"]').fill(title);
@@ -577,25 +582,21 @@ export async function createOfflineProject(
   await page.locator('[data-testid="create-project-button"]').click();
 
   // Wait for project to be created (URL changes to project page)
-  await page.waitForURL(new RegExp(`.*${slug}.*`), { timeout: 5000 });
+  await expect(page).toHaveURL(new RegExp(`.*${slug}.*`));
 
   // Wait for localStorage to be updated by checking it directly
-  await page.waitForFunction(
-    expectedSlug => {
-      const stored = localStorage.getItem('inkweld-offline-projects');
-      if (!stored) return false;
-      try {
-        const projects = JSON.parse(stored) as Array<{ slug: string }>;
-        return (
-          Array.isArray(projects) && projects.some(p => p.slug === expectedSlug)
-        );
-      } catch {
-        return false;
-      }
-    },
-    slug,
-    { timeout: 5000 }
-  );
+  await page.waitForFunction(expectedSlug => {
+    const stored = localStorage.getItem('inkweld-offline-projects');
+    if (!stored) return false;
+    try {
+      const projects = JSON.parse(stored) as Array<{ slug: string }>;
+      return (
+        Array.isArray(projects) && projects.some(p => p.slug === expectedSlug)
+      );
+    } catch {
+      return false;
+    }
+  }, slug);
 }
 
 /**
@@ -606,12 +607,12 @@ export async function openUserSettings(page: Page): Promise<void> {
   const userMenuButton = page.locator('[data-testid="user-menu-button"]');
 
   // Wait for button to be visible
-  await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
+  await userMenuButton.waitFor();
   await userMenuButton.click();
 
   // Click settings option
   const settingsOption = page.getByRole('menuitem', { name: /settings/i });
-  await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
+  await settingsOption.waitFor();
   await settingsOption.click();
 }
 

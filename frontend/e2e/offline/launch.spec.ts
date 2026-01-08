@@ -47,10 +47,7 @@ test.describe('Offline Application Launch', () => {
     await page.reload();
 
     // Wait for app to reinitialize
-    await page.waitForSelector('[data-testid="project-card"]', {
-      state: 'visible',
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-card').first()).toBeVisible();
 
     // Verify config is still offline
     const configAfter = await page.evaluate(() => {
@@ -69,8 +66,6 @@ test.describe('Offline Application Launch', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Project tree should be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
   });
 });

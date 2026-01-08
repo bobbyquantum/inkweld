@@ -33,7 +33,7 @@ export const adminGuard: CanActivateFn = async () => {
   ) {
     const hasCached = await unifiedUserService.hasCachedUser();
     if (!hasCached) {
-      return router.createUrlTree(['/welcome']);
+      return router.createUrlTree(['/']);
     }
   }
 
@@ -41,12 +41,12 @@ export const adminGuard: CanActivateFn = async () => {
   try {
     await unifiedUserService.initialize();
   } catch {
-    return router.createUrlTree(['/welcome']);
+    return router.createUrlTree(['/']);
   }
 
   // Check if user is authenticated
   if (!unifiedUserService.isAuthenticated()) {
-    return router.createUrlTree(['/welcome']);
+    return router.createUrlTree(['/']);
   }
 
   // Check if user is admin

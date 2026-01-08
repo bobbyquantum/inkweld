@@ -69,10 +69,8 @@ test.describe('Offline Project Workflows', () => {
     // Blur to trigger slug generation
     await page.getByTestId('project-title-input').blur();
 
-    // Wait a bit for auto-generation
-    await page.waitForTimeout(300);
-
     // Check if slug was auto-generated
+    await expect(page.getByTestId('project-slug-input')).not.toHaveValue('');
     const slugValue = await page.getByTestId('project-slug-input').inputValue();
     expect(slugValue).toBeTruthy();
     expect(slugValue).toMatch(/^[a-z0-9-]+$/);
@@ -95,9 +93,7 @@ test.describe('Offline Project Workflows', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Project tree should be visible
-    await expect(page.getByTestId('project-tree')).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
   });
 
   test('should cancel project creation and return home', async ({
