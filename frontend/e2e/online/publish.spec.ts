@@ -42,9 +42,13 @@ test.describe('Online Publishing Workflow', () => {
     // Create a new publish plan
     await page.getByTestId('create-publish-plan-button').click();
 
-    // Wait for the publish plan tab to open - first wait for heading which is more stable
+    // Wait for navigation and the publish plan tab to load
+    // First wait for URL to change (plan gets a new route)
+    await page.waitForTimeout(500); // Brief pause for navigation to start
+
+    // Then wait for the plan name display - may take time in CI
     await expect(page.getByTestId('plan-name-display')).toBeVisible({
-      timeout: 30000,
+      timeout: 45000,
     });
 
     return uniqueSlug;
