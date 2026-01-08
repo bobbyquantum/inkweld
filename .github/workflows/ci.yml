@@ -103,83 +103,83 @@ jobs:
   # E2E Tests - Split across parallel runners
   # ===========================================
 
-  # Offline E2E Tests (TEMPORARILY SKIPPED)
-  # e2e-offline:
-  #   name: E2E Tests (Offline)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - name: Setup Bun
-  #       uses: oven-sh/setup-bun@v2
-  #       with:
-  #         bun-version: latest
-  #     - name: Cache Bun dependencies
-  #       uses: actions/cache@v5
-  #       with:
-  #         path: ~/.bun/install/cache
-  #         key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-bun-
-  #     - name: Install dependencies
-  #       run: bun install
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v6
-  #       with:
-  #         node-version: "24"
-  #     - name: Install Playwright browsers
-  #       run: cd frontend && bunx playwright install --with-deps chromium
-  #     - name: Build frontend
-  #       run: cd frontend && npm run build
-  #     - name: Run offline e2e tests
-  #       run: cd frontend && npm run e2e:offline:ci
-  #       env:
-  #         E2E_MODE: prod
-  #     - name: Upload Playwright reports
-  #       uses: actions/upload-artifact@v6
-  #       if: failure()
-  #       with:
-  #         name: playwright-report-offline
-  #         path: frontend/playwright-report/
-  #         retention-days: 7
+  # Offline E2E Tests
+  e2e-offline:
+    name: E2E Tests (Offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Install dependencies
+        run: bun install
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Install Playwright browsers
+        run: cd frontend && bunx playwright install --with-deps chromium
+      - name: Build frontend
+        run: cd frontend && npm run build
+      - name: Run offline e2e tests
+        run: cd frontend && npm run e2e:offline:ci
+        env:
+          E2E_MODE: prod
+      - name: Upload Playwright reports
+        uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: playwright-report-offline
+          path: frontend/playwright-report/
+          retention-days: 7
 
-  # Online E2E Tests (TEMPORARILY SKIPPED)
-  # e2e-online:
-  #   name: E2E Tests (Online)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - name: Setup Bun
-  #       uses: oven-sh/setup-bun@v2
-  #       with:
-  #         bun-version: latest
-  #     - name: Cache Bun dependencies
-  #       uses: actions/cache@v5
-  #       with:
-  #         path: ~/.bun/install/cache
-  #         key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-bun-
-  #     - name: Install dependencies
-  #       run: bun install
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v6
-  #       with:
-  #         node-version: "24"
-  #     - name: Install Playwright browsers
-  #       run: cd frontend && bunx playwright install --with-deps chromium
-  #     - name: Build frontend
-  #       run: cd frontend && npm run build
-  #     - name: Run online e2e tests
-  #       run: cd frontend && npm run e2e:online:ci
-  #       env:
-  #         E2E_MODE: prod
-  #     - name: Upload Playwright reports
-  #       uses: actions/upload-artifact@v6
-  #       if: failure()
-  #       with:
-  #         name: playwright-report-online
-  #         path: frontend/playwright-report/
-  #         retention-days: 7
+  # Online E2E Tests
+  e2e-online:
+    name: E2E Tests (Online)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Install dependencies
+        run: bun install
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Install Playwright browsers
+        run: cd frontend && bunx playwright install --with-deps chromium
+      - name: Build frontend
+        run: cd frontend && npm run build
+      - name: Run online e2e tests
+        run: cd frontend && npm run e2e:online:ci
+        env:
+          E2E_MODE: prod
+      - name: Upload Playwright reports
+        uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: playwright-report-online
+          path: frontend/playwright-report/
+          retention-days: 7
 
   # Wrangler E2E Tests
   e2e-wrangler:
@@ -234,57 +234,66 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 7
 
-  # Docker E2E Tests (TEMPORARILY DISABLED - passing, saving CI minutes)
-  # e2e-docker:
-  #   name: E2E Tests (Docker)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #
-  #     - name: Setup Bun
-  #       uses: oven-sh/setup-bun@v2
-  #       with:
-  #         bun-version: latest
-  #
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
-  #
-  #     - name: Cache Bun dependencies
-  #       uses: actions/cache@v5
-  #       with:
-  #         path: ~/.bun/install/cache
-  #         key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-bun-
-  #
-  #     - name: Install dependencies
-  #       run: bun install
-  #
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v6
-  #       with:
-  #         node-version: "24"
-  #
-  #     - name: Install Playwright browsers
-  #       run: cd frontend && bunx playwright install --with-deps chromium
-  #
-  #     - name: Run Docker e2e tests
-  #       run: cd frontend && npm run e2e:docker:ci
-  #
-  #     - name: Upload Playwright reports
-  #       uses: actions/upload-artifact@v6
-  #       if: failure()
-  #       with:
-  #         name: playwright-report-docker
-  #         path: frontend/playwright-report/
-  #         retention-days: 7
+  # Docker E2E Tests
+  e2e-docker:
+    name: E2E Tests (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install Playwright browsers
+        run: cd frontend && bunx playwright install --with-deps chromium
+
+      - name: Run Docker e2e tests
+        run: cd frontend && npm run e2e:docker:ci
+
+      - name: Upload Playwright reports
+        uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: playwright-report-docker
+          path: frontend/playwright-report/
+          retention-days: 7
 
   # ===========================================
   # Docker Publish - Only on main branch
   # ===========================================
   docker-publish:
     name: Docker Publish
-    needs: [lint, test-frontend, test-backend, e2e-wrangler]
+    needs:
+      [
+        lint,
+        test-frontend,
+        test-backend,
+        e2e-offline,
+        e2e-online,
+        e2e-wrangler,
+        e2e-docker,
+      ]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
