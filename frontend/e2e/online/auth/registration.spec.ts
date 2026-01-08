@@ -26,11 +26,21 @@ test.describe('User Registration', () => {
     // Fill registration form with unique username and strong password
     const uniqueUsername = `newuser${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
-    await page.getByTestId('username-input').blur();
+
+    // Tab to trigger username availability check
+    await page.keyboard.press('Tab');
+
+    // Wait for availability check to complete (button depends on it)
+    await expect(page.getByTestId('username-available-icon')).toBeVisible({
+      timeout: 10000,
+    });
+
     await page.getByTestId('password-input').fill('ValidPass123!');
     await page.getByTestId('password-input').blur();
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-    await page.getByTestId('confirm-password-input').blur();
+
+    // Tab away to ensure form validation update
+    await page.keyboard.press('Tab');
 
     // Submit the form
     await page
@@ -119,10 +129,12 @@ test.describe('User Registration', () => {
 
     // Fill with the existing username
     await page.getByTestId('username-input').fill(existingUsername);
-    await page.getByTestId('username-input').blur();
+    await page.keyboard.press('Tab');
 
-    // Wait for availability check
-    await page.waitForTimeout(1000);
+    // Wait for availability check to show it's taken
+    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Should show suggestions
     await expect(page.getByTestId('username-suggestions')).toBeVisible();
@@ -137,8 +149,12 @@ test.describe('User Registration', () => {
     // Fill registration form with mismatched passwords
     const uniqueUsername = `user${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
-    await page.getByTestId('username-input').blur(); // Trigger username check
-    await page.waitForTimeout(500); // Wait for username check to complete
+    await page.keyboard.press('Tab'); // Trigger username check
+
+    // Wait for username check to complete
+    await expect(page.getByTestId('username-available-icon')).toBeVisible({
+      timeout: 10000,
+    });
 
     await page.getByTestId('password-input').fill('ValidPass123!');
     await page.getByTestId('confirm-password-input').fill('DifferentPass123!');
@@ -166,11 +182,13 @@ test.describe('User Registration', () => {
     const uniqueUsername = `user${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
 
-    // Blur username to trigger availability check
+    // Tab to trigger availability check
     await page.keyboard.press('Tab');
 
     // Wait for username availability check to complete
-    await page.waitForTimeout(500);
+    await expect(page.getByTestId('username-available-icon')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Try a weak password (too short, no special char, no uppercase)
     await page.getByTestId('password-input').fill('weak');
@@ -213,8 +231,13 @@ test.describe('User Registration', () => {
       page.locator('mat-dialog-container [data-testid="register-button"]')
     ).toBeDisabled();
 
-    // Fill only username
-    await page.getByTestId('username-input').fill('testusername');
+    // Fill only username with a unique one to ensure availability check passes
+    const uniqueUsername = `emptycheck${Date.now()}`;
+    await page.getByTestId('username-input').fill(uniqueUsername);
+
+    // Trigger check
+    await page.keyboard.press('Tab');
+
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
     ).toBeDisabled();
@@ -227,7 +250,15 @@ test.describe('User Registration', () => {
 
     // Fill all fields
     await page.getByTestId('confirm-password-input').fill('ValidPass123!');
-    await page.getByTestId('confirm-password-input').blur();
+
+    // Tab away to trigger blur and ensure all validations are captured
+    await page.keyboard.press('Tab');
+
+    // Wait for username availability check to complete as it's required for button enablement
+    await expect(page.getByTestId('username-available-icon')).toBeVisible({
+      timeout: 15000,
+    });
+
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
     ).toBeEnabled({ timeout: 15000 });
@@ -297,10 +328,12 @@ test.describe('User Registration', () => {
 
     // Fill with the existing username to get suggestions
     await page.getByTestId('username-input').fill(existingUsername);
-    await page.getByTestId('username-input').blur();
+    await page.keyboard.press('Tab');
 
-    // Wait for suggestions to appear
-    await page.waitForTimeout(1000);
+    // Wait for suggestions to appear (triggered by unavailable status)
+    await expect(page.getByTestId('username-unavailable-icon')).toBeVisible({
+      timeout: 10000,
+    });
     await expect(page.getByTestId('username-suggestions')).toBeVisible();
 
     // Click on a suggestion
@@ -321,11 +354,17 @@ test.describe('User Registration', () => {
     // Register a new user
     const uniqueUsername = `autouser${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
-    await page.getByTestId('username-input').blur();
+    await page.keyboard.press('Tab'); // Trigger check
+
+    // Wait for availability check to complete
+    await expect(page.getByTestId('username-available-icon')).toBeVisible({
+      timeout: 10000,
+    });
+
     await page.getByTestId('password-input').fill('AutoPass123!');
-    await page.getByTestId('password-input').blur();
+    await page.keyboard.press('Tab');
     await page.getByTestId('confirm-password-input').fill('AutoPass123!');
-    await page.getByTestId('confirm-password-input').blur();
+    await page.keyboard.press('Tab');
 
     // Wait for the button to be enabled (gives time for async validation and providers loaded signal)
     await expect(
