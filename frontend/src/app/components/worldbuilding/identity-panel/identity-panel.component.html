@@ -25,13 +25,26 @@
       </div>
 
       <!-- Image section -->
-      <div class="image-section">
+      <div
+        class="image-section"
+        [class.no-image-container]="!resolvedImageUrl() && !isLoadingImage()">
         <button
           class="image-placeholder"
           [class.no-image]="!resolvedImageUrl() && !isLoadingImage()"
-          (click)="canWrite() ? onImageClick() : viewImage()"
+          [class.readonly]="!canWrite() && !resolvedImageUrl()"
+          (click)="
+            canWrite()
+              ? onImageClick()
+              : resolvedImageUrl()
+                ? viewImage()
+                : null
+          "
           [matTooltip]="
-            canWrite() ? 'Click to set image' : 'Click to view image'
+            canWrite()
+              ? 'Click to set image'
+              : resolvedImageUrl()
+                ? 'Click to view image'
+                : 'No image available'
           ">
           @if (isLoadingImage()) {
             <mat-icon class="placeholder-icon spinning"
@@ -42,7 +55,9 @@
             <img [src]="resolvedImageUrl()" [alt]="elementName()" />
           } @else {
             <mat-icon class="placeholder-icon">image</mat-icon>
-            <span class="placeholder-text">Add Image</span>
+            <span class="placeholder-text">{{
+              canWrite() ? 'Add Image' : 'No Image'
+            }}</span>
           }
         </button>
         @if (resolvedImageUrl()) {

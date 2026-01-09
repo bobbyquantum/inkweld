@@ -299,12 +299,33 @@ export class IdentityPanelComponent implements OnDestroy {
     }
 
     // Get worldbuilding data for prompt context
-    const worldbuildingData =
-      await this.worldbuildingService.getWorldbuildingData(
-        this.elementId(),
-        username,
-        slug
+    let worldbuildingData: Record<string, unknown> | null = null;
+    try {
+      // Set a short timeout for loading worldbuilding data
+      // This is optional data for AI context, so we shouldn't block the dialog if it's slow
+      const timeoutPromise = new Promise<Record<string, unknown> | null>(
+        (_, reject) =>
+          setTimeout(
+            () => reject(new Error('Timeout loading worldbuilding data')),
+            1000
+          )
       );
+
+      worldbuildingData = await Promise.race([
+        this.worldbuildingService.getWorldbuildingData(
+          this.elementId(),
+          username,
+          slug
+        ),
+        timeoutPromise,
+      ]);
+    } catch (err) {
+      console.warn(
+        '[IdentityPanel] Failed to load worldbuilding data for image dialog:',
+        err
+      );
+      // Continue without worldbuilding data - image dialog still works
+    }
 
     const result = await this.dialogGateway.openWorldbuildingImageDialog({
       elementId: this.elementId(),
