@@ -117,11 +117,11 @@ export class ProjectStateService implements OnDestroy {
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full access
     if (this.setupService.getMode() === 'offline') return true;
+    // Owner always has write access
+    if (this.isCurrentUserProjectOwner()) return true;
     // If access info is loaded, use it
     if (proj.access) return proj.access.canWrite;
-    // Fallback: If access info not loaded, check if current user is owner
-    // This handles the case where project is loaded from cache without access info
-    return this.isCurrentUserProjectOwner();
+    return false;
   });
 
   /**

@@ -80,6 +80,12 @@
     // Make image edge-to-edge horizontally by using negative margins to offset panel padding
     margin: 0 -16px 8px -16px;
     width: calc(100% + 32px);
+
+    // Reset for button mode (no image)
+    &.no-image-container {
+      margin: 0 0 16px 0;
+      width: 100%;
+    }
   }
 }
 
@@ -104,14 +110,40 @@
 
   // Show placeholder styling only when no image
   &.no-image {
-    border: 2px dashed var(--sys-outline-variant);
-    border-radius: 12px;
-    width: 200px;
-    height: 200px;
+    border: 1px dashed var(--sys-outline);
+    border-radius: 8px; // Smaller radius for button look
+    width: 100%;
+    height: auto; // Remove fixed height
+    min-height: 48px;
     aspect-ratio: auto;
+    margin: 0;
+    padding: 8px 16px;
+    
+    // Flex layout for button content
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    // Override icon size for button look
+    .placeholder-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .placeholder-text {
+      font-weight: 500;
+      font-size: 14px;
+    }
   }
 
-  &:hover {
+  &.readonly {
+    cursor: default;
+  }
+
+  &:not(.readonly):hover {
     background: var(--sys-surface-container-highest);
 
     &.no-image {
