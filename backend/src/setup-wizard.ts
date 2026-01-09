@@ -38,14 +38,21 @@ function getConfigDir(): string {
 
 /**
  * Check for .env file in multiple locations
- * Priority: 1. Current directory, 2. Config directory, 3. None (need setup)
+ * Priority: 1. Current directory, 2. Parent directory (monorepo root), 3. Config directory, 4. None (need setup)
  */
 export function findEnvFile(): string | null {
-  // Check current directory
+  // Check current directory (e.g., backend/.env)
   const localEnv = join(process.cwd(), '.env');
   if (existsSync(localEnv)) {
     console.log(`✅ Found .env in current directory: ${localEnv}`);
     return localEnv;
+  }
+
+  // Check parent directory (e.g., monorepo root .env when running from backend/)
+  const parentEnv = join(process.cwd(), '..', '.env');
+  if (existsSync(parentEnv)) {
+    console.log(`✅ Found .env in parent directory: ${parentEnv}`);
+    return parentEnv;
   }
 
   // Check user config directory

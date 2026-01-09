@@ -97,7 +97,10 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
         ],
       }),
       confirmPassword: this.fb.control('', {
-        validators: [Validators.required],
+        validators: [
+          Validators.required,
+          this.createConfirmPasswordValidator(),
+        ],
       }),
     },
     {
@@ -165,11 +168,14 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
       });
 
     // Listen for password changes to update requirements status
+    // and re-validate confirmPassword for match checking
     this.registerForm
       .get('password')
       ?.valueChanges.pipe(takeUntil(this.destroy$))
       .subscribe((password: string) => {
         this.updatePasswordRequirements(password);
+        // Trigger confirmPassword validation when password changes
+        this.registerForm.get('confirmPassword')?.updateValueAndValidity();
       });
   }
 
@@ -374,7 +380,11 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
     if (control?.hasError('required')) {
       return 'Please confirm your password';
     }
-    if (this.registerForm.hasError('passwordMismatch')) {
+    // Check control-level error first, then form-level for backwards compatibility
+    if (
+      control?.hasError('passwordMismatch') ||
+      this.registerForm.hasError('passwordMismatch')
+    ) {
       return 'Passwords do not match';
     }
     return '';
@@ -512,6 +522,26 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
       }
 
       return Object.keys(errors).length === 0 ? null : errors;
+    };
+  }
+
+  private createConfirmPasswordValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const confirmPassword = control.value as string;
+      if (!confirmPassword) {
+        return null; // Required validator handles empty case
+      }
+
+      // Get the password value from the parent group
+      const password = control.parent?.get('password')?.value as
+        | string
+        | undefined;
+
+      if (password && confirmPassword !== password) {
+        return { passwordMismatch: true };
+      }
+
+      return null;
     };
   }
 

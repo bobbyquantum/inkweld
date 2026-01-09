@@ -1,15 +1,20 @@
 {
-  "json.schemaDownload.enable": false,
-  "editor.defaultFormatter": null,
+  // =============================================
+  // Project-specific settings for Inkweld
+  // These ensure consistent code style across contributors
+  // =============================================
+
+  // Formatting & Linting
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
-  "eslint.ignoreUntitled": true,
   "eslint.format.enable": true,
   "eslint.run": "onSave",
   "eslint.lintTask.enable": true,
   "eslint.validate": ["json", "typescript"],
+
+  // Language-specific formatters
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
@@ -19,24 +24,14 @@
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "jest.rootPath": "frontend",
-  "debug.internalConsoleOptions": "neverOpen",
-  "debug.openDebug": "openOnDebugBreak",
-  "debug.toolBarLocation": "docked",
-  "debug.focusWindowOnBreak": true,
-  "debug.showInStatusBar": "always",
-  "launch": {
-    "configurations": [],
-    "compounds": []
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
   },
-  "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  // Coverage Gutters configuration
-  // Include glob patterns to find lcov.info in various locations
+
+  // Coverage Gutters configuration for test coverage visualization
   "coverage-gutters.coverageFileNames": [
     "lcov.info",
     "coverage/lcov.info",
@@ -45,9 +40,5 @@
   "coverage-gutters.coverageBaseDir": "**",
   "coverage-gutters.showLineCoverage": true,
   "coverage-gutters.showRulerCoverage": true,
-  "coverage-gutters.showGutterCoverage": true,
-  "coverage-gutters.highlightdark": "rgba(255, 64, 64, 0.3)",
-  "coverage-gutters.highlightlight": "rgba(255, 64, 64, 0.3)",
-  "coverage-gutters.partialHighlightDark": "rgba(255, 255, 64, 0.3)",
-  "coverage-gutters.partialHighlightLight": "rgba(255, 255, 64, 0.3)"
+  "coverage-gutters.showGutterCoverage": true
 }

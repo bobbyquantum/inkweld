@@ -3,9 +3,12 @@ import { TestBed } from '@angular/core/testing';
 import { Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
+import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
+import { UnifiedUserService } from '../user/unified-user.service';
 import { OfflineProjectService } from './offline-project.service';
+import { ProjectSyncService } from './project-sync.service';
 import { UnifiedProjectService } from './unified-project.service';
 
 describe('UnifiedProjectService', () => {
@@ -83,6 +86,22 @@ describe('UnifiedProjectService', () => {
       importProjects: vi.fn(),
     } as unknown as MockedObject<OfflineProjectService>;
 
+    const mockUserService = {
+      currentUser: vi.fn().mockReturnValue({ username: 'testuser' }),
+    };
+
+    const mockProjectSyncService = {
+      markPendingCreation: vi.fn().mockResolvedValue(undefined),
+      clearPendingCreation: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const mockLoggerService = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -90,6 +109,9 @@ describe('UnifiedProjectService', () => {
         { provide: SetupService, useValue: setupService },
         { provide: ProjectService, useValue: projectService },
         { provide: OfflineProjectService, useValue: offlineProjectService },
+        { provide: UnifiedUserService, useValue: mockUserService },
+        { provide: ProjectSyncService, useValue: mockProjectSyncService },
+        { provide: LoggerService, useValue: mockLoggerService },
       ],
     });
 
@@ -157,7 +179,7 @@ describe('UnifiedProjectService', () => {
         expect.objectContaining({
           title: 'Untitled Project',
           slug: 'untitled-project',
-          username: 'unknown',
+          username: 'testuser', // From mock user service
         })
       );
     });

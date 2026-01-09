@@ -282,22 +282,28 @@ export class ProjectService {
     }
   }
 
-  async createProject(Project: Project): Promise<Project> {
+  /**
+   * Create a project on the server.
+   *
+   * For local-first creation with offline fallback, use UnifiedProjectService.createProject()
+   * which wraps this method and handles network failures gracefully.
+   */
+  async createProject(projectData: Project): Promise<Project> {
     this.isLoading.set(true);
     this.error.set(undefined);
 
+    const createRequest = {
+      slug: projectData.slug,
+      title: projectData.title,
+      description: projectData.description || undefined,
+    };
+
     try {
-      const createRequest = {
-        slug: Project.slug,
-        title: Project.title,
-        description: Project.description || undefined,
-      };
       const project = await firstValueFrom(
         this.projectApi.createProject(createRequest).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
-            this.error.set(projectError);
             return throwError(() => projectError);
           })
         )
@@ -313,12 +319,81 @@ export class ProjectService {
         err instanceof ProjectServiceError
           ? err
           : new ProjectServiceError('SERVER_ERROR', 'Failed to create project');
+
+      // Check if this is a recoverable network error
+      if (error.canUseCache || error.code === 'NETWORK_ERROR') {
+        // Don't set error - let the caller handle local-first fallback
+        throw error;
+      }
+
       this.error.set(error);
       console.error('Project creation error:', error);
       throw error;
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Create a local-only project placeholder for offline-first creation.
+   * This stores the project in the local cache without syncing to server.
+   * Call markPendingCreation on ProjectSyncService to queue for sync.
+   *
+   * @param projectData - The project data to create
+   * @param username - The username for the project owner
+   * @returns The created local project
+   */
+  async createLocalProject(
+    projectData: { title: string; slug: string; description?: string },
+    username: string
+  ): Promise<Project> {
+    const now = new Date().toISOString();
+    const localProject: Project = {
+      id: `local-pending-${crypto.randomUUID()}`,
+      username,
+      slug: projectData.slug,
+      title: projectData.title,
+      description: projectData.description ?? '',
+      createdDate: now,
+      updatedDate: now,
+    };
+
+    // Add to local cache and projects list
+    const currentProjects = this.projects();
+    const updatedProjects = [...currentProjects, localProject];
+    await this.setProjects(updatedProjects);
+
+    // Also cache individually
+    const cacheKey = `${username}/${projectData.slug}`;
+    await this.setCachedProject(cacheKey, localProject);
+
+    console.info(
+      `Created local project placeholder: ${cacheKey} (will sync when online)`
+    );
+
+    return localProject;
+  }
+
+  /**
+   * Update a local project after successful server sync.
+   * Replaces the local placeholder with the server-provided project data.
+   */
+  async updateLocalProjectWithServerData(
+    username: string,
+    slug: string,
+    serverProject: Project
+  ): Promise<void> {
+    const cacheKey = `${username}/${slug}`;
+
+    // Update cache
+    await this.setCachedProject(cacheKey, serverProject);
+
+    // Update projects list
+    const currentProjects = this.projects();
+    const updatedProjects = currentProjects.map(p =>
+      p.slug === slug && p.username === username ? serverProject : p
+    );
+    await this.setProjects(updatedProjects);
   }
 
   async updateProject(

@@ -2,6 +2,33 @@ import { expect, Page, test as base } from '@playwright/test';
 export type { Page };
 
 /**
+ * Interface for controlling server availability in tests.
+ * Attached to serverUnavailablePage as page.serverControl
+ */
+export interface ServerControl {
+  /** Restore server connectivity (stop blocking requests) */
+  restore: () => Promise<void>;
+  /** Block server again after restoring */
+  block: () => Promise<void>;
+  /** Block only specific API endpoints */
+  blockEndpoints: (endpoints: string[]) => Promise<void>;
+  /** Simulate slow/unreliable network (delays then fails) */
+  simulateUnreliable: (delayMs?: number) => Promise<void>;
+}
+
+/**
+ * Extended Page type with server control methods
+ */
+export type ServerUnavailablePage = Page & {
+  serverControl: ServerControl;
+  testCredentials: {
+    username: string;
+    password: string;
+    isServerDown: boolean;
+  };
+};
+
+/**
  * Online Test Fixtures
  *
  * These fixtures work with the REAL backend server, not mocked APIs.
@@ -60,6 +87,13 @@ export type OnlineTestFixtures = {
    * Used for testing migration scenarios where we switch between modes.
    */
   offlinePage: Page;
+
+  /**
+   * Server unavailable page.
+   * Configured for server mode but with API requests blocked.
+   * Useful for testing local-first fallback behavior.
+   */
+  serverUnavailablePage: Page;
 };
 
 /**
@@ -301,6 +335,119 @@ export const test = base.extend<OnlineTestFixtures>({
 
     // Reload to apply the configuration
     await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await use(page);
+
+    // Cleanup
+    await context.close();
+  },
+
+  // Server unavailable page - authenticated user but with API blocked
+  serverUnavailablePage: async ({ browser }, use) => {
+    // Create a new context for isolation
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
+    const testId = generateTestId();
+    const username = `server-unavail-${testId}`;
+    const password = 'TestPassword123!';
+
+    const apiUrl = getApiBaseUrl();
+
+    // Step 1: Register and authenticate user FIRST (server must be up)
+    const token = await authenticateUser(page, username, password, true);
+
+    // Step 2: Set up app configuration with auth token
+    await page.addInitScript(
+      ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        localStorage.setItem(
+          'inkweld-app-config',
+          JSON.stringify({
+            mode: 'server',
+            serverUrl,
+          })
+        );
+        localStorage.setItem('auth_token', authToken);
+      },
+      { authToken: token, serverUrl: apiUrl }
+    );
+
+    // Step 3: Navigate to app and confirm auth works while server is up
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for auth to complete
+    try {
+      await page.locator('[data-testid="user-menu-button"]').waitFor();
+    } catch {
+      throw new Error(
+        `serverUnavailablePage fixture failed: authentication did not complete. URL: ${page.url()}`
+      );
+    }
+
+    // Step 4: NOW block the server to simulate it going down
+    await page.route(`${apiUrl}/**`, async route => {
+      await route.abort('connectionfailed');
+    });
+
+    // Also block WebSocket connections to simulate full server unavailability
+    await page.route('ws://**', async route => {
+      await route.abort('connectionfailed');
+    });
+
+    // Attach helper methods to the page for dynamic control
+    // @ts-expect-error - Dynamic property for test context
+    page.serverControl = {
+      /**
+       * Restore server connectivity (stop blocking requests)
+       */
+      restore: async () => {
+        await page.unroute(`${apiUrl}/**`);
+        await page.unroute('ws://**');
+      },
+      /**
+       * Block server again after restoring
+       */
+      block: async () => {
+        await page.route(`${apiUrl}/**`, async route => {
+          await route.abort('connectionfailed');
+        });
+        await page.route('ws://**', async route => {
+          await route.abort('connectionfailed');
+        });
+      },
+      /**
+       * Block only specific API endpoints
+       */
+      blockEndpoints: async (endpoints: string[]) => {
+        for (const endpoint of endpoints) {
+          await page.route(`${apiUrl}${endpoint}`, async route => {
+            await route.abort('connectionfailed');
+          });
+        }
+      },
+      /**
+       * Simulate slow/unreliable network (delays then fails)
+       */
+      simulateUnreliable: async (delayMs: number = 3000) => {
+        await page.unroute(`${apiUrl}/**`);
+        await page.route(`${apiUrl}/**`, async route => {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await route.abort('connectionfailed');
+        });
+      },
+    };
+
+    // Store test credentials for reference
+    // @ts-expect-error - Dynamic property for test context
+    page.testCredentials = {
+      username,
+      password,
+      isServerDown: true,
+    };
 
     await use(page);
 

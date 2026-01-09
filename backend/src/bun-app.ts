@@ -242,11 +242,11 @@ app.notFound((c) => {
 // Initialize database and start server
 async function bootstrap() {
   try {
-    // In test mode with :memory:, use that; otherwise use DB_PATH or default
+    // In test mode with :memory:, use that; otherwise derive from config.dataPath
     const dbPath =
       process.env.DB_DATABASE === ':memory:'
         ? ':memory:'
-        : process.env.DB_PATH || './data/inkweld.db';
+        : process.env.DB_PATH || join(config.dataPath, 'inkweld.db');
     await setupBunDatabase(dbPath);
     logger.info('Database', `Bun SQLite database initialized (${dbPath})`);
 
@@ -533,7 +533,7 @@ export async function createBunApp() {
   const dbPath =
     process.env.DB_DATABASE === ':memory:'
       ? ':memory:'
-      : process.env.DB_PATH || './data/inkweld.db';
+      : process.env.DB_PATH || join(config.dataPath, 'inkweld.db');
   await setupBunDatabase(dbPath);
   return app;
 }

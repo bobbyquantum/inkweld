@@ -552,7 +552,7 @@ describe('ProjectService', () => {
       expect(service.error()?.code).toBe('SERVER_ERROR');
     });
 
-    it('handles network errors correctly', async () => {
+    it('handles network errors correctly (throws for local-first fallback)', async () => {
       const newProject: Project = {
         id: 'test-project-id',
         title: 'Offline Project',
@@ -567,10 +567,12 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
+      // Network errors now throw without setting error() to allow local-first fallback
       await expect(service.createProject(newProject)).rejects.toThrow(
         ProjectServiceError
       );
-      expect(service.error()?.code).toBe('NETWORK_ERROR');
+      // Error is NOT set for network errors - caller should handle local-first fallback
+      expect(service.error()).toBeUndefined();
     });
   });
 

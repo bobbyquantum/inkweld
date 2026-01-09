@@ -3,6 +3,22 @@ import { inject, Injectable, signal } from '@angular/core';
 import { StorageConfig, StorageService } from './storage.service';
 
 /**
+ * Pending project creation data stored for offline sync
+ */
+export interface PendingProjectCreation {
+  /** Project data to create on server */
+  projectData: {
+    title: string;
+    slug: string;
+    description?: string;
+  };
+  /** Template ID to apply after creation (optional) */
+  templateId?: string;
+  /** When this was queued for creation */
+  queuedAt: string;
+}
+
+/**
  * Sync state for a project
  */
 export interface ProjectSyncState {
@@ -14,6 +30,8 @@ export interface ProjectSyncState {
   pendingUploads: string[];
   /** Pending metadata fields to sync (e.g., title/description) */
   pendingMetadata?: Partial<Record<'title' | 'description', string>>;
+  /** Pending project creation (project created offline, not yet synced to server) */
+  pendingCreation?: PendingProjectCreation;
   /** Current sync status */
   status: 'synced' | 'pending' | 'syncing' | 'error' | 'offline-only';
   /** Last error message if status is 'error' */
@@ -97,6 +115,7 @@ export class ProjectSyncService {
       lastSync: null,
       pendingUploads: [],
       pendingMetadata: undefined,
+      pendingCreation: undefined,
       status: 'offline-only',
     };
   }
@@ -134,7 +153,105 @@ export class ProjectSyncService {
       !!s?.pendingMetadata &&
       (s.pendingMetadata.title !== undefined ||
         s.pendingMetadata.description !== undefined);
-    return hasUploads || hasMetadata;
+    const hasPendingCreation = !!s?.pendingCreation;
+    return hasUploads || hasMetadata || hasPendingCreation;
+  }
+
+  /**
+   * Check if a project has a pending creation (created offline, not yet synced)
+   */
+  hasPendingCreation(projectKey: string): boolean {
+    const state = this.syncStates.get(projectKey);
+    return !!state?.()?.pendingCreation;
+  }
+
+  /**
+   * Mark a project as pending creation (created offline, needs to sync to server).
+   * Call this when creating a project while the server is unavailable.
+   */
+  async markPendingCreation(
+    projectKey: string,
+    projectData: { title: string; slug: string; description?: string },
+    templateId?: string
+  ): Promise<void> {
+    const state = this.getSyncState(projectKey);
+    const current = state();
+
+    const updated: ProjectSyncState = {
+      ...current,
+      pendingCreation: {
+        projectData,
+        templateId,
+        queuedAt: new Date().toISOString(),
+      },
+      status: 'pending',
+    };
+    state.set(updated);
+    await this.saveSyncState(updated);
+  }
+
+  /**
+   * Clear pending creation after successful sync to server.
+   */
+  async clearPendingCreation(projectKey: string): Promise<void> {
+    const state = this.getSyncState(projectKey);
+    const current = state();
+
+    const updated: ProjectSyncState = {
+      ...current,
+      pendingCreation: undefined,
+      status:
+        (current.pendingUploads.length ?? 0) === 0 && !current.pendingMetadata
+          ? 'synced'
+          : current.status,
+    };
+    state.set(updated);
+    await this.saveSyncState(updated);
+  }
+
+  /**
+   * Get all projects that have pending creations
+   */
+  async getProjectsWithPendingCreations(): Promise<
+    { projectKey: string; creation: PendingProjectCreation }[]
+  > {
+    const db = await this.ensureDb();
+
+    return new Promise<
+      { projectKey: string; creation: PendingProjectCreation }[]
+    >((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const results: {
+        projectKey: string;
+        creation: PendingProjectCreation;
+      }[] = [];
+
+      const request = store.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          const state = cursor.value as ProjectSyncState;
+          if (state.pendingCreation) {
+            results.push({
+              projectKey: state.projectKey,
+              creation: state.pendingCreation,
+            });
+          }
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+
+      request.onerror = () =>
+        reject(
+          new Error(
+            `Failed to get projects with pending creations: ${request.error?.message}`
+          )
+        );
+    });
   }
 
   /**
@@ -258,7 +375,7 @@ export class ProjectSyncService {
   }
 
   /**
-   * Get all projects that have pending uploads
+   * Get all projects that have pending uploads or metadata changes
    */
   async getProjectsWithPendingChanges(): Promise<string[]> {
     const db = await this.ensureDb();
@@ -274,7 +391,11 @@ export class ProjectSyncService {
         const cursor = request.result;
         if (cursor) {
           const state = cursor.value as ProjectSyncState;
-          if (state.pendingUploads.length > 0) {
+          const hasPendingUploads = state.pendingUploads.length > 0;
+          const hasPendingMetadata =
+            state.pendingMetadata?.title !== undefined ||
+            state.pendingMetadata?.description !== undefined;
+          if (hasPendingUploads || hasPendingMetadata) {
             results.push(state.projectKey);
           }
           cursor.continue();

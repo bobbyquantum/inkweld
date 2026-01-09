@@ -8,6 +8,7 @@ import { ThemeService } from '../themes/theme.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
 import { ViewportService } from './services/core/viewport.service';
+import { BackgroundSyncService } from './services/offline/background-sync.service';
 import { UnifiedUserService } from './services/user/unified-user.service';
 
 @Component({
@@ -29,6 +30,7 @@ export class AppComponent implements OnInit {
   protected readonly updateService = inject(UpdateService);
   protected readonly viewportService = inject(ViewportService);
   protected readonly unifiedUserService = inject(UnifiedUserService);
+  protected readonly backgroundSync = inject(BackgroundSyncService);
   protected readonly router = inject(Router);
 
   // Track if we ever had a real authenticated user session
@@ -98,6 +100,9 @@ export class AppComponent implements OnInit {
       // Set offline mode flag for UI
       const mode = this.setupService.getMode();
       this.offlineMode.set(mode === 'offline');
+
+      // Initialize background sync service for pending changes
+      this.backgroundSync.initialize();
     } catch (error) {
       console.error('Failed to initialize app:', error);
       // On any error, redirect to setup

@@ -1,0 +1,25 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=827846 for more info
+  "recommendations": [
+    // Core development
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // Angular
+    "angular.ng-template",
+
+    // Testing & Coverage
+    "ryanluker.vscode-coverage-gutters",
+
+    // Markdown
+    "DavidAnson.vscode-markdownlint",
+
+    // Database
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-sqlite"
+  ],
+  "unwantedRecommendations": [
+    // This project uses Vitest, not Jest
+    "orta.vscode-jest"
+  ]
+}

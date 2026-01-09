@@ -5,7 +5,7 @@
       "type": "chrome",
       "name": "🎨 Frontend",
       "request": "launch",
-      "preLaunchTask": "🚀 Start Frontend",
+      "preLaunchTask": "Dev Frontend",
       "url": "http://localhost:4200",
       "webRoot": "${workspaceFolder}/frontend",
       "sourceMaps": true,
@@ -26,22 +26,6 @@
       "console": "integratedTerminal",
       "sourceMaps": true,
       "resolveSourceMapLocations": ["${workspaceFolder}/backend/**/*.ts"]
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "🚀 DebugTest",
-      "runtimeExecutable": "ng",
-      "runtimeArgs": [
-        "test",
-        "--debug",
-        "--watch=false",
-        "--include=**/document-element-editor.component.spec.ts"
-      ],
-      "cwd": "${workspaceFolder}/frontend",
-      "console": "integratedTerminal",
-      "sourceMaps": true,
-      "resolveSourceMapLocations": ["${workspaceFolder}/frontend/**/*.ts"]
     }
   ],
   "compounds": [

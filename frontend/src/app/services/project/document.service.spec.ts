@@ -57,7 +57,7 @@ describe('DocumentService', () => {
   let mockLintApiService: DeepMockProxy<LintApiService>;
   let mockYDoc: DeepMockProxy<Y.Doc>;
   let mockWebSocketProvider: DeepMockProxy<WebsocketProvider>;
-  let mockIndexedDbProvider: DeepMockProxy<IndexeddbPersistence>;
+  let _mockIndexedDbProvider: DeepMockProxy<IndexeddbPersistence>;
   let mockEditor: DeepMockProxy<Editor>;
   let mockSetupService: DeepMockProxy<SetupService>;
   let mockSystemConfigService: DeepMockProxy<SystemConfigService>;
@@ -84,7 +84,7 @@ describe('DocumentService', () => {
       },
     } as unknown as DeepMockProxy<WebsocketProvider>;
 
-    mockIndexedDbProvider = {
+    _mockIndexedDbProvider = {
       whenSynced: Promise.resolve(),
       destroy: vi.fn(),
     } as unknown as DeepMockProxy<IndexeddbPersistence>;
@@ -377,23 +377,19 @@ describe('DocumentService', () => {
       ).rejects.toThrow('Editor Yjs not properly initialized');
     });
 
-    it('should throw error when connection is not properly initialized', async () => {
+    it('should skip re-adding plugins when collaboration is already set up', async () => {
+      // First call sets up collaboration normally
       await service.setupCollaboration(mockEditor, testDocumentId);
 
-      // Corrupt the connection by removing the type
-      const connection = {
-        provider: mockWebSocketProvider,
-        ydoc: mockYDoc,
-        indexeddbProvider: mockIndexedDbProvider,
-        type: null,
-      };
+      // Store spy call counts before second call
+      const pluginCountBefore = mockEditor.view.state.plugins.length;
 
-      // @ts-expect-error - Accessing private property for testing
-      service['connections'].set(testDocumentId, connection);
+      // Second call should detect existing y-sync plugin and return early
+      // (no throw, just silently skips)
+      await service.setupCollaboration(mockEditor, testDocumentId);
 
-      await expect(
-        service.setupCollaboration(mockEditor, testDocumentId)
-      ).rejects.toThrow('Editor Yjs not properly initialized');
+      // Plugins should not have been re-added
+      expect(mockEditor.view.state.plugins.length).toBe(pluginCountBefore);
     });
   });
 

@@ -1,12 +1,18 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { Element, Project } from '@inkweld/index';
 
+import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentImportService } from '../project/document-import.service';
-import { ProjectService } from '../project/project.service';
+import {
+  ProjectService,
+  ProjectServiceError,
+} from '../project/project.service';
 import { ProjectTemplateService } from '../project/project-template.service';
+import { UnifiedUserService } from '../user/unified-user.service';
 import { OfflineProjectService } from './offline-project.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
+import { ProjectSyncService } from './project-sync.service';
 
 @Injectable({
   providedIn: 'root',
@@ -18,6 +24,9 @@ export class UnifiedProjectService {
   private offlineElements = inject(OfflineProjectElementsService);
   private templateService = inject(ProjectTemplateService);
   private documentImport = inject(DocumentImportService);
+  private projectSync = inject(ProjectSyncService);
+  private userService = inject(UnifiedUserService);
+  private logger = inject(LoggerService);
 
   readonly projects = computed(() => {
     const mode = this.setupService.getMode();
@@ -73,6 +82,16 @@ export class UnifiedProjectService {
     return null;
   }
 
+  /**
+   * Create a new project with local-first behavior.
+   *
+   * In server mode, this will:
+   * 1. Try to create on the server first
+   * 2. If the server is unavailable, create locally and queue for sync
+   * 3. Apply template if specified
+   *
+   * In offline mode, this creates the project locally only.
+   */
   async createProject(
     projectData: Partial<Project>,
     templateId?: string
@@ -83,18 +102,10 @@ export class UnifiedProjectService {
     if (mode === 'offline') {
       project = await this.offlineProjectService.createProject(projectData);
     } else if (mode === 'server') {
-      // For server mode, we need to provide required fields
-      const fullProjectData: Project = {
-        id: projectData.id || '',
-        title: projectData.title || 'Untitled Project',
-        description: projectData.description || '',
-        slug: projectData.slug || 'untitled-project',
-        username: projectData.username || 'unknown',
-        createdDate: projectData.createdDate || new Date().toISOString(),
-        updatedDate: projectData.updatedDate || new Date().toISOString(),
-        ...projectData,
-      };
-      project = await this.projectService.createProject(fullProjectData);
+      project = await this.createServerProjectWithFallback(
+        projectData,
+        templateId
+      );
     } else {
       throw new Error('No mode configured');
     }
@@ -112,6 +123,93 @@ export class UnifiedProjectService {
     }
 
     return project;
+  }
+
+  /**
+   * Create a project in server mode with local-first fallback.
+   * If the server is unavailable, creates locally and queues for sync.
+   */
+  private async createServerProjectWithFallback(
+    projectData: Partial<Project>,
+    templateId?: string
+  ): Promise<Project> {
+    const currentUser = this.userService.currentUser();
+    const username = projectData.username || currentUser?.username || 'unknown';
+    const slug =
+      projectData.slug ||
+      this.generateSlug(projectData.title || 'untitled-project');
+    const title = projectData.title || 'Untitled Project';
+    const description = projectData.description || '';
+
+    const fullProjectData: Project = {
+      id: projectData.id || '',
+      title,
+      description,
+      slug,
+      username,
+      createdDate: projectData.createdDate || new Date().toISOString(),
+      updatedDate: projectData.updatedDate || new Date().toISOString(),
+      ...projectData,
+    };
+
+    try {
+      // Try to create on server first
+      const project = await this.projectService.createProject(fullProjectData);
+      this.logger.info(
+        'UnifiedProject',
+        `Project created on server: ${username}/${slug}`
+      );
+      return project;
+    } catch (error) {
+      // Check if this is a network/server error that we can recover from
+      const isRecoverable =
+        error instanceof ProjectServiceError &&
+        (error.canUseCache || error.code === 'NETWORK_ERROR');
+
+      if (!isRecoverable) {
+        // Non-recoverable error (e.g., auth error, validation error)
+        throw error;
+      }
+
+      // Server unavailable - create locally and queue for sync
+      this.logger.warn(
+        'UnifiedProject',
+        `Server unavailable, creating project locally: ${username}/${slug}`
+      );
+
+      const localProject = await this.projectService.createLocalProject(
+        { title, slug, description },
+        username
+      );
+
+      // Queue for sync when server becomes available
+      const projectKey = `${username}/${slug}`;
+      await this.projectSync.markPendingCreation(
+        projectKey,
+        { title, slug, description },
+        templateId
+      );
+
+      this.logger.info(
+        'UnifiedProject',
+        `Project created locally and queued for sync: ${projectKey}`
+      );
+
+      return localProject;
+    }
+  }
+
+  /**
+   * Generate a URL-safe slug from a title.
+   */
+  private generateSlug(title: string): string {
+    return (
+      title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 50) || 'untitled-project'
+    );
   }
 
   /**
