@@ -15,9 +15,12 @@ import { randomBytes } from 'crypto';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BACKEND_DIR = join(__dirname, '..');
 const PROJECT_ROOT = join(BACKEND_DIR, '..');
-const FRONTEND_ENV_DIR = join(PROJECT_ROOT, 'frontend', 'src', 'environments');
+const FRONTEND_DIR = join(PROJECT_ROOT, 'frontend');
+const FRONTEND_ENV_DIR = join(FRONTEND_DIR, 'src', 'environments');
 const WRANGLER_TOML = join(BACKEND_DIR, 'wrangler.toml');
 const WRANGLER_EXAMPLE = join(BACKEND_DIR, 'wrangler.toml.example');
+const FRONTEND_WRANGLER_TOML = join(FRONTEND_DIR, 'wrangler.toml');
+const FRONTEND_WRANGLER_EXAMPLE = join(FRONTEND_DIR, 'wrangler.toml.example');
 
 const colors = {
   reset: '\x1b[0m',
@@ -264,7 +267,11 @@ function updateWranglerToml(
   stagingPagesName?: string,
   prodPagesName?: string,
   stagingRemoteConfig?: WranglerRemoteConfig | null,
-  prodRemoteConfig?: WranglerRemoteConfig | null
+  prodRemoteConfig?: WranglerRemoteConfig | null,
+  stagingBackendDomain?: string,
+  prodBackendDomain?: string,
+  stagingFrontendDomain?: string,
+  prodFrontendDomain?: string
 ): boolean {
   try {
     let content = readFileSync(WRANGLER_TOML, 'utf-8');
@@ -291,6 +298,22 @@ function updateWranglerToml(
       );
     }
 
+    // Add custom domain route for staging backend
+    if (stagingBackendDomain) {
+      content = content.replace(
+        /# routes = \[\{ pattern = "api\.staging\.yourdomain\.com", custom_domain = true \}\]/,
+        `routes = [{ pattern = "${stagingBackendDomain}", custom_domain = true }]`
+      );
+    }
+
+    // Add custom domain route for production backend
+    if (prodBackendDomain) {
+      content = content.replace(
+        /# routes = \[\{ pattern = "api\.yourdomain\.com", custom_domain = true \}\]/,
+        `routes = [{ pattern = "${prodBackendDomain}", custom_domain = true }]`
+      );
+    }
+
     if (stagingDbId) {
       content = content.replace(
         /database_id = "YOUR_STAGING_DATABASE_ID_HERE"/g,
@@ -305,31 +328,43 @@ function updateWranglerToml(
       );
     }
 
-    // Update ALLOWED_ORIGINS with Pages URLs
-    if (stagingPagesName) {
-      const pagesUrl = `https://${stagingPagesName}.pages.dev`;
-      const previewUrl = `https://*.${stagingPagesName}.pages.dev`;
+    // Update ALLOWED_ORIGINS with Pages URLs and custom frontend domains
+    if (stagingPagesName || stagingFrontendDomain) {
       const stagingSectionMatch = content.match(/\[env\.staging\.vars\]([\s\S]*?)(?=\n\[|$)/);
       if (stagingSectionMatch) {
         const oldSection = stagingSectionMatch[0];
         const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, (match, p1) => {
           const origins = p1.split(',').map((o: string) => o.trim());
-          if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
-          if (!origins.includes(previewUrl)) origins.push(previewUrl);
+          if (stagingPagesName) {
+            const pagesUrl = `https://${stagingPagesName}.pages.dev`;
+            const previewUrl = `https://*.${stagingPagesName}.pages.dev`;
+            if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
+            if (!origins.includes(previewUrl)) origins.push(previewUrl);
+          }
+          if (stagingFrontendDomain) {
+            const customUrl = `https://${stagingFrontendDomain}`;
+            if (!origins.includes(customUrl)) origins.push(customUrl);
+          }
           return `ALLOWED_ORIGINS = "${origins.join(',')}"`;
         });
         content = content.replace(oldSection, newSection);
       }
     }
 
-    if (prodPagesName) {
-      const pagesUrl = `https://${prodPagesName}.pages.dev`;
+    if (prodPagesName || prodFrontendDomain) {
       const prodSectionMatch = content.match(/\[env\.production\.vars\]([\s\S]*?)(?=\n\[|$)/);
       if (prodSectionMatch) {
         const oldSection = prodSectionMatch[0];
         const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, (match, p1) => {
           const origins = p1.split(',').map((o: string) => o.trim());
-          if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
+          if (prodPagesName) {
+            const pagesUrl = `https://${prodPagesName}.pages.dev`;
+            if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
+          }
+          if (prodFrontendDomain) {
+            const customUrl = `https://${prodFrontendDomain}`;
+            if (!origins.includes(customUrl)) origins.push(customUrl);
+          }
           return `ALLOWED_ORIGINS = "${origins.join(',')}"`;
         });
         content = content.replace(oldSection, newSection);
@@ -394,6 +429,77 @@ function updateWranglerToml(
     return true;
   } catch (e) {
     error(`Failed to update wrangler.toml: ${e}`);
+    return false;
+  }
+}
+
+function updateFrontendWranglerToml(
+  stagingPagesName?: string,
+  prodPagesName?: string,
+  stagingFrontendDomain?: string,
+  prodFrontendDomain?: string
+): boolean {
+  try {
+    let content = readFileSync(FRONTEND_WRANGLER_TOML, 'utf-8');
+
+    // Update Pages project name for base config (used for staging or default)
+    if (stagingPagesName) {
+      content = content.replace(/name = "inkweld-frontend"/, `name = "${stagingPagesName}"`);
+    }
+
+    // Add staging env section if staging pages name provided
+    if (stagingPagesName) {
+      // Check if staging env section exists (not commented)
+      if (!content.match(/^\[env\.staging\]/m)) {
+        // Add staging section (no routes - Pages doesn't support them)
+        const stagingSection = `\n[env.staging]\nname = "${stagingPagesName}"\n`;
+        // Insert before production section or at end
+        if (content.includes('[env.production]')) {
+          content = content.replace('[env.production]', stagingSection + '[env.production]');
+        } else {
+          content += stagingSection;
+        }
+      } else {
+        // Uncomment existing staging section
+        content = content.replace(
+          /# \[env\.staging\]\n# name = "[^"]*"/,
+          `[env.staging]\nname = "${stagingPagesName}"`
+        );
+      }
+    }
+
+    // If production Pages name provided, add/update production env section
+    if (prodPagesName) {
+      // Check if production env section exists (not commented)
+      if (!content.match(/^\[env\.production\]/m)) {
+        // Add production section (no routes - Pages doesn't support them)
+        const prodSection = `\n[env.production]\nname = "${prodPagesName}"\n`;
+        content += prodSection;
+      } else {
+        content = content.replace(
+          /# \[env\.production\]\n# name = "inkweld-frontend-prod"/,
+          `[env.production]\nname = "${prodPagesName}"`
+        );
+      }
+    }
+
+    // Note: Custom domains for Pages are configured via the Cloudflare Dashboard, not wrangler.toml
+    // Log a reminder if domains were specified
+    if (stagingFrontendDomain) {
+      info(
+        `Remember to configure staging custom domain "${stagingFrontendDomain}" in Cloudflare Dashboard`
+      );
+    }
+    if (prodFrontendDomain) {
+      info(
+        `Remember to configure production custom domain "${prodFrontendDomain}" in Cloudflare Dashboard`
+      );
+    }
+
+    writeFileSync(FRONTEND_WRANGLER_TOML, content);
+    return true;
+  } catch (e) {
+    error(`Failed to update frontend wrangler.toml: ${e}`);
     return false;
   }
 }
@@ -534,17 +640,31 @@ async function main() {
     }
     success('Logged in to Cloudflare');
 
-    // Check/create wrangler.toml
+    // Check/create backend wrangler.toml
     if (!existsSync(WRANGLER_TOML)) {
-      info('wrangler.toml not found. Copying from wrangler.toml.example...');
+      info('Backend wrangler.toml not found. Copying from wrangler.toml.example...');
       copyFileSync(WRANGLER_EXAMPLE, WRANGLER_TOML);
-      success('Created wrangler.toml');
+      success('Created backend wrangler.toml');
     } else {
-      warn('wrangler.toml already exists.');
+      warn('Backend wrangler.toml already exists.');
       const shouldOverwrite = await confirm(rl, 'Overwrite with fresh template?');
       if (shouldOverwrite) {
         copyFileSync(WRANGLER_EXAMPLE, WRANGLER_TOML);
-        success('Overwrote wrangler.toml');
+        success('Overwrote backend wrangler.toml');
+      }
+    }
+
+    // Check/create frontend wrangler.toml
+    if (!existsSync(FRONTEND_WRANGLER_TOML)) {
+      info('Frontend wrangler.toml not found. Copying from wrangler.toml.example...');
+      copyFileSync(FRONTEND_WRANGLER_EXAMPLE, FRONTEND_WRANGLER_TOML);
+      success('Created frontend wrangler.toml');
+    } else {
+      warn('Frontend wrangler.toml already exists.');
+      const shouldOverwriteFrontend = await confirm(rl, 'Overwrite with fresh template?');
+      if (shouldOverwriteFrontend) {
+        copyFileSync(FRONTEND_WRANGLER_EXAMPLE, FRONTEND_WRANGLER_TOML);
+        success('Overwrote frontend wrangler.toml');
       }
     }
 
@@ -774,6 +894,67 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
       }
     }
 
+    // Custom domains (optional)
+    header('Custom Domains (Optional)');
+
+    info('You can configure custom domains for your frontend and backend.');
+    info('This requires your domain to be added to Cloudflare first.');
+    info('Skip this step to use the default *.workers.dev and *.pages.dev URLs.');
+    console.log();
+
+    let stagingBackendDomain: string | undefined;
+    let stagingFrontendDomain: string | undefined;
+    let prodBackendDomain: string | undefined;
+    let prodFrontendDomain: string | undefined;
+
+    if (setupStaging) {
+      const configureStagingDomains = await confirm(rl, 'Configure custom domains for staging?');
+
+      if (configureStagingDomains) {
+        const backendDomain = await prompt(
+          rl,
+          'Staging backend API domain (e.g., api.staging.yoursite.com, leave empty to skip):'
+        );
+        if (backendDomain) {
+          stagingBackendDomain = backendDomain;
+          success(`Staging backend will be available at: https://${backendDomain}`);
+        }
+
+        const frontendDomain = await prompt(
+          rl,
+          'Staging frontend domain (e.g., staging.yoursite.com, leave empty to skip):'
+        );
+        if (frontendDomain) {
+          stagingFrontendDomain = frontendDomain;
+          success(`Staging frontend will be available at: https://${frontendDomain}`);
+        }
+      }
+    }
+
+    if (setupProd) {
+      const configureCustomDomains = await confirm(rl, 'Configure custom domains for production?');
+
+      if (configureCustomDomains) {
+        const backendDomain = await prompt(
+          rl,
+          'Production backend API domain (e.g., api.yoursite.com, leave empty to skip):'
+        );
+        if (backendDomain) {
+          prodBackendDomain = backendDomain;
+          success(`Production backend will be available at: https://${backendDomain}`);
+        }
+
+        const frontendDomain = await prompt(
+          rl,
+          'Production frontend domain (e.g., yoursite.com, leave empty to skip):'
+        );
+        if (frontendDomain) {
+          prodFrontendDomain = frontendDomain;
+          success(`Production frontend will be available at: https://${frontendDomain}`);
+        }
+      }
+    }
+
     // Generate frontend environment files
     header('Generating Frontend Environment Files');
 
@@ -812,15 +993,33 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
         setupStaging ? 'inkweld-frontend-staging' : undefined,
         setupProd ? 'inkweld-frontend' : undefined,
         stagingRemoteConfig,
-        prodRemoteConfig
+        prodRemoteConfig,
+        stagingBackendDomain,
+        prodBackendDomain,
+        stagingFrontendDomain,
+        prodFrontendDomain
       )
     ) {
-      success('Updated wrangler.toml with worker names, database IDs, and existing variables');
+      success('Updated backend wrangler.toml with worker names, database IDs, and custom domains');
     } else {
-      error('Failed to update wrangler.toml');
+      error('Failed to update backend wrangler.toml');
       info('Please manually update the configuration:');
       if (stagingDbId) info(`  Staging DB ID:    ${stagingDbId}`);
       if (prodDbId) info(`  Production DB ID: ${prodDbId}`);
+    }
+
+    // Update frontend wrangler.toml
+    if (
+      updateFrontendWranglerToml(
+        setupStaging ? 'inkweld-frontend-staging' : undefined,
+        setupProd ? 'inkweld-frontend' : undefined,
+        stagingFrontendDomain,
+        prodFrontendDomain
+      )
+    ) {
+      success('Updated frontend wrangler.toml with Pages project names');
+    } else {
+      error('Failed to update frontend wrangler.toml');
     }
 
     // Run migrations

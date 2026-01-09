@@ -1,9 +1,0 @@
-name = "inkweld-frontend"
-compatibility_date = "2025-01-01"
-
-# Cloudflare Pages configuration
-pages_build_output_dir = "dist/browser"
-
-# Environment variables (configure these in Cloudflare Dashboard)
-# [env.production.vars]
-# API_URL = "https://your-backend-api.com"

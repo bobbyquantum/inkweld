@@ -89,6 +89,11 @@ new_sqlite_classes = ["YjsProject"]
 [env.staging]
 name = "inkweld-backend-staging"
 
+# Custom domain for staging backend (optional)
+# Uncomment and set your domain. Requires domain to be added to Cloudflare.
+# See: https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
+# routes = [{ pattern = "api.staging.yourdomain.com", custom_domain = true }]
+
 [env.staging.vars]
 NODE_ENV = "staging"
 PORT = "8333"
@@ -125,6 +130,11 @@ script_name = "inkweld-backend-staging"
 
 [env.production]
 name = "inkweld-backend-prod"
+
+# Custom domain for production backend (optional)
+# Uncomment and set your domain. Requires domain to be added to Cloudflare.
+# See: https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
+# routes = [{ pattern = "api.yourdomain.com", custom_domain = true }]
 
 [env.production.vars]
 NODE_ENV = "production"
