@@ -273,22 +273,88 @@ npm run cloudflare:deploy:prod
 
 ## Custom Domain
 
-To use your own domain instead of `*.workers.dev`:
+To use your own domain instead of `*.workers.dev` and `*.pages.dev`:
 
-1. **Add domain to Cloudflare** - If not already added
-2. **Configure Worker route:**
-   - Go to **Workers & Pages** → Your worker → **Settings** → **Triggers**
-   - Click **Add Custom Domain**
-   - Enter your domain (e.g., `api.yoursite.com`)
+### Prerequisites
 
-3. **Update ALLOWED_ORIGINS** in `wrangler.toml`:
+1. **Add your domain to Cloudflare** - Transfer DNS or use Cloudflare as your DNS provider
+2. **Verify domain ownership** - Follow Cloudflare's verification steps
 
-```toml
-[env.production.vars]
-ALLOWED_ORIGINS = "https://yoursite.com,https://app.yoursite.com"
+### Using the Setup Wizard
+
+The setup wizard prompts for custom domains for both staging and production environments:
+
+```
+Configure custom domains for staging? (y/n): y
+Staging backend API domain (e.g., api.staging.yoursite.com): api.staging.inkweld.app
+Staging frontend domain (e.g., staging.yoursite.com): staging.inkweld.app
+
+Configure custom domains for production? (y/n): y
+Production backend API domain (e.g., api.yoursite.com): api.inkweld.app
+Production frontend domain (e.g., yoursite.com): inkweld.app
 ```
 
-4. **Redeploy** for changes to take effect
+The wizard will:
+- Configure backend custom domains via `routes` in `wrangler.toml` (Workers support this)
+- Add frontend custom domains to `ALLOWED_ORIGINS` for CORS
+- Remind you to configure frontend custom domains in the Cloudflare Dashboard
+
+### Manual Configuration
+
+#### Backend Custom Domain
+
+Edit `backend/wrangler.toml` and uncomment/update the routes configuration:
+
+```toml
+# Staging
+[env.staging]
+name = "inkweld-backend-staging"
+routes = [{ pattern = "api.staging.yoursite.com", custom_domain = true }]
+
+# Production
+[env.production]
+name = "inkweld-backend-prod"
+routes = [{ pattern = "api.yoursite.com", custom_domain = true }]
+```
+
+Or via Cloudflare Dashboard:
+1. Go to **Workers & Pages** → Your worker → **Settings** → **Triggers**
+2. Click **Add Custom Domain**
+3. Enter your domain (e.g., `api.yoursite.com`)
+
+#### Frontend Custom Domain
+
+**Important**: Unlike Workers, Cloudflare Pages does not support custom domain configuration via `wrangler.toml`. Custom domains for Pages must be configured in the Cloudflare Dashboard.
+
+**Via Cloudflare Dashboard** (required for Pages):
+1. Go to **Workers & Pages** → Your Pages project → **Custom domains**
+2. Click **Set up a custom domain**
+3. Enter your domain (e.g., `staging.yoursite.com` or `yoursite.com`)
+4. Follow the DNS verification steps
+
+### Update ALLOWED_ORIGINS
+
+After setting up custom domains, update `ALLOWED_ORIGINS` in `backend/wrangler.toml`:
+
+```toml
+[env.staging.vars]
+ALLOWED_ORIGINS = "https://staging.yoursite.com"
+
+[env.production.vars]
+ALLOWED_ORIGINS = "https://yoursite.com,https://www.yoursite.com"
+```
+
+### Redeploy
+
+After making changes, redeploy both frontend and backend:
+
+```bash
+# Staging
+npm run cloudflare:deploy:staging
+
+# Production
+npm run cloudflare:deploy:prod
+```
 
 ## Free Tier Limits
 

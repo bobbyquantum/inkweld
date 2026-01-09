@@ -1,0 +1,25 @@
+name = "inkweld-frontend"
+compatibility_date = "2025-01-01"
+
+# Cloudflare Pages configuration
+pages_build_output_dir = "dist/browser"
+
+# ========================================
+# ENVIRONMENT-SPECIFIC CONFIGURATION
+# ========================================
+# Pages projects support environment-specific names.
+# Custom domains for Pages must be configured via the Cloudflare Dashboard:
+#   Pages → Your project → Custom domains → Add domain
+# See: https://developers.cloudflare.com/pages/configuration/custom-domains/
+#
+# Note: Unlike Workers, Pages does not support "routes" in wrangler.toml.
+
+# [env.staging]
+# name = "inkweld-frontend-staging"
+
+# [env.production]
+# name = "inkweld-frontend-prod"
+
+# Environment variables (configure these in Cloudflare Dashboard)
+# [env.production.vars]
+# API_URL = "https://your-backend-api.com"
