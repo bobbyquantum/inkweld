@@ -16,13 +16,16 @@ import { PublishPlan } from '../../models/publish-plan';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { BackgroundSyncService } from '../offline/background-sync.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
+import { ProjectSyncService } from '../offline/project-sync.service';
 import { StorageService } from '../offline/storage.service';
 import { UnifiedProjectService } from '../offline/unified-project.service';
 import {
   ElementSyncProviderFactory,
   IElementSyncProvider,
 } from '../sync/index';
+import { UnifiedUserService } from '../user/unified-user.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { ElementTreeService, ValidDropLevels } from './element-tree.service';
 import { RecentFilesService } from './recent-files.service';
@@ -61,6 +64,7 @@ export type { AppTab, ValidDropLevels };
 export class ProjectStateService implements OnDestroy {
   // Injected services
   private readonly unifiedProjectService = inject(UnifiedProjectService);
+  private readonly unifiedUserService = inject(UnifiedUserService);
   private readonly setupService = inject(SetupService);
   private readonly offlineElementsService = inject(
     OfflineProjectElementsService
@@ -74,6 +78,8 @@ export class ProjectStateService implements OnDestroy {
   private readonly tabManager = inject(TabManagerService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
   private readonly ngZone = inject(NgZone);
+  private readonly projectSyncService = inject(ProjectSyncService);
+  private readonly backgroundSyncService = inject(BackgroundSyncService);
 
   // Current sync provider (set when project is loaded)
   private syncProvider: IElementSyncProvider | null = null;
@@ -91,6 +97,17 @@ export class ProjectStateService implements OnDestroy {
   readonly error = signal<string | undefined>(undefined);
 
   /**
+   * Check if the current user is the project owner by comparing usernames.
+   * This is a fallback when access info isn't loaded yet.
+   */
+  private isCurrentUserProjectOwner(): boolean {
+    const proj = this.project();
+    const currentUser = this.unifiedUserService.currentUser();
+    if (!proj || !currentUser) return false;
+    return proj.username === currentUser.username;
+  }
+
+  /**
    * Whether the current user can write (edit) the project.
    * Returns true for owners and collaborators with editor/admin role.
    * Returns false for viewers.
@@ -100,9 +117,11 @@ export class ProjectStateService implements OnDestroy {
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full access
     if (this.setupService.getMode() === 'offline') return true;
-    // SECURITY: Default to no write access if access info is missing in server mode
-    if (!proj.access) return false;
-    return proj.access.canWrite;
+    // If access info is loaded, use it
+    if (proj.access) return proj.access.canWrite;
+    // Fallback: If access info not loaded, check if current user is owner
+    // This handles the case where project is loaded from cache without access info
+    return this.isCurrentUserProjectOwner();
   });
 
   /**
@@ -113,9 +132,10 @@ export class ProjectStateService implements OnDestroy {
     if (!proj) return false;
     // In offline mode, user owns all their projects
     if (this.setupService.getMode() === 'offline') return true;
-    // SECURITY: Default to not owner if access info is missing in server mode
-    if (!proj.access) return false;
-    return proj.access.isOwner;
+    // If access info is loaded, use it
+    if (proj.access) return proj.access.isOwner;
+    // Fallback: Check if current user is owner by username comparison
+    return this.isCurrentUserProjectOwner();
   });
 
   /**
@@ -284,6 +304,41 @@ export class ProjectStateService implements OnDestroy {
     username: string,
     slug: string
   ): Promise<void> {
+    const projectKey = `${username}/${slug}`;
+
+    // Check if this project was created offline and hasn't been synced yet
+    // If so, we need to sync it to the server BEFORE trying to connect
+    // WebSocket, otherwise WebSocket auth will fail with "project-not-found"
+    if (this.projectSyncService.hasPendingCreation(projectKey)) {
+      this.logger.info(
+        'ProjectState',
+        `Project ${projectKey} has pending creation - syncing to server first`
+      );
+
+      try {
+        // Use BackgroundSyncService to sync all pending items (including this project)
+        const syncSuccess = await this.backgroundSyncService.syncPendingItems();
+        if (syncSuccess) {
+          this.logger.info(
+            'ProjectState',
+            `Successfully synced pending creation for ${projectKey}`
+          );
+        } else {
+          this.logger.warn(
+            'ProjectState',
+            `Sync may have partially failed for ${projectKey}, continuing anyway`
+          );
+        }
+      } catch (syncError) {
+        this.logger.error(
+          'ProjectState',
+          `Failed to sync pending creation for ${projectKey}`,
+          syncError
+        );
+        // Continue anyway - the project may still work in offline mode
+      }
+    }
+
     // Local-first: Try to get project metadata using UnifiedProjectService
     // which handles caching and graceful fallback when server is down
     let project: Project | null = null;

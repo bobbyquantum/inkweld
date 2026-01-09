@@ -42,6 +42,21 @@ For more information, visit: https://angular.dev/ai/mcp
 
 ## Code Quality Rules (Non-Negotiable)
 
+### 0. ALWAYS Verify Before Completion
+
+**After ANY code change, run the verification script before declaring the task complete:**
+
+```bash
+cd /Users/bobby/Documents/inkweld && bun run verify
+```
+
+This runs typecheck, lint, unit tests, e2e tests, and docs build. A task is ONLY complete when you see:
+```
+✅ Verify completed in X seconds
+```
+
+**Do not ask permission. Do not skip this step. Just run it.**
+
 ### 1. Testing Requirements
 
 - **All code changes require test coverage** - no exceptions

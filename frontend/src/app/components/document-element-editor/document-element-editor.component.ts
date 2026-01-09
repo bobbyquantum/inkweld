@@ -174,6 +174,17 @@ export class DocumentElementEditorComponent
       }
     });
 
+    // Watch for canWrite changes and update editor editable state
+    // This handles the case where access info is loaded after initial render
+    effect(() => {
+      // Read canWrite to establish reactive dependency - changes trigger this effect
+      const _canWrite = this.projectState.canWrite();
+      // Only update if editor is initialized and collaboration is set up
+      if (this.editor?.view && this.collaborationSetup) {
+        this.updateEditableState();
+      }
+    });
+
     // Watch for element ref click events from the service
     effect(() => {
       const clickEvent = this.elementRefService.clickEvent();
@@ -634,17 +645,20 @@ export class DocumentElementEditorComponent
   /**
    * Updates the editor's editable state based on user permissions.
    * Viewers cannot edit, so set editable to false for them.
+   * When access info loads and user can write, set editable to true.
    */
   private updateEditableState(): void {
     const canWrite = this.projectState.canWrite();
     console.log('[DocumentEditor] updateEditableState - canWrite:', canWrite);
 
-    if (!canWrite && this.editor?.view) {
-      // Dispatch UPDATE_EDITABLE meta to set editor to read-only
+    if (this.editor?.view) {
+      // Dispatch UPDATE_EDITABLE meta to set editor editable state
       const { dispatch, state } = this.editor.view;
-      const tr = state.tr.setMeta('UPDATE_EDITABLE', false);
+      const tr = state.tr.setMeta('UPDATE_EDITABLE', canWrite);
       dispatch(tr);
-      console.log('[DocumentEditor] Editor set to read-only mode');
+      console.log(
+        `[DocumentEditor] Editor set to ${canWrite ? 'editable' : 'read-only'} mode`
+      );
     }
   }
 

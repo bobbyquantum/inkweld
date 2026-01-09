@@ -1,15 +1,18 @@
 {
   "servers": {
+    // Angular CLI MCP server for real-time Angular documentation
+    // See: https://angular.dev/ai/mcp
     "angular-cli": {
       "command": "npx",
       "args": ["-y", "@angular/cli", "mcp"]
-    },
-    "inkweld": {
-      "type": "http",
-      "url": "http://localhost:8333/api/v1/ai/mcp",
-      "headers": {
-        "Authorization": "Bearer iw_proj_Eo7rCA7fdHf8poAIcB3K9IqFqWLp2KLk"
-      }
     }
+    // Uncomment to use Inkweld's MCP server (requires running backend + API key)
+    // "inkweld": {
+    //   "type": "http",
+    //   "url": "http://localhost:8333/api/v1/ai/mcp",
+    //   "headers": {
+    //     "Authorization": "Bearer YOUR_API_KEY_HERE"
+    //   }
+    // }
   }
 }
