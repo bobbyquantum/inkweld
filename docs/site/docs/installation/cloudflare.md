@@ -65,10 +65,10 @@ The wizard guides you through each step:
 
 Available environments:
 
-  staging     - Pre-production environment for testing
+  preview     - Pre-production environment for testing
   production  - Live production environment
 
-Set up STAGING environment? (y/n): y
+Set up PREVIEW environment? (y/n): y
 Set up PRODUCTION environment? (y/n): y
 ```
 
@@ -84,8 +84,8 @@ The wizard detects your Cloudflare account and suggests unique worker names:
 ℹ️  Worker names must be globally unique across all Cloudflare accounts.
 ℹ️  Detected account: your-account-name
 
-Worker name for STAGING (default: your-account-inkweld-staging): 
-✅ Staging worker URL: https://your-account-inkweld-staging.workers.dev
+Worker name for PREVIEW (default: your-account-inkweld-preview): 
+✅ Preview worker URL: https://your-account-inkweld-preview.workers.dev
 Continue with this URL? (y/n): y
 
 Worker name for PRODUCTION (default: your-account-inkweld): 
@@ -103,7 +103,7 @@ If you're setting up on a new machine with existing deployments, the wizard can 
 
 ```
 Try to import existing environment variables from Cloudflare? (y/n): y
-✅ Found existing staging configuration
+✅ Found existing preview configuration
 ✅ Found existing production configuration
 ```
 
@@ -116,8 +116,8 @@ The wizard creates all required Cloudflare resources:
   Creating D1 Databases
 ============================================================
 
-ℹ️  Creating D1 database: inkweld_staging...
-✅ Created database "inkweld_staging" with ID: abc123...
+ℹ️  Creating D1 database: inkweld_preview...
+✅ Created database "inkweld_preview" with ID: abc123...
 
 ℹ️  Creating D1 database: inkweld_prod...
 ✅ Created database "inkweld_prod" with ID: def456...
@@ -126,14 +126,14 @@ The wizard creates all required Cloudflare resources:
   Creating R2 Storage Buckets
 ============================================================
 
-✅ Created R2 bucket: inkweld-storage-staging
+✅ Created R2 bucket: inkweld-storage-preview
 ✅ Created R2 bucket: inkweld-storage
 
 ============================================================
   Creating Cloudflare Pages Projects
 ============================================================
 
-✅ Created Pages project: inkweld-frontend-staging
+✅ Created Pages project: inkweld-frontend-preview
 ✅ Created Pages project: inkweld-frontend
 ```
 
@@ -148,10 +148,10 @@ The wizard automatically generates environment files for the frontend:
 
 ℹ️  Frontend environment files configure the API URLs for each environment.
 ℹ️  Workers will be available at:
-ℹ️    Staging:    https://your-account-inkweld-staging.workers.dev
+ℹ️    Preview:    https://your-account-inkweld-preview.workers.dev
 ℹ️    Production: https://your-account-inkweld.workers.dev
 
-✅ Generated environment.staging.ts
+✅ Generated environment.preview.ts
 ✅ Generated environment.cloudflare.ts
 ```
 
@@ -165,8 +165,8 @@ Apply the database schema:
 ============================================================
 
 Run database migrations now? (y/n): y
-ℹ️  Running migrations on inkweld_staging...
-✅ Staging database migrated
+ℹ️  Running migrations on inkweld_preview...
+✅ Preview database migrated
 ℹ️  Running migrations on inkweld_prod...
 ✅ Production database migrated
 ```
@@ -186,7 +186,7 @@ Configure sensitive values securely:
     make existing data unreadable!
 
 Generate and set SESSION_SECRET automatically? (y/n): y
-✅ SESSION_SECRET set for staging
+✅ SESSION_SECRET set for preview
 ✅ SESSION_SECRET set for production
 ```
 
@@ -195,8 +195,8 @@ Generate and set SESSION_SECRET automatically? (y/n): y
 After setup, deploy with:
 
 ```bash
-# Deploy to staging (for testing)
-npm run cloudflare:deploy:staging
+# Deploy to preview (for testing)
+npm run cloudflare:deploy:preview
 
 # Deploy to production
 npm run cloudflare:deploy:prod
@@ -222,7 +222,7 @@ bun run wrangler login
 ### 2. Create D1 Databases
 
 ```bash
-bun run wrangler d1 create inkweld_staging
+bun run wrangler d1 create inkweld_preview
 bun run wrangler d1 create inkweld_prod
 ```
 
@@ -237,10 +237,10 @@ cp wrangler.toml.example wrangler.toml
 Edit `wrangler.toml` and update the database IDs:
 
 ```toml
-[[env.staging.d1_databases]]
+[[env.preview.d1_databases]]
 binding = "DB"
-database_name = "inkweld_staging"
-database_id = "your-staging-database-id"
+database_name = "inkweld_preview"
+database_id = "your-preview-database-id"
 migrations_dir = "drizzle"
 
 [[env.production.d1_databases]]
@@ -253,21 +253,21 @@ migrations_dir = "drizzle"
 ### 4. Run Migrations
 
 ```bash
-bun run db:migrate:staging
+bun run db:migrate:preview
 bun run db:migrate:prod
 ```
 
 ### 5. Set Secrets
 
 ```bash
-bun run wrangler secret put SESSION_SECRET --env staging
+bun run wrangler secret put SESSION_SECRET --env preview
 bun run wrangler secret put SESSION_SECRET --env production
 ```
 
 ### 6. Deploy
 
 ```bash
-npm run cloudflare:deploy:staging
+npm run cloudflare:deploy:preview
 npm run cloudflare:deploy:prod
 ```
 
@@ -282,12 +282,12 @@ To use your own domain instead of `*.workers.dev` and `*.pages.dev`:
 
 ### Using the Setup Wizard
 
-The setup wizard prompts for custom domains for both staging and production environments:
+The setup wizard prompts for custom domains for both preview and production environments:
 
 ```
-Configure custom domains for staging? (y/n): y
-Staging backend API domain (e.g., api.staging.yoursite.com): api.staging.inkweld.app
-Staging frontend domain (e.g., staging.yoursite.com): staging.inkweld.app
+Configure custom domains for preview? (y/n): y
+Preview backend API domain (e.g., api.preview.yoursite.com): api.preview.inkweld.app
+Preview frontend domain (e.g., preview.yoursite.com): preview.inkweld.app
 
 Configure custom domains for production? (y/n): y
 Production backend API domain (e.g., api.yoursite.com): api.inkweld.app
@@ -306,10 +306,10 @@ The wizard will:
 Edit `backend/wrangler.toml` and uncomment/update the routes configuration:
 
 ```toml
-# Staging
-[env.staging]
-name = "inkweld-backend-staging"
-routes = [{ pattern = "api.staging.yoursite.com", custom_domain = true }]
+# Preview
+[env.preview]
+name = "inkweld-backend-preview"
+routes = [{ pattern = "api.preview.yoursite.com", custom_domain = true }]
 
 # Production
 [env.production]
@@ -329,7 +329,7 @@ Or via Cloudflare Dashboard:
 **Via Cloudflare Dashboard** (required for Pages):
 1. Go to **Workers & Pages** → Your Pages project → **Custom domains**
 2. Click **Set up a custom domain**
-3. Enter your domain (e.g., `staging.yoursite.com` or `yoursite.com`)
+3. Enter your domain (e.g., `preview.yoursite.com` or `yoursite.com`)
 4. Follow the DNS verification steps
 
 ### Update ALLOWED_ORIGINS
@@ -337,8 +337,8 @@ Or via Cloudflare Dashboard:
 After setting up custom domains, update `ALLOWED_ORIGINS` in `backend/wrangler.toml`:
 
 ```toml
-[env.staging.vars]
-ALLOWED_ORIGINS = "https://staging.yoursite.com"
+[env.preview.vars]
+ALLOWED_ORIGINS = "https://preview.yoursite.com"
 
 [env.production.vars]
 ALLOWED_ORIGINS = "https://yoursite.com,https://www.yoursite.com"
@@ -349,8 +349,8 @@ ALLOWED_ORIGINS = "https://yoursite.com,https://www.yoursite.com"
 After making changes, redeploy both frontend and backend:
 
 ```bash
-# Staging
-npm run cloudflare:deploy:staging
+# Preview
+npm run cloudflare:deploy:preview
 
 # Production
 npm run cloudflare:deploy:prod
@@ -388,7 +388,7 @@ For production use, consider the Workers Paid plan at **$5/month**:
 
 ```bash
 # Stream real-time logs
-bun run wrangler tail --env staging
+bun run wrangler tail --env preview
 bun run wrangler tail --env production
 ```
 
@@ -414,7 +414,7 @@ Verify your `database_id` values in `wrangler.toml` match the actual D1 database
 Update `ALLOWED_ORIGINS` to include all domains that need to access the API:
 
 ```toml
-ALLOWED_ORIGINS = "https://yoursite.com,https://app.yoursite.com,https://staging.yoursite.com"
+ALLOWED_ORIGINS = "https://yoursite.com,https://app.yoursite.com,https://preview.yoursite.com"
 ```
 
 ### Real-time collaboration not working

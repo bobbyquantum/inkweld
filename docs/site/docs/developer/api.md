@@ -130,5 +130,5 @@ curl -X POST http://localhost:8333/api/v1/projects \
 ## Need Help?
 
 - Check the [API Reference](/docs/api/inkweld-api) for endpoint details
-- Review [Troubleshooting](../troubleshooting/cookies.md)
+- Review [Troubleshooting](../troubleshooting/logging.md)
 - Ask in [GitHub Discussions](https://github.com/bobbyquantum/inkweld/discussions)

@@ -48,7 +48,7 @@ export class SetupService {
     const storedConfig = this.getStoredConfig();
 
     // If we have a pre-configured URL, and it's different from the stored one,
-    // we should update it. This ensures that if a user moves between staging/prod
+    // we should update it. This ensures that if a user moves between preview/prod
     // or if the worker URL changes, the app stays in sync with its build.
     if (
       !storedConfig ||
@@ -204,7 +204,7 @@ export class SetupService {
     }
 
     // Always check if we should auto-configure (it will return early if already correct)
-    // This ensures that if the environment URL changes (e.g. staging to prod),
+    // This ensures that if the environment URL changes (e.g. preview to prod),
     // the app updates its configuration automatically.
     this.autoConfigureIfNeeded();
   }

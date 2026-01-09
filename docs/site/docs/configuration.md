@@ -129,7 +129,7 @@ HOST=127.0.0.1    # Localhost only
 
 ### NODE_ENV
 
-**Default:** `development` | `development` | `production` | `staging`
+**Default:** `development` | `development` | `production` | `preview`
 
 Controls various behaviors like logging verbosity and security settings.
 
@@ -486,4 +486,4 @@ wrangler secret put SESSION_SECRET --env production
 
 - **[Admin CLI](./admin-guide/admin-cli)** - Manage users and settings from the command line
 - **[AI Image Generation](./admin-guide/ai-image-generation)** - Set up AI-powered features
-- **[Troubleshooting](./troubleshooting/cookies)** - Common issues and solutions
+- **[Troubleshooting](./troubleshooting/logging)** - Common issues and solutions

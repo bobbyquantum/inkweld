@@ -7,15 +7,16 @@ pages_build_output_dir = "dist/browser"
 # ========================================
 # ENVIRONMENT-SPECIFIC CONFIGURATION
 # ========================================
-# Pages projects support environment-specific names.
+# Pages projects only support "preview" and "production" environments.
+# For preview, use the "preview" environment or create a separate Pages project.
 # Custom domains for Pages must be configured via the Cloudflare Dashboard:
 #   Pages → Your project → Custom domains → Add domain
 # See: https://developers.cloudflare.com/pages/configuration/custom-domains/
 #
 # Note: Unlike Workers, Pages does not support "routes" in wrangler.toml.
 
-# [env.staging]
-# name = "inkweld-frontend-staging"
+# [env.preview]
+# name = "inkweld-frontend-preview"
 
 # [env.production]
 # name = "inkweld-frontend-prod"
