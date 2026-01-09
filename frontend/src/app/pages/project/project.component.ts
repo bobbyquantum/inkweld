@@ -18,6 +18,7 @@ import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Title } from '@angular/platform-browser';
 import {
   ActivatedRoute,
@@ -64,6 +65,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     MatProgressSpinnerModule,
     MatToolbarModule,
     MatMenuModule,
+    MatTooltipModule,
     ConnectionStatusComponent,
     PresenceIndicatorComponent,
     ProjectTreeComponent,
@@ -96,6 +98,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly isMobile = signal(false);
   public readonly isZenMode = signal(false);
   public readonly showSidebar = signal(true);
+  public readonly sidebarCollapsed = signal(false);
   public readonly isDeleting = signal(false);
 
   /** Current project sync state - exposed for connection status display */
@@ -121,11 +124,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected splitSizeInPixels = 300; // Default split size in pixels
 
   constructor() {
-    // Load saved split size early in initialization
+    // Load saved split size and sidebar collapsed state early in initialization
     if (!this.isMobile()) {
       const storedSplitSize = localStorage.getItem('splitSize');
       if (storedSplitSize) {
         this.splitSize = parseInt(storedSplitSize, 10);
+      }
+      const storedCollapsed = localStorage.getItem('sidebarCollapsed');
+      if (storedCollapsed === 'true') {
+        this.sidebarCollapsed.set(true);
       }
     }
 
@@ -270,6 +277,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       void this.sidenav.toggle();
     } else {
       this.showSidebar.update(v => !v);
+    }
+  }
+
+  /** Toggle sidebar collapsed state (desktop only) */
+  public toggleSidebarCollapsed(): void {
+    if (!this.isMobile()) {
+      const newValue = !this.sidebarCollapsed();
+      this.sidebarCollapsed.set(newValue);
+      localStorage.setItem('sidebarCollapsed', String(newValue));
     }
   }
 
@@ -574,6 +590,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       this.projectState.selectTab(0);
       void this.router.navigate(['/', project.username, project.slug]);
     }
+  }
+
+  // Create a new document at the root level (used from collapsed sidebar)
+  onCreateNewDocument(): void {
+    this.projectState.showNewElementDialog(undefined);
   }
 
   // Check if a system tab is currently selected

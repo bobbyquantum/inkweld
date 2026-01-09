@@ -25,58 +25,90 @@ import { MediaSyncState } from '../../services/offline/media-sync.service';
     MatProgressSpinnerModule,
   ],
   template: `
-    <div class="connection-status" data-testid="connection-status">
-      <!-- Project Elements Sync Status -->
-      <div
-        class="status-row"
-        [class.status-synced]="syncState() === DocumentSyncState.Synced"
-        [class.status-offline]="displayAsOffline()"
-        [class.status-unavailable]="
-          syncState() === DocumentSyncState.Unavailable
-        "
+    @if (collapsed()) {
+      <!-- Collapsed mode: icon-only button -->
+      <button
+        mat-icon-button
+        class="collapsed-sync-button"
+        [class.synced]="syncState() === DocumentSyncState.Synced"
+        [class.offline]="displayAsOffline()"
+        [class.unavailable]="syncState() === DocumentSyncState.Unavailable"
+        [class.spinning]="isConnecting()"
+        [disabled]="syncState() === DocumentSyncState.Synced"
+        (click)="onSyncClick()"
         [matTooltip]="syncTooltip()"
-        data-testid="project-sync-status">
-        <mat-icon class="status-icon">{{ syncIcon() }}</mat-icon>
-        <span class="status-text">{{ syncStatusText() }}</span>
-        @if (showRetryButton()) {
-          <button
-            mat-icon-button
-            class="sync-button"
-            [class.spinning]="isConnecting()"
-            [disabled]="isConnecting()"
-            (click)="onSyncClick()"
-            [matTooltip]="retryButtonTooltip()"
-            data-testid="retry-sync-button">
-            <mat-icon>sync</mat-icon>
-          </button>
+        data-testid="collapsed-sync-button">
+        <mat-icon>{{ syncIcon() }}</mat-icon>
+      </button>
+    } @else {
+      <div class="connection-status" data-testid="connection-status">
+        <!-- Project Elements Sync Status -->
+        <div
+          class="status-row"
+          [class.status-synced]="syncState() === DocumentSyncState.Synced"
+          [class.status-offline]="displayAsOffline()"
+          [class.status-unavailable]="
+            syncState() === DocumentSyncState.Unavailable
+          "
+          [matTooltip]="syncTooltip()"
+          data-testid="project-sync-status">
+          <mat-icon class="status-icon">{{ syncIcon() }}</mat-icon>
+          <span class="status-text">{{ syncStatusText() }}</span>
+          @if (showRetryButton()) {
+            <button
+              mat-icon-button
+              class="sync-button"
+              [class.spinning]="isConnecting()"
+              [disabled]="isConnecting()"
+              (click)="onSyncClick()"
+              [matTooltip]="retryButtonTooltip()"
+              data-testid="retry-sync-button">
+              <mat-icon>sync</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Media Sync Status (if applicable) -->
+        @if (showMediaStatus() && mediaSyncState()) {
+          <div
+            class="status-row media-row"
+            [class.status-synced]="isMediaSynced()"
+            [class.status-syncing]="mediaSyncState()?.isSyncing"
+            [class.status-offline]="
+              !isMediaSynced() && !mediaSyncState()?.isSyncing
+            "
+            [matTooltip]="mediaTooltip()"
+            data-testid="media-sync-status">
+            @if (mediaSyncState()?.isSyncing) {
+              <mat-spinner diameter="14" class="status-spinner"></mat-spinner>
+            } @else {
+              <mat-icon class="status-icon media-icon">{{
+                mediaIcon()
+              }}</mat-icon>
+            }
+            <span class="status-text media-text">{{ mediaStatusText() }}</span>
+          </div>
         }
       </div>
-
-      <!-- Media Sync Status (if applicable) -->
-      @if (showMediaStatus() && mediaSyncState()) {
-        <div
-          class="status-row media-row"
-          [class.status-synced]="isMediaSynced()"
-          [class.status-syncing]="mediaSyncState()?.isSyncing"
-          [class.status-offline]="
-            !isMediaSynced() && !mediaSyncState()?.isSyncing
-          "
-          [matTooltip]="mediaTooltip()"
-          data-testid="media-sync-status">
-          @if (mediaSyncState()?.isSyncing) {
-            <mat-spinner diameter="14" class="status-spinner"></mat-spinner>
-          } @else {
-            <mat-icon class="status-icon media-icon">{{
-              mediaIcon()
-            }}</mat-icon>
-          }
-          <span class="status-text media-text">{{ mediaStatusText() }}</span>
-        </div>
-      }
-    </div>
+    }
   `,
   styles: [
     `
+      .collapsed-sync-button {
+        &.synced mat-icon {
+          color: var(--sys-primary);
+        }
+        &.offline mat-icon {
+          color: var(--sys-outline);
+        }
+        &.unavailable mat-icon {
+          color: var(--sys-error);
+        }
+        &.spinning mat-icon {
+          animation: spin 1.5s linear infinite;
+          opacity: 0.6;
+        }
+      }
       .connection-status {
         display: flex;
         flex-direction: column;
@@ -199,6 +231,9 @@ export class ConnectionStatusComponent {
 
   /** Whether to show media sync status */
   showMediaStatus = input<boolean>(false);
+
+  /** Whether to show collapsed (icon-only) mode */
+  collapsed = input<boolean>(false);
 
   /** Event emitted when user clicks retry sync */
   syncRequested = output<void>();

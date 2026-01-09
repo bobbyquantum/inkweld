@@ -16,8 +16,10 @@ import {
   ElementRef,
   EventEmitter,
   inject,
+  input,
   OnDestroy,
   Output,
+  output,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -67,6 +69,12 @@ export class ProjectTreeComponent implements OnDestroy {
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
 
   readonly projectStateService = inject(ProjectStateService);
+
+  /** Whether to show the collapse button in the toolbar */
+  showCollapseButton = input<boolean>(false);
+
+  /** Emitted when the collapse button is clicked */
+  collapseRequested = output<void>();
 
   // Map DTOs to internal model
   readonly treeElements = computed(() => {

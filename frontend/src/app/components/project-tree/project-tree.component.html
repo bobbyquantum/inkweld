@@ -15,6 +15,19 @@
 
   <!-- Toolbar with action buttons -->
   <div class="tree-toolbar">
+    @if (showCollapseButton()) {
+      <button
+        mat-icon-button
+        class="collapse-button"
+        (click)="collapseRequested.emit()"
+        matTooltip="Collapse Sidebar"
+        data-testid="toolbar-collapse-button"
+        aria-label="Collapse Sidebar">
+        <mat-icon fontSet="material-symbols-outlined"
+          >left_panel_close</mat-icon
+        >
+      </button>
+    }
     <button
       mat-icon-button
       class="home-button"
