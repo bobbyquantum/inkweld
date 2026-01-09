@@ -80,9 +80,19 @@
         (contextmenu)="onContextMenuOpen(node)"
         (cdkContextMenuClosed)="onContextMenuClose()"
         [cdkContextMenuTriggerData]="{ node: node }"
-        (click)="!node.expandable && onOpenDocument(node)"
-        (touchend)="!node.expandable && onOpenDocument(node)"
-        (keyup.enter)="onOpenDocument(node)"
+        (click)="
+          node.expandable
+            ? toggleExpandedClick(node, $event)
+            : onOpenDocument(node)
+        "
+        (touchend)="
+          node.expandable
+            ? toggleExpandedTouch(node, $event)
+            : onOpenDocument(node)
+        "
+        (keyup.enter)="
+          node.expandable ? toggleExpanded(node) : onOpenDocument(node)
+        "
         tabindex="0">
         <!-- Expand/collapse button for folders -->
         @if (node.expandable) {

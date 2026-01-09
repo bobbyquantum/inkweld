@@ -1,8 +1,9 @@
-import { computed, inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable, Injector } from '@angular/core';
 import { Element, Project } from '@inkweld/index';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { DocumentService } from '../project/document.service';
 import { DocumentImportService } from '../project/document-import.service';
 import {
   ProjectService,
@@ -24,9 +25,22 @@ export class UnifiedProjectService {
   private offlineElements = inject(OfflineProjectElementsService);
   private templateService = inject(ProjectTemplateService);
   private documentImport = inject(DocumentImportService);
+  private injector = inject(Injector);
   private projectSync = inject(ProjectSyncService);
   private userService = inject(UnifiedUserService);
   private logger = inject(LoggerService);
+
+  // Lazily injected to break circular dependency:
+  // ProjectStateService -> UnifiedProjectService -> DocumentService -> ProjectStateService
+  private _documentService: DocumentService | null = null;
+
+  private getDocumentService(): DocumentService {
+    if (!this._documentService) {
+      // Lazy inject at runtime to break constructor-time circular dependency
+      this._documentService = this.injector.get(DocumentService);
+    }
+    return this._documentService;
+  }
 
   readonly projects = computed(() => {
     const mode = this.setupService.getMode();
@@ -89,6 +103,7 @@ export class UnifiedProjectService {
    * 1. Try to create on the server first
    * 2. If the server is unavailable, create locally and queue for sync
    * 3. Apply template if specified
+   * 4. Sync all template documents to the server
    *
    * In offline mode, this creates the project locally only.
    */
@@ -113,7 +128,64 @@ export class UnifiedProjectService {
     // Apply template if specified (skip for 'empty' template as it has no data)
     if (templateId && templateId !== 'empty') {
       try {
-        await this.applyTemplate(project.username, project.slug, templateId);
+        const { documentIds, worldbuildingIds } = await this.applyTemplate(
+          project.username,
+          project.slug,
+          templateId
+        );
+
+        // Sync template data to server (only in server mode)
+        if (mode === 'server') {
+          const documentService = this.getDocumentService();
+
+          // Sync documents in background - don't block project creation
+          if (documentIds.length > 0) {
+            this.logger.info(
+              'UnifiedProject',
+              `Syncing ${documentIds.length} template documents to server...`
+            );
+
+            documentService
+              .syncDocumentsToServer(documentIds)
+              .then(result => {
+                this.logger.info(
+                  'UnifiedProject',
+                  `Document sync complete: ${result.success.length} synced, ${result.failed.length} failed`
+                );
+              })
+              .catch(error => {
+                this.logger.error(
+                  'UnifiedProject',
+                  'Failed to sync template documents',
+                  error
+                );
+              });
+          }
+
+          // Sync worldbuilding elements in background - don't block project creation
+          if (worldbuildingIds.length > 0) {
+            this.logger.info(
+              'UnifiedProject',
+              `Syncing ${worldbuildingIds.length} template worldbuilding elements to server...`
+            );
+
+            documentService
+              .syncWorldbuildingToServerBatch(worldbuildingIds)
+              .then(result => {
+                this.logger.info(
+                  'UnifiedProject',
+                  `Worldbuilding sync complete: ${result.success.length} synced, ${result.failed.length} failed`
+                );
+              })
+              .catch(error => {
+                this.logger.error(
+                  'UnifiedProject',
+                  'Failed to sync template worldbuilding elements',
+                  error
+                );
+              });
+          }
+        }
       } catch (error) {
         console.warn(
           `Failed to apply template '${templateId}', project created without template:`,
@@ -215,13 +287,17 @@ export class UnifiedProjectService {
   /**
    * Apply a template to a newly created project.
    * This imports elements, documents, schemas, relationships, etc.
+   *
+   * @returns Object containing document IDs and worldbuilding IDs for syncing
    */
   private async applyTemplate(
     username: string,
     slug: string,
     templateId: string
-  ): Promise<void> {
+  ): Promise<{ documentIds: string[]; worldbuildingIds: string[] }> {
     const archive = await this.templateService.loadTemplate(templateId);
+    const documentIds: string[] = [];
+    const worldbuildingIds: string[] = [];
 
     // Import elements
     if (archive.elements.length > 0) {
@@ -244,11 +320,15 @@ export class UnifiedProjectService {
     for (const doc of archive.documents) {
       const documentId = `${username}:${slug}:${doc.elementId}`;
       await this.documentImport.writeDocumentContent(documentId, doc.content);
+      documentIds.push(documentId);
     }
 
     // Import worldbuilding data
     for (const wb of archive.worldbuilding) {
       await this.documentImport.writeWorldbuildingData(wb, username, slug);
+      // Track the worldbuilding ID for syncing (format: worldbuilding:username:slug:elementId)
+      const worldbuildingId = `worldbuilding:${username}:${slug}:${wb.elementId}`;
+      worldbuildingIds.push(worldbuildingId);
     }
 
     // Import schemas
@@ -296,6 +376,8 @@ export class UnifiedProjectService {
         archive.elementTags
       );
     }
+
+    return { documentIds, worldbuildingIds };
   }
 
   async updateProject(

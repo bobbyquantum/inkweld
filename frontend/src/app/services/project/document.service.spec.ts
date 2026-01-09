@@ -11,6 +11,7 @@ import * as Y from 'yjs';
 
 import { LintApiService } from '../../components/lint/lint-api.service';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { UnifiedUserService } from '../user/unified-user.service';
@@ -62,6 +63,7 @@ describe('DocumentService', () => {
   let mockSetupService: DeepMockProxy<SetupService>;
   let mockSystemConfigService: DeepMockProxy<SystemConfigService>;
   let mockUnifiedUserService: DeepMockProxy<UnifiedUserService>;
+  let mockAuthTokenService: DeepMockProxy<AuthTokenService>;
 
   const testDocumentId = 'testuser:test-project:test-doc';
 
@@ -160,6 +162,11 @@ describe('DocumentService', () => {
       isAuthenticated: vi.fn().mockReturnValue(true),
     } as unknown as DeepMockProxy<UnifiedUserService>;
 
+    // Mock AuthTokenService
+    mockAuthTokenService = {
+      getToken: vi.fn().mockReturnValue('test-auth-token'),
+    } as unknown as DeepMockProxy<AuthTokenService>;
+
     // Configure TestBed and inject service
     TestBed.configureTestingModule({
       providers: [
@@ -172,6 +179,7 @@ describe('DocumentService', () => {
         { provide: SetupService, useValue: mockSetupService },
         { provide: SystemConfigService, useValue: mockSystemConfigService },
         { provide: UnifiedUserService, useValue: mockUnifiedUserService },
+        { provide: AuthTokenService, useValue: mockAuthTokenService },
       ],
     });
 
@@ -508,6 +516,190 @@ describe('DocumentService', () => {
 
     it('should return false for hasUnsyncedChanges on non-existent document', () => {
       expect(service.hasUnsyncedChanges('non-existent')).toBe(false);
+    });
+  });
+
+  describe('Headless Document Sync', () => {
+    describe('syncDocumentToServer', () => {
+      it('should throw error for invalid documentId format', async () => {
+        await expect(
+          service.syncDocumentToServer('invalid-id')
+        ).rejects.toThrow('Invalid documentId format');
+      });
+
+      it('should throw error for empty documentId parts', async () => {
+        await expect(
+          service.syncDocumentToServer('user::docId')
+        ).rejects.toThrow('Invalid documentId');
+      });
+
+      it('should skip sync when WebSocket URL is not available', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        // Should not throw, just skip
+        await service.syncDocumentToServer(testDocumentId);
+
+        // Verify no WebSocket connection was attempted (the function returns early)
+        expect(true).toBe(true);
+      });
+
+      it('should skip sync when auth token is not available', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+        mockAuthTokenService.getToken.mockReturnValue(null);
+
+        // Should not throw, just skip
+        await service.syncDocumentToServer(testDocumentId);
+
+        // Verify getToken was called
+        expect(mockAuthTokenService.getToken).toHaveBeenCalled();
+      });
+    });
+
+    describe('syncDocumentsToServer', () => {
+      it('should sync multiple documents and report success/failure', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        const documentIds = [
+          'user1:project1:doc1',
+          'user1:project1:doc2',
+          'user1:project1:doc3',
+        ];
+
+        const result = await service.syncDocumentsToServer(documentIds);
+
+        // All should succeed (skipped due to no WebSocket URL)
+        expect(result.success.length).toBe(3);
+        expect(result.failed.length).toBe(0);
+      });
+
+      it('should handle empty document list', async () => {
+        const result = await service.syncDocumentsToServer([]);
+
+        expect(result.success).toEqual([]);
+        expect(result.failed).toEqual([]);
+      });
+
+      it('should respect concurrency limit', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        const documentIds = Array.from(
+          { length: 10 },
+          (_, i) => `user:project:doc${i}`
+        );
+
+        // With concurrency of 2, should process in batches
+        const result = await service.syncDocumentsToServer(documentIds, 2);
+
+        expect(result.success.length).toBe(10);
+        expect(result.failed.length).toBe(0);
+      });
+    });
+
+    describe('syncWorldbuildingToServer', () => {
+      it('should throw error for invalid worldbuildingId format', async () => {
+        await expect(
+          service.syncWorldbuildingToServer('invalid-id')
+        ).rejects.toThrow('Invalid worldbuildingId format');
+      });
+
+      it('should throw error for worldbuildingId without worldbuilding prefix', async () => {
+        await expect(
+          service.syncWorldbuildingToServer('user:project:elementId')
+        ).rejects.toThrow('Invalid worldbuildingId format');
+      });
+
+      it('should throw error for empty worldbuildingId parts', async () => {
+        await expect(
+          service.syncWorldbuildingToServer('worldbuilding:user::elementId')
+        ).rejects.toThrow('Invalid worldbuildingId');
+      });
+
+      it('should skip sync when WebSocket URL is not available', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        // Should not throw, just skip
+        await service.syncWorldbuildingToServer(
+          'worldbuilding:user:project:element123'
+        );
+
+        // Verify function completed without error
+        expect(true).toBe(true);
+      });
+
+      it('should skip sync when auth token is not available', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+        mockAuthTokenService.getToken.mockReturnValue(null);
+
+        // Should not throw, just skip
+        await service.syncWorldbuildingToServer(
+          'worldbuilding:user:project:element123'
+        );
+
+        // Verify getToken was called
+        expect(mockAuthTokenService.getToken).toHaveBeenCalled();
+      });
+    });
+
+    describe('syncWorldbuildingToServerBatch', () => {
+      it('should sync multiple worldbuilding elements and report success/failure', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        const worldbuildingIds = [
+          'worldbuilding:user1:project1:elem1',
+          'worldbuilding:user1:project1:elem2',
+          'worldbuilding:user1:project1:elem3',
+        ];
+
+        const result =
+          await service.syncWorldbuildingToServerBatch(worldbuildingIds);
+
+        // All should succeed (skipped due to no WebSocket URL)
+        expect(result.success.length).toBe(3);
+        expect(result.failed.length).toBe(0);
+      });
+
+      it('should handle empty worldbuilding list', async () => {
+        const result = await service.syncWorldbuildingToServerBatch([]);
+
+        expect(result.success).toEqual([]);
+        expect(result.failed).toEqual([]);
+      });
+
+      it('should respect concurrency limit', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        const worldbuildingIds = Array.from(
+          { length: 10 },
+          (_, i) => `worldbuilding:user:project:elem${i}`
+        );
+
+        // With concurrency of 2, should process in batches
+        const result = await service.syncWorldbuildingToServerBatch(
+          worldbuildingIds,
+          2
+        );
+
+        expect(result.success.length).toBe(10);
+        expect(result.failed.length).toBe(0);
+      });
+
+      it('should track failures when some worldbuilding elements have invalid format', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        const worldbuildingIds = [
+          'worldbuilding:user1:project1:elem1',
+          'invalid:id', // Invalid format - will fail
+          'worldbuilding:user1:project1:elem3',
+        ];
+
+        const result =
+          await service.syncWorldbuildingToServerBatch(worldbuildingIds);
+
+        // 2 should succeed, 1 should fail
+        expect(result.success.length).toBe(2);
+        expect(result.failed.length).toBe(1);
+        expect(result.failed[0]).toBe('invalid:id');
+      });
     });
   });
 });

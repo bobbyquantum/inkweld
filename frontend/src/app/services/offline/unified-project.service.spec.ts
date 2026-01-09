@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { DocumentService } from '../project/document.service';
 import { ProjectService } from '../project/project.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { OfflineProjectService } from './offline-project.service';
@@ -102,6 +103,12 @@ describe('UnifiedProjectService', () => {
       debug: vi.fn(),
     };
 
+    const mockDocumentService = {
+      syncDocumentsToServer: vi
+        .fn()
+        .mockResolvedValue({ success: [], failed: [] }),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -112,6 +119,7 @@ describe('UnifiedProjectService', () => {
         { provide: UnifiedUserService, useValue: mockUserService },
         { provide: ProjectSyncService, useValue: mockProjectSyncService },
         { provide: LoggerService, useValue: mockLoggerService },
+        { provide: DocumentService, useValue: mockDocumentService },
       ],
     });
 
