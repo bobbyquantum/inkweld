@@ -46,7 +46,7 @@ app.use('*', async (c, next) => {
     for (const allowed of allowedOrigins) {
       // Exact match
       if (allowed === origin) return true;
-      // Wildcard subdomain match (e.g., "*.inkweld-frontend-staging.pages.dev")
+      // Wildcard subdomain match (e.g., "*.inkweld-frontend-preview.pages.dev")
       if (allowed.startsWith('*.')) {
         const suffix = allowed.slice(1); // Remove the "*" but keep the dot
         if (origin.endsWith(suffix)) return true;

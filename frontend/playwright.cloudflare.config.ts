@@ -10,7 +10,7 @@ import { defineConfig, devices } from '@playwright/test';
  * This is useful for:
  * - Smoke testing after deployments
  * - Verifying production-like behavior
- * - Testing against staging/preview environments
+ * - Testing against preview environments
  *
  * Environment Variables (required):
  *   CLOUDFLARE_FRONTEND_URL - The deployed frontend URL

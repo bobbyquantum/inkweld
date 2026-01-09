@@ -7,7 +7,7 @@
 #
 # ENVIRONMENTS:
 #   - Local dev:   wrangler dev (uses local SQLite, no cloud resources)
-#   - Staging:     --env staging (deploys to Cloudflare for testing)
+#   - Preview:     --env preview (deploys to Cloudflare for testing)
 #   - Production:  --env production (live environment)
 #
 # MANUAL SETUP:
@@ -19,21 +19,21 @@
 #    npx wrangler login
 #
 # 3. Create D1 database(s):
-#    npx wrangler d1 create inkweld_staging   # Optional
+#    npx wrangler d1 create inkweld_preview   # Optional
 #    npx wrangler d1 create inkweld_prod      # Required for production
 #
 # 4. Update the database_id values in the env sections below
 #
 # 5. Set secrets (from backend directory):
-#    npx wrangler secret put SESSION_SECRET --env staging
+#    npx wrangler secret put SESSION_SECRET --env preview
 #    npx wrangler secret put SESSION_SECRET --env production
 #
 # 6. Run migrations (from backend directory):
-#    npx wrangler d1 execute inkweld_staging --file=./drizzle/0000_safe_mysterio.sql
+#    npx wrangler d1 execute inkweld_preview --file=./drizzle/0000_safe_mysterio.sql
 #    npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql
 #
 # 7. Deploy (from project root):
-#    npm run cloudflare:deploy:staging   # Staging
+#    npm run cloudflare:deploy:preview   # Preview
 #    npm run cloudflare:deploy:prod      # Production
 #
 # For more details, see: docs/site/docs/hosting/cloudflare.md
@@ -80,47 +80,47 @@ tag = "v1"
 new_sqlite_classes = ["YjsProject"]
 
 # ========================================
-# STAGING ENVIRONMENT (--env staging)
+# PREVIEW ENVIRONMENT (--env preview)
 # ========================================
-# Deploy with: npm run cloudflare:deploy:staging
+# Deploy with: npm run cloudflare:deploy:preview
 # A pre-production environment for testing on real Cloudflare infrastructure.
 # Skip this if you only need production.
 
-[env.staging]
-name = "inkweld-backend-staging"
+[env.preview]
+name = "inkweld-backend-preview"
 
-# Custom domain for staging backend (optional)
+# Custom domain for preview backend (optional)
 # Uncomment and set your domain. Requires domain to be added to Cloudflare.
 # See: https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
-# routes = [{ pattern = "api.staging.yourdomain.com", custom_domain = true }]
+# routes = [{ pattern = "api.preview.yourdomain.com", custom_domain = true }]
 
-[env.staging.vars]
-NODE_ENV = "staging"
+[env.preview.vars]
+NODE_ENV = "preview"
 PORT = "8333"
 DB_TYPE = "d1"
 # Include *.your-pages-project.pages.dev to allow deployment preview URLs
-ALLOWED_ORIGINS = "http://localhost:4200,https://staging.yourdomain.com,*.your-pages-project-staging.pages.dev"
+ALLOWED_ORIGINS = "http://localhost:4200"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
 SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
 
-# Create with: npx wrangler d1 create inkweld_staging
-[[env.staging.d1_databases]]
+# Create with: npx wrangler d1 create inkweld_preview
+[[env.preview.d1_databases]]
 binding = "DB"
-database_name = "inkweld_staging"
-database_id = "YOUR_STAGING_DATABASE_ID_HERE"  # <-- REPLACE THIS
+database_name = "inkweld_preview"
+database_id = "YOUR_PREVIEW_DATABASE_ID_HERE"  # <-- REPLACE THIS
 migrations_dir = "drizzle"
 
 # R2 storage for media files (covers, avatars, inline images)
-# Create with: npx wrangler r2 bucket create inkweld-storage-staging
-[[env.staging.r2_buckets]]
+# Create with: npx wrangler r2 bucket create inkweld-storage-preview
+[[env.preview.r2_buckets]]
 binding = "STORAGE"
-bucket_name = "inkweld-storage-staging"
+bucket_name = "inkweld-storage-preview"
 
-[[env.staging.durable_objects.bindings]]
+[[env.preview.durable_objects.bindings]]
 name = "YJS_PROJECTS"
 class_name = "YjsProject"
-script_name = "inkweld-backend-staging"
+script_name = "inkweld-backend-preview"
 
 # ========================================
 # PRODUCTION ENVIRONMENT (--env production)
@@ -141,7 +141,7 @@ NODE_ENV = "production"
 PORT = "8333"
 DB_TYPE = "d1"
 # Include *.your-pages-project.pages.dev to allow deployment preview URLs
-ALLOWED_ORIGINS = "https://yourdomain.com,*.your-pages-project.pages.dev"
+ALLOWED_ORIGINS = ""
 USER_APPROVAL_REQUIRED = "true"
 GITHUB_ENABLED = "false"
 SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
@@ -172,8 +172,7 @@ script_name = "inkweld-backend-prod"
 #
 # Optional (if features enabled):
 #   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
-#   RECAPTCHA_SITE_KEY, RECAPTCHA_SECRET_KEY
 #
 # Set with:
-#   npx wrangler secret put SESSION_SECRET --env staging
+#   npx wrangler secret put SESSION_SECRET --env preview
 #   npx wrangler secret put SESSION_SECRET --env production

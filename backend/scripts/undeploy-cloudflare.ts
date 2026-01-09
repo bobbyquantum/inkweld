@@ -64,24 +64,24 @@ async function confirm(rl: ReturnType<typeof createInterface>, question: string)
 }
 
 function getConfiguredResources(): {
-  stagingDb: string | null;
+  previewDb: string | null;
   prodDb: string | null;
-  stagingWorker: string | null;
+  previewWorker: string | null;
   prodWorker: string | null;
-  stagingBucket: string | null;
+  previewBucket: string | null;
   prodBucket: string | null;
-  stagingPages: string;
+  previewPages: string;
   prodPages: string;
 } {
   if (!existsSync(WRANGLER_TOML)) {
     return {
-      stagingDb: null,
+      previewDb: null,
       prodDb: null,
-      stagingWorker: null,
+      previewWorker: null,
       prodWorker: null,
-      stagingBucket: null,
+      previewBucket: null,
       prodBucket: null,
-      stagingPages: 'inkweld-frontend-staging',
+      previewPages: 'inkweld-frontend-preview',
       prodPages: 'inkweld-frontend',
     };
   }
@@ -89,34 +89,34 @@ function getConfiguredResources(): {
   const content = readFileSync(WRANGLER_TOML, 'utf-8');
 
   // Extract database names (not IDs - we need names for deletion)
-  const stagingDbMatch = content.match(
-    /\[env\.staging[\s\S]*?database_name\s*=\s*"([^"]+)"[\s\S]*?(?=\[env\.|$)/
+  const previewDbMatch = content.match(
+    /\[env\.preview[\s\S]*?database_name\s*=\s*"([^"]+)"[\s\S]*?(?=\[env\.|$)/
   );
   const prodDbMatch = content.match(
     /\[env\.production[\s\S]*?database_name\s*=\s*"([^"]+)"[\s\S]*?(?=\[|$)/
   );
 
   // Extract worker names
-  const stagingWorkerMatch = content.match(/\[env\.staging\][\s\S]*?name\s*=\s*"([^"]+)"/);
+  const previewWorkerMatch = content.match(/\[env\.preview\][\s\S]*?name\s*=\s*"([^"]+)"/);
   const prodWorkerMatch = content.match(/\[env\.production\][\s\S]*?name\s*=\s*"([^"]+)"/);
 
   // Extract R2 bucket names
-  const stagingBucketMatch = content.match(
-    /\[\[env\.staging\.r2_buckets\]\][\s\S]*?bucket_name\s*=\s*"([^"]+)"/
+  const previewBucketMatch = content.match(
+    /\[\[env\.preview\.r2_buckets\]\][\s\S]*?bucket_name\s*=\s*"([^"]+)"/
   );
   const prodBucketMatch = content.match(
     /\[\[env\.production\.r2_buckets\]\][\s\S]*?bucket_name\s*=\s*"([^"]+)"/
   );
 
   return {
-    stagingDb: stagingDbMatch?.[1] || null,
+    previewDb: previewDbMatch?.[1] || null,
     prodDb: prodDbMatch?.[1] || null,
-    stagingWorker: stagingWorkerMatch?.[1] || null,
+    previewWorker: previewWorkerMatch?.[1] || null,
     prodWorker: prodWorkerMatch?.[1] || null,
-    stagingBucket: stagingBucketMatch?.[1] || null,
+    previewBucket: previewBucketMatch?.[1] || null,
     prodBucket: prodBucketMatch?.[1] || null,
     // Pages projects - hardcoded names (not in wrangler.toml)
-    stagingPages: 'inkweld-frontend-staging',
+    previewPages: 'inkweld-frontend-preview',
     prodPages: 'inkweld-frontend',
   };
 }
@@ -128,7 +128,7 @@ ${RED}${BOLD}╔═════════════════════�
 ║   ⚠️  CLOUDFLARE UNDEPLOY - DESTRUCTIVE OPERATION ⚠️             ║
 ║                                                                ║
 ║   This will PERMANENTLY DELETE:                                ║
-║   • Workers (staging and/or production)                        ║
+║   • Workers (preview and/or production)                        ║
 ║   • D1 Databases (and ALL DATA within them)                    ║
 ║   • Durable Objects (and ALL collaborative editing data)       ║
 ║   • Your local wrangler.toml configuration                     ║
@@ -171,25 +171,25 @@ ${RED}${BOLD}╔═════════════════════�
     }
 
     info('Found the following resources:');
-    if (resources.stagingWorker) info(`  Staging Worker:      ${resources.stagingWorker}`);
+    if (resources.previewWorker) info(`  Preview Worker:      ${resources.previewWorker}`);
     if (resources.prodWorker) info(`  Production Worker:   ${resources.prodWorker}`);
-    if (resources.stagingDb) info(`  Staging Database:    ${resources.stagingDb}`);
+    if (resources.previewDb) info(`  Preview Database:    ${resources.previewDb}`);
     if (resources.prodDb) info(`  Production Database: ${resources.prodDb}`);
-    if (resources.stagingBucket) info(`  Staging R2 Bucket:   ${resources.stagingBucket}`);
+    if (resources.previewBucket) info(`  Preview R2 Bucket:   ${resources.previewBucket}`);
     if (resources.prodBucket) info(`  Production R2 Bucket: ${resources.prodBucket}`);
-    info(`  Staging Pages:       ${resources.stagingPages}`);
+    info(`  Preview Pages:       ${resources.previewPages}`);
     info(`  Production Pages:    ${resources.prodPages}`);
     console.log();
 
     // Ask which environments to delete
-    let deleteStaging = false;
+    let deletePreview = false;
     let deleteProd = false;
 
     // Always offer to delete both since Pages projects always exist
-    deleteStaging = await confirm(rl, 'Delete STAGING environment?');
+    deletePreview = await confirm(rl, 'Delete PREVIEW environment?');
     deleteProd = await confirm(rl, 'Delete PRODUCTION environment?');
 
-    if (!deleteStaging && !deleteProd) {
+    if (!deletePreview && !deleteProd) {
       info('No environments selected. Undeploy cancelled.');
       process.exit(0);
     }
@@ -197,12 +197,12 @@ ${RED}${BOLD}╔═════════════════════�
     // Final confirmation
     console.log();
     warn('About to delete:');
-    if (deleteStaging) {
-      if (resources.stagingWorker) warn(`  • Worker: ${resources.stagingWorker}`);
-      if (resources.stagingDb) warn(`  • Database: ${resources.stagingDb} (ALL DATA WILL BE LOST)`);
-      if (resources.stagingBucket)
-        warn(`  • R2 Bucket: ${resources.stagingBucket} (ALL MEDIA WILL BE LOST)`);
-      warn(`  • Pages: ${resources.stagingPages}`);
+    if (deletePreview) {
+      if (resources.previewWorker) warn(`  • Worker: ${resources.previewWorker}`);
+      if (resources.previewDb) warn(`  • Database: ${resources.previewDb} (ALL DATA WILL BE LOST)`);
+      if (resources.previewBucket)
+        warn(`  • R2 Bucket: ${resources.previewBucket} (ALL MEDIA WILL BE LOST)`);
+      warn(`  • Pages: ${resources.previewPages}`);
     }
     if (deleteProd) {
       if (resources.prodWorker) warn(`  • Worker: ${resources.prodWorker}`);
@@ -225,13 +225,13 @@ ${RED}${BOLD}╔═════════════════════�
     // Delete workers
     header('Deleting Workers');
 
-    if (deleteStaging && resources.stagingWorker) {
-      info(`Deleting staging worker: ${resources.stagingWorker}...`);
-      const result = runCommand('npx', ['wrangler', 'delete', '--env', 'staging', '--force']);
+    if (deletePreview && resources.previewWorker) {
+      info(`Deleting preview worker: ${resources.previewWorker}...`);
+      const result = runCommand('npx', ['wrangler', 'delete', '--env', 'preview', '--force']);
       if (result.success) {
-        success(`Deleted worker: ${resources.stagingWorker}`);
+        success(`Deleted worker: ${resources.previewWorker}`);
       } else if (result.output.includes('not found')) {
-        warn(`Worker ${resources.stagingWorker} not found (may already be deleted)`);
+        warn(`Worker ${resources.previewWorker} not found (may already be deleted)`);
       } else {
         error(`Failed to delete worker: ${result.output}`);
       }
@@ -252,13 +252,13 @@ ${RED}${BOLD}╔═════════════════════�
     // Delete databases
     header('Deleting D1 Databases');
 
-    if (deleteStaging && resources.stagingDb) {
-      info(`Deleting staging database: ${resources.stagingDb}...`);
-      const result = runCommand('npx', ['wrangler', 'd1', 'delete', resources.stagingDb, '-y']);
+    if (deletePreview && resources.previewDb) {
+      info(`Deleting preview database: ${resources.previewDb}...`);
+      const result = runCommand('npx', ['wrangler', 'd1', 'delete', resources.previewDb, '-y']);
       if (result.success) {
-        success(`Deleted database: ${resources.stagingDb}`);
+        success(`Deleted database: ${resources.previewDb}`);
       } else if (result.output.includes('not found') || result.output.includes('does not exist')) {
-        warn(`Database ${resources.stagingDb} not found (may already be deleted)`);
+        warn(`Database ${resources.previewDb} not found (may already be deleted)`);
       } else {
         error(`Failed to delete database: ${result.output}`);
       }
@@ -279,19 +279,19 @@ ${RED}${BOLD}╔═════════════════════�
     // Delete R2 buckets
     header('Deleting R2 Storage Buckets');
 
-    if (deleteStaging && resources.stagingBucket) {
-      info(`Deleting staging R2 bucket: ${resources.stagingBucket}...`);
+    if (deletePreview && resources.previewBucket) {
+      info(`Deleting preview R2 bucket: ${resources.previewBucket}...`);
       const result = runCommand('npx', [
         'wrangler',
         'r2',
         'bucket',
         'delete',
-        resources.stagingBucket,
+        resources.previewBucket,
       ]);
       if (result.success) {
-        success(`Deleted R2 bucket: ${resources.stagingBucket}`);
+        success(`Deleted R2 bucket: ${resources.previewBucket}`);
       } else if (result.output.includes('not found') || result.output.includes('does not exist')) {
-        warn(`Bucket ${resources.stagingBucket} not found (may already be deleted)`);
+        warn(`Bucket ${resources.previewBucket} not found (may already be deleted)`);
       } else {
         error(`Failed to delete bucket: ${result.output}`);
       }
@@ -318,20 +318,20 @@ ${RED}${BOLD}╔═════════════════════�
     // Delete Pages projects
     header('Deleting Cloudflare Pages Projects');
 
-    if (deleteStaging) {
-      info(`Deleting staging Pages project: ${resources.stagingPages}...`);
+    if (deletePreview) {
+      info(`Deleting preview Pages project: ${resources.previewPages}...`);
       const result = runCommand('npx', [
         'wrangler',
         'pages',
         'project',
         'delete',
-        resources.stagingPages,
+        resources.previewPages,
         '-y',
       ]);
       if (result.success) {
-        success(`Deleted Pages project: ${resources.stagingPages}`);
+        success(`Deleted Pages project: ${resources.previewPages}`);
       } else if (result.output.includes('not found') || result.output.includes('does not exist')) {
-        warn(`Pages project ${resources.stagingPages} not found (may already be deleted)`);
+        warn(`Pages project ${resources.previewPages} not found (may already be deleted)`);
       } else {
         error(`Failed to delete Pages project: ${result.output}`);
       }
@@ -359,7 +359,7 @@ ${RED}${BOLD}╔═════════════════════�
     // Delete wrangler.toml
     header('Cleanup');
 
-    if (deleteStaging && deleteProd) {
+    if (deletePreview && deleteProd) {
       // Only delete wrangler.toml if BOTH environments are deleted
       const deleteConfig = await confirm(rl, 'Delete wrangler.toml configuration file?');
       if (deleteConfig) {

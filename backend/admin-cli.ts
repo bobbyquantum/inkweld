@@ -71,7 +71,7 @@ class D1AdminCLI {
 
       if (this.env) {
         // Look for environment-specific database name
-        // Match pattern: [env.staging] ... database_name = "inkweld_staging"
+        // Match pattern: [env.preview] ... database_name = "inkweld_preview"
         const envSection = new RegExp(
           `\\[env\\.${this.env}[^\\]]*\\][\\s\\S]*?database_name\\s*=\\s*"([^"]+)"`,
           'm'
@@ -781,7 +781,7 @@ USAGE:
 OPTIONS:
   --verbose, -v                   Show detailed debug information
   --remote, -r                    Use remote D1 database (Cloudflare D1 only)
-  --env, -e <environment>         D1 environment: staging or production
+  --env, -e <environment>         D1 environment: preview or production
 
 COMMANDS:
   stats                           Show system statistics
@@ -810,9 +810,9 @@ EXAMPLES:
 
   # D1 Database (set DB_TYPE=d1 in .env or inline)
   DB_TYPE=d1 bun run admin-cli.ts stats                              # Local D1 dev
-  DB_TYPE=d1 bun run admin-cli.ts --remote --env staging stats       # Remote D1 staging
+  DB_TYPE=d1 bun run admin-cli.ts --remote --env preview stats       # Remote D1 preview
   DB_TYPE=d1 bun run admin-cli.ts --remote --env production stats    # Remote D1 production
-  DB_TYPE=d1 bun run admin-cli.ts --remote --env staging users approve alice
+  DB_TYPE=d1 bun run admin-cli.ts --remote --env preview users approve alice
 
 NOTE: This tool connects directly to the database and bypasses the web application.
       Use with caution in production environments.
@@ -1232,7 +1232,7 @@ async function showCloudflareDeployment() {
   console.log('  $ npm run cloudflare:setup');
   console.log('');
   console.log('This interactive script will:');
-  console.log('  • Create D1 databases (staging and/or production)');
+  console.log('  • Create D1 databases (preview and/or production)');
   console.log('  • Create R2 storage buckets');
   console.log('  • Generate wrangler.toml configuration');
   console.log('  • Generate frontend environment files');
@@ -1240,7 +1240,7 @@ async function showCloudflareDeployment() {
   console.log('  • Run database migrations');
   console.log('');
   console.log('After setup, deploy with:');
-  console.log('  $ npm run cloudflare:deploy:staging    # Deploy to staging');
+  console.log('  $ npm run cloudflare:deploy:preview    # Deploy to preview');
   console.log('  $ npm run cloudflare:deploy:prod       # Deploy to production');
   console.log('');
   console.log('📖 For detailed documentation, see:');
@@ -1307,7 +1307,7 @@ async function main() {
     args.splice(remoteIndex, 1);
   }
 
-  // Parse --env flag for D1 environment (staging, production)
+  // Parse --env flag for D1 environment (preview, production)
   let env: string | null = null;
   const envIndex = args.findIndex((arg) => arg === '--env' || arg === '-e');
   if (envIndex !== -1 && args[envIndex + 1]) {

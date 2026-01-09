@@ -105,9 +105,101 @@ function prompt(rl: readline.Interface, question: string): Promise<string> {
   });
 }
 
-async function confirm(rl: readline.Interface, question: string): Promise<boolean> {
-  const answer = await prompt(rl, `${question} (y/n):`);
+async function confirm(
+  rl: readline.Interface,
+  question: string,
+  defaultYes = true
+): Promise<boolean> {
+  const hint = defaultYes ? '(Y/n)' : '(y/N)';
+  const answer = await prompt(rl, `${question} ${hint}:`);
+  if (answer === '') return defaultYes;
   return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
+}
+
+async function promptWithConfirmation(
+  rl: readline.Interface,
+  promptQuestion: string,
+  defaultValue: string,
+  formatResult: (value: string) => string,
+  dotDefault?: string
+): Promise<string> {
+  while (true) {
+    const input = await prompt(rl, promptQuestion);
+    // Secret dot shortcut uses the dotDefault value
+    const value = input === '.' ? dotDefault || defaultValue : input || defaultValue;
+    const display = formatResult(value);
+    info(display);
+    const confirmed = await confirm(rl, 'Continue with this?');
+    if (confirmed) {
+      return value;
+    }
+    info("Let's try again...");
+  }
+}
+
+interface ExistingConfig {
+  previewWorkerName?: string;
+  prodWorkerName?: string;
+  previewDbId?: string;
+  prodDbId?: string;
+  previewBackendDomain?: string;
+  prodBackendDomain?: string;
+}
+
+function parseExistingWranglerToml(): ExistingConfig {
+  const config: ExistingConfig = {};
+
+  if (!existsSync(WRANGLER_TOML)) {
+    return config;
+  }
+
+  try {
+    const content = readFileSync(WRANGLER_TOML, 'utf-8');
+
+    // Parse preview worker name
+    const previewNameMatch = content.match(/\[env\.preview\]\s*\n\s*name\s*=\s*"([^"]+)"/);
+    if (previewNameMatch) config.previewWorkerName = previewNameMatch[1];
+
+    // Parse prod worker name
+    const prodNameMatch = content.match(/\[env\.production\]\s*\n\s*name\s*=\s*"([^"]+)"/);
+    if (prodNameMatch) config.prodWorkerName = prodNameMatch[1];
+
+    // Parse preview database ID (skip placeholder)
+    const previewDbMatch = content.match(
+      /\[\[env\.preview\.d1_databases\]\][\s\S]*?database_id\s*=\s*"([^"]+)"/
+    );
+    if (previewDbMatch && !previewDbMatch[1].includes('YOUR_')) {
+      config.previewDbId = previewDbMatch[1];
+    }
+
+    // Parse prod database ID (skip placeholder)
+    const prodDbMatch = content.match(
+      /\[\[env\.production\.d1_databases\]\][\s\S]*?database_id\s*=\s*"([^"]+)"/
+    );
+    if (prodDbMatch && !prodDbMatch[1].includes('YOUR_')) {
+      config.prodDbId = prodDbMatch[1];
+    }
+
+    // Parse preview custom domain
+    const previewRoutesMatch = content.match(
+      /\[env\.preview\][\s\S]*?routes\s*=\s*\[\{\s*pattern\s*=\s*"([^"]+)"/
+    );
+    if (previewRoutesMatch) config.previewBackendDomain = previewRoutesMatch[1];
+
+    // Parse prod custom domain
+    const prodRoutesMatch = content.match(
+      /\[env\.production\][\s\S]*?routes\s*=\s*\[\{\s*pattern\s*=\s*"([^"]+)"/
+    );
+    if (prodRoutesMatch) config.prodBackendDomain = prodRoutesMatch[1];
+
+    if (Object.keys(config).length > 0) {
+      info('Found existing configuration - will use as defaults');
+    }
+  } catch (e) {
+    warn(`Could not parse existing wrangler.toml: ${e}`);
+  }
+
+  return config;
 }
 
 function checkWranglerInstalled(): boolean {
@@ -260,32 +352,32 @@ async function getRemoteConfig(envName: string): Promise<WranglerRemoteConfig | 
 }
 
 function updateWranglerToml(
-  stagingDbId: string | null,
+  previewDbId: string | null,
   prodDbId: string | null,
-  stagingWorkerName?: string,
+  previewWorkerName?: string,
   prodWorkerName?: string,
-  stagingPagesName?: string,
+  previewPagesName?: string,
   prodPagesName?: string,
-  stagingRemoteConfig?: WranglerRemoteConfig | null,
+  previewRemoteConfig?: WranglerRemoteConfig | null,
   prodRemoteConfig?: WranglerRemoteConfig | null,
-  stagingBackendDomain?: string,
+  previewBackendDomain?: string,
   prodBackendDomain?: string,
-  stagingFrontendDomain?: string,
+  previewFrontendDomain?: string,
   prodFrontendDomain?: string
 ): boolean {
   try {
     let content = readFileSync(WRANGLER_TOML, 'utf-8');
 
     // Update worker names if provided
-    if (stagingWorkerName) {
+    if (previewWorkerName) {
       content = content.replace(
-        /name = "inkweld-backend-staging"/,
-        `name = "${stagingWorkerName}"`
+        /name = "inkweld-backend-preview"/,
+        `name = "${previewWorkerName}"`
       );
       // Also update durable object script name
       content = content.replace(
-        /script_name = "inkweld-backend-staging"/,
-        `script_name = "${stagingWorkerName}"`
+        /script_name = "inkweld-backend-preview"/,
+        `script_name = "${previewWorkerName}"`
       );
     }
 
@@ -298,11 +390,11 @@ function updateWranglerToml(
       );
     }
 
-    // Add custom domain route for staging backend
-    if (stagingBackendDomain) {
+    // Add custom domain route for preview backend
+    if (previewBackendDomain) {
       content = content.replace(
-        /# routes = \[\{ pattern = "api\.staging\.yourdomain\.com", custom_domain = true \}\]/,
-        `routes = [{ pattern = "${stagingBackendDomain}", custom_domain = true }]`
+        /# routes = \[\{ pattern = "api\.preview\.yourdomain\.com", custom_domain = true \}\]/,
+        `routes = [{ pattern = "${previewBackendDomain}", custom_domain = true }]`
       );
     }
 
@@ -314,10 +406,10 @@ function updateWranglerToml(
       );
     }
 
-    if (stagingDbId) {
+    if (previewDbId) {
       content = content.replace(
-        /database_id = "YOUR_STAGING_DATABASE_ID_HERE"/g,
-        `database_id = "${stagingDbId}"`
+        /database_id = "YOUR_PREVIEW_DATABASE_ID_HERE"/g,
+        `database_id = "${previewDbId}"`
       );
     }
 
@@ -328,24 +420,19 @@ function updateWranglerToml(
       );
     }
 
-    // Update ALLOWED_ORIGINS with Pages URLs and custom frontend domains
-    if (stagingPagesName || stagingFrontendDomain) {
-      const stagingSectionMatch = content.match(/\[env\.staging\.vars\]([\s\S]*?)(?=\n\[|$)/);
-      if (stagingSectionMatch) {
-        const oldSection = stagingSectionMatch[0];
-        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, (match, p1) => {
-          const origins = p1.split(',').map((o: string) => o.trim());
-          if (stagingPagesName) {
-            const pagesUrl = `https://${stagingPagesName}.pages.dev`;
-            const previewUrl = `https://*.${stagingPagesName}.pages.dev`;
-            if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
-            if (!origins.includes(previewUrl)) origins.push(previewUrl);
+    // Update ALLOWED_ORIGINS - use custom frontend domain if specified, otherwise use pages.dev
+    if (previewPagesName || previewFrontendDomain) {
+      const previewSectionMatch = content.match(/\[env\.preview\.vars\]([\s\S]*?)(?=\n\[|$)/);
+      if (previewSectionMatch) {
+        const oldSection = previewSectionMatch[0];
+        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, () => {
+          // If custom domain specified, use only that. Otherwise use pages.dev URL.
+          if (previewFrontendDomain) {
+            return `ALLOWED_ORIGINS = "https://${previewFrontendDomain}"`;
+          } else if (previewPagesName) {
+            return `ALLOWED_ORIGINS = "https://${previewPagesName}.pages.dev"`;
           }
-          if (stagingFrontendDomain) {
-            const customUrl = `https://${stagingFrontendDomain}`;
-            if (!origins.includes(customUrl)) origins.push(customUrl);
-          }
-          return `ALLOWED_ORIGINS = "${origins.join(',')}"`;
+          return `ALLOWED_ORIGINS = ""`;
         });
         content = content.replace(oldSection, newSection);
       }
@@ -355,17 +442,14 @@ function updateWranglerToml(
       const prodSectionMatch = content.match(/\[env\.production\.vars\]([\s\S]*?)(?=\n\[|$)/);
       if (prodSectionMatch) {
         const oldSection = prodSectionMatch[0];
-        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, (match, p1) => {
-          const origins = p1.split(',').map((o: string) => o.trim());
-          if (prodPagesName) {
-            const pagesUrl = `https://${prodPagesName}.pages.dev`;
-            if (!origins.includes(pagesUrl)) origins.push(pagesUrl);
-          }
+        const newSection = oldSection.replace(/ALLOWED_ORIGINS = "([^"]*)"/, () => {
+          // If custom domain specified, use only that. Otherwise use pages.dev URL.
           if (prodFrontendDomain) {
-            const customUrl = `https://${prodFrontendDomain}`;
-            if (!origins.includes(customUrl)) origins.push(customUrl);
+            return `ALLOWED_ORIGINS = "https://${prodFrontendDomain}"`;
+          } else if (prodPagesName) {
+            return `ALLOWED_ORIGINS = "https://${prodPagesName}.pages.dev"`;
           }
-          return `ALLOWED_ORIGINS = "${origins.join(',')}"`;
+          return `ALLOWED_ORIGINS = ""`;
         });
         content = content.replace(oldSection, newSection);
       }
@@ -389,15 +473,15 @@ function updateWranglerToml(
       return section;
     });
 
-    // Import other variables for staging
-    if (stagingRemoteConfig) {
-      const bindings = stagingRemoteConfig.resources.bindings;
+    // Import other variables for preview
+    if (previewRemoteConfig) {
+      const bindings = previewRemoteConfig.resources.bindings;
       const origins = bindings.find((b: WranglerBinding) => b.name === 'ALLOWED_ORIGINS');
       if (origins && origins.text) {
-        // Find the staging environment section and replace ALLOWED_ORIGINS within it
-        const stagingSectionMatch = content.match(/\[env\.staging\.vars\]([\s\S]*?)(?=\n\[|$)/);
-        if (stagingSectionMatch) {
-          const oldSection = stagingSectionMatch[0];
+        // Find the preview environment section and replace ALLOWED_ORIGINS within it
+        const previewSectionMatch = content.match(/\[env\.preview\.vars\]([\s\S]*?)(?=\n\[|$)/);
+        if (previewSectionMatch) {
+          const oldSection = previewSectionMatch[0];
           const newSection = oldSection.replace(
             /ALLOWED_ORIGINS = "[^"]*"/,
             `ALLOWED_ORIGINS = "${origins.text}"`
@@ -434,60 +518,32 @@ function updateWranglerToml(
 }
 
 function updateFrontendWranglerToml(
-  stagingPagesName?: string,
+  previewPagesName?: string,
   prodPagesName?: string,
-  stagingFrontendDomain?: string,
+  previewFrontendDomain?: string,
   prodFrontendDomain?: string
 ): boolean {
   try {
     let content = readFileSync(FRONTEND_WRANGLER_TOML, 'utf-8');
 
-    // Update Pages project name for base config (used for staging or default)
-    if (stagingPagesName) {
-      content = content.replace(/name = "inkweld-frontend"/, `name = "${stagingPagesName}"`);
+    // Update Pages project name for base config
+    // For preview/preview, we use a separate Pages project instead of env.preview
+    // because Pages environments work differently than Workers
+    if (previewPagesName) {
+      content = content.replace(/name = "inkweld-frontend"/, `name = "${previewPagesName}"`);
+    } else if (prodPagesName) {
+      content = content.replace(/name = "inkweld-frontend"/, `name = "${prodPagesName}"`);
     }
 
-    // Add staging env section if staging pages name provided
-    if (stagingPagesName) {
-      // Check if staging env section exists (not commented)
-      if (!content.match(/^\[env\.staging\]/m)) {
-        // Add staging section (no routes - Pages doesn't support them)
-        const stagingSection = `\n[env.staging]\nname = "${stagingPagesName}"\n`;
-        // Insert before production section or at end
-        if (content.includes('[env.production]')) {
-          content = content.replace('[env.production]', stagingSection + '[env.production]');
-        } else {
-          content += stagingSection;
-        }
-      } else {
-        // Uncomment existing staging section
-        content = content.replace(
-          /# \[env\.staging\]\n# name = "[^"]*"/,
-          `[env.staging]\nname = "${stagingPagesName}"`
-        );
-      }
-    }
-
-    // If production Pages name provided, add/update production env section
-    if (prodPagesName) {
-      // Check if production env section exists (not commented)
-      if (!content.match(/^\[env\.production\]/m)) {
-        // Add production section (no routes - Pages doesn't support them)
-        const prodSection = `\n[env.production]\nname = "${prodPagesName}"\n`;
-        content += prodSection;
-      } else {
-        content = content.replace(
-          /# \[env\.production\]\n# name = "inkweld-frontend-prod"/,
-          `[env.production]\nname = "${prodPagesName}"`
-        );
-      }
-    }
+    // Note: Pages only supports "preview" and "production" environments
+    // For preview, we create a separate Pages project rather than using env.preview
+    // The env sections are left commented as they're optional
 
     // Note: Custom domains for Pages are configured via the Cloudflare Dashboard, not wrangler.toml
     // Log a reminder if domains were specified
-    if (stagingFrontendDomain) {
+    if (previewFrontendDomain) {
       info(
-        `Remember to configure staging custom domain "${stagingFrontendDomain}" in Cloudflare Dashboard`
+        `Remember to configure preview custom domain "${previewFrontendDomain}" in Cloudflare Dashboard`
       );
     }
     if (prodFrontendDomain) {
@@ -507,7 +563,7 @@ function updateFrontendWranglerToml(
 function runMigration(dbName: string, envName: string): boolean {
   info(`Running migrations on ${dbName}...`);
   // Use 'd1 migrations apply' to properly track migrations
-  const envFlag = envName.toLowerCase() === 'staging' ? 'staging' : 'production';
+  const envFlag = envName.toLowerCase() === 'preview' ? 'preview' : 'production';
   const result = runCommand('wrangler', [
     'd1',
     'migrations',
@@ -574,7 +630,8 @@ function createPagesProject(name: string): boolean {
 function generateFrontendEnvironment(
   workerName: string,
   subdomain: string,
-  envType: 'staging' | 'cloudflare'
+  envType: 'preview' | 'cloudflare',
+  customBackendDomain?: string
 ): boolean {
   const filename = `environment.${envType}.ts`;
   const filepath = join(FRONTEND_ENV_DIR, filename);
@@ -588,16 +645,18 @@ function generateFrontendEnvironment(
 
   try {
     let content = readFileSync(examplePath, 'utf-8');
-    // Replace the example URL with the actual worker URL
-    // Handle both with and without subdomain in the template
-    const workerUrl = subdomain
-      ? `${workerName}.${subdomain}.workers.dev`
-      : `${workerName}.workers.dev`;
 
-    content = content.replace(/inkweld-backend-\w+\.YOUR_SUBDOMAIN\.workers\.dev/g, workerUrl);
+    // Use custom domain if provided, otherwise use workers.dev URL
+    const backendUrl = customBackendDomain
+      ? customBackendDomain
+      : subdomain
+        ? `${workerName}.${subdomain}.workers.dev`
+        : `${workerName}.workers.dev`;
+
+    content = content.replace(/inkweld-backend-\w+\.YOUR_SUBDOMAIN\.workers\.dev/g, backendUrl);
 
     // Also handle cases where it might just be .workers.dev in the template
-    content = content.replace(/inkweld-backend-\w+\.workers\.dev/g, workerUrl);
+    content = content.replace(/inkweld-backend-\w+\.workers\.dev/g, backendUrl);
 
     writeFileSync(filepath, content);
     success(`Generated ${filename}`);
@@ -640,33 +699,16 @@ async function main() {
     }
     success('Logged in to Cloudflare');
 
-    // Check/create backend wrangler.toml
-    if (!existsSync(WRANGLER_TOML)) {
-      info('Backend wrangler.toml not found. Copying from wrangler.toml.example...');
-      copyFileSync(WRANGLER_EXAMPLE, WRANGLER_TOML);
-      success('Created backend wrangler.toml');
-    } else {
-      warn('Backend wrangler.toml already exists.');
-      const shouldOverwrite = await confirm(rl, 'Overwrite with fresh template?');
-      if (shouldOverwrite) {
-        copyFileSync(WRANGLER_EXAMPLE, WRANGLER_TOML);
-        success('Overwrote backend wrangler.toml');
-      }
-    }
+    // Parse existing config for defaults before overwriting
+    const existingConfig = parseExistingWranglerToml();
 
-    // Check/create frontend wrangler.toml
-    if (!existsSync(FRONTEND_WRANGLER_TOML)) {
-      info('Frontend wrangler.toml not found. Copying from wrangler.toml.example...');
-      copyFileSync(FRONTEND_WRANGLER_EXAMPLE, FRONTEND_WRANGLER_TOML);
-      success('Created frontend wrangler.toml');
-    } else {
-      warn('Frontend wrangler.toml already exists.');
-      const shouldOverwriteFrontend = await confirm(rl, 'Overwrite with fresh template?');
-      if (shouldOverwriteFrontend) {
-        copyFileSync(FRONTEND_WRANGLER_EXAMPLE, FRONTEND_WRANGLER_TOML);
-        success('Overwrote frontend wrangler.toml');
-      }
-    }
+    // Always start fresh from template (we'll apply existing values as defaults)
+    info('Creating wrangler.toml from template...');
+    copyFileSync(WRANGLER_EXAMPLE, WRANGLER_TOML);
+    success('Created backend wrangler.toml');
+
+    copyFileSync(FRONTEND_WRANGLER_EXAMPLE, FRONTEND_WRANGLER_TOML);
+    success('Created frontend wrangler.toml');
 
     // Ask which environments to set up
     header('Environment Selection');
@@ -674,17 +716,17 @@ async function main() {
     console.log(`
 ${colors.bright}Available environments:${colors.reset}
 
-  ${colors.cyan}staging${colors.reset}     - Pre-production environment for testing
+  ${colors.cyan}preview${colors.reset}     - Pre-production environment for testing
   ${colors.cyan}production${colors.reset}  - Live production environment
 
 ${colors.yellow}Note:${colors.reset} For local development, use "wrangler dev" (no setup needed).
 ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across all Cloudflare accounts.
 `);
 
-    const setupStaging = await confirm(rl, 'Set up STAGING environment?');
+    const setupPreview = await confirm(rl, 'Set up PREVIEW environment?');
     const setupProd = await confirm(rl, 'Set up PRODUCTION environment?');
 
-    if (!setupStaging && !setupProd) {
+    if (!setupPreview && !setupProd) {
       warn('No environments selected. Exiting.');
       process.exit(0);
     }
@@ -727,55 +769,39 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     }
     console.log();
 
-    let stagingWorkerName = 'inkweld-backend-staging';
-    let prodWorkerName = 'inkweld-backend-prod';
+    let previewWorkerName = existingConfig.previewWorkerName || 'inkweld-backend-preview';
+    let prodWorkerName = existingConfig.prodWorkerName || 'inkweld-backend-prod';
 
-    if (setupStaging) {
-      const suggestedStaging = suggestedSubdomain
-        ? `${suggestedSubdomain}-inkweld-staging`
-        : 'inkweld-backend-staging';
-      const customStaging = await prompt(
+    if (setupPreview) {
+      const suggestedPreview =
+        existingConfig.previewWorkerName ||
+        (suggestedSubdomain ? `${suggestedSubdomain}-inkweld-preview` : 'inkweld-backend-preview');
+      previewWorkerName = await promptWithConfirmation(
         rl,
-        `Worker name for STAGING (default: ${suggestedStaging}):`
+        `Worker name for PREVIEW (default: ${suggestedPreview}):`,
+        suggestedPreview,
+        (name) => {
+          const url = subdomain ? `${name}.${subdomain}.workers.dev` : `${name}.workers.dev`;
+          return `Preview worker URL: https://${url}`;
+        },
+        'inkweld-backend-preview'
       );
-      if (customStaging === '.') {
-        stagingWorkerName = 'inkweld-backend-staging';
-      } else {
-        stagingWorkerName = customStaging || suggestedStaging;
-      }
-      const stagingUrl = subdomain
-        ? `${stagingWorkerName}.${subdomain}.workers.dev`
-        : `${stagingWorkerName}.workers.dev`;
-      success(`Staging worker URL: https://${stagingUrl}`);
-      const confirmStaging = await confirm(rl, 'Continue with this URL?');
-      if (!confirmStaging) {
-        warn('Setup cancelled.');
-        process.exit(0);
-      }
     }
 
     if (setupProd) {
-      const suggestedProd = suggestedSubdomain
-        ? `${suggestedSubdomain}-inkweld`
-        : 'inkweld-backend-prod';
-      const customProd = await prompt(
+      const suggestedProd =
+        existingConfig.prodWorkerName ||
+        (suggestedSubdomain ? `${suggestedSubdomain}-inkweld` : 'inkweld-backend-prod');
+      prodWorkerName = await promptWithConfirmation(
         rl,
-        `Worker name for PRODUCTION (default: ${suggestedProd}):`
+        `Worker name for PRODUCTION (default: ${suggestedProd}):`,
+        suggestedProd,
+        (name) => {
+          const url = subdomain ? `${name}.${subdomain}.workers.dev` : `${name}.workers.dev`;
+          return `Production worker URL: https://${url}`;
+        },
+        'inkweld-backend-prod'
       );
-      if (customProd === '.') {
-        prodWorkerName = 'inkweld-backend-prod';
-      } else {
-        prodWorkerName = customProd || suggestedProd;
-      }
-      const prodUrl = subdomain
-        ? `${prodWorkerName}.${subdomain}.workers.dev`
-        : `${prodWorkerName}.workers.dev`;
-      success(`Production worker URL: https://${prodUrl}`);
-      const confirmProd = await confirm(rl, 'Continue with this URL?');
-      if (!confirmProd) {
-        warn('Setup cancelled.');
-        process.exit(0);
-      }
     }
     console.log();
 
@@ -784,21 +810,21 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
       rl,
       'Try to import existing environment variables from Cloudflare?'
     );
-    let stagingRemoteConfig: WranglerRemoteConfig | null = null;
+    let previewRemoteConfig: WranglerRemoteConfig | null = null;
     let prodRemoteConfig: WranglerRemoteConfig | null = null;
 
     if (shouldImport) {
-      if (setupStaging) {
-        stagingRemoteConfig = await getRemoteConfig('staging');
+      if (setupPreview) {
+        previewRemoteConfig = await getRemoteConfig('preview');
         if (
-          stagingRemoteConfig &&
-          stagingRemoteConfig.resources &&
-          stagingRemoteConfig.resources.bindings
+          previewRemoteConfig &&
+          previewRemoteConfig.resources &&
+          previewRemoteConfig.resources.bindings
         ) {
-          success('Found existing staging configuration');
+          success('Found existing preview configuration');
         } else {
-          stagingRemoteConfig = null;
-          warn('Could not find existing staging configuration');
+          previewRemoteConfig = null;
+          warn('Could not find existing preview configuration');
         }
       }
       if (setupProd) {
@@ -815,26 +841,26 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     // Create databases
     header('Creating D1 Databases');
 
-    let stagingDbId: string | null = null;
+    let previewDbId: string | null = null;
     let prodDbId: string | null = null;
 
-    if (setupStaging) {
+    if (setupPreview) {
       // Check if we already have the ID from remote config
-      if (stagingRemoteConfig) {
-        const dbBinding = stagingRemoteConfig.resources.bindings.find(
+      if (previewRemoteConfig) {
+        const dbBinding = previewRemoteConfig.resources.bindings.find(
           (b: WranglerBinding) => b.type === 'd1' && b.name === 'DB'
         );
-        if (dbBinding) stagingDbId = dbBinding.database_id || null;
+        if (dbBinding) previewDbId = dbBinding.database_id || null;
       }
 
-      if (!stagingDbId) {
-        stagingDbId = createD1Database('inkweld_staging');
+      if (!previewDbId) {
+        previewDbId = createD1Database('inkweld_preview');
       } else {
-        success(`Using existing staging database ID: ${stagingDbId}`);
+        success(`Using existing preview database ID: ${previewDbId}`);
       }
 
-      if (!stagingDbId) {
-        error('Failed to create staging database');
+      if (!previewDbId) {
+        error('Failed to create preview database');
         if (!setupProd) process.exit(1);
       }
     }
@@ -865,9 +891,9 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
 
     info('R2 buckets store media files: project covers, avatars, inline images, etc.');
 
-    if (setupStaging) {
-      if (!createR2Bucket('inkweld-storage-staging')) {
-        warn('Failed to create staging R2 bucket. Media storage may not work.');
+    if (setupPreview) {
+      if (!createR2Bucket('inkweld-storage-preview')) {
+        warn('Failed to create preview R2 bucket. Media storage may not work.');
       }
     }
 
@@ -882,9 +908,9 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
 
     info('Pages projects host the frontend static files.');
 
-    if (setupStaging) {
-      if (!createPagesProject('inkweld-frontend-staging')) {
-        warn('Failed to create staging Pages project. You may need to create it manually.');
+    if (setupPreview) {
+      if (!createPagesProject('inkweld-frontend-preview')) {
+        warn('Failed to create preview Pages project. You may need to create it manually.');
       }
     }
 
@@ -902,46 +928,58 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     info('Skip this step to use the default *.workers.dev and *.pages.dev URLs.');
     console.log();
 
-    let stagingBackendDomain: string | undefined;
-    let stagingFrontendDomain: string | undefined;
-    let prodBackendDomain: string | undefined;
+    let previewBackendDomain: string | undefined = existingConfig.previewBackendDomain;
+    let previewFrontendDomain: string | undefined;
+    let prodBackendDomain: string | undefined = existingConfig.prodBackendDomain;
     let prodFrontendDomain: string | undefined;
 
-    if (setupStaging) {
-      const configureStagingDomains = await confirm(rl, 'Configure custom domains for staging?');
+    if (setupPreview) {
+      const hasExistingPreviewDomain = !!existingConfig.previewBackendDomain;
+      const configurePreviewDomains =
+        hasExistingPreviewDomain || (await confirm(rl, 'Configure custom domains for preview?'));
 
-      if (configureStagingDomains) {
+      if (configurePreviewDomains) {
+        const defaultBackend = existingConfig.previewBackendDomain || '';
         const backendDomain = await prompt(
           rl,
-          'Staging backend API domain (e.g., api.staging.yoursite.com, leave empty to skip):'
+          `Preview backend API domain (e.g., api.preview.yoursite.com${defaultBackend ? `, current: ${defaultBackend}` : ''}):`
         );
         if (backendDomain) {
-          stagingBackendDomain = backendDomain;
-          success(`Staging backend will be available at: https://${backendDomain}`);
+          previewBackendDomain = backendDomain;
+          success(`Preview backend will be available at: https://${backendDomain}`);
+        } else if (defaultBackend) {
+          previewBackendDomain = defaultBackend;
+          success(`Keeping existing preview backend domain: https://${defaultBackend}`);
         }
 
         const frontendDomain = await prompt(
           rl,
-          'Staging frontend domain (e.g., staging.yoursite.com, leave empty to skip):'
+          'Preview frontend domain (e.g., preview.yoursite.com, leave empty to skip):'
         );
         if (frontendDomain) {
-          stagingFrontendDomain = frontendDomain;
-          success(`Staging frontend will be available at: https://${frontendDomain}`);
+          previewFrontendDomain = frontendDomain;
+          success(`Preview frontend will be available at: https://${frontendDomain}`);
         }
       }
     }
 
     if (setupProd) {
-      const configureCustomDomains = await confirm(rl, 'Configure custom domains for production?');
+      const hasExistingProdDomain = !!existingConfig.prodBackendDomain;
+      const configureCustomDomains =
+        hasExistingProdDomain || (await confirm(rl, 'Configure custom domains for production?'));
 
       if (configureCustomDomains) {
+        const defaultBackend = existingConfig.prodBackendDomain || '';
         const backendDomain = await prompt(
           rl,
-          'Production backend API domain (e.g., api.yoursite.com, leave empty to skip):'
+          `Production backend API domain (e.g., api.yoursite.com${defaultBackend ? `, current: ${defaultBackend}` : ''}):`
         );
         if (backendDomain) {
           prodBackendDomain = backendDomain;
           success(`Production backend will be available at: https://${backendDomain}`);
+        } else if (defaultBackend) {
+          prodBackendDomain = defaultBackend;
+          success(`Keeping existing production backend domain: https://${defaultBackend}`);
         }
 
         const frontendDomain = await prompt(
@@ -960,11 +998,11 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
 
     info('Frontend environment files configure the API URLs for each environment.');
     info('Workers will be available at:');
-    if (setupStaging) {
-      const stagingUrl = subdomain
-        ? `${stagingWorkerName}.${subdomain}.workers.dev`
-        : `${stagingWorkerName}.workers.dev`;
-      info(`  Staging:    https://${stagingUrl}`);
+    if (setupPreview) {
+      const previewUrl = subdomain
+        ? `${previewWorkerName}.${subdomain}.workers.dev`
+        : `${previewWorkerName}.workers.dev`;
+      info(`  Preview:    https://${previewUrl}`);
     }
     if (setupProd) {
       const prodUrl = subdomain
@@ -974,11 +1012,11 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     }
     console.log();
 
-    if (setupStaging) {
-      generateFrontendEnvironment(stagingWorkerName, subdomain, 'staging');
+    if (setupPreview) {
+      generateFrontendEnvironment(previewWorkerName, subdomain, 'preview', previewBackendDomain);
     }
     if (setupProd) {
-      generateFrontendEnvironment(prodWorkerName, subdomain, 'cloudflare');
+      generateFrontendEnvironment(prodWorkerName, subdomain, 'cloudflare', prodBackendDomain);
     }
 
     // Update wrangler.toml with database IDs
@@ -986,17 +1024,17 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
 
     if (
       updateWranglerToml(
-        stagingDbId,
+        previewDbId,
         prodDbId,
-        setupStaging ? stagingWorkerName : undefined,
+        setupPreview ? previewWorkerName : undefined,
         setupProd ? prodWorkerName : undefined,
-        setupStaging ? 'inkweld-frontend-staging' : undefined,
+        setupPreview ? 'inkweld-frontend-preview' : undefined,
         setupProd ? 'inkweld-frontend' : undefined,
-        stagingRemoteConfig,
+        previewRemoteConfig,
         prodRemoteConfig,
-        stagingBackendDomain,
+        previewBackendDomain,
         prodBackendDomain,
-        stagingFrontendDomain,
+        previewFrontendDomain,
         prodFrontendDomain
       )
     ) {
@@ -1004,16 +1042,16 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     } else {
       error('Failed to update backend wrangler.toml');
       info('Please manually update the configuration:');
-      if (stagingDbId) info(`  Staging DB ID:    ${stagingDbId}`);
+      if (previewDbId) info(`  Preview DB ID:    ${previewDbId}`);
       if (prodDbId) info(`  Production DB ID: ${prodDbId}`);
     }
 
     // Update frontend wrangler.toml
     if (
       updateFrontendWranglerToml(
-        setupStaging ? 'inkweld-frontend-staging' : undefined,
+        setupPreview ? 'inkweld-frontend-preview' : undefined,
         setupProd ? 'inkweld-frontend' : undefined,
-        stagingFrontendDomain,
+        previewFrontendDomain,
         prodFrontendDomain
       )
     ) {
@@ -1027,8 +1065,8 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
 
     const shouldMigrate = await confirm(rl, 'Run database migrations now?');
     if (shouldMigrate) {
-      if (stagingDbId) {
-        runMigration('inkweld_staging', 'Staging');
+      if (previewDbId) {
+        runMigration('inkweld_preview', 'Preview');
       }
       if (prodDbId) {
         runMigration('inkweld_prod', 'Production');
@@ -1046,14 +1084,14 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     console.log();
 
     // Check if secrets already exist
-    let stagingSecretExists = false;
+    let previewSecretExists = false;
     let prodSecretExists = false;
 
-    if (stagingRemoteConfig) {
-      stagingSecretExists = !!stagingRemoteConfig.resources.bindings.find(
+    if (previewRemoteConfig) {
+      previewSecretExists = !!previewRemoteConfig.resources.bindings.find(
         (b: WranglerBinding) => b.name === 'SESSION_SECRET'
       );
-      if (stagingSecretExists) success('SESSION_SECRET is already set for STAGING on Cloudflare.');
+      if (previewSecretExists) success('SESSION_SECRET is already set for PREVIEW on Cloudflare.');
     }
     if (prodRemoteConfig) {
       prodSecretExists = !!prodRemoteConfig.resources.bindings.find(
@@ -1064,14 +1102,15 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     console.log();
 
     const allSecretsExist =
-      (!setupStaging || stagingSecretExists) && (!setupProd || prodSecretExists);
+      (!setupPreview || previewSecretExists) && (!setupProd || prodSecretExists);
 
     let setSecrets = false;
     if (allSecretsExist) {
       info('All required secrets are already present on Cloudflare.');
       setSecrets = await confirm(
         rl,
-        'Do you want to OVERWRITE these existing secrets? (Not recommended if you have existing data)'
+        'Do you want to OVERWRITE these existing secrets? (Not recommended if you have existing data)',
+        false
       );
     } else {
       setSecrets = await confirm(rl, 'Some secrets are missing. Would you like to set them now?');
@@ -1094,18 +1133,18 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
         }
       }
 
-      if (stagingDbId) {
-        if (setSecret('staging', 'SESSION_SECRET', secret)) {
-          success('Staging secret set');
+      if (previewDbId) {
+        if (setSecret('preview', 'SESSION_SECRET', secret)) {
+          success('Preview secret set');
         } else {
-          error('Failed to set staging secret');
+          error('Failed to set preview secret');
         }
       }
 
       if (prodDbId) {
         // Ask if they want a different secret for production
         let prodSecret = secret;
-        if (stagingDbId) {
+        if (previewDbId) {
           const differentProd = await confirm(
             rl,
             'Use a DIFFERENT secret for production? (more secure)'
@@ -1130,8 +1169,8 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
       }
     } else {
       warn('Remember to set secrets before deploying:');
-      if (stagingDbId) {
-        info('  bun run wrangler secret put SESSION_SECRET --env staging');
+      if (previewDbId) {
+        info('  bun run wrangler secret put SESSION_SECRET --env preview');
       }
       if (prodDbId) {
         info('  bun run wrangler secret put SESSION_SECRET --env production');
@@ -1142,7 +1181,7 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     header('Setup Complete! 🎉');
 
     const envList: string[] = [];
-    if (stagingDbId) envList.push('staging');
+    if (previewDbId) envList.push('preview');
     if (prodDbId) envList.push('production');
 
     console.log(`
@@ -1151,8 +1190,8 @@ ${colors.green}Your Cloudflare Workers deployment is configured!${colors.reset}
 ${colors.bright}Environments configured:${colors.reset} ${envList.join(', ')}
 `);
 
-    if (stagingDbId) {
-      console.log(`${colors.bright}Staging Database ID:${colors.reset} ${stagingDbId}`);
+    if (previewDbId) {
+      console.log(`${colors.bright}Preview Database ID:${colors.reset} ${previewDbId}`);
     }
     if (prodDbId) {
       console.log(`${colors.bright}Production Database ID:${colors.reset} ${prodDbId}`);
@@ -1165,20 +1204,20 @@ ${colors.bright}Next Steps:${colors.reset}
    Update ALLOWED_ORIGINS with your actual frontend domain(s)
 `);
 
-    if (stagingDbId) {
-      console.log(`2. ${colors.cyan}Deploy to staging (from project root)${colors.reset}
-   npm run cloudflare:deploy:staging
+    if (previewDbId) {
+      console.log(`2. ${colors.cyan}Deploy to preview (from project root)${colors.reset}
+   npm run cloudflare:deploy:preview
 `);
     }
 
     if (prodDbId) {
-      console.log(`${stagingDbId ? '3' : '2'}. ${colors.cyan}Deploy to production (from project root)${colors.reset}
+      console.log(`${previewDbId ? '3' : '2'}. ${colors.cyan}Deploy to production (from project root)${colors.reset}
    npm run cloudflare:deploy:prod
 `);
     }
 
     console.log(`${colors.bright}View logs:${colors.reset}`);
-    if (stagingDbId) console.log(`   npm run cloudflare:logs:staging`);
+    if (previewDbId) console.log(`   npm run cloudflare:logs:preview`);
     if (prodDbId) console.log(`   npm run cloudflare:logs:prod`);
 
     console.log(`

@@ -89,5 +89,5 @@ After installation, you'll want to:
 ---
 
 :::tip Need Help?
-Check the [Troubleshooting guide](/docs/troubleshooting/cookies) if you run into issues, or open an issue on [GitHub](https://github.com/bobbyquantum/inkweld/issues).
+Check the [Troubleshooting guide](/docs/troubleshooting/logging) if you run into issues, or open an issue on [GitHub](https://github.com/bobbyquantum/inkweld/issues).
 :::
