@@ -1554,6 +1554,370 @@ export class DocumentService {
   }
 
   /**
+   * Sync a document to the server without opening it in an editor.
+   *
+   * This method loads the document from IndexedDB, applies any imported content,
+   * connects to WebSocket, waits for sync to complete, then cleans up.
+   * This is used after project creation to sync all template documents immediately.
+   *
+   * @param documentId - Full document ID (username:slug:elementId)
+   * @param timeoutMs - Maximum time to wait for sync (default 30s)
+   * @returns Promise that resolves when sync is complete or rejects on error/timeout
+   */
+  async syncDocumentToServer(
+    documentId: string,
+    timeoutMs: number = 30000
+  ): Promise<void> {
+    this.logger.info(
+      'DocumentService',
+      `syncDocumentToServer: Starting headless sync for ${documentId}`
+    );
+
+    // Validate documentId format (must be username:slug:docId)
+    if (!documentId || documentId === 'invalid' || !documentId.includes(':')) {
+      throw new Error(`Invalid documentId format: ${documentId}`);
+    }
+
+    const parts = documentId.split(':');
+    if (parts.length !== 3 || parts.some(part => !part.trim())) {
+      throw new Error(`Invalid documentId: ${documentId}`);
+    }
+
+    // Get WebSocket URL - if not available, we're in offline mode
+    const websocketUrl = this.setupService.getWebSocketUrl();
+    if (!websocketUrl) {
+      this.logger.info(
+        'DocumentService',
+        `syncDocumentToServer: No WebSocket URL available, skipping sync for ${documentId}`
+      );
+      return;
+    }
+
+    // Get auth token for WebSocket authentication
+    const authToken = this.authTokenService.getToken();
+    if (!authToken) {
+      this.logger.warn(
+        'DocumentService',
+        `syncDocumentToServer: No auth token available, skipping sync for ${documentId}`
+      );
+      return;
+    }
+
+    // Create a new Yjs doc for this sync operation
+    const ydoc = new Y.Doc();
+    const type = ydoc.getXmlFragment('prosemirror');
+
+    // Initialize IndexedDB provider and wait for local data to load
+    const indexeddbProvider = new IndexeddbPersistence(documentId, ydoc);
+    await indexeddbProvider.whenSynced;
+
+    this.logger.debug(
+      'DocumentService',
+      `syncDocumentToServer: IndexedDB synced for ${documentId}, XmlFragment length: ${type.length}`
+    );
+
+    // Check for imported content and apply it to the XmlFragment
+    const importedContentMap = ydoc.getMap<unknown>('importedContent');
+    const importedContent = importedContentMap.get('content');
+    if (importedContent && type.length === 0) {
+      this.logger.info(
+        'DocumentService',
+        `syncDocumentToServer: Found imported content for ${documentId}, applying to XmlFragment`
+      );
+      const xmlContent = this.prosemirrorJsonToXml(importedContent);
+      if (xmlContent) {
+        this.importXmlString(ydoc, type, xmlContent);
+        // Clear the importedContent map now that we've applied it
+        ydoc.transact(() => {
+          importedContentMap.delete('content');
+          importedContentMap.delete('importedAt');
+        });
+        this.logger.debug(
+          'DocumentService',
+          `syncDocumentToServer: Applied imported content and cleared importedContentMap`
+        );
+      }
+    }
+
+    // Format documentId for WebSocket URL
+    const formattedDocId = documentId.replace(/^\/+/, '');
+    const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
+
+    let provider: WebsocketProvider | null = null;
+
+    try {
+      // Connect to WebSocket with authentication
+      provider = await createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        ydoc,
+        authToken,
+        { resyncInterval: 10000 }
+      );
+
+      // Wait for the document to be synced
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(`Sync timeout for document ${documentId}`));
+        }, timeoutMs);
+
+        // y-websocket fires 'sync' event when initial sync is complete
+        const checkSynced = (isSynced: boolean) => {
+          if (isSynced) {
+            clearTimeout(timeout);
+            provider?.off('sync', checkSynced);
+            resolve();
+          }
+        };
+
+        // Check if already synced
+        if (provider?.synced) {
+          clearTimeout(timeout);
+          resolve();
+          return;
+        }
+
+        provider?.on('sync', checkSynced);
+      });
+
+      // Force save to IndexedDB to persist the synced state
+      await storeState(indexeddbProvider);
+
+      this.logger.info(
+        'DocumentService',
+        `syncDocumentToServer: Successfully synced ${documentId}`
+      );
+    } finally {
+      // Clean up: disconnect WebSocket and destroy providers
+      if (provider) {
+        provider.disconnect();
+        provider.destroy();
+      }
+      await indexeddbProvider.destroy();
+      ydoc.destroy();
+    }
+  }
+
+  /**
+   * Sync multiple documents to the server in parallel.
+   *
+   * This is a convenience method for syncing all documents after project creation.
+   * It handles errors gracefully - if one document fails to sync, others continue.
+   *
+   * @param documentIds - Array of document IDs to sync
+   * @param concurrency - Maximum number of concurrent syncs (default 3)
+   * @returns Promise that resolves when all syncs are attempted
+   */
+  async syncDocumentsToServer(
+    documentIds: string[],
+    concurrency: number = 3
+  ): Promise<{ success: string[]; failed: string[] }> {
+    const success: string[] = [];
+    const failed: string[] = [];
+
+    // Process in batches for controlled concurrency
+    for (let i = 0; i < documentIds.length; i += concurrency) {
+      const batch = documentIds.slice(i, i + concurrency);
+      const results = await Promise.allSettled(
+        batch.map(id => this.syncDocumentToServer(id))
+      );
+
+      results.forEach((result, idx) => {
+        const docId = batch[idx];
+        if (result.status === 'fulfilled') {
+          success.push(docId);
+        } else {
+          this.logger.error(
+            'DocumentService',
+            `syncDocumentsToServer: Failed to sync ${docId}`,
+            result.reason
+          );
+          failed.push(docId);
+        }
+      });
+    }
+
+    this.logger.info(
+      'DocumentService',
+      `syncDocumentsToServer: Completed - ${success.length} synced, ${failed.length} failed`
+    );
+
+    return { success, failed };
+  }
+
+  /**
+   * Sync a worldbuilding element to the server (headless).
+   *
+   * Similar to syncDocumentToServer, but for worldbuilding elements
+   * which use a different Yjs map structure ('worldbuilding' map instead of 'prosemirror' XmlFragment).
+   *
+   * @param worldbuildingId - Full worldbuilding ID (worldbuilding:username:slug:elementId)
+   * @param timeoutMs - Maximum time to wait for sync (default 30s)
+   * @returns Promise that resolves when sync is complete or rejects on error/timeout
+   */
+  async syncWorldbuildingToServer(
+    worldbuildingId: string,
+    timeoutMs: number = 30000
+  ): Promise<void> {
+    this.logger.info(
+      'DocumentService',
+      `syncWorldbuildingToServer: Starting headless sync for ${worldbuildingId}`
+    );
+
+    // Validate worldbuildingId format (must be worldbuilding:username:slug:elementId)
+    if (!worldbuildingId || !worldbuildingId.startsWith('worldbuilding:')) {
+      throw new Error(`Invalid worldbuildingId format: ${worldbuildingId}`);
+    }
+
+    const parts = worldbuildingId.split(':');
+    if (parts.length !== 4 || parts.some(part => !part.trim())) {
+      throw new Error(
+        `Invalid worldbuildingId: ${worldbuildingId} (expected worldbuilding:username:slug:elementId)`
+      );
+    }
+
+    // Get WebSocket URL - if not available, we're in offline mode
+    const websocketUrl = this.setupService.getWebSocketUrl();
+    if (!websocketUrl) {
+      this.logger.info(
+        'DocumentService',
+        `syncWorldbuildingToServer: No WebSocket URL available, skipping sync for ${worldbuildingId}`
+      );
+      return;
+    }
+
+    // Get auth token for WebSocket authentication
+    const authToken = this.authTokenService.getToken();
+    if (!authToken) {
+      this.logger.warn(
+        'DocumentService',
+        `syncWorldbuildingToServer: No auth token available, skipping sync for ${worldbuildingId}`
+      );
+      return;
+    }
+
+    // Create a new Yjs doc for this sync operation
+    const ydoc = new Y.Doc();
+
+    // Initialize IndexedDB provider and wait for local data to load
+    const indexeddbProvider = new IndexeddbPersistence(worldbuildingId, ydoc);
+    await indexeddbProvider.whenSynced;
+
+    // Access the worldbuilding map to ensure it's loaded
+    const worldbuildingMap = ydoc.getMap<unknown>('worldbuilding');
+    this.logger.debug(
+      'DocumentService',
+      `syncWorldbuildingToServer: IndexedDB synced for ${worldbuildingId}, map size: ${worldbuildingMap.size}`
+    );
+
+    // Format worldbuildingId for WebSocket URL (remove leading slashes if any)
+    const formattedId = worldbuildingId.replace(/^\/+/, '');
+    const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
+
+    let provider: WebsocketProvider | null = null;
+
+    try {
+      // Connect to WebSocket with authentication
+      provider = await createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        ydoc,
+        authToken,
+        { resyncInterval: 10000 }
+      );
+
+      // Wait for the document to be synced
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(
+            new Error(
+              `Sync timeout for worldbuilding element ${worldbuildingId}`
+            )
+          );
+        }, timeoutMs);
+
+        // y-websocket fires 'sync' event when initial sync is complete
+        const checkSynced = (isSynced: boolean) => {
+          if (isSynced) {
+            clearTimeout(timeout);
+            provider?.off('sync', checkSynced);
+            resolve();
+          }
+        };
+
+        // Check if already synced
+        if (provider?.synced) {
+          clearTimeout(timeout);
+          resolve();
+          return;
+        }
+
+        provider?.on('sync', checkSynced);
+      });
+
+      // Force save to IndexedDB to persist the synced state
+      await storeState(indexeddbProvider);
+
+      this.logger.info(
+        'DocumentService',
+        `syncWorldbuildingToServer: Successfully synced ${worldbuildingId}`
+      );
+    } finally {
+      // Clean up: disconnect WebSocket and destroy providers
+      if (provider) {
+        provider.disconnect();
+        provider.destroy();
+      }
+      await indexeddbProvider.destroy();
+      ydoc.destroy();
+    }
+  }
+
+  /**
+   * Sync multiple worldbuilding elements to the server in parallel.
+   *
+   * @param worldbuildingIds - Array of worldbuilding IDs to sync
+   * @param concurrency - Maximum number of concurrent syncs (default 3)
+   * @returns Promise that resolves when all syncs are attempted
+   */
+  async syncWorldbuildingToServerBatch(
+    worldbuildingIds: string[],
+    concurrency: number = 3
+  ): Promise<{ success: string[]; failed: string[] }> {
+    const success: string[] = [];
+    const failed: string[] = [];
+
+    // Process in batches for controlled concurrency
+    for (let i = 0; i < worldbuildingIds.length; i += concurrency) {
+      const batch = worldbuildingIds.slice(i, i + concurrency);
+      const results = await Promise.allSettled(
+        batch.map(id => this.syncWorldbuildingToServer(id))
+      );
+
+      results.forEach((result, idx) => {
+        const wbId = batch[idx];
+        if (result.status === 'fulfilled') {
+          success.push(wbId);
+        } else {
+          this.logger.error(
+            'DocumentService',
+            `syncWorldbuildingToServerBatch: Failed to sync ${wbId}`,
+            result.reason
+          );
+          failed.push(wbId);
+        }
+      });
+    }
+
+    this.logger.info(
+      'DocumentService',
+      `syncWorldbuildingToServerBatch: Completed - ${success.length} synced, ${failed.length} failed`
+    );
+
+    return { success, failed };
+  }
+
+  /**
    * Get the current project key in "username/slug" format.
    * Used by plugins that need to interact with the media library.
    */
