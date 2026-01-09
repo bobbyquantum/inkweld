@@ -222,86 +222,86 @@
       </div>
     } @else {
       @if (showSidebar()) {
-        <!-- Desktop split layout -->
-        <as-split
-          direction="horizontal"
-          [gutterSize]="getGutterSize()"
-          unit="percent"
-          [useTransition]="true"
-          (dragEnd)="onSplitDragEnd($event)">
-          <!-- Custom gutter template -->
-          <div
-            *asSplitGutter="let isDragged = isDragged"
-            class="inkweld-gutter"
-            [class.dragging]="isDragged">
-            <div class="inkweld-gutter-icon"></div>
-          </div>
-          <!-- Sidebar area -->
-          <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
-            <div class="sidebar-area">
-              @defer (on idle) {
-                <app-project-tree
-                  (documentOpened)="
-                    onDocumentOpened($event)
-                  "></app-project-tree>
-              } @placeholder {
-                <div class="tree-placeholder">
-                  <mat-spinner diameter="30"></mat-spinner>
-                </div>
-              }
-              <!-- Connection Status -->
-              @defer (on idle) {
-                <app-connection-status
-                  [syncState]="projectSyncState()"
-                  (syncRequested)="onRetrySyncConnection()"
-                  data-testid="sidebar-connection-status">
-                </app-connection-status>
-              } @placeholder {
-                <div class="connection-placeholder"></div>
-              }
-              <!-- Fixed bottom navigation -->
-              <div class="sidebar-bottom-nav">
-                <div
-                  class="sidebar-nav-item"
-                  [class.selected-item]="isSystemTabSelected('media')"
-                  data-testid="sidebar-media-button"
-                  tabindex="0"
-                  role="button"
+        @if (sidebarCollapsed()) {
+          <!-- Desktop collapsed sidebar -->
+          <div class="collapsed-sidebar-container">
+            <div class="collapsed-sidebar">
+              <!-- Top section: Expand toggle, Home, New Document -->
+              <div class="collapsed-sidebar-top">
+                <button
+                  mat-icon-button
+                  (click)="toggleSidebarCollapsed()"
+                  matTooltip="Expand Sidebar"
+                  data-testid="sidebar-expand-button"
+                  aria-label="Expand Sidebar">
+                  <mat-icon fontSet="material-symbols-outlined"
+                    >left_panel_open</mat-icon
+                  >
+                </button>
+                <button
+                  mat-icon-button
+                  (click)="goHome()"
+                  [class.active]="projectState.selectedTabIndex() === 0"
+                  matTooltip="Home"
+                  data-testid="collapsed-home-button"
+                  aria-label="Home">
+                  <mat-icon>home</mat-icon>
+                </button>
+                @if (projectState.canWrite()) {
+                  <button
+                    mat-icon-button
+                    (click)="onCreateNewDocument()"
+                    matTooltip="New Document"
+                    data-testid="collapsed-new-document-button"
+                    aria-label="New Document">
+                    <mat-icon>note_add</mat-icon>
+                  </button>
+                }
+              </div>
+
+              <!-- Bottom section: Sync, Media, Settings, Exit -->
+              <div class="collapsed-sidebar-bottom">
+                @defer (on idle) {
+                  <app-connection-status
+                    [syncState]="projectSyncState()"
+                    [collapsed]="true"
+                    (syncRequested)="onRetrySyncConnection()"
+                    data-testid="collapsed-connection-status">
+                  </app-connection-status>
+                } @placeholder {
+                  <div class="collapsed-connection-placeholder"></div>
+                }
+                <button
+                  mat-icon-button
                   (click)="onShowMediaLibrary()"
-                  (keyup.enter)="onShowMediaLibrary()"
+                  [class.active]="isSystemTabSelected('media')"
+                  matTooltip="Media Library"
+                  data-testid="collapsed-media-button"
                   aria-label="Media Library">
                   <mat-icon>perm_media</mat-icon>
-                  <span class="nav-title">Media Library</span>
-                </div>
-                <div
-                  class="sidebar-nav-item"
-                  [class.selected-item]="isSystemTabSelected('settings')"
-                  data-testid="sidebar-settings-button"
-                  tabindex="0"
-                  role="button"
+                </button>
+                <button
+                  mat-icon-button
                   (click)="onShowSettings()"
-                  (keyup.enter)="onShowSettings()"
+                  [class.active]="isSystemTabSelected('settings')"
+                  matTooltip="Project Settings"
+                  data-testid="collapsed-settings-button"
                   aria-label="Project Settings">
                   <mat-icon>settings</mat-icon>
-                  <span class="nav-title">Project Settings</span>
-                </div>
-                <div
-                  class="sidebar-nav-item exit-item"
-                  data-testid="sidebar-exit-button"
-                  tabindex="0"
-                  role="button"
+                </button>
+                <button
+                  mat-icon-button
                   (click)="exitProject()"
-                  (keyup.enter)="exitProject()"
+                  matTooltip="Exit Project"
+                  data-testid="collapsed-exit-button"
                   aria-label="Exit Project">
                   <mat-icon>exit_to_app</mat-icon>
-                  <span class="nav-title">Exit Project</span>
-                </div>
+                </button>
               </div>
             </div>
-          </as-split-area>
-          <!-- Content area -->
-          <as-split-area>
-            <div class="desktop-content">
+
+            <!-- Full-width content area next to collapsed sidebar -->
+            <div class="desktop-content collapsed-content">
               @if (useTabsDesktop()) {
                 <div class="tabs-header">
                   <app-tab-interface (importRequested)="onImportClicked()">
@@ -325,8 +325,116 @@
                 <router-outlet></router-outlet>
               </div>
             </div>
-          </as-split-area>
-        </as-split>
+          </div>
+        } @else {
+          <!-- Desktop split layout -->
+          <as-split
+            direction="horizontal"
+            [gutterSize]="getGutterSize()"
+            unit="percent"
+            [useTransition]="true"
+            (dragEnd)="onSplitDragEnd($event)">
+            <!-- Custom gutter template -->
+            <div
+              *asSplitGutter="let isDragged = isDragged"
+              class="inkweld-gutter"
+              [class.dragging]="isDragged">
+              <div class="inkweld-gutter-icon"></div>
+            </div>
+            <!-- Sidebar area -->
+            <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
+              <div class="sidebar-area">
+                @defer (on idle) {
+                  <app-project-tree
+                    [showCollapseButton]="true"
+                    (collapseRequested)="toggleSidebarCollapsed()"
+                    (documentOpened)="
+                      onDocumentOpened($event)
+                    "></app-project-tree>
+                } @placeholder {
+                  <div class="tree-placeholder">
+                    <mat-spinner diameter="30"></mat-spinner>
+                  </div>
+                }
+                <!-- Connection Status -->
+                @defer (on idle) {
+                  <app-connection-status
+                    [syncState]="projectSyncState()"
+                    (syncRequested)="onRetrySyncConnection()"
+                    data-testid="sidebar-connection-status">
+                  </app-connection-status>
+                } @placeholder {
+                  <div class="connection-placeholder"></div>
+                }
+                <!-- Fixed bottom navigation -->
+                <div class="sidebar-bottom-nav">
+                  <div
+                    class="sidebar-nav-item"
+                    [class.selected-item]="isSystemTabSelected('media')"
+                    data-testid="sidebar-media-button"
+                    tabindex="0"
+                    role="button"
+                    (click)="onShowMediaLibrary()"
+                    (keyup.enter)="onShowMediaLibrary()"
+                    aria-label="Media Library">
+                    <mat-icon>perm_media</mat-icon>
+                    <span class="nav-title">Media Library</span>
+                  </div>
+                  <div
+                    class="sidebar-nav-item"
+                    [class.selected-item]="isSystemTabSelected('settings')"
+                    data-testid="sidebar-settings-button"
+                    tabindex="0"
+                    role="button"
+                    (click)="onShowSettings()"
+                    (keyup.enter)="onShowSettings()"
+                    aria-label="Project Settings">
+                    <mat-icon>settings</mat-icon>
+                    <span class="nav-title">Project Settings</span>
+                  </div>
+                  <div
+                    class="sidebar-nav-item exit-item"
+                    data-testid="sidebar-exit-button"
+                    tabindex="0"
+                    role="button"
+                    (click)="exitProject()"
+                    (keyup.enter)="exitProject()"
+                    aria-label="Exit Project">
+                    <mat-icon>exit_to_app</mat-icon>
+                    <span class="nav-title">Exit Project</span>
+                  </div>
+                </div>
+              </div>
+            </as-split-area>
+            <!-- Content area -->
+            <as-split-area>
+              <div class="desktop-content">
+                @if (useTabsDesktop()) {
+                  <div class="tabs-header">
+                    <app-tab-interface (importRequested)="onImportClicked()">
+                      <!-- Projected into tab-bar-actions -->
+                      <app-presence-indicator></app-presence-indicator>
+                      <button
+                        mat-icon-button
+                        [matMenuTriggerFor]="moreMenuDesktop"
+                        class="action-button"
+                        data-testid="project-more-menu-button"
+                        aria-label="More actions">
+                        <mat-icon>more_vert</mat-icon>
+                      </button>
+                      <app-user-menu
+                        [miniMode]="true"
+                        class="action-button"></app-user-menu>
+                    </app-tab-interface>
+                  </div>
+                }
+                <div class="content-area">
+                  <router-outlet></router-outlet>
+                </div>
+              </div>
+            </as-split-area>
+          </as-split>
+        }
       } @else {
         <!-- Desktop full-width content -->
         <div class="desktop-content">

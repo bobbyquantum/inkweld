@@ -503,3 +503,61 @@ app-home-tab {
   align-items: center;
   gap: 8px;
 }
+
+// Collapsed sidebar styles (desktop only)
+.collapsed-sidebar-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.collapsed-sidebar {
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--sys-surface-container);
+  border-right: 1px solid var(--sys-outline-variant);
+  flex-shrink: 0;
+}
+
+.collapsed-sidebar-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  gap: 4px;
+
+  button {
+    &.active {
+      background-color: var(--sys-surface-container-highest);
+      color: var(--sys-primary);
+    }
+  }
+}
+
+.collapsed-sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  gap: 4px;
+  margin-top: auto;
+  border-top: 1px solid var(--sys-outline-variant);
+
+  button {
+    &.active {
+      background-color: var(--sys-surface-container-highest);
+      color: var(--sys-primary);
+    }
+  }
+}
+
+.collapsed-connection-placeholder {
+  width: 40px;
+  height: 40px;
+}
+
+.collapsed-content {
+  flex: 1;
+  min-width: 0;
+}
