@@ -146,16 +146,19 @@ export class ProjectStateService implements OnDestroy {
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full admin
     if (this.setupService.getMode() === 'offline') return true;
-    // SECURITY: Default to no admin access if access info is missing in server mode
-    if (!proj.access) return false;
-    return proj.access.canAdmin;
+    // If access info is available, use it
+    if (proj.access) return proj.access.canAdmin;
+    // Local-first fallback: if we're the owner, we're the admin
+    // This allows UI to work while offline in server mode
+    return this.isCurrentUserProjectOwner();
   });
 
   /**
    * Whether access information has been loaded for the current project.
    * Returns true in offline mode (always have full access) or when server mode
-   * project has access info populated. Use this to wait before rendering
-   * access-controlled UI elements to avoid flicker.
+   * project has access info populated. Also returns true if we can verify
+   * local ownership (username match) which enables local-first operation
+   * when the server is unreachable.
    */
   readonly accessLoaded = computed(() => {
     const proj = this.project();
@@ -163,7 +166,10 @@ export class ProjectStateService implements OnDestroy {
     // In offline mode, access is always known (full access)
     if (this.setupService.getMode() === 'offline') return true;
     // In server mode, access is loaded when the access property is present
-    return proj.access !== undefined;
+    if (proj.access !== undefined) return true;
+    // Local-first fallback: if we can verify local ownership, consider access known
+    // This allows UI to work while offline in server mode
+    return this.isCurrentUserProjectOwner();
   });
 
   /**

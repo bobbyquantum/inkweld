@@ -28,6 +28,7 @@ import {
   McpPublicKey,
 } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/offline/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
@@ -60,6 +61,7 @@ describe('SettingsTabComponent', () => {
   let collaborationService: Partial<CollaborationApiService>;
   let snackBar: Partial<MatSnackBar>;
   let setupService: Partial<SetupService>;
+  let systemConfigService: Partial<SystemConfigService>;
   let mediaSyncService: Partial<MediaSyncService>;
   let dialog: Partial<MatDialog>;
 
@@ -188,6 +190,10 @@ describe('SettingsTabComponent', () => {
       getMode: vi.fn().mockReturnValue('server'),
     };
 
+    systemConfigService = {
+      isAiKillSwitchEnabled: signal(false), // AI enabled (kill switch OFF)
+    };
+
     mediaSyncService = {
       checkSyncStatus: vi.fn().mockResolvedValue({
         items: [],
@@ -227,6 +233,7 @@ describe('SettingsTabComponent', () => {
         { provide: CollaborationApiService, useValue: collaborationService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: SetupService, useValue: setupService },
+        { provide: SystemConfigService, useValue: systemConfigService },
         { provide: MediaSyncService, useValue: mediaSyncService },
         { provide: MatDialog, useValue: dialog },
       ],
