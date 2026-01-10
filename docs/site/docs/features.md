@@ -22,7 +22,7 @@ Work together with co-authors, beta readers, and editors in real-time. Inkweld u
 
 Manage all your project's media assets in one place with the built-in Media Library.
 
-![Media Library](/img/generated/media-tab-desktop.png)
+![Media Library](/img/generated/media-tab-desktop-light.png)
 
 - **Centralized storage**: View all images and files stored with your project
 - **Category filtering**: Filter by cover images, inline images, or published exports
