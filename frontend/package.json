@@ -75,7 +75,7 @@
     "@myriaddreamin/typst.angular": "^0.7.0-rc2",
     "@myriaddreamin/typst.ts": "^0.7.0-rc2",
     "@progress/jszip-esm": "1.0.4",
-    "@types/marked": "^5.0.2",
+    "@types/marked": "^6.0.0",
     "angular-split": "20.0.0",
     "date-fns": "4.1.0",
     "fracticons": "^1.0.0",
