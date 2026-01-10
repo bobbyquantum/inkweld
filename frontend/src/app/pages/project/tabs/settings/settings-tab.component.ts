@@ -35,6 +35,7 @@ import {
   McpPublicKey,
 } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import {
   MediaSyncService,
   MediaSyncState,
@@ -97,7 +98,7 @@ export class SettingsTabComponent implements AfterViewInit {
   @ViewChild('tabNavBar') tabNavBar!: ElementRef<HTMLElement>;
 
   // Active tab tracking
-  protected readonly selectedTab = signal('general');
+  protected readonly selectedTab = signal('sync');
 
   // Scroll state for arrow visibility
   protected readonly canScrollLeft = signal(false);
@@ -108,6 +109,11 @@ export class SettingsTabComponent implements AfterViewInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly setupService = inject(SetupService);
   private readonly mediaSyncService = inject(MediaSyncService);
+  private readonly systemConfigService = inject(SystemConfigService);
+
+  // MCP Keys should only be visible when AI kill switch is OFF
+  protected readonly isAiKillSwitchEnabled =
+    this.systemConfigService.isAiKillSwitchEnabled;
   private readonly dialog = inject(MatDialog);
 
   // Current mode (server or offline)

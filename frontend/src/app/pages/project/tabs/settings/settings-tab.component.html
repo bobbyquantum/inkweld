@@ -1,6 +1,4 @@
 <div class="settings-tab" data-testid="settings-tab-content">
-  <h2>Project Settings</h2>
-
   <div class="settings-tabs" ngTabs>
     <!-- Tab Bar Container -->
     <div class="tab-bar-container">
@@ -26,14 +24,14 @@
           (scroll)="onTabsScroll()">
           <button
             ngTab
-            value="general"
+            value="sync"
             type="button"
             role="tab"
-            (click)="onTabChange('general')"
+            (click)="onTabChange('sync')"
             class="tab-button"
-            data-testid="settings-tab-general">
-            <mat-icon class="tab-icon">settings</mat-icon>
-            <span class="tab-name">General</span>
+            data-testid="settings-tab-sync">
+            <mat-icon class="tab-icon">sync</mat-icon>
+            <span class="tab-name">Sync</span>
           </button>
           @if (projectState.accessLoaded() && projectState.canWrite()) {
             <button
@@ -73,14 +71,25 @@
           @if (projectState.accessLoaded() && projectState.isOwner()) {
             <button
               ngTab
-              value="mcp-keys"
+              value="collaboration"
               type="button"
               role="tab"
-              (click)="onTabChange('mcp-keys')"
+              (click)="onTabChange('collaboration')"
               class="tab-button"
-              data-testid="settings-tab-mcp-keys">
+              data-testid="settings-tab-collaboration">
+              <mat-icon class="tab-icon">group</mat-icon>
+              <span class="tab-name">Collaboration</span>
+            </button>
+            <button
+              ngTab
+              value="mcp"
+              type="button"
+              role="tab"
+              (click)="onTabChange('mcp')"
+              class="tab-button"
+              data-testid="settings-tab-mcp">
               <mat-icon class="tab-icon">key</mat-icon>
-              <span class="tab-name">MCP Keys</span>
+              <span class="tab-name">MCP</span>
             </button>
           }
         </nav>
@@ -100,8 +109,8 @@
     </div>
 
     <!-- Tab Panels -->
-    <!-- General Settings Tab -->
-    @if (selectedTab() === 'general') {
+    <!-- Sync Tab -->
+    @if (selectedTab() === 'sync') {
       <div class="tab-content">
         @if (currentMode === 'offline') {
           <mat-card class="info-card offline">
@@ -287,235 +296,6 @@
             </button>
           </div>
         </section>
-
-        <!-- Collaboration Section (owners only) -->
-        @if (projectState.isOwner()) {
-          <section class="settings-section" data-testid="collaboration-section">
-            <h3>
-              <mat-icon>group</mat-icon>
-              Collaboration
-            </h3>
-            <p class="section-description">
-              Share your project with other users and collaborate in real-time.
-            </p>
-
-            @if (currentMode === 'server') {
-              @if (isLoadingCollaborators()) {
-                <div class="loading-state">
-                  <mat-progress-spinner diameter="32" mode="indeterminate">
-                  </mat-progress-spinner>
-                  <span>Loading collaborators...</span>
-                </div>
-              } @else if (collaboratorsError()) {
-                <mat-card class="error-card">
-                  <mat-card-content>
-                    <mat-icon>error</mat-icon>
-                    <span>{{ collaboratorsError() }}</span>
-                    <button
-                      mat-button
-                      color="primary"
-                      (click)="loadCollaborators()"
-                      data-testid="collaborators-retry-button">
-                      Retry
-                    </button>
-                  </mat-card-content>
-                </mat-card>
-              } @else {
-                <!-- Collaborators List -->
-                @if (collaborators().length > 0) {
-                  <mat-card class="collaborators-card">
-                    <mat-card-header>
-                      <mat-card-title>
-                        Collaborators ({{ getActiveCollaboratorsCount() }})
-                        @if (getPendingInvitationsCount() > 0) {
-                          <span class="pending-badge">
-                            {{ getPendingInvitationsCount() }} pending
-                          </span>
-                        }
-                      </mat-card-title>
-                    </mat-card-header>
-                    <mat-card-content>
-                      <div class="collaborators-list">
-                        @for (collab of collaborators(); track collab.userId) {
-                          <div
-                            class="collaborator-item"
-                            [class.pending]="collab.status === 'pending'"
-                            data-testid="collaborator-item">
-                            <div class="collaborator-info">
-                              <div class="collaborator-avatar">
-                                <mat-icon>{{
-                                  getRoleIcon(collab.role)
-                                }}</mat-icon>
-                              </div>
-                              <div class="collaborator-details">
-                                <div class="collaborator-header">
-                                  <strong>{{ collab.username }}</strong>
-                                  @if (collab.name) {
-                                    <span class="collaborator-name">{{
-                                      collab.name
-                                    }}</span>
-                                  }
-                                  @if (collab.status === 'pending') {
-                                    <span class="status-badge pending"
-                                      >Pending</span
-                                    >
-                                  }
-                                </div>
-                                <div class="collaborator-meta">
-                                  @if (collab.status === 'accepted') {
-                                    <span
-                                      >Joined
-                                      {{
-                                        collab.acceptedAt | date: 'mediumDate'
-                                      }}</span
-                                    >
-                                  } @else {
-                                    <span
-                                      >Invited
-                                      {{
-                                        collab.invitedAt | date: 'mediumDate'
-                                      }}</span
-                                    >
-                                    @if (collab.invitedByUsername) {
-                                      <span
-                                        >by {{ collab.invitedByUsername }}</span
-                                      >
-                                    }
-                                  }
-                                </div>
-                              </div>
-                            </div>
-                            <div class="collaborator-actions">
-                              @if (projectState.isOwner()) {
-                                <mat-form-field
-                                  appearance="outline"
-                                  class="role-select">
-                                  <mat-select
-                                    [value]="collab.role"
-                                    (selectionChange)="
-                                      updateCollaboratorRole(
-                                        collab,
-                                        $event.value
-                                      )
-                                    "
-                                    data-testid="collaborator-role-select">
-                                    @for (opt of roleOptions; track opt.value) {
-                                      <mat-option [value]="opt.value">
-                                        {{ opt.label }}
-                                      </mat-option>
-                                    }
-                                  </mat-select>
-                                </mat-form-field>
-                                <button
-                                  mat-icon-button
-                                  color="warn"
-                                  [matTooltip]="'Remove ' + collab.username"
-                                  (click)="removeCollaborator(collab)"
-                                  data-testid="remove-collaborator-button">
-                                  <mat-icon>person_remove</mat-icon>
-                                </button>
-                              } @else {
-                                <span class="role-label">{{
-                                  collab.role
-                                }}</span>
-                              }
-                            </div>
-                          </div>
-                        }
-                      </div>
-                    </mat-card-content>
-                  </mat-card>
-                }
-
-                <!-- Invite Form (owners only) -->
-                @if (projectState.isOwner() && showInviteForm()) {
-                  <mat-card class="invite-card">
-                    <mat-card-header>
-                      <mat-card-title>
-                        <mat-icon>person_add</mat-icon>
-                        Invite Collaborator
-                      </mat-card-title>
-                    </mat-card-header>
-                    <mat-card-content>
-                      <div class="invite-form">
-                        <mat-form-field appearance="outline" class="full-width">
-                          <mat-label>Username</mat-label>
-                          <input
-                            matInput
-                            [(ngModel)]="inviteUsername"
-                            placeholder="Enter username to invite"
-                            data-testid="invite-username-input" />
-                          <mat-icon matSuffix>person</mat-icon>
-                        </mat-form-field>
-
-                        <mat-form-field appearance="outline" class="full-width">
-                          <mat-label>Role</mat-label>
-                          <mat-select
-                            [(ngModel)]="inviteRole"
-                            data-testid="invite-role-select">
-                            @for (opt of roleOptions; track opt.value) {
-                              <mat-option [value]="opt.value">
-                                <div class="role-option">
-                                  <span>{{ opt.label }}</span>
-                                  <small>{{ opt.description }}</small>
-                                </div>
-                              </mat-option>
-                            }
-                          </mat-select>
-                        </mat-form-field>
-
-                        <div class="form-actions">
-                          <button
-                            mat-button
-                            (click)="toggleInviteForm()"
-                            data-testid="cancel-invite-button">
-                            Cancel
-                          </button>
-                          <button
-                            mat-raised-button
-                            color="primary"
-                            [disabled]="!inviteUsername.trim() || isInviting()"
-                            (click)="inviteCollaborator()"
-                            data-testid="send-invite-button">
-                            @if (isInviting()) {
-                              <mat-progress-spinner
-                                diameter="20"
-                                mode="indeterminate">
-                              </mat-progress-spinner>
-                            } @else {
-                              <ng-container>
-                                <mat-icon>send</mat-icon>
-                                Send Invitation
-                              </ng-container>
-                            }
-                          </button>
-                        </div>
-                      </div>
-                    </mat-card-content>
-                  </mat-card>
-                } @else if (projectState.isOwner()) {
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    (click)="toggleInviteForm()"
-                    data-testid="show-invite-form-button">
-                    <mat-icon>person_add</mat-icon>
-                    Invite Collaborator
-                  </button>
-                }
-              }
-            } @else {
-              <mat-card class="info-card">
-                <mat-card-content>
-                  <div class="info-content">
-                    <mat-icon>info</mat-icon>
-                    <div>Collaboration requires a server connection.</div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            }
-          </section>
-        }
       </div>
     }
 
@@ -540,8 +320,230 @@
       </div>
     }
 
-    <!-- MCP API Keys Tab -->
-    @if (selectedTab() === 'mcp-keys') {
+    <!-- Collaboration Tab -->
+    @if (selectedTab() === 'collaboration') {
+      <div class="tab-content">
+        <section class="settings-section" data-testid="collaboration-section">
+          <h3>
+            <mat-icon>group</mat-icon>
+            Collaboration
+          </h3>
+          <p class="section-description">
+            Share your project with other users and collaborate in real-time.
+          </p>
+
+          @if (currentMode === 'server') {
+            @if (isLoadingCollaborators()) {
+              <div class="loading-state">
+                <mat-progress-spinner diameter="32" mode="indeterminate">
+                </mat-progress-spinner>
+                <span>Loading collaborators...</span>
+              </div>
+            } @else if (collaboratorsError()) {
+              <mat-card class="error-card">
+                <mat-card-content>
+                  <mat-icon>error</mat-icon>
+                  <span>{{ collaboratorsError() }}</span>
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="loadCollaborators()"
+                    data-testid="collaborators-retry-button">
+                    Retry
+                  </button>
+                </mat-card-content>
+              </mat-card>
+            } @else {
+              <!-- Collaborators List -->
+              @if (collaborators().length > 0) {
+                <mat-card class="collaborators-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      Collaborators ({{ getActiveCollaboratorsCount() }})
+                      @if (getPendingInvitationsCount() > 0) {
+                        <span class="pending-badge">
+                          {{ getPendingInvitationsCount() }} pending
+                        </span>
+                      }
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="collaborators-list">
+                      @for (collab of collaborators(); track collab.userId) {
+                        <div
+                          class="collaborator-item"
+                          [class.pending]="collab.status === 'pending'"
+                          data-testid="collaborator-item">
+                          <div class="collaborator-info">
+                            <div class="collaborator-avatar">
+                              <mat-icon>{{
+                                getRoleIcon(collab.role)
+                              }}</mat-icon>
+                            </div>
+                            <div class="collaborator-details">
+                              <div class="collaborator-header">
+                                <strong>{{ collab.username }}</strong>
+                                @if (collab.name) {
+                                  <span class="collaborator-name">{{
+                                    collab.name
+                                  }}</span>
+                                }
+                                @if (collab.status === 'pending') {
+                                  <span class="status-badge pending"
+                                    >Pending</span
+                                  >
+                                }
+                              </div>
+                              <div class="collaborator-meta">
+                                @if (collab.status === 'accepted') {
+                                  <span
+                                    >Joined
+                                    {{
+                                      collab.acceptedAt | date: 'mediumDate'
+                                    }}</span
+                                  >
+                                } @else {
+                                  <span
+                                    >Invited
+                                    {{
+                                      collab.invitedAt | date: 'mediumDate'
+                                    }}</span
+                                  >
+                                  @if (collab.invitedByUsername) {
+                                    <span
+                                      >by {{ collab.invitedByUsername }}</span
+                                    >
+                                  }
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          <div class="collaborator-actions">
+                            <mat-form-field
+                              appearance="outline"
+                              class="role-select">
+                              <mat-select
+                                [value]="collab.role"
+                                (selectionChange)="
+                                  updateCollaboratorRole(collab, $event.value)
+                                "
+                                data-testid="collaborator-role-select">
+                                @for (opt of roleOptions; track opt.value) {
+                                  <mat-option [value]="opt.value">
+                                    {{ opt.label }}
+                                  </mat-option>
+                                }
+                              </mat-select>
+                            </mat-form-field>
+                            <button
+                              mat-icon-button
+                              color="warn"
+                              [matTooltip]="'Remove ' + collab.username"
+                              (click)="removeCollaborator(collab)"
+                              data-testid="remove-collaborator-button">
+                              <mat-icon>person_remove</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <!-- Invite Form -->
+              @if (showInviteForm()) {
+                <mat-card class="invite-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>person_add</mat-icon>
+                      Invite Collaborator
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="invite-form">
+                      <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Username</mat-label>
+                        <input
+                          matInput
+                          [(ngModel)]="inviteUsername"
+                          placeholder="Enter username to invite"
+                          data-testid="invite-username-input" />
+                        <mat-icon matSuffix>person</mat-icon>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Role</mat-label>
+                        <mat-select
+                          [(ngModel)]="inviteRole"
+                          data-testid="invite-role-select">
+                          @for (opt of roleOptions; track opt.value) {
+                            <mat-option [value]="opt.value">
+                              <div class="role-option">
+                                <span>{{ opt.label }}</span>
+                                <small>{{ opt.description }}</small>
+                              </div>
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+
+                      <div class="form-actions">
+                        <button
+                          mat-button
+                          (click)="toggleInviteForm()"
+                          data-testid="cancel-invite-button">
+                          Cancel
+                        </button>
+                        <button
+                          mat-raised-button
+                          color="primary"
+                          [disabled]="!inviteUsername.trim() || isInviting()"
+                          (click)="inviteCollaborator()"
+                          data-testid="send-invite-button">
+                          @if (isInviting()) {
+                            <mat-progress-spinner
+                              diameter="20"
+                              mode="indeterminate">
+                            </mat-progress-spinner>
+                          } @else {
+                            <ng-container>
+                              <mat-icon>send</mat-icon>
+                              Send Invitation
+                            </ng-container>
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              } @else {
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="toggleInviteForm()"
+                  data-testid="show-invite-form-button">
+                  <mat-icon>person_add</mat-icon>
+                  Invite Collaborator
+                </button>
+              }
+            }
+          } @else {
+            <mat-card class="info-card">
+              <mat-card-content>
+                <div class="info-content">
+                  <mat-icon>info</mat-icon>
+                  <div>Collaboration requires a server connection.</div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </section>
+      </div>
+    }
+
+    <!-- MCP Tab -->
+    @if (selectedTab() === 'mcp') {
       <div class="tab-content">
         <section class="settings-section">
           <h3>
@@ -553,7 +555,23 @@
             access your project via the Model Context Protocol (MCP).
           </p>
 
-          @if (currentMode === 'server') {
+          @if (isAiKillSwitchEnabled()) {
+            <!-- AI features disabled by admin -->
+            <mat-card class="info-card warning">
+              <mat-card-content>
+                <div class="info-content">
+                  <mat-icon>block</mat-icon>
+                  <div>
+                    <strong
+                      >AI features are disabled by the administrator.</strong
+                    >
+                    MCP API keys cannot be used while this setting is active.
+                    Contact your administrator for more information.
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          } @else if (currentMode === 'server') {
             @if (isLoadingKeys()) {
               <div class="loading-state">
                 <mat-progress-spinner diameter="32" mode="indeterminate">
