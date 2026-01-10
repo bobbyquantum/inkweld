@@ -46,9 +46,13 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build docs site (without screenshots)
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Build docs site (with screenshots)
         working-directory: docs/site
-        run: bun run build:no-screenshots
+        run: bun run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
