@@ -275,18 +275,4 @@
       <mat-icon>history</mat-icon>
     </button>
   </div>
-
-  <!-- Spacer -->
-  <div class="toolbar-spacer"></div>
-
-  <!-- Meta Panel Toggle -->
-  <button
-    ngToolbarWidget
-    value="meta-panel"
-    class="meta-panel-toggle-btn"
-    (click)="onMetaPanelToggle()"
-    [matTooltip]="metaPanelOpen ? 'Hide panel' : 'Show panel'"
-    data-testid="meta-panel-toggle">
-    <mat-icon>{{ metaPanelOpen ? 'chevron_right' : 'chevron_left' }}</mat-icon>
-  </button>
 </div>

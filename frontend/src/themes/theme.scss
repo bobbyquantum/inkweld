@@ -557,3 +557,8 @@ body.dark-theme .cdk-overlay-dark-backdrop {
     overflow: hidden;
   }
 }
+
+// Multiline tooltip support for relationship panel
+.multiline-tooltip {
+  white-space: pre-line !important;
+}

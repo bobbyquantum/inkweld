@@ -4,7 +4,15 @@ import {
   AccordionPanel,
   AccordionTrigger,
 } from '@angular/aria/accordion';
-import { Component, computed, inject, input, output } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -54,6 +62,7 @@ interface RelationshipGroup {
     AccordionTrigger,
     AccordionPanel,
     AccordionContent,
+    MatBadgeModule,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
@@ -74,6 +83,9 @@ export class MetaPanelComponent {
 
   /** Event emitted when panel open state changes */
   openChange = output<boolean>();
+
+  /** Whether the panel is expanded (showing full content) vs collapsed (showing icons) */
+  isExpanded = signal(false);
 
   private relationshipService = inject(RelationshipService);
   private projectState = inject(ProjectStateService);
@@ -115,6 +127,17 @@ export class MetaPanelComponent {
       (r: ElementRelationship) => r.targetElementId === targetId
     );
   });
+
+  /** Count of outgoing relationships */
+  outgoingCount = computed(() => this.outgoingRelationships().length);
+
+  /** Count of incoming relationships */
+  incomingCount = computed(() => this.incomingRelationships().length);
+
+  /** Total count of all relationships */
+  totalRelationshipsCount = computed(
+    () => this.outgoingCount() + this.incomingCount()
+  );
 
   /** All relationship types */
   private allTypes = computed(() => this.relationshipService.allTypes());
@@ -297,6 +320,30 @@ export class MetaPanelComponent {
   }
 
   /**
+   * Get enhanced tooltip for a relationship group.
+   * Shows the relationship type label and up to 3 element names,
+   * plus "and X more..." if there are additional elements.
+   */
+  getGroupTooltip(group: RelationshipGroup): string {
+    const maxToShow = 3;
+    const elementNames = group.relationships.slice(0, maxToShow).map(rel => {
+      const targetId = group.isIncoming
+        ? rel.sourceElementId
+        : rel.targetElementId;
+      return this.getElementName(targetId);
+    });
+
+    const remaining = group.relationships.length - maxToShow;
+    let tooltip = `${group.displayLabel}:\n${elementNames.join('\n')}`;
+
+    if (remaining > 0) {
+      tooltip += `\n...and ${remaining} more`;
+    }
+
+    return tooltip;
+  }
+
+  /**
    * Open the add relationship dialog
    */
   openAddRelationshipDialog(): void {
@@ -394,5 +441,32 @@ export class MetaPanelComponent {
     if (this.isOpen()) {
       this.openChange.emit(false);
     }
+  }
+
+  /**
+   * Toggle between expanded and collapsed states
+   */
+  toggleExpanded(): void {
+    this.isExpanded.set(!this.isExpanded());
+  }
+
+  /**
+   * Get a summary text for the relationships tooltip
+   */
+  getRelationshipsSummary(): string {
+    const total = this.totalRelationshipsCount();
+    if (total === 0) {
+      return 'No relationships';
+    }
+    const outgoing = this.outgoingCount();
+    const incoming = this.incomingCount();
+    const parts: string[] = [];
+    if (outgoing > 0) {
+      parts.push(`${outgoing} outgoing`);
+    }
+    if (incoming > 0) {
+      parts.push(`${incoming} incoming`);
+    }
+    return parts.join(', ');
   }
 }

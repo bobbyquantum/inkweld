@@ -97,9 +97,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return element?.name || 'Untitled';
   });
 
-  /** Whether to show the meta panel (relationships + snapshots) */
-  showMetaPanel = signal(false);
-
   /** Currently selected tab index for the aria tabs */
   selectedTabIndex = signal(0);
 

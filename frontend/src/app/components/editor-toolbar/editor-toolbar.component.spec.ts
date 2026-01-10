@@ -291,14 +291,6 @@ describe('EditorToolbarComponent', () => {
     });
   });
 
-  describe('Meta Panel', () => {
-    it('should emit metaPanelToggle when toggle is clicked', () => {
-      const emitSpy = vi.spyOn(component.metaPanelToggle, 'emit');
-      component.onMetaPanelToggle();
-      expect(emitSpy).toHaveBeenCalled();
-    });
-  });
-
   describe('Computed Properties', () => {
     it('should have correct default state', () => {
       expect(component.isBold()).toBe(false);

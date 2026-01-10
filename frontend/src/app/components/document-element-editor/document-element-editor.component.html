@@ -1,6 +1,6 @@
 <!-- Only render when editor exists -->
 @if (editor) {
-  <div class="editor-with-panel" [class.panel-open]="showMetaPanel()">
+  <div class="editor-with-panel">
     <!-- Main editor section -->
     <div class="editor-section" [class.no-tabs]="tabsDisabled">
       <!-- Only show toolbar when not in zen mode -->
@@ -9,9 +9,7 @@
           [editor]="editor"
           [elementId]="documentId"
           [elementName]="elementName()"
-          [metaPanelOpen]="showMetaPanel()"
           [disabled]="!projectState.canWrite()"
-          (metaPanelToggle)="showMetaPanel.set(!showMetaPanel())"
           (tagsClick)="openTagsDialog()"
           (snapshotsClick)="openSnapshotsDialog()">
         </app-editor-toolbar>
@@ -51,15 +49,16 @@
       }
     </div>
 
-    <!-- Meta Panel (Relationships + Snapshots) - at same level as editor section -->
-    <div class="meta-panel-container" [class.open]="showMetaPanel()">
-      <app-meta-panel
-        [documentId]="documentId"
-        [elementId]="null"
-        [isOpen]="showMetaPanel()"
-        (openChange)="showMetaPanel.set($event)">
-      </app-meta-panel>
-    </div>
+    <!-- Meta Panel (Relationships) - always visible, manages its own collapsed/expanded state -->
+    @if (!zenMode) {
+      <div class="meta-panel-container">
+        <app-meta-panel
+          [documentId]="documentId"
+          [elementId]="null"
+          [isOpen]="true">
+        </app-meta-panel>
+      </div>
+    }
   </div>
 
   <!-- Element Reference Popup (@ mentions) -->
