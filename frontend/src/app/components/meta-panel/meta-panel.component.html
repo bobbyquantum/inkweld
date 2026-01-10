@@ -1,119 +1,204 @@
-@if (isOpen()) {
-  <div class="meta-panel">
-    <div class="panel-content">
-      <!-- Add Relationship Button - Always visible at top -->
-      <div class="panel-actions">
+<div
+  class="meta-panel"
+  [class.collapsed]="!isExpanded()"
+  [class.expanded]="isExpanded()">
+  <!-- Collapsed state: show icon badges -->
+  @if (!isExpanded()) {
+    <div class="collapsed-panel">
+      <button
+        mat-icon-button
+        class="expand-toggle"
+        (click)="toggleExpanded()"
+        matTooltip="Expand relationships panel"
+        data-testid="expand-panel-button">
+        <mat-icon fontSet="material-symbols-outlined"
+          >right_panel_open</mat-icon
+        >
+      </button>
+
+      <div class="collapsed-icons">
+        <!-- Per relationship type icons with badge counts -->
+        @for (
+          group of groupedRelationships();
+          track group.type.id + (group.isIncoming ? '-in' : '-out')
+        ) {
+          <button
+            mat-icon-button
+            class="collapsed-icon-button"
+            [class.incoming]="group.isIncoming"
+            (click)="toggleExpanded()"
+            [matTooltip]="getGroupTooltip(group)"
+            matTooltipClass="multiline-tooltip"
+            [attr.data-testid]="
+              'collapsed-type-' +
+              group.type.id +
+              (group.isIncoming ? '-incoming' : '')
+            ">
+            <mat-icon
+              fontSet="material-symbols-outlined"
+              [matBadge]="group.relationships.length"
+              matBadgeSize="large"
+              [matBadgeColor]="group.isIncoming ? 'primary' : 'accent'"
+              >{{ group.type.icon || 'link' }}</mat-icon
+            >
+          </button>
+        } @empty {
+          <!-- Show placeholder when no relationships -->
+          <button
+            mat-icon-button
+            class="collapsed-icon-button placeholder"
+            (click)="toggleExpanded()"
+            matTooltip="No relationships"
+            data-testid="collapsed-no-relationships">
+            <mat-icon>link_off</mat-icon>
+          </button>
+        }
+
+        <!-- Add relationship button in collapsed mode -->
         <button
-          mat-stroked-button
+          mat-icon-button
+          class="collapsed-icon-button add-btn"
           (click)="openAddRelationshipDialog()"
-          class="add-relationship-button"
-          data-testid="add-relationship-button">
-          <mat-icon>add</mat-icon>
-          <span>Add Relationship</span>
+          matTooltip="Add relationship"
+          data-testid="collapsed-add-relationship-button">
+          <mat-icon>add_link</mat-icon>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Expanded state: full panel content -->
+  @if (isExpanded()) {
+    <div class="expanded-panel">
+      <div class="panel-header">
+        <span class="panel-title">Relationships</span>
+        <button
+          mat-icon-button
+          class="collapse-toggle"
+          (click)="toggleExpanded()"
+          matTooltip="Collapse panel"
+          data-testid="collapse-panel-button">
+          <mat-icon fontSet="material-symbols-outlined"
+            >right_panel_close</mat-icon
+          >
         </button>
       </div>
 
-      <!-- ARIA Accordion for relationship groups -->
-      <div
-        ngAccordionGroup
-        class="relationships-accordion"
-        [multiExpandable]="true">
-        @for (group of groupedRelationships(); track getGroupKey(group)) {
-          <div class="accordion-section" [class.incoming]="group.isIncoming">
-            <h3 class="accordion-header">
-              <span
-                ngAccordionTrigger
-                [panelId]="getGroupKey(group)"
-                #trigger="ngAccordionTrigger"
-                [expanded]="true"
-                class="accordion-trigger"
-                data-testid="relationship-type-panel">
-                <span class="trigger-content">
-                  <mat-icon class="section-icon">{{
-                    group.type.icon || 'link'
-                  }}</mat-icon>
-                  <span class="group-label">{{ group.displayLabel }}</span>
-                  <span class="group-count"
-                    >({{ group.relationships.length }})</span
-                  >
+      <div class="panel-content">
+        <!-- Add Relationship Button - Always visible at top -->
+        <div class="panel-actions">
+          <button
+            mat-stroked-button
+            (click)="openAddRelationshipDialog()"
+            class="add-relationship-button"
+            data-testid="add-relationship-button">
+            <mat-icon>add</mat-icon>
+            <span>Add Relationship</span>
+          </button>
+        </div>
+
+        <!-- ARIA Accordion for relationship groups -->
+        <div
+          ngAccordionGroup
+          class="relationships-accordion"
+          [multiExpandable]="true">
+          @for (group of groupedRelationships(); track getGroupKey(group)) {
+            <div class="accordion-section" [class.incoming]="group.isIncoming">
+              <h3 class="accordion-header">
+                <span
+                  ngAccordionTrigger
+                  [panelId]="getGroupKey(group)"
+                  #trigger="ngAccordionTrigger"
+                  [expanded]="true"
+                  class="accordion-trigger"
+                  data-testid="relationship-type-panel">
+                  <span class="trigger-content">
+                    <mat-icon class="section-icon">{{
+                      group.type.icon || 'link'
+                    }}</mat-icon>
+                    <span class="group-label">{{ group.displayLabel }}</span>
+                    <span class="group-count"
+                      >({{ group.relationships.length }})</span
+                    >
+                  </span>
+                  <mat-icon
+                    class="expand-icon"
+                    [class.expanded]="trigger.expanded()">
+                    keyboard_arrow_up
+                  </mat-icon>
                 </span>
-                <mat-icon
-                  class="expand-icon"
-                  [class.expanded]="trigger.expanded()">
-                  keyboard_arrow_up
-                </mat-icon>
-              </span>
-            </h3>
-            <div ngAccordionPanel [panelId]="getGroupKey(group)">
-              <ng-template ngAccordionContent>
-                <ul class="relationships-list" role="list">
-                  @for (rel of group.relationships; track rel.id) {
-                    <li
-                      class="relationship-item"
-                      data-testid="relationship-item"
-                      (mouseenter)="
-                        showTooltipForElement(
-                          group.isIncoming
-                            ? rel.sourceElementId
-                            : rel.targetElementId,
-                          $event
-                        )
-                      "
-                      (mouseleave)="hideTooltip()">
-                      <button
-                        type="button"
-                        class="item-button"
-                        (click)="navigateToElement(rel, group.isIncoming)"
-                        (keydown.enter)="
-                          navigateToElement(rel, group.isIncoming)
-                        ">
-                        <mat-icon class="item-icon">{{
-                          getElementIcon(
+              </h3>
+              <div ngAccordionPanel [panelId]="getGroupKey(group)">
+                <ng-template ngAccordionContent>
+                  <ul class="relationships-list" role="list">
+                    @for (rel of group.relationships; track rel.id) {
+                      <li
+                        class="relationship-item"
+                        data-testid="relationship-item"
+                        (mouseenter)="
+                          showTooltipForElement(
                             group.isIncoming
                               ? rel.sourceElementId
-                              : rel.targetElementId
+                              : rel.targetElementId,
+                            $event
                           )
-                        }}</mat-icon>
-                        <span class="item-name">{{
-                          getElementName(
-                            group.isIncoming
-                              ? rel.sourceElementId
-                              : rel.targetElementId
-                          )
-                        }}</span>
-                      </button>
-                      <button
-                        mat-icon-button
-                        [matMenuTriggerFor]="relationshipMenu"
-                        class="menu-button"
-                        data-testid="relationship-menu-button">
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-                      <mat-menu #relationshipMenu="matMenu">
+                        "
+                        (mouseleave)="hideTooltip()">
                         <button
-                          mat-menu-item
-                          (click)="navigateToElement(rel, group.isIncoming)">
-                          <mat-icon>open_in_new</mat-icon>
-                          <span>Go to element</span>
+                          type="button"
+                          class="item-button"
+                          (click)="navigateToElement(rel, group.isIncoming)"
+                          (keydown.enter)="
+                            navigateToElement(rel, group.isIncoming)
+                          ">
+                          <mat-icon class="item-icon">{{
+                            getElementIcon(
+                              group.isIncoming
+                                ? rel.sourceElementId
+                                : rel.targetElementId
+                            )
+                          }}</mat-icon>
+                          <span class="item-name">{{
+                            getElementName(
+                              group.isIncoming
+                                ? rel.sourceElementId
+                                : rel.targetElementId
+                            )
+                          }}</span>
                         </button>
-                        @if (!group.isIncoming) {
+                        <button
+                          mat-icon-button
+                          [matMenuTriggerFor]="relationshipMenu"
+                          class="menu-button"
+                          data-testid="relationship-menu-button">
+                          <mat-icon>more_vert</mat-icon>
+                        </button>
+                        <mat-menu #relationshipMenu="matMenu">
                           <button
                             mat-menu-item
-                            (click)="deleteRelationship(rel, $event)"
-                            data-testid="delete-relationship-button">
-                            <mat-icon color="warn">delete</mat-icon>
-                            <span>Remove relationship</span>
+                            (click)="navigateToElement(rel, group.isIncoming)">
+                            <mat-icon>open_in_new</mat-icon>
+                            <span>Go to element</span>
                           </button>
-                        }
-                      </mat-menu>
-                    </li>
-                  }
-                </ul>
-              </ng-template>
+                          @if (!group.isIncoming) {
+                            <button
+                              mat-menu-item
+                              (click)="deleteRelationship(rel, $event)"
+                              data-testid="delete-relationship-button">
+                              <mat-icon color="warn">delete</mat-icon>
+                              <span>Remove relationship</span>
+                            </button>
+                          }
+                        </mat-menu>
+                      </li>
+                    }
+                  </ul>
+                </ng-template>
+              </div>
             </div>
-          </div>
-        }
+          }
+        </div>
       </div>
     </div>
-  </div>
-}
+  }
+</div>

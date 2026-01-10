@@ -1,7 +1,4 @@
-<div
-  class="worldbuilding-editor-container"
-  data-testid="worldbuilding-editor"
-  [class.panel-open]="showMetaPanel()">
+<div class="worldbuilding-editor-container" data-testid="worldbuilding-editor">
   <!-- Identity panel (left side on desktop, top on mobile) -->
   <app-identity-panel
     [elementId]="elementId()"
@@ -30,17 +27,6 @@
               matTooltip="Document snapshots"
               data-testid="toolbar-snapshots">
               <mat-icon>history</mat-icon>
-            </button>
-            <button
-              tabBarActions
-              mat-icon-button
-              class="meta-panel-toggle-btn"
-              (click)="showMetaPanel.set(!showMetaPanel())"
-              [matTooltip]="showMetaPanel() ? 'Hide panel' : 'Show panel'"
-              data-testid="meta-panel-toggle">
-              <mat-icon>{{
-                showMetaPanel() ? 'chevron_right' : 'chevron_left'
-              }}</mat-icon>
             </button>
 
             @for (tab of getTabs(); track tab.key) {
@@ -297,13 +283,12 @@
     </div>
   </div>
 
-  <!-- Meta Panel (Relationships + Snapshots) -->
-  <div class="meta-panel-container" [class.open]="showMetaPanel()">
+  <!-- Meta Panel (Relationships) - always visible, manages its own collapsed/expanded state -->
+  <div class="meta-panel-container">
     <app-meta-panel
       [documentId]="elementId()"
       [elementId]="elementId()"
-      [isOpen]="showMetaPanel()"
-      (openChange)="showMetaPanel.set($event)">
+      [isOpen]="true">
     </app-meta-panel>
   </div>
 </div>

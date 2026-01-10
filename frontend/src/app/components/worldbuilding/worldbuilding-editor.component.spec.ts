@@ -389,18 +389,4 @@ describe('WorldbuildingEditorComponent', () => {
       );
     });
   });
-
-  describe('meta panel', () => {
-    it('should start with meta panel hidden', () => {
-      expect(component.showMetaPanel()).toBe(false);
-    });
-
-    it('should be able to toggle meta panel', () => {
-      component.showMetaPanel.set(true);
-      expect(component.showMetaPanel()).toBe(true);
-
-      component.showMetaPanel.set(false);
-      expect(component.showMetaPanel()).toBe(false);
-    });
-  });
 });

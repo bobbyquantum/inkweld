@@ -58,32 +58,15 @@
   margin-bottom: 0 !important; // Remove default 5px margin
 }
 
-// Meta panel toggle button in toolbar
-.meta-panel-toggle-btn {
-  margin-left: auto; // Push to right side of toolbar
-  // Let Material handle color and hover states
-}
-
 // Meta panel container - sibling to editor-section
+// Panel manages its own collapsed/expanded state internally
 .meta-panel-container {
-  width: 0;
-  min-width: 0;
-  max-width: 0;
-  flex-shrink: 0; // Don't shrink, use explicit width
-  border-left: 1px solid transparent;
+  flex-shrink: 0;
+  border-left: 1px solid var(--sys-outline-variant);
   background: var(--sys-surface-container);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: all 200ms ease-out;
-
-  &.open {
-    width: 320px;
-    min-width: 280px;
-    max-width: 380px;
-    border-left-color: var(--sys-outline-variant);
-    overflow-y: auto; // Allow scrolling inside panel
-  }
+  overflow: hidden;
 }
 
 .editor-container {

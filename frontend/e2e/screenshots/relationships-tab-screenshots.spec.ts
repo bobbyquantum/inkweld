@@ -481,14 +481,11 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click(`text="${characterName}"`);
       await page.waitForTimeout(500);
 
-      // Ensure the meta panel is open (relationships are in meta panel)
-      const metaPanelToggle = page.getByTestId('meta-panel-toggle');
-      if (await metaPanelToggle.isVisible().catch(() => false)) {
-        const metaPanel = page.locator('.meta-panel');
-        if (!(await metaPanel.isVisible().catch(() => false))) {
-          await metaPanelToggle.click();
-          await page.waitForTimeout(300);
-        }
+      // Expand the meta panel (panel is always visible but starts collapsed)
+      const expandButton = page.getByTestId('expand-panel-button');
+      if (await expandButton.isVisible().catch(() => false)) {
+        await expandButton.click();
+        await page.waitForTimeout(300);
       }
 
       // Expand the relationships section if not already expanded
@@ -698,14 +695,11 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="Lord Aldric Stormwind"');
       await page.waitForTimeout(500);
 
-      // Ensure the meta panel is open
-      const metaPanelToggle = page.getByTestId('meta-panel-toggle');
-      if (await metaPanelToggle.isVisible().catch(() => false)) {
-        const metaPanel = page.locator('.meta-panel');
-        if (!(await metaPanel.isVisible().catch(() => false))) {
-          await metaPanelToggle.click();
-          await page.waitForTimeout(300);
-        }
+      // Expand the meta panel (panel is always visible but starts collapsed)
+      const expandButton = page.getByTestId('expand-panel-button');
+      if (await expandButton.isVisible().catch(() => false)) {
+        await expandButton.click();
+        await page.waitForTimeout(300);
       }
 
       // Click "Add Relationship" button (in the meta panel, not in dialog)
@@ -823,14 +817,11 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="Hero Knight"');
       await page.waitForTimeout(500);
 
-      // Ensure the meta panel is open
-      const metaPanelToggle = page.getByTestId('meta-panel-toggle');
-      if (await metaPanelToggle.isVisible().catch(() => false)) {
-        const metaPanel = page.locator('.meta-panel');
-        if (!(await metaPanel.isVisible().catch(() => false))) {
-          await metaPanelToggle.click();
-          await page.waitForTimeout(300);
-        }
+      // Expand the meta panel (panel is always visible but starts collapsed)
+      const expandButton = page.getByTestId('expand-panel-button');
+      if (await expandButton.isVisible().catch(() => false)) {
+        await expandButton.click();
+        await page.waitForTimeout(300);
       }
 
       // Helper to add a relationship
@@ -948,14 +939,11 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="King Aldric"');
       await page.waitForTimeout(500);
 
-      // Ensure meta panel is open
-      const metaPanelToggle = page.getByTestId('meta-panel-toggle');
-      if (await metaPanelToggle.isVisible().catch(() => false)) {
-        const metaPanel = page.locator('.meta-panel');
-        if (!(await metaPanel.isVisible().catch(() => false))) {
-          await metaPanelToggle.click();
-          await page.waitForTimeout(300);
-        }
+      // Expand the meta panel (panel is always visible but starts collapsed)
+      const expandButton = page.getByTestId('expand-panel-button');
+      if (await expandButton.isVisible().catch(() => false)) {
+        await expandButton.click();
+        await page.waitForTimeout(300);
       }
 
       // Add parent relationship

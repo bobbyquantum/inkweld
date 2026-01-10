@@ -29,7 +29,7 @@ describe('MetaPanelComponent', () => {
   let relationshipServiceMock: {
     relationships: ReturnType<typeof signal>;
     customRelationshipTypes: ReturnType<typeof signal>;
-    allTypes: ReturnType<typeof vi.fn>;
+    allTypes: ReturnType<typeof signal>;
     deleteRelationship: ReturnType<typeof vi.fn>;
     addRelationship: ReturnType<typeof vi.fn>;
     removeRelationship: ReturnType<typeof vi.fn>;
@@ -39,7 +39,7 @@ describe('MetaPanelComponent', () => {
     relationshipServiceMock = {
       relationships: signal([]),
       customRelationshipTypes: signal([]),
-      allTypes: vi.fn().mockReturnValue([]),
+      allTypes: signal<RelationshipTypeDefinition[]>([]),
       deleteRelationship: vi.fn(),
       addRelationship: vi.fn(),
       removeRelationship: vi.fn(),
@@ -211,7 +211,7 @@ describe('MetaPanelComponent', () => {
           relationshipTypeId: 'parent',
         },
       ]);
-      relationshipServiceMock.allTypes.mockReturnValue([
+      relationshipServiceMock.allTypes.set([
         {
           id: 'parent',
           name: 'Parent',
@@ -243,7 +243,7 @@ describe('MetaPanelComponent', () => {
           relationshipTypeId: 'parent',
         },
       ]);
-      relationshipServiceMock.allTypes.mockReturnValue([
+      relationshipServiceMock.allTypes.set([
         {
           id: 'parent',
           name: 'Parent',
@@ -273,7 +273,7 @@ describe('MetaPanelComponent', () => {
           relationshipTypeId: 'brother',
         },
       ]);
-      relationshipServiceMock.allTypes.mockReturnValue([
+      relationshipServiceMock.allTypes.set([
         {
           id: 'brother',
           name: 'Brother',
@@ -466,7 +466,7 @@ describe('MetaPanelComponent', () => {
 
   describe('openAddRelationshipDialog', () => {
     it('should open the add relationship dialog', () => {
-      relationshipServiceMock.allTypes.mockReturnValue([
+      relationshipServiceMock.allTypes.set([
         {
           id: 'parent',
           name: 'Parent',
@@ -494,7 +494,7 @@ describe('MetaPanelComponent', () => {
       dialogMock.open.mockReturnValue({
         afterClosed: () => of(dialogResult),
       });
-      relationshipServiceMock.allTypes.mockReturnValue([]);
+      relationshipServiceMock.allTypes.set([]);
       fixture.detectChanges();
 
       component.openAddRelationshipDialog();
@@ -511,7 +511,7 @@ describe('MetaPanelComponent', () => {
       dialogMock.open.mockReturnValue({
         afterClosed: () => of(null),
       });
-      relationshipServiceMock.allTypes.mockReturnValue([]);
+      relationshipServiceMock.allTypes.set([]);
       fixture.detectChanges();
 
       component.openAddRelationshipDialog();
@@ -576,6 +576,102 @@ describe('MetaPanelComponent', () => {
       component.showTooltipForElement('non-existent', mockEvent);
 
       expect(elementRefServiceMock.showTooltip).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('collapsed/expanded state', () => {
+    it('should start in collapsed state', () => {
+      expect(component.isExpanded()).toBe(false);
+    });
+
+    it('should toggle expanded state', () => {
+      component.toggleExpanded();
+      expect(component.isExpanded()).toBe(true);
+
+      component.toggleExpanded();
+      expect(component.isExpanded()).toBe(false);
+    });
+
+    it('should provide total relationships count', () => {
+      relationshipServiceMock.relationships.set([
+        {
+          id: 'rel-1',
+          sourceElementId: 'test-doc-id',
+          targetElementId: 'other-1',
+          relationshipTypeId: 'related_to',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'rel-2',
+          sourceElementId: 'test-doc-id',
+          targetElementId: 'other-2',
+          relationshipTypeId: 'related_to',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'rel-3',
+          sourceElementId: 'other-3',
+          targetElementId: 'test-doc-id',
+          relationshipTypeId: 'related_to',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      fixture.detectChanges();
+
+      expect(component.outgoingCount()).toBe(2);
+      expect(component.incomingCount()).toBe(1);
+      expect(component.totalRelationshipsCount()).toBe(3);
+    });
+
+    it('should provide relationships summary', () => {
+      relationshipServiceMock.relationships.set([]);
+      fixture.detectChanges();
+      expect(component.getRelationshipsSummary()).toBe('No relationships');
+
+      relationshipServiceMock.relationships.set([
+        {
+          id: 'rel-1',
+          sourceElementId: 'test-doc-id',
+          targetElementId: 'other-1',
+          relationshipTypeId: 'related_to',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      fixture.detectChanges();
+      expect(component.getRelationshipsSummary()).toBe('1 outgoing');
+
+      relationshipServiceMock.relationships.set([
+        {
+          id: 'rel-1',
+          sourceElementId: 'other-1',
+          targetElementId: 'test-doc-id',
+          relationshipTypeId: 'related_to',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      fixture.detectChanges();
+      expect(component.getRelationshipsSummary()).toBe('1 incoming');
+
+      relationshipServiceMock.relationships.set([
+        {
+          id: 'rel-1',
+          sourceElementId: 'test-doc-id',
+          targetElementId: 'other-1',
+          relationshipTypeId: 'related_to',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'rel-2',
+          sourceElementId: 'other-2',
+          targetElementId: 'test-doc-id',
+          relationshipTypeId: 'related_to',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      fixture.detectChanges();
+      expect(component.getRelationshipsSummary()).toBe(
+        '1 outgoing, 1 incoming'
+      );
     });
   });
 });

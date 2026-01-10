@@ -42,10 +42,10 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
-    // Open the meta panel to see relationships
-    const metaPanelToggle = page.getByTestId('meta-panel-toggle');
-    await expect(metaPanelToggle).toBeVisible();
-    await metaPanelToggle.click();
+    // Expand the meta panel to see relationships (panel starts collapsed)
+    const expandPanelButton = page.getByTestId('expand-panel-button');
+    await expect(expandPanelButton).toBeVisible();
+    await expandPanelButton.click();
 
     // Check that the meta panel is visible and has relationship panels
     // Elara has: friend with Theron, originated-from Cloudspire, colleague with Mira, located-in Thornwood
@@ -373,10 +373,10 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
-    // Open the meta panel to see relationships
-    const metaPanelToggle = page.getByTestId('meta-panel-toggle');
-    await expect(metaPanelToggle).toBeVisible();
-    await metaPanelToggle.click();
+    // Expand the meta panel to see relationships (panel starts collapsed)
+    const expandPanelButton = page.getByTestId('expand-panel-button');
+    await expect(expandPanelButton).toBeVisible();
+    await expandPanelButton.click();
 
     const metaPanel = page.locator('app-meta-panel');
     await expect(metaPanel).toBeVisible();

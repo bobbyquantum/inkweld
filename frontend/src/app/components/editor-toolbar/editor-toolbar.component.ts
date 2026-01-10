@@ -77,17 +77,11 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Whether all editing actions should be disabled (read-only mode) */
   @Input() disabled = false;
 
-  /** Emitted when the meta panel toggle is clicked */
-  @Output() metaPanelToggle = new EventEmitter<void>();
-
   /** Emitted when the tags button is clicked */
   @Output() tagsClick = new EventEmitter<void>();
 
   /** Emitted when the snapshots button is clicked */
   @Output() snapshotsClick = new EventEmitter<void>();
-
-  /** Whether the meta panel is currently open (for icon state) */
-  @Input() metaPanelOpen = false;
 
   /** Signal for tracking the current selection state */
   private selectionState = signal({
@@ -640,13 +634,6 @@ export class EditorToolbarComponent implements OnDestroy {
     const { from, to } = selection;
     dispatch(state.tr.removeMark(from, to, linkMark));
     this.refocusEditor();
-  }
-
-  // ========== Meta Panel Toggle ==========
-
-  /** Toggle the meta panel */
-  onMetaPanelToggle(): void {
-    this.metaPanelToggle.emit();
   }
 
   // ========== Tags ==========

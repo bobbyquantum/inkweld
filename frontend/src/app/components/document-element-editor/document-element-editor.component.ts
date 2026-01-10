@@ -103,9 +103,6 @@ export class DocumentElementEditorComponent
   @Input() zenMode = false;
   @Input() tabsDisabled = false;
 
-  /** Whether to show the meta panel (relationships + snapshots) */
-  showMetaPanel = signal(false);
-
   /** Context menu data for element references */
   contextMenuData = signal<ElementRefContextData | null>(null);
 
