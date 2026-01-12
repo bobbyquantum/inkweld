@@ -3,9 +3,11 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { User } from '@inkweld/index';
+import { AnnouncementService } from '@services/announcement/announcement.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { UserService } from '@services/user/user.service';
 import { ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
@@ -75,6 +77,26 @@ describe('UserMenuComponent', () => {
         { provide: SetupService, useValue: setupServiceMock },
         { provide: ThemeService, useValue: themeServiceMock },
         { provide: ActivatedRoute, useValue: activatedRouteMock },
+        // Mock UserService to prevent IndexedDB initialization in constructor
+        {
+          provide: UserService,
+          useValue: {
+            currentUser: signal(mockUser),
+            isLoading: signal(false),
+            isAuthenticated: signal(true),
+            initialized: signal(true),
+            error: signal(undefined),
+          },
+        },
+        // Mock AnnouncementService to prevent API calls
+        {
+          provide: AnnouncementService,
+          useValue: {
+            unreadCount: signal(0),
+            announcements: signal([]),
+            isLoading: signal(false),
+          },
+        },
       ],
     }).compileComponents();
 
