@@ -95,6 +95,7 @@ describe('UserMenuComponent', () => {
             unreadCount: signal(0),
             announcements: signal([]),
             isLoading: signal(false),
+            loadUnreadCount: vi.fn().mockResolvedValue(undefined),
           },
         },
       ],
