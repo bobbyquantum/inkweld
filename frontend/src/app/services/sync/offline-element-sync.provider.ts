@@ -66,6 +66,10 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     ProjectMeta | undefined
   >(undefined);
   private readonly errorsSubject = new Subject<string>();
+  // In offline mode, there are no connection errors (we're always local)
+  private readonly lastConnectionErrorSubject = new BehaviorSubject<
+    string | null
+  >(null);
 
   // Public observables
   readonly syncState$: Observable<DocumentSyncState> =
@@ -87,6 +91,8 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
   readonly projectMeta$: Observable<ProjectMeta | undefined> =
     this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
+  readonly lastConnectionError$: Observable<string | null> =
+    this.lastConnectionErrorSubject.asObservable();
 
   /**
    * Connect to offline storage for a project.

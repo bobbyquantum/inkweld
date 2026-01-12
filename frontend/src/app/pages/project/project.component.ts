@@ -103,6 +103,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Current project sync state - exposed for connection status display */
   protected readonly projectSyncState = this.projectState.getSyncState;
+  /** Last connection error - shown in tooltip when sync fails */
+  protected readonly lastConnectionError =
+    this.projectState.getLastConnectionError;
 
   // Define a consistent breakpoint value for the application
   private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';

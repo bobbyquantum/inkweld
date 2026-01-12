@@ -342,6 +342,10 @@ test.describe('Worldbuilding Snapshots', () => {
       'A beautiful mountain village nestled in the Alps.'
     );
 
+    // Wait for debounce to complete and data to sync to Yjs Map
+    // The worldbuilding editor has a 500ms debounce before saving
+    await page.waitForTimeout(600);
+
     // Open snapshots dialog and create a snapshot
     await page.getByTestId('toolbar-snapshots').click();
     await expect(page.getByTestId('create-snapshot-btn')).toBeVisible();
@@ -377,6 +381,9 @@ test.describe('Worldbuilding Snapshots', () => {
 
     // Verify content changed
     await expect(summaryField).toHaveValue('A destroyed wasteland.');
+
+    // Wait for debounce to complete so the change is persisted before restore
+    await page.waitForTimeout(600);
 
     // Open snapshots dialog and restore
     await page.getByTestId('toolbar-snapshots').click();

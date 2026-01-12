@@ -11,6 +11,7 @@ export interface MockUserDto {
   name: string;
   roles?: string[];
   isAdmin?: boolean;
+  hasAvatar?: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ class MockUsers {
       name: 'Test User',
       roles: ['admin'],
       isAdmin: true, // Give testuser admin role for screenshot tests
+      hasAvatar: false,
     },
     {
       id: '2',
@@ -32,6 +34,7 @@ class MockUsers {
       name: 'Admin User',
       roles: ['admin'],
       isAdmin: true,
+      hasAvatar: false,
     },
   ];
 

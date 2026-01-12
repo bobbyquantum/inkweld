@@ -646,4 +646,4 @@ Consider:
 - Review [API documentation](/api)
 - Read [deployment guide](../installation/docker)
 - Check the [user guide](../user-guide/projects)
-- Explore the [features](../features)
+- Explore the [features](/features)

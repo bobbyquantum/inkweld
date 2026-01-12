@@ -235,6 +235,9 @@ export class ConnectionStatusComponent {
   /** Whether to show collapsed (icon-only) mode */
   collapsed = input<boolean>(false);
 
+  /** Last connection error message (shown in retry button tooltip) */
+  lastError = input<string | null>(null);
+
   /** Event emitted when user clicks retry sync */
   syncRequested = output<void>();
 
@@ -291,26 +294,35 @@ export class ConnectionStatusComponent {
     }
   });
 
-  /** Get tooltip text for sync status row */
+  /** Get tooltip text for sync status row - includes last error when offline */
   syncTooltip = computed(() => {
+    const error = this.lastError();
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
         return 'Project is synced with server';
       case DocumentSyncState.Syncing:
         return 'Connecting to server...';
       case DocumentSyncState.Offline:
-        return 'Working offline - changes saved locally';
+        return error
+          ? `Working offline (Last error: ${error})`
+          : 'Working offline - changes saved locally';
       case DocumentSyncState.Unavailable:
-        return 'Unable to connect to server';
+        return error
+          ? `Connection failed: ${error}`
+          : 'Unable to connect to server';
       default:
         return '';
     }
   });
 
-  /** Get tooltip for the retry button */
+  /** Get tooltip for the retry button - includes last error if available */
   retryButtonTooltip = computed(() => {
     if (this.isConnecting()) {
       return 'Connecting to server...';
+    }
+    const error = this.lastError();
+    if (error) {
+      return `Retry sync (Last error: ${error})`;
     }
     return 'Retry sync';
   });

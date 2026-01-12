@@ -1,7 +1,7 @@
 ---
 id: element-references
 title: Element References (@mentions)
-description: Link your story elements together with @mentions for characters, locations, and more.
+description: Link your story elements together with @mentions to create a navigable web of worldbuilding connections.
 sidebar_position: 2
 ---
 
@@ -9,7 +9,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 
 # Element References
 
-Element references let you create links between your story content. Use the `@` symbol to reference characters, locations, items, and other elements from anywhere in your project.
+Element references let you create links between your story content. Use the `@` symbol to reference any worldbuilding element from anywhere in your project.
 
 ## Quick Start
 
@@ -25,20 +25,20 @@ Element references let you create links between your story content. Use the `@` 
 
 ## Why Use Element References?
 
-### Track Character Appearances
+### Track Element Appearances
 
-See everywhere a character is mentioned across your entire project. The **Relationships Panel** shows:
+See everywhere an element is mentioned across your entire project. The **Relationships Panel** shows:
 
 - **References**: Elements this document links to
 - **Backlinks**: Other documents that reference this element
 
 ### Navigate Your World
 
-Click any element reference to jump directly to that character sheet, location page, or item entry. Build a web of interconnected worldbuilding.
+Click any element reference to jump directly to that element's page. Build a web of interconnected worldbuilding.
 
 ### Maintain Consistency
 
-When you hover over an element reference, a tooltip shows key information about that element. Quickly verify character names, location details, or item properties without leaving your current document.
+When you hover over an element reference, a tooltip shows key information about that element. Quickly verify details without leaving your current document.
 
 <ThemedImage
   src="/img/features/element-ref-04-tooltip"
@@ -51,13 +51,13 @@ When you hover over an element reference, a tooltip shows key information about 
 
 The popup shows your most recent/relevant elements by default. Start typing to filter:
 
-- Type `@Elena` to find characters named Elena
-- Type `@Tavern` to find locations containing "Tavern"
+- Type `@Elena` to find elements named Elena
+- Type `@Tavern` to find elements containing "Tavern"
 - Results are ranked by relevance and recency
 
 <ThemedImage
   src="/img/features/element-ref-character-search"
-  alt="Searching for a character"
+  alt="Searching for an element"
 />
 
 ### Keyboard Navigation
@@ -71,16 +71,13 @@ The popup shows your most recent/relevant elements by default. Start typing to f
 
 ### Element Types
 
-The popup shows icons indicating element type:
+The popup shows icons based on the element's template. Common examples:
 
-| Icon | Element Type        |
-| ---- | ------------------- |
-| 📄   | Document            |
-| 📁   | Folder              |
-| 👤   | Character           |
-| 📍   | Location            |
-| 📦   | Item                |
-| ✨   | Worldbuilding entry |
+| Icon | Element Type (Template) |
+| ---- | ----------------------- |
+| 📄   | Document                |
+| 📁   | Folder                  |
+| ✨   | Worldbuilding entry     |
 
 ## Editing References
 
@@ -117,7 +114,7 @@ Elements that this document mentions. Click any reference to navigate to that el
 
 ### Backlinks (Incoming)
 
-Other documents that reference the current element. Great for finding all scenes where a character appears.
+Other documents that reference the current element. Great for finding all scenes where an element appears.
 
 ### Hover for Preview
 
@@ -127,7 +124,7 @@ Hover over any item in the Relationships Panel to see a preview tooltip with ele
 
 ### Create Elements First
 
-Before writing a scene, create your characters and locations as worldbuilding entries. This makes them searchable via `@` mentions.
+Before writing a scene, create your worldbuilding elements. This makes them searchable via `@` mentions.
 
 ### Use Consistent Names
 
@@ -148,9 +145,9 @@ Use display text to match your narrative voice:
 
 Use backlinks to ensure consistency:
 
-1. Open a character's page
+1. Open an element's page
 2. Check the Relationships Panel
-3. Review all scenes where they appear
+3. Review all scenes where it appears
 
 ## Troubleshooting
 
@@ -164,7 +161,7 @@ Use backlinks to ensure consistency:
 
 - Check the element exists in your project tree
 - Try searching by partial name
-- Verify the element type (character vs. location)
+- Verify the element type and name
 
 ### Reference Not Clickable
 

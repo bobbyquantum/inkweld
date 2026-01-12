@@ -31,7 +31,7 @@ function HomepageHeader(): ReactNode {
               </Link>
               <Link
                 className="button button--outline button--lg"
-                to="/docs/features"
+                to="/features"
               >
                 Explore Features
               </Link>

@@ -32,7 +32,7 @@ Organize your work with folders:
 Create different types of documents:
 
 - **Text documents** - For chapters, scenes, and prose
-- **Worldbuilding entries** - For characters, locations, and lore
+- **Worldbuilding entries** - Structured elements for your story world
 - **Notes** - For research, outlines, and planning
 
 ## Editing Documents
@@ -64,42 +64,40 @@ When collaborators are editing:
 - **Conflict-free editing** - write simultaneously without issues
 - **User indicators** show who's currently active
 
-## Worldbuilding
+## Worldbuilding Elements
 
-### Creating Character Profiles
+Inkweld uses a flexible **element system** for worldbuilding. Elements are structured entries that you define to match your story's needs—characters, locations, factions, items, magic systems, or anything else your world requires.
+
+### Creating Elements
 
 1. Right-click in your project tree
 2. Select **"New Worldbuilding Entry"**
-3. Choose **"Character"** template
-4. Fill in details:
-   - Name and aliases
-   - Physical description
-   - Personality traits
-   - Backstory and motivations
-   - Relationships with other characters
+3. Choose a template or create a new one
+4. Fill in the structured fields
 
 :::tip Element References
-Once you've created characters and locations, use `@` mentions in your documents to link to them. See [Element References](./element-references) for details.
+Once you've created elements, use `@` mentions in your documents to link to them. See [Element References](./element-references) for details.
 :::
 
-### Location Entries
+### Templates
 
-Document your story's settings:
+Every worldbuilding element uses a template that defines its structure. Templates are fully customizable:
 
-- **Name and type** (city, building, region)
-- **Description** - Visual details and atmosphere
-- **History** - Past events that shaped the location
-- **Notable features** - Landmarks or important elements
-- **Connected locations** - Links to nearby places
-
-### Custom Templates
-
-Create your own worldbuilding schemas:
-
-1. Go to **Project Settings**
-2. Click **"Worldbuilding Templates"**
-3. Define custom fields and sections
+1. Go to **Project Settings** → **Templates**
+2. Click **"Create Template"**
+3. Define custom tabs and fields
 4. Use your template for new entries
+
+Examples of templates you might create:
+
+- **Character** - Names, descriptions, personality, backstory
+- **Location** - Settings with descriptions, history, notable features
+- **Faction** - Organizations, governments, or groups
+- **Item** - Artifacts, weapons, or magical objects
+- **Event** - Historical moments or timeline entries
+- **Species** - Races, creatures, or beings in your world
+
+Inkweld includes a few demo templates to help you get started, but you can modify these or create entirely new ones to match your story's unique needs.
 
 ## Offline Work
 
@@ -197,13 +195,16 @@ For simple exports without creating a plan:
 ### Worldbuilding Organization
 
 ```
-📁 Characters
+📁 People
   📄 Protagonist
   📄 Antagonist
   📁 Supporting Cast
-📁 Locations
+📁 Places
   📄 Main City
   📄 Wilderness
+📁 Factions
+  📄 The Guild
+  📄 The Empire
 📁 Timeline
   📄 Past Events
   📄 Story Timeline
@@ -211,6 +212,6 @@ For simple exports without creating a plan:
 
 ## Next Steps
 
-- Explore [all features](../features) in depth
+- Explore [all features](/features) in depth
 - Learn about [deployment](../installation/docker) for production
 - Check the [developer guide](../developer/architecture) for customization

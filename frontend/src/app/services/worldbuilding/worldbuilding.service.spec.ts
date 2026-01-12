@@ -80,6 +80,9 @@ function createMockSyncProvider(): IElementSyncProvider & {
     customTags$: customTagsSubject.asObservable(),
     projectMeta$: projectMetaSubject.asObservable(),
     errors$: new BehaviorSubject<string>('').asObservable(),
+    lastConnectionError$: new BehaviorSubject<string | null>(
+      null
+    ).asObservable(),
   };
 }
 

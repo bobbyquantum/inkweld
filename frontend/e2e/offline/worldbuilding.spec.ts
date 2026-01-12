@@ -9,6 +9,68 @@ import { expect, test } from './fixtures';
  */
 
 test.describe('Worldbuilding Templates', () => {
+  test('should create a new template from scratch via Create Template button', async ({
+    offlinePageWithProject: page,
+  }) => {
+    // Navigate to project
+    await page.getByTestId('project-card').first().click();
+    await expect(page).toHaveURL(/\/.+\/.+/);
+
+    // Create a character element to initialize templates
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-character-v1').click();
+    await page.getByTestId('element-name-input').fill('Test Character');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.getByTestId('element-Test Character')).toBeVisible();
+
+    // Navigate to Settings > Element Templates
+    const settingsButton = page.getByTestId('sidebar-settings-button');
+    await expect(settingsButton).toBeVisible();
+    await settingsButton.click();
+    await page.waitForURL(/\/settings$/);
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
+    await page.getByRole('tab', { name: 'Element Templates' }).click();
+    await expect(page.getByTestId('template-card').first()).toBeVisible();
+
+    // Click the Create Template button
+    await page.getByTestId('create-template-button').click();
+
+    // Wait for template editor dialog to appear
+    await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
+
+    // Fill in template details using data-testid attributes
+    const nameInput = page.getByTestId('template-name-input');
+    await nameInput.clear();
+    await nameInput.fill('Custom Event');
+
+    // Icon is a mat-select, so we need to click it and select an option
+    // Use 'star' which is one of the available icons
+    const iconSelect = page.getByTestId('template-icon-input');
+    await iconSelect.click();
+    await page.getByRole('option', { name: /star/ }).click();
+
+    // Fill in description
+    const descriptionInput = page.getByTestId('template-description-input');
+    await descriptionInput.fill('Template for story events');
+
+    // Save the template
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Wait for dialog to close
+    await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
+
+    // Verify the new template appears in the list
+    await expect(
+      page.getByTestId('template-card').filter({ hasText: 'Custom Event' })
+    ).toBeVisible();
+
+    // Verify it shows as Custom (not Built-in)
+    const customEventCard = page
+      .getByTestId('template-card')
+      .filter({ hasText: 'Custom Event' });
+    await expect(customEventCard.locator('.custom-chip')).toBeVisible();
+  });
+
   test('should create, clone and delete custom templates from Templates tab', async ({
     offlinePageWithProject: page,
   }) => {

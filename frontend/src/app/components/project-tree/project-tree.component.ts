@@ -591,6 +591,14 @@ export class ProjectTreeComponent implements OnDestroy {
   }
 
   /**
+   * Creates a new element inside a specific folder (from context menu).
+   */
+  public onCreateNewElementInFolder(folder: ProjectElement): void {
+    // ProjectElement extends Element, so we can pass it directly
+    this.projectStateService.showNewElementDialog(folder);
+  }
+
+  /**
    * Creates a new document with context awareness.
    * If a folder is selected, creates inside it.
    * If an item is selected, creates at the same level.

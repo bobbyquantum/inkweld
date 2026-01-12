@@ -24,7 +24,7 @@ const FeatureList: FeatureItem[] = [
       </>
     ),
     linkLabel: 'Learn about collaboration →',
-    href: '/docs/features',
+    href: '/features',
   },
   {
     title: 'Self-Hosted & Private',
@@ -50,7 +50,7 @@ const FeatureList: FeatureItem[] = [
       </>
     ),
     linkLabel: 'Explore features →',
-    href: '/docs/features',
+    href: '/features',
   },
 ];
 
