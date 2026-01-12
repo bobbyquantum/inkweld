@@ -63,6 +63,7 @@ describe('TemplatesTabComponent', () => {
       getAllSchemas: vi.fn(),
       getSchema: vi.fn(),
       saveSchemasToLibrary: vi.fn(),
+      saveSchemaToLibrary: vi.fn(),
       cloneTemplate: vi.fn(),
       deleteTemplate: vi.fn(),
       updateTemplate: vi.fn(),
@@ -497,6 +498,88 @@ describe('TemplatesTabComponent', () => {
       ]);
 
       expect(component.hasTemplates()).toBe(true);
+    });
+  });
+
+  describe('createTemplate', () => {
+    it('should create a new template successfully', async () => {
+      mockProjectState.project.set(mockProject);
+
+      const createdSchema = {
+        id: 'custom-123',
+        name: 'My New Template',
+        icon: 'star',
+        description: 'A custom template',
+        version: 1,
+        isBuiltIn: false,
+        tabs: [],
+      };
+
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(createdSchema),
+      });
+
+      mockWorldbuildingService.saveSchemaToLibrary.mockReturnValue(undefined);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+
+      await component.createTemplate();
+
+      expect(mockDialog.open).toHaveBeenCalled();
+      expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
+        createdSchema
+      );
+    });
+
+    it('should not create template without project', async () => {
+      mockProjectState.project.set(null);
+
+      await component.createTemplate();
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should handle cancelled dialog', async () => {
+      mockProjectState.project.set(mockProject);
+
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(null),
+      });
+
+      await component.createTemplate();
+
+      expect(
+        mockWorldbuildingService.saveSchemaToLibrary
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should handle create errors', async () => {
+      mockProjectState.project.set(mockProject);
+
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      const createdSchema = {
+        id: 'custom-123',
+        name: 'My New Template',
+        icon: 'star',
+        tabs: [],
+      };
+
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(createdSchema),
+      });
+
+      mockWorldbuildingService.saveSchemaToLibrary.mockImplementation(() => {
+        throw new Error('Save failed');
+      });
+
+      await component.createTemplate();
+
+      // The component catches the error and logs it
+      expect(consoleErrorSpy).toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });

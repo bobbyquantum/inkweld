@@ -210,4 +210,44 @@ describe('ConnectionStatusComponent', () => {
       expect(mediaText?.textContent?.trim()).toBe('Media synced');
     });
   });
+
+  describe('lastError tooltip display', () => {
+    it('should include last error in retry button tooltip when offline', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('lastError', 'Connection refused');
+      await fixture.whenStable();
+
+      expect(component.retryButtonTooltip()).toBe(
+        'Retry sync (Last error: Connection refused)'
+      );
+    });
+
+    it('should show simple tooltip when no error', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('lastError', null);
+      await fixture.whenStable();
+
+      expect(component.retryButtonTooltip()).toBe('Retry sync');
+    });
+
+    it('should include last error in sync tooltip when collapsed and offline', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('collapsed', true);
+      fixture.componentRef.setInput('lastError', 'WebSocket error');
+      await fixture.whenStable();
+
+      expect(component.syncTooltip()).toContain('Last error: WebSocket error');
+    });
+
+    it('should include last error in sync tooltip when collapsed and unavailable', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Unavailable);
+      fixture.componentRef.setInput('collapsed', true);
+      fixture.componentRef.setInput('lastError', 'Server unreachable');
+      await fixture.whenStable();
+
+      expect(component.syncTooltip()).toBe(
+        'Connection failed: Server unreachable'
+      );
+    });
+  });
 });

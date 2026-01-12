@@ -1,0 +1,9 @@
+{
+  "label": "Settings",
+  "position": 9,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Configure your personal preferences and project settings."
+  }
+}

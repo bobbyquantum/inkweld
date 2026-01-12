@@ -130,6 +130,12 @@
       opacity: 0.7;
     }
   }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }
 
 /* Templates Grid */

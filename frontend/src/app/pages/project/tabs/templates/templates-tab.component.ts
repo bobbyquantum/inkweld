@@ -154,6 +154,82 @@ export class TemplatesTabComponent {
   }
 
   /**
+   * Create a new template from scratch
+   */
+  async createTemplate(): Promise<void> {
+    const project = this.project();
+    if (!project) {
+      return;
+    }
+
+    try {
+      // Create a blank starter schema
+      const timestamp = Date.now();
+      const newSchema: ElementTypeSchema = {
+        id: `custom-${timestamp}`,
+        name: 'New Template',
+        icon: 'article',
+        description: '',
+        version: 1,
+        isBuiltIn: false,
+        tabs: [
+          {
+            key: 'general',
+            label: 'General',
+            fields: [
+              {
+                key: 'name',
+                label: 'Name',
+                type: 'text',
+              },
+              {
+                key: 'description',
+                label: 'Description',
+                type: 'textarea',
+              },
+            ],
+          },
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Open editor dialog with the starter schema
+      const dialogData: TemplateEditorDialogData = { schema: newSchema };
+      const dialogRef = this.dialog.open(TemplateEditorDialogComponent, {
+        width: '900px',
+        maxWidth: '95vw',
+        maxHeight: '90vh',
+        data: dialogData,
+        disableClose: true,
+      });
+
+      const result = (await firstValueFrom(dialogRef.afterClosed())) as
+        | ElementTypeSchema
+        | null
+        | undefined;
+
+      if (result) {
+        // Save the new template
+        this.worldbuildingService.saveSchemaToLibrary(result);
+
+        this.snackBar.open(`✓ Template "${result.name}" created`, 'Close', {
+          duration: 3000,
+        });
+
+        // Wait for sync then reload
+        await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
+        this.loadTemplates();
+      }
+    } catch (err) {
+      console.error('[TemplatesTab] Error creating template:', err);
+      this.snackBar.open('Failed to create template', 'Close', {
+        duration: 5000,
+      });
+    }
+  }
+
+  /**
    * Clone a template (creates a custom copy)
    */
   async cloneTemplate(template: TemplateSchema): Promise<void> {

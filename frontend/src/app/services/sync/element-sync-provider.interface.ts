@@ -117,6 +117,12 @@ export interface IElementSyncProvider {
    */
   errors$: Observable<string>;
 
+  /**
+   * Observable of the last connection error message.
+   * Useful for displaying in tooltips. Null when no error or after successful connection.
+   */
+  lastConnectionError$: Observable<string | null>;
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Publish Plans
   // ─────────────────────────────────────────────────────────────────────────────

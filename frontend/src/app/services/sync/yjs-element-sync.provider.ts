@@ -100,6 +100,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     ProjectMeta | undefined
   >(undefined);
   private readonly errorsSubject = new Subject<string>();
+  private readonly lastConnectionErrorSubject = new BehaviorSubject<
+    string | null
+  >(null);
 
   // Flag to skip observer emission during local updates (prevents feedback loop)
   private isUpdatingProjectMeta = false;
@@ -124,6 +127,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   readonly projectMeta$: Observable<ProjectMeta | undefined> =
     this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
+  readonly lastConnectionError$: Observable<string | null> =
+    this.lastConnectionErrorSubject.asObservable();
 
   /**
    * Connect to a project's element sync.
@@ -704,6 +709,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     switch (status) {
       case 'connected':
         this.syncStateSubject.next(DocumentSyncState.Synced);
+        this.lastConnectionErrorSubject.next(null); // Clear error on successful connection
         this.reconnectAttempts = 0;
         if (this.reconnectTimeout) {
           clearTimeout(this.reconnectTimeout);
@@ -735,14 +741,17 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.logger.error('YjsSync', 'WebSocket connection error', event);
 
     // Extract error message
-    let errorMessage = '';
+    let errorMessage = 'Connection error';
     if (event instanceof Error) {
       errorMessage = event.message;
     } else if (event instanceof Event) {
-      errorMessage = event.type;
+      errorMessage = event.type || 'Connection error';
     } else if (typeof event === 'string') {
       errorMessage = event;
     }
+
+    // Store the last connection error for display in tooltip
+    this.lastConnectionErrorSubject.next(errorMessage);
 
     // Check for authentication errors
     if (this.isAuthError(errorMessage)) {
@@ -753,6 +762,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.errorsSubject.next(
         'Session expired. Please refresh the page to log in again.'
       );
+      this.lastConnectionErrorSubject.next('Session expired');
       this.syncStateSubject.next(DocumentSyncState.Unavailable);
 
       // Don't retry on auth errors

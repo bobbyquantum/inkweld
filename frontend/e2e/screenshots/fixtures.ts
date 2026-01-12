@@ -78,6 +78,9 @@ export type ScreenshotFixtures = {
 
   // Offline mode page for editor screenshots
   offlinePage: Page;
+
+  // Unconfigured page (shows setup screen)
+  unconfiguredPage: Page;
 };
 
 /**
@@ -248,6 +251,23 @@ export const test = base.extend<ScreenshotFixtures>({
         })
       );
     });
+
+    await use(page);
+  },
+
+  // Unconfigured page fixture - shows setup screen
+  unconfiguredPage: async ({ page }, use) => {
+    // Suppress console logs for cleaner test output
+    page.on('console', () => {});
+
+    // Ensure no config is set - clear any existing localStorage
+    await page.addInitScript(() => {
+      localStorage.removeItem('inkweld-app-config');
+      localStorage.removeItem('auth_token');
+    });
+
+    // Navigate to about:blank first to ensure clean state
+    await page.goto('about:blank');
 
     await use(page);
   },

@@ -124,8 +124,8 @@ test.describe('Relationships Tab Screenshots', () => {
       timeout: 5000,
     });
 
-    // Navigate to Settings tab first
-    await page.goto(`/demouser/${projectSlug}/settings`);
+    // Navigate to Settings tab first via sidebar button (keeps sidenav visible)
+    await page.click('[data-testid="sidebar-settings-button"]');
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
       timeout: 10000,
@@ -192,11 +192,19 @@ test.describe('Relationships Tab Screenshots', () => {
       });
       await page.waitForTimeout(300);
 
-      // Capture full tab view
-      await page.screenshot({
-        path: join(screenshotsDir, 'relationships-tab-overview-light.png'),
-        fullPage: false,
-      });
+      // Capture cropped view showing sidebar and settings content
+      const projectTree = page.locator('[data-testid="project-tree"]');
+      const settingsContent = page.locator(
+        '[data-testid="settings-tab-content"]'
+      );
+      const typesGrid = page.locator('.types-grid').first();
+
+      await captureElementScreenshot(
+        page,
+        [projectTree, settingsContent, typesGrid],
+        join(screenshotsDir, 'relationships-tab-overview-light.png'),
+        16
+      );
     });
 
     test('relationship types section', async ({ offlinePage: page }) => {
@@ -320,10 +328,19 @@ test.describe('Relationships Tab Screenshots', () => {
         timeout: 5000,
       });
 
-      await page.screenshot({
-        path: join(screenshotsDir, 'relationships-tab-overview-dark.png'),
-        fullPage: false,
-      });
+      // Capture cropped view showing sidebar and settings content
+      const projectTree = page.locator('[data-testid="project-tree"]');
+      const settingsContent = page.locator(
+        '[data-testid="settings-tab-content"]'
+      );
+      const typesGrid = page.locator('.types-grid').first();
+
+      await captureElementScreenshot(
+        page,
+        [projectTree, settingsContent, typesGrid],
+        join(screenshotsDir, 'relationships-tab-overview-dark.png'),
+        16
+      );
     });
 
     test('relationship types section dark', async ({ offlinePage: page }) => {
@@ -763,12 +780,12 @@ test.describe('Relationships Tab Screenshots', () => {
       // Now take screenshot of the parent's relationships panel
       await page.waitForTimeout(300);
 
-      // Capture the meta panel showing the relationship (if any was created)
-      const metaPanel = page.locator('.meta-panel');
-      if (await metaPanel.isVisible().catch(() => false)) {
+      // Capture the relationships panel showing the relationship (if any was created)
+      const relationshipsPanel = page.locator('.relationships-panel');
+      if (await relationshipsPanel.isVisible().catch(() => false)) {
         await captureElementScreenshot(
           page,
-          [metaPanel],
+          [relationshipsPanel],
           join(screenshotsDir, 'character-parent-relationship-light.png'),
           16
         );
@@ -784,12 +801,19 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="Elena Stormwind"');
       await page.waitForTimeout(500);
 
+      // Expand the meta panel on the child character
+      const childExpandButton = page.getByTestId('expand-panel-button');
+      if (await childExpandButton.isVisible().catch(() => false)) {
+        await childExpandButton.click();
+        await page.waitForTimeout(300);
+      }
+
       // The child should show "Child of" relationship (backlink) if relationship was created
-      const childMetaPanel = page.locator('.meta-panel');
-      if (await childMetaPanel.isVisible().catch(() => false)) {
+      const childRelationshipsPanel = page.locator('.relationships-panel');
+      if (await childRelationshipsPanel.isVisible().catch(() => false)) {
         await captureElementScreenshot(
           page,
-          [childMetaPanel],
+          [childRelationshipsPanel],
           join(screenshotsDir, 'character-child-relationship-light.png'),
           16
         );
@@ -995,11 +1019,11 @@ test.describe('Relationships Tab Screenshots', () => {
       }
 
       // Screenshot of parent's panel in dark mode
-      const metaPanel = page.locator('.meta-panel');
-      if (await metaPanel.isVisible().catch(() => false)) {
+      const relationshipsPanel = page.locator('.relationships-panel');
+      if (await relationshipsPanel.isVisible().catch(() => false)) {
         await captureElementScreenshot(
           page,
-          [metaPanel],
+          [relationshipsPanel],
           join(screenshotsDir, 'character-parent-relationship-dark.png'),
           16
         );
@@ -1015,11 +1039,18 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="Prince Marcus"');
       await page.waitForTimeout(500);
 
-      const childMetaPanel = page.locator('.meta-panel');
-      if (await childMetaPanel.isVisible().catch(() => false)) {
+      // Expand the meta panel on the child character
+      const childExpandButton = page.getByTestId('expand-panel-button');
+      if (await childExpandButton.isVisible().catch(() => false)) {
+        await childExpandButton.click();
+        await page.waitForTimeout(300);
+      }
+
+      const childRelationshipsPanel = page.locator('.relationships-panel');
+      if (await childRelationshipsPanel.isVisible().catch(() => false)) {
         await captureElementScreenshot(
           page,
-          [childMetaPanel],
+          [childRelationshipsPanel],
           join(screenshotsDir, 'character-child-relationship-dark.png'),
           16
         );
@@ -1027,6 +1058,128 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.screenshot({
         path: join(screenshotsDir, 'character-child-overview-dark.png'),
+        fullPage: false,
+      });
+    });
+
+    test('multiple relationship types on one character - dark mode', async ({
+      offlinePage: page,
+    }) => {
+      // Set dark mode
+      await page.emulateMedia({ colorScheme: 'dark' });
+
+      // Create a project with several characters for complex relationships
+      await setupProjectWithCharacters(
+        page,
+        'multi-rel-dark',
+        'Complex Relationships Dark',
+        ['Hero Knight', 'Wise Mentor', 'Dark Villain', 'Loyal Friend']
+      );
+
+      // Open the Hero character
+      await page.click('text="Hero Knight"');
+      await page.waitForTimeout(500);
+
+      // Expand the meta panel (panel is always visible but starts collapsed)
+      const expandButton = page.getByTestId('expand-panel-button');
+      if (await expandButton.isVisible().catch(() => false)) {
+        await expandButton.click();
+        await page.waitForTimeout(300);
+      }
+
+      // Helper to add a relationship
+      async function addRelationship(
+        typeName: string,
+        targetName: string
+      ): Promise<boolean> {
+        // Click "Add Relationship" button
+        const addButton = page
+          .locator('.meta-panel')
+          .getByTestId('add-relationship-button');
+        await addButton.click();
+        await page.waitForTimeout(400);
+
+        const dialog = page.locator('mat-dialog-container');
+        await dialog
+          .waitFor({ state: 'visible', timeout: 3000 })
+          .catch(() => {});
+
+        if (!(await dialog.isVisible().catch(() => false))) {
+          return false;
+        }
+
+        // Select relationship type
+        const typeSelect = dialog.getByTestId('relationship-type-select');
+        if (await typeSelect.isVisible().catch(() => false)) {
+          await typeSelect.click();
+          await page.waitForTimeout(200);
+          const typeOption = page.locator(`mat-option:has-text("${typeName}")`);
+          if (await typeOption.isVisible().catch(() => false)) {
+            await typeOption.click();
+            await page.waitForTimeout(300);
+          } else {
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(200);
+            return false;
+          }
+        }
+
+        // Search for target element
+        const searchInput = dialog.getByTestId('element-search-input');
+        if (await searchInput.isVisible().catch(() => false)) {
+          await searchInput.click();
+          await searchInput.fill(targetName.split(' ')[0]);
+          await page.waitForTimeout(400);
+          const targetOption = page.locator(
+            `mat-option:has-text("${targetName}")`
+          );
+          if (await targetOption.isVisible().catch(() => false)) {
+            await targetOption.click();
+            await page.waitForTimeout(300);
+          }
+        }
+
+        // Submit
+        const submitButton = dialog.locator(
+          'button:has-text("Add Relationship")'
+        );
+        await page.waitForTimeout(200);
+        if (await submitButton.isEnabled().catch(() => false)) {
+          await submitButton.click();
+          await page.waitForTimeout(400);
+          return true;
+        } else {
+          const cancelButton = dialog.getByTestId('cancel-button');
+          await cancelButton.click().catch(() => page.keyboard.press('Escape'));
+          await page.waitForTimeout(200);
+          return false;
+        }
+      }
+
+      // Add multiple relationships of different types
+      await addRelationship('Mentor', 'Wise Mentor');
+      await addRelationship('Rival', 'Dark Villain');
+      await addRelationship('Friend', 'Loyal Friend');
+
+      // Screenshot of character with multiple relationship types
+      await page.waitForTimeout(300);
+
+      const metaPanel = page.locator('.meta-panel');
+      if (await metaPanel.isVisible().catch(() => false)) {
+        await captureElementScreenshot(
+          page,
+          [metaPanel],
+          join(screenshotsDir, 'character-multiple-relationships-dark.png'),
+          16
+        );
+      }
+
+      // Full page screenshot
+      await page.screenshot({
+        path: join(
+          screenshotsDir,
+          'character-multiple-relationships-overview-dark.png'
+        ),
         fullPage: false,
       });
     });

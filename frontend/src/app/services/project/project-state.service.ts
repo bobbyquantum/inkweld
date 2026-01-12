@@ -188,6 +188,10 @@ export class ProjectStateService implements OnDestroy {
   );
   readonly getSyncState = computed(() => this.docSyncState());
 
+  // Last connection error for tooltip display
+  private readonly lastConnectionError = signal<string | null>(null);
+  readonly getLastConnectionError = computed(() => this.lastConnectionError());
+
   // Local-only expanded nodes state
   private readonly expandedNodeIds = signal<Set<string>>(new Set());
 
@@ -479,6 +483,15 @@ export class ProjectStateService implements OnDestroy {
       this.syncProvider.syncState$.subscribe(state => {
         this.ngZone.run(() => {
           this.docSyncState.set(state);
+        });
+      })
+    );
+
+    // Last connection error for tooltip display
+    this.providerSubscriptions.push(
+      this.syncProvider.lastConnectionError$.subscribe(error => {
+        this.ngZone.run(() => {
+          this.lastConnectionError.set(error);
         });
       })
     );

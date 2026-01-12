@@ -25,7 +25,7 @@
 Inkweld is ideal for:
 
 - **Creative Writing**: Collaborate on novels, short stories, and screenplays with real-time editing and version control
-- **Worldbuilding**: Organize and develop fictional worlds with hierarchical document structures
+- **Worldbuilding**: Build rich story worlds with customizable element types and relationship systems
 - **Technical Documentation**: Maintain up-to-date documentation with multiple contributors
 - **Research Projects**: Collaborate on academic papers and research notes
 
@@ -220,7 +220,7 @@ This will execute the unit tests for both the frontend and backend projects.
 - [x] Local-first capabilities with automatic sync
 - [x] In-browser IndexedDB storage
 - [x] Backend LevelDB storage
-- [x] Templated worldbuilding features (character/location templates)
+- [x] Extensible worldbuilding elements with customizable templates
 - [x] Real-time collaborative editing with WebSocket sync
 - [x] Complete import/export to archive functionality
 - [ ] Project renaming and slug changing capabilities
@@ -231,22 +231,50 @@ This will execute the unit tests for both the frontend and backend projects.
 - [x] PDF export functionality
 - [x] Markdown export options
 - [ ] Print-friendly formatting
+- [ ] Typography customization (font, size, line spacing)
+- [ ] PDF page layout options (margins, page size, headers/footers)
+- [ ] Chapter numbering styles
+- [ ] Scene break customization
 
 ### User Experience
 
+- [ ] Quick file open (Ctrl/Cmd + P)
+- [ ] Project-wide search
+- [ ] Find in document (Ctrl/Cmd + F)
+- [ ] Find and replace
+- [ ] Breadcrumb navigation
+- [ ] Recent documents list
+- [ ] Favorites/bookmarks
+- [ ] Tag filtering in project tree
 - [ ] Improved onboarding for first-time users
 - [ ] Username changes and profile customization
 - [ ] Enhanced user dashboard/homepage
 - [x] Optimized responsive design for mobile devices
 - [ ] MCP support for optional AI collaboration (in progress)
 
+### Editor Features
+
+- [ ] Image insertion in documents
+- [ ] Markdown input rules (e.g., typing `- ` for bullet list)
+- [ ] Code blocks
+
+### Editor Keyboard Shortcuts
+
+- [ ] Insert link (Ctrl/Cmd + K)
+- [ ] Insert image shortcut
+- [ ] Heading shortcuts (Ctrl/Cmd + 1-6)
+- [ ] Strikethrough shortcut
+- [ ] Blockquote shortcut
+- [ ] Bullet list shortcut
+- [ ] Numbered list shortcut
+- [ ] Clear formatting shortcut
+
 ### Authentication & Security
 
 - [x] Password authentication with strong password requirements
-- [x] Session-based authentication with httpOnly cookies
-- [x] GitHub OAuth integration (optional)
 - [x] CSRF protection
 - [x] User approval system for new registrations
+- [ ] Password reset via email
 - [ ] Additional OAuth providers (Google, etc.)
 - [ ] Two-factor authentication
 - [ ] Fine-grained user permissions system
@@ -269,7 +297,7 @@ This will execute the unit tests for both the frontend and backend projects.
 - [x] Automated Docker image publishing to GHCR
 - [x] GitHub Actions workflows
 - [x] Self-hosting documentation
-- [ ] Production logging framework (currently using console logs)
+- [ ] Production logging framework
 - [ ] Monitoring and observability setup
 
 ---
@@ -279,6 +307,23 @@ This will execute the unit tests for both the frontend and backend projects.
 This project aims to empower writers to make their own decisions regarding AI.
 
 The software is designed to be self-hosted and secure. There are no backdoors, and it is not a publishing/distribution platform, so if you set up your own instance, your content will not be sold, scraped, borrowed, or stolen.
+
+There is an AI Kill Switch feature (enabled by default) which disables any AI related functionality.
+
+Optional AI functionality which can be configured includes: 
+
+- Generating an image from project elements
+- Generating project covers from description
+- Generating grammar suggestions
+- MCP support for real time collaboration with AI agents.
+
+## AI Usage Disclosure
+
+AI tools are used in development, via Github Copilot.  An AI generated image is used for the main app desktop background (the red with the chimneys and cogs).  Some AI generated cover art is used within the documentation for illustrative purposes.  
+
+Main Inkweld logo designed in Inkscape by hand and released under the same terms as the rest of the repository (MIT).
+
+PRs with Human replacements for the placeholder art elements are welcomed, provided permission is granted to be released under the same terms (MIT).
 
 ---
 

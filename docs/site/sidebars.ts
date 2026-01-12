@@ -16,7 +16,6 @@ import apiSidebar from './docs/api/sidebar';
 const sidebars: SidebarsConfig = {
   projectSidebar: [
     'intro',
-    'features',
     {
       type: 'category',
       label: 'Installation',
@@ -31,16 +30,6 @@ const sidebars: SidebarsConfig = {
       ],
     },
     'configuration',
-    {
-      type: 'category',
-      label: 'User Guide',
-      items: [
-        'user-guide/projects',
-        'user-guide/element-references',
-        'user-guide/relationships',
-        'user-guide/tags',
-      ],
-    },
     {
       type: 'category',
       label: 'Admin Guide',

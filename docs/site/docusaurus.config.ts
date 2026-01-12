@@ -58,6 +58,17 @@ const config: Config = {
 
   plugins: [
     [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'user-guide',
+        path: 'docs-user-guide',
+        routeBasePath: 'user-guide',
+        sidebarPath: './sidebars-user-guide.ts',
+        editUrl:
+          'https://github.com/bobbyquantum/inkweld/edit/main/docs/site/',
+      },
+    ],
+    [
       'docusaurus-plugin-openapi-docs',
       {
         id: 'api',
@@ -103,10 +114,21 @@ const config: Config = {
       },
       items: [
         {
+          to: '/features',
+          position: 'left',
+          label: 'Features',
+        },
+        {
           type: 'docSidebar',
           sidebarId: 'projectSidebar',
           position: 'left',
           label: 'Docs',
+        },
+        {
+          to: '/user-guide/',
+          position: 'left',
+          label: 'User Guide',
+          activeBaseRegex: '/user-guide/',
         },
         {
           type: 'docSidebar',
@@ -129,7 +151,7 @@ const config: Config = {
           items: [
             {
               label: 'Features',
-              to: '/docs/features',
+              to: '/features',
             },
             {
               label: 'Installation',
@@ -141,7 +163,7 @@ const config: Config = {
             },
             {
               label: 'User Guide',
-              to: '/docs/user-guide/projects',
+              to: '/user-guide/',
             },
           ],
         },

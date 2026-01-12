@@ -1,7 +1,7 @@
 ---
 id: relationships
 title: Relationships
-description: Define and visualize connections between characters, locations, and other story elements.
+description: Define and visualize semantic connections between story elements with bidirectional relationship types.
 sidebar_position: 3
 ---
 
@@ -9,7 +9,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 
 # Relationships
 
-Relationships let you define meaningful connections between your story elements—like family ties between characters, ownership of items, or characters' connections to locations. Unlike [element references](/docs/user-guide/element-references) (which track where elements are mentioned), relationships represent semantic connections that you explicitly define.
+Relationships let you define meaningful connections between your story elements—like family ties, ownership, alliances, or spatial connections. Unlike [element references](/docs/user-guide/element-references) (which track where elements are mentioned), relationships represent semantic connections that you explicitly define.
 
 <ThemedImage
   src="/img/features/character-relationships-overview"
@@ -18,7 +18,7 @@ Relationships let you define meaningful connections between your story elements�
 
 ## Quick Start
 
-1. Open any character, location, or worldbuilding element
+1. Open any worldbuilding element
 2. Click the **panel toggle** button in the toolbar to show the meta panel
 3. Click **"Add Relationship"** at the top of the panel
 4. Select a relationship type (e.g., "Parent", "Sibling", "Located In")
@@ -51,14 +51,14 @@ For example, if you mark "Marcus" as the **Parent** of "Elena":
 
 <ThemedImage
   src="/img/features/character-parent-overview"
-  alt="Parent relationship on source character"
+  alt="Parent relationship on source element"
 />
 
 _The parent element shows the outgoing "Parent" relationship_
 
 <ThemedImage
   src="/img/features/character-child-overview"
-  alt="Child backlink on target character"
+  alt="Child backlink on target element"
 />
 
 _The child element shows the incoming "Child of" backlink_
@@ -80,7 +80,7 @@ The side panel organizes relationships by type, with each relationship type as i
 
 Each relationship is displayed as a card showing:
 
-- **Element icon** indicating the type (character, location, etc.)
+- **Element icon** based on the element's template
 - **Element name** as a clickable link
 - **Delete button** to remove the relationship
 
@@ -100,7 +100,7 @@ Click **"Add Relationship"** to open the creation dialog:
 />
 
 1. **Select Relationship Type**: Choose from built-in or custom types
-2. **Search Target Element**: Type to search for characters, locations, or items
+2. **Search Target Element**: Type to search for any element in your project
 3. **Create**: Save the relationship
 
 ### Relationship Types
@@ -140,12 +140,12 @@ Inkweld includes built-in relationship types organized by category:
 
 #### Spatial Relationships
 
-| Type       | Inverse Label | Use For                         |
-| ---------- | ------------- | ------------------------------- |
-| Located In | Contains      | Characters in locations         |
-| Owns       | Owned by      | Item ownership                  |
-| Origin     | Birthplace of | Where characters were born      |
-| Resides In | Home of       | Where characters currently live |
+| Type       | Inverse Label | Use For                       |
+| ---------- | ------------- | ----------------------------- |
+| Located In | Contains      | Spatial containment             |
+| Owns       | Owned by      | Item ownership                |
+| Origin     | Birthplace of | Origin or birthplace          |
+| Resides In | Home of       | Where something currently is  |
 
 #### General Relationships
 
@@ -156,23 +156,18 @@ Inkweld includes built-in relationship types organized by category:
 
 ### Contextual Filtering
 
-The dialog intelligently filters relationship types based on what makes sense for your elements:
-
-- **Character** elements see familial, social, and hierarchical types
-- **Location** elements see spatial types
-- **Item** elements see ownership types
-- All elements can use general relationship types
+The dialog can filter relationship types based on the element's template. All elements can use any relationship type, but the dialog may highlight types that are commonly used with similar templates.
 
 ## Working with Multiple Relationships
 
-Characters often have many relationships. The panel groups them by type for easy scanning:
+Elements often have many relationships. The panel groups them by type for easy scanning:
 
 <ThemedImage
   src="/img/features/character-parent-overview"
-  alt="Character with multiple relationship types"
+  alt="Element with multiple relationship types"
 />
 
-_A character with relationship types shown as expandable panels_
+_An element with relationship types shown as expandable panels_
 
 ### Managing Relationships
 
@@ -188,7 +183,7 @@ Before diving in, consider what types of relationships matter for your story:
 
 - **Family saga?** Focus on familial relationships
 - **Political intrigue?** Use hierarchical and alliance types
-- **Character-driven drama?** Emphasize social relationships
+- **Character-focused story?** Emphasize social relationships between elements
 
 ### Use Bidirectional Labels
 
@@ -208,8 +203,8 @@ Relationships and element references complement each other:
 
 Regularly check the backlinks section to see how elements connect:
 
-1. Open a character's page
-2. Check for incoming "Child of", "Friend of", "Rival of" relationships
+1. Open an element's page
+2. Check for incoming relationships like "Child of", "Friend of", "Rival of"
 3. Use this to track social networks in your story
 
 ## Troubleshooting

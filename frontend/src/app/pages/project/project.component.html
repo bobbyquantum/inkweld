@@ -66,6 +66,7 @@
         @defer (on idle) {
           <app-connection-status
             [syncState]="projectSyncState()"
+            [lastError]="lastConnectionError()"
             (syncRequested)="onRetrySyncConnection()"
             data-testid="mobile-connection-status">
           </app-connection-status>
@@ -264,6 +265,7 @@
                 @defer (on idle) {
                   <app-connection-status
                     [syncState]="projectSyncState()"
+                    [lastError]="lastConnectionError()"
                     [collapsed]="true"
                     (syncRequested)="onRetrySyncConnection()"
                     data-testid="collapsed-connection-status">
@@ -360,6 +362,7 @@
                 @defer (on idle) {
                   <app-connection-status
                     [syncState]="projectSyncState()"
+                    [lastError]="lastConnectionError()"
                     (syncRequested)="onRetrySyncConnection()"
                     data-testid="sidebar-connection-status">
                   </app-connection-status>

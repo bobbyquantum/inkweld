@@ -42,6 +42,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
   _syncStateSubject: BehaviorSubject<DocumentSyncState>;
   _errorsSubject: Subject<string>;
+  _lastConnectionErrorSubject: BehaviorSubject<string | null>;
 } {
   const elementsSubject = new BehaviorSubject<Element[]>([]);
   const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
@@ -59,6 +60,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     DocumentSyncState.Unavailable
   );
   const errorsSubject = new Subject<string>();
+  const lastConnectionErrorSubject = new BehaviorSubject<string | null>(null);
 
   return {
     _elementsSubject: elementsSubject,
@@ -71,6 +73,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     _projectMetaSubject: projectMetaSubject,
     _syncStateSubject: syncStateSubject,
     _errorsSubject: errorsSubject,
+    _lastConnectionErrorSubject: lastConnectionErrorSubject,
 
     connect: vi.fn().mockResolvedValue({ success: true }),
     disconnect: vi.fn(),
@@ -127,6 +130,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     customTags$: customTagsSubject.asObservable(),
     projectMeta$: projectMetaSubject.asObservable(),
     errors$: errorsSubject.asObservable(),
+    lastConnectionError$: lastConnectionErrorSubject.asObservable(),
   } as MockedObject<IElementSyncProvider> & {
     _elementsSubject: BehaviorSubject<Element[]>;
     _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
@@ -138,6 +142,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
     _syncStateSubject: BehaviorSubject<DocumentSyncState>;
     _errorsSubject: Subject<string>;
+    _lastConnectionErrorSubject: BehaviorSubject<string | null>;
   };
 }
 

@@ -29,9 +29,16 @@
       </p>
       <p class="help-text">
         Templates define the structure for worldbuilding elements like
-        characters, locations, and more. Create a new project from a template to
-        get started with pre-configured schemas.
+        characters, locations, and more.
       </p>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="createTemplate()"
+        data-testid="create-template-empty-button">
+        <mat-icon>add</mat-icon>
+        Create Template
+      </button>
     </div>
   }
 
@@ -50,12 +57,23 @@
           available
         </p>
       </div>
-      <button
-        mat-icon-button
-        (click)="refresh()"
-        matTooltip="Refresh templates">
-        <mat-icon>refresh</mat-icon>
-      </button>
+      <div class="header-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="createTemplate()"
+          matTooltip="Create a new template"
+          data-testid="create-template-button">
+          <mat-icon>add</mat-icon>
+          Create Template
+        </button>
+        <button
+          mat-icon-button
+          (click)="refresh()"
+          matTooltip="Refresh templates">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
     </div>
 
     <div class="templates-grid">
