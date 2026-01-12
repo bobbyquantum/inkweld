@@ -68,7 +68,7 @@ export class UserService {
   );
   readonly initialized = signal(false);
 
-  private db: Promise<IDBDatabase>;
+  private db: Promise<IDBDatabase | null>;
 
   constructor() {
     this.db = this.storage
@@ -79,10 +79,9 @@ export class UserService {
           'User cache initialization failed',
           error
         );
-        throw new UserServiceError(
-          'SERVER_ERROR',
-          'Failed to initialize user cache'
-        );
+        // Don't throw - just return null to indicate cache is unavailable
+        // This prevents unhandled rejections in test environments
+        return null;
       });
   }
 
@@ -214,7 +213,9 @@ export class UserService {
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;
-        await this.storage.put(db, 'users', user, CACHE_KEY);
+        if (db) {
+          await this.storage.put(db, 'users', user, CACHE_KEY);
+        }
       } catch (error) {
         this.logger.warn('UserService', 'Failed to cache user', error);
       }
@@ -259,7 +260,9 @@ export class UserService {
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;
-        await this.storage.delete(db, 'users', CACHE_KEY);
+        if (db) {
+          await this.storage.delete(db, 'users', CACHE_KEY);
+        }
       } catch (error) {
         this.logger.warn('UserService', 'Failed to clear cached user', error);
       }
@@ -374,6 +377,9 @@ export class UserService {
   private async getCachedUser(): Promise<User | undefined> {
     try {
       const db = await this.db;
+      if (!db) {
+        return undefined;
+      }
       return await this.storage.get<User>(db, 'users', CACHE_KEY);
     } catch (error) {
       this.logger.warn('UserService', 'Failed to get cached user', error);
