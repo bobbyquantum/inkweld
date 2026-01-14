@@ -132,6 +132,9 @@ describe('LintPlugin', () => {
   });
 
   it('should call the lint service when document changes', async () => {
+    // Use fake timers to control the debounce timing
+    vi.useFakeTimers();
+
     // Get the view handler from the plugin
     const viewHandler = plugin.spec.view!(editorView);
 
@@ -148,16 +151,17 @@ describe('LintPlugin', () => {
       // Call update method with the new state
       viewHandler.update(editorView, newState);
 
-      // Since the debounce is async, we use a timeout to check
-      await new Promise<void>(resolve => {
-        setTimeout(() => {
-          expect(mockLintApiService.run).toHaveBeenCalled();
-          resolve();
-        }, 800);
-      });
+      // Advance timers past the 500ms debounce threshold
+      await vi.advanceTimersByTimeAsync(600);
+
+      // Verify the lint service was called
+      expect(mockLintApiService.run).toHaveBeenCalled();
     } else {
       throw new Error('Plugin view handler update method is not defined');
     }
+
+    // Restore real timers
+    vi.useRealTimers();
   });
 
   it('should handle click events on lint errors', () => {
