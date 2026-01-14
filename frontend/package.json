@@ -151,5 +151,5 @@
     "prosemirror-transform": "1.10.5",
     "prosemirror-view": "1.41.5"
   },
-  "packageManager": "bun@1.3.4"
+  "packageManager": "bun@1.3.6"
 }
