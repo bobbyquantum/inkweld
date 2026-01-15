@@ -26,9 +26,9 @@ import {
 } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
-import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
-import { OfflineSnapshotService } from '../offline/offline-snapshot.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { LocalSnapshotService } from '../local/local-snapshot.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { DocumentService } from './document.service';
@@ -47,9 +47,9 @@ describe('ProjectExportService', () => {
   let projectState: DeepMockProxy<ProjectStateService>;
   let documentService: DeepMockProxy<DocumentService>;
   let worldbuildingService: DeepMockProxy<WorldbuildingService>;
-  let offlineElements: DeepMockProxy<OfflineProjectElementsService>;
-  let offlineStorage: DeepMockProxy<OfflineStorageService>;
-  let offlineSnapshots: DeepMockProxy<OfflineSnapshotService>;
+  let localElements: DeepMockProxy<LocalProjectElementsService>;
+  let localStorage: DeepMockProxy<LocalStorageService>;
+  let localSnapshots: DeepMockProxy<LocalSnapshotService>;
   let syncFactory: DeepMockProxy<ElementSyncProviderFactory>;
   let imagesService: DeepMockProxy<ImagesService>;
 
@@ -155,24 +155,24 @@ describe('ProjectExportService', () => {
     projectState = mockDeep<ProjectStateService>();
     documentService = mockDeep<DocumentService>();
     worldbuildingService = mockDeep<WorldbuildingService>();
-    offlineElements = mockDeep<OfflineProjectElementsService>();
-    offlineStorage = mockDeep<OfflineStorageService>();
-    offlineSnapshots = mockDeep<OfflineSnapshotService>();
+    localElements = mockDeep<LocalProjectElementsService>();
+    localStorage = mockDeep<LocalStorageService>();
+    localSnapshots = mockDeep<LocalSnapshotService>();
     syncFactory = mockDeep<ElementSyncProviderFactory>();
     imagesService = mockDeep<ImagesService>();
 
     // Setup default mocks
     projectState.project.mockReturnValue(mockProject);
     projectState.elements.mockReturnValue(mockElements);
-    syncFactory.isOfflineMode.mockReturnValue(true);
-    offlineElements.elements.mockReturnValue(mockElements);
-    offlineElements.schemas.mockReturnValue([]);
-    offlineElements.relationships.mockReturnValue([]);
-    offlineElements.customRelationshipTypes.mockReturnValue([]);
-    offlineElements.publishPlans.mockReturnValue([]);
-    offlineElements.loadElements.mockResolvedValue(undefined);
-    offlineStorage.listMedia.mockResolvedValue([]);
-    offlineSnapshots.getSnapshotsForExport.mockResolvedValue([]);
+    syncFactory.isLocalMode.mockReturnValue(true);
+    localElements.elements.mockReturnValue(mockElements);
+    localElements.schemas.mockReturnValue([]);
+    localElements.relationships.mockReturnValue([]);
+    localElements.customRelationshipTypes.mockReturnValue([]);
+    localElements.publishPlans.mockReturnValue([]);
+    localElements.loadElements.mockResolvedValue(undefined);
+    localStorage.listMedia.mockResolvedValue([]);
+    localSnapshots.getSnapshotsForExport.mockResolvedValue([]);
     documentService.getDocumentContent.mockResolvedValue(null);
     worldbuildingService.getWorldbuildingData.mockResolvedValue(null);
 
@@ -211,9 +211,9 @@ describe('ProjectExportService', () => {
         { provide: ProjectStateService, useValue: projectState },
         { provide: DocumentService, useValue: documentService },
         { provide: WorldbuildingService, useValue: worldbuildingService },
-        { provide: OfflineProjectElementsService, useValue: offlineElements },
-        { provide: OfflineStorageService, useValue: offlineStorage },
-        { provide: OfflineSnapshotService, useValue: offlineSnapshots },
+        { provide: LocalProjectElementsService, useValue: localElements },
+        { provide: LocalStorageService, useValue: localStorage },
+        { provide: LocalSnapshotService, useValue: localSnapshots },
         { provide: ElementSyncProviderFactory, useValue: syncFactory },
         { provide: ImagesService, useValue: imagesService },
       ],
@@ -276,7 +276,7 @@ describe('ProjectExportService', () => {
       let wasExporting = false;
 
       // Check isExporting is set during export
-      offlineStorage.listMedia.mockImplementation(() => {
+      localStorage.listMedia.mockImplementation(() => {
         wasExporting = service.isExporting();
         return Promise.resolve([]);
       });
@@ -406,14 +406,14 @@ describe('ProjectExportService', () => {
         filename: 'cover.jpg',
         createdAt: new Date().toISOString(),
       };
-      offlineStorage.listMedia.mockResolvedValue([mediaInfo]);
-      offlineStorage.getMedia.mockResolvedValue(
+      localStorage.listMedia.mockResolvedValue([mediaInfo]);
+      localStorage.getMedia.mockResolvedValue(
         new Blob(['test-image-data'], { type: 'image/jpeg' })
       );
 
       await service.exportProject();
 
-      expect(offlineStorage.getMedia).toHaveBeenCalledWith(
+      expect(localStorage.getMedia).toHaveBeenCalledWith(
         'testuser/test-project',
         'cover'
       );
@@ -425,9 +425,7 @@ describe('ProjectExportService', () => {
     });
 
     it('should set error on failure', async () => {
-      offlineElements.loadElements.mockRejectedValue(
-        new Error('Storage error')
-      );
+      localElements.loadElements.mockRejectedValue(new Error('Storage error'));
 
       await expect(service.exportProject()).rejects.toThrow();
 
@@ -435,7 +433,7 @@ describe('ProjectExportService', () => {
     });
 
     it('should wrap non-ProjectArchiveError in ProjectArchiveError', async () => {
-      offlineStorage.listMedia.mockRejectedValue(new Error('Generic error'));
+      localStorage.listMedia.mockRejectedValue(new Error('Generic error'));
 
       await expect(service.exportProject()).rejects.toMatchObject({
         type: ProjectArchiveErrorType.StorageError,
@@ -447,7 +445,7 @@ describe('ProjectExportService', () => {
         ProjectArchiveErrorType.SyncRequired,
         'Sync required'
       );
-      offlineStorage.listMedia.mockRejectedValue(error);
+      localStorage.listMedia.mockRejectedValue(error);
 
       await expect(service.exportProject()).rejects.toMatchObject({
         type: ProjectArchiveErrorType.SyncRequired,
@@ -457,7 +455,7 @@ describe('ProjectExportService', () => {
 
   describe('server mode export', () => {
     beforeEach(() => {
-      syncFactory.isOfflineMode.mockReturnValue(false);
+      syncFactory.isLocalMode.mockReturnValue(false);
     });
 
     it('should check for unsynced documents in server mode', async () => {
@@ -517,8 +515,8 @@ describe('ProjectExportService', () => {
           createdAt: new Date().toISOString(),
         },
       ];
-      offlineStorage.listMedia.mockResolvedValue(mediaList);
-      offlineStorage.getMedia.mockResolvedValue(
+      localStorage.listMedia.mockResolvedValue(mediaList);
+      localStorage.getMedia.mockResolvedValue(
         new Blob(['test-image'], { type: 'image/jpeg' })
       );
 
@@ -545,7 +543,7 @@ describe('ProjectExportService', () => {
           synced: false,
         },
       ];
-      offlineSnapshots.getSnapshotsForExport.mockResolvedValue(mockSnapshots);
+      localSnapshots.getSnapshotsForExport.mockResolvedValue(mockSnapshots);
 
       await service.exportProject();
 
@@ -557,7 +555,7 @@ describe('ProjectExportService', () => {
     });
 
     it('should not include snapshots.json when no snapshots exist', async () => {
-      offlineSnapshots.getSnapshotsForExport.mockResolvedValue([]);
+      localSnapshots.getSnapshotsForExport.mockResolvedValue([]);
 
       await service.exportProject();
 
@@ -578,7 +576,7 @@ describe('ProjectExportService', () => {
           tabs: [],
         },
       ] as ElementTypeSchema[];
-      offlineElements.schemas.mockReturnValue(mockSchemas);
+      localElements.schemas.mockReturnValue(mockSchemas);
 
       await service.exportProject();
 
@@ -600,7 +598,7 @@ describe('ProjectExportService', () => {
           updatedAt: now,
         },
       ] as ElementRelationship[];
-      offlineElements.relationships.mockReturnValue(mockRelationships);
+      localElements.relationships.mockReturnValue(mockRelationships);
 
       await service.exportProject();
 
@@ -623,7 +621,7 @@ describe('ProjectExportService', () => {
           targetEndpoint: { allowedSchemas: [] },
         },
       ] as RelationshipTypeDefinition[];
-      offlineElements.customRelationshipTypes.mockReturnValue(mockTypes);
+      localElements.customRelationshipTypes.mockReturnValue(mockTypes);
 
       await service.exportProject();
 
@@ -643,7 +641,7 @@ describe('ProjectExportService', () => {
           color: '#FF5722',
         },
       ];
-      offlineElements.customTags.mockReturnValue(mockTags);
+      localElements.customTags.mockReturnValue(mockTags);
 
       await service.exportProject();
 
@@ -666,7 +664,7 @@ describe('ProjectExportService', () => {
           options: DEFAULT_PUBLISH_OPTIONS,
         },
       ];
-      offlineElements.publishPlans.mockReturnValue(mockPlans);
+      localElements.publishPlans.mockReturnValue(mockPlans);
 
       await service.exportProject();
 

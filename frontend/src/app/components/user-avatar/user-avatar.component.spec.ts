@@ -1,7 +1,7 @@
 import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { of } from 'rxjs';
@@ -13,7 +13,7 @@ describe('UserAvatarComponent', () => {
   let component: UserAvatarComponent;
   let mockUserService: { getUserAvatar: ReturnType<typeof vi.fn> };
   let mockUnifiedUserService: { getMode: ReturnType<typeof vi.fn> };
-  let mockOfflineStorageService: {
+  let mockLocalStorageService: {
     getUserAvatarUrl: ReturnType<typeof vi.fn>;
     saveUserAvatar: ReturnType<typeof vi.fn>;
   };
@@ -46,7 +46,7 @@ describe('UserAvatarComponent', () => {
       getMode: vi.fn().mockReturnValue('server'),
     };
 
-    mockOfflineStorageService = {
+    mockLocalStorageService = {
       getUserAvatarUrl: vi.fn().mockResolvedValue(null),
       saveUserAvatar: vi.fn().mockResolvedValue(undefined),
     };
@@ -64,7 +64,7 @@ describe('UserAvatarComponent', () => {
       providers: [
         { provide: UserService, useValue: mockUserService },
         { provide: UnifiedUserService, useValue: mockUnifiedUserService },
-        { provide: OfflineStorageService, useValue: mockOfflineStorageService },
+        { provide: LocalStorageService, useValue: mockLocalStorageService },
         { provide: DomSanitizer, useValue: mockSanitizer },
         { provide: ChangeDetectorRef, useValue: mockChangeDetectorRef },
       ],
@@ -88,12 +88,12 @@ describe('UserAvatarComponent', () => {
   describe('loadAvatar', () => {
     it('should load avatar from cache when available in server mode', async () => {
       const cachedUrl = 'blob:cached-avatar-url';
-      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(cachedUrl);
+      mockLocalStorageService.getUserAvatarUrl.mockResolvedValue(cachedUrl);
 
       component.username = 'testuser';
       await component.loadAvatar();
 
-      expect(mockOfflineStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
+      expect(mockLocalStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
         'testuser'
       );
       expect(mockSanitizer.bypassSecurityTrustUrl).toHaveBeenCalledWith(
@@ -103,27 +103,27 @@ describe('UserAvatarComponent', () => {
     });
 
     it('should not call server in offline mode', async () => {
-      mockUnifiedUserService.getMode.mockReturnValue('offline');
-      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(null);
+      mockUnifiedUserService.getMode.mockReturnValue('local');
+      mockLocalStorageService.getUserAvatarUrl.mockResolvedValue(null);
 
       component.username = 'testuser';
       await component.loadAvatar();
 
-      expect(mockOfflineStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
+      expect(mockLocalStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
         'testuser'
       );
       expect(mockUserService.getUserAvatar).not.toHaveBeenCalled();
     });
 
     it('should load from cache in offline mode when available', async () => {
-      mockUnifiedUserService.getMode.mockReturnValue('offline');
+      mockUnifiedUserService.getMode.mockReturnValue('local');
       const cachedUrl = 'blob:cached-avatar-url';
-      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(cachedUrl);
+      mockLocalStorageService.getUserAvatarUrl.mockResolvedValue(cachedUrl);
 
       component.username = 'testuser';
       await component.loadAvatar();
 
-      expect(mockOfflineStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
+      expect(mockLocalStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
         'testuser'
       );
       expect(mockSanitizer.bypassSecurityTrustUrl).toHaveBeenCalledWith(
@@ -177,13 +177,13 @@ describe('UserAvatarComponent', () => {
       component.hasAvatar = false;
       await component.loadAvatar();
 
-      expect(mockOfflineStorageService.getUserAvatarUrl).not.toHaveBeenCalled();
+      expect(mockLocalStorageService.getUserAvatarUrl).not.toHaveBeenCalled();
       expect(mockUserService.getUserAvatar).not.toHaveBeenCalled();
       expect(component['error']).toBe(true);
     });
 
     it('should try server request when hasAvatar is true', async () => {
-      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(null);
+      mockLocalStorageService.getUserAvatarUrl.mockResolvedValue(null);
       component.username = 'testuser';
       component.hasAvatar = true;
       await component.loadAvatar();
@@ -192,7 +192,7 @@ describe('UserAvatarComponent', () => {
     });
 
     it('should try server request when hasAvatar is undefined', async () => {
-      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(null);
+      mockLocalStorageService.getUserAvatarUrl.mockResolvedValue(null);
       component.username = 'testuser';
       component.hasAvatar = undefined;
       await component.loadAvatar();

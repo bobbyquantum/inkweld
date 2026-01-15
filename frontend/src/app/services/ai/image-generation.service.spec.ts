@@ -11,7 +11,7 @@ import {
   ImageGenerateResponse,
   ImageProviderType,
 } from '../../../api-client/model/models';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
 import { ImageGenerationService } from './image-generation.service';
 
@@ -22,7 +22,7 @@ async function flushPromises(): Promise<void> {
 describe('ImageGenerationService', () => {
   let service: ImageGenerationService;
   let mockAiImageService: MockedObject<AIImageGenerationService>;
-  let mockOfflineStorage: MockedObject<OfflineStorageService>;
+  let mockOfflineStorage: MockedObject<LocalStorageService>;
   let mockProjectService: MockedObject<ProjectService>;
 
   const createMockRequest = (
@@ -57,7 +57,7 @@ describe('ImageGenerationService', () => {
 
     mockOfflineStorage = {
       saveMedia: vi.fn().mockResolvedValue(undefined),
-    } as unknown as MockedObject<OfflineStorageService>;
+    } as unknown as MockedObject<LocalStorageService>;
 
     mockProjectService = {
       uploadProjectCover: vi.fn().mockResolvedValue(undefined),
@@ -68,7 +68,7 @@ describe('ImageGenerationService', () => {
         provideZonelessChangeDetection(),
         ImageGenerationService,
         { provide: AIImageGenerationService, useValue: mockAiImageService },
-        { provide: OfflineStorageService, useValue: mockOfflineStorage },
+        { provide: LocalStorageService, useValue: mockOfflineStorage },
         { provide: ProjectService, useValue: mockProjectService },
       ],
     }).compileComponents();

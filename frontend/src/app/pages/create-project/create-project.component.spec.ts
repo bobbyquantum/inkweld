@@ -20,7 +20,7 @@ import {
   Router,
 } from '@angular/router';
 import { Project } from '@inkweld/index';
-import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectTemplateService } from '@services/project/project-template.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
@@ -77,7 +77,7 @@ describe('CreateProjectComponent', () => {
   beforeEach(async () => {
     userService = {
       currentUser: signal(mockUser),
-      getMode: vi.fn().mockReturnValue('offline'),
+      getMode: vi.fn().mockReturnValue('local'),
     };
 
     projectService = {

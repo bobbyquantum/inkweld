@@ -37,7 +37,7 @@ import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
@@ -97,7 +97,7 @@ export class DocumentService {
   private elementRefService = inject(ElementRefService);
   private logger = inject(LoggerService);
   private userService = inject(UnifiedUserService);
-  private offlineStorage = inject(OfflineStorageService);
+  private localStorage = inject(LocalStorageService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -147,7 +147,7 @@ export class DocumentService {
         'DocumentService',
         `Explicitly initializing sync status for ${documentId}`
       );
-      this.syncStatusSignals.set(documentId, signal(DocumentSyncState.Offline));
+      this.syncStatusSignals.set(documentId, signal(DocumentSyncState.Local));
     }
   }
 
@@ -674,7 +674,7 @@ export class DocumentService {
       this.logger.debug('DocumentService', 'Waiting for IndexedDB sync...');
 
       // Set state to Offline while waiting for IndexedDB
-      this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+      this.updateSyncStatus(documentId, DocumentSyncState.Local);
 
       // Wait for initial IndexedDB sync
       await indexeddbProvider.whenSynced;
@@ -814,7 +814,7 @@ export class DocumentService {
           throw new Error('No project key available for saving image');
         }
         const mediaId = generateMediaId();
-        await this.offlineStorage.saveMedia(projectKey, mediaId, blob);
+        await this.localStorage.saveMedia(projectKey, mediaId, blob);
         this.logger.debug(
           'DocumentService',
           `Saved pasted image as ${mediaId} in ${projectKey}`
@@ -824,7 +824,7 @@ export class DocumentService {
       getImageUrl: async (mediaId: string) => {
         const projectKey = this.getProjectKey();
         if (!projectKey) return null;
-        return await this.offlineStorage.getMediaUrl(projectKey, mediaId);
+        return await this.localStorage.getMediaUrl(projectKey, mediaId);
       },
       getProjectKey: () => this.getProjectKey(),
     });
@@ -909,7 +909,7 @@ export class DocumentService {
         'DocumentService',
         `No WebSocket URL configured, document ${documentId} will remain in offline mode`
       );
-      this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+      this.updateSyncStatus(documentId, DocumentSyncState.Local);
       return;
     }
 
@@ -930,7 +930,7 @@ export class DocumentService {
         'DocumentService',
         'No auth token available for WebSocket connection'
       );
-      this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+      this.updateSyncStatus(documentId, DocumentSyncState.Local);
       return;
     }
 
@@ -975,7 +975,7 @@ export class DocumentService {
         'Failed to establish authenticated WebSocket connection',
         error
       );
-      this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+      this.updateSyncStatus(documentId, DocumentSyncState.Local);
       return;
     }
 
@@ -1076,7 +1076,7 @@ export class DocumentService {
         const newState =
           status === 'connected'
             ? DocumentSyncState.Synced
-            : DocumentSyncState.Offline;
+            : DocumentSyncState.Local;
         this.updateSyncStatus(documentId, newState);
 
         if (newState === DocumentSyncState.Synced) {
@@ -1133,7 +1133,7 @@ export class DocumentService {
           );
         }
 
-        this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+        this.updateSyncStatus(documentId, DocumentSyncState.Local);
       });
 
       // Setup automatic reconnection when online
@@ -1457,7 +1457,7 @@ export class DocumentService {
       }
 
       try {
-        const blobUrl = await this.offlineStorage.getMediaUrl(
+        const blobUrl = await this.localStorage.getMediaUrl(
           projectKey,
           mediaId
         );

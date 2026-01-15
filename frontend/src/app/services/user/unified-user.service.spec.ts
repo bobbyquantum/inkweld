@@ -5,7 +5,7 @@ import { User } from '@inkweld/index';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
 import { SetupService } from '../core/setup.service';
-import { OfflineUserService } from '../offline/offline-user.service';
+import { LocalUserService } from '../local/local-user.service';
 import { UnifiedUserService } from './unified-user.service';
 import { UserService } from './user.service';
 
@@ -13,7 +13,7 @@ describe('UnifiedUserService', () => {
   let service: UnifiedUserService;
   let setupService: MockedObject<SetupService>;
   let userService: MockedObject<UserService>;
-  let offlineUserService: MockedObject<OfflineUserService>;
+  let localUserService: MockedObject<LocalUserService>;
   let router: MockedObject<Router>;
 
   const mockServerUser: User = {
@@ -61,16 +61,16 @@ describe('UnifiedUserService', () => {
       hasCachedUser: vi.fn().mockResolvedValue(true),
     } as unknown as MockedObject<UserService>;
 
-    offlineUserService = {
+    localUserService = {
       currentUser: offlineCurrentUserSignal,
       isLoading: offlineIsLoadingSignal,
       isAuthenticated: offlineIsAuthenticatedSignal,
       initialized: offlineInitializedSignal,
       initializeFromSetup: vi.fn(),
-      clearOfflineUser: vi.fn(),
-      updateOfflineUser: vi.fn(),
+      clearLocalUser: vi.fn(),
+      updateLocalUser: vi.fn(),
       hasCachedUser: vi.fn().mockReturnValue(true),
-    } as unknown as MockedObject<OfflineUserService>;
+    } as unknown as MockedObject<LocalUserService>;
 
     router = {
       navigate: vi.fn().mockResolvedValue(true),
@@ -82,7 +82,7 @@ describe('UnifiedUserService', () => {
         UnifiedUserService,
         { provide: SetupService, useValue: setupService },
         { provide: UserService, useValue: userService },
-        { provide: OfflineUserService, useValue: offlineUserService },
+        { provide: LocalUserService, useValue: localUserService },
         { provide: Router, useValue: router },
       ],
     });
@@ -158,7 +158,7 @@ describe('UnifiedUserService', () => {
 
   describe('offline mode', () => {
     beforeEach(() => {
-      setupService.getMode.mockReturnValue('offline');
+      setupService.getMode.mockReturnValue('local');
     });
 
     it('should return offline currentUser', () => {
@@ -184,7 +184,7 @@ describe('UnifiedUserService', () => {
 
     it('should initialize from offline service', async () => {
       await service.initialize();
-      expect(offlineUserService.initializeFromSetup).toHaveBeenCalled();
+      expect(localUserService.initializeFromSetup).toHaveBeenCalled();
     });
 
     it('should throw error when trying to login in offline mode', async () => {
@@ -195,22 +195,20 @@ describe('UnifiedUserService', () => {
 
     it('should logout and navigate to setup in offline mode', async () => {
       await service.logout();
-      expect(offlineUserService.clearOfflineUser).toHaveBeenCalled();
+      expect(localUserService.clearLocalUser).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/setup']);
     });
 
     it('should update user via offline service', async () => {
       const updates = { name: 'Updated Offline Name' };
       await service.updateUser(updates);
-      expect(offlineUserService.updateOfflineUser).toHaveBeenCalledWith(
-        updates
-      );
+      expect(localUserService.updateLocalUser).toHaveBeenCalledWith(updates);
     });
 
     it('should check cached user via offline service', async () => {
       const hasCached = await service.hasCachedUser();
       expect(hasCached).toBe(true);
-      expect(offlineUserService.hasCachedUser).toHaveBeenCalled();
+      expect(localUserService.hasCachedUser).toHaveBeenCalled();
     });
   });
 
@@ -219,8 +217,8 @@ describe('UnifiedUserService', () => {
       setupService.getMode.mockReturnValue('server');
       expect(service.getMode()).toBe('server');
 
-      setupService.getMode.mockReturnValue('offline');
-      expect(service.getMode()).toBe('offline');
+      setupService.getMode.mockReturnValue('local');
+      expect(service.getMode()).toBe('local');
     });
   });
 

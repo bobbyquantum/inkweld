@@ -14,7 +14,7 @@ import {
 
 import { XsrfService } from '../auth/xsrf.service';
 import { LoggerService } from '../core/logger.service';
-import { StorageService } from '../offline/storage.service';
+import { StorageService } from '../local/storage.service';
 
 export class UserServiceError extends Error {
   constructor(

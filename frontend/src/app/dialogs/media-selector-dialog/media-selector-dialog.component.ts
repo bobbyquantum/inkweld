@@ -10,13 +10,13 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
+  LocalStorageService,
+  MediaInfo,
+} from '@services/local/local-storage.service';
+import {
   MediaSyncService,
   MediaSyncStatus,
-} from '@services/offline/media-sync.service';
-import {
-  MediaInfo,
-  OfflineStorageService,
-} from '@services/offline/offline-storage.service';
+} from '@services/local/media-sync.service';
 
 export interface MediaSelectorDialogData {
   /** Project username */
@@ -61,7 +61,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
     MatDialogRef<MediaSelectorDialogComponent>
   );
   private readonly data = inject<MediaSelectorDialogData>(MAT_DIALOG_DATA);
-  private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly mediaSync = inject(MediaSyncService);
 
   readonly title = this.data.title || 'Select Image';
@@ -92,7 +92,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
 
     try {
       // First load local media
-      const items = await this.offlineStorage.listMedia(this.projectKey);
+      const items = await this.localStorage.listMedia(this.projectKey);
 
       // Filter to images if requested
       let filtered = items;
@@ -109,7 +109,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
       for (const item of filtered) {
         const mediaItem: MediaItem = { ...item };
         try {
-          const blob = await this.offlineStorage.getMedia(
+          const blob = await this.localStorage.getMedia(
             this.projectKey,
             item.mediaId
           );
@@ -254,7 +254,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
     if (!selected) return;
 
     // Get the blob for the selected item
-    const blob = await this.offlineStorage.getMedia(
+    const blob = await this.localStorage.getMedia(
       this.projectKey,
       selected.mediaId
     );

@@ -9,8 +9,8 @@ import {
 } from '../../../api-client/model/models';
 import {
   GenerationMetadata,
-  OfflineStorageService,
-} from '../offline/offline-storage.service';
+  LocalStorageService,
+} from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
 
 /**
@@ -69,7 +69,7 @@ export interface StartGenerationOptions {
 })
 export class ImageGenerationService {
   private readonly aiImageService = inject(AIImageGenerationService);
-  private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly projectService = inject(ProjectService);
 
   /** All active and recent generation jobs */
@@ -262,7 +262,7 @@ export class ImageGenerationService {
         };
 
         // Save to IndexedDB
-        await this.offlineStorage.saveMedia(
+        await this.localStorage.saveMedia(
           job.projectKey,
           mediaId,
           blob,

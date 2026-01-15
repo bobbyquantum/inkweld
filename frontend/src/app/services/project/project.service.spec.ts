@@ -16,9 +16,9 @@ import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { XsrfService } from '../auth/xsrf.service';
 import { SetupService } from '../core/setup.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
-import { ProjectSyncService } from '../offline/project-sync.service';
-import { StorageService } from '../offline/storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
+import { ProjectSyncService } from '../local/project-sync.service';
+import { StorageService } from '../local/storage.service';
 import { ProjectService, ProjectServiceError } from './project.service';
 
 const date = new Date().toISOString();
@@ -48,7 +48,7 @@ type ImagesMock = DeepMockProxy<ImagesService>;
 type StoreMock = DeepMockProxy<StorageService>;
 type XsrfMock = DeepMockProxy<XsrfService>;
 type SetupMock = DeepMockProxy<SetupService>;
-type OfflineStorageMock = DeepMockProxy<OfflineStorageService>;
+type OfflineStorageMock = DeepMockProxy<LocalStorageService>;
 type ProjectSyncMock = DeepMockProxy<ProjectSyncService>;
 
 describe('ProjectService', () => {
@@ -59,7 +59,7 @@ describe('ProjectService', () => {
   let store: StoreMock;
   let xsrf: XsrfMock;
   let setup: SetupMock;
-  let offlineStorage: OfflineStorageMock;
+  let localStorage: OfflineStorageMock;
   let projectSync: ProjectSyncMock;
 
   beforeEach(() => {
@@ -68,7 +68,7 @@ describe('ProjectService', () => {
     store = mockDeep<StorageService>() as StoreMock;
     xsrf = mockDeep<XsrfService>() as XsrfMock;
     setup = mockDeep<SetupService>() as SetupMock;
-    offlineStorage = mockDeep<OfflineStorageService>() as OfflineStorageMock;
+    localStorage = mockDeep<LocalStorageService>() as OfflineStorageMock;
     projectSync = mockDeep<ProjectSyncService>() as ProjectSyncMock;
 
     // Storage baseline
@@ -82,7 +82,7 @@ describe('ProjectService', () => {
     setup.getMode.mockReturnValue('server');
 
     // Offline storage baseline
-    offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+    localStorage.saveProjectCover.mockResolvedValue(undefined);
 
     // Project sync baseline
     projectSync.markPendingUpload.mockResolvedValue(undefined);
@@ -118,7 +118,7 @@ describe('ProjectService', () => {
         { provide: StorageService, useValue: store },
         { provide: XsrfService, useValue: xsrf },
         { provide: SetupService, useValue: setup },
-        { provide: OfflineStorageService, useValue: offlineStorage },
+        { provide: LocalStorageService, useValue: localStorage },
         { provide: ProjectSyncService, useValue: projectSync },
       ],
     });
@@ -871,12 +871,12 @@ describe('ProjectService', () => {
         apiOk({ message: 'Cover deleted' })
       );
       api.listUserProjects.mockReturnValue(apiOk(BASE));
-      offlineStorage.deleteProjectCover.mockResolvedValue(undefined);
+      localStorage.deleteProjectCover.mockResolvedValue(undefined);
 
       await service.deleteProjectCover('alice', 'project-1');
 
       // Should clear the cached cover
-      expect(offlineStorage.deleteProjectCover).toHaveBeenCalledWith(
+      expect(localStorage.deleteProjectCover).toHaveBeenCalledWith(
         'alice',
         'project-1'
       );
@@ -888,7 +888,7 @@ describe('ProjectService', () => {
         apiOk({ message: 'Cover deleted' })
       );
       api.listUserProjects.mockReturnValue(apiOk(BASE));
-      offlineStorage.deleteProjectCover.mockRejectedValue(
+      localStorage.deleteProjectCover.mockRejectedValue(
         new Error('IndexedDB error')
       );
 
@@ -898,7 +898,7 @@ describe('ProjectService', () => {
       ).resolves.not.toThrow();
 
       // Should still have called the cache clear
-      expect(offlineStorage.deleteProjectCover).toHaveBeenCalledWith(
+      expect(localStorage.deleteProjectCover).toHaveBeenCalledWith(
         'alice',
         'project-1'
       );
@@ -917,14 +917,14 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks
       setup.getMode.mockReset();
-      offlineStorage.saveProjectCover.mockReset();
+      localStorage.saveProjectCover.mockReset();
       projectSync.markPendingUpload.mockReset();
     });
 
     it('saves cover to IndexedDB when in offline mode', async () => {
       // Configure offline mode
-      setup.getMode.mockReturnValue('offline');
-      offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+      setup.getMode.mockReturnValue('local');
+      localStorage.saveProjectCover.mockResolvedValue(undefined);
       projectSync.markPendingUpload.mockResolvedValue(undefined);
 
       const coverBlob = new Blob(['test cover'], { type: 'image/png' });
@@ -932,7 +932,7 @@ describe('ProjectService', () => {
       await service.uploadProjectCover('alice', 'project-1', coverBlob);
 
       // Should save to offline storage
-      expect(offlineStorage.saveProjectCover).toHaveBeenCalledWith(
+      expect(localStorage.saveProjectCover).toHaveBeenCalledWith(
         'alice',
         'project-1',
         coverBlob
@@ -950,8 +950,8 @@ describe('ProjectService', () => {
 
     it('does not call API in offline mode', async () => {
       // Configure offline mode
-      setup.getMode.mockReturnValue('offline');
-      offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+      setup.getMode.mockReturnValue('local');
+      localStorage.saveProjectCover.mockResolvedValue(undefined);
       projectSync.markPendingUpload.mockResolvedValue(undefined);
 
       const coverBlob = new Blob(['test cover'], { type: 'image/png' });
@@ -965,7 +965,7 @@ describe('ProjectService', () => {
     it('does not save to offline storage in server mode', async () => {
       // Configure server mode (default)
       setup.getMode.mockReturnValue('server');
-      offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+      localStorage.saveProjectCover.mockResolvedValue(undefined);
 
       const coverBlob = new Blob(['test cover'], { type: 'image/png' });
 

@@ -112,15 +112,15 @@
     <!-- Sync Tab -->
     @if (selectedTab() === 'sync') {
       <div class="tab-content">
-        @if (currentMode === 'offline') {
-          <mat-card class="info-card offline">
+        @if (currentMode === 'local') {
+          <mat-card class="info-card local">
             <mat-card-content>
               <div class="info-content">
                 <mat-icon>info</mat-icon>
                 <div>
-                  <strong>Offline Mode:</strong> Some settings are not available
-                  in offline mode. Connect to a server to access MCP API keys
-                  and sync features.
+                  <strong>Local Mode:</strong> Some settings are not available
+                  in local mode. Connect to a server to access MCP API keys and
+                  sync features.
                 </div>
               </div>
             </mat-card-content>

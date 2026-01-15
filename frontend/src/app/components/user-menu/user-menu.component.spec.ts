@@ -46,7 +46,7 @@ describe('UserMenuComponent', () => {
 
     userServiceMock = {
       logout: vi.fn().mockResolvedValue(undefined),
-      getMode: vi.fn().mockReturnValue('offline'),
+      getMode: vi.fn().mockReturnValue('local'),
       currentUser: signal(mockUser),
     } as unknown as MockedObject<UnifiedUserService>;
 
@@ -173,12 +173,12 @@ describe('UserMenuComponent', () => {
       expect(status.icon).toBe('cloud_done');
     });
 
-    it('should return offline status when in offline mode', () => {
-      setupServiceMock.getMode.mockReturnValue('offline');
+    it('should return local status when in local mode', () => {
+      setupServiceMock.getMode.mockReturnValue('local');
       const status = component.getConnectionStatus();
-      expect(status.text).toBe('Offline');
-      expect(status.cssClass).toBe('offline');
-      expect(status.icon).toBe('cloud_off');
+      expect(status.text).toBe('Local');
+      expect(status.cssClass).toBe('local');
+      expect(status.icon).toBe('computer');
     });
   });
 

@@ -4,7 +4,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { MediaSyncState } from '../../services/offline/media-sync.service';
+import { MediaSyncState } from '../../services/local/media-sync.service';
 import { ConnectionStatusComponent } from './connection-status.component';
 
 describe('ConnectionStatusComponent', () => {
@@ -60,7 +60,7 @@ describe('ConnectionStatusComponent', () => {
     });
 
     it('should display offline state correctly', async () => {
-      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       await fixture.whenStable();
 
       const statusText = fixture.nativeElement.querySelector('.status-text');
@@ -82,7 +82,7 @@ describe('ConnectionStatusComponent', () => {
     });
 
     it('should show retry button when offline', async () => {
-      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       await fixture.whenStable();
 
       const retryButton = fixture.nativeElement.querySelector(
@@ -112,7 +112,7 @@ describe('ConnectionStatusComponent', () => {
     });
 
     it('should emit syncRequested when retry button clicked', async () => {
-      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       await fixture.whenStable();
 
       const emitSpy = vi.spyOn(component.syncRequested, 'emit');
@@ -213,7 +213,7 @@ describe('ConnectionStatusComponent', () => {
 
   describe('lastError tooltip display', () => {
     it('should include last error in retry button tooltip when offline', async () => {
-      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       fixture.componentRef.setInput('lastError', 'Connection refused');
       await fixture.whenStable();
 
@@ -223,7 +223,7 @@ describe('ConnectionStatusComponent', () => {
     });
 
     it('should show simple tooltip when no error', async () => {
-      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       fixture.componentRef.setInput('lastError', null);
       await fixture.whenStable();
 
@@ -231,7 +231,7 @@ describe('ConnectionStatusComponent', () => {
     });
 
     it('should include last error in sync tooltip when collapsed and offline', async () => {
-      fixture.componentRef.setInput('syncState', DocumentSyncState.Offline);
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       fixture.componentRef.setInput('collapsed', true);
       fixture.componentRef.setInput('lastError', 'WebSocket error');
       await fixture.whenStable();

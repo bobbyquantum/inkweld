@@ -74,7 +74,7 @@ describe('authGuard', () => {
   });
 
   it('should allow access when user is authenticated in offline mode', async () => {
-    (setupService.getMode as Mock).mockReturnValue('offline');
+    (setupService.getMode as Mock).mockReturnValue('local');
     mockIsAuthenticated.set(true);
 
     expect(
@@ -86,7 +86,7 @@ describe('authGuard', () => {
   });
 
   it('should redirect to setup when not authenticated in offline mode', async () => {
-    (setupService.getMode as Mock).mockReturnValue('offline');
+    (setupService.getMode as Mock).mockReturnValue('local');
     mockIsAuthenticated.set(false);
     const setupUrlTree = new UrlTree();
     (router.createUrlTree as Mock).mockReturnValue(setupUrlTree);

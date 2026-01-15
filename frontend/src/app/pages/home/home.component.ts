@@ -28,7 +28,7 @@ import { CollaborationService as CollaborationApiService } from '@inkweld/api/co
 import { Project } from '@inkweld/index';
 import { CollaboratedProject, PendingInvitation } from '@inkweld/model/models';
 import { SetupService } from '@services/core/setup.service';
-import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { firstValueFrom, Subject } from 'rxjs';
@@ -316,7 +316,7 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   async loadCollaborationData(): Promise<void> {
     // Skip collaboration API calls in offline mode
-    if (this.setupService.getMode() === 'offline') {
+    if (this.setupService.getMode() === 'local') {
       return;
     }
 

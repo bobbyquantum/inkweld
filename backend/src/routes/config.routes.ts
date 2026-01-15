@@ -39,7 +39,7 @@ const SystemFeaturesSchema = z
       .boolean()
       .openapi({ example: true, description: 'Whether AI-powered image generation is available' }),
     appMode: z
-      .enum(['ONLINE', 'OFFLINE', 'BOTH'])
+      .enum(['ONLINE', 'LOCAL', 'BOTH'])
       .openapi({ example: 'BOTH', description: 'Application mode configuration' }),
     defaultServerName: z.string().optional().openapi({
       example: 'http://localhost:3000',
@@ -129,8 +129,8 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
 
   // Get app mode configuration
   const appModeEnv = process.env.APP_MODE?.toUpperCase() || 'BOTH';
-  const appMode = ['ONLINE', 'OFFLINE', 'BOTH'].includes(appModeEnv)
-    ? (appModeEnv as 'ONLINE' | 'OFFLINE' | 'BOTH')
+  const appMode = ['ONLINE', 'LOCAL', 'BOTH'].includes(appModeEnv)
+    ? (appModeEnv as 'ONLINE' | 'LOCAL' | 'BOTH')
     : 'BOTH';
 
   // Get default server name

@@ -18,10 +18,10 @@ import {
   ProjectArchiveErrorType,
 } from '../../models/project-archive';
 import { LoggerService } from '../core/logger.service';
-import { OfflineProjectService } from '../offline/offline-project.service';
-import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
-import { OfflineSnapshotService } from '../offline/offline-snapshot.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalProjectService } from '../local/local-project.service';
+import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { LocalSnapshotService } from '../local/local-snapshot.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { DocumentImportService } from './document-import.service';
 import { ProjectImportService } from './project-import.service';
@@ -70,10 +70,10 @@ describe('ProjectImportService', () => {
   let logger: MockedObject<LoggerService>;
   let http: MockedObject<HttpClient>;
   let syncFactory: MockedObject<ElementSyncProviderFactory>;
-  let offlineProject: MockedObject<OfflineProjectService>;
-  let offlineElements: MockedObject<OfflineProjectElementsService>;
-  let offlineStorage: MockedObject<OfflineStorageService>;
-  let offlineSnapshots: MockedObject<OfflineSnapshotService>;
+  let localProject: MockedObject<LocalProjectService>;
+  let localElements: MockedObject<LocalProjectElementsService>;
+  let localStorage: MockedObject<LocalStorageService>;
+  let localSnapshots: MockedObject<LocalSnapshotService>;
   let projectsService: MockedObject<ProjectsService>;
   let documentImport: MockedObject<DocumentImportService>;
 
@@ -145,26 +145,26 @@ describe('ProjectImportService', () => {
     logger = mockDeep<LoggerService>();
     http = mockDeep<HttpClient>();
     syncFactory = mockDeep<ElementSyncProviderFactory>();
-    offlineProject = mockDeep<OfflineProjectService>();
-    offlineElements = mockDeep<OfflineProjectElementsService>();
-    offlineStorage = mockDeep<OfflineStorageService>();
-    offlineSnapshots = mockDeep<OfflineSnapshotService>();
+    localProject = mockDeep<LocalProjectService>();
+    localElements = mockDeep<LocalProjectElementsService>();
+    localStorage = mockDeep<LocalStorageService>();
+    localSnapshots = mockDeep<LocalSnapshotService>();
     projectsService = mockDeep<ProjectsService>();
     documentImport = mockDeep<DocumentImportService>();
 
     // Setup default mocks
-    syncFactory.isOfflineMode.mockReturnValue(true);
-    offlineProject.createProject.mockResolvedValue(mockCreatedProject);
-    offlineProject.getProject.mockReturnValue(null);
-    offlineProject.deleteProject.mockReturnValue(undefined);
-    offlineElements.saveElements.mockResolvedValue(undefined);
-    offlineElements.saveSchemas.mockResolvedValue(undefined);
-    offlineElements.saveRelationships.mockResolvedValue(undefined);
-    offlineElements.saveCustomRelationshipTypes.mockResolvedValue(undefined);
-    offlineElements.saveCustomTags.mockResolvedValue(undefined);
-    offlineElements.savePublishPlans.mockResolvedValue(undefined);
-    offlineStorage.saveMedia.mockResolvedValue(undefined);
-    offlineSnapshots.importSnapshot.mockResolvedValue({
+    syncFactory.isLocalMode.mockReturnValue(true);
+    localProject.createProject.mockResolvedValue(mockCreatedProject);
+    localProject.getProject.mockReturnValue(null);
+    localProject.deleteProject.mockReturnValue(undefined);
+    localElements.saveElements.mockResolvedValue(undefined);
+    localElements.saveSchemas.mockResolvedValue(undefined);
+    localElements.saveRelationships.mockResolvedValue(undefined);
+    localElements.saveCustomRelationshipTypes.mockResolvedValue(undefined);
+    localElements.saveCustomTags.mockResolvedValue(undefined);
+    localElements.savePublishPlans.mockResolvedValue(undefined);
+    localStorage.saveMedia.mockResolvedValue(undefined);
+    localSnapshots.importSnapshot.mockResolvedValue({
       id: 'test:doc:snap-1',
       projectKey: 'testuser/imported-project',
       documentId: 'doc-1',
@@ -193,10 +193,10 @@ describe('ProjectImportService', () => {
         { provide: LoggerService, useValue: logger },
         { provide: HttpClient, useValue: http },
         { provide: ElementSyncProviderFactory, useValue: syncFactory },
-        { provide: OfflineProjectService, useValue: offlineProject },
-        { provide: OfflineProjectElementsService, useValue: offlineElements },
-        { provide: OfflineStorageService, useValue: offlineStorage },
-        { provide: OfflineSnapshotService, useValue: offlineSnapshots },
+        { provide: LocalProjectService, useValue: localProject },
+        { provide: LocalProjectElementsService, useValue: localElements },
+        { provide: LocalStorageService, useValue: localStorage },
+        { provide: LocalSnapshotService, useValue: localSnapshots },
         { provide: ProjectsService, useValue: projectsService },
         { provide: DocumentImportService, useValue: documentImport },
       ],
@@ -254,8 +254,8 @@ describe('ProjectImportService', () => {
     });
 
     it('should check availability in offline mode', () => {
-      syncFactory.isOfflineMode.mockReturnValue(true);
-      offlineProject.getProject.mockReturnValue(mockCreatedProject);
+      syncFactory.isLocalMode.mockReturnValue(true);
+      localProject.getProject.mockReturnValue(mockCreatedProject);
 
       const result = service.validateSlug('existing-project', 'testuser');
 
@@ -265,7 +265,7 @@ describe('ProjectImportService', () => {
     });
 
     it('should return available in server mode', () => {
-      syncFactory.isOfflineMode.mockReturnValue(false);
+      syncFactory.isLocalMode.mockReturnValue(false);
 
       const result = service.validateSlug('any-slug');
 
@@ -447,7 +447,7 @@ describe('ProjectImportService', () => {
 
         await service.importProject(file, { slug: 'imported-project' });
 
-        expect(offlineProject.createProject).toHaveBeenCalledWith({
+        expect(localProject.createProject).toHaveBeenCalledWith({
           title: mockProject.title,
           description: mockProject.description,
           slug: 'imported-project',
@@ -459,7 +459,7 @@ describe('ProjectImportService', () => {
       'should create project using API in server mode',
       { timeout: 5000 },
       async () => {
-        syncFactory.isOfflineMode.mockReturnValue(false);
+        syncFactory.isLocalMode.mockReturnValue(false);
         const file = await createTestArchive(mockArchive);
 
         await service.importProject(file, { slug: 'imported-project' });
@@ -477,7 +477,7 @@ describe('ProjectImportService', () => {
 
       await service.importProject(file, { slug: 'imported-project' });
 
-      expect(offlineElements.saveElements).toHaveBeenCalledWith(
+      expect(localElements.saveElements).toHaveBeenCalledWith(
         'testuser',
         'imported-project',
         expect.arrayContaining([
@@ -543,7 +543,7 @@ describe('ProjectImportService', () => {
 
       await service.importProject(file, { slug: 'imported-project' });
 
-      expect(offlineElements.saveSchemas).toHaveBeenCalled();
+      expect(localElements.saveSchemas).toHaveBeenCalled();
     });
 
     it('should import relationships', async () => {
@@ -565,7 +565,7 @@ describe('ProjectImportService', () => {
 
       await service.importProject(file, { slug: 'imported-project' });
 
-      expect(offlineElements.saveRelationships).toHaveBeenCalled();
+      expect(localElements.saveRelationships).toHaveBeenCalled();
     });
 
     it('should import custom relationship types', async () => {
@@ -589,7 +589,7 @@ describe('ProjectImportService', () => {
 
       await service.importProject(file, { slug: 'imported-project' });
 
-      expect(offlineElements.saveCustomRelationshipTypes).toHaveBeenCalled();
+      expect(localElements.saveCustomRelationshipTypes).toHaveBeenCalled();
     });
 
     it('should import tags', async () => {
@@ -608,7 +608,7 @@ describe('ProjectImportService', () => {
 
       await service.importProject(file, { slug: 'imported-project' });
 
-      expect(offlineElements.saveCustomTags).toHaveBeenCalled();
+      expect(localElements.saveCustomTags).toHaveBeenCalled();
     });
 
     it('should import publish plans', async () => {
@@ -632,13 +632,11 @@ describe('ProjectImportService', () => {
 
       await service.importProject(file, { slug: 'imported-project' });
 
-      expect(offlineElements.savePublishPlans).toHaveBeenCalled();
+      expect(localElements.savePublishPlans).toHaveBeenCalled();
     });
 
     it('should cleanup on project creation failure', async () => {
-      offlineProject.createProject.mockRejectedValue(
-        new Error('Create failed')
-      );
+      localProject.createProject.mockRejectedValue(new Error('Create failed'));
       const file = await createTestArchive(mockArchive);
 
       await expect(
@@ -650,9 +648,7 @@ describe('ProjectImportService', () => {
     });
 
     it('should set error state on failure', async () => {
-      offlineProject.createProject.mockRejectedValue(
-        new Error('Import failed')
-      );
+      localProject.createProject.mockRejectedValue(new Error('Import failed'));
       const file = await createTestArchive(mockArchive);
 
       await expect(
@@ -798,7 +794,7 @@ describe('ProjectImportService', () => {
       });
 
       expect(result).toEqual(mockCreatedProject);
-      expect(offlineSnapshots.importSnapshot).toHaveBeenCalled();
+      expect(localSnapshots.importSnapshot).toHaveBeenCalled();
     });
 
     it('should handle project with special characters in title', async () => {

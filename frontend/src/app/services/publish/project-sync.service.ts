@@ -406,7 +406,7 @@ export class ProjectSyncService {
       // Check if document is synced or at least available offline
       if (
         status === DocumentSyncState.Synced ||
-        status === DocumentSyncState.Offline
+        status === DocumentSyncState.Local
       ) {
         return;
       }

@@ -321,16 +321,16 @@ export const test = base.extend<OnlineTestFixtures>({
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'offline',
+          mode: 'local',
           userProfile,
         })
       );
 
       // IMPORTANT: Also set the offline user directly so OfflineUserService recognizes authentication
-      localStorage.setItem('inkweld-offline-user', JSON.stringify(userProfile));
+      localStorage.setItem('inkweld-local-user', JSON.stringify(userProfile));
 
       // Clear any existing offline projects
-      localStorage.removeItem('inkweld-offline-projects');
+      localStorage.removeItem('inkweld-local-projects');
     }, username);
 
     // Reload to apply the configuration
@@ -733,7 +733,7 @@ export async function createOfflineProject(
 
   // Wait for localStorage to be updated by checking it directly
   await page.waitForFunction(expectedSlug => {
-    const stored = localStorage.getItem('inkweld-offline-projects');
+    const stored = localStorage.getItem('inkweld-local-projects');
     if (!stored) return false;
     try {
       const projects = JSON.parse(stored) as Array<{ slug: string }>;
@@ -770,7 +770,7 @@ export async function getOfflineProjects(
   page: Page
 ): Promise<Array<{ slug: string }>> {
   return page.evaluate(() => {
-    const stored = localStorage.getItem('inkweld-offline-projects');
+    const stored = localStorage.getItem('inkweld-local-projects');
     return stored ? (JSON.parse(stored) as Array<{ slug: string }>) : [];
   });
 }

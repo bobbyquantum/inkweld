@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 
 import { SetupService } from '../core/setup.service';
 import { IElementSyncProvider } from './element-sync-provider.interface';
-import { OfflineElementSyncProvider } from './offline-element-sync.provider';
+import { LocalElementSyncProvider } from './local-element-sync.provider';
 import { YjsElementSyncProvider } from './yjs-element-sync.provider';
 
 /**
@@ -10,7 +10,7 @@ import { YjsElementSyncProvider } from './yjs-element-sync.provider';
  *
  * Selects between:
  * - YjsElementSyncProvider: For server mode (real-time sync via WebSocket)
- * - OfflineElementSyncProvider: For offline mode (local IndexedDB only)
+ * - LocalElementSyncProvider: For local mode (local IndexedDB only)
  *
  * This allows ProjectStateService to work with a consistent interface
  * regardless of the sync backend.
@@ -21,7 +21,7 @@ import { YjsElementSyncProvider } from './yjs-element-sync.provider';
 export class ElementSyncProviderFactory {
   private readonly setupService = inject(SetupService);
   private readonly yjsProvider = inject(YjsElementSyncProvider);
-  private readonly offlineProvider = inject(OfflineElementSyncProvider);
+  private readonly localProvider = inject(LocalElementSyncProvider);
 
   /**
    * Get the appropriate sync provider based on current mode.
@@ -32,8 +32,8 @@ export class ElementSyncProviderFactory {
   getProvider(): IElementSyncProvider {
     const mode = this.setupService.getMode();
 
-    if (mode === 'offline') {
-      return this.offlineProvider;
+    if (mode === 'local') {
+      return this.localProvider;
     }
 
     return this.yjsProvider;
@@ -42,14 +42,14 @@ export class ElementSyncProviderFactory {
   /**
    * Get the current mode for informational purposes.
    */
-  getCurrentMode(): 'offline' | 'server' {
-    return this.setupService.getMode() === 'offline' ? 'offline' : 'server';
+  getCurrentMode(): 'local' | 'server' {
+    return this.setupService.getMode() === 'local' ? 'local' : 'server';
   }
 
   /**
-   * Check if we're in offline mode.
+   * Check if we're in local mode.
    */
-  isOfflineMode(): boolean {
-    return this.setupService.getMode() === 'offline';
+  isLocalMode(): boolean {
+    return this.setupService.getMode() === 'local';
   }
 }

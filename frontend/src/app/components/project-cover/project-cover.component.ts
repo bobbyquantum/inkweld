@@ -12,7 +12,7 @@ import {
 import { Project } from '@inkweld/index';
 
 import { SetupService } from '../../services/core/setup.service';
-import { OfflineStorageService } from '../../services/offline/offline-storage.service';
+import { LocalStorageService } from '../../services/local/local-storage.service';
 
 export type ProjectCoverVariant = 'card' | 'list' | 'small';
 
@@ -24,7 +24,7 @@ export type ProjectCoverVariant = 'card' | 'list' | 'small';
   styleUrls: ['./project-cover.component.scss'],
 })
 export class ProjectCoverComponent implements OnChanges, OnDestroy {
-  private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly setupService = inject(SetupService);
   private readonly http = inject(HttpClient);
 
@@ -42,7 +42,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   private coverBlobUrl = signal<string | null>(null);
 
   /** Whether we're in offline mode */
-  private isOffline = computed(() => this.setupService.getMode() === 'offline');
+  private isOffline = computed(() => this.setupService.getMode() === 'local');
 
   /** Track current project key for cleanup */
   private currentProjectKey: string | null = null;
@@ -63,7 +63,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // NOTE: We do NOT revoke blob URLs here. The OfflineStorageService
+    // NOTE: We do NOT revoke blob URLs here. The LocalStorageService
     // manages URL lifecycle and caches them for reuse across components.
     // Revoking here would invalidate cached URLs, causing ERR_FILE_NOT_FOUND
     // when navigating back to pages that show the same cover.
@@ -115,7 +115,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
 
       // If coverMediaId is provided, use the new offline-first approach
       if (this.coverMediaId) {
-        url = await this.offlineStorage.getMediaUrl(
+        url = await this.localStorage.getMediaUrl(
           projectKey,
           this.coverMediaId
         );
@@ -123,7 +123,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
 
       // Fall back to legacy approach (fixed 'cover' key)
       if (!url) {
-        url = await this.offlineStorage.getProjectCoverUrl(
+        url = await this.localStorage.getProjectCoverUrl(
           project.username,
           project.slug
         );
@@ -136,13 +136,13 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
         if (blob) {
           // Save to IndexedDB for future use (using coverMediaId if available, else legacy)
           if (this.coverMediaId) {
-            await this.offlineStorage.saveMedia(
+            await this.localStorage.saveMedia(
               projectKey,
               this.coverMediaId,
               blob
             );
           } else {
-            await this.offlineStorage.saveProjectCover(
+            await this.localStorage.saveProjectCover(
               project.username,
               project.slug,
               blob
@@ -150,11 +150,8 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
           }
           // Get the blob URL
           url = this.coverMediaId
-            ? await this.offlineStorage.getMediaUrl(
-                projectKey,
-                this.coverMediaId
-              )
-            : await this.offlineStorage.getProjectCoverUrl(
+            ? await this.localStorage.getMediaUrl(projectKey, this.coverMediaId)
+            : await this.localStorage.getProjectCoverUrl(
                 project.username,
                 project.slug
               );

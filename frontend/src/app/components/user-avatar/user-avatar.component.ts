@@ -10,7 +10,7 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { generateFracticonDataURL } from 'fracticons';
@@ -26,7 +26,7 @@ import { Subscription } from 'rxjs';
 export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
   private unifiedUserService = inject(UnifiedUserService);
   private userService = inject(UserService);
-  private offlineStorage = inject(OfflineStorageService);
+  private localStorage = inject(LocalStorageService);
   private sanitizer = inject(DomSanitizer);
   private cdr = inject(ChangeDetectorRef);
 
@@ -101,7 +101,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     const mode = this.unifiedUserService.getMode();
 
     // In offline mode, try to load from IndexedDB cache
-    if (mode === 'offline') {
+    if (mode === 'local') {
       await this.loadFromOfflineCache();
       return;
     }
@@ -112,7 +112,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     this.avatarUrl = undefined;
 
     // First try to load from local cache (faster and works if server is slow)
-    const cachedUrl = await this.offlineStorage.getUserAvatarUrl(this.username);
+    const cachedUrl = await this.localStorage.getUserAvatarUrl(this.username);
     if (cachedUrl) {
       this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(cachedUrl);
       this.error = false;
@@ -129,7 +129,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
           void (async () => {
             if (blob && blob.size > 0) {
               // Cache the avatar locally for offline access
-              await this.offlineStorage.saveUserAvatar(this.username, blob);
+              await this.localStorage.saveUserAvatar(this.username, blob);
               this.currentObjectUrl = URL.createObjectURL(blob);
               this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(
                 this.currentObjectUrl
@@ -160,7 +160,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     this.avatarUrl = undefined;
 
     try {
-      const url = await this.offlineStorage.getUserAvatarUrl(this.username);
+      const url = await this.localStorage.getUserAvatarUrl(this.username);
       if (url) {
         this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(url);
         this.error = false;

@@ -15,7 +15,7 @@ import { ConfigurationService } from '@inkweld/index';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 
-type AppMode = 'ONLINE' | 'OFFLINE' | 'BOTH';
+type AppMode = 'ONLINE' | 'LOCAL' | 'BOTH';
 
 // Define a safe interface for the system features response
 interface SystemFeaturesResponse {
@@ -55,7 +55,7 @@ export class SetupComponent implements OnInit {
 
   protected readonly isLoading = this.setupService.isLoading;
   protected readonly showServerSetup = signal(false);
-  protected readonly showOfflineSetup = signal(false);
+  protected readonly showLocalSetup = signal(false);
   protected readonly appMode = signal<AppMode>('BOTH');
   protected readonly configLoading = signal(true);
 
@@ -90,7 +90,7 @@ export class SetupComponent implements OnInit {
         if (
           typeof appModeValue === 'string' &&
           (appModeValue === 'ONLINE' ||
-            appModeValue === 'OFFLINE' ||
+            appModeValue === 'LOCAL' ||
             appModeValue === 'BOTH')
         ) {
           this.appMode.set(appModeValue as AppMode);
@@ -98,8 +98,8 @@ export class SetupComponent implements OnInit {
           // Auto-select mode if only one option is available
           if (appModeValue === 'ONLINE') {
             this.chooseServerMode();
-          } else if (appModeValue === 'OFFLINE') {
-            this.chooseOfflineMode();
+          } else if (appModeValue === 'LOCAL') {
+            this.chooseLocalMode();
           }
         }
 
@@ -124,7 +124,7 @@ export class SetupComponent implements OnInit {
     return (
       this.appMode() === 'BOTH' &&
       !this.showServerSetup() &&
-      !this.showOfflineSetup()
+      !this.showLocalSetup()
     );
   }
 
@@ -133,18 +133,18 @@ export class SetupComponent implements OnInit {
     return mode === 'BOTH' || mode === 'ONLINE';
   }
 
-  protected canUseOfflineMode(): boolean {
+  protected canUseLocalMode(): boolean {
     const mode = this.appMode();
-    return mode === 'BOTH' || mode === 'OFFLINE';
+    return mode === 'BOTH' || mode === 'LOCAL';
   }
 
   protected chooseServerMode(): void {
     this.showServerSetup.set(true);
-    this.showOfflineSetup.set(false);
+    this.showLocalSetup.set(false);
   }
 
-  protected chooseOfflineMode(): void {
-    this.showOfflineSetup.set(true);
+  protected chooseLocalMode(): void {
+    this.showLocalSetup.set(true);
     this.showServerSetup.set(false);
   }
 
@@ -173,7 +173,7 @@ export class SetupComponent implements OnInit {
     }
   }
 
-  protected async setupOfflineMode(): Promise<void> {
+  protected async setupLocalMode(): Promise<void> {
     if (!this.userName.trim() || !this.displayName.trim()) {
       this.snackBar.open('Please fill in all fields', 'Close', {
         duration: 3000,
@@ -182,7 +182,7 @@ export class SetupComponent implements OnInit {
     }
 
     try {
-      this.setupService.configureOfflineMode({
+      this.setupService.configureLocalMode({
         username: this.userName.trim(),
         name: this.displayName.trim(),
       });
@@ -190,12 +190,12 @@ export class SetupComponent implements OnInit {
       // Initialize the user service after configuration
       await this.unifiedUserService.initialize();
 
-      this.snackBar.open('Offline mode configured!', 'Close', {
+      this.snackBar.open('Local mode configured!', 'Close', {
         duration: 3000,
       });
       await this.router.navigate(['/']);
     } catch {
-      this.snackBar.open('Failed to configure offline mode', 'Close', {
+      this.snackBar.open('Failed to configure local mode', 'Close', {
         duration: 3000,
       });
     }
@@ -203,6 +203,6 @@ export class SetupComponent implements OnInit {
 
   protected goBack(): void {
     this.showServerSetup.set(false);
-    this.showOfflineSetup.set(false);
+    this.showLocalSetup.set(false);
   }
 }

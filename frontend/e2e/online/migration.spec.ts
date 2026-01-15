@@ -18,12 +18,12 @@ import {
  * 5. Verify projects exist on server
  */
 test.describe('Offline to Server Migration', () => {
-  test('should migrate offline projects to server after registration', async ({
+  test('should migrate local projects to server after registration', async ({
     offlinePage,
   }) => {
     // Step 1: Verify we're in offline mode (page already navigated by fixture)
     const initialMode = await getAppMode(offlinePage);
-    expect(initialMode).toBe('offline');
+    expect(initialMode).toBe('local');
 
     // Step 2: Create two offline projects using the helper
     await createOfflineProject(
@@ -76,7 +76,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Step 9: Should see confirmation dialog asking about migration
     await expect(
-      offlinePage.getByRole('heading', { name: /migrate offline projects/i })
+      offlinePage.getByRole('heading', { name: /migrate local projects/i })
     ).toBeVisible();
 
     // Confirm migration
@@ -241,7 +241,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Confirm migration dialog
     await expect(
-      offlinePage.getByRole('heading', { name: /migrate offline projects/i })
+      offlinePage.getByRole('heading', { name: /migrate local projects/i })
     ).toBeVisible();
     await offlinePage.getByRole('button', { name: /continue/i }).click();
 
@@ -264,26 +264,26 @@ test.describe('Offline to Server Migration', () => {
       .fill(testPassword);
     await offlinePage.locator('[data-testid="authenticate-button"]').click();
 
-    // Wait for migration to complete (snackbar or mode change)
-    // The migration shows a snackbar then reloads the page after 1 second.
-    await Promise.race([
-      expect(
-        offlinePage
-          .locator('.mat-mdc-snack-bar-label')
-          .filter({ hasText: /Successfully migrated \d+ project/i })
-          .first()
-      ).toBeVisible(),
-      offlinePage.waitForFunction(() => {
-        try {
-          const config = localStorage.getItem('inkweld-app-config');
-          if (!config) return false;
-          const parsed = JSON.parse(config);
-          return parsed.mode === 'server';
-        } catch {
-          return false;
-        }
-      }),
-    ]);
+    // Wait for migration to complete (snackbar first, then mode change)
+    // First wait for the snackbar to confirm migration success
+    await expect(
+      offlinePage
+        .locator('.mat-mdc-snack-bar-label')
+        .filter({ hasText: /Successfully migrated \d+ project/i })
+        .first()
+    ).toBeVisible({ timeout: 30000 });
+
+    // Then wait for mode to change to server in LocalStorage
+    await offlinePage.waitForFunction(() => {
+      try {
+        const config = localStorage.getItem('inkweld-app-config');
+        if (!config) return false;
+        const parsed = JSON.parse(config);
+        return parsed.mode === 'server';
+      } catch {
+        return false;
+      }
+    });
 
     // Step 13: Wait for page to reload and fully stabilize
     await offlinePage.waitForURL(/\/$/);
@@ -298,10 +298,14 @@ test.describe('Offline to Server Migration', () => {
     await offlinePage.goto('/');
     await offlinePage.waitForLoadState('networkidle');
 
+    // Wait for project cards to load - the projects might take time to fetch
+    const projectButton = offlinePage.getByRole('button', {
+      name: /Open project Content Test/i,
+    });
+    await expect(projectButton).toBeVisible({ timeout: 30000 });
+
     // Click on the project card
-    await offlinePage
-      .getByRole('button', { name: /Open project Content Test/i })
-      .click();
+    await projectButton.click();
     await expect(offlinePage).toHaveURL(/.*content-test.*/);
 
     // Step 5: Open the same document

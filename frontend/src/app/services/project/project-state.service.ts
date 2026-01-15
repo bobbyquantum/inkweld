@@ -16,11 +16,11 @@ import { PublishPlan } from '../../models/publish-plan';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { BackgroundSyncService } from '../offline/background-sync.service';
-import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
-import { ProjectSyncService } from '../offline/project-sync.service';
-import { StorageService } from '../offline/storage.service';
-import { UnifiedProjectService } from '../offline/unified-project.service';
+import { BackgroundSyncService } from '../local/background-sync.service';
+import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { ProjectSyncService } from '../local/project-sync.service';
+import { StorageService } from '../local/storage.service';
+import { UnifiedProjectService } from '../local/unified-project.service';
 import {
   ElementSyncProviderFactory,
   IElementSyncProvider,
@@ -66,9 +66,7 @@ export class ProjectStateService implements OnDestroy {
   private readonly unifiedProjectService = inject(UnifiedProjectService);
   private readonly unifiedUserService = inject(UnifiedUserService);
   private readonly setupService = inject(SetupService);
-  private readonly offlineElementsService = inject(
-    OfflineProjectElementsService
-  );
+  private readonly localElementsService = inject(LocalProjectElementsService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly recentFilesService = inject(RecentFilesService);
   private readonly storageService = inject(StorageService);
@@ -116,7 +114,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full access
-    if (this.setupService.getMode() === 'offline') return true;
+    if (this.setupService.getMode() === 'local') return true;
     // Owner always has write access
     if (this.isCurrentUserProjectOwner()) return true;
     // If access info is loaded, use it
@@ -131,7 +129,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects
-    if (this.setupService.getMode() === 'offline') return true;
+    if (this.setupService.getMode() === 'local') return true;
     // If access info is loaded, use it
     if (proj.access) return proj.access.isOwner;
     // Fallback: Check if current user is owner by username comparison
@@ -145,7 +143,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full admin
-    if (this.setupService.getMode() === 'offline') return true;
+    if (this.setupService.getMode() === 'local') return true;
     // If access info is available, use it
     if (proj.access) return proj.access.canAdmin;
     // Local-first fallback: if we're the owner, we're the admin
@@ -164,7 +162,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, access is always known (full access)
-    if (this.setupService.getMode() === 'offline') return true;
+    if (this.setupService.getMode() === 'local') return true;
     // In server mode, access is loaded when the access property is present
     if (proj.access !== undefined) return true;
     // Local-first fallback: if we can verify local ownership, consider access known
@@ -277,7 +275,7 @@ export class ProjectStateService implements OnDestroy {
       // Load project metadata and elements
       const mode = this.setupService.getMode();
 
-      if (mode === 'offline') {
+      if (mode === 'local') {
         await this.loadOfflineProject(username, slug);
       } else {
         await this.loadServerProject(username, slug);
@@ -396,7 +394,7 @@ export class ProjectStateService implements OnDestroy {
         updatedDate: new Date().toISOString(),
       });
       // Mark as offline state
-      this.docSyncState.set(DocumentSyncState.Offline);
+      this.docSyncState.set(DocumentSyncState.Local);
     } else if (!project && !connected) {
       // No project and sync provider failed too
       throw serverError || new Error('Failed to load project');

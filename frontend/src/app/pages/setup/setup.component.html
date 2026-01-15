@@ -13,8 +13,8 @@
             Choose how you'd like to use Inkweld
           } @else if (showServerSetup()) {
             Connect to your Inkweld server
-          } @else if (showOfflineSetup()) {
-            Set up your offline profile
+          } @else if (showLocalSetup()) {
+            Set up your local profile
           }
         </mat-card-subtitle>
       </mat-card-header>
@@ -42,22 +42,22 @@
         } @else if (shouldShowModeSelection()) {
           <!-- Initial choice screen - only shown when appMode is 'BOTH' -->
           <div class="setup-options">
-            @if (canUseOfflineMode()) {
+            @if (canUseLocalMode()) {
               <button
                 class="option-card"
-                (click)="chooseOfflineMode()"
-                data-testid="offline-mode-button">
-                <mat-icon class="option-icon">offline_bolt</mat-icon>
-                <h3>Work Offline</h3>
+                (click)="chooseLocalMode()"
+                data-testid="local-mode-button">
+                <mat-icon class="option-icon">computer</mat-icon>
+                <h3>Work Locally</h3>
                 <p>
-                  Work completely offline with local storage. All your projects
-                  will be stored on your device.
+                  Work completely locally with browser storage. All your
+                  projects will be stored on your device.
                 </p>
-                <span class="option-button">Choose Offline Mode</span>
+                <span class="option-button">Choose Local Mode</span>
               </button>
             }
 
-            @if (canUseServerMode() && canUseOfflineMode()) {
+            @if (canUseServerMode() && canUseLocalMode()) {
               <mat-divider [vertical]="true"></mat-divider>
             }
 
@@ -122,21 +122,21 @@
           </div>
         }
 
-        @if (showOfflineSetup()) {
-          <!-- Offline setup form -->
+        @if (showLocalSetup()) {
+          <!-- Local setup form -->
           <div class="setup-form">
             @if (appMode() === 'BOTH') {
               <button
                 mat-icon-button
                 (click)="goBack()"
                 class="back-button"
-                data-testid="offline-back-button">
+                data-testid="local-back-button">
                 <mat-icon>arrow_back</mat-icon>
               </button>
             }
 
-            <h3>Offline Profile Setup</h3>
-            <p>Create your offline profile:</p>
+            <h3>Local Profile Setup</h3>
+            <p>Create your local profile:</p>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Username</mat-label>
@@ -145,7 +145,7 @@
                 [(ngModel)]="userName"
                 placeholder="your-username"
                 required
-                data-testid="offline-username-input" />
+                data-testid="local-username-input" />
               <mat-icon matSuffix>person</mat-icon>
             </mat-form-field>
 
@@ -156,7 +156,7 @@
                 [(ngModel)]="displayName"
                 placeholder="Your Name"
                 required
-                data-testid="offline-displayname-input" />
+                data-testid="local-displayname-input" />
               <mat-icon matSuffix>badge</mat-icon>
             </mat-form-field>
 
@@ -167,12 +167,12 @@
               <button
                 mat-raised-button
                 color="accent"
-                (click)="setupOfflineMode()"
+                (click)="setupLocalMode()"
                 [disabled]="
                   isLoading() || !userName.trim() || !displayName.trim()
                 "
-                data-testid="start-offline-button">
-                Start Offline Mode
+                data-testid="start-local-button">
+                Start Local Mode
               </button>
             </div>
           </div>

@@ -103,9 +103,9 @@ jobs:
   # E2E Tests - Split across parallel runners
   # ===========================================
 
-  # Offline E2E Tests
-  e2e-offline:
-    name: E2E Tests (Offline)
+  # Local E2E Tests
+  e2e-local:
+    name: E2E Tests (Local)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -130,15 +130,15 @@ jobs:
         run: cd frontend && bunx playwright install --with-deps chromium
       - name: Build frontend
         run: cd frontend && npm run build
-      - name: Run offline e2e tests
-        run: cd frontend && npm run e2e:offline:ci
+      - name: Run local e2e tests
+        run: cd frontend && npm run e2e:local:ci
         env:
           E2E_MODE: prod
       - name: Upload Playwright reports
         uses: actions/upload-artifact@v6
         if: failure()
         with:
-          name: playwright-report-offline
+          name: playwright-report-local
           path: frontend/playwright-report/
           retention-days: 7
 

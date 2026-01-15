@@ -89,7 +89,7 @@ describe('ProjectSyncService', () => {
     };
 
     setupServiceMock = {
-      appConfig: signal({ mode: 'offline' }),
+      appConfig: signal({ mode: 'local' }),
     };
 
     documentServiceMock = {
@@ -330,7 +330,7 @@ describe('ProjectSyncService', () => {
 
     it('should handle offline documents in server mode', async () => {
       documentServiceMock.getSyncStatusSignal.mockReturnValue(
-        signal(DocumentSyncState.Offline)
+        signal(DocumentSyncState.Local)
       );
 
       const result = await service.syncDocuments(['doc-1']);

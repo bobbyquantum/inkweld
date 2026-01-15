@@ -4,7 +4,7 @@ import { User } from '@inkweld/index';
 import { environment } from '../../../environments/environment';
 
 export interface AppConfig {
-  mode: 'server' | 'offline';
+  mode: 'server' | 'local';
   serverUrl?: string;
   userProfile?: {
     name: string;
@@ -13,6 +13,12 @@ export interface AppConfig {
 }
 
 const SETUP_STORAGE_KEY = 'inkweld-app-config';
+/** Legacy key for migration - can be removed after v1 */
+const LEGACY_LOCAL_USER_KEY = 'inkweld-offline-user';
+const LOCAL_USER_KEY = 'inkweld-local-user';
+/** Legacy key for migration - can be removed after v1 */
+const LEGACY_LOCAL_PROJECTS_KEY = 'inkweld-offline-projects';
+const LOCAL_PROJECTS_KEY = 'inkweld-local-projects';
 
 @Injectable({
   providedIn: 'root',
@@ -23,7 +29,48 @@ export class SetupService {
   readonly isLoading = signal(false);
 
   constructor() {
+    this.migrateStorageKeys();
     this.loadConfig();
+  }
+
+  /**
+   * Migrate legacy 'offline' storage keys to new 'local' keys.
+   * This ensures smooth transition for existing users.
+   * Can be removed after v1 release.
+   */
+  private migrateStorageKeys(): void {
+    // Migrate config mode from 'offline' to 'local'
+    try {
+      const stored = localStorage.getItem(SETUP_STORAGE_KEY);
+      if (stored) {
+        const config = JSON.parse(stored) as AppConfig & { mode: string };
+        if (config.mode === 'local') {
+          config.mode = 'local';
+          localStorage.setItem(SETUP_STORAGE_KEY, JSON.stringify(config));
+          console.log(
+            '[SetupService] Migrated config mode from offline to local'
+          );
+        }
+      }
+    } catch {
+      // Ignore migration errors
+    }
+
+    // Migrate user key
+    const oldUser = localStorage.getItem(LEGACY_LOCAL_USER_KEY);
+    if (oldUser && !localStorage.getItem(LOCAL_USER_KEY)) {
+      localStorage.setItem(LOCAL_USER_KEY, oldUser);
+      localStorage.removeItem(LEGACY_LOCAL_USER_KEY);
+      console.log('[SetupService] Migrated local user storage key');
+    }
+
+    // Migrate projects key
+    const oldProjects = localStorage.getItem(LEGACY_LOCAL_PROJECTS_KEY);
+    if (oldProjects && !localStorage.getItem(LOCAL_PROJECTS_KEY)) {
+      localStorage.setItem(LOCAL_PROJECTS_KEY, oldProjects);
+      localStorage.removeItem(LEGACY_LOCAL_PROJECTS_KEY);
+      console.log('[SetupService] Migrated local projects storage key');
+    }
   }
 
   /**
@@ -113,13 +160,13 @@ export class SetupService {
   }
 
   /**
-   * Configure the app for offline mode
+   * Configure the app for local mode
    */
-  configureOfflineMode(userProfile: { name: string; username: string }): void {
+  configureLocalMode(userProfile: { name: string; username: string }): void {
     this.isLoading.set(true);
     try {
       const config: AppConfig = {
-        mode: 'offline',
+        mode: 'local',
         userProfile: userProfile,
       };
 
@@ -143,7 +190,7 @@ export class SetupService {
   /**
    * Get the current configuration mode
    */
-  getMode(): 'server' | 'offline' | null {
+  getMode(): 'server' | 'local' | null {
     return this.appConfig()?.mode || null;
   }
 
@@ -156,11 +203,11 @@ export class SetupService {
   }
 
   /**
-   * Get the offline user profile if in offline mode
+   * Get the local user profile if in local mode
    */
-  getOfflineUserProfile(): User | null {
+  getLocalUserProfile(): User | null {
     const config = this.appConfig();
-    if (config?.mode === 'offline' && config.userProfile) {
+    if (config?.mode === 'local' && config.userProfile) {
       return {
         id: '',
         ...config.userProfile,
@@ -173,7 +220,7 @@ export class SetupService {
   /**
    * Get the WebSocket URL based on current mode
    * In server mode, converts the server URL to WebSocket URL
-   * In offline mode or when no server URL is set, uses environment wssUrl
+   * In local mode or when no server URL is set, returns null
    */
   getWebSocketUrl(): string | null {
     const config = this.appConfig();
@@ -190,8 +237,7 @@ export class SetupService {
       }
     }
 
-    // Fallback to environment wssUrl (for offline mode or when server URL is not set)
-    // This will be empty in production unless specifically configured
+    // In local mode, no WebSocket URL is available
     return null;
   }
 

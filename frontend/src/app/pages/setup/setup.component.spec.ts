@@ -32,7 +32,7 @@ describe('SetupComponent', () => {
       isLoading: vi.fn().mockReturnValue(false),
       getServerUrl: vi.fn().mockReturnValue(null),
       configureServerMode: vi.fn().mockResolvedValue(undefined),
-      configureOfflineMode: vi.fn(),
+      configureLocalMode: vi.fn(),
     };
 
     mockUnifiedUserService = {
@@ -130,19 +130,19 @@ describe('SetupComponent', () => {
       await fixture.whenStable();
 
       expect(component['showServerSetup']()).toBe(true);
-      expect(component['showOfflineSetup']()).toBe(false);
+      expect(component['showLocalSetup']()).toBe(false);
     });
 
-    it('should auto-select offline mode if OFFLINE only', async () => {
+    it('should auto-select local mode if LOCAL only', async () => {
       mockSetupService.getServerUrl.mockReturnValue('http://server.com');
       mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ appMode: 'OFFLINE' })
+        of({ appMode: 'LOCAL' })
       );
 
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(component['showOfflineSetup']()).toBe(true);
+      expect(component['showLocalSetup']()).toBe(true);
       expect(component['showServerSetup']()).toBe(false);
     });
 
@@ -209,7 +209,7 @@ describe('SetupComponent', () => {
     it('shouldShowModeSelection should return true when BOTH mode and no selection', () => {
       component['appMode'].set('BOTH');
       component['showServerSetup'].set(false);
-      component['showOfflineSetup'].set(false);
+      component['showLocalSetup'].set(false);
 
       expect(component['shouldShowModeSelection']()).toBe(true);
     });
@@ -224,7 +224,7 @@ describe('SetupComponent', () => {
     it('shouldShowModeSelection should return false when not BOTH mode', () => {
       component['appMode'].set('ONLINE');
       component['showServerSetup'].set(false);
-      component['showOfflineSetup'].set(false);
+      component['showLocalSetup'].set(false);
 
       expect(component['shouldShowModeSelection']()).toBe(false);
     });
@@ -239,33 +239,33 @@ describe('SetupComponent', () => {
       expect(component['canUseServerMode']()).toBe(true);
     });
 
-    it('canUseServerMode should return false for OFFLINE mode', () => {
-      component['appMode'].set('OFFLINE');
+    it('canUseServerMode should return false for LOCAL mode', () => {
+      component['appMode'].set('LOCAL');
       expect(component['canUseServerMode']()).toBe(false);
     });
 
-    it('canUseOfflineMode should return true for BOTH mode', () => {
+    it('canUseLocalMode should return true for BOTH mode', () => {
       component['appMode'].set('BOTH');
-      expect(component['canUseOfflineMode']()).toBe(true);
+      expect(component['canUseLocalMode']()).toBe(true);
     });
 
-    it('canUseOfflineMode should return true for OFFLINE mode', () => {
-      component['appMode'].set('OFFLINE');
-      expect(component['canUseOfflineMode']()).toBe(true);
+    it('canUseLocalMode should return true for LOCAL mode', () => {
+      component['appMode'].set('LOCAL');
+      expect(component['canUseLocalMode']()).toBe(true);
     });
 
-    it('canUseOfflineMode should return false for ONLINE mode', () => {
+    it('canUseLocalMode should return false for ONLINE mode', () => {
       component['appMode'].set('ONLINE');
-      expect(component['canUseOfflineMode']()).toBe(false);
+      expect(component['canUseLocalMode']()).toBe(false);
     });
   });
 
   describe('layout order', () => {
-    it('renders Offline option before Server option when BOTH', async () => {
+    it('renders Local option before Server option when BOTH', async () => {
       // Arrange: BOTH mode, no selection -> show mode selection
       component['appMode'].set('BOTH');
       component['showServerSetup'].set(false);
-      component['showOfflineSetup'].set(false);
+      component['showLocalSetup'].set(false);
 
       // Act
       fixture.detectChanges();
@@ -277,20 +277,18 @@ describe('SetupComponent', () => {
 
       const buttons = container!.querySelectorAll('button.option-card');
       // Ensure both options are present when BOTH
-      const hasOffline = Array.from(buttons).some(
-        b => b.getAttribute('data-testid') === 'offline-mode-button'
+      const hasLocal = Array.from(buttons).some(
+        b => b.getAttribute('data-testid') === 'local-mode-button'
       );
       const hasServer = Array.from(buttons).some(
         b => b.getAttribute('data-testid') === 'server-mode-button'
       );
-      expect(hasOffline).toBe(true);
+      expect(hasLocal).toBe(true);
       expect(hasServer).toBe(true);
 
-      // Assert: first button should be Offline
+      // Assert: first button should be Local
       const firstButton = buttons.item(0);
-      expect(firstButton.getAttribute('data-testid')).toBe(
-        'offline-mode-button'
-      );
+      expect(firstButton.getAttribute('data-testid')).toBe('local-mode-button');
     });
   });
 
@@ -299,24 +297,24 @@ describe('SetupComponent', () => {
       component['chooseServerMode']();
 
       expect(component['showServerSetup']()).toBe(true);
-      expect(component['showOfflineSetup']()).toBe(false);
+      expect(component['showLocalSetup']()).toBe(false);
     });
 
-    it('chooseOfflineMode should show offline setup', () => {
-      component['chooseOfflineMode']();
+    it('chooseLocalMode should show local setup', () => {
+      component['chooseLocalMode']();
 
-      expect(component['showOfflineSetup']()).toBe(true);
+      expect(component['showLocalSetup']()).toBe(true);
       expect(component['showServerSetup']()).toBe(false);
     });
 
     it('goBack should hide both setups', () => {
       component['showServerSetup'].set(true);
-      component['showOfflineSetup'].set(true);
+      component['showLocalSetup'].set(true);
 
       component['goBack']();
 
       expect(component['showServerSetup']()).toBe(false);
-      expect(component['showOfflineSetup']()).toBe(false);
+      expect(component['showLocalSetup']()).toBe(false);
     });
   });
 
@@ -389,26 +387,26 @@ describe('SetupComponent', () => {
     });
   });
 
-  describe('setupOfflineMode', () => {
+  describe('setupLocalMode', () => {
     it('should show error if username is empty', async () => {
       component['userName'] = '';
       component['displayName'] = 'Test User';
 
-      await component['setupOfflineMode']();
+      await component['setupLocalMode']();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Please fill in all fields',
         'Close',
         { duration: 3000 }
       );
-      expect(mockSetupService.configureOfflineMode).not.toHaveBeenCalled();
+      expect(mockSetupService.configureLocalMode).not.toHaveBeenCalled();
     });
 
     it('should show error if display name is empty', async () => {
       component['userName'] = 'testuser';
       component['displayName'] = '';
 
-      await component['setupOfflineMode']();
+      await component['setupLocalMode']();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Please fill in all fields',
@@ -421,7 +419,7 @@ describe('SetupComponent', () => {
       component['userName'] = '   ';
       component['displayName'] = '   ';
 
-      await component['setupOfflineMode']();
+      await component['setupLocalMode']();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Please fill in all fields',
@@ -430,19 +428,19 @@ describe('SetupComponent', () => {
       );
     });
 
-    it('should configure offline mode successfully', async () => {
+    it('should configure local mode successfully', async () => {
       component['userName'] = 'testuser';
       component['displayName'] = 'Test User';
 
-      await component['setupOfflineMode']();
+      await component['setupLocalMode']();
 
-      expect(mockSetupService.configureOfflineMode).toHaveBeenCalledWith({
+      expect(mockSetupService.configureLocalMode).toHaveBeenCalledWith({
         username: 'testuser',
         name: 'Test User',
       });
       expect(mockUnifiedUserService.initialize).toHaveBeenCalled();
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Offline mode configured!',
+        'Local mode configured!',
         'Close',
         { duration: 3000 }
       );
@@ -453,25 +451,25 @@ describe('SetupComponent', () => {
       component['userName'] = '  testuser  ';
       component['displayName'] = '  Test User  ';
 
-      await component['setupOfflineMode']();
+      await component['setupLocalMode']();
 
-      expect(mockSetupService.configureOfflineMode).toHaveBeenCalledWith({
+      expect(mockSetupService.configureLocalMode).toHaveBeenCalledWith({
         username: 'testuser',
         name: 'Test User',
       });
     });
 
-    it('should show error if offline configuration fails', async () => {
+    it('should show error if local configuration fails', async () => {
       component['userName'] = 'testuser';
       component['displayName'] = 'Test User';
-      mockSetupService.configureOfflineMode.mockImplementation(() => {
+      mockSetupService.configureLocalMode.mockImplementation(() => {
         throw new Error('Configuration failed');
       });
 
-      await component['setupOfflineMode']();
+      await component['setupLocalMode']();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Failed to configure offline mode',
+        'Failed to configure local mode',
         'Close',
         { duration: 3000 }
       );
@@ -485,10 +483,10 @@ describe('SetupComponent', () => {
         new Error('Initialization failed')
       );
 
-      await component['setupOfflineMode']();
+      await component['setupLocalMode']();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Failed to configure offline mode',
+        'Failed to configure local mode',
         'Close',
         { duration: 3000 }
       );

@@ -2,9 +2,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import {
+  LocalStorageService,
   MediaInfo,
-  OfflineStorageService,
-} from '@services/offline/offline-storage.service';
+} from '@services/local/local-storage.service';
 import { MockedObject, vi } from 'vitest';
 
 import {
@@ -23,7 +23,7 @@ describe('MediaSelectorDialogComponent', () => {
   let component: MediaSelectorDialogComponent;
   let fixture: ComponentFixture<MediaSelectorDialogComponent>;
   let dialogRef: MockedObject<MatDialogRef<MediaSelectorDialogComponent>>;
-  let offlineStorageService: MockedObject<OfflineStorageService>;
+  let localStorageService: MockedObject<LocalStorageService>;
 
   const mockMediaItems: MediaInfo[] = [
     {
@@ -61,12 +61,12 @@ describe('MediaSelectorDialogComponent', () => {
       close: vi.fn(),
     } as unknown as MockedObject<MatDialogRef<MediaSelectorDialogComponent>>;
 
-    offlineStorageService = {
+    localStorageService = {
       listMedia: vi.fn().mockResolvedValue(mockMediaItems),
       getMedia: vi
         .fn()
         .mockResolvedValue(new Blob(['test'], { type: 'image/png' })),
-    } as unknown as MockedObject<OfflineStorageService>;
+    } as unknown as MockedObject<LocalStorageService>;
 
     // Mock URL.createObjectURL
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-url');
@@ -78,7 +78,7 @@ describe('MediaSelectorDialogComponent', () => {
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
-        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: LocalStorageService, useValue: localStorageService },
       ],
     }).compileComponents();
 
@@ -110,7 +110,7 @@ describe('MediaSelectorDialogComponent', () => {
           provide: MAT_DIALOG_DATA,
           useValue: { username: 'test', slug: 'proj' },
         },
-        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: LocalStorageService, useValue: localStorageService },
       ],
     }).compileComponents();
 
@@ -123,7 +123,7 @@ describe('MediaSelectorDialogComponent', () => {
     fixture.detectChanges();
     await flushPromises();
 
-    expect(offlineStorageService.listMedia).toHaveBeenCalledWith(
+    expect(localStorageService.listMedia).toHaveBeenCalledWith(
       'testuser/test-project'
     );
   });
@@ -152,7 +152,7 @@ describe('MediaSelectorDialogComponent', () => {
           provide: MAT_DIALOG_DATA,
           useValue: { username: 'test', slug: 'proj', filterType: 'all' },
         },
-        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: LocalStorageService, useValue: localStorageService },
       ],
     }).compileComponents();
 
@@ -207,7 +207,7 @@ describe('MediaSelectorDialogComponent', () => {
 
     await component.confirm();
 
-    expect(offlineStorageService.getMedia).toHaveBeenCalledWith(
+    expect(localStorageService.getMedia).toHaveBeenCalledWith(
       'testuser/test-project',
       'media-1'
     );
@@ -227,7 +227,7 @@ describe('MediaSelectorDialogComponent', () => {
   });
 
   it('should handle error when loading media fails', async () => {
-    offlineStorageService.listMedia.mockRejectedValueOnce(
+    localStorageService.listMedia.mockRejectedValueOnce(
       new Error('Load failed')
     );
 

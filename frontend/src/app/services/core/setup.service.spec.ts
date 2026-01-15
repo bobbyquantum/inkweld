@@ -54,7 +54,7 @@ describe('SetupService', () => {
     it('should load stored config when present at startup', () => {
       // Pre-populate storage before creating a fresh TestBed
       const config = {
-        mode: 'offline' as const,
+        mode: 'local' as const,
         userProfile: { name: 'Preloaded', username: 'preloaded' },
       };
       mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
@@ -82,7 +82,7 @@ describe('SetupService', () => {
 
     it('should return true when valid config is stored', () => {
       const config = {
-        mode: 'offline' as const,
+        mode: 'local' as const,
         userProfile: { name: 'Test', username: 'test' },
       };
       mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
@@ -175,15 +175,15 @@ describe('SetupService', () => {
     });
   });
 
-  describe('configureOfflineMode', () => {
+  describe('configureLocalMode', () => {
     it('should configure offline mode successfully', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
 
-      service.configureOfflineMode(userProfile);
+      service.configureLocalMode(userProfile);
 
       expect(service.isConfigured()).toBe(true);
       expect(service.appConfig()).toEqual({
-        mode: 'offline',
+        mode: 'local',
         userProfile: userProfile,
       });
       expect(service.isLoading()).toBe(false);
@@ -195,7 +195,7 @@ describe('SetupService', () => {
     it('should reset configuration completely', () => {
       // First set up a configuration
       const userProfile = { name: 'Test User', username: 'testuser' };
-      service.configureOfflineMode(userProfile);
+      service.configureLocalMode(userProfile);
       expect(service.isConfigured()).toBe(true);
 
       // Reset it
@@ -225,9 +225,9 @@ describe('SetupService', () => {
 
     it('should return offline mode when configured', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
-      service.configureOfflineMode(userProfile);
+      service.configureLocalMode(userProfile);
 
-      expect(service.getMode()).toBe('offline');
+      expect(service.getMode()).toBe('local');
     });
   });
 
@@ -238,7 +238,7 @@ describe('SetupService', () => {
 
     it('should return null when in offline mode', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
-      service.configureOfflineMode(userProfile);
+      service.configureLocalMode(userProfile);
 
       expect(service.getServerUrl()).toBe(null);
     });
@@ -267,7 +267,7 @@ describe('SetupService', () => {
 
     it('should return null in offline mode', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
-      service.configureOfflineMode(userProfile);
+      service.configureLocalMode(userProfile);
 
       expect(service.getWebSocketUrl()).toBe(null);
     });
@@ -335,9 +335,9 @@ describe('SetupService', () => {
     });
   });
 
-  describe('getOfflineUserProfile', () => {
+  describe('getLocalUserProfile', () => {
     it('should return null when no config is set', () => {
-      expect(service.getOfflineUserProfile()).toBe(null);
+      expect(service.getLocalUserProfile()).toBe(null);
     });
 
     it('should return null when in server mode', async () => {
@@ -345,7 +345,7 @@ describe('SetupService', () => {
       (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
       await service.configureServerMode(serverUrl);
 
-      expect(service.getOfflineUserProfile()).toBe(null);
+      expect(service.getLocalUserProfile()).toBe(null);
     });
 
     it('should return user profile when in offline mode', () => {
@@ -355,17 +355,17 @@ describe('SetupService', () => {
         username: 'testuser',
         enabled: true,
       };
-      service.configureOfflineMode(userProfile);
+      service.configureLocalMode(userProfile);
 
-      expect(service.getOfflineUserProfile()).toEqual(userProfile);
+      expect(service.getLocalUserProfile()).toEqual(userProfile);
     });
 
     it('should return null when user profile is not set in offline mode', () => {
-      const config = { mode: 'offline' as const };
+      const config = { mode: 'local' as const };
       mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
       service.checkConfiguration();
 
-      expect(service.getOfflineUserProfile()).toBe(null);
+      expect(service.getLocalUserProfile()).toBe(null);
     });
   });
 
@@ -379,7 +379,7 @@ describe('SetupService', () => {
         .mockImplementation(() => {});
 
       const userProfile = { name: 'Test User', username: 'testuser' };
-      expect(() => service.configureOfflineMode(userProfile)).toThrow(
+      expect(() => service.configureLocalMode(userProfile)).toThrow(
         'Storage quota exceeded'
       );
       expect(consoleSpy).toHaveBeenCalledWith(

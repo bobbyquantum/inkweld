@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 
 import { SetupService } from '../core/setup.service';
 import { ElementSyncProviderFactory } from './element-sync-provider.factory';
-import { OfflineElementSyncProvider } from './offline-element-sync.provider';
+import { LocalElementSyncProvider } from './local-element-sync.provider';
 import { YjsElementSyncProvider } from './yjs-element-sync.provider';
 
 describe('ElementSyncProviderFactory', () => {
@@ -13,7 +13,7 @@ describe('ElementSyncProviderFactory', () => {
     getWebSocketUrl: ReturnType<typeof vi.fn>;
   };
   let mockYjsProvider: YjsElementSyncProvider;
-  let mockOfflineProvider: OfflineElementSyncProvider;
+  let mockLocalProvider: LocalElementSyncProvider;
 
   beforeEach(() => {
     mockSetupService = {
@@ -26,17 +26,17 @@ describe('ElementSyncProviderFactory', () => {
       disconnect: vi.fn(),
     } as unknown as YjsElementSyncProvider;
 
-    mockOfflineProvider = {
+    mockLocalProvider = {
       connect: vi.fn().mockResolvedValue({ success: true }),
       disconnect: vi.fn(),
-    } as unknown as OfflineElementSyncProvider;
+    } as unknown as LocalElementSyncProvider;
 
     TestBed.configureTestingModule({
       providers: [
         ElementSyncProviderFactory,
         { provide: SetupService, useValue: mockSetupService },
         { provide: YjsElementSyncProvider, useValue: mockYjsProvider },
-        { provide: OfflineElementSyncProvider, useValue: mockOfflineProvider },
+        { provide: LocalElementSyncProvider, useValue: mockLocalProvider },
       ],
     });
 
@@ -52,12 +52,12 @@ describe('ElementSyncProviderFactory', () => {
       expect(provider).toBe(mockYjsProvider);
     });
 
-    it('should return OfflineElementSyncProvider in offline mode', () => {
-      mockSetupService.getMode.mockReturnValue('offline');
+    it('should return LocalElementSyncProvider in local mode', () => {
+      mockSetupService.getMode.mockReturnValue('local');
 
       const provider = factory.getProvider();
 
-      expect(provider).toBe(mockOfflineProvider);
+      expect(provider).toBe(mockLocalProvider);
     });
   });
 
@@ -67,22 +67,22 @@ describe('ElementSyncProviderFactory', () => {
 
       expect(factory.getCurrentMode()).toBe('server');
 
-      mockSetupService.getMode.mockReturnValue('offline');
-      expect(factory.getCurrentMode()).toBe('offline');
+      mockSetupService.getMode.mockReturnValue('local');
+      expect(factory.getCurrentMode()).toBe('local');
     });
   });
 
-  describe('isOfflineMode()', () => {
-    it('should return true for offline mode', () => {
-      mockSetupService.getMode.mockReturnValue('offline');
+  describe('isLocalMode()', () => {
+    it('should return true for local mode', () => {
+      mockSetupService.getMode.mockReturnValue('local');
 
-      expect(factory.isOfflineMode()).toBe(true);
+      expect(factory.isLocalMode()).toBe(true);
     });
 
     it('should return false for server mode', () => {
       mockSetupService.getMode.mockReturnValue('server');
 
-      expect(factory.isOfflineMode()).toBe(false);
+      expect(factory.isLocalMode()).toBe(false);
     });
   });
 });

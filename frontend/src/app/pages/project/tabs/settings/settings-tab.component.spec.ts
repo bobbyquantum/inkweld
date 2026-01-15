@@ -29,7 +29,7 @@ import {
 } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { MediaSyncService } from '@services/offline/media-sync.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -280,7 +280,7 @@ describe('SettingsTabComponent', () => {
 
     it('should not load keys in offline mode', async () => {
       (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
-        'offline'
+        'local'
       );
 
       // Create a new component instance to pick up the offline mode

@@ -5,7 +5,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { MediaSyncState } from '../../services/offline/media-sync.service';
+import { MediaSyncState } from '../../services/local/media-sync.service';
 
 /**
  * Component to display the connection status for project sync and media sync.
@@ -248,7 +248,7 @@ export class ConnectionStatusComponent {
   displayAsOffline = computed(() => {
     const state = this.syncState();
     return (
-      state === DocumentSyncState.Offline || state === DocumentSyncState.Syncing
+      state === DocumentSyncState.Local || state === DocumentSyncState.Syncing
     );
   });
 
@@ -256,7 +256,7 @@ export class ConnectionStatusComponent {
   showRetryButton = computed(() => {
     const state = this.syncState();
     return (
-      state === DocumentSyncState.Offline ||
+      state === DocumentSyncState.Local ||
       state === DocumentSyncState.Syncing ||
       state === DocumentSyncState.Unavailable
     );
@@ -269,7 +269,7 @@ export class ConnectionStatusComponent {
         return 'cloud_done';
       case DocumentSyncState.Syncing:
         return 'cloud_off'; // Show offline icon while connecting
-      case DocumentSyncState.Offline:
+      case DocumentSyncState.Local:
         return 'cloud_off';
       case DocumentSyncState.Unavailable:
         return 'error_outline';
@@ -285,7 +285,7 @@ export class ConnectionStatusComponent {
         return 'Connected';
       case DocumentSyncState.Syncing:
         return 'Offline Mode'; // Show as offline while connecting
-      case DocumentSyncState.Offline:
+      case DocumentSyncState.Local:
         return 'Offline Mode';
       case DocumentSyncState.Unavailable:
         return 'Connection Failed';
@@ -302,7 +302,7 @@ export class ConnectionStatusComponent {
         return 'Project is synced with server';
       case DocumentSyncState.Syncing:
         return 'Connecting to server...';
-      case DocumentSyncState.Offline:
+      case DocumentSyncState.Local:
         return error
           ? `Working offline (Last error: ${error})`
           : 'Working offline - changes saved locally';

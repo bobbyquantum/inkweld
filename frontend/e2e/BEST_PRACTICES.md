@@ -222,7 +222,7 @@ await page.waitForTimeout(1000);
 ### Wait for Specific Conditions
 ```typescript
 // ✅ Good - Wait for specific element
-await expect(offlinePage.locator('[data-testid="user-menu-button"]')).toBeVisible()
+await expect(localPage.locator('[data-testid="user-menu-button"]')).toBeVisible()
 
 // ✅ Good - Wait for URL change
 await page.waitForURL('/projects');
@@ -411,7 +411,7 @@ When running tests through the Playwright VS Code extension or IDE integration, 
 The Inkweld project provides multiple Playwright configurations:
 
 - **`playwright.online.config.ts`** - Default: Tests against live backend (port 8333)
-- **`playwright.offline.config.ts`** - Tests with offline/mock functionality
+- **`playwright.local.config.ts`** - Tests with local/mock functionality
 - **`playwright.docker.config.ts`** - Tests in Docker environment
 - **`playwright.wrangler.config.ts`** - Tests with Cloudflare Workers
 - **`playwright.screenshots.config.ts`** - Configuration for screenshot capture
@@ -422,8 +422,8 @@ The Inkweld project provides multiple Playwright configurations:
 # Run online tests (default)
 TEST_ENV=online npx playwright test
 
-# Run offline tests
-TEST_ENV=offline npx playwright test
+# Run local tests
+TEST_ENV=local npx playwright test
 
 # Run docker tests
 TEST_ENV=docker npx playwright test
@@ -450,7 +450,7 @@ Edit your VS Code `settings.json` (⌘+Shift+P → "Preferences: Open Settings (
 ```jsonc
 {
   "playwright.env": {
-    "TEST_ENV": "online"     // or "offline", "docker", "wrangler", "screenshots"
+    "TEST_ENV": "online"     // or "local", "docker", "wrangler", "screenshots"
   }
 }
 ```
@@ -465,18 +465,18 @@ To set `TEST_ENV` in your terminal session:
 
 ```bash
 # macOS/Linux
-export TEST_ENV=offline
+export TEST_ENV=local
 npx playwright test
 
 # Or inline
-TEST_ENV=offline npx playwright test
+TEST_ENV=local npx playwright test
 
 # Windows (PowerShell)
-$env:TEST_ENV = "offline"
+$env:TEST_ENV = "local"
 npx playwright test
 
 # Windows (Command Prompt)
-set TEST_ENV=offline
+set TEST_ENV=local
 npx playwright test
 ```
 
@@ -485,7 +485,7 @@ npx playwright test
 | Config | Use Case | Notes |
 |--------|----------|-------|
 | `online` | Full integration tests | Requires backend running on port 8333 |
-| `offline` | Offline/mock API scenarios | Tests offline functionality |
+| `local` | Local/mock API scenarios | Tests local functionality |
 | `docker` | Docker containerized tests | Used in CI/CD pipeline |
 | `wrangler` | Cloudflare Workers | Tests against D1/Durable Objects |
 | `screenshots` | Documentation screenshots | Generates screenshots for docs site |

@@ -94,7 +94,7 @@ describe('PublishCompleteDialogComponent', () => {
     });
 
     it('should set isOnline to false when in offline mode', () => {
-      mockSetupService.getMode.mockReturnValue('offline');
+      mockSetupService.getMode.mockReturnValue('local');
       component = TestBed.runInInjectionContext(
         () => new PublishCompleteDialogComponent()
       );

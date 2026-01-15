@@ -211,7 +211,7 @@ test.describe('Online Publishing Workflow', () => {
       await expect(page.getByTestId('file-size')).toBeVisible();
 
       // In online mode, should NOT show offline notice
-      await expect(page.getByTestId('offline-notice')).not.toBeVisible();
+      await expect(page.getByTestId('local-notice')).not.toBeVisible();
     });
 
     test('should generate PDF format with actual document content', async ({

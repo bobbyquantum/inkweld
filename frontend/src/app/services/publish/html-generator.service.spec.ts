@@ -12,7 +12,7 @@ import {
   SeparatorStyle,
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import {
@@ -36,7 +36,7 @@ describe('HtmlGeneratorService', () => {
     project: ReturnType<typeof signal<Project | null>>;
     elements: ReturnType<typeof signal<Element[]>>;
   };
-  let offlineStorageMock: {
+  let localStorageMock: {
     getProjectCover: ReturnType<typeof vi.fn>;
   };
 
@@ -110,7 +110,7 @@ describe('HtmlGeneratorService', () => {
       elements: signal(mockElements),
     };
 
-    offlineStorageMock = {
+    localStorageMock = {
       getProjectCover: vi.fn().mockResolvedValue(null),
     };
 
@@ -161,7 +161,7 @@ describe('HtmlGeneratorService', () => {
         { provide: LoggerService, useValue: loggerMock },
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
-        { provide: OfflineStorageService, useValue: offlineStorageMock },
+        { provide: LocalStorageService, useValue: localStorageMock },
       ],
     });
 
@@ -551,7 +551,7 @@ describe('HtmlGeneratorService', () => {
 
     it('should include cover when enabled and available', async () => {
       const mockCoverBlob = new Blob(['fake image'], { type: 'image/png' });
-      offlineStorageMock.getProjectCover.mockResolvedValue(mockCoverBlob);
+      localStorageMock.getProjectCover.mockResolvedValue(mockCoverBlob);
 
       const planWithCover: PublishPlan = {
         ...mockPlan,
@@ -1024,11 +1024,11 @@ describe('HtmlGeneratorService', () => {
       const result = await service.generateHtml(planWithCover);
 
       expect(result.success).toBe(true);
-      expect(offlineStorageMock.getProjectCover).not.toHaveBeenCalled();
+      expect(localStorageMock.getProjectCover).not.toHaveBeenCalled();
     });
 
     it('should handle cover loading error gracefully', async () => {
-      offlineStorageMock.getProjectCover.mockRejectedValue(
+      localStorageMock.getProjectCover.mockRejectedValue(
         new Error('Storage error')
       );
 

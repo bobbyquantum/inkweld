@@ -5,7 +5,7 @@ import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { ThemeOption, ThemeService } from '@themes/theme.service';
@@ -22,7 +22,7 @@ describe('AboutComponent', () => {
   let setupServiceMock: MockedObject<SetupService>;
   let themeServiceMock: MockedObject<ThemeService>;
   let dialogGatewayMock: MockedObject<DialogGatewayService>;
-  let offlineStorageMock: MockedObject<OfflineStorageService>;
+  let localStorageMock: MockedObject<LocalStorageService>;
   let legacyUserServiceMock: MockedObject<UserService>;
 
   const mockUser: User = {
@@ -40,7 +40,7 @@ describe('AboutComponent', () => {
 
     userServiceMock = {
       currentUser: signal(mockUser),
-      getMode: vi.fn().mockReturnValue('offline'),
+      getMode: vi.fn().mockReturnValue('local'),
     } as unknown as MockedObject<UnifiedUserService>;
 
     setupServiceMock = {
@@ -58,9 +58,9 @@ describe('AboutComponent', () => {
       openUserSettingsDialog: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<DialogGatewayService>;
 
-    offlineStorageMock = {
+    localStorageMock = {
       getUserAvatarUrl: vi.fn().mockResolvedValue(undefined),
-    } as unknown as MockedObject<OfflineStorageService>;
+    } as unknown as MockedObject<LocalStorageService>;
 
     legacyUserServiceMock = {} as unknown as MockedObject<UserService>;
 
@@ -74,7 +74,7 @@ describe('AboutComponent', () => {
         { provide: SetupService, useValue: setupServiceMock },
         { provide: ThemeService, useValue: themeServiceMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
-        { provide: OfflineStorageService, useValue: offlineStorageMock },
+        { provide: LocalStorageService, useValue: localStorageMock },
         { provide: UserService, useValue: legacyUserServiceMock },
         { provide: ActivatedRoute, useValue: { params: of({}) } },
       ],

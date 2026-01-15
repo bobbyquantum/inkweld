@@ -243,7 +243,7 @@ export const test = base.extend<ScreenshotFixtures>({
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'offline',
+          mode: 'local',
           userProfile: {
             name: 'Demo User',
             username: 'demouser',

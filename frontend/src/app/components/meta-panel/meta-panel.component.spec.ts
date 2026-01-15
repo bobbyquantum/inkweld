@@ -79,7 +79,7 @@ describe('MetaPanelComponent', () => {
         aiLinting: false,
         aiImageGeneration: false,
         userApprovalRequired: false,
-        appMode: 'offline',
+        appMode: 'local',
       }),
       isAiLintingEnabled: signal(false),
       isAiImageGenerationEnabled: signal(false),

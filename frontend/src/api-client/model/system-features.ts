@@ -41,7 +41,7 @@ export interface SystemFeatures {
 }
 export enum SystemFeaturesAppMode {
     Online = 'ONLINE',
-    Offline = 'OFFLINE',
+    Local = 'LOCAL',
     Both = 'BOTH'
 };
 

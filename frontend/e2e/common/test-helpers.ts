@@ -390,7 +390,7 @@ export async function getOfflineProjects(
   page: Page
 ): Promise<Array<{ slug: string }>> {
   return page.evaluate(() => {
-    const stored = localStorage.getItem('inkweld-offline-projects');
+    const stored = localStorage.getItem('inkweld-local-projects');
     return stored ? (JSON.parse(stored) as Array<{ slug: string }>) : [];
   });
 }

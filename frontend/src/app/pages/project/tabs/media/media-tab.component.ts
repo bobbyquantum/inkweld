@@ -20,11 +20,11 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { MediaSyncService } from '@services/offline/media-sync.service';
 import {
+  LocalStorageService,
   MediaInfo,
-  OfflineStorageService,
-} from '@services/offline/offline-storage.service';
+} from '@services/local/local-storage.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
@@ -60,7 +60,7 @@ export interface MediaItem extends MediaInfo {
 })
 export class MediaTabComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
-  private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly systemConfig = inject(SystemConfigService);
   private readonly generationService = inject(ImageGenerationService);
@@ -190,7 +190,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
       // In online/server mode, sync from server on first load for this project
       const mode = this.setupService.getMode();
-      if (mode !== 'offline' && this.hasSyncedProject !== projectKey) {
+      if (mode !== 'local' && this.hasSyncedProject !== projectKey) {
         try {
           this.hasSyncedProject = projectKey;
           await this.mediaSyncService.downloadAllFromServer(projectKey);
@@ -200,7 +200,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
         }
       }
 
-      const mediaList = await this.offlineStorage.listMedia(projectKey);
+      const mediaList = await this.localStorage.listMedia(projectKey);
 
       // Convert to display items with URLs for images
       const items: MediaItem[] = await Promise.all(
@@ -211,10 +211,8 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
           if (isImage) {
             url =
-              (await this.offlineStorage.getMediaUrl(
-                projectKey,
-                info.mediaId
-              )) ?? undefined;
+              (await this.localStorage.getMediaUrl(projectKey, info.mediaId)) ??
+              undefined;
           }
 
           return {
@@ -321,7 +319,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     if (!project?.username || !project?.slug) return;
 
     const projectKey = `${project.username}/${project.slug}`;
-    const blob = await this.offlineStorage.getMedia(projectKey, item.mediaId);
+    const blob = await this.localStorage.getMedia(projectKey, item.mediaId);
 
     if (blob) {
       const url = URL.createObjectURL(blob);
@@ -352,7 +350,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       if (!project?.username || !project?.slug) return;
 
       const projectKey = `${project.username}/${project.slug}`;
-      await this.offlineStorage.deleteMedia(projectKey, item.mediaId);
+      await this.localStorage.deleteMedia(projectKey, item.mediaId);
       await this.loadMedia();
     }
   }
@@ -462,7 +460,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   private revokeAllUrls(): void {
     const project = this.projectState.project();
     if (project?.username && project?.slug) {
-      this.offlineStorage.revokeProjectUrls(
+      this.localStorage.revokeProjectUrls(
         `${project.username}/${project.slug}`
       );
     }
@@ -498,7 +496,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
         const projectKey = `${project.username}/${project.slug}`;
 
         // Save to offline storage
-        await this.offlineStorage.saveMedia(
+        await this.localStorage.saveMedia(
           projectKey,
           mediaId,
           blob,

@@ -95,7 +95,7 @@ describe('SystemConfigService', () => {
       vi.clearAllMocks();
 
       const offlineSetupService = {
-        getMode: vi.fn().mockReturnValue('offline'),
+        getMode: vi.fn().mockReturnValue('local'),
       } as MockedObject<SetupService>;
 
       TestBed.configureTestingModule({
@@ -118,13 +118,13 @@ describe('SystemConfigService', () => {
         aiKillSwitchLockedByEnv: false,
         aiLinting: false,
         aiImageGeneration: false,
-        appMode: 'OFFLINE',
+        appMode: 'LOCAL',
         userApprovalRequired: false,
       });
 
       expect(offlineService.isConfigLoaded()).toBe(true);
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[SystemConfig] Offline mode - using default features without API call'
+        '[SystemConfig] Local mode - using default features without API call'
       );
     });
 
@@ -157,12 +157,12 @@ describe('SystemConfigService', () => {
             aiKillSwitchLockedByEnv: false,
             aiLinting: false,
             aiImageGeneration: false,
-            appMode: 'OFFLINE', // Changed from BOTH - treat as offline when server down
+            appMode: 'LOCAL', // Changed from BOTH - treat as offline when server down
             userApprovalRequired: true,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
-            '[SystemConfig] Failed to load system features, using offline defaults:',
+            '[SystemConfig] Failed to load system features, using local defaults:',
             error
           );
           resolve();
@@ -548,12 +548,12 @@ describe('SystemConfigService', () => {
             aiKillSwitchLockedByEnv: false,
             aiLinting: false,
             aiImageGeneration: false,
-            appMode: 'OFFLINE', // Treat as offline when server down
+            appMode: 'LOCAL', // Treat as offline when server down
             userApprovalRequired: true,
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
-            '[SystemConfig] Failed to load system features, using offline defaults:',
+            '[SystemConfig] Failed to load system features, using local defaults:',
             networkError
           );
           resolve();
@@ -582,12 +582,12 @@ describe('SystemConfigService', () => {
               aiKillSwitchLockedByEnv: false,
               aiLinting: false,
               aiImageGeneration: false,
-              appMode: 'OFFLINE', // Treat as offline when server down
+              appMode: 'LOCAL', // Treat as offline when server down
               userApprovalRequired: true,
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(
-              '[SystemConfig] Failed to load system features, using offline defaults:',
+              '[SystemConfig] Failed to load system features, using local defaults:',
               refreshError
             );
             resolve();
@@ -675,7 +675,7 @@ describe('SystemConfigService', () => {
       vi.clearAllMocks();
 
       const offlineSetupService = {
-        getMode: vi.fn().mockReturnValue('offline'),
+        getMode: vi.fn().mockReturnValue('local'),
       } as MockedObject<SetupService>;
 
       TestBed.configureTestingModule({
@@ -719,7 +719,7 @@ describe('SystemConfigService', () => {
         await import('../../models/document-sync-state');
 
       const status = failedService.getAiImageGenerationStatus(
-        DocumentSyncState.Offline
+        DocumentSyncState.Local
       );
 
       // Server unavailable with offline sync state - disabled with tooltip

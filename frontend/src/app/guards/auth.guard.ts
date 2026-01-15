@@ -18,7 +18,7 @@ export const authGuard: CanActivateFn = async () => {
   const mode = setupService.getMode();
 
   // For offline mode, check if user is authenticated
-  if (mode === 'offline') {
+  if (mode === 'local') {
     if (unifiedUserService.isAuthenticated()) {
       return true;
     }

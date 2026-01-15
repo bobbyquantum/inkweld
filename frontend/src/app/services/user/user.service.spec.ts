@@ -20,7 +20,7 @@ import { of, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
 import { userServiceMock } from '../../../testing/user-api.mock';
-import { StorageService } from '../offline/storage.service';
+import { StorageService } from '../local/storage.service';
 import { UserService, UserServiceError } from './user.service';
 function createStructuredClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));

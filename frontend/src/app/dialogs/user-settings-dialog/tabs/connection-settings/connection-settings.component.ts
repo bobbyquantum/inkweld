@@ -14,7 +14,7 @@ import { SetupService } from '@services/core/setup.service';
 import {
   MigrationService,
   MigrationStatus,
-} from '@services/offline/migration.service';
+} from '@services/local/migration.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -54,8 +54,8 @@ export class ConnectionSettingsComponent {
 
   // Migration state
   protected migrationState = this.migrationService.migrationState;
-  protected offlineProjectsCount = computed(() =>
-    this.migrationService.getOfflineProjectsCount()
+  protected localProjectsCount = computed(() =>
+    this.migrationService.getLocalProjectsCount()
   );
   protected migrationProgress = computed(() => {
     const state = this.migrationState();
@@ -75,13 +75,13 @@ export class ConnectionSettingsComponent {
   // Expose MigrationStatus enum for template
   protected readonly MigrationStatus = MigrationStatus;
 
-  async switchToOfflineMode() {
+  async switchToLocalMode() {
     // Check if user has server projects - warn about potential data loss
     if (this.currentMode === 'server') {
       const confirmed = await this.confirmModeSwitch(
-        'Switch to Offline Mode?',
-        'Switching to offline mode will disconnect from the server. You will need to reconnect and log in again to access your server projects. Continue?',
-        'Switch to Offline'
+        'Switch to Local Mode?',
+        'Switching to local mode will disconnect from the server. You will need to reconnect and log in again to access your server projects. Continue?',
+        'Switch to Local'
       );
 
       if (!confirmed) {
@@ -93,11 +93,11 @@ export class ConnectionSettingsComponent {
       // Navigate to setup page which will handle the transition
       this.setupService.resetConfiguration();
       await this.router.navigate(['/setup']);
-      this.snackBar.open('Switched to offline mode configuration', 'Close', {
+      this.snackBar.open('Switched to local mode configuration', 'Close', {
         duration: 3000,
       });
     } catch (error) {
-      console.error('Failed to switch to offline mode:', error);
+      console.error('Failed to switch to local mode:', error);
       this.snackBar.open('Failed to switch modes', 'Close', {
         duration: 3000,
       });
@@ -162,7 +162,7 @@ export class ConnectionSettingsComponent {
   }
 
   /**
-   * Start migration process - shows auth form if offline projects exist
+   * Start migration process - shows auth form if local projects exist
    */
   async startMigration() {
     if (!this.newServerUrl.trim()) {
@@ -170,10 +170,10 @@ export class ConnectionSettingsComponent {
       return;
     }
 
-    const hasOfflineProjects = this.migrationService.hasOfflineProjects();
+    const hasLocalProjects = this.migrationService.hasLocalProjects();
 
-    if (!hasOfflineProjects) {
-      // No offline projects, but still warn if changing servers in server mode
+    if (!hasLocalProjects) {
+      // No local projects, but still warn if changing servers in server mode
       if (this.currentMode === 'server') {
         const confirmed = await this.confirmModeSwitch(
           'Change Server?',
@@ -191,11 +191,11 @@ export class ConnectionSettingsComponent {
       return;
     }
 
-    // Has offline projects - warn about migration
-    const projectCount = this.migrationService.getOfflineProjectsCount();
+    // Has local projects - warn about migration
+    const projectCount = this.migrationService.getLocalProjectsCount();
     const confirmed = await this.confirmModeSwitch(
-      'Migrate Offline Projects?',
-      `You have ${projectCount} offline project${projectCount === 1 ? '' : 's'}. ${projectCount === 1 ? 'It' : 'They'} will be uploaded to the server after you authenticate. Your offline data will be removed after successful migration. Continue?`,
+      'Migrate Local Projects?',
+      `You have ${projectCount} local project${projectCount === 1 ? '' : 's'}. ${projectCount === 1 ? 'It' : 'They'} will be uploaded to the server after you authenticate. Your local data will be removed after successful migration. Continue?`,
       'Continue'
     );
 
@@ -295,15 +295,15 @@ export class ConnectionSettingsComponent {
           localStorage.getItem('inkweld-app-config')
         );
 
-        // Clean up offline data
+        // Clean up local data
         console.log(
           '[Migration] Before cleanup, offline user:',
-          localStorage.getItem('inkweld-offline-user')
+          localStorage.getItem('inkweld-local-user')
         );
-        this.migrationService.cleanupOfflineData();
+        this.migrationService.cleanupLocalData();
         console.log(
           '[Migration] After cleanup, offline user:',
-          localStorage.getItem('inkweld-offline-user')
+          localStorage.getItem('inkweld-local-user')
         );
         console.log(
           '[Migration] After cleanup, app-config:',
