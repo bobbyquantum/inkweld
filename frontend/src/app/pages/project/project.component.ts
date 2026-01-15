@@ -32,7 +32,7 @@ import { ProjectTreeComponent } from '@components/project-tree/project-tree.comp
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Element, ElementType, Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
-import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -162,7 +162,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       if (currentDocId) {
         const status = this.documentService.getSyncStatusSignal(currentDocId)();
         this.hasUnsavedChanges =
-          status === DocumentSyncState.Offline &&
+          status === DocumentSyncState.Local &&
           this.documentService.hasUnsyncedChanges(currentDocId);
       } else {
         this.hasUnsavedChanges = false;

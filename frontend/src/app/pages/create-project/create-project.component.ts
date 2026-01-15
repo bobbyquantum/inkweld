@@ -24,7 +24,7 @@ import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project } from '@inkweld/index';
 
-import { UnifiedProjectService } from '../../services/offline/unified-project.service';
+import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import {
   ProjectTemplateInfo,
   ProjectTemplateService,

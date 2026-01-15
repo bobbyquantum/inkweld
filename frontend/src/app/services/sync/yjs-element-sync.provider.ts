@@ -178,7 +178,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           'No auth token available for WebSocket connection'
         );
         // Continue offline - we already have IndexedDB data
-        this.syncStateSubject.next(DocumentSyncState.Offline);
+        this.syncStateSubject.next(DocumentSyncState.Local);
         return { success: true };
       }
 
@@ -218,7 +218,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           authError
         );
         // Continue offline - we already have IndexedDB data
-        this.syncStateSubject.next(DocumentSyncState.Offline);
+        this.syncStateSubject.next(DocumentSyncState.Local);
         return { success: true };
       }
 
@@ -718,7 +718,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         break;
 
       case 'disconnected':
-        this.syncStateSubject.next(DocumentSyncState.Offline);
+        this.syncStateSubject.next(DocumentSyncState.Local);
         this.scheduleReconnect();
         break;
 
@@ -772,7 +772,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       }
       this.reconnectAttempts = this.reconnectionConfig.maxAttempts;
     } else {
-      this.syncStateSubject.next(DocumentSyncState.Offline);
+      this.syncStateSubject.next(DocumentSyncState.Local);
     }
   }
 
@@ -830,7 +830,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     this.offlineHandler = () => {
       this.logger.info('YjsSync', 'Network connection lost');
-      this.syncStateSubject.next(DocumentSyncState.Offline);
+      this.syncStateSubject.next(DocumentSyncState.Local);
     };
 
     window.addEventListener('online', this.onlineHandler);

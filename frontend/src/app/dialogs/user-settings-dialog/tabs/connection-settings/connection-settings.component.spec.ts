@@ -8,7 +8,7 @@ import { SetupService } from '@services/core/setup.service';
 import {
   MigrationService,
   MigrationStatus,
-} from '@services/offline/migration.service';
+} from '@services/local/migration.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
@@ -43,15 +43,15 @@ describe('ConnectionSettingsComponent', () => {
 
   beforeEach(async () => {
     setupService = {
-      getMode: vi.fn().mockReturnValue('offline'),
+      getMode: vi.fn().mockReturnValue('local'),
       getServerUrl: vi.fn().mockReturnValue(null),
       resetConfiguration: vi.fn(),
       configureServerMode: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<SetupService>;
 
     migrationService = {
-      hasOfflineProjects: vi.fn().mockReturnValue(false),
-      getOfflineProjectsCount: vi.fn().mockReturnValue(0),
+      hasLocalProjects: vi.fn().mockReturnValue(false),
+      getLocalProjectsCount: vi.fn().mockReturnValue(0),
       migrationState: vi.fn(() => ({
         status: MigrationStatus.NotStarted,
         totalProjects: 0,
@@ -62,7 +62,7 @@ describe('ConnectionSettingsComponent', () => {
       registerOnServer: vi.fn().mockResolvedValue(undefined),
       loginToServer: vi.fn().mockResolvedValue(undefined),
       migrateToServer: vi.fn().mockResolvedValue(undefined),
-      cleanupOfflineData: vi.fn(),
+      cleanupLocalData: vi.fn(),
     } as unknown as MockedObject<MigrationService>;
 
     dialog = {
@@ -100,7 +100,7 @@ describe('ConnectionSettingsComponent', () => {
   });
 
   it('should display offline mode', () => {
-    expect(component['currentMode']).toBe('offline');
+    expect(component['currentMode']).toBe('local');
   });
 
   describe('switchToServerMode', () => {
@@ -372,7 +372,7 @@ describe('ConnectionSettingsComponent', () => {
         afterClosed: () => of(true),
       } as any);
 
-      await component.switchToOfflineMode();
+      await component.switchToLocalMode();
 
       // Wait for all promises to resolve
       await fixture.whenStable();
@@ -392,7 +392,7 @@ describe('ConnectionSettingsComponent', () => {
         afterClosed: () => of(false),
       } as any);
 
-      await component.switchToOfflineMode();
+      await component.switchToLocalMode();
 
       expect(dialog.open).toHaveBeenCalled();
       expect(setupService.resetConfiguration).not.toHaveBeenCalled();
@@ -414,7 +414,7 @@ describe('ConnectionSettingsComponent', () => {
         throw new Error('Reset failed');
       });
 
-      await component.switchToOfflineMode();
+      await component.switchToLocalMode();
       await fixture.whenStable();
 
       expect(snackBar.open).toHaveBeenCalledWith(
@@ -446,8 +446,8 @@ describe('ConnectionSettingsComponent', () => {
 
     it('should show confirmation when migrating offline projects', async () => {
       component['newServerUrl'] = 'http://localhost:8333';
-      migrationService.hasOfflineProjects.mockReturnValue(true);
-      migrationService.getOfflineProjectsCount.mockReturnValue(2);
+      migrationService.hasLocalProjects.mockReturnValue(true);
+      migrationService.getLocalProjectsCount.mockReturnValue(2);
 
       // Mock dialog to return confirmed
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -464,8 +464,8 @@ describe('ConnectionSettingsComponent', () => {
 
     it('should not start migration if user cancels', async () => {
       component['newServerUrl'] = 'http://localhost:8333';
-      migrationService.hasOfflineProjects.mockReturnValue(true);
-      migrationService.getOfflineProjectsCount.mockReturnValue(2);
+      migrationService.hasLocalProjects.mockReturnValue(true);
+      migrationService.getLocalProjectsCount.mockReturnValue(2);
 
       // Mock dialog to return cancelled
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -483,7 +483,7 @@ describe('ConnectionSettingsComponent', () => {
     it('should show confirmation when changing servers in server mode', async () => {
       component['currentMode'] = 'server';
       component['newServerUrl'] = 'http://different-server:8333';
-      migrationService.hasOfflineProjects.mockReturnValue(false);
+      migrationService.hasLocalProjects.mockReturnValue(false);
 
       // Mock dialog to return confirmed
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -500,9 +500,9 @@ describe('ConnectionSettingsComponent', () => {
 
   it('should switch to offline mode without confirmation in offline mode', async () => {
     // Already in offline mode - no confirmation needed
-    component['currentMode'] = 'offline';
+    component['currentMode'] = 'local';
 
-    await component.switchToOfflineMode();
+    await component.switchToLocalMode();
 
     // Wait for all promises to resolve
     await fixture.whenStable();

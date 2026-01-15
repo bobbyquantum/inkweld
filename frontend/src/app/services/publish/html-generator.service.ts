@@ -17,7 +17,7 @@ import {
   SeparatorStyle,
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 
@@ -65,7 +65,7 @@ export class HtmlGeneratorService {
   private readonly logger = inject(LoggerService);
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
-  private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly localStorage = inject(LocalStorageService);
 
   private coverImageData: string | null = null;
 
@@ -149,7 +149,7 @@ export class HtmlGeneratorService {
     if (!project) return;
 
     try {
-      const coverBlob = await this.offlineStorage.getProjectCover(
+      const coverBlob = await this.localStorage.getProjectCover(
         project.username,
         project.slug
       );

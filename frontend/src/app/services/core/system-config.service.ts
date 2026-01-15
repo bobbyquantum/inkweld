@@ -12,7 +12,7 @@ import { SetupService } from './setup.service';
 
 /**
  * Status for AI image generation availability.
- * - hidden: Button should not be shown (offline mode or AI not configured)
+ * - hidden: Button should not be shown (local mode or AI not configured)
  * - disabled: Button should be shown but disabled with tooltip (no server connection)
  * - enabled: Button is fully functional
  */
@@ -21,24 +21,24 @@ export interface AiImageGenerationStatus {
   tooltip?: string;
 }
 
-/** Default system features when user explicitly chooses offline mode */
-const OFFLINE_DEFAULTS: SystemFeatures = {
-  aiKillSwitch: true, // Kill switch ON = AI disabled in offline mode
+/** Default system features when user explicitly chooses local mode */
+const LOCAL_DEFAULTS: SystemFeatures = {
+  aiKillSwitch: true, // Kill switch ON = AI disabled in local mode
   aiKillSwitchLockedByEnv: false,
   aiLinting: false,
   aiImageGeneration: false,
-  userApprovalRequired: false, // No approval needed in offline mode
-  appMode: SystemFeaturesAppMode.Offline,
+  userApprovalRequired: false, // No approval needed in local mode
+  appMode: SystemFeaturesAppMode.Local,
 };
 
-/** Default system features when server is unavailable (degraded online mode) */
+/** Default system features when server is unavailable (degraded mode) */
 const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   aiKillSwitch: true, // Assume kill switch ON when server unavailable
   aiKillSwitchLockedByEnv: false,
   aiLinting: false,
   aiImageGeneration: false,
   userApprovalRequired: true, // Keep strict in server mode
-  appMode: SystemFeaturesAppMode.Offline, // Treat as offline when server is down
+  appMode: SystemFeaturesAppMode.Local, // Treat as local when server is down
 };
 
 @Injectable({
@@ -90,17 +90,17 @@ export class SystemConfigService {
 
   /**
    * Load system features configuration from the backend.
-   * In offline mode, use sensible defaults without making any API calls.
+   * In local mode, use sensible defaults without making any API calls.
    */
   private loadSystemFeatures(): void {
-    // Check if we're in offline mode - don't call API in offline mode
+    // Check if we're in local mode - don't call API in local mode
     const mode = this.setupService.getMode();
-    if (mode === 'offline') {
+    if (mode === 'local') {
       console.log(
-        '[SystemConfig] Offline mode - using default features without API call'
+        '[SystemConfig] Local mode - using default features without API call'
       );
-      this.systemFeaturesSignal.set(OFFLINE_DEFAULTS);
-      this.configLoadedSuccessfully.set(true); // Intentional offline mode
+      this.systemFeaturesSignal.set(LOCAL_DEFAULTS);
+      this.configLoadedSuccessfully.set(true); // Intentional local mode
       this.isLoaded.set(true);
       return;
     }
@@ -116,10 +116,10 @@ export class SystemConfigService {
         }),
         catchError(error => {
           console.warn(
-            '[SystemConfig] Failed to load system features, using offline defaults:',
+            '[SystemConfig] Failed to load system features, using local defaults:',
             error
           );
-          // Use server unavailable defaults - operates in degraded offline mode
+          // Use server unavailable defaults - operates in degraded local mode
           this.systemFeaturesSignal.set(SERVER_UNAVAILABLE_DEFAULTS);
           this.configLoadedSuccessfully.set(false); // HTTP API failed
           this.isLoaded.set(true);
@@ -144,7 +144,7 @@ export class SystemConfigService {
    * @returns Status object indicating if button should be hidden, disabled, or enabled
    *
    * Logic:
-   * 1. True offline mode (user chose offline) → hidden (AI features are never available)
+   * 1. True local mode (user chose local) → hidden (AI features are never available)
    * 2. Config not loaded yet → disabled with "Loading..." tooltip
    * 3. Config loaded successfully with AI enabled → enabled (HTTP API works)
    * 4. Config loaded successfully with AI disabled → hidden
@@ -157,9 +157,9 @@ export class SystemConfigService {
   public getAiImageGenerationStatus(
     syncState?: DocumentSyncState
   ): AiImageGenerationStatus {
-    // Check 1: Are we in true offline mode? (user explicitly chose local-only)
+    // Check 1: Are we in true local mode? (user explicitly chose local-only)
     const mode = this.setupService.getMode();
-    if (mode === 'offline') {
+    if (mode === 'local') {
       return { status: 'hidden' };
     }
 
@@ -187,7 +187,7 @@ export class SystemConfigService {
     if (
       syncState !== undefined &&
       (syncState === DocumentSyncState.Syncing ||
-        syncState === DocumentSyncState.Offline ||
+        syncState === DocumentSyncState.Local ||
         syncState === DocumentSyncState.Unavailable)
     ) {
       return {
@@ -201,9 +201,9 @@ export class SystemConfigService {
   }
 
   /**
-   * Check if we're in pure offline mode (explicitly chosen offline, not just disconnected)
+   * Check if we're in pure local mode (explicitly chosen local, not just disconnected)
    */
-  public readonly isOfflineMode = computed(
-    () => this.setupService.getMode() === 'offline'
+  public readonly isLocalMode = computed(
+    () => this.setupService.getMode() === 'local'
   );
 }

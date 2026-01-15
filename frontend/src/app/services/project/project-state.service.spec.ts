@@ -17,9 +17,9 @@ import { ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
-import { StorageService } from '../offline/storage.service';
-import { UnifiedProjectService } from '../offline/unified-project.service';
+import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { StorageService } from '../local/storage.service';
+import { UnifiedProjectService } from '../local/unified-project.service';
 import {
   ElementSyncProviderFactory,
   IElementSyncProvider,
@@ -154,7 +154,7 @@ describe('ProjectStateService', () => {
   let mockProjectAPI: MockedObject<ProjectsService>;
   let mockUnifiedProjectService: MockedObject<UnifiedProjectService>;
   let mockSetupService: MockedObject<SetupService>;
-  let mockOfflineElementsService: MockedObject<OfflineProjectElementsService>;
+  let mockOfflineElementsService: MockedObject<LocalProjectElementsService>;
   let mockDialogGatewayService: MockedObject<DialogGatewayService>;
   let mockRecentFilesService: MockedObject<RecentFilesService>;
   let mockStorageService: MockedObject<StorageService>;
@@ -203,7 +203,7 @@ describe('ProjectStateService', () => {
     mockSyncProviderFactory = {
       getProvider: vi.fn().mockReturnValue(mockSyncProvider),
       getCurrentMode: vi.fn().mockReturnValue('server'),
-      isOfflineMode: vi.fn().mockReturnValue(false),
+      isLocalMode: vi.fn().mockReturnValue(false),
     } as unknown as MockedObject<ElementSyncProviderFactory>;
 
     mockDialog = {
@@ -226,7 +226,7 @@ describe('ProjectStateService', () => {
     mockOfflineElementsService = {
       loadElements: vi.fn(),
       elements: vi.fn().mockReturnValue([]),
-    } as unknown as MockedObject<OfflineProjectElementsService>;
+    } as unknown as MockedObject<LocalProjectElementsService>;
 
     mockDialogGatewayService = {
       openDialog: vi.fn(),
@@ -265,7 +265,7 @@ describe('ProjectStateService', () => {
         { provide: UnifiedProjectService, useValue: mockUnifiedProjectService },
         { provide: SetupService, useValue: mockSetupService },
         {
-          provide: OfflineProjectElementsService,
+          provide: LocalProjectElementsService,
           useValue: mockOfflineElementsService,
         },
         { provide: DialogGatewayService, useValue: mockDialogGatewayService },
@@ -349,7 +349,7 @@ describe('ProjectStateService', () => {
       expect(service.project()?.slug).toBe('test-project');
       expect(service.project()?.username).toBe('testuser');
       // Should set offline state
-      expect(service.getSyncState()).toBe(DocumentSyncState.Offline);
+      expect(service.getSyncState()).toBe(DocumentSyncState.Local);
       expect(service.error()).toBeFalsy();
     });
   });

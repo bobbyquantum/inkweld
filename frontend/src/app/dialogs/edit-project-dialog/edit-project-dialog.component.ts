@@ -28,8 +28,8 @@ import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
-import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { nanoid } from 'nanoid';
@@ -68,7 +68,7 @@ export class EditProjectDialogComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private systemConfig = inject(SystemConfigService);
   private projectState = inject(ProjectStateService);
-  private offlineStorage = inject(OfflineStorageService);
+  private localStorage = inject(LocalStorageService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
@@ -137,7 +137,7 @@ export class EditProjectDialogComponent implements OnInit {
     try {
       // First, try loading from local storage using coverMediaId
       if (this.currentCoverMediaId) {
-        const localBlob = await this.offlineStorage.getMedia(
+        const localBlob = await this.localStorage.getMedia(
           projectKey,
           this.currentCoverMediaId
         );
@@ -152,10 +152,7 @@ export class EditProjectDialogComponent implements OnInit {
       }
 
       // Also try the legacy "cover" mediaId for backward compatibility
-      const legacyCover = await this.offlineStorage.getMedia(
-        projectKey,
-        'cover'
-      );
+      const legacyCover = await this.localStorage.getMedia(projectKey, 'cover');
       if (legacyCover) {
         this.coverImage = legacyCover;
         this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
@@ -180,7 +177,7 @@ export class EditProjectDialogComponent implements OnInit {
 
       // Save to local storage for offline access
       const mediaId = `cover-${nanoid(8)}`;
-      await this.offlineStorage.saveMedia(projectKey, mediaId, coverBlob);
+      await this.localStorage.saveMedia(projectKey, mediaId, coverBlob);
       this.currentCoverMediaId = mediaId;
     } catch (error) {
       // Check if this is a "Cover image not found" error, which is expected
@@ -333,11 +330,7 @@ export class EditProjectDialogComponent implements OnInit {
         try {
           // Save to local storage first
           const newCoverMediaId = `cover-${nanoid(8)}`;
-          await this.offlineStorage.saveMedia(
-            projectKey,
-            newCoverMediaId,
-            blob
-          );
+          await this.localStorage.saveMedia(projectKey, newCoverMediaId, blob);
           this.currentCoverMediaId = newCoverMediaId;
 
           // Try to upload to server (best effort)
@@ -394,7 +387,7 @@ export class EditProjectDialogComponent implements OnInit {
     try {
       // Delete from local storage first (offline-first)
       if (this.currentCoverMediaId) {
-        await this.offlineStorage.deleteMedia(
+        await this.localStorage.deleteMedia(
           projectKey,
           this.currentCoverMediaId
         );
@@ -477,7 +470,7 @@ export class EditProjectDialogComponent implements OnInit {
       ) {
         // Generate new mediaId and save locally
         newCoverMediaId = `cover-${nanoid(8)}`;
-        await this.offlineStorage.saveMedia(
+        await this.localStorage.saveMedia(
           projectKey,
           newCoverMediaId,
           this.coverImage

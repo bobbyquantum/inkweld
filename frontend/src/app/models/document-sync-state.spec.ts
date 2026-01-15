@@ -6,7 +6,7 @@ describe('DocumentSyncState enum', () => {
   });
 
   it('should have Offline state', () => {
-    expect(DocumentSyncState.Offline).toBe('offline');
+    expect(DocumentSyncState.Local).toBe('local');
   });
 
   it('should have Syncing state', () => {
@@ -22,7 +22,7 @@ describe('DocumentSyncState enum', () => {
       switch (state) {
         case DocumentSyncState.Unavailable:
           return 'Document not found in IndexedDB';
-        case DocumentSyncState.Offline:
+        case DocumentSyncState.Local:
           return 'Document exists locally but not synced';
         case DocumentSyncState.Syncing:
           return 'Currently establishing connection';
@@ -36,7 +36,7 @@ describe('DocumentSyncState enum', () => {
     expect(getStateDescription(DocumentSyncState.Unavailable)).toBe(
       'Document not found in IndexedDB'
     );
-    expect(getStateDescription(DocumentSyncState.Offline)).toBe(
+    expect(getStateDescription(DocumentSyncState.Local)).toBe(
       'Document exists locally but not synced'
     );
     expect(getStateDescription(DocumentSyncState.Syncing)).toBe(

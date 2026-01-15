@@ -11,12 +11,12 @@ import {
 } from '../../models/published-file';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { PublishedFilesService } from './published-files.service';
 
 describe('PublishedFilesService', () => {
   let service: PublishedFilesService;
-  let offlineStorage: DeepMockProxy<OfflineStorageService>;
+  let localStorageService: DeepMockProxy<LocalStorageService>;
   let logger: DeepMockProxy<LoggerService>;
   let setupService: DeepMockProxy<SetupService>;
 
@@ -48,22 +48,22 @@ describe('PublishedFilesService', () => {
   });
 
   beforeEach(() => {
-    // Clear localStorage before each test
-    localStorage.clear();
+    // Clear native browser localStorage before each test (used for metadata)
+    window.localStorage.clear();
 
-    offlineStorage = mockDeep<OfflineStorageService>();
+    localStorageService = mockDeep<LocalStorageService>();
     logger = mockDeep<LoggerService>();
     setupService = mockDeep<SetupService>();
 
     // Default to offline mode
-    setupService.getMode.mockReturnValue('offline');
+    setupService.getMode.mockReturnValue('local');
     setupService.getServerUrl.mockReturnValue('http://localhost:8333');
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         PublishedFilesService,
-        { provide: OfflineStorageService, useValue: offlineStorage },
+        { provide: LocalStorageService, useValue: localStorageService },
         { provide: LoggerService, useValue: logger },
         { provide: SetupService, useValue: setupService },
       ],
@@ -75,7 +75,8 @@ describe('PublishedFilesService', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    localStorage.clear();
+    // Clear native browser localStorage after each test
+    window.localStorage.clear();
   });
 
   describe('initial state', () => {
@@ -186,7 +187,7 @@ describe('PublishedFilesService', () => {
 
   describe('savePublishedFile', () => {
     it('should save file to offline storage', async () => {
-      offlineStorage.saveMedia.mockResolvedValue(undefined);
+      localStorageService.saveMedia.mockResolvedValue(undefined);
 
       const result = await service.savePublishedFile(mockProjectKey, mockBlob, {
         filename: 'new-book.epub',
@@ -199,11 +200,11 @@ describe('PublishedFilesService', () => {
       expect(result.filename).toBe('new-book.epub');
       expect(result.format).toBe(PublishFormat.EPUB);
       expect(result.size).toBe(mockBlob.size);
-      expect(offlineStorage.saveMedia).toHaveBeenCalled();
+      expect(localStorageService.saveMedia).toHaveBeenCalled();
     });
 
     it('should generate unique ID for new files', async () => {
-      offlineStorage.saveMedia.mockResolvedValue(undefined);
+      localStorageService.saveMedia.mockResolvedValue(undefined);
 
       const result = await service.savePublishedFile(mockProjectKey, mockBlob, {
         filename: 'new-book.epub',
@@ -219,7 +220,7 @@ describe('PublishedFilesService', () => {
 
     it('should upload to server in online mode', async () => {
       setupService.getMode.mockReturnValue('server');
-      offlineStorage.saveMedia.mockResolvedValue(undefined);
+      localStorageService.saveMedia.mockResolvedValue(undefined);
 
       const serverResponse: PublishedFile = {
         ...mockFile,
@@ -247,7 +248,7 @@ describe('PublishedFilesService', () => {
 
     it('should continue with offline file when server upload fails', async () => {
       setupService.getMode.mockReturnValue('server');
-      offlineStorage.saveMedia.mockResolvedValue(undefined);
+      localStorageService.saveMedia.mockResolvedValue(undefined);
 
       // uploadToServer catches fetch errors internally and returns null
       // so the file just gets saved offline without triggering the warning
@@ -274,12 +275,12 @@ describe('PublishedFilesService', () => {
 
   describe('getFileBlob', () => {
     it('should return blob from offline storage', async () => {
-      offlineStorage.getMedia.mockResolvedValue(mockBlob);
+      localStorageService.getMedia.mockResolvedValue(mockBlob);
 
       const blob = await service.getFileBlob(mockProjectKey, 'file-1');
 
       expect(blob).toBe(mockBlob);
-      expect(offlineStorage.getMedia).toHaveBeenCalledWith(
+      expect(localStorageService.getMedia).toHaveBeenCalledWith(
         mockProjectKey,
         'published-file-1'
       );
@@ -287,7 +288,7 @@ describe('PublishedFilesService', () => {
 
     it('should download from server if not in offline storage', async () => {
       setupService.getMode.mockReturnValue('server');
-      offlineStorage.getMedia.mockResolvedValue(null);
+      localStorageService.getMedia.mockResolvedValue(null);
 
       vi.stubGlobal(
         'fetch',
@@ -307,7 +308,7 @@ describe('PublishedFilesService', () => {
     });
 
     it('should return null if file not found anywhere', async () => {
-      offlineStorage.getMedia.mockResolvedValue(null);
+      localStorageService.getMedia.mockResolvedValue(null);
 
       const blob = await service.getFileBlob(mockProjectKey, 'nonexistent');
 
@@ -322,7 +323,7 @@ describe('PublishedFilesService', () => {
       localStorage.setItem(key, JSON.stringify([mockFile]));
       await service.loadFiles(mockProjectKey);
 
-      offlineStorage.getMedia.mockResolvedValue(mockBlob);
+      localStorageService.getMedia.mockResolvedValue(mockBlob);
 
       // Mock DOM APIs
       const mockAnchor = {
@@ -360,7 +361,7 @@ describe('PublishedFilesService', () => {
       localStorage.setItem(key, JSON.stringify([mockFile]));
       await service.loadFiles(mockProjectKey);
 
-      offlineStorage.getMedia.mockResolvedValue(null);
+      localStorageService.getMedia.mockResolvedValue(null);
 
       await expect(
         service.downloadFile(mockProjectKey, 'file-1')
@@ -473,24 +474,25 @@ describe('PublishedFilesService', () => {
     });
 
     it('should delete blob and update metadata', async () => {
-      offlineStorage.deleteMedia.mockResolvedValue(undefined);
+      localStorageService.deleteMedia.mockResolvedValue(undefined);
 
       await service.deleteFile(mockProjectKey, 'file-1');
 
-      expect(offlineStorage.deleteMedia).toHaveBeenCalledWith(
+      expect(localStorageService.deleteMedia).toHaveBeenCalledWith(
         mockProjectKey,
         'published-file-1'
       );
 
       // Verify file is removed from list
       const key = `${mockProjectKey}:published-files`;
-      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const storedValue = localStorage.getItem(key);
+      const stored = JSON.parse(storedValue ?? '[]') as unknown[];
       expect(stored).toHaveLength(0);
     });
 
     it('should call server in online mode', async () => {
       setupService.getMode.mockReturnValue('server');
-      offlineStorage.deleteMedia.mockResolvedValue(undefined);
+      localStorageService.deleteMedia.mockResolvedValue(undefined);
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
 
       await service.deleteFile(mockProjectKey, 'file-1');
@@ -509,13 +511,14 @@ describe('PublishedFilesService', () => {
       localStorage.setItem(key, JSON.stringify(files));
       await service.loadFiles(mockProjectKey);
 
-      offlineStorage.deleteMedia.mockResolvedValue(undefined);
+      localStorageService.deleteMedia.mockResolvedValue(undefined);
 
       await service.clearProjectFiles(mockProjectKey);
 
-      expect(offlineStorage.deleteMedia).toHaveBeenCalledTimes(2);
+      expect(localStorageService.deleteMedia).toHaveBeenCalledTimes(2);
 
-      const stored = JSON.parse(localStorage.getItem(key) || '[]');
+      const storedValue = localStorage.getItem(key);
+      const stored = JSON.parse(storedValue ?? '[]') as unknown[];
       expect(stored).toHaveLength(0);
     });
   });

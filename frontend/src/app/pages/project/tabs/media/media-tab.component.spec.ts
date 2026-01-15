@@ -8,11 +8,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
-import { MediaSyncService } from '@services/offline/media-sync.service';
 import {
+  LocalStorageService,
   MediaInfo,
-  OfflineStorageService,
-} from '@services/offline/offline-storage.service';
+} from '@services/local/local-storage.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { vi } from 'vitest';
 
@@ -24,7 +24,7 @@ describe('MediaTabComponent', () => {
   let component: MediaTabComponent;
   let fixture: ComponentFixture<MediaTabComponent>;
   let projectStateService: Partial<ProjectStateService>;
-  let offlineStorage: Partial<OfflineStorageService>;
+  let localStorage: Partial<LocalStorageService>;
   let dialogGateway: Partial<DialogGatewayService>;
   let mediaSyncService: Partial<MediaSyncService>;
   let setupService: Partial<SetupService>;
@@ -69,7 +69,7 @@ describe('MediaTabComponent', () => {
       getSyncState: signal(DocumentSyncState.Synced),
     };
 
-    offlineStorage = {
+    localStorage = {
       listMedia: vi.fn().mockResolvedValue(mockMediaList),
       getMediaUrl: vi.fn().mockResolvedValue('blob:http://localhost/mock-url'),
       getMedia: vi
@@ -106,7 +106,7 @@ describe('MediaTabComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateService },
-        { provide: OfflineStorageService, useValue: offlineStorage },
+        { provide: LocalStorageService, useValue: localStorage },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: MediaSyncService, useValue: mediaSyncService },
         { provide: SetupService, useValue: setupService },
@@ -125,7 +125,7 @@ describe('MediaTabComponent', () => {
     await component.loadMedia();
     await fixture.whenStable();
 
-    expect(offlineStorage.listMedia).toHaveBeenCalledWith(
+    expect(localStorage.listMedia).toHaveBeenCalledWith(
       'testuser/test-project'
     );
     expect(component.mediaItems().length).toBe(3);
@@ -194,7 +194,7 @@ describe('MediaTabComponent', () => {
     const item = component.mediaItems()[0];
     await component.downloadMedia(item);
 
-    expect(offlineStorage.getMedia).toHaveBeenCalledWith(
+    expect(localStorage.getMedia).toHaveBeenCalledWith(
       'testuser/test-project',
       item.mediaId
     );
@@ -218,7 +218,7 @@ describe('MediaTabComponent', () => {
       confirmText: 'Delete',
       cancelText: 'Cancel',
     });
-    expect(offlineStorage.deleteMedia).toHaveBeenCalledWith(
+    expect(localStorage.deleteMedia).toHaveBeenCalledWith(
       'testuser/test-project',
       item.mediaId
     );
@@ -235,11 +235,11 @@ describe('MediaTabComponent', () => {
     const item = component.mediaItems()[1];
     await component.deleteMedia(item);
 
-    expect(offlineStorage.deleteMedia).not.toHaveBeenCalled();
+    expect(localStorage.deleteMedia).not.toHaveBeenCalled();
   });
 
   it('should handle error when loading media', async () => {
-    (offlineStorage.listMedia as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (localStorage.listMedia as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('Network error')
     );
 
@@ -312,7 +312,7 @@ describe('MediaTabComponent', () => {
 
     component.ngOnDestroy();
 
-    expect(offlineStorage.revokeProjectUrls).toHaveBeenCalledWith(
+    expect(localStorage.revokeProjectUrls).toHaveBeenCalledWith(
       'testuser/test-project'
     );
   });

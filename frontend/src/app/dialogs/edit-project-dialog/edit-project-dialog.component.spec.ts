@@ -20,8 +20,8 @@ import {
   vi,
 } from 'vitest';
 
-import { OfflineStorageService } from '../../services/offline/offline-storage.service';
-import { UnifiedProjectService } from '../../services/offline/unified-project.service';
+import { LocalStorageService } from '../../services/local/local-storage.service';
+import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
@@ -40,7 +40,7 @@ describe('EditProjectDialogComponent', () => {
   let ProjectsService: MockedObject<ProjectsService>;
   let projectService: MockedObject<ProjectService>;
   let unifiedProjectService: MockedObject<UnifiedProjectService>;
-  let offlineStorageService: MockedObject<OfflineStorageService>;
+  let localStorageService: MockedObject<LocalStorageService>;
   let projectStateService: MockedObject<ProjectStateService>;
 
   const mockUser: User = {
@@ -97,8 +97,8 @@ describe('EditProjectDialogComponent', () => {
       updateProject: vi.fn().mockResolvedValue(mockProject),
     } as any;
 
-    // Mock OfflineStorageService methods
-    offlineStorageService = {
+    // Mock LocalStorageService methods
+    localStorageService = {
       getMedia: vi.fn().mockResolvedValue(null),
       saveMedia: vi.fn().mockResolvedValue(undefined),
       deleteMedia: vi.fn().mockResolvedValue(undefined),
@@ -127,7 +127,7 @@ describe('EditProjectDialogComponent', () => {
         { provide: ProjectsService, useValue: ProjectsService },
         { provide: ProjectService, useValue: projectService },
         { provide: UnifiedProjectService, useValue: unifiedProjectService },
-        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: LocalStorageService, useValue: localStorageService },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: MatSnackBar, useValue: snackBar },
       ],

@@ -39,7 +39,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import {
   MediaSyncService,
   MediaSyncState,
-} from '@services/offline/media-sync.service';
+} from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 

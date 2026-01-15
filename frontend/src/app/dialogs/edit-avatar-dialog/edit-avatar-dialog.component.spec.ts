@@ -2,7 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { SetupService } from '@services/core/setup.service';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { ImageCroppedEvent, LoadedImage } from 'ngx-image-cropper';
@@ -20,7 +20,7 @@ describe('EditAvatarDialogComponent', () => {
   };
   let dialogRefMock: { close: ReturnType<typeof vi.fn> };
   let setupServiceMock: { getMode: ReturnType<typeof vi.fn> };
-  let offlineStorageMock: { saveUserAvatar: ReturnType<typeof vi.fn> };
+  let localStorageMock: { saveUserAvatar: ReturnType<typeof vi.fn> };
   let unifiedUserServiceMock: {
     currentUser: ReturnType<typeof vi.fn>;
   };
@@ -32,7 +32,7 @@ describe('EditAvatarDialogComponent', () => {
     };
     dialogRefMock = { close: vi.fn() };
     setupServiceMock = { getMode: vi.fn().mockReturnValue('server') };
-    offlineStorageMock = {
+    localStorageMock = {
       saveUserAvatar: vi.fn().mockResolvedValue(undefined),
     };
     unifiedUserServiceMock = {
@@ -48,7 +48,7 @@ describe('EditAvatarDialogComponent', () => {
         { provide: UserService, useValue: userServiceMock },
         { provide: MatDialogRef, useValue: dialogRefMock },
         { provide: SetupService, useValue: setupServiceMock },
-        { provide: OfflineStorageService, useValue: offlineStorageMock },
+        { provide: LocalStorageService, useValue: localStorageMock },
         { provide: UnifiedUserService, useValue: unifiedUserServiceMock },
       ],
     }).compileComponents();
@@ -137,7 +137,7 @@ describe('EditAvatarDialogComponent', () => {
       expect(userServiceMock.uploadAvatar).toHaveBeenCalledWith(
         expect.any(File)
       );
-      expect(offlineStorageMock.saveUserAvatar).toHaveBeenCalledWith(
+      expect(localStorageMock.saveUserAvatar).toHaveBeenCalledWith(
         'testuser',
         blob
       );
@@ -148,12 +148,12 @@ describe('EditAvatarDialogComponent', () => {
       const blob = new Blob([''], { type: 'image/png' });
       component.croppedBlob = blob;
       component.fileName = 'test.png';
-      setupServiceMock.getMode.mockReturnValue('offline');
+      setupServiceMock.getMode.mockReturnValue('local');
 
       await component.submit();
 
       expect(userServiceMock.uploadAvatar).not.toHaveBeenCalled();
-      expect(offlineStorageMock.saveUserAvatar).toHaveBeenCalledWith(
+      expect(localStorageMock.saveUserAvatar).toHaveBeenCalledWith(
         'testuser',
         blob
       );

@@ -95,9 +95,9 @@ export class UserMenuComponent implements OnInit {
       };
     }
     return {
-      icon: 'cloud_off',
-      text: 'Offline',
-      cssClass: 'offline',
+      icon: 'computer',
+      text: 'Local',
+      cssClass: 'local',
     };
   }
 }

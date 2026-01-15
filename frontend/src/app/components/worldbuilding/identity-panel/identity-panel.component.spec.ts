@@ -6,7 +6,7 @@ import {
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { MockedObject, vi } from 'vitest';
 
@@ -16,7 +16,7 @@ describe('IdentityPanelComponent', () => {
   let component: IdentityPanelComponent;
   let fixture: ComponentFixture<IdentityPanelComponent>;
   let worldbuildingService: MockedObject<WorldbuildingService>;
-  let offlineStorageService: MockedObject<OfflineStorageService>;
+  let localStorageService: MockedObject<LocalStorageService>;
   let dialogGatewayService: MockedObject<DialogGatewayService>;
   let _httpTestingController: HttpTestingController;
 
@@ -28,12 +28,12 @@ describe('IdentityPanelComponent', () => {
       getWorldbuildingData: vi.fn().mockResolvedValue(null),
     } as unknown as MockedObject<WorldbuildingService>;
 
-    offlineStorageService = {
+    localStorageService = {
       getMediaUrl: vi.fn().mockResolvedValue(null),
       saveMedia: vi.fn().mockResolvedValue(undefined),
       revokeUrl: vi.fn(),
       deleteMedia: vi.fn().mockResolvedValue(undefined),
-    } as unknown as MockedObject<OfflineStorageService>;
+    } as unknown as MockedObject<LocalStorageService>;
 
     dialogGatewayService = {
       openImageViewerDialog: vi.fn(),
@@ -46,7 +46,7 @@ describe('IdentityPanelComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
-        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: LocalStorageService, useValue: localStorageService },
         { provide: DialogGatewayService, useValue: dialogGatewayService },
       ],
     }).compileComponents();

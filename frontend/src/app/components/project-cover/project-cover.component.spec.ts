@@ -9,7 +9,7 @@ import { Project } from '@inkweld/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SetupService } from '../../services/core/setup.service';
-import { OfflineStorageService } from '../../services/offline/offline-storage.service';
+import { LocalStorageService } from '../../services/local/local-storage.service';
 import { ProjectCoverComponent } from './project-cover.component';
 
 describe('ProjectCoverComponent', () => {
@@ -75,7 +75,7 @@ describe('ProjectCoverComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: SetupService, useValue: mockSetupService },
-        { provide: OfflineStorageService, useValue: mockOfflineStorage },
+        { provide: LocalStorageService, useValue: mockOfflineStorage },
       ],
     }).compileComponents();
 
@@ -237,7 +237,7 @@ describe('ProjectCoverComponent', () => {
     const mockBlobUrl = 'blob:http://localhost/abc123';
 
     beforeEach(() => {
-      mockSetupService.getMode.mockReturnValue('offline');
+      mockSetupService.getMode.mockReturnValue('local');
     });
 
     it('should only use IndexedDB in offline mode', async () => {
@@ -303,7 +303,7 @@ describe('ProjectCoverComponent', () => {
 
   describe('cleanup', () => {
     it('should NOT revoke blob URL on destroy (service manages URL lifecycle)', async () => {
-      // The OfflineStorageService manages blob URL lifecycle and caches them
+      // The LocalStorageService manages blob URL lifecycle and caches them
       // for reuse across components. The component should NOT revoke URLs
       // as this would invalidate cached URLs used by other components.
       const mockBlobUrl = 'blob:http://localhost/abc123';
@@ -324,7 +324,7 @@ describe('ProjectCoverComponent', () => {
     });
 
     it('should clear local state when project changes but NOT revoke URL', async () => {
-      // URLs are cached by OfflineStorageService and reused across components.
+      // URLs are cached by LocalStorageService and reused across components.
       // The component should clear its local state but NOT revoke URLs.
       const mockBlobUrl1 = 'blob:http://localhost/abc123';
       const mockBlobUrl2 = 'blob:http://localhost/def456';

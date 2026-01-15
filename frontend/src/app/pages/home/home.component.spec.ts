@@ -21,8 +21,8 @@ import {
   PendingInvitation,
 } from '@inkweld/model/models';
 import { SetupService } from '@services/core/setup.service';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
-import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
@@ -51,7 +51,7 @@ describe('HomeComponent', () => {
   let userService: MockedObject<UnifiedUserService>;
   let avatarUserService: Partial<UserService>;
   let projectService: Partial<UnifiedProjectService>;
-  let offlineStorageService: Partial<OfflineStorageService>;
+  let localStorageService: Partial<LocalStorageService>;
   let collaborationApiService: Partial<CollaborationApiService>;
   let setupService: Partial<SetupService>;
   let breakpointObserver: MockedObject<BreakpointObserver>;
@@ -189,7 +189,7 @@ describe('HomeComponent', () => {
     };
 
     // Setup mock offline storage service (for UserAvatarComponent)
-    offlineStorageService = {
+    localStorageService = {
       getUserAvatarUrl: vi.fn().mockResolvedValue(undefined),
       saveUserAvatar: vi.fn().mockResolvedValue(undefined),
       getMediaUrl: vi.fn().mockResolvedValue(undefined),
@@ -220,7 +220,7 @@ describe('HomeComponent', () => {
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: CollaborationApiService, useValue: collaborationApiService },
         { provide: SetupService, useValue: setupService },
-        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: LocalStorageService, useValue: localStorageService },
         { provide: UserService, useValue: avatarUserService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },

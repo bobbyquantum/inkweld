@@ -26,10 +26,10 @@ import {
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
-import { OfflineProjectService } from '../offline/offline-project.service';
-import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
-import { OfflineSnapshotService } from '../offline/offline-snapshot.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalProjectService } from '../local/local-project.service';
+import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { LocalSnapshotService } from '../local/local-snapshot.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { DocumentImportService } from './document-import.service';
 
@@ -57,7 +57,7 @@ export interface ImportOptions {
  * Service for importing projects from archive files.
  *
  * Import behavior:
- * - Offline mode: Creates project locally using OfflineProjectService
+ * - Offline mode: Creates project locally using LocalProjectService
  * - Server mode: Creates project via API, uploads media, syncs documents
  *
  * The import process:
@@ -77,10 +77,10 @@ export class ProjectImportService {
   private logger = inject(LoggerService);
   private http = inject(HttpClient);
   private syncFactory = inject(ElementSyncProviderFactory);
-  private offlineProject = inject(OfflineProjectService);
-  private offlineElements = inject(OfflineProjectElementsService);
-  private offlineStorage = inject(OfflineStorageService);
-  private offlineSnapshots = inject(OfflineSnapshotService);
+  private localProject = inject(LocalProjectService);
+  private localElements = inject(LocalProjectElementsService);
+  private localStorage = inject(LocalStorageService);
+  private localSnapshots = inject(LocalSnapshotService);
   private projectsService = inject(ProjectsService);
   private documentImport = inject(DocumentImportService);
 
@@ -284,10 +284,10 @@ export class ProjectImportService {
     }
 
     // Check availability
-    const isOffline = this.syncFactory.isOfflineMode();
+    const isOffline = this.syncFactory.isLocalMode();
     if (isOffline) {
       // Check offline projects
-      const existing = this.offlineProject.getProject(username || '', slug);
+      const existing = this.localProject.getProject(username || '', slug);
       return {
         valid: true,
         available: !existing,
@@ -501,10 +501,10 @@ export class ProjectImportService {
     archive: ProjectArchive,
     slug: string
   ): Promise<Project> {
-    const isOffline = this.syncFactory.isOfflineMode();
+    const isOffline = this.syncFactory.isLocalMode();
 
     if (isOffline) {
-      return this.offlineProject.createProject({
+      return this.localProject.createProject({
         title: archive.project.title,
         description: archive.project.description ?? '',
         slug,
@@ -548,7 +548,7 @@ export class ProjectImportService {
     }));
 
     // Save to offline storage (works for both modes as starting point)
-    await this.offlineElements.saveElements(username, slug, fullElements);
+    await this.localElements.saveElements(username, slug, fullElements);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -620,12 +620,12 @@ export class ProjectImportService {
   ): Promise<void> {
     // Import schemas
     if (archive.schemas.length > 0) {
-      await this.offlineElements.saveSchemas(username, slug, archive.schemas);
+      await this.localElements.saveSchemas(username, slug, archive.schemas);
     }
 
     // Import relationships
     if (archive.relationships.length > 0) {
-      await this.offlineElements.saveRelationships(
+      await this.localElements.saveRelationships(
         username,
         slug,
         archive.relationships
@@ -634,7 +634,7 @@ export class ProjectImportService {
 
     // Import custom relationship types
     if (archive.customRelationshipTypes.length > 0) {
-      await this.offlineElements.saveCustomRelationshipTypes(
+      await this.localElements.saveCustomRelationshipTypes(
         username,
         slug,
         archive.customRelationshipTypes
@@ -643,12 +643,12 @@ export class ProjectImportService {
 
     // Import tags
     if (archive.tags.length > 0) {
-      await this.offlineElements.saveCustomTags(username, slug, archive.tags);
+      await this.localElements.saveCustomTags(username, slug, archive.tags);
     }
 
     // Import element tag assignments
     if (archive.elementTags.length > 0) {
-      await this.offlineElements.saveElementTags(
+      await this.localElements.saveElementTags(
         username,
         slug,
         archive.elementTags
@@ -657,7 +657,7 @@ export class ProjectImportService {
 
     // Import publish plans
     if (archive.publishPlans.length > 0) {
-      await this.offlineElements.savePublishPlans(
+      await this.localElements.savePublishPlans(
         username,
         slug,
         archive.publishPlans
@@ -689,7 +689,7 @@ export class ProjectImportService {
       );
 
       try {
-        await this.offlineSnapshots.importSnapshot(projectKey, {
+        await this.localSnapshots.importSnapshot(projectKey, {
           documentId: snapshot.documentId,
           name: snapshot.name,
           description: snapshot.description,
@@ -744,7 +744,7 @@ export class ProjectImportService {
     }
 
     const zip = await new JSZip().loadAsync(file);
-    const isOffline = this.syncFactory.isOfflineMode();
+    const isOffline = this.syncFactory.isLocalMode();
 
     for (let i = 0; i < archive.media.length; i++) {
       const media = archive.media[i];
@@ -769,7 +769,7 @@ export class ProjectImportService {
       const blob = await mediaFile.async('blob');
 
       // Save to local IndexedDB storage
-      await this.offlineStorage.saveMedia(
+      await this.localStorage.saveMedia(
         projectKey,
         media.mediaId,
         blob,
@@ -825,9 +825,9 @@ export class ProjectImportService {
     slug: string
   ): Promise<void> {
     try {
-      const isOffline = this.syncFactory.isOfflineMode();
+      const isOffline = this.syncFactory.isLocalMode();
       if (isOffline) {
-        this.offlineProject.deleteProject(username, slug);
+        this.localProject.deleteProject(username, slug);
       } else {
         await firstValueFrom(
           this.projectsService.deleteProject(username, slug)

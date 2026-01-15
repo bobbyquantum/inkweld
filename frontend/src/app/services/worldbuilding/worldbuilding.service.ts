@@ -192,7 +192,7 @@ export class WorldbuildingService {
     const wsUrl = this.setupService.getWebSocketUrl();
     let provider: WebsocketProvider | undefined;
 
-    if (mode !== 'offline' && wsUrl && username && slug) {
+    if (mode !== 'local' && wsUrl && username && slug) {
       // Build full document ID in format: username:slug:elementId/
       // Note: trailing slash is required to match backend document ID format
       const fullDocId = `${username}:${slug}:${elementId}/`;

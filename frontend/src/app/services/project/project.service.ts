@@ -5,9 +5,9 @@ import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { XsrfService } from '../auth/xsrf.service';
 import { SetupService } from '../core/setup.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
-import { ProjectSyncService } from '../offline/project-sync.service';
-import { StorageService } from '../offline/storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
+import { ProjectSyncService } from '../local/project-sync.service';
+import { StorageService } from '../local/storage.service';
 
 export class ProjectServiceError extends Error {
   constructor(
@@ -70,7 +70,7 @@ export class ProjectService {
   private readonly storage = inject(StorageService);
   private readonly xsrfService = inject(XsrfService);
   private readonly setupService = inject(SetupService);
-  private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly projectSync = inject(ProjectSyncService);
 
   readonly projects = signal<Project[]>([]);
@@ -533,13 +533,10 @@ export class ProjectService {
     const projectKey = `${username}/${slug}`;
 
     // Offline-first: if we have a cached cover, return it immediately
-    const cachedCover = await this.offlineStorage.getProjectCover(
-      username,
-      slug
-    );
+    const cachedCover = await this.localStorage.getProjectCover(username, slug);
     if (cachedCover) {
       // If in server mode, try a background refresh to update cache
-      if (this.setupService.getMode() !== 'offline') {
+      if (this.setupService.getMode() !== 'local') {
         void (async () => {
           try {
             const freshBlob = await firstValueFrom(
@@ -547,11 +544,7 @@ export class ProjectService {
                 .getProjectCover(username, slug)
                 .pipe(retry(MAX_RETRIES))
             );
-            await this.offlineStorage.saveProjectCover(
-              username,
-              slug,
-              freshBlob
-            );
+            await this.localStorage.saveProjectCover(username, slug, freshBlob);
           } catch {
             // Ignore refresh errors silently
           }
@@ -561,7 +554,7 @@ export class ProjectService {
     }
 
     // If fully offline mode, and no cached cover, surface not found
-    if (this.setupService.getMode() === 'offline') {
+    if (this.setupService.getMode() === 'local') {
       throw new ProjectServiceError(
         'PROJECT_NOT_FOUND',
         'Cover image not found'
@@ -585,7 +578,7 @@ export class ProjectService {
 
       // Cache the cover for offline access
       try {
-        await this.offlineStorage.saveProjectCover(username, slug, blob);
+        await this.localStorage.saveProjectCover(username, slug, blob);
       } catch (cacheError) {
         console.warn('Failed to cache project cover:', cacheError);
       }
@@ -608,7 +601,7 @@ export class ProjectService {
         throw coverError;
       } else {
         // If server error but we have cached cover, return cache
-        const offlineBlob = await this.offlineStorage.getProjectCover(
+        const offlineBlob = await this.localStorage.getProjectCover(
           username,
           slug
         );
@@ -639,8 +632,8 @@ export class ProjectService {
 
     try {
       // In offline mode, just delete from IndexedDB cache
-      if (this.setupService.getMode() === 'offline') {
-        await this.offlineStorage.deleteProjectCover(username, slug);
+      if (this.setupService.getMode() === 'local') {
+        await this.localStorage.deleteProjectCover(username, slug);
         return;
       }
 
@@ -654,7 +647,7 @@ export class ProjectService {
 
       // Clear the cached cover from IndexedDB
       try {
-        await this.offlineStorage.deleteProjectCover(username, slug);
+        await this.localStorage.deleteProjectCover(username, slug);
       } catch (cacheError) {
         console.warn('Failed to clear cached cover image:', cacheError);
       }
@@ -694,8 +687,8 @@ export class ProjectService {
 
     try {
       // In offline mode, save to IndexedDB and mark for sync
-      if (this.setupService.getMode() === 'offline') {
-        await this.offlineStorage.saveProjectCover(username, slug, coverImage);
+      if (this.setupService.getMode() === 'local') {
+        await this.localStorage.saveProjectCover(username, slug, coverImage);
         await this.projectSync.markPendingUpload(
           `${username}/${slug}`,
           'cover'
@@ -722,11 +715,7 @@ export class ProjectService {
         const formatted = this.formatError(e);
         // For recoverable network/server errors, save locally and queue sync
         if (formatted.canUseCache) {
-          await this.offlineStorage.saveProjectCover(
-            username,
-            slug,
-            coverImage
-          );
+          await this.localStorage.saveProjectCover(username, slug, coverImage);
           await this.projectSync.markPendingUpload(
             `${username}/${slug}`,
             'cover'
@@ -739,7 +728,7 @@ export class ProjectService {
       }
 
       // Cache the cover image to IndexedDB for offline access
-      await this.offlineStorage.saveProjectCover(username, slug, coverImage);
+      await this.localStorage.saveProjectCover(username, slug, coverImage);
 
       // Refresh projects to get updated data
       await this.loadAllProjects();

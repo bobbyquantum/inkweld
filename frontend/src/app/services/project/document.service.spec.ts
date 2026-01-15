@@ -301,10 +301,10 @@ describe('DocumentService', () => {
         currentStatus = syncStatus();
       });
 
-      expect(currentStatus).toBe(DocumentSyncState.Offline);
+      expect(currentStatus).toBe(DocumentSyncState.Local);
       expect(mockProjectStateService.updateSyncState).toHaveBeenCalledWith(
         testDocumentId,
-        DocumentSyncState.Offline
+        DocumentSyncState.Local
       );
     });
 
@@ -315,7 +315,7 @@ describe('DocumentService', () => {
         currentStatus = syncStatus();
       });
 
-      expect(currentStatus).toBe(DocumentSyncState.Offline);
+      expect(currentStatus).toBe(DocumentSyncState.Local);
     });
   });
 

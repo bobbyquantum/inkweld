@@ -80,9 +80,9 @@ AI_IMAGE_SD_ENDPOINT=http://localhost:7860
 Admin panel settings take precedence over environment variables.
 :::
 
-## Offline Mode
+## Local Mode
 
-AI image generation requires a server connection and is not available in offline mode.
+AI image generation requires a server connection and is not available in local mode.
 
 ## Cost Considerations
 

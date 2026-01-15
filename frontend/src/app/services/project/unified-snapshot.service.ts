@@ -17,10 +17,10 @@ import {
 import { LoggerService } from '../core/logger.service';
 import {
   CreateSnapshotOptions,
-  OfflineSnapshotService,
+  LocalSnapshotService,
   SnapshotInfo,
   StoredSnapshot,
-} from '../offline/offline-snapshot.service';
+} from '../local/local-snapshot.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { DocumentService } from './document.service';
@@ -83,7 +83,7 @@ export class UnifiedSnapshotService {
   private logger = inject(LoggerService);
   private projectState = inject(ProjectStateService);
   private syncFactory = inject(ElementSyncProviderFactory);
-  private offlineSnapshots = inject(OfflineSnapshotService);
+  private localSnapshots = inject(LocalSnapshotService);
   private snapshotsApi = inject(SnapshotsService);
   private documentService = inject(DocumentService);
   private worldbuildingService = inject(WorldbuildingService);
@@ -182,7 +182,7 @@ export class UnifiedSnapshotService {
     };
 
     // Save locally first
-    const localSnapshot = await this.offlineSnapshots.createSnapshot(
+    const localSnapshot = await this.localSnapshots.createSnapshot(
       projectKey,
       documentId,
       options
@@ -194,7 +194,7 @@ export class UnifiedSnapshotService {
     );
 
     // Try to sync to server if online
-    if (!this.syncFactory.isOfflineMode()) {
+    if (!this.syncFactory.isLocalMode()) {
       await this.syncSnapshotToServer(localSnapshot);
     }
 
@@ -256,14 +256,14 @@ export class UnifiedSnapshotService {
     const projectKey = `${project.username}/${project.slug}`;
 
     // Get local snapshots
-    const localSnapshots = await this.offlineSnapshots.listSnapshotsForDocument(
+    const localSnapshots = await this.localSnapshots.listSnapshotsForDocument(
       projectKey,
       documentId
     );
 
     // Get server snapshots if online
     let serverSnapshots: DocumentSnapshot[] = [];
-    if (!this.syncFactory.isOfflineMode()) {
+    if (!this.syncFactory.isLocalMode()) {
       try {
         serverSnapshots = await firstValueFrom(
           this.snapshotsApi.listProjectSnapshots(project.username, project.slug)
@@ -300,11 +300,11 @@ export class UnifiedSnapshotService {
 
     // Get local snapshots
     const localSnapshots =
-      await this.offlineSnapshots.listSnapshotsForProject(projectKey);
+      await this.localSnapshots.listSnapshotsForProject(projectKey);
 
     // Get server snapshots if online
     let serverSnapshots: DocumentSnapshot[] = [];
-    if (!this.syncFactory.isOfflineMode()) {
+    if (!this.syncFactory.isLocalMode()) {
       try {
         serverSnapshots = await firstValueFrom(
           this.snapshotsApi.listProjectSnapshots(project.username, project.slug)
@@ -338,15 +338,14 @@ export class UnifiedSnapshotService {
     snapshotId: string
   ): Promise<StoredSnapshot | undefined> {
     // Try local first
-    const localSnapshot =
-      await this.offlineSnapshots.getSnapshotById(snapshotId);
+    const localSnapshot = await this.localSnapshots.getSnapshotById(snapshotId);
     if (localSnapshot) {
       return localSnapshot;
     }
 
     // Try to fetch from server
     const project = this.projectState.project();
-    if (project && !this.syncFactory.isOfflineMode()) {
+    if (project && !this.syncFactory.isLocalMode()) {
       try {
         const serverSnapshot = await firstValueFrom(
           this.snapshotsApi.previewProjectSnapshot(
@@ -543,17 +542,16 @@ export class UnifiedSnapshotService {
     }
 
     // Get local snapshot to check if it's synced
-    const localSnapshot =
-      await this.offlineSnapshots.getSnapshotById(snapshotId);
+    const localSnapshot = await this.localSnapshots.getSnapshotById(snapshotId);
 
     // Delete from local storage
-    await this.offlineSnapshots.deleteSnapshotById(snapshotId);
+    await this.localSnapshots.deleteSnapshotById(snapshotId);
 
     // Delete from server if synced and online
     if (
       localSnapshot?.synced &&
       localSnapshot.serverId &&
-      !this.syncFactory.isOfflineMode()
+      !this.syncFactory.isLocalMode()
     ) {
       try {
         await firstValueFrom(
@@ -573,7 +571,7 @@ export class UnifiedSnapshotService {
     }
 
     // If it was only a server snapshot (snapshotId is the server ID)
-    if (!localSnapshot && !this.syncFactory.isOfflineMode()) {
+    if (!localSnapshot && !this.syncFactory.isLocalMode()) {
       try {
         await firstValueFrom(
           this.snapshotsApi.deleteProjectSnapshot(
@@ -605,7 +603,7 @@ export class UnifiedSnapshotService {
    * Called when coming back online or periodically.
    */
   async syncPendingSnapshots(): Promise<void> {
-    if (this.syncFactory.isOfflineMode()) {
+    if (this.syncFactory.isLocalMode()) {
       return;
     }
 
@@ -617,7 +615,7 @@ export class UnifiedSnapshotService {
     this.isSyncing.set(true);
 
     try {
-      const unsynced = await this.offlineSnapshots.getUnsyncedSnapshots();
+      const unsynced = await this.localSnapshots.getUnsyncedSnapshots();
       const projectKey = `${project.username}/${project.slug}`;
 
       // Filter to current project
@@ -647,7 +645,7 @@ export class UnifiedSnapshotService {
    */
   private async syncSnapshotToServer(snapshot: StoredSnapshot): Promise<void> {
     const project = this.projectState.project();
-    if (!project || this.syncFactory.isOfflineMode()) {
+    if (!project || this.syncFactory.isLocalMode()) {
       return;
     }
 
@@ -672,7 +670,7 @@ export class UnifiedSnapshotService {
       );
 
       // Mark as synced with server ID
-      await this.offlineSnapshots.markSynced(snapshot.id, serverSnapshot.id);
+      await this.localSnapshots.markSynced(snapshot.id, serverSnapshot.id);
 
       this.logger.debug(
         'UnifiedSnapshot',
@@ -704,7 +702,7 @@ export class UnifiedSnapshotService {
     }
 
     const projectKey = `${project.username}/${project.slug}`;
-    return this.offlineSnapshots.getSnapshotsForExport(projectKey);
+    return this.localSnapshots.getSnapshotsForExport(projectKey);
   }
 
   /**
@@ -733,7 +731,7 @@ export class UnifiedSnapshotService {
     const imported: StoredSnapshot[] = [];
 
     for (const snapshot of snapshots) {
-      const stored = await this.offlineSnapshots.importSnapshot(
+      const stored = await this.localSnapshots.importSnapshot(
         projectKey,
         snapshot
       );
@@ -741,7 +739,7 @@ export class UnifiedSnapshotService {
     }
 
     // Try to sync to server if online
-    if (!this.syncFactory.isOfflineMode()) {
+    if (!this.syncFactory.isLocalMode()) {
       await this.syncPendingSnapshots();
     }
 
@@ -757,7 +755,7 @@ export class UnifiedSnapshotService {
    */
   private async updatePendingCount(): Promise<void> {
     try {
-      const unsynced = await this.offlineSnapshots.getUnsyncedSnapshots();
+      const unsynced = await this.localSnapshots.getUnsyncedSnapshots();
       this.pendingCount.set(unsynced.length);
     } catch {
       // Ignore errors

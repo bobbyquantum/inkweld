@@ -1,14 +1,14 @@
 import { defineConfig } from '@playwright/test';
 import dockerConfig from './playwright.docker.config';
 import onlineConfig from './playwright.online.config';
-import offlineConfig from './playwright.offline.config';
+import localConfig from './playwright.local.config';
 import wranglerConfig from './playwright.wrangler.config';
 import screenshotsConfig from './playwright.screenshots.config';
 
 const configMap = {
   docker: dockerConfig,
   online: onlineConfig,
-  offline: offlineConfig,
+  local: localConfig,
   wrangler: wranglerConfig,
   screenshots: screenshotsConfig,
 };

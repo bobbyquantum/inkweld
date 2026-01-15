@@ -129,7 +129,7 @@ describe('WorldbuildingService', () => {
 
   beforeEach(() => {
     setupService = {
-      getMode: vi.fn().mockReturnValue('offline'), // Use offline mode to avoid WebSocket
+      getMode: vi.fn().mockReturnValue('local'), // Use offline mode to avoid WebSocket
       getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
     };
 
@@ -137,7 +137,7 @@ describe('WorldbuildingService', () => {
 
     const mockSyncProviderFactory = {
       getProvider: vi.fn().mockReturnValue(mockSyncProvider),
-      getCurrentMode: vi.fn().mockReturnValue('offline'),
+      getCurrentMode: vi.fn().mockReturnValue('local'),
     };
 
     TestBed.configureTestingModule({

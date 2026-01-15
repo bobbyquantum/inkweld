@@ -8,11 +8,11 @@
         <mat-icon
           class="status-icon"
           [class.online]="currentMode === 'server'"
-          [class.offline]="currentMode === 'offline'">
+          [class.local]="currentMode === 'local'">
           {{ currentMode === 'server' ? 'cloud_done' : 'cloud_off' }}
         </mat-icon>
         Current Mode:
-        {{ currentMode === 'server' ? 'Online (Server)' : 'Offline' }}
+        {{ currentMode === 'server' ? 'Online (Server)' : 'Local' }}
       </mat-card-title>
     </mat-card-header>
     <mat-card-content>
@@ -21,8 +21,8 @@
           <strong>Server URL:</strong> {{ currentServerUrl }}
         </p>
       }
-      @if (currentMode === 'offline') {
-        <p class="offline-info">
+      @if (currentMode === 'local') {
+        <p class="local-info">
           You are currently working offline. Your data is stored locally on this
           device.
         </p>
@@ -30,23 +30,20 @@
     </mat-card-content>
   </mat-card>
 
-  <!-- Switch to Offline Mode (when in server mode) -->
+  <!-- Switch to Local Mode (when in server mode) -->
   @if (currentMode === 'server') {
     <mat-card class="mode-card">
       <mat-card-header>
-        <mat-card-title>Switch to Offline Mode</mat-card-title>
+        <mat-card-title>Switch to Local Mode</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <p>
           Work without a server connection. Your data will be stored locally on
           this device.
         </p>
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="switchToOfflineMode()">
+        <button mat-raised-button color="primary" (click)="switchToLocalMode()">
           <mat-icon>cloud_off</mat-icon>
-          Switch to Offline Mode
+          Switch to Local Mode
         </button>
       </mat-card-content>
     </mat-card>
@@ -56,25 +53,23 @@
   <mat-card class="mode-card">
     <mat-card-header>
       <mat-card-title>
-        {{ currentMode === 'offline' ? 'Connect to Server' : 'Change Server' }}
+        {{ currentMode === 'local' ? 'Connect to Server' : 'Change Server' }}
       </mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      @if (currentMode === 'offline') {
+      @if (currentMode === 'local') {
         <p>
           Connect to an Inkweld server to sync your data and collaborate with
           others.
         </p>
 
         <!-- Offline Projects Info -->
-        @if (offlineProjectsCount() > 0) {
-          <div
-            class="offline-projects-info"
-            data-testid="offline-projects-info">
+        @if (localProjectsCount() > 0) {
+          <div class="local-projects-info" data-testid="local-projects-info">
             <mat-icon color="primary">folder</mat-icon>
             <strong
-              >{{ offlineProjectsCount() }} offline project{{
-                offlineProjectsCount() === 1 ? '' : 's'
+              >{{ localProjectsCount() }} local project{{
+                localProjectsCount() === 1 ? '' : 's'
               }}</strong
             >
             will be migrated to the server after authentication.
@@ -125,9 +120,7 @@
           @if (!isConnecting()) {
             <mat-icon>cloud_upload</mat-icon>
           }
-          {{
-            currentMode === 'offline' ? 'Connect to Server' : 'Change Server'
-          }}
+          {{ currentMode === 'local' ? 'Connect to Server' : 'Change Server' }}
         </button>
       </div>
 
@@ -144,8 +137,8 @@
           <p class="auth-description">
             {{
               authMode() === 'login'
-                ? 'Log in with your existing server account to migrate your offline projects.'
-                : 'Create a new account on the server to migrate your offline projects.'
+                ? 'Log in with your existing server account to migrate your local projects.'
+                : 'Create a new account on the server to migrate your local projects.'
             }}
           </p>
 

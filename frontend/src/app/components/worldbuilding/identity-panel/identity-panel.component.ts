@@ -17,7 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import {
   WorldbuildingIdentity,
   WorldbuildingService,
@@ -64,7 +64,7 @@ export class IdentityPanelComponent implements OnDestroy {
   private worldbuildingService = inject(WorldbuildingService);
   private dialogGateway = inject(DialogGatewayService);
   private http = inject(HttpClient);
-  private offlineStorage = inject(OfflineStorageService);
+  private localStorage = inject(LocalStorageService);
 
   // State
   identity = signal<WorldbuildingIdentity>({});
@@ -154,7 +154,7 @@ export class IdentityPanelComponent implements OnDestroy {
 
     try {
       // Check if we have it cached in IndexedDB
-      const cachedUrl = await this.offlineStorage.getMediaUrl(
+      const cachedUrl = await this.localStorage.getMediaUrl(
         projectKey,
         mediaId
       );
@@ -170,12 +170,12 @@ export class IdentityPanelComponent implements OnDestroy {
             return;
           } else {
             // Revoke the stale URL and delete from cache
-            this.offlineStorage.revokeUrl(projectKey, mediaId);
-            await this.offlineStorage.deleteMedia(projectKey, mediaId);
+            this.localStorage.revokeUrl(projectKey, mediaId);
+            await this.localStorage.deleteMedia(projectKey, mediaId);
           }
         } catch {
-          this.offlineStorage.revokeUrl(projectKey, mediaId);
-          await this.offlineStorage.deleteMedia(projectKey, mediaId);
+          this.localStorage.revokeUrl(projectKey, mediaId);
+          await this.localStorage.deleteMedia(projectKey, mediaId);
         }
       }
 
@@ -188,13 +188,10 @@ export class IdentityPanelComponent implements OnDestroy {
       );
 
       // Save to IndexedDB for future use
-      await this.offlineStorage.saveMedia(projectKey, mediaId, blob, filename);
+      await this.localStorage.saveMedia(projectKey, mediaId, blob, filename);
 
       // Get the blob URL for display
-      const blobUrl = await this.offlineStorage.getMediaUrl(
-        projectKey,
-        mediaId
-      );
+      const blobUrl = await this.localStorage.getMediaUrl(projectKey, mediaId);
       this.resolvedImageUrl.set(blobUrl);
     } catch (err) {
       console.error('[IdentityPanel] Failed to load image:', err);

@@ -75,7 +75,7 @@ describe('AuthInterceptor', () => {
   });
 
   it('should not redirect on 401 error in offline mode', () => {
-    setupService.getMode.mockReturnValue('offline');
+    setupService.getMode.mockReturnValue('local');
     const request = new HttpRequest('GET', '/api/test');
     const error = new HttpErrorResponse({ status: 401 });
 

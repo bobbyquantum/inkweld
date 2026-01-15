@@ -10,7 +10,7 @@ import {
 } from '../../models/published-file';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalStorageService } from '../local/local-storage.service';
 
 /**
  * Storage key prefix for published file metadata in IndexedDB
@@ -39,7 +39,7 @@ const PUBLISHED_BLOB_PREFIX = 'published-';
   providedIn: 'root',
 })
 export class PublishedFilesService {
-  private offlineStorage = inject(OfflineStorageService);
+  private localStorage = inject(LocalStorageService);
   private logger = inject(LoggerService);
   private setupService = inject(SetupService);
 
@@ -135,7 +135,7 @@ export class PublishedFilesService {
     };
 
     // Save blob to offline storage
-    await this.offlineStorage.saveMedia(
+    await this.localStorage.saveMedia(
       projectKey,
       `${PUBLISHED_BLOB_PREFIX}${id}`,
       blob,
@@ -177,7 +177,7 @@ export class PublishedFilesService {
    */
   async getFileBlob(projectKey: string, fileId: string): Promise<Blob | null> {
     // Try offline first
-    const blob = await this.offlineStorage.getMedia(
+    const blob = await this.localStorage.getMedia(
       projectKey,
       `${PUBLISHED_BLOB_PREFIX}${fileId}`
     );
@@ -287,7 +287,7 @@ export class PublishedFilesService {
    */
   async deleteFile(projectKey: string, fileId: string): Promise<void> {
     // Delete blob from offline storage
-    await this.offlineStorage.deleteMedia(
+    await this.localStorage.deleteMedia(
       projectKey,
       `${PUBLISHED_BLOB_PREFIX}${fileId}`
     );
@@ -315,7 +315,7 @@ export class PublishedFilesService {
 
     // Delete all blobs
     for (const file of files) {
-      await this.offlineStorage.deleteMedia(
+      await this.localStorage.deleteMedia(
         projectKey,
         `${PUBLISHED_BLOB_PREFIX}${file.id}`
       );

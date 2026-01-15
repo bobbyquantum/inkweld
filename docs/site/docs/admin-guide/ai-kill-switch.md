@@ -102,9 +102,9 @@ When the kill switch is enabled:
 - The AI linting plugin is not loaded in the document editor
 - No spell-check or grammar suggestions powered by AI
 
-## Offline Mode
+## Local Mode
 
-When Inkweld is running in **offline mode** (no sync server connection), the AI kill switch is automatically enabled. This is because:
+When Inkweld is running in **local mode** (no sync server connection), the AI kill switch is automatically enabled. This is because:
 
 1. AI features require server communication
 2. Local-only mode shouldn't send data to external services

@@ -13,7 +13,7 @@ test.describe('Migration Service', () => {
       const config = localStorage.getItem('inkweld-app-config');
       return config ? JSON.parse(config).mode : null;
     });
-    expect(mode).toBe('offline');
+    expect(mode).toBe('local');
 
     // Step 2: Create some offline projects directly in localStorage
     await offlinePage.evaluate(() => {
@@ -37,15 +37,12 @@ test.describe('Migration Service', () => {
           updatedDate: new Date().toISOString(),
         },
       ];
-      localStorage.setItem(
-        'inkweld-offline-projects',
-        JSON.stringify(projects)
-      );
+      localStorage.setItem('inkweld-local-projects', JSON.stringify(projects));
     });
 
     // Step 3: Verify projects were stored
     const storedProjects = await offlinePage.evaluate(() => {
-      const stored = localStorage.getItem('inkweld-offline-projects');
+      const stored = localStorage.getItem('inkweld-local-projects');
       return stored ? JSON.parse(stored) : [];
     });
     expect(storedProjects).toHaveLength(2);

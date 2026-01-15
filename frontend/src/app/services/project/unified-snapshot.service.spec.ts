@@ -13,10 +13,10 @@ import * as Y from 'yjs';
 import { ProjectElement } from '../../models/project-element';
 import { LoggerService } from '../core/logger.service';
 import {
-  OfflineSnapshotService,
+  LocalSnapshotService,
   SnapshotInfo,
   StoredSnapshot,
-} from '../offline/offline-snapshot.service';
+} from '../local/local-snapshot.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { DocumentService } from './document.service';
@@ -34,7 +34,7 @@ describe('UnifiedSnapshotService', () => {
     elements: ReturnType<typeof signal<ProjectElement[]>>;
   };
   let documentService: { getYDoc: ReturnType<typeof vi.fn> };
-  let offlineSnapshots: {
+  let localSnapshots: {
     createSnapshot: ReturnType<typeof vi.fn>;
     listSnapshotsForDocument: ReturnType<typeof vi.fn>;
     listSnapshotsForProject: ReturnType<typeof vi.fn>;
@@ -45,7 +45,7 @@ describe('UnifiedSnapshotService', () => {
     importSnapshot: ReturnType<typeof vi.fn>;
     updatePendingCount: ReturnType<typeof vi.fn>;
   };
-  let syncFactory: { isOfflineMode: ReturnType<typeof vi.fn> };
+  let syncFactory: { isLocalMode: ReturnType<typeof vi.fn> };
   let snapshotsApi: {
     createProjectSnapshot: ReturnType<typeof vi.fn>;
     listProjectSnapshots: ReturnType<typeof vi.fn>;
@@ -130,7 +130,7 @@ describe('UnifiedSnapshotService', () => {
       getYDoc: vi.fn().mockResolvedValue(new Y.Doc()),
     };
 
-    offlineSnapshots = {
+    localSnapshots = {
       createSnapshot: vi.fn().mockResolvedValue(mockStoredSnapshot),
       listSnapshotsForDocument: vi.fn().mockResolvedValue([mockSnapshotInfo]),
       listSnapshotsForProject: vi.fn().mockResolvedValue([mockSnapshotInfo]),
@@ -143,7 +143,7 @@ describe('UnifiedSnapshotService', () => {
     };
 
     syncFactory = {
-      isOfflineMode: vi.fn().mockReturnValue(false),
+      isLocalMode: vi.fn().mockReturnValue(false),
     };
 
     snapshotsApi = {
@@ -176,7 +176,7 @@ describe('UnifiedSnapshotService', () => {
         UnifiedSnapshotService,
         { provide: ProjectStateService, useValue: projectState },
         { provide: DocumentService, useValue: documentService },
-        { provide: OfflineSnapshotService, useValue: offlineSnapshots },
+        { provide: LocalSnapshotService, useValue: localSnapshots },
         { provide: ElementSyncProviderFactory, useValue: syncFactory },
         { provide: SnapshotsService, useValue: snapshotsApi },
         { provide: WorldbuildingService, useValue: worldbuildingService },
@@ -228,7 +228,7 @@ describe('UnifiedSnapshotService', () => {
       });
 
       documentService.getYDoc.mockResolvedValue(ydoc);
-      offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
       const result = await service.createSnapshot(
         'doc-123',
@@ -236,7 +236,7 @@ describe('UnifiedSnapshotService', () => {
         'Description'
       );
 
-      expect(offlineSnapshots.createSnapshot).toHaveBeenCalledWith(
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
         'testuser/test-project',
         'doc-123',
         expect.objectContaining({
@@ -252,7 +252,7 @@ describe('UnifiedSnapshotService', () => {
     it('should try to sync to server when online', async () => {
       const ydoc = new Y.Doc();
       documentService.getYDoc.mockResolvedValue(ydoc);
-      offlineSnapshots.createSnapshot.mockResolvedValue({
+      localSnapshots.createSnapshot.mockResolvedValue({
         ...mockStoredSnapshot,
         yDocState: new Uint8Array([1, 2, 3]),
       });
@@ -263,10 +263,10 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should not sync to server when offline', async () => {
-      syncFactory.isOfflineMode.mockReturnValue(true);
+      syncFactory.isLocalMode.mockReturnValue(true);
       const ydoc = new Y.Doc();
       documentService.getYDoc.mockResolvedValue(ydoc);
-      offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
       await service.createSnapshot('doc-123', 'Test Snapshot');
 
@@ -292,11 +292,11 @@ describe('UnifiedSnapshotService', () => {
       });
       worldbuildingService.getYDoc.mockReturnValue(wbYdoc);
 
-      offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
       await service.createSnapshot('char-123', 'Character Snapshot');
 
-      expect(offlineSnapshots.createSnapshot).toHaveBeenCalledWith(
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
         'testuser/test-project',
         'char-123',
         expect.objectContaining({
@@ -313,7 +313,7 @@ describe('UnifiedSnapshotService', () => {
     it('should create snapshots for multiple documents', async () => {
       const ydoc = new Y.Doc();
       documentService.getYDoc.mockResolvedValue(ydoc);
-      offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
       elementsSignal.set([
         createElement('doc-1', 'Doc 1', ElementType.Item),
@@ -326,7 +326,7 @@ describe('UnifiedSnapshotService', () => {
       );
 
       expect(result).toHaveLength(2);
-      expect(offlineSnapshots.createSnapshot).toHaveBeenCalledTimes(2);
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledTimes(2);
     });
 
     it('should continue if one document fails', async () => {
@@ -334,7 +334,7 @@ describe('UnifiedSnapshotService', () => {
       documentService.getYDoc
         .mockResolvedValueOnce(null) // First fails
         .mockResolvedValueOnce(ydoc); // Second succeeds
-      offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
       elementsSignal.set([
         createElement('doc-1', 'Doc 1', ElementType.Item),
@@ -361,7 +361,7 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should return merged local and server snapshots', async () => {
-      offlineSnapshots.listSnapshotsForDocument.mockResolvedValue([
+      localSnapshots.listSnapshotsForDocument.mockResolvedValue([
         mockSnapshotInfo,
       ]);
       snapshotsApi.listProjectSnapshots.mockReturnValue(
@@ -376,8 +376,8 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should return only local snapshots when offline', async () => {
-      syncFactory.isOfflineMode.mockReturnValue(true);
-      offlineSnapshots.listSnapshotsForDocument.mockResolvedValue([
+      syncFactory.isLocalMode.mockReturnValue(true);
+      localSnapshots.listSnapshotsForDocument.mockResolvedValue([
         mockSnapshotInfo,
       ]);
 
@@ -389,7 +389,7 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should handle server fetch failure gracefully', async () => {
-      offlineSnapshots.listSnapshotsForDocument.mockResolvedValue([
+      localSnapshots.listSnapshotsForDocument.mockResolvedValue([
         mockSnapshotInfo,
       ]);
       snapshotsApi.listProjectSnapshots.mockReturnValue(
@@ -407,7 +407,7 @@ describe('UnifiedSnapshotService', () => {
         ...mockServerSnapshot,
         documentId: 'other-doc',
       };
-      offlineSnapshots.listSnapshotsForDocument.mockResolvedValue([]);
+      localSnapshots.listSnapshotsForDocument.mockResolvedValue([]);
       snapshotsApi.listProjectSnapshots.mockReturnValue(
         of([mockServerSnapshot, otherDocSnapshot])
       );
@@ -421,7 +421,7 @@ describe('UnifiedSnapshotService', () => {
 
   describe('listProjectSnapshots', () => {
     it('should list all snapshots for project', async () => {
-      offlineSnapshots.listSnapshotsForProject.mockResolvedValue([
+      localSnapshots.listSnapshotsForProject.mockResolvedValue([
         mockSnapshotInfo,
       ]);
       snapshotsApi.listProjectSnapshots.mockReturnValue(
@@ -431,7 +431,7 @@ describe('UnifiedSnapshotService', () => {
       const result = await service.listProjectSnapshots();
 
       expect(result).toHaveLength(2);
-      expect(offlineSnapshots.listSnapshotsForProject).toHaveBeenCalledWith(
+      expect(localSnapshots.listSnapshotsForProject).toHaveBeenCalledWith(
         'testuser/test-project'
       );
     });
@@ -439,7 +439,7 @@ describe('UnifiedSnapshotService', () => {
 
   describe('getSnapshotForRestore', () => {
     it('should return local snapshot if found', async () => {
-      offlineSnapshots.getSnapshotById.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.getSnapshotById.mockResolvedValue(mockStoredSnapshot);
 
       const result = await service.getSnapshotForRestore('snap-123');
 
@@ -448,7 +448,7 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should fetch from server if not found locally', async () => {
-      offlineSnapshots.getSnapshotById.mockResolvedValue(undefined);
+      localSnapshots.getSnapshotById.mockResolvedValue(undefined);
       snapshotsApi.previewProjectSnapshot.mockReturnValue(
         of({
           id: 'server-snap',
@@ -466,7 +466,7 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should return undefined if not found anywhere', async () => {
-      offlineSnapshots.getSnapshotById.mockResolvedValue(undefined);
+      localSnapshots.getSnapshotById.mockResolvedValue(undefined);
       snapshotsApi.previewProjectSnapshot.mockReturnValue(
         throwError(() => new Error('Not found'))
       );
@@ -477,8 +477,8 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should return undefined in offline mode if not local', async () => {
-      syncFactory.isOfflineMode.mockReturnValue(true);
-      offlineSnapshots.getSnapshotById.mockResolvedValue(undefined);
+      syncFactory.isLocalMode.mockReturnValue(true);
+      localSnapshots.getSnapshotById.mockResolvedValue(undefined);
 
       const result = await service.getSnapshotForRestore('server-only');
 
@@ -489,8 +489,8 @@ describe('UnifiedSnapshotService', () => {
 
   describe('restoreFromSnapshot', () => {
     it('should throw if snapshot not found', async () => {
-      offlineSnapshots.getSnapshotById.mockResolvedValue(undefined);
-      syncFactory.isOfflineMode.mockReturnValue(true);
+      localSnapshots.getSnapshotById.mockResolvedValue(undefined);
+      syncFactory.isLocalMode.mockReturnValue(true);
 
       await expect(
         service.restoreFromSnapshot('doc-123', 'nonexistent')
@@ -498,7 +498,7 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should throw if snapshot is for different document', async () => {
-      offlineSnapshots.getSnapshotById.mockResolvedValue({
+      localSnapshots.getSnapshotById.mockResolvedValue({
         ...mockStoredSnapshot,
         documentId: 'other-doc',
       });
@@ -513,7 +513,7 @@ describe('UnifiedSnapshotService', () => {
         ...mockStoredSnapshot,
         xmlContent: '<paragraph>Restored content</paragraph>',
       };
-      offlineSnapshots.getSnapshotById.mockResolvedValue(snapshotWithXml);
+      localSnapshots.getSnapshotById.mockResolvedValue(snapshotWithXml);
 
       const ydoc = new Y.Doc();
       documentService.getYDoc.mockResolvedValue(ydoc);
@@ -535,7 +535,7 @@ describe('UnifiedSnapshotService', () => {
         ...mockStoredSnapshot,
         xmlContent: '',
       };
-      offlineSnapshots.getSnapshotById.mockResolvedValue(emptySnapshot);
+      localSnapshots.getSnapshotById.mockResolvedValue(emptySnapshot);
 
       const ydoc = new Y.Doc();
       documentService.getYDoc.mockResolvedValue(ydoc);
@@ -600,11 +600,11 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should delete from local storage', async () => {
-      offlineSnapshots.getSnapshotById.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.getSnapshotById.mockResolvedValue(mockStoredSnapshot);
 
       await service.deleteSnapshot(mockStoredSnapshot.id);
 
-      expect(offlineSnapshots.deleteSnapshotById).toHaveBeenCalledWith(
+      expect(localSnapshots.deleteSnapshotById).toHaveBeenCalledWith(
         mockStoredSnapshot.id
       );
     });
@@ -615,7 +615,7 @@ describe('UnifiedSnapshotService', () => {
         synced: true,
         serverId: 'server-123',
       };
-      offlineSnapshots.getSnapshotById.mockResolvedValue(syncedSnapshot);
+      localSnapshots.getSnapshotById.mockResolvedValue(syncedSnapshot);
 
       await service.deleteSnapshot(syncedSnapshot.id);
 
@@ -627,13 +627,13 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should not delete from server if offline', async () => {
-      syncFactory.isOfflineMode.mockReturnValue(true);
+      syncFactory.isLocalMode.mockReturnValue(true);
       const syncedSnapshot: StoredSnapshot = {
         ...mockStoredSnapshot,
         synced: true,
         serverId: 'server-123',
       };
-      offlineSnapshots.getSnapshotById.mockResolvedValue(syncedSnapshot);
+      localSnapshots.getSnapshotById.mockResolvedValue(syncedSnapshot);
 
       await service.deleteSnapshot(syncedSnapshot.id);
 
@@ -641,7 +641,7 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should try to delete server-only snapshot', async () => {
-      offlineSnapshots.getSnapshotById.mockResolvedValue(undefined);
+      localSnapshots.getSnapshotById.mockResolvedValue(undefined);
 
       await service.deleteSnapshot('server-only-id');
 
@@ -658,7 +658,7 @@ describe('UnifiedSnapshotService', () => {
         synced: true,
         serverId: 'server-123',
       };
-      offlineSnapshots.getSnapshotById.mockResolvedValue(syncedSnapshot);
+      localSnapshots.getSnapshotById.mockResolvedValue(syncedSnapshot);
       snapshotsApi.deleteProjectSnapshot.mockReturnValue(
         throwError(() => new Error('Server error'))
       );
@@ -671,11 +671,11 @@ describe('UnifiedSnapshotService', () => {
 
   describe('syncPendingSnapshots', () => {
     it('should do nothing in offline mode', async () => {
-      syncFactory.isOfflineMode.mockReturnValue(true);
+      syncFactory.isLocalMode.mockReturnValue(true);
 
       await service.syncPendingSnapshots();
 
-      expect(offlineSnapshots.getUnsyncedSnapshots).not.toHaveBeenCalled();
+      expect(localSnapshots.getUnsyncedSnapshots).not.toHaveBeenCalled();
     });
 
     it('should do nothing without active project', async () => {
@@ -683,7 +683,7 @@ describe('UnifiedSnapshotService', () => {
 
       await service.syncPendingSnapshots();
 
-      expect(offlineSnapshots.getUnsyncedSnapshots).not.toHaveBeenCalled();
+      expect(localSnapshots.getUnsyncedSnapshots).not.toHaveBeenCalled();
     });
 
     it('should sync unsynced snapshots for current project', async () => {
@@ -697,7 +697,7 @@ describe('UnifiedSnapshotService', () => {
           id: 'other/project:doc-456:snap-2',
         },
       ];
-      offlineSnapshots.getUnsyncedSnapshots.mockResolvedValue(unsynced);
+      localSnapshots.getUnsyncedSnapshots.mockResolvedValue(unsynced);
 
       await service.syncPendingSnapshots();
 
@@ -705,7 +705,7 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should set isSyncing during sync', async () => {
-      offlineSnapshots.getUnsyncedSnapshots.mockResolvedValue([]);
+      localSnapshots.getUnsyncedSnapshots.mockResolvedValue([]);
 
       expect(service.isSyncing()).toBe(false);
 
@@ -727,14 +727,14 @@ describe('UnifiedSnapshotService', () => {
     });
 
     it('should return snapshots from offline service', async () => {
-      offlineSnapshots.getSnapshotsForExport.mockResolvedValue([
+      localSnapshots.getSnapshotsForExport.mockResolvedValue([
         mockStoredSnapshot,
       ]);
 
       const result = await service.getSnapshotsForExport();
 
       expect(result).toEqual([mockStoredSnapshot]);
-      expect(offlineSnapshots.getSnapshotsForExport).toHaveBeenCalledWith(
+      expect(localSnapshots.getSnapshotsForExport).toHaveBeenCalledWith(
         'testuser/test-project'
       );
     });
@@ -758,13 +758,13 @@ describe('UnifiedSnapshotService', () => {
           createdAt: new Date().toISOString(),
         },
       ];
-      offlineSnapshots.importSnapshot.mockResolvedValue(mockStoredSnapshot);
-      offlineSnapshots.getUnsyncedSnapshots.mockResolvedValue([]);
+      localSnapshots.importSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.getUnsyncedSnapshots.mockResolvedValue([]);
 
       const result = await service.importSnapshots(importData);
 
       expect(result).toHaveLength(1);
-      expect(offlineSnapshots.importSnapshot).toHaveBeenCalledWith(
+      expect(localSnapshots.importSnapshot).toHaveBeenCalledWith(
         'testuser/test-project',
         importData[0]
       );
@@ -779,12 +779,12 @@ describe('UnifiedSnapshotService', () => {
           createdAt: new Date().toISOString(),
         },
       ];
-      offlineSnapshots.importSnapshot.mockResolvedValue(mockStoredSnapshot);
-      offlineSnapshots.getUnsyncedSnapshots.mockResolvedValue([]);
+      localSnapshots.importSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.getUnsyncedSnapshots.mockResolvedValue([]);
 
       await service.importSnapshots(importData);
 
-      expect(offlineSnapshots.getUnsyncedSnapshots).toHaveBeenCalled();
+      expect(localSnapshots.getUnsyncedSnapshots).toHaveBeenCalled();
     });
   });
 
@@ -799,7 +799,7 @@ describe('UnifiedSnapshotService', () => {
         ...mockServerSnapshot,
         id: 'server-snap-1',
       };
-      offlineSnapshots.listSnapshotsForDocument.mockResolvedValue([
+      localSnapshots.listSnapshotsForDocument.mockResolvedValue([
         localWithServerId,
       ]);
       snapshotsApi.listProjectSnapshots.mockReturnValue(of([serverSame]));
@@ -820,7 +820,7 @@ describe('UnifiedSnapshotService', () => {
         ...mockServerSnapshot,
         createdAt: '2025-01-15T00:00:00.000Z',
       };
-      offlineSnapshots.listSnapshotsForDocument.mockResolvedValue([older]);
+      localSnapshots.listSnapshotsForDocument.mockResolvedValue([older]);
       snapshotsApi.listProjectSnapshots.mockReturnValue(of([newer]));
 
       const result = await service.listSnapshots('doc-123');
@@ -849,7 +849,7 @@ describe('UnifiedSnapshotService', () => {
           worldbuildingService.getYDoc.mockReturnValue(wbYdoc);
         }
 
-        offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+        localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
         await service.createSnapshot('elem-123', 'Test');
 
@@ -873,11 +873,11 @@ describe('UnifiedSnapshotService', () => {
       });
 
       documentService.getYDoc.mockResolvedValue(ydoc);
-      offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
       await service.createSnapshot('doc-123', 'Test');
 
-      expect(offlineSnapshots.createSnapshot).toHaveBeenCalledWith(
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
         'testuser/test-project',
         'doc-123',
         expect.objectContaining({
@@ -889,11 +889,11 @@ describe('UnifiedSnapshotService', () => {
     it('should return 0 for empty document', async () => {
       const ydoc = new Y.Doc();
       documentService.getYDoc.mockResolvedValue(ydoc);
-      offlineSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
 
       await service.createSnapshot('doc-123', 'Test');
 
-      expect(offlineSnapshots.createSnapshot).toHaveBeenCalledWith(
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
         'testuser/test-project',
         'doc-123',
         expect.objectContaining({

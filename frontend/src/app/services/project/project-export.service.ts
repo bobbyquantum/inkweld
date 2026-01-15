@@ -21,9 +21,9 @@ import {
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
-import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
-import { OfflineSnapshotService } from '../offline/offline-snapshot.service';
-import { OfflineStorageService } from '../offline/offline-storage.service';
+import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { LocalSnapshotService } from '../local/local-snapshot.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { DocumentService } from './document.service';
@@ -68,9 +68,9 @@ export class ProjectExportService {
   private projectState = inject(ProjectStateService);
   private documentService = inject(DocumentService);
   private worldbuildingService = inject(WorldbuildingService);
-  private offlineElements = inject(OfflineProjectElementsService);
-  private offlineStorage = inject(OfflineStorageService);
-  private offlineSnapshots = inject(OfflineSnapshotService);
+  private localElements = inject(LocalProjectElementsService);
+  private localStorage = inject(LocalStorageService);
+  private localSnapshots = inject(LocalSnapshotService);
   private syncFactory = inject(ElementSyncProviderFactory);
   private imagesService = inject(ImagesService);
 
@@ -113,7 +113,7 @@ export class ProjectExportService {
     this.error.set(undefined);
 
     try {
-      const isOffline = this.syncFactory.isOfflineMode();
+      const isOffline = this.syncFactory.isLocalMode();
       const projectKey = `${username}/${slug}`;
 
       // Phase 1: In server mode, ensure everything is synced
@@ -290,7 +290,7 @@ export class ProjectExportService {
     this.updateProgress(ExportPhase.DownloadingMedia, 10, 'Checking media...');
 
     // Check if we have the cover image locally
-    const hasCover = await this.offlineStorage.hasMedia(projectKey, 'cover');
+    const hasCover = await this.localStorage.hasMedia(projectKey, 'cover');
     if (!hasCover) {
       this.updateProgress(
         ExportPhase.DownloadingMedia,
@@ -303,7 +303,7 @@ export class ProjectExportService {
           this.imagesService.getProjectCover(username, slug)
         );
         if (coverBlob) {
-          await this.offlineStorage.saveMedia(
+          await this.localStorage.saveMedia(
             projectKey,
             'cover',
             coverBlob,
@@ -335,9 +335,9 @@ export class ProjectExportService {
     username: string,
     slug: string
   ): Promise<Element[]> {
-    if (this.syncFactory.isOfflineMode()) {
-      await this.offlineElements.loadElements(username, slug);
-      return this.offlineElements.elements();
+    if (this.syncFactory.isLocalMode()) {
+      await this.localElements.loadElements(username, slug);
+      return this.localElements.elements();
     }
     return this.projectState.elements();
   }
@@ -489,8 +489,8 @@ export class ProjectExportService {
    * Get worldbuilding schemas.
    */
   private getSchemas(): ElementTypeSchema[] | Promise<ElementTypeSchema[]> {
-    if (this.syncFactory.isOfflineMode()) {
-      return this.offlineElements.schemas();
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.schemas();
     }
     return this.worldbuildingService.getAllSchemas();
   }
@@ -502,45 +502,45 @@ export class ProjectExportService {
     username: string,
     slug: string
   ): Promise<ElementRelationship[]> {
-    if (this.syncFactory.isOfflineMode()) {
-      return this.offlineElements.relationships();
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.relationships();
     }
     // In server mode, relationships are also in the sync provider
-    await this.offlineElements.loadElements(username, slug);
-    return this.offlineElements.relationships();
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.relationships();
   }
 
   /**
    * Get custom relationship types.
    */
   private async getCustomRelationshipTypes(username: string, slug: string) {
-    if (this.syncFactory.isOfflineMode()) {
-      return this.offlineElements.customRelationshipTypes();
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.customRelationshipTypes();
     }
-    await this.offlineElements.loadElements(username, slug);
-    return this.offlineElements.customRelationshipTypes();
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.customRelationshipTypes();
   }
 
   /**
    * Get tag definitions.
    */
   private async getTags(username: string, slug: string) {
-    if (this.syncFactory.isOfflineMode()) {
-      return this.offlineElements.customTags();
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.customTags();
     }
-    await this.offlineElements.loadElements(username, slug);
-    return this.offlineElements.customTags();
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.customTags();
   }
 
   /**
    * Get element tag assignments.
    */
   private async getElementTags(username: string, slug: string) {
-    if (this.syncFactory.isOfflineMode()) {
-      return this.offlineElements.elementTags();
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.elementTags();
     }
-    await this.offlineElements.loadElements(username, slug);
-    return this.offlineElements.elementTags();
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.elementTags();
   }
 
   /**
@@ -550,11 +550,11 @@ export class ProjectExportService {
     username: string,
     slug: string
   ): Promise<PublishPlan[]> {
-    if (this.syncFactory.isOfflineMode()) {
-      return this.offlineElements.publishPlans();
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.publishPlans();
     }
-    await this.offlineElements.loadElements(username, slug);
-    return this.offlineElements.publishPlans();
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.publishPlans();
   }
 
   /**
@@ -563,7 +563,7 @@ export class ProjectExportService {
    */
   private async getSnapshots(projectKey: string): Promise<ArchiveSnapshot[]> {
     const storedSnapshots =
-      await this.offlineSnapshots.getSnapshotsForExport(projectKey);
+      await this.localSnapshots.getSnapshotsForExport(projectKey);
 
     return storedSnapshots.map(s => ({
       documentId: s.documentId,
@@ -589,7 +589,7 @@ export class ProjectExportService {
     const mediaBlobs = new Map<string, Blob>();
 
     // List all media for this project
-    const mediaList = await this.offlineStorage.listMedia(projectKey);
+    const mediaList = await this.localStorage.listMedia(projectKey);
 
     for (let i = 0; i < mediaList.length; i++) {
       const info = mediaList[i];
@@ -602,7 +602,7 @@ export class ProjectExportService {
         mediaList.length
       );
 
-      const blob = await this.offlineStorage.getMedia(projectKey, info.mediaId);
+      const blob = await this.localStorage.getMedia(projectKey, info.mediaId);
       if (blob) {
         const ext = this.getExtensionFromMimeType(info.mimeType);
         const archivePath = `media/${info.mediaId}${ext}`;

@@ -245,11 +245,11 @@ async function handleDrop(
  * const imagePastePlugin = createImagePastePlugin({
  *   saveImage: async (blob, mimeType) => {
  *     const mediaId = generateMediaId();
- *     await offlineStorage.saveMedia(projectKey, mediaId, blob);
+ *     await localStorage.saveMedia(projectKey, mediaId, blob);
  *     return mediaId;
  *   },
  *   getImageUrl: async (mediaId) => {
- *     return await offlineStorage.getMediaUrl(projectKey, mediaId);
+ *     return await localStorage.getMediaUrl(projectKey, mediaId);
  *   },
  *   getProjectKey: () => projectState.project()?.username + '/' + projectState.project()?.slug,
  * });
@@ -427,7 +427,7 @@ export class MediaImageNodeView {
  * ```typescript
  * const nodeViews = createMediaImageNodeViews({
  *   getImageUrl: async (mediaId) => {
- *     return await offlineStorage.getMediaUrl(projectKey, mediaId);
+ *     return await localStorage.getMediaUrl(projectKey, mediaId);
  *   },
  * });
  *

@@ -8,7 +8,7 @@ import { ThemeService } from '../themes/theme.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
 import { ViewportService } from './services/core/viewport.service';
-import { BackgroundSyncService } from './services/offline/background-sync.service';
+import { BackgroundSyncService } from './services/local/background-sync.service';
 import { UnifiedUserService } from './services/user/unified-user.service';
 
 @Component({
@@ -99,7 +99,7 @@ export class AppComponent implements OnInit {
 
       // Set offline mode flag for UI
       const mode = this.setupService.getMode();
-      this.offlineMode.set(mode === 'offline');
+      this.offlineMode.set(mode === 'local');
 
       // Initialize background sync service for pending changes
       this.backgroundSync.initialize();

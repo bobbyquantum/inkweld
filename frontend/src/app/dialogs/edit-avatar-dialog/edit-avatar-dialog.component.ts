@@ -5,7 +5,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { SetupService } from '@services/core/setup.service';
-import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import {
@@ -33,7 +33,7 @@ export class EditAvatarDialogComponent {
   private userService = inject(UserService);
   private unifiedUserService = inject(UnifiedUserService);
   private setupService = inject(SetupService);
-  private offlineStorage = inject(OfflineStorageService);
+  private localStorage = inject(LocalStorageService);
   private sanitizer = inject(DomSanitizer);
 
   imageChangedEvent: Event | null = null;
@@ -99,9 +99,9 @@ export class EditAvatarDialogComponent {
         throw new Error('No user logged in');
       }
 
-      if (mode === 'offline') {
+      if (mode === 'local') {
         // In offline mode, save directly to IndexedDB
-        await this.offlineStorage.saveUserAvatar(username, this.croppedBlob);
+        await this.localStorage.saveUserAvatar(username, this.croppedBlob);
       } else {
         // In server mode, upload to server and cache locally
         const file = new File([this.croppedBlob], this.fileName, {
@@ -109,7 +109,7 @@ export class EditAvatarDialogComponent {
         });
         await firstValueFrom(this.userService.uploadAvatar(file));
         // Also cache locally for offline access
-        await this.offlineStorage.saveUserAvatar(username, this.croppedBlob);
+        await this.localStorage.saveUserAvatar(username, this.croppedBlob);
       }
 
       // Update the current user's hasAvatar flag so avatar component reloads properly

@@ -109,7 +109,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
         return 'cloud_done';
       case DocumentSyncState.Syncing:
         return 'sync';
-      case DocumentSyncState.Offline:
+      case DocumentSyncState.Local:
         return 'cloud_off';
       default:
         return 'sync_disabled';
@@ -127,7 +127,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
         return 'Synchronized with cloud';
       case DocumentSyncState.Syncing:
         return 'Synchronizing...';
-      case DocumentSyncState.Offline:
+      case DocumentSyncState.Local:
         return 'Working offline';
       default:
         return 'Synchronization unavailable';

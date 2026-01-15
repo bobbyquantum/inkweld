@@ -1859,7 +1859,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Wait for mode selection buttons to appear
-    await page.waitForSelector('[data-testid="offline-mode-button"]', {
+    await page.waitForSelector('[data-testid="local-mode-button"]', {
       state: 'visible',
       timeout: 3000,
     });
@@ -1894,7 +1894,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Wait for mode selection buttons to appear
-    await page.waitForSelector('[data-testid="offline-mode-button"]', {
+    await page.waitForSelector('[data-testid="local-mode-button"]', {
       state: 'visible',
       timeout: 3000,
     });
@@ -1929,17 +1929,17 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Click the offline mode button
-    await page.click('[data-testid="offline-mode-button"]');
+    await page.click('[data-testid="local-mode-button"]');
 
     // Wait for offline setup form to appear
-    await page.waitForSelector('[data-testid="offline-username-input"]', {
+    await page.waitForSelector('[data-testid="local-username-input"]', {
       state: 'visible',
       timeout: 3000,
     });
 
     // Fill in sample data for the screenshot
-    await page.fill('[data-testid="offline-username-input"]', 'writer');
-    await page.fill('[data-testid="offline-displayname-input"]', 'Jane Writer');
+    await page.fill('[data-testid="local-username-input"]', 'writer');
+    await page.fill('[data-testid="local-displayname-input"]', 'Jane Writer');
 
     // Take full page screenshot
     await page.screenshot({
@@ -1967,17 +1967,17 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Click the offline mode button
-    await page.click('[data-testid="offline-mode-button"]');
+    await page.click('[data-testid="local-mode-button"]');
 
     // Wait for offline setup form to appear
-    await page.waitForSelector('[data-testid="offline-username-input"]', {
+    await page.waitForSelector('[data-testid="local-username-input"]', {
       state: 'visible',
       timeout: 3000,
     });
 
     // Fill in sample data for the screenshot
-    await page.fill('[data-testid="offline-username-input"]', 'writer');
-    await page.fill('[data-testid="offline-displayname-input"]', 'Jane Writer');
+    await page.fill('[data-testid="local-username-input"]', 'writer');
+    await page.fill('[data-testid="local-displayname-input"]', 'Jane Writer');
 
     // Take full page screenshot
     await page.screenshot({
