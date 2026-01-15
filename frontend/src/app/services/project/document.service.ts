@@ -20,6 +20,7 @@ import {
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { createKeyboardShortcutsPlugin } from '../../components/editor-shortcuts';
 import {
   createElementRefPlugin,
   ElementRefService,
@@ -779,6 +780,16 @@ export class DocumentService {
       const lintPlugin = createLintPlugin(this.lintApiService);
       plugins.push(lintPlugin);
     }
+
+    // Add keyboard shortcuts plugin for formatting commands
+    const keyboardShortcutsPlugin = createKeyboardShortcutsPlugin(
+      view.state.schema,
+      {
+        // Link insertion could be wired up to a dialog in the future
+        onInsertLink: undefined,
+      }
+    );
+    plugins.push(keyboardShortcutsPlugin);
 
     // Add the element reference plugin for @ mentions
     const elementRefPlugin = createElementRefPlugin({
