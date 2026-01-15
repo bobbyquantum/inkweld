@@ -255,19 +255,23 @@ This will execute the unit tests for both the frontend and backend projects.
 ### Editor Features
 
 - [ ] Image insertion in documents
-- [ ] Markdown input rules (e.g., typing `- ` for bullet list)
 - [ ] Code blocks
 
 ### Editor Keyboard Shortcuts
 
-- [ ] Insert link (Ctrl/Cmd + K)
+- [x] Bold shortcut (Ctrl/Cmd + B)
+- [x] Italic shortcut (Ctrl/Cmd + I)
+- [x] Underline shortcut (Ctrl/Cmd + U)
+- [x] Strikethrough shortcut (Ctrl/Cmd + Shift + X)
+- [x] Inline code shortcut (Ctrl/Cmd + E)
+- [x] Heading shortcuts (Ctrl/Cmd + 1-6)
+- [x] Paragraph shortcut (Ctrl/Cmd + 0)
+- [x] Bullet list shortcut (Ctrl/Cmd + Shift + 7)
+- [x] Numbered list shortcut (Ctrl/Cmd + Shift + 8)
+- [x] Blockquote shortcut (Ctrl/Cmd + Shift + 9)
+- [x] Horizontal rule shortcut (Ctrl/Cmd + Shift + H)
+- [x] Clear formatting shortcut (Ctrl/Cmd + \\)
 - [ ] Insert image shortcut
-- [ ] Heading shortcuts (Ctrl/Cmd + 1-6)
-- [ ] Strikethrough shortcut
-- [ ] Blockquote shortcut
-- [ ] Bullet list shortcut
-- [ ] Numbered list shortcut
-- [ ] Clear formatting shortcut
 
 ### Authentication & Security
 
