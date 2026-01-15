@@ -49,8 +49,23 @@ The editor supports:
 
 ### Keyboard Shortcuts
 
+**Text Formatting**
 - `Ctrl/Cmd + B` - Bold
 - `Ctrl/Cmd + I` - Italic
+- `Ctrl/Cmd + U` - Underline
+- `Ctrl/Cmd + Shift + X` - Strikethrough
+- `Ctrl/Cmd + E` - Inline code
+- `Ctrl/Cmd + \` - Clear formatting
+
+**Block Formatting**
+- `Ctrl/Cmd + 0` - Normal paragraph
+- `Ctrl/Cmd + 1` through `Ctrl/Cmd + 6` - Headings 1-6
+- `Ctrl/Cmd + Shift + 7` - Bullet list (toggle)
+- `Ctrl/Cmd + Shift + 8` - Numbered list (toggle)
+- `Ctrl/Cmd + Shift + 9` - Blockquote
+- `Ctrl/Cmd + Shift + H` - Horizontal rule
+
+**General**
 - `Ctrl/Cmd + S` - Save (automatic in real-time)
 - `Ctrl/Cmd + Z` - Undo
 - `Ctrl/Cmd + Shift + Z` - Redo
