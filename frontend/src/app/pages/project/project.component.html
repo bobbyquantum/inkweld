@@ -248,6 +248,14 @@
                   aria-label="Home">
                   <mat-icon>home</mat-icon>
                 </button>
+                <button
+                  mat-icon-button
+                  (click)="openQuickOpen()"
+                  matTooltip="Quick Open (Ctrl+P)"
+                  data-testid="collapsed-quick-open-button"
+                  aria-label="Quick Open">
+                  <mat-icon>search</mat-icon>
+                </button>
                 @if (projectState.canWrite()) {
                   <button
                     mat-icon-button

@@ -50,6 +50,7 @@ import {
   PublishPlan,
 } from '../../models/publish-plan';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { QuickOpenService } from '../../services/core/quick-open.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
@@ -92,6 +93,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly projectService = inject(UnifiedProjectService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly settingsService = inject(SettingsService);
+  private readonly quickOpenService = inject(QuickOpenService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -233,6 +235,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     };
     document.addEventListener('fullscreenchange', this.fullscreenListener);
+
+    // Initialize quick file open (Cmd/Ctrl + P)
+    this.quickOpenService.initialize();
   }
 
   ngAfterViewInit() {
@@ -267,6 +272,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.fullscreenListener) {
       document.removeEventListener('fullscreenchange', this.fullscreenListener);
     }
+
+    // Clean up quick open service
+    this.quickOpenService.destroy();
   }
 
   isLoading = () => this.projectState.isLoading();
@@ -385,6 +393,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   exitProject() {
     void this.router.navigate(['/']);
+  }
+
+  /** Open the quick open dialog */
+  openQuickOpen(): void {
+    this.quickOpenService.open();
   }
 
   onRecentDocumentClick(documentId: string): void {
