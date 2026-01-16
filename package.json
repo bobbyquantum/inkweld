@@ -41,7 +41,7 @@
     "typecheck": "npm run typecheck:frontend && npm run typecheck:backend",
     "typecheck:frontend": "cd frontend && npx tsc --noEmit",
     "typecheck:backend": "cd backend && bun run typecheck",
-    "verify": "START=$SECONDS && npm run typecheck && npm run verify:backend && npm run verify:frontend && npm run verify:docs && echo '' && echo '✅ Verify completed in '$((SECONDS - START))' seconds'",
+    "verify": "node scripts/verify.js",
     "verify:frontend": "cd frontend && npm run lint && npm test && npm run e2e:ci",
     "verify:backend": "cd backend && bun run lint && bun test",
     "verify:docs": "cd docs/site && bun run build",
