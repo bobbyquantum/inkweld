@@ -1,0 +1,87 @@
+<div class="quick-open-container" data-testid="quick-open-dialog">
+  <!-- Search Input -->
+  <div class="search-wrapper">
+    <mat-icon class="search-icon">search</mat-icon>
+    <input
+      #searchInput
+      type="text"
+      class="search-input"
+      [value]="searchQuery()"
+      (input)="onSearchChange($any($event.target).value)"
+      placeholder="Search files by name..."
+      autocomplete="off"
+      data-testid="quick-open-search" />
+    @if (searchQuery()) {
+      <button
+        mat-icon-button
+        class="clear-button"
+        (click)="onSearchChange('')"
+        aria-label="Clear search">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </div>
+
+  <!-- Results List -->
+  <div class="results-container" data-testid="quick-open-results">
+    @if (showingRecent() && results().length > 0) {
+      <div class="results-header">Recent Files</div>
+    }
+
+    @for (
+      result of results();
+      track trackByElementId($index, result);
+      let i = $index
+    ) {
+      <div
+        class="result-item"
+        [class.selected]="i === selectedIndex()"
+        (click)="onResultClick(result, i)"
+        (keydown.enter)="onResultClick(result, i)"
+        (mouseenter)="onResultMouseEnter(i)"
+        role="option"
+        tabindex="0"
+        [attr.aria-selected]="i === selectedIndex()"
+        [attr.data-testid]="'quick-open-result-' + i">
+        <!-- Icon -->
+        <mat-icon class="result-icon">{{ getIcon(result) }}</mat-icon>
+
+        <!-- Content -->
+        <div class="result-content">
+          <span
+            class="result-name"
+            [innerHTML]="getHighlightedName(result)"></span>
+          @if (result.path) {
+            <span class="result-path">{{ result.path }}</span>
+          }
+        </div>
+
+        <!-- Recent indicator -->
+        @if (result.isRecent && !showingRecent()) {
+          <mat-icon class="recent-indicator" matTooltip="Recently opened"
+            >schedule</mat-icon
+          >
+        }
+      </div>
+    } @empty {
+      <div class="empty-state">
+        @if (searchQuery()) {
+          <mat-icon>search_off</mat-icon>
+          <p>No files match "{{ searchQuery() }}"</p>
+        } @else {
+          <mat-icon>folder_open</mat-icon>
+          <p>No documents in project</p>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Footer with hints -->
+  <div class="dialog-footer">
+    <div class="keyboard-hints">
+      <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+      <span class="hint"><kbd>Enter</kbd> Open</span>
+      <span class="hint"><kbd>Esc</kbd> Close</span>
+    </div>
+  </div>
+</div>

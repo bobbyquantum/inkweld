@@ -293,6 +293,10 @@ $dark-theme: mat.define-theme(
     --custom-error-color: var(--sys-error);
     --password-tooltip-bg: var(--sys-surface-container-high);
     --password-tooltip-border: var(--sys-outline-variant);
+
+    /* Search highlight colors for light theme */
+    --search-highlight-bg: #fff59d; /* Yellow 200 - good visibility on light surfaces */
+    --search-highlight-text: #000000;
   }
 }
 
@@ -341,6 +345,10 @@ $dark-theme: mat.define-theme(
     --custom-error-color: var(--sys-error);
     --password-tooltip-bg: var(--sys-surface-container-high);
     --password-tooltip-border: var(--sys-outline-variant);
+
+    /* Search highlight colors for dark theme */
+    --search-highlight-bg: #fdd835; /* Yellow 600 - high contrast on dark surfaces */
+    --search-highlight-text: #000000;
   }
 }
 

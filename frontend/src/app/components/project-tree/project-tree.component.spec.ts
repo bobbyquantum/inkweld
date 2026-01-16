@@ -29,6 +29,7 @@ import {
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { QuickOpenService } from '../../services/core/quick-open.service';
 import { ProjectTreeComponent } from './project-tree.component';
 
 describe('ProjectTreeComponent', () => {
@@ -36,6 +37,7 @@ describe('ProjectTreeComponent', () => {
   let fixture: ComponentFixture<ProjectTreeComponent>;
   let projectStateService: MockedObject<ProjectStateService>;
   let settingsService: MockedObject<SettingsService>;
+  let quickOpenService: MockedObject<QuickOpenService>;
   let elementsSignal: WritableSignal<ProjectElement[]>;
   let visibleElementsSignal: WritableSignal<ProjectElement[]>;
   let loadingSignal: WritableSignal<boolean>;
@@ -122,6 +124,10 @@ describe('ProjectTreeComponent', () => {
       openNewElementDialog: vi.fn().mockResolvedValue(null),
     } as unknown as MockedObject<DialogGatewayService>;
 
+    quickOpenService = {
+      open: vi.fn(),
+    } as unknown as MockedObject<QuickOpenService>;
+
     await TestBed.configureTestingModule({
       imports: [ProjectTreeComponent],
       providers: [
@@ -131,6 +137,7 @@ describe('ProjectTreeComponent', () => {
         { provide: ProjectsService, useValue: projectServiceMock },
         provideHttpClient(),
         { provide: DialogGatewayService, useValue: dialogGatewayService },
+        { provide: QuickOpenService, useValue: quickOpenService },
       ],
     }).compileComponents();
 
