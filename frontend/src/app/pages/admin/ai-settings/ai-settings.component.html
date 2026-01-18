@@ -111,14 +111,15 @@
                 mat-raised-button
                 color="primary"
                 (click)="openCreateProfileDialog()"
-                [disabled]="isSaving()">
+                [disabled]="isSaving()"
+                data-testid="create-profile-button">
                 <mat-icon>add</mat-icon>
                 Create Profile
               </button>
             </div>
 
             @if (imageProfiles().length === 0) {
-              <div class="empty-state small">
+              <div class="empty-state small" data-testid="profiles-empty-state">
                 <mat-icon>image</mat-icon>
                 <p>No profiles configured</p>
                 <span class="hint"
@@ -127,12 +128,17 @@
                 >
               </div>
             } @else {
-              <div class="profiles-grid">
+              <div class="profiles-grid" data-testid="profiles-grid">
                 @for (profile of imageProfiles(); track profile.id) {
-                  <div class="profile-item" [class.disabled]="!profile.enabled">
+                  <div
+                    class="profile-item"
+                    [class.disabled]="!profile.enabled"
+                    [attr.data-testid]="'profile-item-' + profile.id">
                     <div class="profile-header">
-                      <div class="profile-title">{{ profile.name }}</div>
-                      <div class="profile-subtitle">
+                      <div class="profile-title" data-testid="profile-name">
+                        {{ profile.name }}
+                      </div>
+                      <div class="profile-subtitle" data-testid="profile-model">
                         {{ getProfileProviderName(profile.provider) }} /
                         {{ profile.modelId }}
                       </div>
@@ -176,12 +182,14 @@
                         [checked]="profile.enabled"
                         (change)="toggleProfileEnabled(profile)"
                         [disabled]="isSaving()"
+                        [attr.data-testid]="'profile-toggle-' + profile.id"
                         matTooltip="Enable/disable this profile">
                       </mat-slide-toggle>
                       <button
                         mat-icon-button
                         (click)="openEditProfileDialog(profile)"
                         [disabled]="isSaving()"
+                        [attr.data-testid]="'profile-edit-' + profile.id"
                         matTooltip="Edit profile">
                         <mat-icon>edit</mat-icon>
                       </button>
@@ -190,6 +198,7 @@
                         color="warn"
                         (click)="deleteImageProfile(profile)"
                         [disabled]="isSaving()"
+                        [attr.data-testid]="'profile-delete-' + profile.id"
                         matTooltip="Delete profile">
                         <mat-icon>delete</mat-icon>
                       </button>

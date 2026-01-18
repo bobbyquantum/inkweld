@@ -51,6 +51,7 @@ import {
   WorldbuildingElementSelectorComponent,
 } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import { ImageGenerationService } from '../../services/ai/image-generation.service';
+import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 
@@ -108,6 +109,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly logger = inject(LoggerService);
 
   // Stepper reference for programmatic control
   readonly stepper = viewChild<MatStepper>('stepper');
@@ -437,30 +439,53 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
   /** Load enabled image model profiles */
   private async loadProfiles(): Promise<void> {
+    this.logger.debug('ImageGenDialog', 'loadProfiles() called');
     this.isLoadingProfiles.set(true);
 
     try {
-      const allProfiles =
+      this.logger.debug(
+        'ImageGenDialog',
+        'Fetching profiles from imageProfilesService.listImageProfiles()'
+      );
+      const profiles =
         (await firstValueFrom(this.imageProfilesService.listImageProfiles())) ??
         [];
 
-      // Filter out image-to-image profiles since this dialog only does text-to-image.
-      // Profiles with supportsImageInput=true require a source image which we don't support.
-      const textToImageProfiles = allProfiles.filter(
-        p => !p.supportsImageInput
+      this.logger.info(
+        'ImageGenDialog',
+        `Received ${profiles.length} profiles from API`,
+        { profiles }
       );
-      this.profiles.set(textToImageProfiles);
+
+      // Note: supportsImageInput means the model CAN accept image input (for image-to-image),
+      // not that it requires one. All profiles can be used for text-to-image generation.
+      this.profiles.set(profiles);
+      this.logger.debug(
+        'ImageGenDialog',
+        `Set profiles signal with ${profiles.length} profiles`
+      );
 
       // If profiles exist, select the first one by default
-      if (textToImageProfiles.length > 0) {
-        this.selectedProfile.set(textToImageProfiles[0]);
-        this.applyProfileSettings(textToImageProfiles[0]);
+      if (profiles.length > 0) {
+        this.logger.info(
+          'ImageGenDialog',
+          `Selecting first profile: ${profiles[0].name}`,
+          { profile: profiles[0] }
+        );
+        this.selectedProfile.set(profiles[0]);
+        this.applyProfileSettings(profiles[0]);
+      } else {
+        this.logger.warn(
+          'ImageGenDialog',
+          'No profiles available after loading'
+        );
       }
     } catch (err) {
-      console.warn('Failed to load image profiles:', err);
+      this.logger.error('ImageGenDialog', 'Failed to load image profiles', err);
       this.profiles.set([]);
     } finally {
       this.isLoadingProfiles.set(false);
+      this.logger.debug('ImageGenDialog', 'loadProfiles() completed');
     }
   }
 

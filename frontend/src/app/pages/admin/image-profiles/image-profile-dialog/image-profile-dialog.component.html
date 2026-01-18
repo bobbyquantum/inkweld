@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>
+<h2 mat-dialog-title data-testid="profile-dialog-title">
   @if (isEditMode) {
     Edit Image Profile
   } @else {
@@ -6,13 +6,14 @@
   }
 </h2>
 
-<mat-dialog-content>
+<mat-dialog-content data-testid="profile-dialog-content">
   <form [formGroup]="form" class="profile-form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Name</mat-label>
       <input
         matInput
         formControlName="name"
+        data-testid="profile-name-input"
         placeholder="e.g., GPT Image 1 High Quality" />
       <mat-hint>A user-friendly name for this profile</mat-hint>
       @if (form.get('name')?.hasError('required')) {
@@ -25,6 +26,7 @@
       <textarea
         matInput
         formControlName="description"
+        data-testid="profile-description-input"
         rows="2"
         placeholder="Optional description of this profile"></textarea>
     </mat-form-field>
@@ -34,6 +36,7 @@
         <mat-label>Provider</mat-label>
         <mat-select
           formControlName="provider"
+          data-testid="profile-provider-select"
           (selectionChange)="onProviderChange()">
           @for (provider of data.providers; track provider.id) {
             <mat-option [value]="provider.id">{{ provider.name }}</mat-option>
@@ -154,14 +157,21 @@
     </div>
 
     <div class="toggles-row">
-      <mat-slide-toggle formControlName="enabled"> Enabled </mat-slide-toggle>
+      <mat-slide-toggle
+        formControlName="enabled"
+        data-testid="profile-enabled-toggle">
+        Enabled
+      </mat-slide-toggle>
 
-      <mat-slide-toggle formControlName="supportsImageInput">
+      <mat-slide-toggle
+        formControlName="supportsImageInput"
+        data-testid="profile-image-input-toggle">
         Supports Image Input
       </mat-slide-toggle>
 
       <mat-slide-toggle
         formControlName="supportsCustomResolutions"
+        data-testid="profile-custom-resolutions-toggle"
         matTooltip="Allow users to specify arbitrary width/height values">
         Custom Resolutions
       </mat-slide-toggle>
@@ -240,12 +250,15 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancel</button>
+  <button mat-button (click)="onCancel()" data-testid="profile-dialog-cancel">
+    Cancel
+  </button>
   <button
     mat-raised-button
     color="primary"
     [disabled]="!form.valid"
-    (click)="onSubmit()">
+    (click)="onSubmit()"
+    data-testid="profile-dialog-submit">
     @if (isEditMode) {
       Save Changes
     } @else {
