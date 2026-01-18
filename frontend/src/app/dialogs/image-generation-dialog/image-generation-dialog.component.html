@@ -1,5 +1,5 @@
 <!-- Dynamic title based on stage -->
-<h2 mat-dialog-title class="dialog-title">
+<h2 mat-dialog-title class="dialog-title" data-testid="image-gen-dialog-title">
   <mat-icon>auto_awesome</mat-icon>
   @if (stage() === 'select-elements') {
     Select Context
@@ -16,7 +16,9 @@
   }
 </h2>
 
-<mat-dialog-content class="dialog-content">
+<mat-dialog-content
+  class="dialog-content"
+  data-testid="image-gen-dialog-content">
   @if (isLoadingStatus()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
@@ -129,9 +131,14 @@
               <mat-label>Select a model profile</mat-label>
               <mat-select
                 [value]="selectedProfile()"
-                (selectionChange)="onProfileChange($event.value)">
+                (selectionChange)="onProfileChange($event.value)"
+                data-testid="image-gen-profile-select">
                 @for (profile of profiles(); track profile.id) {
-                  <mat-option [value]="profile">
+                  <mat-option
+                    [value]="profile"
+                    [attr.data-testid]="
+                      'image-gen-profile-option-' + profile.id
+                    ">
                     {{ profile.name }}
                     @if (profile.description) {
                       <span class="profile-description">
@@ -161,6 +168,7 @@
                 [value]="prompt()"
                 (input)="prompt.set($any($event.target).value)"
                 rows="6"
+                data-testid="image-gen-prompt-input"
                 placeholder="Describe the image you want to generate..."></textarea>
               <mat-hint
                 >Be descriptive for better results. The auto-generated prompt is
@@ -317,10 +325,15 @@
                 <p class="status-message">{{ currentJob()?.message }}</p>
               } @else if (currentJob()?.status === 'failed') {
                 <mat-icon class="error-icon">error</mat-icon>
-                <p class="status-message error">
+                <p
+                  class="status-message error"
+                  data-testid="image-gen-error-message">
                   {{ currentJob()?.error || 'Generation failed' }}
                 </p>
-                <button mat-stroked-button (click)="goBack()">
+                <button
+                  mat-stroked-button
+                  (click)="goBack()"
+                  data-testid="image-gen-try-again-button">
                   <mat-icon>arrow_back</mat-icon>
                   Try Again
                 </button>
@@ -379,37 +392,50 @@
   }
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
+<mat-dialog-actions align="end" data-testid="image-gen-dialog-actions">
   @if (stage() === 'select-elements') {
-    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-button (click)="cancel()" data-testid="image-gen-cancel-button">
+      Cancel
+    </button>
     <button
       mat-raised-button
       color="primary"
       (click)="goToPromptStage()"
-      [disabled]="!selectedProfile()">
+      [disabled]="!selectedProfile()"
+      data-testid="image-gen-next-button">
       <mat-icon>arrow_forward</mat-icon>
       Next: Edit Prompt
     </button>
   } @else if (stage() === 'edit-prompt') {
-    <button mat-button (click)="goToSelectStage()">
+    <button
+      mat-button
+      (click)="goToSelectStage()"
+      data-testid="image-gen-back-button">
       <mat-icon>arrow_back</mat-icon>
       Back
     </button>
-    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-button (click)="cancel()" data-testid="image-gen-cancel-button">
+      Cancel
+    </button>
     <button
       mat-raised-button
       color="primary"
       (click)="generate()"
-      [disabled]="!prompt().trim() || !selectedProfile()">
+      [disabled]="!prompt().trim() || !selectedProfile()"
+      data-testid="image-gen-generate-button">
       <mat-icon>auto_awesome</mat-icon>
       Generate
     </button>
   } @else {
-    <button mat-button (click)="goBack()" [disabled]="isBackDisabled()">
+    <button
+      mat-button
+      (click)="goBack()"
+      [disabled]="isBackDisabled()"
+      data-testid="image-gen-back-button">
       <mat-icon>arrow_back</mat-icon>
       Back
     </button>
-    <button mat-button (click)="cancel()">
+    <button mat-button (click)="cancel()" data-testid="image-gen-close-button">
       @if (
         currentJob()?.status === 'generating' ||
         currentJob()?.status === 'saving'
@@ -420,7 +446,11 @@
       }
     </button>
     @if (currentJob()?.status === 'completed' && currentJob()?.images?.length) {
-      <button mat-raised-button color="primary" (click)="saveAndClose()">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="saveAndClose()"
+        data-testid="image-gen-use-image-button">
         <mat-icon>check</mat-icon>
         Use Selected Image
       </button>
