@@ -502,6 +502,10 @@ const ImageModelSchema = z
     description: z.string().optional().openapi({ description: 'Model description' }),
     category: z.string().optional().openapi({ description: 'Model category' }),
     provider: z.string().openapi({ description: 'Provider identifier' }),
+    supportsImageInput: z
+      .boolean()
+      .optional()
+      .openapi({ description: 'Whether model supports image input (for image-to-image)' }),
   })
   .openapi('ImageModel');
 
@@ -612,15 +616,24 @@ aiProvidersRoutes.openapi(getOpenRouterModelsRoute, async (c) => {
           prompt?: string;
           completion?: string;
         };
+        architecture?: {
+          modality?: string;
+          input_modalities?: string[];
+          output_modalities?: string[];
+        };
       }>;
     };
 
     // Transform and filter models (only include text models)
+    // Use output_modalities to properly detect text vs image-only models
     const models = data.data
       .filter((m) => {
-        // Filter out image-only models
-        const id = m.id.toLowerCase();
-        return !id.includes('image') && !id.includes('flux') && !id.includes('stable-diffusion');
+        // Include models that output text
+        const outputModalities = m.architecture?.output_modalities || [];
+        // If no output_modalities defined, assume it's a text model (legacy)
+        if (outputModalities.length === 0) return true;
+        // Include if it can output text
+        return outputModalities.includes('text');
       })
       .map((m) => ({
         id: m.id,
@@ -690,8 +703,6 @@ const getOpenRouterImageModelsRoute = createRoute({
 });
 
 aiProvidersRoutes.openapi(getOpenRouterImageModelsRoute, async (c) => {
-  const db = c.get('db');
-
   // Check if we have a valid cache
   if (
     openRouterImageModelsCache &&
@@ -707,17 +718,12 @@ aiProvidersRoutes.openapi(getOpenRouterImageModelsRoute, async (c) => {
     );
   }
 
-  // Get OpenRouter API key
-  const apiKeyConfig = await configService.get(db, 'AI_OPENROUTER_API_KEY');
-  if (!apiKeyConfig.value) {
-    return c.json({ error: 'OpenRouter API key not configured' }, 400);
-  }
-
   try {
-    // Fetch models from OpenRouter
-    const response = await fetch('https://openrouter.ai/api/v1/models', {
+    // Fetch models from OpenRouter's frontend API which includes all available models
+    // The /api/v1/models endpoint only returns a subset, but /api/frontend/models has the full list
+    // including FLUX, Gemini, GPT-5 Image, and other image generation models
+    const response = await fetch('https://openrouter.ai/api/frontend/models', {
       headers: {
-        Authorization: `Bearer ${apiKeyConfig.value}`,
         'HTTP-Referer': 'https://inkweld.app',
         'X-Title': 'Inkweld',
       },
@@ -734,25 +740,41 @@ aiProvidersRoutes.openapi(getOpenRouterImageModelsRoute, async (c) => {
 
     const data = (await response.json()) as {
       data: Array<{
-        id: string;
+        slug: string;
         name: string;
+        short_name?: string;
         description?: string;
+        input_modalities?: string[];
+        output_modalities?: string[];
       }>;
     };
 
-    // Filter for IMAGE models only (opposite of text models filter)
+    // Filter for models that can OUTPUT images
+    // The frontend API has modalities at the top level (not nested under architecture)
+    providerLog.info(`OpenRouter API returned ${data.data.length} total models`);
+
     const models = data.data
       .filter((m) => {
-        const id = m.id.toLowerCase();
-        return id.includes('image') || id.includes('flux') || id.includes('stable-diffusion');
+        // Check if model has image in output_modalities
+        const outputModalities = m.output_modalities || [];
+        return outputModalities.includes('image');
       })
-      .map((m) => ({
-        id: m.id,
-        name: m.name || m.id,
-        description: m.description,
-        provider: 'openrouter' as const,
-      }))
+      .map((m) => {
+        // Check if model supports image INPUT (for image-to-image)
+        const inputModalities = m.input_modalities || [];
+        const supportsImageInput = inputModalities.includes('image');
+
+        return {
+          id: m.slug, // Frontend API uses 'slug' instead of 'id'
+          name: m.name || m.short_name || m.slug,
+          description: m.description,
+          provider: 'openrouter' as const,
+          supportsImageInput,
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
+
+    providerLog.info(`Filtered to ${models.length} image generation models`);
 
     // Update cache
     openRouterImageModelsCache = {

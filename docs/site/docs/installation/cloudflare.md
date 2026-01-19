@@ -196,10 +196,10 @@ After setup, deploy with:
 
 ```bash
 # Deploy to preview (for testing)
-npm run cloudflare:deploy:preview
+npm run cloudflare:preview:deploy
 
 # Deploy to production
-npm run cloudflare:deploy:prod
+npm run cloudflare:prod:deploy
 ```
 
 The deploy commands:
@@ -207,6 +207,18 @@ The deploy commands:
 2. Build the Cloudflare Worker backend
 3. Run any pending database migrations
 4. Deploy both frontend and backend
+
+:::info About Preview Environments
+Inkweld provides **one preview environment and one production environment**, rather than per-branch previews.
+
+**Why not per-branch previews?** Cloudflare Pages automatically creates preview deployments for each branch, but these use random URLs (e.g., `abc123.inkweld-frontend.pages.dev`) instead of your custom domain. Since Inkweld's backend authentication and API routing require consistent URLs, per-branch previews would not function correctly.
+
+**Manual deployments always go live:** When you run `cloudflare:preview:deploy` or `cloudflare:prod:deploy` from any branch, the deployment will immediately go live on your custom domain. A warning is shown if you're not on the `main` branch, but the deployment proceeds normally.
+
+This means you can only preview one branch at a time per environment. For a typical workflow:
+- Use **preview** environment for testing feature branches before merging
+- Use **production** environment for your live application from `main`
+:::
 
 ## Manual Setup
 
@@ -267,8 +279,8 @@ bun run wrangler secret put SESSION_SECRET --env production
 ### 6. Deploy
 
 ```bash
-npm run cloudflare:deploy:preview
-npm run cloudflare:deploy:prod
+npm run cloudflare:preview:deploy
+npm run cloudflare:prod:deploy
 ```
 
 ## Custom Domain
@@ -350,10 +362,10 @@ After making changes, redeploy both frontend and backend:
 
 ```bash
 # Preview
-npm run cloudflare:deploy:preview
+npm run cloudflare:preview:deploy
 
 # Production
-npm run cloudflare:deploy:prod
+npm run cloudflare:prod:deploy
 ```
 
 ## Free Tier Limits

@@ -223,7 +223,7 @@ describe('ImageGenerationService', () => {
   });
 
   describe('Cover Generation', () => {
-    it('should upload cover when forCover is true', async () => {
+    it('should NOT auto-upload cover when forCover is true (cropper handles it)', async () => {
       const projectKey = 'user/project';
       const request = createMockRequest();
 
@@ -231,11 +231,22 @@ describe('ImageGenerationService', () => {
       await flushPromises();
       await flushPromises();
 
-      expect(mockProjectService.uploadProjectCover).toHaveBeenCalledWith(
-        'user',
-        'project',
-        expect.any(File)
-      );
+      // Cover should NOT be auto-uploaded - the cropper in edit-project-dialog handles this
+      expect(mockProjectService.uploadProjectCover).not.toHaveBeenCalled();
+    });
+
+    it('should still save image to library when forCover is true', async () => {
+      const projectKey = 'user/project';
+      const request = createMockRequest();
+
+      service.startGeneration(projectKey, request, { forCover: true });
+      await flushPromises();
+      await flushPromises();
+
+      // Image should still be saved to media library
+      expect(mockOfflineStorage.saveMedia).toHaveBeenCalled();
+      const job = service.jobs()[0];
+      expect(job.status).toBe('completed');
     });
 
     it('should not upload cover when forCover is false', async () => {
@@ -247,35 +258,6 @@ describe('ImageGenerationService', () => {
       await flushPromises();
 
       expect(mockProjectService.uploadProjectCover).not.toHaveBeenCalled();
-    });
-
-    it('should handle invalid projectKey for cover upload', async () => {
-      const projectKey = 'invalid-key'; // No slash
-      const request = createMockRequest();
-
-      service.startGeneration(projectKey, request, { forCover: true });
-      await flushPromises();
-      await flushPromises();
-
-      // Should not throw, just log error
-      expect(mockProjectService.uploadProjectCover).not.toHaveBeenCalled();
-    });
-
-    it('should handle cover upload failure gracefully', async () => {
-      mockProjectService.uploadProjectCover.mockRejectedValue(
-        new Error('Upload failed')
-      );
-
-      const projectKey = 'user/project';
-      const request = createMockRequest();
-
-      service.startGeneration(projectKey, request, { forCover: true });
-      await flushPromises();
-      await flushPromises();
-
-      // Should still complete, just without cover
-      const job = service.jobs()[0];
-      expect(job.status).toBe('completed');
     });
   });
 

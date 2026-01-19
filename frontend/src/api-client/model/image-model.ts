@@ -30,5 +30,9 @@ export interface ImageModel {
      * Provider identifier
      */
     provider: string;
+    /**
+     * Whether model supports image input (for image-to-image)
+     */
+    supportsImageInput?: boolean;
 }
 

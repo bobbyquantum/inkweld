@@ -4,6 +4,7 @@ README.md
 api.base.service.ts
 api.module.ts
 api/admin-config.service.ts
+api/admin-image-audits.service.ts
 api/admin-image-profiles.service.ts
 api/admin.service.ts
 api/ai-image-generation.service.ts
@@ -84,10 +85,14 @@ model/get-provider-models200-response.ts
 model/get-shared-file-info200-response.ts
 model/get-unread-announcement-count200-response.ts
 model/health-response.ts
+model/image-audit-stats-by-profile-inner.ts
+model/image-audit-stats-by-user-inner.ts
+model/image-audit-stats.ts
 model/image-error.ts
 model/image-generate-request.ts
 model/image-generate-response-request.ts
 model/image-generate-response.ts
+model/image-generation-audit.ts
 model/image-generation-error.ts
 model/image-generation-status.ts
 model/image-message.ts
@@ -130,6 +135,7 @@ model/open-router-model.ts
 model/open-router-models-response.ts
 model/optimize-image-prompt-request.ts
 model/optimize-image-prompt-response.ts
+model/paginated-image-audits.ts
 model/paginated-users-response.ts
 model/pending-invitation.ts
 model/project-access.ts

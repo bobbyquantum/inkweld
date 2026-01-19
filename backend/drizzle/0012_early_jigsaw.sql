@@ -1,0 +1,1 @@
+ALTER TABLE `image_model_profiles` ADD `uses_aspect_ratio_only` integer DEFAULT false NOT NULL;

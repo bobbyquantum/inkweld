@@ -93,3 +93,19 @@
     color: var(--mat-sys-on-surface-variant);
   }
 }
+
+.openrouter-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--mat-sys-surface-variant);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    color: var(--mat-sys-primary);
+    flex-shrink: 0;
+  }
+}

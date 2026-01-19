@@ -13,13 +13,17 @@ import { WorldbuildingContext } from './worldbuilding-context';
 
 export interface ImageGenerateRequest { 
     /**
-     * The image generation prompt
+     * The image generation prompt (up to 16,000 characters for rich worldbuilding context)
      */
     prompt: string;
     /**
      * Image model profile ID - determines provider, model, and default settings
      */
     profileId: string;
+    /**
+     * Project key (username/slug) for loading reference images from worldbuilding elements. Required if worldbuildingContext includes elements with role \"reference\".
+     */
+    projectKey?: string;
     /**
      * Number of images to generate
      */
@@ -38,7 +42,7 @@ export interface ImageGenerateRequest {
      */
     negativePrompt?: string;
     /**
-     * Worldbuilding elements to include in the prompt
+     * Worldbuilding elements to include in the prompt. Elements with role \"reference\" will have their images loaded server-side.
      */
     worldbuildingContext?: Array<WorldbuildingContext>;
 }

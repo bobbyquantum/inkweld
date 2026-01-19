@@ -1208,6 +1208,8 @@ describe('AdminAiSettingsComponent', () => {
           modelConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          usesAspectRatioOnly: false,
+          creditCost: 1,
         };
 
         component.imageProfileProviders.set([{ id: 'openai', name: 'OpenAI' }]);
@@ -1246,6 +1248,8 @@ describe('AdminAiSettingsComponent', () => {
           modelConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          usesAspectRatioOnly: false,
+          creditCost: 1,
         };
 
         await component.deleteImageProfile(profile);
@@ -1273,6 +1277,8 @@ describe('AdminAiSettingsComponent', () => {
           modelConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          usesAspectRatioOnly: false,
+          creditCost: 1,
         };
 
         await component.deleteImageProfile(profile);
@@ -1300,6 +1306,8 @@ describe('AdminAiSettingsComponent', () => {
           modelConfig: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          usesAspectRatioOnly: false,
+          creditCost: 1,
         };
 
         await component.toggleProfileEnabled(profile);

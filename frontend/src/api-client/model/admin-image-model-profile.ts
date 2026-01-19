@@ -21,9 +21,14 @@ export interface AdminImageModelProfile {
     enabled: boolean;
     supportsImageInput: boolean;
     supportsCustomResolutions: boolean;
+    usesAspectRatioOnly: boolean;
     supportedSizes: Array<string> | null;
     defaultSize: string | null;
     sortOrder: number;
+    /**
+     * Credit cost per generation (whole numbers)
+     */
+    creditCost: number;
     modelConfig: { [key: string]: any | null; } | null;
     createdAt: string;
     updatedAt: string;

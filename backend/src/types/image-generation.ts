@@ -96,6 +96,101 @@ export interface ImageModelInfo {
   supportsStyle: boolean;
   maxImages: number;
   description?: string;
+  /** Whether this model supports reference/input images */
+  supportsImageInput?: boolean;
+  /** Maximum number of reference images allowed (0 = none) */
+  maxInputImages?: number;
+  /** Maximum prompt tokens (approximate) - triggers truncation if exceeded */
+  maxPromptTokens?: number;
+}
+
+/**
+ * Known model limits - hard-coded overrides for specific models
+ * These are discovered through testing and provider documentation
+ */
+export interface ModelLimits {
+  /** Model ID patterns that share these limits (can match across providers) */
+  models: string[];
+  /** Maximum prompt characters before truncation */
+  maxPromptChars?: number;
+  /** Maximum number of input/reference images */
+  maxInputImages?: number;
+  /** Whether the model supports image input at all */
+  supportsImageInput?: boolean;
+  /** Prompting guide notes for this model */
+  promptingNotes?: string;
+}
+
+/**
+ * Registry of known model limits.
+ * Each entry has an array of model patterns that share the same limits.
+ * Patterns are matched against "provider/modelId" or just "modelId".
+ */
+export const KNOWN_MODEL_LIMITS: ModelLimits[] = [
+  // Black Forest Labs FLUX.2 [klein] - optimized for narrative prose prompts
+  {
+    models: [
+      'black-forest-labs/flux.2-klein-4b', // OpenRouter
+      'fal-ai/flux-2/klein/4b', // Fal.ai
+      'flux.2-klein-4b', // Generic match
+    ],
+    maxPromptChars: 3000,
+    maxInputImages: 2,
+    supportsImageInput: true,
+    promptingNotes: `FLUX.2 [klein] Prompting Guide:
+- Write like a novelist, not keywords. Flowing prose with subject first.
+- Structure: Subject → Setting → Details → Lighting → Atmosphere
+- Lighting is THE most important element - describe source, quality, direction, temperature
+- Word order matters: front-load important elements
+- Optimal length: 30-80 words for most work, up to 300+ words for complex scenes
+- NO prompt upsampling - what you write is what you get
+- Add style/mood tags at end: "Style: [style]. Mood: [mood]."
+
+BAD: "woman, blonde, short hair, neutral background, earrings"
+GOOD: "A woman with short, blonde hair poses against a light neutral background. She wears colorful earrings, resting her chin on her hand. Soft, warm afternoon light."
+
+For image editing with references:
+- "Turn into [style]" or "Reskin as [description]"
+- "Replace [element] with [new element]"
+- "Change image 1 to match the style of image 2"
+- Be specific about what changes, avoid vague "make it better"`,
+  },
+  // Add more model families as we discover their limits
+];
+
+/**
+ * Find limits for a specific model.
+ * @param modelId The model ID (e.g., 'black-forest-labs/flux.2-klein-4b')
+ * @param provider Optional provider prefix (e.g., 'openrouter')
+ */
+export function findModelLimits(modelId: string, provider?: string): ModelLimits | undefined {
+  const fullId = provider ? `${provider}/${modelId}` : modelId;
+
+  for (const limits of KNOWN_MODEL_LIMITS) {
+    for (const pattern of limits.models) {
+      // Check exact match or if modelId ends with the pattern
+      if (fullId === pattern || modelId === pattern || fullId.endsWith(pattern)) {
+        return limits;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Reference/input image for image-to-image or style reference.
+ * This is an internal type - reference images are loaded server-side
+ * from worldbuilding elements with role "reference".
+ */
+export interface ReferenceImage {
+  /** Base64-encoded image data (with or without data URL prefix) */
+  data: string;
+  /** MIME type (e.g., 'image/png', 'image/jpeg') */
+  mimeType?: string;
+  /** Role of this reference image */
+  role?: 'style' | 'subject' | 'composition' | 'reference';
+  /** Optional weight/strength for this reference (0-1) */
+  weight?: number;
 }
 
 /**
@@ -106,6 +201,8 @@ export interface ImageGenerateRequest {
   prompt: string;
   /** Profile ID to use for generation settings */
   profileId: string;
+  /** Project key (username/slug) for loading reference images */
+  projectKey?: string;
   /** Number of images to generate */
   n?: number;
   /** Image size (overrides profile default) */
@@ -116,7 +213,7 @@ export interface ImageGenerateRequest {
   style?: ImageStyle;
   /** Negative prompt (for Stable Diffusion models) */
   negativePrompt?: string;
-  /** Worldbuilding elements context */
+  /** Worldbuilding elements context - elements with role 'reference' will have images loaded server-side */
   worldbuildingContext?: WorldbuildingContext[];
 }
 
@@ -144,8 +241,15 @@ export interface ResolvedImageRequest {
   negativePrompt?: string;
   /** Worldbuilding elements context */
   worldbuildingContext?: WorldbuildingContext[];
+  /** Reference images for image-to-image or style guidance */
+  referenceImages?: ReferenceImage[];
   /** Profile-specific model config options */
   options?: Record<string, unknown>;
+  /**
+   * When true, the model only accepts aspect ratio (e.g., "16:9") not pixel dimensions.
+   * The provider should use image_config.aspect_ratio instead of size in the prompt.
+   */
+  usesAspectRatioOnly?: boolean;
 }
 
 /**
@@ -178,6 +282,11 @@ export interface GeneratedImageData {
   revisedPrompt?: string;
   /** Image index in batch */
   index: number;
+  /**
+   * Raw text content from the model (if it returned text instead of an image).
+   * This is typically a refusal message or explanation.
+   */
+  textContent?: string;
 }
 
 /**
@@ -194,6 +303,11 @@ export interface ImageGenerateResponse {
   model: string;
   /** Original request for reference */
   request: Pick<ResolvedImageRequest, 'prompt' | 'size' | 'quality' | 'style'>;
+  /**
+   * Raw text content from the model if it returned text instead of an image.
+   * Useful for showing refusal messages or explanations to the user.
+   */
+  textContent?: string;
 }
 
 /**

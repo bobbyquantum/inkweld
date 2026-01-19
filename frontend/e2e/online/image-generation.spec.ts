@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
 
-import { expect, test } from './fixtures';
+import { createProject, expect, test } from './fixtures';
 
 /**
  * AI Image Generation E2E Tests
@@ -75,7 +75,7 @@ async function createImageProfile(
 ): Promise<string> {
   const token = await page.evaluate(() => localStorage.getItem('auth_token'));
   const response = await page.request.post(
-    `${getApiBaseUrl()}/api/v1/admin/image-profiles/`,
+    `${getApiBaseUrl()}/api/v1/admin/image-profiles`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -116,7 +116,7 @@ async function deleteImageProfileByName(
   const token = await page.evaluate(() => localStorage.getItem('auth_token'));
 
   const listResponse = await page.request.get(
-    `${getApiBaseUrl()}/api/v1/admin/image-profiles/`,
+    `${getApiBaseUrl()}/api/v1/admin/image-profiles`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -154,33 +154,16 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
 }
 
 /**
- * Helper to create a project for an authenticated user
- */
-async function createTestProject(
-  page: Page,
-  title: string,
-  slug: string
-): Promise<void> {
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
-
-  await page.locator('[data-testid="create-project-button"]').click();
-  await page.waitForSelector('[data-testid="project-title-input"]');
-
-  await page.locator('[data-testid="project-title-input"]').fill(title);
-  await page.locator('[data-testid="project-slug-input"]').fill(slug);
-
-  await page.locator('[data-testid="create-project-submit"]').click();
-
-  await page.waitForURL(`**/${slug}/**`);
-  await page.waitForLoadState('networkidle');
-}
-
-/**
  * Helper to navigate to media tab in project
  */
 async function navigateToMediaTab(page: Page): Promise<void> {
-  await page.locator('[data-testid="tab-media"]').click();
+  // Media Library button can be in sidebar or on project home page
+  await page
+    .getByRole('button', { name: /Media Library/i })
+    .first()
+    .click();
+  // Wait for networkidle to ensure system config API call completes,
+  // which determines if the generate image button should be visible
   await page.waitForLoadState('networkidle');
 }
 
@@ -307,6 +290,9 @@ test.describe('Image Generation - Admin Profile Management', () => {
 });
 
 test.describe('Image Generation - User Dialog Flow', () => {
+  // Run serially to ensure beforeAll completes before tests and avoid race conditions
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeAll(async ({ browser }) => {
     // Set up profiles before running user tests
     const context = await browser.newContext();
@@ -343,7 +329,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     );
 
     // Create the test profile (ignore if already exists)
-    await page.request.post(`${getApiBaseUrl()}/api/v1/admin/image-profiles/`, {
+    await page.request.post(`${getApiBaseUrl()}/api/v1/admin/image-profiles`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -370,7 +356,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
   }) => {
     const testSlug = `test-img-gen-${Date.now()}`;
 
-    await createTestProject(authenticatedPage, 'Image Gen Test', testSlug);
+    await createProject(authenticatedPage, 'Image Gen Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
     const generateButton = authenticatedPage.locator(
@@ -385,13 +371,15 @@ test.describe('Image Generation - User Dialog Flow', () => {
   }) => {
     const testSlug = `test-img-dialog-${Date.now()}`;
 
-    await createTestProject(authenticatedPage, 'Image Dialog Test', testSlug);
+    await createProject(authenticatedPage, 'Image Dialog Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    // Click generate button
-    await authenticatedPage
-      .locator('[data-testid="generate-image-button"]')
-      .click();
+    // Wait for button to be visible (may take time for config to load)
+    const genButton = authenticatedPage.locator(
+      '[data-testid="generate-image-button"]'
+    );
+    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await genButton.click();
 
     // Wait for dialog
     const dialogTitle = authenticatedPage.locator(
@@ -409,12 +397,15 @@ test.describe('Image Generation - User Dialog Flow', () => {
   }) => {
     const testSlug = `test-img-prompt-${Date.now()}`;
 
-    await createTestProject(authenticatedPage, 'Image Prompt Test', testSlug);
+    await createProject(authenticatedPage, 'Image Prompt Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    await authenticatedPage
-      .locator('[data-testid="generate-image-button"]')
-      .click();
+    // Wait for button to be visible (may take time for config to load)
+    const generateButton = authenticatedPage.locator(
+      '[data-testid="generate-image-button"]'
+    );
+    await expect(generateButton).toBeVisible({ timeout: 15000 });
+    await generateButton.click();
 
     // Wait for dialog
     await expect(
@@ -444,12 +435,15 @@ test.describe('Image Generation - User Dialog Flow', () => {
   }) => {
     const testSlug = `test-img-fill-${Date.now()}`;
 
-    await createTestProject(authenticatedPage, 'Fill Prompt Test', testSlug);
+    await createProject(authenticatedPage, 'Fill Prompt Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    await authenticatedPage
-      .locator('[data-testid="generate-image-button"]')
-      .click();
+    // Wait for button to be visible (may take time for config to load)
+    const genButton = authenticatedPage.locator(
+      '[data-testid="generate-image-button"]'
+    );
+    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await genButton.click();
 
     // Wait and navigate to prompt step
     const stepper = authenticatedPage.locator('.image-generation-stepper');
@@ -480,12 +474,15 @@ test.describe('Image Generation - User Dialog Flow', () => {
   }) => {
     const testSlug = `test-img-gen-fail-${Date.now()}`;
 
-    await createTestProject(authenticatedPage, 'Gen Fail Test', testSlug);
+    await createProject(authenticatedPage, 'Gen Fail Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    await authenticatedPage
-      .locator('[data-testid="generate-image-button"]')
-      .click();
+    // Wait for button to be visible (may take time for config to load)
+    const genButton = authenticatedPage.locator(
+      '[data-testid="generate-image-button"]'
+    );
+    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await genButton.click();
 
     // Navigate to prompt step
     const stepper = authenticatedPage.locator('.image-generation-stepper');
@@ -527,12 +524,15 @@ test.describe('Image Generation - User Dialog Flow', () => {
   }) => {
     const testSlug = `test-img-close-${Date.now()}`;
 
-    await createTestProject(authenticatedPage, 'Close Dialog Test', testSlug);
+    await createProject(authenticatedPage, 'Close Dialog Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    await authenticatedPage
-      .locator('[data-testid="generate-image-button"]')
-      .click();
+    // Wait for button to be visible (may take time for config to load)
+    const genButton = authenticatedPage.locator(
+      '[data-testid="generate-image-button"]'
+    );
+    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await genButton.click();
 
     const dialogTitle = authenticatedPage.locator(
       '[data-testid="image-gen-dialog-title"]'

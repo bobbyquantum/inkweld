@@ -1240,8 +1240,8 @@ async function showCloudflareDeployment() {
   console.log('  • Run database migrations');
   console.log('');
   console.log('After setup, deploy with:');
-  console.log('  $ npm run cloudflare:deploy:preview    # Deploy to preview');
-  console.log('  $ npm run cloudflare:deploy:prod       # Deploy to production');
+  console.log('  $ npm run cloudflare:preview:deploy    # Deploy to preview');
+  console.log('  $ npm run cloudflare:prod:deploy       # Deploy to production');
   console.log('');
   console.log('📖 For detailed documentation, see:');
   console.log('   https://inkweld.org/docs/hosting/cloudflare');

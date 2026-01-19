@@ -41,6 +41,13 @@ export const imageModelProfiles = sqliteTable('image_model_profiles', {
     .notNull()
     .default(false),
 
+  // When true, the model only accepts aspect ratio (e.g., "16:9") not pixel dimensions.
+  // This is auto-detected for known models like google/gemini-3-pro-image-preview.
+  // Models with this flag will use image_config.aspect_ratio instead of size in the prompt.
+  usesAspectRatioOnly: integer('uses_aspect_ratio_only', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+
   // Supported sizes as JSON array (e.g., ["1024x1024", "1536x1024"])
   // If null, all sizes from the model are available
   supportedSizes: text('supported_sizes', { mode: 'json' }).$type<string[]>(),
@@ -56,6 +63,10 @@ export const imageModelProfiles = sqliteTable('image_model_profiles', {
 
   // Sort order for display (lower = first)
   sortOrder: integer('sort_order').notNull().default(0),
+
+  // Credit cost for using this profile (admin-configurable, whole numbers)
+  // Used for audit/billing purposes
+  creditCost: integer('credit_cost').notNull().default(1),
 
   // Timestamps
   createdAt: integer('created_at', { mode: 'timestamp' })

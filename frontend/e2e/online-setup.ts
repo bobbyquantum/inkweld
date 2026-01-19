@@ -76,6 +76,62 @@ export default async function globalSetup(): Promise<void> {
 
       if (adminResponse.ok()) {
         console.log('   ✅ Admin API endpoint is accessible\n');
+
+        // Step 4: Set up AI image generation profile for e2e tests
+        console.log('4️⃣  Setting up AI image generation for e2e tests...');
+
+        // Set a fake OpenAI API key
+        const keyResponse = await context.put(
+          '/api/v1/ai/providers/openai/key',
+          {
+            headers: {
+              Authorization: `Bearer ${loginData.token}`,
+              'Content-Type': 'application/json',
+            },
+            data: {
+              apiKey: 'sk-fake-test-key-1234567890abcdefghijklmnopqrstuv',
+            },
+          }
+        );
+        if (keyResponse.ok()) {
+          console.log('   ✅ Set fake OpenAI API key\n');
+        } else {
+          console.log(
+            `   ⚠️  Could not set API key: ${keyResponse.status()}\n`
+          );
+        }
+
+        // Create a test image profile
+        const profileResponse = await context.post(
+          '/api/v1/admin/image-profiles',
+          {
+            headers: {
+              Authorization: `Bearer ${loginData.token}`,
+              'Content-Type': 'application/json',
+            },
+            data: {
+              name: 'E2E-User-Test-OpenAI',
+              description: 'Test profile for user e2e tests',
+              provider: 'openai',
+              modelId: 'gpt-image-1',
+              enabled: true,
+              supportsImageInput: false,
+              supportsCustomResolutions: false,
+              supportedSizes: ['1024x1024', '1024x1536', '1536x1024'],
+              defaultSize: '1024x1024',
+              sortOrder: 0,
+            },
+          }
+        );
+        if (profileResponse.ok()) {
+          console.log('   ✅ Created E2E image profile\n');
+        } else if (profileResponse.status() === 409) {
+          console.log('   ✅ E2E image profile already exists\n');
+        } else {
+          console.log(
+            `   ⚠️  Could not create profile: ${profileResponse.status()}\n`
+          );
+        }
       } else {
         const contentType = adminResponse.headers()['content-type'] || '';
         const body = await adminResponse.text();
