@@ -163,62 +163,87 @@
         Enabled
       </mat-slide-toggle>
 
-      <mat-slide-toggle
-        formControlName="supportsImageInput"
-        data-testid="profile-image-input-toggle">
-        Supports Image Input
-      </mat-slide-toggle>
+      <!-- Hide for OpenRouter - auto-detected from API -->
+      @if (!isOpenRouterProvider()) {
+        <mat-slide-toggle
+          formControlName="supportsImageInput"
+          data-testid="profile-image-input-toggle">
+          Supports Image Input
+        </mat-slide-toggle>
+      }
 
-      <mat-slide-toggle
-        formControlName="supportsCustomResolutions"
-        data-testid="profile-custom-resolutions-toggle"
-        matTooltip="Allow users to specify arbitrary width/height values">
-        Custom Resolutions
-      </mat-slide-toggle>
+      <!-- Hide these options for OpenRouter - all OpenRouter models use aspect ratio only -->
+      @if (!isOpenRouterProvider()) {
+        <mat-slide-toggle
+          formControlName="supportsCustomResolutions"
+          data-testid="profile-custom-resolutions-toggle"
+          matTooltip="Allow users to specify arbitrary width/height values">
+          Custom Resolutions
+        </mat-slide-toggle>
+
+        <mat-slide-toggle
+          formControlName="usesAspectRatioOnly"
+          data-testid="profile-aspect-ratio-only-toggle"
+          matTooltip="Model only accepts aspect ratio (e.g., 16:9), not pixel dimensions. Enable for Gemini 3 Pro Image and similar models.">
+          Aspect Ratio Only
+        </mat-slide-toggle>
+      }
     </div>
 
-    <div class="sizes-section">
-      <div class="sizes-header">
-        <span class="label">Supported Sizes</span>
-        <button
-          mat-icon-button
-          type="button"
-          (click)="addSize()"
-          matTooltip="Add size">
-          <mat-icon>add</mat-icon>
-        </button>
-      </div>
-
-      @for (size of sizesArray.controls; track $index) {
-        <div class="size-row">
-          <mat-form-field appearance="outline">
-            <input
-              matInput
-              [formControl]="$any(size)"
-              placeholder="e.g., 1024x1024" />
-          </mat-form-field>
+    <!-- Hide sizes section for OpenRouter - they use fixed aspect ratios -->
+    @if (!isOpenRouterProvider()) {
+      <div class="sizes-section">
+        <div class="sizes-header">
+          <span class="label">Supported Sizes</span>
           <button
             mat-icon-button
             type="button"
-            color="warn"
-            (click)="removeSize($index)">
-            <mat-icon>remove</mat-icon>
+            (click)="addSize()"
+            matTooltip="Add size">
+            <mat-icon>add</mat-icon>
           </button>
         </div>
-      }
 
-      @if (sizesArray.length > 0) {
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Default Size</mat-label>
-          <mat-select formControlName="defaultSize">
-            <mat-option value="">None</mat-option>
-            @for (size of sizesArray.controls; track $index) {
-              <mat-option [value]="size.value">{{ size.value }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      }
-    </div>
+        @for (size of sizesArray.controls; track $index) {
+          <div class="size-row">
+            <mat-form-field appearance="outline">
+              <input
+                matInput
+                [formControl]="$any(size)"
+                placeholder="e.g., 1024x1024" />
+            </mat-form-field>
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              (click)="removeSize($index)">
+              <mat-icon>remove</mat-icon>
+            </button>
+          </div>
+        }
+
+        @if (sizesArray.length > 0) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Default Size</mat-label>
+            <mat-select formControlName="defaultSize">
+              <mat-option value="">None</mat-option>
+              @for (size of sizesArray.controls; track $index) {
+                <mat-option [value]="size.value">{{ size.value }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+      </div>
+    } @else {
+      <!-- OpenRouter info notice -->
+      <div class="openrouter-info">
+        <mat-icon>info</mat-icon>
+        <span
+          >OpenRouter models use fixed aspect ratios (1:1, 2:3, 3:2, 4:3, 16:9,
+          etc.). Size options are configured automatically.</span
+        >
+      </div>
+    }
 
     <mat-form-field appearance="outline" class="narrow-field">
       <mat-label>Sort Order</mat-label>

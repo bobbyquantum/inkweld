@@ -20,10 +20,15 @@ export interface UpdateImageModelProfileRequest {
     enabled?: boolean;
     supportsImageInput?: boolean;
     supportsCustomResolutions?: boolean;
+    usesAspectRatioOnly?: boolean;
     supportedSizes?: Array<string> | null;
     defaultSize?: string | null;
     modelConfig?: { [key: string]: any | null; } | null;
     sortOrder?: number;
+    /**
+     * Credit cost per generation (whole numbers)
+     */
+    creditCost?: number;
 }
 export enum UpdateImageModelProfileRequestProvider {
     Openai = 'openai',

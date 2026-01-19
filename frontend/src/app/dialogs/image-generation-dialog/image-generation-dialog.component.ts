@@ -276,22 +276,118 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   ];
 
   /**
-   * Parse an aspect ratio size string (e.g., "16:9@4K") and return label info.
+   * Parse an aspect ratio size string and return label info.
+   * Supports formats:
+   * - "16:9@4K" -> ratio with resolution qualifier
+   * - "16:9" -> plain ratio (used by OpenRouter)
    */
   private parseAspectRatioSize(size: string): {
     ratio: string;
-    resolution: string;
+    resolution?: string;
     label: string;
   } | null {
-    const match = size.match(/^(\d+:\d+)@(\d+K)$/);
-    if (match) {
+    // Try format with resolution: "16:9@4K"
+    const withResMatch = size.match(/^(\d+:\d+)@(\d+K)$/);
+    if (withResMatch) {
       return {
-        ratio: match[1],
-        resolution: match[2],
-        label: `${match[1]} @ ${match[2]}`,
+        ratio: withResMatch[1],
+        resolution: withResMatch[2],
+        label: `${withResMatch[1]} @ ${withResMatch[2]}`,
       };
     }
+
+    // Try plain aspect ratio: "16:9", "1:1", etc.
+    const plainMatch = size.match(/^(\d+:\d+)$/);
+    if (plainMatch) {
+      return {
+        ratio: plainMatch[1],
+        label: plainMatch[1],
+      };
+    }
+
     return null;
+  }
+
+  /**
+   * Get aspect ratio dimensions for SVG preview from a size value.
+   * Returns width and height normalized to fit within a 20x20 viewbox.
+   */
+  getAspectRatioPreview(sizeValue: string): { width: number; height: number } {
+    // Common aspect ratios mapped to their dimensions
+    const ratioMap: Record<string, [number, number]> = {
+      '1:1': [1, 1],
+      '2:3': [2, 3],
+      '3:2': [3, 2],
+      '3:4': [3, 4],
+      '4:3': [4, 3],
+      '4:5': [4, 5],
+      '5:4': [5, 4],
+      '9:16': [9, 16],
+      '16:9': [16, 9],
+      '21:9': [21, 9],
+    };
+
+    // Try to parse the size value
+    // First check if it's a plain ratio like "16:9"
+    const plainMatch = sizeValue.match(/^(\d+):(\d+)$/);
+    if (plainMatch) {
+      const w = parseInt(plainMatch[1], 10);
+      const h = parseInt(plainMatch[2], 10);
+      return this.normalizeToViewbox(w, h, 16);
+    }
+
+    // Check if it's a ratio with resolution like "16:9@4K"
+    const withResMatch = sizeValue.match(/^(\d+):(\d+)@/);
+    if (withResMatch) {
+      const w = parseInt(withResMatch[1], 10);
+      const h = parseInt(withResMatch[2], 10);
+      return this.normalizeToViewbox(w, h, 16);
+    }
+
+    // Check if it's a dimension format like "1920x1080"
+    const dimMatch = sizeValue.match(/^(\d+)x(\d+)$/);
+    if (dimMatch) {
+      const w = parseInt(dimMatch[1], 10);
+      const h = parseInt(dimMatch[2], 10);
+      return this.normalizeToViewbox(w, h, 16);
+    }
+
+    // Check preset ratio map
+    if (ratioMap[sizeValue]) {
+      const [w, h] = ratioMap[sizeValue];
+      return this.normalizeToViewbox(w, h, 16);
+    }
+
+    // Default to square
+    return { width: 16, height: 16 };
+  }
+
+  /**
+   * Normalize dimensions to fit within a max size while preserving aspect ratio.
+   */
+  private normalizeToViewbox(
+    w: number,
+    h: number,
+    maxSize: number
+  ): { width: number; height: number } {
+    const ratio = w / h;
+    if (ratio >= 1) {
+      // Wider than tall
+      return { width: maxSize, height: Math.round(maxSize / ratio) };
+    } else {
+      // Taller than wide
+      return { width: Math.round(maxSize * ratio), height: maxSize };
+    }
+  }
+
+  /**
+   * Get the label for the currently selected size.
+   */
+  getSelectedSizeLabel(): string {
+    const size = this.selectedSize() as string;
+    const options = this.sizeOptions();
+    const match = options.find(o => String(o.value) === size);
+    return match?.label ?? size;
   }
 
   /**
@@ -447,15 +543,34 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
         'ImageGenDialog',
         'Fetching profiles from imageProfilesService.listImageProfiles()'
       );
-      const profiles =
+      const allProfiles =
         (await firstValueFrom(this.imageProfilesService.listImageProfiles())) ??
         [];
 
       this.logger.info(
         'ImageGenDialog',
-        `Received ${profiles.length} profiles from API`,
-        { profiles }
+        `Received ${allProfiles.length} profiles from API`,
+        { profiles: allProfiles }
       );
+
+      // Filter out profiles from disabled providers
+      const status = this.status();
+      const enabledProviders = new Set(
+        status?.providers
+          .filter(p => p.enabled && p.available)
+          .map(p => p.type as string) ?? []
+      );
+
+      const profiles = allProfiles.filter(p =>
+        enabledProviders.has(p.provider as string)
+      );
+
+      if (profiles.length < allProfiles.length) {
+        this.logger.info(
+          'ImageGenDialog',
+          `Filtered out ${allProfiles.length - profiles.length} profiles from disabled providers`
+        );
+      }
 
       // Note: supportsImageInput means the model CAN accept image input (for image-to-image),
       // not that it requires one. All profiles can be used for text-to-image generation.
@@ -559,9 +674,26 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Build the auto-prompt if user hasn't entered one
-    if (!this.prompt().trim()) {
-      this.prompt.set(this.buildAutoPrompt());
+    // Build the prompt based on current state
+    const currentPrompt = this.prompt().trim();
+    const autoPrompt = this.buildAutoPrompt();
+
+    if (!currentPrompt) {
+      // No existing prompt - use auto-generated one
+      this.prompt.set(autoPrompt);
+    } else if (this.data.forCover && autoPrompt) {
+      // For cover generation, append worldbuilding context to the cover prompt
+      // if user has selected worldbuilding elements
+      const elements = this.selectedWorldbuildingElements();
+      if (elements.length > 0) {
+        // Check if the prompt already contains worldbuilding info (avoid duplicating)
+        const hasWorldbuildingInfo = elements.some(el =>
+          currentPrompt.includes(el.name)
+        );
+        if (!hasWorldbuildingInfo) {
+          this.prompt.set(`${currentPrompt}\n\n${autoPrompt}`);
+        }
+      }
     }
 
     this.stage.set('edit-prompt');
@@ -776,9 +908,13 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     const elements = this.selectedWorldbuildingElements();
     const worldbuildingContext = this.buildWorldbuildingContext(elements);
 
+    // Build the projectKey for server-side reference image loading
+    const projectKey = `${project.username}/${project.slug}`;
+
     const request: ImageGenerateRequest = {
       prompt,
       profileId: profile.id,
+      projectKey, // Send projectKey so server can load reference images
       n: this.imageCount(),
       size: this.selectedSize(),
       worldbuildingContext:
@@ -802,7 +938,6 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     this.stage.set('generating');
 
     // Start background generation
-    const projectKey = `${project.username}/${project.slug}`;
     const jobId = this.generationService.startGeneration(projectKey, request, {
       forCover: this.data.forCover,
     });

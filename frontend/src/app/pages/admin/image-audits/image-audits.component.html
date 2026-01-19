@@ -1,0 +1,182 @@
+<div class="image-audits-container">
+  <div class="header">
+    <h1>Image Generation Audits</h1>
+    <button mat-icon-button (click)="refresh()" matTooltip="Refresh">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  @if (stats()) {
+    <div class="stats-cards">
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-value">{{ stats()!.totalRequests }}</div>
+          <div class="stat-label">Total Requests</div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-value">{{ stats()!.totalCredits }}</div>
+          <div class="stat-label">Total Credits Used</div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="stat-card success">
+        <mat-card-content>
+          <div class="stat-value">{{ stats()!.successCount }}</div>
+          <div class="stat-label">Successful</div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="stat-card moderated">
+        <mat-card-content>
+          <div class="stat-value">{{ stats()!.moderatedCount }}</div>
+          <div class="stat-label">Moderated</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="filters">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search prompts</mat-label>
+      <input
+        matInput
+        [value]="searchQuery()"
+        (input)="onSearchInput($event)"
+        placeholder="Search prompt text..."
+        data-testid="audit-search-input" />
+      @if (searchQuery()) {
+        <button matSuffix mat-icon-button (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="status-filter">
+      <mat-label>Status</mat-label>
+      <mat-select
+        [value]="statusFilter()"
+        (selectionChange)="onStatusFilterChange($event.value)"
+        data-testid="audit-status-filter">
+        <mat-option value="">All</mat-option>
+        <mat-option value="success">Success</mat-option>
+        <mat-option value="moderated">Moderated</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  <!-- Audit Table -->
+  @if (!isLoading() && audits().length > 0) {
+    <div class="table-container">
+      <table mat-table [dataSource]="audits()" class="audits-table">
+        <!-- Date Column -->
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let audit">
+            {{ audit.createdAt | date: 'short' }}
+          </td>
+        </ng-container>
+
+        <!-- User Column -->
+        <ng-container matColumnDef="username">
+          <th mat-header-cell *matHeaderCellDef>User</th>
+          <td mat-cell *matCellDef="let audit">
+            {{ audit.username || 'Unknown' }}
+          </td>
+        </ng-container>
+
+        <!-- Profile Column -->
+        <ng-container matColumnDef="profileName">
+          <th mat-header-cell *matHeaderCellDef>Profile</th>
+          <td mat-cell *matCellDef="let audit">
+            {{ audit.profileName }}
+          </td>
+        </ng-container>
+
+        <!-- Prompt Column -->
+        <ng-container matColumnDef="prompt">
+          <th mat-header-cell *matHeaderCellDef>Prompt</th>
+          <td mat-cell *matCellDef="let audit" class="prompt-cell">
+            <span [matTooltip]="audit.prompt" matTooltipClass="wide-tooltip">
+              {{ truncatePrompt(audit.prompt) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Credit Cost Column -->
+        <ng-container matColumnDef="creditCost">
+          <th mat-header-cell *matHeaderCellDef>Credits</th>
+          <td mat-cell *matCellDef="let audit">
+            {{ audit.creditCost }}
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let audit">
+            <mat-chip-set>
+              <mat-chip
+                [ngClass]="{
+                  'status-success': audit.status === 'success',
+                  'status-moderated': audit.status === 'moderated',
+                }">
+                {{ audit.status }}
+              </mat-chip>
+            </mat-chip-set>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let audit">
+            @if (audit.outputImageUrls && audit.outputImageUrls.length > 0) {
+              <button
+                mat-icon-button
+                (click)="viewOutputImages(audit)"
+                matTooltip="View generated image">
+                <mat-icon>image</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="total()"
+      [pageSize]="limit()"
+      [pageIndex]="page() - 1"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+  }
+
+  <!-- Empty State -->
+  @if (!isLoading() && audits().length === 0) {
+    <div class="empty-state">
+      <mat-icon>receipt_long</mat-icon>
+      <h2>No audit records found</h2>
+      <p>
+        @if (searchQuery() || statusFilter()) {
+          Try adjusting your filters
+        } @else {
+          Image generation audits will appear here
+        }
+      </p>
+    </div>
+  }
+</div>

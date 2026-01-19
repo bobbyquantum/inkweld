@@ -9,11 +9,16 @@ import { z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { imageGenerationService } from '../services/image-generation.service';
 import { imageProfileService } from '../services/image-profile.service';
+import { imageAuditService } from '../services/image-audit.service';
 import { configService } from '../services/config.service';
+import { getStorageService } from '../services/storage.service';
 import { logger } from '../services/logger.service';
 import { DEFAULT_OPENAI_MODELS } from '../services/image-providers/openai-provider';
-import { DEFAULT_OPENROUTER_MODELS } from '../services/image-providers/openrouter-provider';
 import { DEFAULT_FALAI_MODELS } from '../services/image-providers/falai-provider';
+import {
+  loadReferenceImagesFromContext,
+  getElementImageUrls,
+} from '../utils/reference-image-loader';
 import type { AppContext } from '../types/context';
 import type {
   ImageProviderType,
@@ -39,6 +44,7 @@ const ProviderTypeSchema = z
 // Image sizes supported across providers
 // Includes standard sizes, OpenRouter aspect ratios, Fal.ai aspect-ratio formats, and custom dimensions
 const PRESET_IMAGE_SIZES = [
+  // Standard pixel dimensions
   '256x256',
   '512x512',
   '1024x1024', // 1:1 square
@@ -60,6 +66,17 @@ const PRESET_IMAGE_SIZES = [
   '1080x1920', // HD 1080p portrait
   '1600x2560', // Ebook cover (Kindle)
   '2560x1600', // Landscape ebook/print
+  // OpenRouter aspect ratios (FLUX, Gemini, etc.)
+  '1:1',
+  '2:3',
+  '3:2',
+  '3:4',
+  '4:3',
+  '4:5',
+  '5:4',
+  '9:16',
+  '16:9',
+  '21:9',
   'auto',
 ] as const;
 
@@ -80,14 +97,23 @@ const WorldbuildingContextSchema = z
   })
   .openapi('WorldbuildingContext');
 
+// Note: ReferenceImage is an internal type - images are loaded server-side
+// from worldbuilding elements with role "reference", not sent from client
+
 const GenerateRequestSchema = z
   .object({
-    prompt: z.string().min(1).max(4000).openapi({
+    prompt: z.string().min(1).max(16000).openapi({
       example: 'A fantasy castle on a misty mountain',
-      description: 'The image generation prompt',
+      description:
+        'The image generation prompt (up to 16,000 characters for rich worldbuilding context)',
     }),
     profileId: z.string().uuid().openapi({
       description: 'Image model profile ID - determines provider, model, and default settings',
+    }),
+    projectKey: z.string().optional().openapi({
+      example: 'alice/my-novel',
+      description:
+        'Project key (username/slug) for loading reference images from worldbuilding elements. Required if worldbuildingContext includes elements with role "reference".',
     }),
     n: z.number().int().min(1).max(4).optional().openapi({
       example: 1,
@@ -108,7 +134,8 @@ const GenerateRequestSchema = z
       description: 'Negative prompt (for Stable Diffusion models)',
     }),
     worldbuildingContext: z.array(WorldbuildingContextSchema).optional().openapi({
-      description: 'Worldbuilding elements to include in the prompt',
+      description:
+        'Worldbuilding elements to include in the prompt. Elements with role "reference" will have their images loaded server-side.',
     }),
   })
   .openapi('ImageGenerateRequest');
@@ -119,6 +146,9 @@ const GeneratedImageSchema = z
     url: z.string().optional().openapi({ description: 'URL to the image' }),
     revisedPrompt: z.string().optional().openapi({ description: 'Revised prompt if modified' }),
     index: z.number().openapi({ description: 'Image index in batch' }),
+    textContent: z.string().optional().openapi({
+      description: 'Raw text content if the model returned text instead of an image',
+    }),
   })
   .openapi('GeneratedImage');
 
@@ -136,6 +166,10 @@ const GenerateResponseSchema = z
         style: z.string().optional(),
       })
       .openapi({ description: 'Original request parameters' }),
+    textContent: z.string().optional().openapi({
+      description:
+        'Raw text content if the model returned text instead of an image (refusal or explanation)',
+    }),
   })
   .openapi('ImageGenerateResponse');
 
@@ -289,6 +323,8 @@ const generateRoute = createRoute({
 
 aiImageRoutes.openapi(generateRoute, async (c) => {
   const db = c.get('db');
+  const storage = getStorageService(c.get('storage'));
+  const user = c.get('user');
 
   try {
     const body = await c.req.json();
@@ -348,6 +384,30 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       }
     }
 
+    // Load reference images from worldbuilding elements with role 'reference'
+    let referenceImages;
+    let referenceImageUrls: string[] = [];
+    const worldbuildingContext = validatedBody.worldbuildingContext as
+      | WorldbuildingContext[]
+      | undefined;
+    if (worldbuildingContext && worldbuildingContext.length > 0 && validatedBody.projectKey) {
+      const [username, slug] = validatedBody.projectKey.split('/');
+      if (username && slug) {
+        // Get URLs for audit logging (before loading full data)
+        referenceImageUrls = await getElementImageUrls(username, slug, worldbuildingContext);
+
+        referenceImages = await loadReferenceImagesFromContext(
+          storage,
+          username,
+          slug,
+          worldbuildingContext
+        );
+        if (referenceImages.length > 0) {
+          aiImageLog.info(`Loaded ${referenceImages.length} reference images from project storage`);
+        }
+      }
+    }
+
     // Generate images
     const result = await imageGenerationService.generate(db, {
       prompt: validatedBody.prompt,
@@ -359,9 +419,40 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       quality,
       style,
       negativePrompt: validatedBody.negativePrompt,
-      worldbuildingContext: validatedBody.worldbuildingContext as WorldbuildingContext[],
+      worldbuildingContext,
+      referenceImages,
       options: profileConfig || undefined,
+      usesAspectRatioOnly: profile.usesAspectRatioOnly,
     });
+
+    // Determine if this was a moderated response (text content instead of images)
+    const isModerated = !!(
+      result.textContent ||
+      (result.data.length > 0 && result.data.every((d) => d.textContent && !d.b64Json && !d.url))
+    );
+
+    // Extract output image URLs for audit
+    const outputImageUrls = result.data
+      .filter((d) => d.url || d.b64Json)
+      .map((d) => d.url || 'data:image/png;base64,[generated-image]');
+
+    // Record audit (for both success and moderated - not for general errors)
+    try {
+      await imageAuditService.create(db, {
+        userId: user!.id,
+        profileId: profile.id,
+        profileName: profile.name,
+        prompt: validatedBody.prompt,
+        referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
+        outputImageUrls: outputImageUrls.length > 0 ? outputImageUrls : undefined,
+        creditCost: profile.creditCost,
+        status: isModerated ? 'moderated' : 'success',
+        message: isModerated ? result.textContent || result.data[0]?.textContent : undefined,
+      });
+    } catch (auditError) {
+      // Log but don't fail the request if audit fails
+      aiImageLog.error('Failed to record image generation audit:', auditError);
+    }
 
     return c.json(result, 200);
   } catch (error: unknown) {
@@ -574,7 +665,7 @@ aiImageRoutes.openapi(defaultModelsRoute, async (c) => {
         },
         openrouter: {
           name: 'OpenRouter',
-          models: DEFAULT_OPENROUTER_MODELS,
+          models: [], // Models fetched dynamically from OpenRouter API
         },
         falai: {
           name: 'Fal.ai',

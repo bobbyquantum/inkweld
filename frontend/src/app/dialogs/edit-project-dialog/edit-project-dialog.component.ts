@@ -314,54 +314,21 @@ export class EditProjectDialogComponent implements OnInit {
       forCover: true,
     });
     if (result?.saved && result.imageData) {
-      // Convert base64 to blob and update local state
-      const blob = this.base64ToBlob(result.imageData);
-      const file = new File([blob], 'generated-cover.png', {
-        type: 'image/png',
-      });
-      this.coverImage = file;
-      this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
-        result.imageData
-      );
-      // Save immediately to local storage (offline-first)
-      if (this.project.username && this.project.slug) {
-        this.isLoadingCover.set(true);
-        const projectKey = `${this.project.username}/${this.project.slug}`;
-        try {
-          // Save to local storage first
-          const newCoverMediaId = `cover-${nanoid(8)}`;
-          await this.localStorage.saveMedia(projectKey, newCoverMediaId, blob);
-          this.currentCoverMediaId = newCoverMediaId;
+      // Show the cropper to let user crop the generated image to the correct cover dimensions
+      // Reset cropper state first
+      this.resetCropperState();
 
-          // Try to upload to server (best effort)
-          try {
-            await this.projectService.uploadProjectCover(
-              this.project.username,
-              this.project.slug,
-              file
-            );
-          } catch (serverError) {
-            console.warn(
-              'Failed to upload cover to server (will sync later):',
-              serverError
-            );
-          }
+      // Set the data BEFORE showing the cropper
+      this.pendingFileName = 'generated-cover.png';
 
-          // Update project state with coverMediaId for Yjs sync
-          const currentProject = this.projectState.project();
-          if (currentProject) {
-            this.projectState.updateProject(currentProject, newCoverMediaId);
-          }
+      // The imageData from the dialog is a data URL (data:image/png;base64,...)
+      // ngx-image-cropper's imageBase64 expects just the base64 string without the prefix
+      // However, it also accepts the full data URL, so we pass it directly
+      this.imageBase64 = result.imageData;
 
-          this.showSuccess('Cover image generated and saved successfully');
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          this.showError(`Failed to save cover image: ${errorMessage}`);
-        } finally {
-          this.isLoadingCover.set(false);
-        }
-      }
+      // Show the cropper and trigger change detection
+      this.showCropper = true;
+      this.cdr.detectChanges();
     }
   }
 

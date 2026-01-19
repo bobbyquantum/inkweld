@@ -60,6 +60,7 @@ interface FormValues {
   enabled: boolean;
   supportsImageInput: boolean;
   supportsCustomResolutions: boolean;
+  usesAspectRatioOnly: boolean;
   supportedSizes: string[];
   defaultSize: string;
   sortOrder: number;
@@ -74,6 +75,7 @@ interface ImageProfileForm {
   enabled: FormControl<boolean>;
   supportsImageInput: FormControl<boolean>;
   supportsCustomResolutions: FormControl<boolean>;
+  usesAspectRatioOnly: FormControl<boolean>;
   supportedSizes: FormArray<FormControl<string>>;
   defaultSize: FormControl<string>;
   sortOrder: FormControl<number>;
@@ -127,6 +129,9 @@ export class ImageProfileDialogComponent {
     ),
     supportsCustomResolutions: this.fb.control(
       this.data.profile?.supportsCustomResolutions ?? false
+    ),
+    usesAspectRatioOnly: this.fb.control<boolean>(
+      Boolean(this.data.profile?.usesAspectRatioOnly ?? false)
     ),
     supportedSizes: this.fb.array(
       (this.data.profile?.supportedSizes ?? []).map(s => this.fb.control(s))
@@ -202,6 +207,24 @@ export class ImageProfileDialogComponent {
     },
   ];
 
+  /**
+   * OpenRouter supported aspect ratios.
+   * All OpenRouter image models use aspect_ratio only, not pixel dimensions.
+   * These are stored directly and sent to the API as-is.
+   */
+  readonly openrouterAspectRatios = [
+    '1:1',
+    '2:3',
+    '3:2',
+    '3:4',
+    '4:3',
+    '4:5',
+    '5:4',
+    '9:16',
+    '16:9',
+    '21:9',
+  ];
+
   // Computed: filter models based on search term
   readonly filteredModels = computed(() => {
     const models = this.availableModels();
@@ -221,6 +244,11 @@ export class ImageProfileDialogComponent {
   /** Check if current provider is OpenAI (uses hardcoded dropdown) */
   isOpenAiProvider(): boolean {
     return this.form?.get('provider')?.value === 'openai';
+  }
+
+  /** Check if current provider is OpenRouter (uses aspect ratio only) */
+  isOpenRouterProvider(): boolean {
+    return this.form?.get('provider')?.value === 'openrouter';
   }
 
   /** Check if current provider is Fal.ai (needs category selection first) */
@@ -308,6 +336,7 @@ export class ImageProfileDialogComponent {
             supportedSizes: [],
             supportsQuality: false,
             supportsStyle: false,
+            supportsImageInput: m.supportsImageInput ?? false, // From API
             maxImages: 1,
           })) ?? [];
       } else if (provider === 'falai') {
@@ -357,8 +386,25 @@ export class ImageProfileDialogComponent {
     // For OpenAI, set available models immediately (hardcoded)
     if (this.isOpenAiProvider()) {
       this.availableModels.set(this.openaiModels);
+      this.form.patchValue({ usesAspectRatioOnly: false });
+    } else if (this.isOpenRouterProvider()) {
+      // OpenRouter uses aspect ratio only - auto-configure
+      this.form.patchValue({
+        usesAspectRatioOnly: true,
+        supportsCustomResolutions: false,
+      });
+
+      // Pre-populate with OpenRouter aspect ratios
+      while (this.sizesArray.length) {
+        this.sizesArray.removeAt(0);
+      }
+      this.openrouterAspectRatios.forEach(ratio => {
+        this.sizesArray.push(this.fb.control(ratio, Validators.required));
+      });
+      this.form.patchValue({ defaultSize: '1:1' });
+
+      void this.loadModelsForProvider();
     } else if (this.canBrowseModels() && !this.isFalaiProvider()) {
-      // For OpenRouter, load immediately
       void this.loadModelsForProvider();
     }
     // For Fal.ai, wait for category selection before loading
@@ -444,6 +490,7 @@ export class ImageProfileDialogComponent {
       enabled: values.enabled,
       supportsImageInput: values.supportsImageInput,
       supportsCustomResolutions: values.supportsCustomResolutions,
+      usesAspectRatioOnly: values.usesAspectRatioOnly,
       supportedSizes:
         values.supportedSizes.length > 0 ? values.supportedSizes : undefined,
       defaultSize: values.defaultSize || undefined,

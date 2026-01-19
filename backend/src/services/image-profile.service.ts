@@ -20,9 +20,11 @@ export interface PublicImageModelProfile {
   enabled: boolean;
   supportsImageInput: boolean;
   supportsCustomResolutions: boolean;
+  usesAspectRatioOnly: boolean;
   supportedSizes: string[] | null;
   defaultSize: string | null;
   sortOrder: number;
+  creditCost: number;
 }
 
 /**
@@ -47,9 +49,11 @@ export function toPublicProfile(profile: ImageModelProfile): PublicImageModelPro
     enabled: profile.enabled,
     supportsImageInput: profile.supportsImageInput,
     supportsCustomResolutions: profile.supportsCustomResolutions,
+    usesAspectRatioOnly: profile.usesAspectRatioOnly,
     supportedSizes: profile.supportedSizes,
     defaultSize: profile.defaultSize,
     sortOrder: profile.sortOrder,
+    creditCost: profile.creditCost,
   };
 }
 
@@ -83,10 +87,12 @@ export interface CreateProfileInput {
   enabled?: boolean;
   supportsImageInput?: boolean;
   supportsCustomResolutions?: boolean;
+  usesAspectRatioOnly?: boolean;
   supportedSizes?: string[];
   defaultSize?: string;
   modelConfig?: Record<string, unknown>;
   sortOrder?: number;
+  creditCost?: number;
 }
 
 /**
@@ -100,10 +106,12 @@ export interface UpdateProfileInput {
   enabled?: boolean;
   supportsImageInput?: boolean;
   supportsCustomResolutions?: boolean;
+  usesAspectRatioOnly?: boolean;
   supportedSizes?: string[] | null;
   defaultSize?: string | null;
   modelConfig?: Record<string, unknown> | null;
   sortOrder?: number;
+  creditCost?: number;
 }
 
 /**
@@ -197,10 +205,13 @@ class ImageProfileService {
       modelId: input.modelId,
       enabled: input.enabled ?? true,
       supportsImageInput: input.supportsImageInput ?? false,
+      supportsCustomResolutions: input.supportsCustomResolutions ?? false,
+      usesAspectRatioOnly: input.usesAspectRatioOnly ?? false,
       supportedSizes: input.supportedSizes ?? null,
       defaultSize: input.defaultSize ?? null,
       modelConfig: input.modelConfig ?? null,
       sortOrder: input.sortOrder ?? 0,
+      creditCost: input.creditCost ?? 1,
     };
 
     await db.insert(imageModelProfiles).values(profileData);
@@ -278,6 +289,7 @@ class ImageProfileService {
     modelId: string;
     modelConfig: Record<string, unknown> | null;
     supportsImageInput: boolean;
+    usesAspectRatioOnly: boolean;
     supportedSizes: string[] | null;
     defaultSize: string | null;
   } | null> {
@@ -291,6 +303,7 @@ class ImageProfileService {
       modelId: profile.modelId,
       modelConfig: profile.modelConfig,
       supportsImageInput: profile.supportsImageInput,
+      usesAspectRatioOnly: profile.usesAspectRatioOnly,
       supportedSizes: profile.supportedSizes,
       defaultSize: profile.defaultSize,
     };

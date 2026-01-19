@@ -21,9 +21,14 @@ export interface PublicImageModelProfile {
     enabled: boolean;
     supportsImageInput: boolean;
     supportsCustomResolutions: boolean;
+    usesAspectRatioOnly: boolean;
     supportedSizes: Array<string> | null;
     defaultSize: string | null;
     sortOrder: number;
+    /**
+     * Credit cost per generation (whole numbers)
+     */
+    creditCost: number;
 }
 export enum PublicImageModelProfileProvider {
     Openai = 'openai',

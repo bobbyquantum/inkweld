@@ -26,5 +26,9 @@ export interface GeneratedImage {
      * Image index in batch
      */
     index: number;
+    /**
+     * Raw text content if the model returned text instead of an image
+     */
+    textContent?: string;
 }
 

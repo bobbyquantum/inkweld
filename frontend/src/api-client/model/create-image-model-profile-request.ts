@@ -32,10 +32,18 @@ export interface CreateImageModelProfileRequest {
      * Whether arbitrary/custom resolutions are allowed
      */
     supportsCustomResolutions?: boolean;
+    /**
+     * When true, the model only accepts aspect ratio (e.g., \"16:9\") not pixel dimensions. Auto-detected for known models like google/gemini-3-pro-image-preview.
+     */
+    usesAspectRatioOnly?: boolean;
     supportedSizes?: Array<string>;
     defaultSize?: string;
     modelConfig?: { [key: string]: any | null; };
     sortOrder?: number;
+    /**
+     * Credit cost per generation (whole numbers)
+     */
+    creditCost?: number;
 }
 export enum CreateImageModelProfileRequestProvider {
     Openai = 'openai',

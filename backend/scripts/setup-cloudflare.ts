@@ -1206,13 +1206,13 @@ ${colors.bright}Next Steps:${colors.reset}
 
     if (previewDbId) {
       console.log(`2. ${colors.cyan}Deploy to preview (from project root)${colors.reset}
-   npm run cloudflare:deploy:preview
+   npm run cloudflare:preview:deploy
 `);
     }
 
     if (prodDbId) {
       console.log(`${previewDbId ? '3' : '2'}. ${colors.cyan}Deploy to production (from project root)${colors.reset}
-   npm run cloudflare:deploy:prod
+   npm run cloudflare:prod:deploy
 `);
     }
 

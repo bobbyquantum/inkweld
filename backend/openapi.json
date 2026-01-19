@@ -1221,6 +1221,10 @@
               "prompt"
             ],
             "description": "Original request parameters"
+          },
+          "textContent": {
+            "type": "string",
+            "description": "Raw text content if the model returned text instead of an image (refusal or explanation)"
           }
         },
         "required": [
@@ -1249,6 +1253,10 @@
           "index": {
             "type": "number",
             "description": "Image index in batch"
+          },
+          "textContent": {
+            "type": "string",
+            "description": "Raw text content if the model returned text instead of an image"
           }
         },
         "required": [
@@ -1261,14 +1269,19 @@
           "prompt": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 4000,
+            "maxLength": 16000,
             "example": "A fantasy castle on a misty mountain",
-            "description": "The image generation prompt"
+            "description": "The image generation prompt (up to 16,000 characters for rich worldbuilding context)"
           },
           "profileId": {
             "type": "string",
             "format": "uuid",
             "description": "Image model profile ID - determines provider, model, and default settings"
+          },
+          "projectKey": {
+            "type": "string",
+            "example": "alice/my-novel",
+            "description": "Project key (username/slug) for loading reference images from worldbuilding elements. Required if worldbuildingContext includes elements with role \"reference\"."
           },
           "n": {
             "type": "integer",
@@ -1307,7 +1320,7 @@
             "items": {
               "$ref": "#/components/schemas/WorldbuildingContext"
             },
-            "description": "Worldbuilding elements to include in the prompt"
+            "description": "Worldbuilding elements to include in the prompt. Elements with role \"reference\" will have their images loaded server-side."
           }
         },
         "required": [
@@ -1338,6 +1351,16 @@
           "1080x1920",
           "1600x2560",
           "2560x1600",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9",
           "auto"
         ],
         "description": "Image size (uses profile default if not specified)"
@@ -2035,6 +2058,10 @@
           "provider": {
             "type": "string",
             "description": "Provider identifier"
+          },
+          "supportsImageInput": {
+            "type": "boolean",
+            "description": "Whether model supports image input (for image-to-image)"
           }
         },
         "required": [
@@ -2242,6 +2269,9 @@
           "supportsCustomResolutions": {
             "type": "boolean"
           },
+          "usesAspectRatioOnly": {
+            "type": "boolean"
+          },
           "supportedSizes": {
             "type": "array",
             "nullable": true,
@@ -2255,6 +2285,10 @@
           },
           "sortOrder": {
             "type": "number"
+          },
+          "creditCost": {
+            "type": "number",
+            "description": "Credit cost per generation (whole numbers)"
           }
         },
         "required": [
@@ -2266,9 +2300,11 @@
           "enabled",
           "supportsImageInput",
           "supportsCustomResolutions",
+          "usesAspectRatioOnly",
           "supportedSizes",
           "defaultSize",
-          "sortOrder"
+          "sortOrder",
+          "creditCost"
         ]
       },
       "AdminImageModelProfile": {
@@ -2345,6 +2381,11 @@
             "default": false,
             "description": "Whether arbitrary/custom resolutions are allowed"
           },
+          "usesAspectRatioOnly": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, the model only accepts aspect ratio (e.g., \"16:9\") not pixel dimensions. Auto-detected for known models like google/gemini-3-pro-image-preview."
+          },
           "supportedSizes": {
             "type": "array",
             "items": {
@@ -2363,6 +2404,12 @@
           "sortOrder": {
             "type": "number",
             "default": 0
+          },
+          "creditCost": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Credit cost per generation (whole numbers)"
           }
         },
         "required": [
@@ -2407,6 +2454,9 @@
           "supportsCustomResolutions": {
             "type": "boolean"
           },
+          "usesAspectRatioOnly": {
+            "type": "boolean"
+          },
           "supportedSizes": {
             "type": "array",
             "nullable": true,
@@ -2427,8 +2477,188 @@
           },
           "sortOrder": {
             "type": "number"
+          },
+          "creditCost": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Credit cost per generation (whole numbers)"
           }
         }
+      },
+      "PaginatedImageAudits": {
+        "type": "object",
+        "properties": {
+          "audits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageGenerationAudit"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "audits",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
+      },
+      "ImageGenerationAudit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileId": {
+            "type": "string",
+            "nullable": true
+          },
+          "profileName": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "referenceImageUrls": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputImageUrls": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "creditCost": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "moderated"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "username",
+          "profileId",
+          "profileName",
+          "prompt",
+          "referenceImageUrls",
+          "outputImageUrls",
+          "creditCost",
+          "status",
+          "message",
+          "createdAt"
+        ]
+      },
+      "ImageAuditStats": {
+        "type": "object",
+        "properties": {
+          "totalRequests": {
+            "type": "number"
+          },
+          "totalCredits": {
+            "type": "number"
+          },
+          "successCount": {
+            "type": "number"
+          },
+          "moderatedCount": {
+            "type": "number"
+          },
+          "byProfile": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "profileName": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "number"
+                },
+                "credits": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "profileName",
+                "count",
+                "credits"
+              ]
+            }
+          },
+          "byUser": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "count": {
+                  "type": "number"
+                },
+                "credits": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "userId",
+                "username",
+                "count",
+                "credits"
+              ]
+            }
+          }
+        },
+        "required": [
+          "totalRequests",
+          "totalCredits",
+          "successCount",
+          "moderatedCount",
+          "byProfile",
+          "byUser"
+        ]
       },
       "McpPublicKey": {
         "type": "object",
@@ -7599,6 +7829,269 @@
           },
           "404": {
             "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/image-audits": {
+      "get": {
+        "tags": [
+          "Admin - Image Audits"
+        ],
+        "summary": "List image generation audits",
+        "description": "Get a paginated list of image generation audit records (admin only)",
+        "operationId": "adminListImageAudits",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by user ID"
+            },
+            "required": false,
+            "description": "Filter by user ID",
+            "name": "userId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by profile ID"
+            },
+            "required": false,
+            "description": "Filter by profile ID",
+            "name": "profileId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "success",
+                "moderated"
+              ],
+              "description": "Filter by status"
+            },
+            "required": false,
+            "description": "Filter by status",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by start date (ISO 8601)",
+              "example": "2025-01-01T00:00:00Z"
+            },
+            "required": false,
+            "description": "Filter by start date (ISO 8601)",
+            "name": "startDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by end date (ISO 8601)",
+              "example": "2025-12-31T23:59:59Z"
+            },
+            "required": false,
+            "description": "Filter by end date (ISO 8601)",
+            "name": "endDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Search in prompt text"
+            },
+            "required": false,
+            "description": "Search in prompt text",
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "description": "Page number"
+            },
+            "required": false,
+            "description": "Page number",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "description": "Items per page"
+            },
+            "required": false,
+            "description": "Items per page",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of audits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedImageAudits"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/image-audits/{auditId}": {
+      "get": {
+        "tags": [
+          "Admin - Image Audits"
+        ],
+        "summary": "Get audit by ID",
+        "description": "Get a single image generation audit record by ID (admin only)",
+        "operationId": "adminGetImageAudit",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Audit ID"
+            },
+            "required": true,
+            "description": "Audit ID",
+            "name": "auditId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationAudit"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Audit not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/image-audits/stats/summary": {
+      "get": {
+        "tags": [
+          "Admin - Image Audits"
+        ],
+        "summary": "Get usage statistics",
+        "description": "Get aggregated usage statistics for image generation (admin only)",
+        "operationId": "adminGetImageAuditStats",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Start date for stats (ISO 8601)"
+            },
+            "required": false,
+            "description": "Start date for stats (ISO 8601)",
+            "name": "startDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "End date for stats (ISO 8601)"
+            },
+            "required": false,
+            "description": "End date for stats (ISO 8601)",
+            "name": "endDate",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageAuditStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
             "content": {
               "application/json": {
                 "schema": {

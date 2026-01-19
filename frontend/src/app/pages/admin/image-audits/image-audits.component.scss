@@ -1,0 +1,129 @@
+.image-audits-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    flex: 1;
+  }
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  text-align: center;
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--mat-sys-primary);
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface-variant);
+    margin-top: 4px;
+  }
+
+  &.success .stat-value {
+    color: var(--mat-sys-tertiary, #4caf50);
+  }
+
+  &.moderated .stat-value {
+    color: var(--mat-sys-error);
+  }
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+
+  .search-field {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  .status-filter {
+    min-width: 150px;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.table-container {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.audits-table {
+  width: 100%;
+
+  .prompt-cell {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.status-success {
+  background-color: rgba(76, 175, 80, 0.2) !important;
+  color: #2e7d32 !important;
+}
+
+.status-moderated {
+  background-color: rgba(244, 67, 54, 0.2) !important;
+  color: #c62828 !important;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  h2 {
+    margin: 0 0 8px;
+    color: var(--mat-sys-on-surface);
+  }
+
+  p {
+    margin: 0;
+    max-width: 400px;
+  }
+}
+
+::ng-deep .wide-tooltip {
+  max-width: 400px !important;
+  white-space: pre-wrap;
+}

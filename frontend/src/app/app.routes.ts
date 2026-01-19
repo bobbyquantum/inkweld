@@ -99,6 +99,14 @@ export const routes: Routes = [
           ),
         title: 'Admin - Announcements',
       },
+      {
+        path: 'image-audits',
+        loadComponent: () =>
+          import('./pages/admin/image-audits/image-audits.component').then(
+            m => m.AdminImageAuditsComponent
+          ),
+        title: 'Admin - Image Audits',
+      },
     ],
   },
   {

@@ -74,6 +74,8 @@ describe('ImageGenerationDialogComponent', () => {
       defaultSize: '1024x1024',
       enabled: true,
       sortOrder: 0,
+      usesAspectRatioOnly: false,
+      creditCost: 1,
     },
     {
       id: 'profile-2',
@@ -87,6 +89,8 @@ describe('ImageGenerationDialogComponent', () => {
       defaultSize: '1024x1024',
       enabled: true,
       sortOrder: 1,
+      usesAspectRatioOnly: false,
+      creditCost: 1,
     },
   ];
 
@@ -204,22 +208,24 @@ describe('ImageGenerationDialogComponent', () => {
     expect(component.profiles().length).toBe(2);
   });
 
-  it('should filter out image-to-image profiles (supportsImageInput=true)', async () => {
+  it('should include image-to-image profiles (supportsImageInput=true) since they also support text-to-image', async () => {
     // Add an image-to-image profile to the mock data
     const profilesWithImageToImage: PublicImageModelProfile[] = [
       ...mockProfiles,
       {
         id: 'profile-img2img',
         name: 'Image-to-Image Profile',
-        description: 'Requires source image',
-        provider: PublicImageModelProfileProvider.Falai,
-        modelId: 'fal-ai/gpt-image-1.5/edit',
-        supportsImageInput: true, // This should be filtered out
+        description: 'Supports image input',
+        provider: PublicImageModelProfileProvider.Openrouter, // Use an enabled provider
+        modelId: 'openrouter/imagen-edit',
+        supportsImageInput: true, // This should NOT be filtered out - it can still do text-to-image
         supportsCustomResolutions: false,
         supportedSizes: ['1024x1024'],
         defaultSize: '1024x1024',
         enabled: true,
         sortOrder: 2,
+        usesAspectRatioOnly: false,
+        creditCost: 1,
       },
     ];
 
@@ -230,9 +236,12 @@ describe('ImageGenerationDialogComponent', () => {
     fixture.detectChanges();
     await flushPromises();
 
-    // Should only include text-to-image profiles (2), not the image-to-image one
-    expect(component.profiles().length).toBe(2);
-    expect(component.profiles().every(p => !p.supportsImageInput)).toBe(true);
+    // All profiles should be included - supportsImageInput means it CAN accept image input,
+    // not that it requires one. These profiles can still be used for text-to-image generation.
+    expect(component.profiles().length).toBe(3);
+    expect(component.profiles().some(p => p.supportsImageInput === true)).toBe(
+      true
+    );
   });
 
   describe('form stage', () => {
@@ -461,6 +470,8 @@ describe('ImageGenerationDialogComponent', () => {
         defaultSize: '1024x1024',
         enabled: true,
         sortOrder: 0,
+        usesAspectRatioOnly: false,
+        creditCost: 1,
       });
 
       const name = component.getModelName();
@@ -599,6 +610,8 @@ describe('ImageGenerationDialogComponent', () => {
         defaultSize: '1024x1024',
         enabled: true,
         sortOrder: 0,
+        usesAspectRatioOnly: false,
+        creditCost: 1,
       });
       component.customSizes.set([]);
 
@@ -623,6 +636,8 @@ describe('ImageGenerationDialogComponent', () => {
         defaultSize: '16:9@4K',
         enabled: true,
         sortOrder: 0,
+        usesAspectRatioOnly: false,
+        creditCost: 1,
       });
       component.customSizes.set([]);
 
@@ -649,6 +664,8 @@ describe('ImageGenerationDialogComponent', () => {
         defaultSize: '16:9@4K',
         enabled: true,
         sortOrder: 0,
+        usesAspectRatioOnly: false,
+        creditCost: 1,
       });
       // Try to add custom sizes - they should be ignored for aspect ratio profiles
       component.customSizes.set([
@@ -674,6 +691,8 @@ describe('ImageGenerationDialogComponent', () => {
         defaultSize: null,
         enabled: true,
         sortOrder: 0,
+        usesAspectRatioOnly: false,
+        creditCost: 1,
       });
       component.customSizes.set([]);
 
@@ -695,6 +714,8 @@ describe('ImageGenerationDialogComponent', () => {
         defaultSize: '1234x5678',
         enabled: true,
         sortOrder: 0,
+        usesAspectRatioOnly: false,
+        creditCost: 1,
       });
       component.customSizes.set([]);
 
