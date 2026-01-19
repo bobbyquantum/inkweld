@@ -30,6 +30,10 @@ export interface ImageGenerateResponse {
      */
     model: string;
     request: ImageGenerateResponseRequest;
+    /**
+     * Raw text content if the model returned text instead of an image (refusal or explanation)
+     */
+    textContent?: string;
 }
 
 

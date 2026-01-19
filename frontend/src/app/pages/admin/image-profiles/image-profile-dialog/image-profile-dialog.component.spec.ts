@@ -196,6 +196,7 @@ describe('ImageProfileDialogComponent', () => {
         defaultSize: undefined,
         sortOrder: 0,
         modelConfig: undefined,
+        usesAspectRatioOnly: false,
       });
     });
 
@@ -221,6 +222,8 @@ describe('ImageProfileDialogComponent', () => {
       modelConfig: { quality: 'hd' },
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
+      usesAspectRatioOnly: false,
+      creditCost: 1,
     };
 
     beforeEach(async () => {

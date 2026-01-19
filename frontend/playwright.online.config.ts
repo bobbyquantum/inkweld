@@ -86,6 +86,10 @@ export default defineConfig({
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
         DATA_PATH: './test-data/e2e',
+        // Disable AI kill switch to allow AI feature testing
+        AI_KILL_SWITCH: 'false',
+        // Enable AI image generation for e2e testing
+        AI_IMAGE_ENABLED: 'true',
         // Default admin for e2e tests
         DEFAULT_ADMIN_USERNAME: 'e2e-admin',
         DEFAULT_ADMIN_PASSWORD: 'E2eAdminPassword123!',

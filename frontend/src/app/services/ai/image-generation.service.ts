@@ -178,6 +178,34 @@ export class ImageGenerationService {
         this.aiImageService.generateImage(job.request)
       );
 
+      // Check if the model returned text instead of images
+      // This happens when the model refuses or explains why it can't generate
+      if (response.data.length === 0 && response.textContent) {
+        // Determine if this is a refusal or just an explanation
+        const lowerContent = response.textContent.toLowerCase();
+        const isRefusal =
+          lowerContent.includes('cannot') ||
+          lowerContent.includes("can't") ||
+          lowerContent.includes('unable') ||
+          lowerContent.includes('sorry') ||
+          lowerContent.includes('policy') ||
+          lowerContent.includes('inappropriate') ||
+          lowerContent.includes('violat');
+
+        const errorMessage = isRefusal
+          ? `Image generation was refused: ${response.textContent}`
+          : `The model returned text instead of an image: ${response.textContent}`;
+
+        this.updateJob(jobId, {
+          status: 'failed',
+          message: 'Generation failed',
+          error: errorMessage,
+          response, // Still include the response for debugging
+        });
+        this.updateActiveJobs();
+        return;
+      }
+
       this.updateJob(jobId, {
         status: 'saving',
         message: 'Saving to media library...',
@@ -188,29 +216,59 @@ export class ImageGenerationService {
       // Save all generated images to IndexedDB
       const savedMediaIds = await this.saveGeneratedImages(job, response);
 
-      // If this is a cover generation, upload the first image as the project cover
-      if (job.forCover && response.data.length > 0) {
-        this.updateJob(jobId, {
-          status: 'saving',
-          message: 'Setting as project cover...',
-        });
-        await this.uploadAsCover(job, response.data[0]);
-      }
+      // Note: For cover generation (forCover: true), the image is saved to
+      // the media library, but we do NOT auto-set it as the project cover.
+      // The user should crop the image first via the cropper in the
+      // edit-project-dialog. The cropped version becomes the actual cover.
 
       this.updateJob(jobId, {
         status: 'completed',
         message: job.forCover
-          ? 'Cover image generated and set!'
+          ? 'Image saved to library. Crop to set as cover.'
           : `Generated ${response.data.length} image${response.data.length > 1 ? 's' : ''}`,
         savedMediaIds,
       });
     } catch (err) {
       console.error('Generation failed:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Generation failed';
+
+      // Extract error message from various error formats
+      let errorMessage = 'Generation failed';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      // Handle Angular HttpErrorResponse (from API calls)
+      // HttpErrorResponse has an `error` property that can be an object or string
+      if (
+        err !== null &&
+        typeof err === 'object' &&
+        'error' in err &&
+        err.error !== null
+      ) {
+        const errorBody = err.error as Record<string, unknown>;
+        if (typeof errorBody === 'object') {
+          if (typeof errorBody['error'] === 'string') {
+            // API returns { error: "message" }
+            errorMessage = errorBody['error'];
+          } else if (typeof errorBody['message'] === 'string') {
+            // API returns { message: "message" }
+            errorMessage = errorBody['message'];
+          }
+        } else if (typeof errorBody === 'string') {
+          // API returns plain string error
+          errorMessage = errorBody;
+        }
+      }
+
+      // Check for moderation block (special prefix from backend)
+      const isModerationBlock = errorMessage.includes('MODERATION_BLOCKED:');
+      if (isModerationBlock) {
+        // Strip the prefix for display
+        errorMessage = errorMessage.replace('MODERATION_BLOCKED:', '').trim();
+      }
+
       this.updateJob(jobId, {
         status: 'failed',
-        message: 'Generation failed',
+        message: isModerationBlock ? 'Content blocked' : 'Generation failed',
         error: errorMessage,
       });
     }
@@ -277,52 +335,6 @@ export class ImageGenerationService {
     }
 
     return savedMediaIds;
-  }
-
-  /**
-   * Upload a generated image as the project cover
-   */
-  private async uploadAsCover(
-    job: GenerationJob,
-    image: GeneratedImage
-  ): Promise<void> {
-    // Parse username and slug from projectKey
-    const [username, slug] = job.projectKey.split('/');
-    if (!username || !slug) {
-      console.error('Invalid projectKey for cover upload:', job.projectKey);
-      return;
-    }
-
-    try {
-      // Convert image to blob
-      let blob: Blob;
-      if (image.b64Json) {
-        const binaryString = atob(image.b64Json);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let j = 0; j < binaryString.length; j++) {
-          bytes[j] = binaryString.charCodeAt(j);
-        }
-        blob = new Blob([bytes], { type: 'image/png' });
-      } else if (image.url) {
-        const fetchResponse = await fetch(image.url);
-        blob = await fetchResponse.blob();
-      } else {
-        console.error('Image has no data for cover upload');
-        return;
-      }
-
-      // Create a File from the blob
-      const file = new File([blob], 'generated-cover.png', {
-        type: 'image/png',
-      });
-
-      // Upload as project cover
-      await this.projectService.uploadProjectCover(username, slug, file);
-      console.log('Cover image uploaded successfully for', job.projectKey);
-    } catch (err) {
-      console.error('Failed to upload cover image:', err);
-      // Don't throw - the images are still saved to the library
-    }
   }
 
   /**

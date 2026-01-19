@@ -97,12 +97,16 @@
                   <span class="element-chip">
                     <mat-icon>{{ getElementIcon(el.type) }}</mat-icon>
                     {{ el.name }}
-                    @if (el.includeReference) {
-                      <mat-icon
-                        class="toggle-indicator"
-                        matTooltip="Image included"
-                        >image</mat-icon
-                      >
+                    @if (el.includeReference && el.imageUrl) {
+                      <span class="image-preview-trigger">
+                        <mat-icon class="toggle-indicator">image</mat-icon>
+                        <span class="image-preview-tooltip">
+                          <img
+                            [src]="el.imageUrl"
+                            alt="{{ el.name }} reference image"
+                            class="preview-image" />
+                        </span>
+                      </span>
                     }
                     @if (el.includeDescription) {
                       <mat-icon
@@ -124,40 +128,50 @@
             </div>
           }
 
-          <!-- Profile Selection -->
-          <div class="form-section">
-            <h3>Model Profile</h3>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Select a model profile</mat-label>
-              <mat-select
-                [value]="selectedProfile()"
-                (selectionChange)="onProfileChange($event.value)"
-                data-testid="image-gen-profile-select">
-                @for (profile of profiles(); track profile.id) {
-                  <mat-option
-                    [value]="profile"
-                    [attr.data-testid]="
-                      'image-gen-profile-option-' + profile.id
-                    ">
-                    {{ profile.name }}
-                    @if (profile.description) {
-                      <span class="profile-description">
-                        - {{ profile.description }}</span
-                      >
-                    }
-                  </mat-option>
-                }
-              </mat-select>
-              <mat-hint>
-                @if (selectedProfile()) {
-                  @if (selectedProfile()!.supportsImageInput) {
-                    <mat-icon class="hint-icon">image</mat-icon> Supports image
-                    input
+          <!-- Profile Selection (only show if multiple profiles) -->
+          @if (profiles().length > 1) {
+            <div class="form-section">
+              <h3>Model Profile</h3>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Select a model profile</mat-label>
+                <mat-select
+                  [value]="selectedProfile()"
+                  (selectionChange)="onProfileChange($event.value)"
+                  data-testid="image-gen-profile-select">
+                  @for (profile of profiles(); track profile.id) {
+                    <mat-option
+                      [value]="profile"
+                      [attr.data-testid]="
+                        'image-gen-profile-option-' + profile.id
+                      ">
+                      {{ profile.name }}
+                      @if (profile.description) {
+                        <span class="profile-description">
+                          - {{ profile.description }}</span
+                        >
+                      }
+                    </mat-option>
                   }
-                }
-              </mat-hint>
-            </mat-form-field>
-          </div>
+                </mat-select>
+                <mat-hint>
+                  @if (selectedProfile()) {
+                    @if (selectedProfile()!.supportsImageInput) {
+                      <mat-icon class="hint-icon">image</mat-icon> Supports
+                      image input
+                    }
+                  }
+                </mat-hint>
+              </mat-form-field>
+            </div>
+          } @else if (selectedProfile()) {
+            <!-- Show selected profile info when only one exists -->
+            <div class="single-profile-info">
+              <span class="profile-name">{{ selectedProfile()!.name }}</span>
+              @if (selectedProfile()!.supportsImageInput) {
+                <mat-icon class="hint-icon">image</mat-icon>
+              }
+            </div>
+          }
 
           <!-- Prompt -->
           <div class="form-section">
@@ -200,12 +214,53 @@
               <mat-select
                 [value]="selectedSize()"
                 (selectionChange)="selectedSize.set($event.value)">
+                <!-- Custom trigger to show SVG preview in closed state -->
+                <mat-select-trigger>
+                  @let selectedPreview = getAspectRatioPreview(selectedSize());
+                  <span class="size-option">
+                    <svg
+                      class="aspect-ratio-preview"
+                      viewBox="0 0 20 20"
+                      width="20"
+                      height="20">
+                      <rect
+                        [attr.x]="(20 - selectedPreview.width) / 2"
+                        [attr.y]="(20 - selectedPreview.height) / 2"
+                        [attr.width]="selectedPreview.width"
+                        [attr.height]="selectedPreview.height"
+                        rx="1"
+                        fill="currentColor"
+                        opacity="0.7" />
+                    </svg>
+                    <span class="size-label">{{ getSelectedSizeLabel() }}</span>
+                  </span>
+                </mat-select-trigger>
                 @for (size of sizeOptions(); track size.value) {
+                  @let preview = getAspectRatioPreview(size.value);
                   <mat-option [value]="size.value">
-                    {{ size.label }} ({{ size.megapixels }} MP)
-                    @if (size.isCustom) {
-                      <mat-icon class="custom-size-icon">tune</mat-icon>
-                    }
+                    <span class="size-option">
+                      <svg
+                        class="aspect-ratio-preview"
+                        viewBox="0 0 20 20"
+                        width="20"
+                        height="20">
+                        <rect
+                          [attr.x]="(20 - preview.width) / 2"
+                          [attr.y]="(20 - preview.height) / 2"
+                          [attr.width]="preview.width"
+                          [attr.height]="preview.height"
+                          rx="1"
+                          fill="currentColor"
+                          opacity="0.7" />
+                      </svg>
+                      <span class="size-label">{{ size.label }}</span>
+                      @if (size.megapixels !== '-') {
+                        <span class="size-mp">({{ size.megapixels }} MP)</span>
+                      }
+                      @if (size.isCustom) {
+                        <mat-icon class="custom-size-icon">tune</mat-icon>
+                      }
+                    </span>
                   </mat-option>
                 }
               </mat-select>
@@ -276,13 +331,19 @@
               <div class="summary-row">
                 <span class="label">Provider</span>
                 <span class="value">{{
-                  getProviderLabel(currentJob()?.response?.provider!)
+                  getProviderLabel(
+                    currentJob()?.response?.provider ||
+                      selectedProfile()?.provider ||
+                      ''
+                  )
                 }}</span>
               </div>
               <div class="summary-row">
                 <span class="label">Model</span>
                 <span class="value">{{
-                  currentJob()?.response?.model || 'Default'
+                  currentJob()?.response?.model ||
+                    selectedProfile()?.name ||
+                    'Default'
                 }}</span>
               </div>
               <div class="summary-row">
@@ -324,12 +385,20 @@
                 <mat-spinner diameter="32"></mat-spinner>
                 <p class="status-message">{{ currentJob()?.message }}</p>
               } @else if (currentJob()?.status === 'failed') {
-                <mat-icon class="error-icon">error</mat-icon>
-                <p
-                  class="status-message error"
-                  data-testid="image-gen-error-message">
-                  {{ currentJob()?.error || 'Generation failed' }}
-                </p>
+                @if (currentJob()?.message === 'Content blocked') {
+                  <mat-icon class="error-icon moderation">block</mat-icon>
+                  <p class="status-message warning">Content Moderated</p>
+                  <p class="moderation-hint">
+                    {{ currentJob()?.error }}
+                  </p>
+                } @else {
+                  <mat-icon class="error-icon">error</mat-icon>
+                  <p
+                    class="status-message error"
+                    data-testid="image-gen-error-message">
+                    {{ currentJob()?.error || 'Generation failed' }}
+                  </p>
+                }
                 <button
                   mat-stroked-button
                   (click)="goBack()"
@@ -352,38 +421,41 @@
                 Images automatically saved to Media Library
               </p>
 
-              <div class="image-grid">
-                @for (image of currentJob()!.images; track $index) {
-                  <div
-                    class="image-item"
-                    [class.selected]="selectedImageIndex() === $index"
-                    (click)="selectImage($index)"
-                    (keydown.enter)="selectImage($index)"
-                    (keydown.space)="
-                      selectImage($index); $event.preventDefault()
-                    "
-                    tabindex="0"
-                    role="button">
+              <div class="results-layout">
+                <!-- Large selected image preview on the left -->
+                @if (getSelectedImage()) {
+                  <div class="selected-preview">
                     <img
-                      [src]="getImageUrl(image)"
-                      alt="Generated image {{ $index + 1 }}" />
-                    @if (selectedImageIndex() === $index) {
-                      <div class="selected-indicator">
-                        <mat-icon>check_circle</mat-icon>
-                      </div>
-                    }
+                      [src]="getImageUrl(getSelectedImage()!)"
+                      alt="Selected image" />
                   </div>
                 }
-              </div>
 
-              <!-- Selected image preview -->
-              @if (getSelectedImage()) {
-                <div class="selected-preview">
-                  <img
-                    [src]="getImageUrl(getSelectedImage()!)"
-                    alt="Selected image" />
+                <!-- Vertical scrollable thumbnails on the right -->
+                <div class="thumbnail-column">
+                  @for (image of currentJob()!.images; track $index) {
+                    <div
+                      class="thumbnail-item"
+                      [class.selected]="selectedImageIndex() === $index"
+                      (click)="selectImage($index)"
+                      (keydown.enter)="selectImage($index)"
+                      (keydown.space)="
+                        selectImage($index); $event.preventDefault()
+                      "
+                      tabindex="0"
+                      role="button">
+                      <img
+                        [src]="getImageUrl(image)"
+                        alt="Generated image {{ $index + 1 }}" />
+                      @if (selectedImageIndex() === $index) {
+                        <div class="selected-indicator">
+                          <mat-icon>check_circle</mat-icon>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
-              }
+              </div>
             </div>
           }
         </div>

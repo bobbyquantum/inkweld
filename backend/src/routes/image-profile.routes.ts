@@ -34,9 +34,11 @@ function formatAdminProfile(profile: {
   enabled: boolean;
   supportsImageInput: boolean;
   supportsCustomResolutions: boolean;
+  usesAspectRatioOnly: boolean;
   supportedSizes: string[] | null;
   defaultSize: string | null;
   sortOrder: number;
+  creditCost: number;
   modelConfig: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
@@ -50,9 +52,11 @@ function formatAdminProfile(profile: {
     enabled: profile.enabled,
     supportsImageInput: profile.supportsImageInput,
     supportsCustomResolutions: profile.supportsCustomResolutions,
+    usesAspectRatioOnly: profile.usesAspectRatioOnly,
     supportedSizes: profile.supportedSizes,
     defaultSize: profile.defaultSize,
     sortOrder: profile.sortOrder,
+    creditCost: profile.creditCost,
     modelConfig: profile.modelConfig,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
@@ -77,9 +81,11 @@ const PublicProfileSchema = z
     enabled: z.boolean(),
     supportsImageInput: z.boolean(),
     supportsCustomResolutions: z.boolean(),
+    usesAspectRatioOnly: z.boolean(),
     supportedSizes: z.array(z.string()).nullable(),
     defaultSize: z.string().nullable(),
     sortOrder: z.number(),
+    creditCost: z.number().openapi({ description: 'Credit cost per generation (whole numbers)' }),
   })
   .openapi('PublicImageModelProfile');
 
@@ -102,10 +108,21 @@ const CreateProfileRequestSchema = z
       .optional()
       .default(false)
       .openapi({ description: 'Whether arbitrary/custom resolutions are allowed' }),
+    usesAspectRatioOnly: z.boolean().optional().default(false).openapi({
+      description:
+        'When true, the model only accepts aspect ratio (e.g., "16:9") not pixel dimensions. Auto-detected for known models like google/gemini-3-pro-image-preview.',
+    }),
     supportedSizes: z.array(z.string()).optional(),
     defaultSize: z.string().optional(),
     modelConfig: z.record(z.string(), z.unknown()).optional(),
     sortOrder: z.number().optional().default(0),
+    creditCost: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .default(1)
+      .openapi({ description: 'Credit cost per generation (whole numbers)' }),
   })
   .openapi('CreateImageModelProfileRequest');
 
@@ -118,10 +135,17 @@ const UpdateProfileRequestSchema = z
     enabled: z.boolean().optional(),
     supportsImageInput: z.boolean().optional(),
     supportsCustomResolutions: z.boolean().optional(),
+    usesAspectRatioOnly: z.boolean().optional(),
     supportedSizes: z.array(z.string()).nullable().optional(),
     defaultSize: z.string().nullable().optional(),
     modelConfig: z.record(z.string(), z.unknown()).nullable().optional(),
     sortOrder: z.number().optional(),
+    creditCost: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .openapi({ description: 'Credit cost per generation (whole numbers)' }),
   })
   .openapi('UpdateImageModelProfileRequest');
 
@@ -366,6 +390,7 @@ imageProfileAdminRoutes.openapi(createProfileRoute, async (c) => {
       enabled: body.enabled,
       supportsImageInput: body.supportsImageInput,
       supportsCustomResolutions: body.supportsCustomResolutions,
+      usesAspectRatioOnly: body.usesAspectRatioOnly,
       supportedSizes: body.supportedSizes,
       defaultSize: body.defaultSize,
       modelConfig: body.modelConfig,
@@ -448,6 +473,7 @@ imageProfileAdminRoutes.openapi(updateProfileRoute, async (c) => {
       enabled: body.enabled,
       supportsImageInput: body.supportsImageInput,
       supportsCustomResolutions: body.supportsCustomResolutions,
+      usesAspectRatioOnly: body.usesAspectRatioOnly,
       supportedSizes: body.supportedSizes,
       defaultSize: body.defaultSize,
       modelConfig: body.modelConfig,

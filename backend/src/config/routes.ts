@@ -28,6 +28,7 @@ import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
 import { adminConfigRoutes } from '../routes/admin-config.routes';
 import { imageProfileUserRoutes, imageProfileAdminRoutes } from '../routes/image-profile.routes';
+import { imageAuditAdminRoutes } from '../routes/image-audit.routes';
 import {
   publicAnnouncementRoutes,
   announcementRoutes,
@@ -75,6 +76,9 @@ export function registerCommonRoutes(app: any): void {
   // Image model profiles
   app.route('/api/v1/ai/image-profiles', imageProfileUserRoutes);
   app.route('/api/v1/admin/image-profiles', imageProfileAdminRoutes);
+
+  // Image generation audits (admin only)
+  app.route('/api/v1/admin/image-audits', imageAuditAdminRoutes);
 
   // MCP key management (for frontend to create/manage API keys)
   app.route('/api/v1/mcp-keys', mcpKeyRoutes);

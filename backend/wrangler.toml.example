@@ -33,8 +33,8 @@
 #    npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql
 #
 # 7. Deploy (from project root):
-#    npm run cloudflare:deploy:preview   # Preview
-#    npm run cloudflare:deploy:prod      # Production
+#    npm run cloudflare:preview:deploy   # Preview
+#    npm run cloudflare:prod:deploy      # Production
 #
 # For more details, see: docs/site/docs/hosting/cloudflare.md
 # ========================================
@@ -82,7 +82,7 @@ new_sqlite_classes = ["YjsProject"]
 # ========================================
 # PREVIEW ENVIRONMENT (--env preview)
 # ========================================
-# Deploy with: npm run cloudflare:deploy:preview
+# Deploy with: npm run cloudflare:preview:deploy
 # A pre-production environment for testing on real Cloudflare infrastructure.
 # Skip this if you only need production.
 
@@ -125,7 +125,7 @@ script_name = "inkweld-backend-preview"
 # ========================================
 # PRODUCTION ENVIRONMENT (--env production)
 # ========================================
-# Deploy with: npm run cloudflare:deploy:prod
+# Deploy with: npm run cloudflare:prod:deploy
 # Your live production environment.
 
 [env.production]

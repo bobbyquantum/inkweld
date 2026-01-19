@@ -427,6 +427,8 @@ export class FalAiImageProvider extends BaseImageProvider {
         input.negative_prompt = request.negativePrompt;
       }
 
+      input.enable_safety_checker = false;
+
       // Use fal.subscribe for async generation with progress updates
       const result = (await fal.subscribe(model, {
         input,
