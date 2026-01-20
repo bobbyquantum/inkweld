@@ -1,11 +1,18 @@
+import { request } from '@playwright/test';
 import { execSync } from 'child_process';
 import * as path from 'path';
 
 const CONTAINER_NAME = 'inkweld-e2e-test';
 const DOCKER_PORT = 9333;
 const HEALTH_CHECK_URL = `http://localhost:${DOCKER_PORT}/api/v1/health`;
+const API_BASE_URL = `http://localhost:${DOCKER_PORT}`;
 const HEALTH_CHECK_TIMEOUT = 180000; // 3 minutes for image build + startup
 const HEALTH_CHECK_INTERVAL = 2000;
+
+const ADMIN_CREDENTIALS = {
+  username: 'e2e-admin',
+  password: 'E2eAdminPassword123!',
+};
 
 /**
  * Global setup for Docker E2E tests.
@@ -141,6 +148,8 @@ export default async function globalSetup(): Promise<void> {
       clearTimeout(fetchTimeout);
 
       if (response.ok) {
+        // Health check passed, now set up AI configuration
+        await setupAIConfiguration();
         return;
       } else if (shouldLog) {
         lastLogTime = elapsed;
@@ -203,4 +212,82 @@ export default async function globalSetup(): Promise<void> {
   }
 
   throw new Error('Container health check timed out');
+}
+
+/**
+ * Set up AI image generation configuration for e2e tests.
+ * This must run after the container is healthy.
+ */
+async function setupAIConfiguration(): Promise<void> {
+  console.log('\n🤖 Setting up AI image generation for Docker e2e tests...\n');
+
+  const context = await request.newContext({ baseURL: API_BASE_URL });
+
+  try {
+    // Login as admin
+    const loginResponse = await context.post('/api/v1/auth/login', {
+      data: {
+        username: ADMIN_CREDENTIALS.username,
+        password: ADMIN_CREDENTIALS.password,
+      },
+    });
+
+    if (!loginResponse.ok()) {
+      console.log(`   ⚠️  Admin login failed: ${loginResponse.status()}`);
+      console.log('   AI image generation tests may fail\n');
+      return;
+    }
+
+    const loginData = (await loginResponse.json()) as { token: string };
+    console.log('   ✅ Admin login successful');
+
+    // Set fake OpenAI API key
+    const keyResponse = await context.put('/api/v1/ai/providers/openai/key', {
+      headers: {
+        Authorization: `Bearer ${loginData.token}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        apiKey: 'sk-fake-test-key-1234567890abcdefghijklmnopqrstuv',
+      },
+    });
+
+    if (keyResponse.ok()) {
+      console.log('   ✅ Set fake OpenAI API key');
+    } else {
+      console.log(`   ⚠️  Could not set API key: ${keyResponse.status()}`);
+    }
+
+    // Create test image profile
+    const profileResponse = await context.post('/api/v1/admin/image-profiles', {
+      headers: {
+        Authorization: `Bearer ${loginData.token}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        name: 'E2E-Docker-Test-Profile',
+        description: 'Test profile for Docker e2e tests',
+        provider: 'openai',
+        modelId: 'gpt-image-1',
+        enabled: true,
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: ['1024x1024', '1024x1536', '1536x1024'],
+        defaultSize: '1024x1024',
+        sortOrder: 0,
+      },
+    });
+
+    if (profileResponse.ok()) {
+      console.log('   ✅ Created E2E image profile\n');
+    } else if (profileResponse.status() === 409) {
+      console.log('   ✅ E2E image profile already exists\n');
+    } else {
+      console.log(
+        `   ⚠️  Could not create profile: ${profileResponse.status()}\n`
+      );
+    }
+  } finally {
+    await context.dispose();
+  }
 }

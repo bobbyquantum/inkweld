@@ -50,16 +50,19 @@ for (const file of migrationFiles) {
   try {
     await $`npx wrangler d1 execute inkweld_local --local --file=${filePath}`.quiet();
     console.log(`   ✅ ${file}`);
-  } catch (error) {
+  } catch (error: unknown) {
     // Check if it's a "table already exists" error (idempotent)
+    // Bun's ShellError stores stderr separately, so we need to check all possible fields
     const errorStr = String(error);
-    if (
-      errorStr.includes('already exists') ||
-      errorStr.includes('duplicate column') ||
-      errorStr.includes('SQLITE_ERROR')
-    ) {
+    const stderr =
+      error && typeof error === 'object' && 'stderr' in error
+        ? String((error as { stderr: unknown }).stderr)
+        : '';
+    const combined = errorStr + stderr;
+
+    if (combined.includes('already exists') || combined.includes('duplicate column')) {
       console.log(`   ⏭️  ${file} (already applied)`);
-    } else if (errorStr.includes("Couldn't find a D1 DB")) {
+    } else if (combined.includes("Couldn't find a D1 DB")) {
       console.log(`   ⚠️  Wrangler D1 not configured (CI environment)`);
       console.log(`   Skipping remaining D1 setup - tests will use Bun backend`);
       process.exit(0);
@@ -100,11 +103,51 @@ try {
 console.log('\n⚙️  Seeding config values...');
 try {
   const now = Math.floor(Date.now() / 1000);
+
   // Set USER_APPROVAL_REQUIRED to false for e2e tests
   await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('USER_APPROVAL_REQUIRED', 'false', 0, 'auth', 'Require admin approval for new user registrations', ${now}, ${now})"`.quiet();
   console.log('   ✅ USER_APPROVAL_REQUIRED = false');
+
+  // Disable AI kill switch to allow AI features
+  await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('AI_KILL_SWITCH', 'false', 0, 'ai', 'Master switch to disable all AI features', ${now}, ${now})"`.quiet();
+  console.log('   ✅ AI_KILL_SWITCH = false (AI enabled)');
+
+  // Enable AI image generation globally
+  await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('AI_IMAGE_ENABLED', 'true', 0, 'ai', 'Enable AI image generation globally', ${now}, ${now})"`.quiet();
+  console.log('   ✅ AI_IMAGE_ENABLED = true');
+
+  // Set AI_OPENAI_API_KEY for image generation tests (fake key, won't actually call OpenAI)
+  await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('AI_OPENAI_API_KEY', 'sk-fake-e2e-test-key-1234567890abcdefghij', 0, 'ai', 'OpenAI API key for image generation', ${now}, ${now})"`.quiet();
+  console.log('   ✅ AI_OPENAI_API_KEY = (fake test key)');
+
+  // Enable OpenAI image provider
+  await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('AI_IMAGE_OPENAI_ENABLED', 'true', 0, 'ai', 'Enable OpenAI image generation', ${now}, ${now})"`.quiet();
+  console.log('   ✅ AI_IMAGE_OPENAI_ENABLED = true');
 } catch (error) {
   console.error('   ⚠️  Could not seed config values:', error);
+}
+
+// Seed image model profile for e2e tests
+console.log('\n🖼️  Seeding image model profile...');
+try {
+  const profileId = `prof_e2e_${Date.now()}`;
+  const now = Math.floor(Date.now() / 1000);
+
+  // Check if profile already exists
+  const checkResult =
+    await $`npx wrangler d1 execute inkweld_local --local --command "SELECT id FROM image_model_profiles WHERE name = 'E2E-Wrangler-Test'"`.quiet();
+  const checkOutput = checkResult.stdout.toString();
+
+  if (checkOutput.includes('"id"')) {
+    console.log('   ⏭️  E2E image profile already exists');
+  } else {
+    const profileSql = `INSERT INTO image_model_profiles (id, name, description, provider, model_id, enabled, supports_image_input, supports_custom_resolutions, supported_sizes, default_size, sort_order, created_at, updated_at) VALUES ('${profileId}', 'E2E-Wrangler-Test', 'Test profile for wrangler e2e tests', 'openai', 'gpt-image-1', 1, 0, 0, '["1024x1024","1024x1536","1536x1024"]', '1024x1024', 0, ${now}, ${now})`;
+    await $`npx wrangler d1 execute inkweld_local --local --command ${profileSql}`.quiet();
+    console.log('   ✅ Created E2E image profile');
+  }
+} catch (error) {
+  console.error('   ⚠️  Could not seed image profile:', error);
+  console.log('   Image generation tests may fail');
 }
 
 console.log('\n✅ D1 database initialization complete!');
