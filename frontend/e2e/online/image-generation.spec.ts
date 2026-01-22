@@ -13,6 +13,27 @@ import { createProject, expect, test } from './fixtures';
  * real AI services during testing.
  */
 
+/**
+ * Helper to wait for the image generation dialog to finish loading.
+ * The dialog has multiple loading states (config, profiles) before showing the stepper.
+ */
+async function waitForDialogReady(page: Page): Promise<void> {
+  // Wait for dialog content to be present
+  await expect(
+    page.locator('[data-testid="image-gen-dialog-content"]')
+  ).toBeVisible({ timeout: 10000 });
+
+  // Wait for any loading spinners to disappear
+  await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden({
+    timeout: 15000,
+  });
+
+  // Now the stepper should be visible (or an error/disabled notice)
+  await expect(page.locator('.image-generation-stepper')).toBeVisible({
+    timeout: 5000,
+  });
+}
+
 // Fake API keys that look valid but won't work
 const FAKE_API_KEYS = {
   openai: 'sk-fake-test-key-1234567890abcdefghijklmnopqrstuv',
@@ -381,15 +402,14 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await expect(genButton).toBeVisible({ timeout: 15000 });
     await genButton.click();
 
-    // Wait for dialog
+    // Wait for dialog title
     const dialogTitle = authenticatedPage.locator(
       '[data-testid="image-gen-dialog-title"]'
     );
     await expect(dialogTitle).toBeVisible();
 
-    // Wait for stepper (indicates profiles loaded)
-    const stepper = authenticatedPage.locator('.image-generation-stepper');
-    await expect(stepper).toBeVisible({ timeout: 10000 });
+    // Wait for loading to complete and stepper to appear
+    await waitForDialogReady(authenticatedPage);
   });
 
   test('should navigate from context to prompt step', async ({
@@ -407,14 +427,11 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await expect(generateButton).toBeVisible({ timeout: 15000 });
     await generateButton.click();
 
-    // Wait for dialog
+    // Wait for dialog and loading to complete
     await expect(
       authenticatedPage.locator('[data-testid="image-gen-dialog-title"]')
     ).toBeVisible();
-
-    // Wait for stepper to load
-    const stepper = authenticatedPage.locator('.image-generation-stepper');
-    await expect(stepper).toBeVisible({ timeout: 10000 });
+    await waitForDialogReady(authenticatedPage);
 
     // Click Next button
     const nextButton = authenticatedPage.locator(
@@ -445,10 +462,10 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await expect(genButton).toBeVisible({ timeout: 15000 });
     await genButton.click();
 
-    // Wait and navigate to prompt step
-    const stepper = authenticatedPage.locator('.image-generation-stepper');
-    await expect(stepper).toBeVisible({ timeout: 10000 });
+    // Wait for dialog to be fully loaded
+    await waitForDialogReady(authenticatedPage);
 
+    // Navigate to prompt step
     const nextButton = authenticatedPage.locator(
       '[data-testid="image-gen-next-button"]'
     );
@@ -484,10 +501,10 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await expect(genButton).toBeVisible({ timeout: 15000 });
     await genButton.click();
 
-    // Navigate to prompt step
-    const stepper = authenticatedPage.locator('.image-generation-stepper');
-    await expect(stepper).toBeVisible({ timeout: 10000 });
+    // Wait for dialog to be fully loaded
+    await waitForDialogReady(authenticatedPage);
 
+    // Navigate to prompt step
     await authenticatedPage
       .locator('[data-testid="image-gen-next-button"]')
       .click();

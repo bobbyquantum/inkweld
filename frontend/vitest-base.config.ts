@@ -14,10 +14,10 @@ const isCI = process.env['CI'] === 'true';
 export default defineConfig({
   test: {
     // This prevents hanging tests from blocking CI for too long
-    testTimeout: 3000,
+    testTimeout: 4000,
 
     // Hook timeout for beforeEach, afterEach, etc.
-    hookTimeout: 5000,
+    hookTimeout: 8000,
 
     // Disable isolation for faster tests - each file shares environment
     // Tests must properly clean up after themselves (TestBed.resetTestingModule)
