@@ -73,6 +73,12 @@ export default async function globalSetup(): Promise<void> {
     'DEFAULT_ADMIN_USERNAME=e2e-admin',
     '-e',
     'DEFAULT_ADMIN_PASSWORD=E2eAdminPassword123!',
+    // Disable AI kill switch to allow AI feature testing (matches online config)
+    '-e',
+    'AI_KILL_SWITCH=false',
+    // Enable AI image generation for e2e testing
+    '-e',
+    'AI_IMAGE_ENABLED=true',
     'inkweld-inkweld',
   ];
 
