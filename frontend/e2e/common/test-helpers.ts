@@ -316,13 +316,6 @@ export function isCI(): boolean {
 }
 
 /**
- * Get test timeout based on environment
- */
-export function getTestTimeout(): number {
-  return isCI() ? 60000 : 30000;
-}
-
-/**
  * Mock slow network conditions
  * @param page Playwright page
  * @param delayMs Delay in milliseconds for all requests
