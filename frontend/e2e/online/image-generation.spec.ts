@@ -21,17 +21,13 @@ async function waitForDialogReady(page: Page): Promise<void> {
   // Wait for dialog content to be present
   await expect(
     page.locator('[data-testid="image-gen-dialog-content"]')
-  ).toBeVisible({ timeout: 10000 });
+  ).toBeVisible();
 
   // Wait for any loading spinners to disappear
-  await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden({
-    timeout: 15000,
-  });
+  await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden();
 
   // Now the stepper should be visible (or an error/disabled notice)
-  await expect(page.locator('.image-generation-stepper')).toBeVisible({
-    timeout: 5000,
-  });
+  await expect(page.locator('.image-generation-stepper')).toBeVisible();
 }
 
 // Fake API keys that look valid but won't work
@@ -264,7 +260,7 @@ test.describe('Image Generation - Admin Profile Management', () => {
 
     // Look for our created profile in the profiles grid
     const profilesGrid = adminPage.locator('[data-testid="profiles-grid"]');
-    await expect(profilesGrid).toBeVisible({ timeout: 10000 });
+    await expect(profilesGrid).toBeVisible();
 
     // Look for profile with matching text
     const profileItem = adminPage.locator('.profile-item', {
@@ -399,7 +395,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     const genButton = authenticatedPage.locator(
       '[data-testid="generate-image-button"]'
     );
-    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await expect(genButton).toBeVisible();
     await genButton.click();
 
     // Wait for dialog title
@@ -424,7 +420,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     const generateButton = authenticatedPage.locator(
       '[data-testid="generate-image-button"]'
     );
-    await expect(generateButton).toBeVisible({ timeout: 15000 });
+    await expect(generateButton).toBeVisible();
     await generateButton.click();
 
     // Wait for dialog and loading to complete
@@ -459,7 +455,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     const genButton = authenticatedPage.locator(
       '[data-testid="generate-image-button"]'
     );
-    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await expect(genButton).toBeVisible();
     await genButton.click();
 
     // Wait for dialog to be fully loaded
@@ -498,7 +494,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     const genButton = authenticatedPage.locator(
       '[data-testid="generate-image-button"]'
     );
-    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await expect(genButton).toBeVisible();
     await genButton.click();
 
     // Wait for dialog to be fully loaded
@@ -527,7 +523,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     const errorMessage = authenticatedPage.locator(
       '[data-testid="image-gen-error-message"]'
     );
-    await expect(errorMessage).toBeVisible({ timeout: 60000 });
+    await expect(errorMessage).toBeVisible();
 
     // Verify Try Again button
     const tryAgainButton = authenticatedPage.locator(
@@ -548,7 +544,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     const genButton = authenticatedPage.locator(
       '[data-testid="generate-image-button"]'
     );
-    await expect(genButton).toBeVisible({ timeout: 15000 });
+    await expect(genButton).toBeVisible();
     await genButton.click();
 
     const dialogTitle = authenticatedPage.locator(
