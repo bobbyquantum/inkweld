@@ -237,7 +237,7 @@ class AuthService {
 
       // Verify and decode JWT using request-context secret
       const secret = this.getSecret(c);
-      const payload = await verify(token, secret);
+      const payload = await verify(token, secret, 'HS256');
 
       if (!payload) {
         return null;
