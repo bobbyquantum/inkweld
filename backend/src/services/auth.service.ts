@@ -71,7 +71,7 @@ class AuthService {
 
     // Create JWT token using request-context secret
     const secret = this.getSecret(c);
-    const token = await sign(sessionData, secret);
+    const token = await sign(sessionData, secret, 'HS256');
     return token;
   }
 
@@ -94,7 +94,7 @@ class AuthService {
 
       // Verify and decode JWT using request-context secret
       const secret = this.getSecret(c);
-      const payload = await verify(token, secret);
+      const payload = await verify(token, secret, 'HS256');
 
       if (!payload) {
         return null;
@@ -142,7 +142,7 @@ class AuthService {
       const secret = this.getSecret(c);
       let payload;
       try {
-        payload = await verify(token, secret);
+        payload = await verify(token, secret, 'HS256');
       } catch {
         // JWT verification failed (invalid signature, malformed, etc.)
         return { status: 'invalid-token' };
