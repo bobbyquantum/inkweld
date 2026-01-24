@@ -8,6 +8,25 @@
 import { expect, test } from './fixtures';
 
 /**
+ * Helper to get the active mode from the v2 config format
+ */
+function getActiveMode(config: string): 'local' | 'server' | 'unknown' {
+  try {
+    const parsed = JSON.parse(config);
+    if (parsed.version === 2) {
+      const activeConfig = parsed.configurations?.find(
+        (c: { id: string }) => c.id === parsed.activeConfigId
+      );
+      return activeConfig?.type ?? 'unknown';
+    }
+    // Legacy v1 format fallback
+    return parsed.mode ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
  * Helper to create a test image blob in the browser
  */
 async function createTestImageBlob(
@@ -43,7 +62,7 @@ async function checkMediaInIndexedDB(
 ): Promise<boolean> {
   return page.evaluate(async (mediaKey: string) => {
     return new Promise<boolean>(resolve => {
-      const request = indexedDB.open('inkweld-media', 1);
+      const request = indexedDB.open('local:inkweld-media', 1);
       request.onerror = () => resolve(false);
       request.onsuccess = () => {
         const db = request.result;
@@ -174,13 +193,10 @@ test.describe('Local Media Storage', () => {
       }
 
       // Verify the app is still in local mode
-      const mode = await page.evaluate(() => {
-        const config = localStorage.getItem('inkweld-app-config');
-        return config
-          ? (JSON.parse(config) as { mode: string }).mode
-          : 'unknown';
+      const config = await page.evaluate(() => {
+        return localStorage.getItem('inkweld-app-config') ?? '';
       });
-      expect(mode).toBe('local');
+      expect(getActiveMode(config)).toBe('local');
     });
 
     test('should display project cover from IndexedDB', async ({
@@ -217,18 +233,15 @@ test.describe('Local Media Storage', () => {
       expect(page.url()).toBe(projectUrl);
 
       // Verify app is still in local mode after reload
-      const mode = await page.evaluate(() => {
-        const config = localStorage.getItem('inkweld-app-config');
-        return config
-          ? (JSON.parse(config) as { mode: string }).mode
-          : 'unknown';
+      const config = await page.evaluate(() => {
+        return localStorage.getItem('inkweld-app-config') ?? '';
       });
-      expect(mode).toBe('local');
+      expect(getActiveMode(config)).toBe('local');
     });
   });
 
   test.describe('IndexedDB Media Database', () => {
-    test('should create inkweld-media database when accessing media storage', async ({
+    test('should create local:inkweld-media database when accessing media storage', async ({
       localPage: page,
     }) => {
       // Trigger media database creation by navigating
@@ -237,7 +250,7 @@ test.describe('Local Media Storage', () => {
       // Check if the database exists
       const dbExists = await page.evaluate(async () => {
         return new Promise<boolean>(resolve => {
-          const request = indexedDB.open('inkweld-media', 1);
+          const request = indexedDB.open('local:inkweld-media', 1);
           request.onerror = () => resolve(false);
           request.onsuccess = () => {
             request.result.close();
@@ -265,7 +278,7 @@ test.describe('Local Media Storage', () => {
         const blob = new Blob(['test content'], { type: 'text/plain' });
 
         return new Promise<boolean>(resolve => {
-          const request = indexedDB.open('inkweld-media', 1);
+          const request = indexedDB.open('local:inkweld-media', 1);
           request.onerror = () => resolve(false);
           request.onsuccess = () => {
             const db = request.result;
@@ -301,7 +314,7 @@ test.describe('Local Media Storage', () => {
       // Retrieve the blob
       const retrieved = await page.evaluate(async () => {
         return new Promise<boolean>(resolve => {
-          const request = indexedDB.open('inkweld-media', 1);
+          const request = indexedDB.open('local:inkweld-media', 1);
           request.onsuccess = () => {
             const db = request.result;
             const tx = db.transaction('media', 'readonly');
@@ -406,7 +419,7 @@ test.describe('Local Media Storage', () => {
         const blob = new Blob(['cover image'], { type: 'image/png' });
 
         return new Promise<boolean>(resolve => {
-          const request = indexedDB.open('inkweld-media', 1);
+          const request = indexedDB.open('local:inkweld-media', 1);
           request.onerror = () => resolve(false);
           request.onsuccess = () => {
             const db = request.result;
@@ -455,7 +468,7 @@ test.describe('Local Media Storage', () => {
         const blob = new Blob(['avatar image'], { type: 'image/png' });
 
         return new Promise<boolean>(resolve => {
-          const request = indexedDB.open('inkweld-media', 1);
+          const request = indexedDB.open('local:inkweld-media', 1);
           request.onerror = () => resolve(false);
           request.onsuccess = () => {
             const db = request.result;
@@ -501,7 +514,7 @@ test.describe('Local Media Storage', () => {
         const blob = new Blob(['inline image'], { type: 'image/png' });
 
         return new Promise<boolean>(resolve => {
-          const request = indexedDB.open('inkweld-media', 1);
+          const request = indexedDB.open('local:inkweld-media', 1);
           request.onerror = () => resolve(false);
           request.onsuccess = () => {
             const db = request.result;

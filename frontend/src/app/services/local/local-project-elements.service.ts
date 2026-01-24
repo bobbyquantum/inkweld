@@ -12,9 +12,10 @@ import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { ProjectMeta } from '../sync/element-sync-provider.interface';
 
-const LOCAL_ELEMENTS_STORAGE_KEY = 'inkweld-local-elements';
+const LOCAL_ELEMENTS_BASE_KEY = 'inkweld-local-elements';
 
 interface StoredProjectElements {
   [projectKey: string]: Element[];
@@ -53,7 +54,7 @@ interface YjsProjectConnection {
  * used by YjsElementSyncProvider for online mode. This ensures seamless transition
  * between local and online modes.
  *
- * Document ID format: `${username}:${slug}:elements`
+ * Document ID format: `${prefix}${username}:${slug}:elements`
  * Arrays in document:
  * - 'elements' - project tree structure
  * - 'publishPlans' - publishing configuration
@@ -66,6 +67,7 @@ interface YjsProjectConnection {
 })
 export class LocalProjectElementsService {
   private logger = inject(LoggerService);
+  private storageContext = inject(StorageContextService);
 
   readonly elements = signal<Element[]>([]);
   readonly publishPlans = signal<PublishPlan[]>([]);
@@ -447,7 +449,9 @@ export class LocalProjectElementsService {
     slug: string
   ): Promise<YjsProjectConnection> {
     const projectKey = `${username}:${slug}`;
-    const docId = `${username}:${slug}:elements`;
+    const baseDocId = `${username}:${slug}:elements`;
+    // Prefix the document ID with the storage context for isolation
+    const docId = this.storageContext.prefixDocumentId(baseDocId);
 
     // Return existing connection if available
     const existing = this.yjsConnections.get(projectKey);
@@ -797,7 +801,8 @@ export class LocalProjectElementsService {
   // Legacy localStorage methods for migration
   private getStoredElementsFromLocalStorage(): StoredProjectElements {
     try {
-      const stored = localStorage.getItem(LOCAL_ELEMENTS_STORAGE_KEY);
+      const storageKey = this.storageContext.prefixKey(LOCAL_ELEMENTS_BASE_KEY);
+      const stored = localStorage.getItem(storageKey);
       return stored ? (JSON.parse(stored) as StoredProjectElements) : {};
     } catch (error) {
       this.logger.error(
@@ -813,10 +818,8 @@ export class LocalProjectElementsService {
     elements: StoredProjectElements
   ): void {
     try {
-      localStorage.setItem(
-        LOCAL_ELEMENTS_STORAGE_KEY,
-        JSON.stringify(elements)
-      );
+      const storageKey = this.storageContext.prefixKey(LOCAL_ELEMENTS_BASE_KEY);
+      localStorage.setItem(storageKey, JSON.stringify(elements));
     } catch (error) {
       this.logger.error(
         'LocalProjectElements',

@@ -98,9 +98,17 @@ test.describe('Online Media Storage', () => {
     test('should be in server mode', async ({ authenticatedPage: page }) => {
       const mode = await page.evaluate(() => {
         const config = localStorage.getItem('inkweld-app-config');
-        return config
-          ? (JSON.parse(config) as { mode: string }).mode
-          : 'unknown';
+        if (!config) return 'unknown';
+        const parsed = JSON.parse(config);
+        // v2 format
+        if (parsed.version === 2) {
+          const activeConfig = parsed.configurations?.find(
+            (c: { id: string }) => c.id === parsed.activeConfigId
+          );
+          return activeConfig?.type || 'unknown';
+        }
+        // v1 format (legacy)
+        return parsed.mode || 'unknown';
       });
       expect(mode).toBe('server');
     });

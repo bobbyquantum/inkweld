@@ -4,13 +4,18 @@ import { User } from '@inkweld/index';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalUserService } from './local-user.service';
 
 describe('LocalUserService', () => {
   let service: LocalUserService;
   let setupService: MockedObject<SetupService>;
+  let storageContextService: MockedObject<StorageContextService>;
   let mockStorage: { [key: string]: string } = {};
   let originalLocalStorage: Storage;
+
+  // The prefixed key that will be used in storage
+  const PREFIXED_USER_KEY = 'local:inkweld-local-user';
 
   const mockUser: User = {
     id: 'local-1',
@@ -49,11 +54,20 @@ describe('LocalUserService', () => {
       getLocalUserProfile: vi.fn().mockReturnValue(mockUser),
     } as unknown as MockedObject<SetupService>;
 
+    // Mock StorageContextService to return predictable prefixed keys
+    storageContextService = {
+      prefixKey: vi.fn((key: string) => `local:${key}`),
+      prefixDbName: vi.fn((name: string) => `local:${name}`),
+      prefixDocumentId: vi.fn((id: string) => `local:${id}`),
+      getPrefix: vi.fn().mockReturnValue('local:'),
+    } as unknown as MockedObject<StorageContextService>;
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         LocalUserService,
         { provide: SetupService, useValue: setupService },
+        { provide: StorageContextService, useValue: storageContextService },
       ],
     });
 
@@ -94,7 +108,7 @@ describe('LocalUserService', () => {
       expect(service.currentUser()).toEqual(mockUser);
       expect(service.isAuthenticated()).toBe(true);
       expect(service.initialized()).toBe(true);
-      expect(mockStorage['inkweld-local-user']).toBe(JSON.stringify(mockUser));
+      expect(mockStorage[PREFIXED_USER_KEY]).toBe(JSON.stringify(mockUser));
     });
 
     it('should handle missing user profile from setup', () => {
@@ -111,7 +125,7 @@ describe('LocalUserService', () => {
 
       expect(service.currentUser()).toEqual(mockUser);
       expect(service.isAuthenticated()).toBe(true);
-      expect(mockStorage['inkweld-local-user']).toBe(JSON.stringify(mockUser));
+      expect(mockStorage[PREFIXED_USER_KEY]).toBe(JSON.stringify(mockUser));
     });
   });
 
@@ -123,7 +137,7 @@ describe('LocalUserService', () => {
       service.updateLocalUser(updates);
 
       expect(service.currentUser()).toEqual({ ...mockUser, ...updates });
-      expect(mockStorage['inkweld-local-user']).toBe(
+      expect(mockStorage[PREFIXED_USER_KEY]).toBe(
         JSON.stringify({ ...mockUser, ...updates })
       );
     });
@@ -136,14 +150,25 @@ describe('LocalUserService', () => {
 
       expect(service.currentUser().username).toBe('anonymous');
       expect(service.isAuthenticated()).toBe(false);
-      expect(mockStorage['inkweld-local-user']).toBeUndefined();
+      expect(mockStorage[PREFIXED_USER_KEY]).toBeUndefined();
     });
   });
 
   describe('hasCachedUser', () => {
     it('should return true when user is cached', () => {
-      mockStorage['inkweld-local-user'] = JSON.stringify(mockUser);
-      expect(service.hasCachedUser()).toBe(true);
+      mockStorage[PREFIXED_USER_KEY] = JSON.stringify(mockUser);
+      // Need to reload the service to pick up the cached data
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          LocalUserService,
+          { provide: SetupService, useValue: setupService },
+          { provide: StorageContextService, useValue: storageContextService },
+        ],
+      });
+      const newService = TestBed.inject(LocalUserService);
+      expect(newService.hasCachedUser()).toBe(true);
     });
 
     it('should return false when no user is cached', () => {
@@ -177,8 +202,8 @@ describe('LocalUserService', () => {
     });
 
     it('should handle localStorage errors when loading invalid JSON', () => {
-      // Store invalid JSON in localStorage
-      mockStorage['inkweld-local-user'] = 'invalid json {{{';
+      // Store invalid JSON in localStorage using the prefixed key
+      mockStorage[PREFIXED_USER_KEY] = 'invalid json {{{';
 
       const consoleSpy = vi
         .spyOn(console, 'error')
@@ -191,6 +216,7 @@ describe('LocalUserService', () => {
           provideZonelessChangeDetection(),
           LocalUserService,
           { provide: SetupService, useValue: setupService },
+          { provide: StorageContextService, useValue: storageContextService },
         ],
       });
 

@@ -4,6 +4,7 @@ import { Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
 
@@ -17,6 +18,10 @@ describe('LocalProjectService', () => {
   let service: LocalProjectService;
   let mockSetupService: MockedObject<SetupService>;
   let mockElementsService: MockedObject<LocalProjectElementsService>;
+  let mockStorageContext: MockedObject<StorageContextService>;
+
+  // The prefixed key that will be used in storage
+  const PREFIXED_PROJECTS_KEY = 'local:inkweld-local-projects';
 
   // Mock localStorage
   const mockLocalStorage = {
@@ -49,6 +54,14 @@ describe('LocalProjectService', () => {
       createDefaultStructure: vi.fn().mockReturnValue([]),
     } as any;
 
+    // Mock StorageContextService to return predictable prefixed keys
+    mockStorageContext = {
+      prefixKey: vi.fn((key: string) => `local:${key}`),
+      prefixDbName: vi.fn((name: string) => `local:${name}`),
+      prefixDocumentId: vi.fn((id: string) => `local:${id}`),
+      getPrefix: vi.fn().mockReturnValue('local:'),
+    } as any;
+
     // Reset mocks
     mockLocalStorage.getItem.mockReset();
     mockLocalStorage.setItem.mockReset();
@@ -63,6 +76,7 @@ describe('LocalProjectService', () => {
         provideZonelessChangeDetection(),
         LocalProjectService,
         { provide: SetupService, useValue: mockSetupService },
+        { provide: StorageContextService, useValue: mockStorageContext },
         {
           provide: LocalProjectElementsService,
           useValue: mockElementsService,
@@ -84,7 +98,7 @@ describe('LocalProjectService', () => {
     it('should be created and load projects on construction', () => {
       expect(service).toBeTruthy();
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith(
-        'inkweld-local-projects'
+        PREFIXED_PROJECTS_KEY
       );
     });
   });
@@ -135,7 +149,7 @@ describe('LocalProjectService', () => {
       service.reloadProjects();
 
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith(
-        'inkweld-local-projects'
+        PREFIXED_PROJECTS_KEY
       );
       expect(service.projects()).toEqual(newProjects);
     });
@@ -167,7 +181,7 @@ describe('LocalProjectService', () => {
 
       // Should save to localStorage
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        'inkweld-local-projects',
+        PREFIXED_PROJECTS_KEY,
         expect.stringContaining('Test Project')
       );
 

@@ -45,12 +45,24 @@ test.describe('Online Application Launch', () => {
   test('server mode persists across page refresh', async ({
     authenticatedPage: page,
   }) => {
+    // Helper to get mode from v2 config
+    const getMode = (config: string | null) => {
+      if (!config) return undefined;
+      const parsed = JSON.parse(config);
+      if (parsed.version === 2) {
+        const active = parsed.configurations?.find(
+          (c: { id: string }) => c.id === parsed.activeConfigId
+        );
+        return active?.type;
+      }
+      return parsed.mode;
+    };
+
     // Get initial config
     const configBefore = await page.evaluate(() => {
       return localStorage.getItem('inkweld-app-config');
     });
-    const parsedBefore = JSON.parse(configBefore!);
-    expect(parsedBefore.mode).toBe('server');
+    expect(getMode(configBefore)).toBe('server');
 
     // Refresh the page
     await page.reload();
@@ -60,8 +72,7 @@ test.describe('Online Application Launch', () => {
       const configAfter = await page.evaluate(() => {
         return localStorage.getItem('inkweld-app-config');
       });
-      const parsedAfter = JSON.parse(configAfter!);
-      expect(parsedAfter.mode).toBe('server');
+      expect(getMode(configAfter)).toBe('server');
     }).toPass();
   });
 

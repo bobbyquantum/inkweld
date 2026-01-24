@@ -2,15 +2,17 @@ import { inject, Injectable, signal } from '@angular/core';
 import { Project } from '@inkweld/index';
 
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
 
-const LOCAL_PROJECTS_STORAGE_KEY = 'inkweld-local-projects';
+const LOCAL_PROJECTS_BASE_KEY = 'inkweld-local-projects';
 
 @Injectable({
   providedIn: 'root',
 })
 export class LocalProjectService {
   private setupService = inject(SetupService);
+  private storageContext = inject(StorageContextService);
   private localElementsService = inject(LocalProjectElementsService);
 
   readonly projects = signal<Project[]>([]);
@@ -19,6 +21,13 @@ export class LocalProjectService {
 
   constructor() {
     this.loadLocalProjects();
+  }
+
+  /**
+   * Get the prefixed storage key for the current context
+   */
+  private get storageKey(): string {
+    return this.storageContext.prefixKey(LOCAL_PROJECTS_BASE_KEY);
   }
 
   /**
@@ -216,7 +225,7 @@ export class LocalProjectService {
 
   private getStoredProjects(): Project[] {
     try {
-      const stored = localStorage.getItem(LOCAL_PROJECTS_STORAGE_KEY);
+      const stored = localStorage.getItem(this.storageKey);
       return stored ? (JSON.parse(stored) as Project[]) : [];
     } catch (error) {
       console.error('Failed to load local projects:', error);
@@ -226,10 +235,7 @@ export class LocalProjectService {
 
   private saveProjects(projects: Project[]): void {
     try {
-      localStorage.setItem(
-        LOCAL_PROJECTS_STORAGE_KEY,
-        JSON.stringify(projects)
-      );
+      localStorage.setItem(this.storageKey, JSON.stringify(projects));
     } catch (error) {
       console.error('Failed to save local projects:', error);
       throw error;

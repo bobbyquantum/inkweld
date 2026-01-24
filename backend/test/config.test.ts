@@ -90,9 +90,10 @@ describe('ConfigService', () => {
 
     it('should indicate when value uses default', async () => {
       // Don't set any value - use default
-      const result = await configService.getBooleanWithSource(db, 'GITHUB_ENABLED');
+      // Use AI_KILL_SWITCH which defaults to true and was not set by previous test
+      const result = await configService.getBooleanWithSource(db, 'AI_KILL_SWITCH');
 
-      expect(result.value).toBe(false); // Default for GITHUB_ENABLED
+      expect(result.value).toBe(true); // Default for AI_KILL_SWITCH is true (safety)
       expect(result.isExplicitlySet).toBe(false);
     });
   });

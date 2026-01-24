@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 
+import { StorageContextService } from '../core/storage-context.service';
 import { StorageConfig, StorageService } from './storage.service';
 
 /**
@@ -51,13 +52,7 @@ export interface MediaInfo {
   generation?: GenerationMetadata;
 }
 
-const MEDIA_DB_CONFIG: StorageConfig = {
-  dbName: 'inkweld-media',
-  version: 1,
-  stores: {
-    media: 'id', // Primary store, keyed by composite "projectKey:mediaId"
-  },
-};
+const MEDIA_DB_BASE_NAME = 'inkweld-media';
 
 const STORE_NAME = 'media';
 
@@ -91,11 +86,25 @@ const STORE_NAME = 'media';
 })
 export class LocalStorageService {
   private storageService = inject(StorageService);
+  private storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
 
   /** Cache of active blob URLs to prevent memory leaks */
   private activeUrls = new Map<string, string>();
+
+  /**
+   * Get the database config with the prefixed database name
+   */
+  private get dbConfig(): StorageConfig {
+    return {
+      dbName: this.storageContext.prefixDbName(MEDIA_DB_BASE_NAME),
+      version: 1,
+      stores: {
+        media: 'id', // Primary store, keyed by composite "projectKey:mediaId"
+      },
+    };
+  }
 
   /**
    * Initialize the media database. Called automatically on first use.
@@ -110,7 +119,7 @@ export class LocalStorageService {
     }
 
     this.initPromise = this.storageService
-      .initializeDatabase(MEDIA_DB_CONFIG)
+      .initializeDatabase(this.dbConfig)
       .then(db => {
         this.db = db;
         return db;
