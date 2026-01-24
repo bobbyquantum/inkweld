@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { createStorageService, getStorageService, type StorageService } from '../src/services/storage.service';
+import {
+  createStorageService,
+  getStorageService,
+  type StorageService,
+} from '../src/services/storage.service';
 import { config } from '../src/config/env';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -123,7 +127,7 @@ describe('Storage Service', () => {
       const files = await service.listProjectFiles(username, projectSlug);
 
       expect(files.length).toBe(2);
-      expect(files.map(f => f.filename).sort()).toEqual(['doc1.txt', 'doc2.txt']);
+      expect(files.map((f) => f.filename).sort()).toEqual(['doc1.txt', 'doc2.txt']);
     });
 
     it('should list project files with prefix filter', async () => {

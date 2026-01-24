@@ -176,7 +176,11 @@ describe('ConfigService', () => {
       await configService.set(db, 'AI_OPENAI_API_KEY', 'sk-test-key-12345');
 
       // Check that the value is stored encrypted in DB
-      const dbValue = await db.select().from(config).where(eq(config.key, 'AI_OPENAI_API_KEY')).get();
+      const dbValue = await db
+        .select()
+        .from(config)
+        .where(eq(config.key, 'AI_OPENAI_API_KEY'))
+        .get();
       expect(dbValue?.encrypted).toBe(true);
       expect(dbValue?.value).not.toBe('sk-test-key-12345'); // Should be encrypted
 
