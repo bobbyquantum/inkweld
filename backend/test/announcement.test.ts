@@ -133,7 +133,7 @@ describe('AnnouncementService', () => {
 
       expect(all.length).toBe(3);
       // All titles should be present
-      const titles = all.map(a => a.title).sort();
+      const titles = all.map((a) => a.title).sort();
       expect(titles).toEqual(['First', 'Second', 'Third']);
     });
   });
@@ -147,11 +147,7 @@ describe('AnnouncementService', () => {
         testAdminId
       );
       // Draft (not published)
-      await announcementService.create(
-        db,
-        { title: 'Draft', content: 'Content' },
-        testAdminId
-      );
+      await announcementService.create(db, { title: 'Draft', content: 'Content' }, testAdminId);
 
       const published = await announcementService.listPublished(db);
 
@@ -288,7 +284,7 @@ describe('AnnouncementService', () => {
       await announcementService.markAsRead(db, announcement.id, testUserId);
 
       const withStatus = await announcementService.listPublishedWithReadStatus(db, testUserId);
-      const item = withStatus.find(a => a.id === announcement.id);
+      const item = withStatus.find((a) => a.id === announcement.id);
 
       expect(item?.isRead).toBe(true);
       expect(item?.readAt).not.toBeNull();
@@ -306,7 +302,9 @@ describe('AnnouncementService', () => {
 
       // Should not throw, and should still have only one read record
       const reads = await db.select().from(announcementReads);
-      const userReads = reads.filter(r => r.userId === testUserId && r.announcementId === announcement.id);
+      const userReads = reads.filter(
+        (r) => r.userId === testUserId && r.announcementId === announcement.id
+      );
       expect(userReads.length).toBe(1);
     });
   });
@@ -329,8 +327,8 @@ describe('AnnouncementService', () => {
       const withStatus = await announcementService.listPublishedWithReadStatus(db, testUserId);
 
       expect(withStatus.length).toBe(2);
-      const readItem = withStatus.find(a => a.title === 'Read');
-      const unreadItem = withStatus.find(a => a.title === 'Unread');
+      const readItem = withStatus.find((a) => a.title === 'Read');
+      const unreadItem = withStatus.find((a) => a.title === 'Unread');
 
       expect(readItem?.isRead).toBe(true);
       expect(unreadItem?.isRead).toBe(false);

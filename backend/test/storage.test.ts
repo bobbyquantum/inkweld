@@ -132,12 +132,17 @@ describe('FileStorageService', () => {
 
       await service.saveProjectFile(username, projectSlug, 'doc1.txt', 'content1');
       await service.saveProjectFile(username, projectSlug, 'doc2.txt', 'content2');
-      await service.saveProjectFile(username, projectSlug, 'image.png', Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+      await service.saveProjectFile(
+        username,
+        projectSlug,
+        'image.png',
+        Buffer.from([0x89, 0x50, 0x4e, 0x47])
+      );
 
       const files = await service.listProjectFiles(username, projectSlug);
 
       expect(files.length).toBe(3);
-      const filenames = files.map(f => f.filename).sort();
+      const filenames = files.map((f) => f.filename).sort();
       expect(filenames).toEqual(['doc1.txt', 'doc2.txt', 'image.png']);
     });
 
@@ -168,7 +173,7 @@ describe('FileStorageService', () => {
       const files = await service.listProjectFiles(username, projectSlug, 'media');
 
       expect(files.length).toBe(2);
-      expect(files.every(f => f.filename.startsWith('media'))).toBe(true);
+      expect(files.every((f) => f.filename.startsWith('media'))).toBe(true);
     });
 
     it('should return empty array for non-existent directory', async () => {
@@ -215,7 +220,7 @@ describe('FileStorageService', () => {
       await service.saveProjectFile(username, projectSlug, 'styles.css', 'body { }');
 
       const files = await service.listProjectFiles(username, projectSlug);
-      const fileMap = new Map(files.map(f => [f.filename, f.mimeType]));
+      const fileMap = new Map(files.map((f) => [f.filename, f.mimeType]));
 
       expect(fileMap.get('image.jpg')).toBe('image/jpeg');
       expect(fileMap.get('script.js')).toBe('text/javascript');

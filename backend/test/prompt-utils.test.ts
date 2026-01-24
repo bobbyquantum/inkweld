@@ -68,7 +68,8 @@ describe('prompt-utils', () => {
     });
 
     it('should truncate prompt if exceeds user-specified limit', () => {
-      const longPrompt = 'This is a very long prompt that should be truncated. It has multiple sentences.';
+      const longPrompt =
+        'This is a very long prompt that should be truncated. It has multiple sentences.';
       const result = optimizePromptForModel(longPrompt, 'unknown', 'model', 30);
 
       expect(result.wasOptimized).toBe(true);
@@ -82,7 +83,9 @@ describe('prompt-utils', () => {
 
       expect(result.wasOptimized).toBe(true);
       // Should end at a sentence boundary
-      expect(result.prompt.endsWith('.') || result.prompt.endsWith('!') || result.prompt.endsWith('?')).toBe(true);
+      expect(
+        result.prompt.endsWith('.') || result.prompt.endsWith('!') || result.prompt.endsWith('?')
+      ).toBe(true);
     });
 
     it('should fall back to word boundaries if no good sentence boundary', () => {
