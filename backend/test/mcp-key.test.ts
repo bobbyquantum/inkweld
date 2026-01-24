@@ -13,7 +13,11 @@ import {
   hasAllPermissions,
   toPublicKey,
 } from '../src/services/mcp-key.service';
-import { mcpAccessKeys, MCP_PERMISSIONS, type McpAccessKey } from '../src/db/schema/mcp-access-keys';
+import {
+  mcpAccessKeys,
+  MCP_PERMISSIONS,
+  type McpAccessKey,
+} from '../src/db/schema/mcp-access-keys';
 import { projects } from '../src/db/schema/projects';
 import { users } from '../src/db/schema/users';
 
@@ -89,7 +93,11 @@ describe('MCP Key Service - Utility Functions', () => {
     });
 
     it('should filter out invalid permissions', () => {
-      const json = JSON.stringify([MCP_PERMISSIONS.READ_PROJECT, 'invalid', MCP_PERMISSIONS.WRITE_ELEMENTS]);
+      const json = JSON.stringify([
+        MCP_PERMISSIONS.READ_PROJECT,
+        'invalid',
+        MCP_PERMISSIONS.WRITE_ELEMENTS,
+      ]);
       const result = parsePermissions(json);
 
       expect(result).toEqual([MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.WRITE_ELEMENTS]);
@@ -149,11 +157,15 @@ describe('MCP Key Service - Utility Functions', () => {
     };
 
     it('should return true if key has any of the permissions', () => {
-      expect(hasAnyPermission(mockKey, [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.WRITE_ELEMENTS])).toBe(true);
+      expect(
+        hasAnyPermission(mockKey, [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.WRITE_ELEMENTS])
+      ).toBe(true);
     });
 
     it('should return false if key has none of the permissions', () => {
-      expect(hasAnyPermission(mockKey, [MCP_PERMISSIONS.WRITE_ELEMENTS, MCP_PERMISSIONS.GENERATE_IMAGES])).toBe(false);
+      expect(
+        hasAnyPermission(mockKey, [MCP_PERMISSIONS.WRITE_ELEMENTS, MCP_PERMISSIONS.GENERATE_IMAGES])
+      ).toBe(false);
     });
   });
 
@@ -164,7 +176,11 @@ describe('MCP Key Service - Utility Functions', () => {
       name: 'Test Key',
       keyHash: 'hash',
       keyPrefix: 'iw_proj_xxx',
-      permissions: JSON.stringify([MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.READ_ELEMENTS, MCP_PERMISSIONS.WRITE_ELEMENTS]),
+      permissions: JSON.stringify([
+        MCP_PERMISSIONS.READ_PROJECT,
+        MCP_PERMISSIONS.READ_ELEMENTS,
+        MCP_PERMISSIONS.WRITE_ELEMENTS,
+      ]),
       expiresAt: null,
       lastUsedAt: null,
       lastUsedIp: null,
@@ -174,11 +190,15 @@ describe('MCP Key Service - Utility Functions', () => {
     };
 
     it('should return true if key has all the permissions', () => {
-      expect(hasAllPermissions(mockKey, [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.READ_ELEMENTS])).toBe(true);
+      expect(
+        hasAllPermissions(mockKey, [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.READ_ELEMENTS])
+      ).toBe(true);
     });
 
     it('should return false if key is missing any permission', () => {
-      expect(hasAllPermissions(mockKey, [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.GENERATE_IMAGES])).toBe(false);
+      expect(
+        hasAllPermissions(mockKey, [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.GENERATE_IMAGES])
+      ).toBe(false);
     });
   });
 
@@ -279,12 +299,9 @@ describe('MCP Key Service - Database Operations', () => {
 
   describe('validateKey', () => {
     it('should validate a correct key', async () => {
-      const { fullKey, keyRecord } = await mcpKeyService.createKey(
-        db,
-        testProjectId,
-        'Valid Key',
-        [MCP_PERMISSIONS.READ_PROJECT]
-      );
+      const { fullKey, keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Valid Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       const result = await mcpKeyService.validateKey(db, fullKey);
 
@@ -348,14 +365,18 @@ describe('MCP Key Service - Database Operations', () => {
       const keys = await mcpKeyService.getKeysForProject(db, testProjectId);
 
       expect(keys.length).toBe(2);
-      expect(keys.map(k => k.name).sort()).toEqual(['Key 1', 'Key 2']);
+      expect(keys.map((k) => k.name).sort()).toEqual(['Key 1', 'Key 2']);
     });
   });
 
   describe('getActiveKeysForProject', () => {
     it('should return only non-revoked keys', async () => {
-      const { keyRecord: key1 } = await mcpKeyService.createKey(db, testProjectId, 'Active Key', [MCP_PERMISSIONS.READ_PROJECT]);
-      const { keyRecord: key2 } = await mcpKeyService.createKey(db, testProjectId, 'Revoked Key', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord: key1 } = await mcpKeyService.createKey(db, testProjectId, 'Active Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
+      const { keyRecord: key2 } = await mcpKeyService.createKey(db, testProjectId, 'Revoked Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       await mcpKeyService.revokeKey(db, key2.id);
 
@@ -368,7 +389,9 @@ describe('MCP Key Service - Database Operations', () => {
 
   describe('getKeyById', () => {
     it('should return key by ID', async () => {
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       const foundKey = await mcpKeyService.getKeyById(db, keyRecord.id);
 
@@ -384,7 +407,9 @@ describe('MCP Key Service - Database Operations', () => {
 
   describe('updateKey', () => {
     it('should update key name', async () => {
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Original Name', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Original Name', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       const updated = await mcpKeyService.updateKey(db, keyRecord.id, { name: 'New Name' });
 
@@ -392,7 +417,9 @@ describe('MCP Key Service - Database Operations', () => {
     });
 
     it('should update permissions', async () => {
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       const updated = await mcpKeyService.updateKey(db, keyRecord.id, {
         permissions: [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -404,7 +431,9 @@ describe('MCP Key Service - Database Operations', () => {
     });
 
     it('should update expiration', async () => {
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
       const newExpiry = Date.now() + 999999;
 
       const updated = await mcpKeyService.updateKey(db, keyRecord.id, { expiresAt: newExpiry });
@@ -413,7 +442,9 @@ describe('MCP Key Service - Database Operations', () => {
     });
 
     it('should return unchanged key if no updates provided', async () => {
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       const updated = await mcpKeyService.updateKey(db, keyRecord.id, {});
 
@@ -423,7 +454,9 @@ describe('MCP Key Service - Database Operations', () => {
 
   describe('revokeKey', () => {
     it('should revoke a key with reason', async () => {
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       await mcpKeyService.revokeKey(db, keyRecord.id, 'Security concern');
 
@@ -435,7 +468,9 @@ describe('MCP Key Service - Database Operations', () => {
 
   describe('deleteKey', () => {
     it('should permanently delete a key', async () => {
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Test Key', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       await mcpKeyService.deleteKey(db, keyRecord.id);
 
@@ -460,7 +495,9 @@ describe('MCP Key Service - Database Operations', () => {
     it('should count only active keys', async () => {
       await mcpKeyService.createKey(db, testProjectId, 'Active 1', [MCP_PERMISSIONS.READ_PROJECT]);
       await mcpKeyService.createKey(db, testProjectId, 'Active 2', [MCP_PERMISSIONS.READ_PROJECT]);
-      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Revoked', [MCP_PERMISSIONS.READ_PROJECT]);
+      const { keyRecord } = await mcpKeyService.createKey(db, testProjectId, 'Revoked', [
+        MCP_PERMISSIONS.READ_PROJECT,
+      ]);
 
       await mcpKeyService.revokeKey(db, keyRecord.id);
 
