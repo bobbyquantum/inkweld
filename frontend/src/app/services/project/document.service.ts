@@ -757,10 +757,10 @@ export class DocumentService {
     connection: DocumentConnection
   ): void {
     const view = editor.view;
-    if (!view || !connection.type) {
+    if (!view || !view.dom || !connection.type) {
       this.logger.error(
         'DocumentService',
-        'Cannot add plugins - editor view or Yjs type not initialized'
+        'Cannot add plugins - editor view, DOM, or Yjs type not initialized'
       );
       return;
     }
@@ -867,6 +867,17 @@ export class DocumentService {
     const newState = view.state.reconfigure({
       plugins: [...view.state.plugins, ...plugins],
     });
+
+    // Check if view DOM is still attached before updating state
+    // This prevents crashes when editor is destroyed during async operations
+    if (!view.dom || !view.dom.parentNode) {
+      this.logger.warn(
+        'DocumentService',
+        'Editor DOM detached before updateState - skipping'
+      );
+      return;
+    }
+
     view.updateState(newState);
     console.log(
       '[DocumentService] Core plugins added, editor doc size:',

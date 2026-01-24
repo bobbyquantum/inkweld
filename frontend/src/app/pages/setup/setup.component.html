@@ -3,7 +3,19 @@
     <mat-card class="setup-card" data-testid="setup-card">
       <mat-card-header>
         <mat-card-title>
-          <mat-icon>settings</mat-icon>
+          @if (
+            (showServerSetup() || showLocalSetup()) && appMode() === 'BOTH'
+          ) {
+            <button
+              mat-icon-button
+              (click)="goBack()"
+              class="title-icon-button"
+              data-testid="back-button">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+          } @else {
+            <mat-icon class="title-icon">settings</mat-icon>
+          }
           Welcome to Inkweld
         </mat-card-title>
         <mat-card-subtitle>
@@ -81,43 +93,22 @@
         @if (showServerSetup()) {
           <!-- Server setup form -->
           <div class="setup-form">
-            @if (appMode() === 'BOTH') {
-              <button
-                mat-icon-button
-                (click)="goBack()"
-                class="back-button"
-                data-testid="server-back-button">
-                <mat-icon>arrow_back</mat-icon>
-              </button>
-            }
-
-            <h3>Server Configuration</h3>
-            <p>Enter the URL of your Inkweld server:</p>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Server URL</mat-label>
-              <input
-                matInput
-                [(ngModel)]="serverUrl"
-                placeholder="http://localhost:8333"
-                type="url"
-                required
-                data-testid="server-url-input" />
-              <mat-icon matSuffix>link</mat-icon>
-            </mat-form-field>
-
-            <div class="form-actions">
-              @if (appMode() === 'BOTH') {
-                <button mat-button (click)="goBack()">Cancel</button>
-              }
-              <button
-                mat-raised-button
-                color="primary"
-                (click)="setupServerMode()"
-                [disabled]="isLoading() || !serverUrl.trim()"
-                data-testid="connect-server-button">
-                Connect to Server
-              </button>
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Server URL</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="serverUrl"
+                  placeholder="http://localhost:8333"
+                  type="url"
+                  required
+                  data-testid="server-url-input" />
+                <mat-icon matSuffix>link</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                The address of your Inkweld server for syncing projects and
+                collaboration.
+              </p>
             </div>
           </div>
         }
@@ -125,59 +116,66 @@
         @if (showLocalSetup()) {
           <!-- Local setup form -->
           <div class="setup-form">
-            @if (appMode() === 'BOTH') {
-              <button
-                mat-icon-button
-                (click)="goBack()"
-                class="back-button"
-                data-testid="local-back-button">
-                <mat-icon>arrow_back</mat-icon>
-              </button>
-            }
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Username</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="userName"
+                  placeholder="local"
+                  data-testid="local-username-input" />
+                <mat-icon matSuffix>person</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                Optional. Defaults to "local". Used for project paths and if you
+                later connect to a server. You can change this in settings.
+              </p>
+            </div>
 
-            <h3>Local Profile Setup</h3>
-            <p>Create your local profile:</p>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Username</mat-label>
-              <input
-                matInput
-                [(ngModel)]="userName"
-                placeholder="your-username"
-                required
-                data-testid="local-username-input" />
-              <mat-icon matSuffix>person</mat-icon>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Display Name</mat-label>
-              <input
-                matInput
-                [(ngModel)]="displayName"
-                placeholder="Your Name"
-                required
-                data-testid="local-displayname-input" />
-              <mat-icon matSuffix>badge</mat-icon>
-            </mat-form-field>
-
-            <div class="form-actions">
-              @if (appMode() === 'BOTH') {
-                <button mat-button (click)="goBack()">Cancel</button>
-              }
-              <button
-                mat-raised-button
-                color="accent"
-                (click)="setupLocalMode()"
-                [disabled]="
-                  isLoading() || !userName.trim() || !displayName.trim()
-                "
-                data-testid="start-local-button">
-                Start Local Mode
-              </button>
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Display Name</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="displayName"
+                  placeholder="Local User"
+                  data-testid="local-displayname-input" />
+                <mat-icon matSuffix>badge</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                Optional. Defaults to "Local User". How your name appears in the
+                app. Can be changed later in settings.
+              </p>
             </div>
           </div>
         }
       </mat-card-content>
+
+      @if (showServerSetup()) {
+        <mat-card-actions align="end">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="setupServerMode()"
+            [disabled]="isLoading() || !serverUrl.trim()"
+            data-testid="connect-server-button">
+            Connect to Server
+          </button>
+        </mat-card-actions>
+      }
+
+      @if (showLocalSetup()) {
+        <mat-card-actions align="end">
+          <button
+            mat-raised-button
+            color="accent"
+            (click)="setupLocalMode()"
+            [disabled]="isLoading()"
+            data-testid="start-local-button">
+            Start Local Mode
+          </button>
+        </mat-card-actions>
+      }
     </mat-card>
   </div>
 

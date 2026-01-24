@@ -22,7 +22,51 @@ protocol.registerSchemesAsPrivileged([
       corsEnabled: true,
     },
   },
+  {
+    scheme: 'inkweld',
+    privileges: {
+      standard: true,
+      secure: true,
+    },
+  },
 ]);
+
+// Store deep link URL for when app is launched via protocol
+let deepLinkUrl: string | null = null;
+
+// Handle deep link on macOS when app is already running
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleDeepLink(url);
+});
+
+// Parse deep link and navigate the app
+function handleDeepLink(url: string): void {
+  console.log('Deep link received:', url);
+  
+  if (!mainWindow) {
+    // App not ready yet, store for later
+    deepLinkUrl = url;
+    return;
+  }
+
+  // Parse inkweld:// URL and convert to app route
+  // e.g., inkweld://user/project → /#/user/project
+  try {
+    const parsed = new URL(url);
+    const route = parsed.pathname.replace(/^\/+/, ''); // Remove leading slashes
+    const fullPath = parsed.host ? `${parsed.host}/${route}` : route;
+    
+    // Send to renderer to handle navigation
+    mainWindow.webContents.send('deep-link', fullPath);
+    
+    // Bring window to front
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  } catch (error) {
+    console.error('Failed to parse deep link:', error);
+  }
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -56,6 +100,12 @@ function createWindow(): void {
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
+    
+    // Handle any deep link that was received before window was ready
+    if (deepLinkUrl) {
+      handleDeepLink(deepLinkUrl);
+      deepLinkUrl = null;
+    }
   });
 
   // Handle external links
@@ -152,6 +202,16 @@ ipcMain.handle('read-file', async (_event, filePath: string) => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
+  // Register as handler for inkweld:// protocol
+  if (!isDev) {
+    const success = app.setAsDefaultProtocolClient('inkweld');
+    if (success) {
+      console.log('Registered as default protocol handler for inkweld://');
+    } else {
+      console.warn('Failed to register inkweld:// protocol handler');
+    }
+  }
+
   // Register custom app:// protocol to serve files from the Angular dist folder
   // This allows absolute paths like /logo.png to work correctly
   if (!isDev) {
@@ -198,6 +258,28 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
+// Handle deep link on Windows/Linux when app is launched via protocol
+// The URL is passed as a command line argument
+app.on('second-instance', (_event, commandLine) => {
+  // Someone tried to run a second instance, we should focus our window
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+
+  // Look for inkweld:// URL in command line args (Windows/Linux)
+  const url = commandLine.find((arg) => arg.startsWith('inkweld://'));
+  if (url) {
+    handleDeepLink(url);
+  }
+});
+
+// Make this instance the single instance (required for deep linking on Windows/Linux)
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+}
 
 // Security: Prevent new window creation except for our handlers
 app.on('web-contents-created', (_event, contents) => {

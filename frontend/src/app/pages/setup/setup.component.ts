@@ -174,17 +174,14 @@ export class SetupComponent implements OnInit {
   }
 
   protected async setupLocalMode(): Promise<void> {
-    if (!this.userName.trim() || !this.displayName.trim()) {
-      this.snackBar.open('Please fill in all fields', 'Close', {
-        duration: 3000,
-      });
-      return;
-    }
+    // Use defaults if fields are empty
+    const username = this.userName.trim() || 'local';
+    const displayName = this.displayName.trim() || 'Local User';
 
     try {
       this.setupService.configureLocalMode({
-        username: this.userName.trim(),
-        name: this.displayName.trim(),
+        username: username,
+        name: displayName,
       });
 
       // Initialize the user service after configuration

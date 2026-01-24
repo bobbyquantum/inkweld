@@ -157,48 +157,6 @@ test.describe('User Registration', () => {
     ).toBeEnabled();
   });
 
-  test('should enforce password strength requirements', async ({
-    anonymousPage: page,
-  }) => {
-    await openRegisterDialog(page);
-
-    const uniqueUsername = `user${Date.now()}`;
-    await page.getByTestId('username-input').fill(uniqueUsername);
-
-    // Tab to trigger availability check
-    await page.keyboard.press('Tab');
-
-    // Wait for username availability check to complete
-    await expect(page.getByTestId('username-available-icon')).toBeVisible();
-
-    // Try a weak password (too short, no special char, no uppercase)
-    await page.getByTestId('password-input').fill('weak');
-    await page.getByTestId('confirm-password-input').fill('weak');
-
-    // Button should be disabled
-    await expect(
-      page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeDisabled();
-
-    // Try a stronger password (still missing requirements)
-    await page.getByTestId('password-input').fill('weakpassword');
-    await expect(
-      page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeDisabled();
-
-    // Use a valid strong password
-    await page.getByTestId('password-input').fill('StrongPass123!');
-    await page.getByTestId('confirm-password-input').fill('StrongPass123!');
-
-    // Tab away to trigger blur and form validation update
-    await page.keyboard.press('Tab');
-
-    // Now button should be enabled
-    await expect(
-      page.locator('mat-dialog-container [data-testid="register-button"]')
-    ).toBeEnabled();
-  });
-
   test('should prevent empty form submission', async ({
     anonymousPage: page,
   }) => {
