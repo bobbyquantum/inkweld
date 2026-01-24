@@ -2,14 +2,16 @@ import { inject, Injectable, signal } from '@angular/core';
 import { User } from '@inkweld/index';
 
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 
-const LOCAL_USER_STORAGE_KEY = 'inkweld-local-user';
+const LOCAL_USER_BASE_KEY = 'inkweld-local-user';
 
 @Injectable({
   providedIn: 'root',
 })
 export class LocalUserService {
   private setupService = inject(SetupService);
+  private storageContext = inject(StorageContextService);
 
   readonly currentUser = signal<User>({
     id: '',
@@ -24,6 +26,13 @@ export class LocalUserService {
 
   constructor() {
     this.loadLocalUser();
+  }
+
+  /**
+   * Get the prefixed storage key for the current context
+   */
+  private get storageKey(): string {
+    return this.storageContext.prefixKey(LOCAL_USER_BASE_KEY);
   }
 
   /**
@@ -69,20 +78,20 @@ export class LocalUserService {
       enabled: false,
     });
     this.isAuthenticated.set(false);
-    localStorage.removeItem(LOCAL_USER_STORAGE_KEY);
+    localStorage.removeItem(this.storageKey);
   }
 
   /**
    * Check if there's a cached local user
    */
   hasCachedUser(): boolean {
-    const stored = localStorage.getItem(LOCAL_USER_STORAGE_KEY);
+    const stored = localStorage.getItem(this.storageKey);
     return !!stored;
   }
 
   private loadLocalUser(): void {
     try {
-      const stored = localStorage.getItem(LOCAL_USER_STORAGE_KEY);
+      const stored = localStorage.getItem(this.storageKey);
       if (stored) {
         const user = JSON.parse(stored) as User;
         this.currentUser.set(user);
@@ -96,7 +105,7 @@ export class LocalUserService {
 
   private saveLocalUser(user: User): void {
     try {
-      localStorage.setItem(LOCAL_USER_STORAGE_KEY, JSON.stringify(user));
+      localStorage.setItem(this.storageKey, JSON.stringify(user));
     } catch (error) {
       console.error('Failed to save local user:', error);
     }

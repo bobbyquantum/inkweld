@@ -75,7 +75,8 @@ export async function storeRealMediaInIndexedDB(
       };
 
       return new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open('inkweld-media', 1);
+        // Use prefixed database name for local mode
+        const request = indexedDB.open('local:inkweld-media', 1);
         request.onerror = () => reject(new Error('Failed to open database'));
         request.onupgradeneeded = event => {
           const db = (event.target as IDBOpenDBRequest).result;
@@ -129,7 +130,7 @@ export async function storeRealEpubInIndexedDB(
       };
 
       return new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open('inkweld-media', 1);
+        const request = indexedDB.open('local:inkweld-media', 1);
         request.onerror = () => reject(new Error('Failed to open database'));
         request.onupgradeneeded = event => {
           const db = (event.target as IDBOpenDBRequest).result;

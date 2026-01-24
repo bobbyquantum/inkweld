@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { StorageConfig, StorageService } from './storage.service';
 
 /**
@@ -73,13 +74,7 @@ export interface CreateSnapshotOptions {
   metadata?: Record<string, unknown>;
 }
 
-const SNAPSHOT_DB_CONFIG: StorageConfig = {
-  dbName: 'inkweld-snapshots',
-  version: 1,
-  stores: {
-    snapshots: 'id', // Primary store, keyed by composite "projectKey:documentId:snapshotId"
-  },
-};
+const SNAPSHOT_DB_BASE_NAME = 'inkweld-snapshots';
 
 const STORE_NAME = 'snapshots';
 
@@ -118,12 +113,26 @@ const STORE_NAME = 'snapshots';
 })
 export class LocalSnapshotService {
   private storageService = inject(StorageService);
+  private storageContext = inject(StorageContextService);
   private logger = inject(LoggerService);
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
 
   /** Signal indicating sync status */
   readonly hasPendingSync = signal(false);
+
+  /**
+   * Get the database config with the prefixed database name
+   */
+  private get dbConfig(): StorageConfig {
+    return {
+      dbName: this.storageContext.prefixDbName(SNAPSHOT_DB_BASE_NAME),
+      version: 1,
+      stores: {
+        snapshots: 'id', // Primary store, keyed by composite "projectKey:documentId:snapshotId"
+      },
+    };
+  }
 
   /**
    * Initialize the snapshot database. Called automatically on first use.
@@ -138,7 +147,7 @@ export class LocalSnapshotService {
     }
 
     this.initPromise = this.storageService
-      .initializeDatabase(SNAPSHOT_DB_CONFIG)
+      .initializeDatabase(this.dbConfig)
       .then(db => {
         this.db = db;
         return db;

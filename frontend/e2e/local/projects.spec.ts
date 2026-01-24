@@ -117,9 +117,9 @@ test.describe('Local Project Workflows', () => {
   test('should persist project data in localStorage', async ({
     localPageWithProject: page,
   }) => {
-    // Get current projects from localStorage
+    // Get current projects from localStorage (uses prefixed key in local mode)
     const projectsBefore = await page.evaluate(() => {
-      return localStorage.getItem('inkweld-local-projects');
+      return localStorage.getItem('local:inkweld-local-projects');
     });
     expect(projectsBefore).not.toBeNull();
 
@@ -138,9 +138,9 @@ test.describe('Local Project Workflows', () => {
     // Wait for navigation
     await page.waitForURL(new RegExp(uniqueSlug));
 
-    // Verify project was added to localStorage
+    // Verify project was added to localStorage (uses prefixed key)
     const projectsAfter = await page.evaluate(() => {
-      return localStorage.getItem('inkweld-local-projects');
+      return localStorage.getItem('local:inkweld-local-projects');
     });
     expect(projectsAfter).toContain(uniqueSlug);
   });

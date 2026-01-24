@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, getAppMode, test } from './fixtures';
 
 /**
  * Simplified migration test that focuses on the core migration logic
@@ -8,14 +8,11 @@ test.describe('Migration Service', () => {
   test('should register user and prepare for migration', async ({
     offlinePage,
   }) => {
-    // Step 1: Verify we're in offline mode
-    const mode = await offlinePage.evaluate(() => {
-      const config = localStorage.getItem('inkweld-app-config');
-      return config ? JSON.parse(config).mode : null;
-    });
+    // Step 1: Verify we're in offline mode (using v2 format helper)
+    const mode = await getAppMode(offlinePage);
     expect(mode).toBe('local');
 
-    // Step 2: Create some offline projects directly in localStorage
+    // Step 2: Create some offline projects directly in localStorage (with prefixed key)
     await offlinePage.evaluate(() => {
       const projects = [
         {
@@ -37,12 +34,15 @@ test.describe('Migration Service', () => {
           updatedDate: new Date().toISOString(),
         },
       ];
-      localStorage.setItem('inkweld-local-projects', JSON.stringify(projects));
+      localStorage.setItem(
+        'local:inkweld-local-projects',
+        JSON.stringify(projects)
+      );
     });
 
     // Step 3: Verify projects were stored
     const storedProjects = await offlinePage.evaluate(() => {
-      const stored = localStorage.getItem('inkweld-local-projects');
+      const stored = localStorage.getItem('local:inkweld-local-projects');
       return stored ? JSON.parse(stored) : [];
     });
     expect(storedProjects).toHaveLength(2);

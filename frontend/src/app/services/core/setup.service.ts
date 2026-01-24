@@ -1,8 +1,18 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { User } from '@inkweld/index';
 
 import { environment } from '../../../environments/environment';
+import {
+  LOCAL_CONFIG_ID,
+  ServerConfig,
+  StorageContextService,
+} from './storage-context.service';
 
+/**
+ * Legacy AppConfig interface for backward compatibility.
+ * New code should use ServerConfig from StorageContextService.
+ * @deprecated Use StorageContextService for new code
+ */
 export interface AppConfig {
   mode: 'server' | 'local';
   serverUrl?: string;
@@ -12,7 +22,6 @@ export interface AppConfig {
   };
 }
 
-const SETUP_STORAGE_KEY = 'inkweld-app-config';
 /** Legacy key for migration - can be removed after v1 */
 const LEGACY_LOCAL_USER_KEY = 'inkweld-offline-user';
 const LOCAL_USER_KEY = 'inkweld-local-user';
@@ -20,17 +29,45 @@ const LOCAL_USER_KEY = 'inkweld-local-user';
 const LEGACY_LOCAL_PROJECTS_KEY = 'inkweld-offline-projects';
 const LOCAL_PROJECTS_KEY = 'inkweld-local-projects';
 
+/**
+ * Service for managing app configuration and setup.
+ *
+ * This service acts as a higher-level interface over StorageContextService,
+ * providing backward-compatible methods for configuring server/local mode
+ * and accessing configuration state.
+ *
+ * For new code requiring multi-server support, use StorageContextService directly.
+ */
 @Injectable({
   providedIn: 'root',
 })
 export class SetupService {
-  readonly isConfigured = signal(false);
-  readonly appConfig = signal<AppConfig | null>(null);
+  private storageContext = inject(StorageContextService);
+
+  /** Whether the app is configured (has at least one config) */
+  readonly isConfigured = computed(() => this.storageContext.isConfigured());
+
+  /** Current app config (derived from active config for backward compatibility) */
+  readonly appConfig = computed<AppConfig | null>(() => {
+    const config = this.storageContext.getActiveConfig();
+    if (!config) return null;
+
+    return {
+      mode: config.type,
+      serverUrl: config.serverUrl,
+      userProfile: config.userProfile
+        ? {
+            name: config.userProfile.name,
+            username: config.userProfile.username,
+          }
+        : undefined,
+    };
+  });
+
   readonly isLoading = signal(false);
 
   constructor() {
     this.migrateStorageKeys();
-    this.loadConfig();
   }
 
   /**
@@ -39,23 +76,6 @@ export class SetupService {
    * Can be removed after v1 release.
    */
   private migrateStorageKeys(): void {
-    // Migrate config mode from 'offline' to 'local'
-    try {
-      const stored = localStorage.getItem(SETUP_STORAGE_KEY);
-      if (stored) {
-        const config = JSON.parse(stored) as AppConfig & { mode: string };
-        if (config.mode === 'local') {
-          config.mode = 'local';
-          localStorage.setItem(SETUP_STORAGE_KEY, JSON.stringify(config));
-          console.log(
-            '[SetupService] Migrated config mode from offline to local'
-          );
-        }
-      }
-    } catch {
-      // Ignore migration errors
-    }
-
     // Migrate user key
     const oldUser = localStorage.getItem(LEGACY_LOCAL_USER_KEY);
     if (oldUser && !localStorage.getItem(LOCAL_USER_KEY)) {
@@ -71,6 +91,9 @@ export class SetupService {
       localStorage.removeItem(LEGACY_LOCAL_PROJECTS_KEY);
       console.log('[SetupService] Migrated local projects storage key');
     }
+
+    // Check for auto-configuration on hosted deployments
+    this.autoConfigureIfNeeded();
   }
 
   /**
@@ -92,29 +115,27 @@ export class SetupService {
     const preConfiguredUrl = environment.apiUrl;
     if (!this.hasPreConfiguredApiUrl()) return;
 
-    const storedConfig = this.getStoredConfig();
+    const activeConfig = this.storageContext.getActiveConfig();
 
     // If we have a pre-configured URL, and it's different from the stored one,
     // we should update it. This ensures that if a user moves between preview/prod
     // or if the worker URL changes, the app stays in sync with its build.
     if (
-      !storedConfig ||
-      storedConfig.mode !== 'server' ||
-      storedConfig.serverUrl !== preConfiguredUrl
+      !activeConfig ||
+      activeConfig.type !== 'server' ||
+      activeConfig.serverUrl !== preConfiguredUrl
     ) {
       console.log(
         '[SetupService] Auto-configuring for hosted deployment:',
         preConfiguredUrl
       );
 
-      const config: AppConfig = {
-        mode: 'server',
-        serverUrl: preConfiguredUrl,
-      };
-
-      this.saveConfig(config);
-      this.appConfig.set(config);
-      this.isConfigured.set(true);
+      // Add or update the server config and switch to it
+      const serverConfig = this.storageContext.addServerConfig(
+        preConfiguredUrl,
+        'Hosted Server'
+      );
+      this.storageContext.switchToConfig(serverConfig.id);
     }
   }
 
@@ -122,13 +143,7 @@ export class SetupService {
    * Check if the app has been configured
    */
   checkConfiguration(): boolean {
-    const config = this.getStoredConfig();
-    const configured = !!config;
-    this.isConfigured.set(configured);
-    if (configured) {
-      this.appConfig.set(config);
-    }
-    return configured;
+    return this.isConfigured();
   }
 
   /**
@@ -143,14 +158,9 @@ export class SetupService {
         throw new Error('Server is not reachable');
       }
 
-      const config: AppConfig = {
-        mode: 'server',
-        serverUrl: serverUrl,
-      };
-
-      this.saveConfig(config);
-      this.appConfig.set(config);
-      this.isConfigured.set(true);
+      // Add server config and switch to it
+      const serverConfig = this.storageContext.addServerConfig(serverUrl);
+      this.storageContext.switchToConfig(serverConfig.id);
     } catch (error) {
       console.error('Failed to configure server mode:', error);
       throw error;
@@ -165,52 +175,46 @@ export class SetupService {
   configureLocalMode(userProfile: { name: string; username: string }): void {
     this.isLoading.set(true);
     try {
-      const config: AppConfig = {
-        mode: 'local',
-        userProfile: userProfile,
-      };
-
-      this.saveConfig(config);
-      this.appConfig.set(config);
-      this.isConfigured.set(true);
+      // Add local config and switch to it
+      this.storageContext.addLocalConfig(userProfile);
+      this.storageContext.switchToConfig(LOCAL_CONFIG_ID);
     } finally {
       this.isLoading.set(false);
     }
   }
 
   /**
-   * Reset the app configuration
+   * Reset the app configuration (removes all server configs)
    */
   resetConfiguration(): void {
-    localStorage.removeItem(SETUP_STORAGE_KEY);
-    this.appConfig.set(null);
-    this.isConfigured.set(false);
+    this.storageContext.clearConfig();
   }
 
   /**
    * Get the current configuration mode
    */
   getMode(): 'server' | 'local' | null {
-    return this.appConfig()?.mode || null;
+    const config = this.storageContext.getActiveConfig();
+    return config?.type ?? null;
   }
 
   /**
    * Get the server URL if in server mode
    */
   getServerUrl(): string | null {
-    const config = this.appConfig();
-    return config?.mode === 'server' ? config.serverUrl || null : null;
+    return this.storageContext.getServerUrl() ?? null;
   }
 
   /**
    * Get the local user profile if in local mode
    */
   getLocalUserProfile(): User | null {
-    const config = this.appConfig();
-    if (config?.mode === 'local' && config.userProfile) {
+    const config = this.storageContext.getActiveConfig();
+    if (config?.type === 'local' && config.userProfile) {
       return {
         id: '',
-        ...config.userProfile,
+        name: config.userProfile.name,
+        username: config.userProfile.username,
         enabled: true,
       };
     }
@@ -223,54 +227,99 @@ export class SetupService {
    * In local mode or when no server URL is set, returns null
    */
   getWebSocketUrl(): string | null {
-    const config = this.appConfig();
-
-    if (config?.mode === 'server' && config.serverUrl) {
-      // Convert HTTP(S) URL to WebSocket URL
-      try {
-        const url = new URL(config.serverUrl);
-        const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-        return `${wsProtocol}//${url.host}`;
-      } catch (error) {
-        console.error('Failed to parse server URL for WebSocket:', error);
-        return null;
-      }
-    }
-
-    // In local mode, no WebSocket URL is available
-    return null;
+    return this.storageContext.getWebSocketUrl() ?? null;
   }
 
-  private loadConfig(): void {
-    const config = this.getStoredConfig();
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MULTI-SERVER MANAGEMENT (NEW API)
+  // ═══════════════════════════════════════════════════════════════════════════
 
-    if (config) {
-      this.appConfig.set(config);
-      this.isConfigured.set(true);
-    }
-
-    // Always check if we should auto-configure (it will return early if already correct)
-    // This ensures that if the environment URL changes (e.g. preview to prod),
-    // the app updates its configuration automatically.
-    this.autoConfigureIfNeeded();
+  /**
+   * Get the active server configuration
+   */
+  getActiveConfig(): ServerConfig | null {
+    return this.storageContext.getActiveConfig();
   }
 
-  private getStoredConfig(): AppConfig | null {
-    try {
-      const stored = localStorage.getItem(SETUP_STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as AppConfig) : null;
-    } catch (error) {
-      console.error('Failed to load stored config:', error);
-      return null;
-    }
+  /**
+   * Get all configured servers/modes
+   */
+  getConfigurations(): ServerConfig[] {
+    return this.storageContext.getConfigurations();
   }
 
-  private saveConfig(config: AppConfig): void {
-    try {
-      localStorage.setItem(SETUP_STORAGE_KEY, JSON.stringify(config));
-    } catch (error) {
-      console.error('Failed to save config:', error);
-      throw error;
+  /**
+   * Get a configuration by ID
+   */
+  getConfigById(configId: string): ServerConfig | undefined {
+    return this.storageContext.getConfigById(configId);
+  }
+
+  /**
+   * Check if a server URL is already configured
+   */
+  hasServerConfig(serverUrl: string): boolean {
+    return this.storageContext.hasServerConfig(serverUrl);
+  }
+
+  /**
+   * Add a new server configuration (doesn't switch to it)
+   */
+  async addServerConfig(
+    serverUrl: string,
+    displayName?: string
+  ): Promise<ServerConfig> {
+    // Validate server connection
+    const response = await fetch(`${serverUrl}/api/v1/health`);
+    if (!response.ok) {
+      throw new Error('Server is not reachable');
     }
+
+    return this.storageContext.addServerConfig(serverUrl, displayName);
+  }
+
+  /**
+   * Remove a server configuration
+   */
+  removeConfig(configId: string): void {
+    this.storageContext.removeConfig(configId);
+  }
+
+  /**
+   * Switch to a different configuration (server or local)
+   */
+  switchToConfig(configId: string): void {
+    this.storageContext.switchToConfig(configId);
+  }
+
+  /**
+   * Update the display name of a configuration
+   */
+  updateConfigDisplayName(configId: string, displayName: string): void {
+    this.storageContext.updateConfigDisplayName(configId, displayName);
+  }
+
+  /**
+   * Update the user profile for a configuration
+   */
+  updateConfigUserProfile(
+    configId: string,
+    userProfile: { name: string; username: string; avatarUrl?: string }
+  ): void {
+    this.storageContext.updateConfigUserProfile(configId, userProfile);
+  }
+
+  /**
+   * Get the storage prefix for the current context
+   */
+  getStoragePrefix(): string {
+    return this.storageContext.getPrefix();
+  }
+
+  /**
+   * Get the StorageContextService for advanced operations
+   */
+  getStorageContext(): StorageContextService {
+    return this.storageContext;
   }
 }
