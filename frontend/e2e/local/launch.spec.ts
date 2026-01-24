@@ -6,6 +6,21 @@
  */
 import { expect, test } from './fixtures';
 
+/**
+ * Helper to get the active mode from the v2 config format
+ */
+function getActiveMode(config: string): 'local' | 'server' | undefined {
+  const parsed = JSON.parse(config);
+  if (parsed.version === 2) {
+    const activeConfig = parsed.configurations?.find(
+      (c: { id: string }) => c.id === parsed.activeConfigId
+    );
+    return activeConfig?.type;
+  }
+  // Legacy v1 format fallback
+  return parsed.mode;
+}
+
 test.describe('Local Application Launch', () => {
   test('should launch app in local mode with test project', async ({
     localPageWithProject: page,
@@ -19,8 +34,7 @@ test.describe('Local Application Launch', () => {
       return localStorage.getItem('inkweld-app-config');
     });
     expect(config).not.toBeNull();
-    const parsedConfig = JSON.parse(config!);
-    expect(parsedConfig.mode).toBe('local');
+    expect(getActiveMode(config!)).toBe('local');
   });
 
   test('should show local indicator in UI', async ({
@@ -31,8 +45,8 @@ test.describe('Local Application Launch', () => {
     const config = await page.evaluate(() => {
       return localStorage.getItem('inkweld-app-config');
     });
-    const parsedConfig = JSON.parse(config!);
-    expect(parsedConfig.mode).toBe('local');
+    expect(config).not.toBeNull();
+    expect(getActiveMode(config!)).toBe('local');
   });
 
   test('should persist local mode across page refresh', async ({
@@ -49,11 +63,11 @@ test.describe('Local Application Launch', () => {
     // Wait for app to reinitialize
     await expect(page.getByTestId('project-card').first()).toBeVisible();
 
-    // Verify config is still local
+    // Verify config is still local mode (timestamps may differ but mode should be same)
     const configAfter = await page.evaluate(() => {
       return localStorage.getItem('inkweld-app-config');
     });
-    expect(configAfter).toBe(configBefore);
+    expect(getActiveMode(configAfter!)).toBe(getActiveMode(configBefore!));
   });
 
   test('should navigate to project in local mode', async ({

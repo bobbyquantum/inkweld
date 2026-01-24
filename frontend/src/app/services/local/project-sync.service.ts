@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 
+import { StorageContextService } from '../core/storage-context.service';
 import { StorageConfig, StorageService } from './storage.service';
 
 /**
@@ -38,13 +39,7 @@ export interface ProjectSyncState {
   lastError?: string;
 }
 
-const SYNC_DB_CONFIG: StorageConfig = {
-  dbName: 'inkweld-sync',
-  version: 1,
-  stores: {
-    'sync-state': 'projectKey', // Keyed by "username/slug"
-  },
-};
+const SYNC_DB_BASE_NAME = 'inkweld-sync';
 
 const STORE_NAME = 'sync-state';
 
@@ -75,8 +70,22 @@ const STORE_NAME = 'sync-state';
 })
 export class ProjectSyncService {
   private storageService = inject(StorageService);
+  private storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
+
+  /**
+   * Get the database config with the prefixed database name
+   */
+  private get dbConfig(): StorageConfig {
+    return {
+      dbName: this.storageContext.prefixDbName(SYNC_DB_BASE_NAME),
+      version: 1,
+      stores: {
+        'sync-state': 'projectKey', // Keyed by "username/slug"
+      },
+    };
+  }
 
   /** In-memory cache of sync states */
   private syncStates = new Map<
@@ -97,7 +106,7 @@ export class ProjectSyncService {
     }
 
     this.initPromise = this.storageService
-      .initializeDatabase(SYNC_DB_CONFIG)
+      .initializeDatabase(this.dbConfig)
       .then(db => {
         this.db = db;
         return db;

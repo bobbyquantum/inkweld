@@ -1,14 +1,17 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { SetupService } from './setup.service';
+import {
+  APP_CONFIG_STORAGE_KEY,
+  LOCAL_CONFIG_ID,
+  StorageContextService,
+} from './storage-context.service';
 
 describe('SetupService', () => {
   let service: SetupService;
   let mockLocalStorage: { [key: string]: string };
-
-  const SETUP_STORAGE_KEY = 'inkweld-app-config';
 
   beforeEach(() => {
     // Mock localStorage
@@ -21,6 +24,12 @@ describe('SetupService', () => {
       removeItem: vi.fn((key: string) => {
         delete mockLocalStorage[key];
       }),
+      key: vi.fn(
+        (index: number) => Object.keys(mockLocalStorage)[index] || null
+      ),
+      get length() {
+        return Object.keys(mockLocalStorage).length;
+      },
     };
     Object.defineProperty(window, 'localStorage', {
       value: localStorageMock,
@@ -31,7 +40,11 @@ describe('SetupService', () => {
     globalThis.fetch = vi.fn();
 
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        StorageContextService,
+        SetupService,
+      ],
     });
     service = TestBed.inject(SetupService);
   });
@@ -51,25 +64,75 @@ describe('SetupService', () => {
   });
 
   describe('loadConfig on initialization', () => {
-    it('should load stored config when present at startup', () => {
-      // Pre-populate storage before creating a fresh TestBed
-      const config = {
-        mode: 'local' as const,
-        userProfile: { name: 'Preloaded', username: 'preloaded' },
+    it('should load stored v2 config when present at startup', () => {
+      // Pre-populate storage with v2 config before creating a fresh TestBed
+      const v2Config = {
+        version: 2,
+        activeConfigId: LOCAL_CONFIG_ID,
+        configurations: [
+          {
+            id: LOCAL_CONFIG_ID,
+            type: 'local',
+            displayName: 'Local Mode',
+            userProfile: { name: 'Preloaded', username: 'preloaded' },
+            addedAt: '2025-01-01T00:00:00Z',
+            lastUsedAt: '2025-01-01T00:00:00Z',
+          },
+        ],
       };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+      mockLocalStorage[APP_CONFIG_STORAGE_KEY] = JSON.stringify(v2Config);
 
       // Reset TestBed to create a fresh service with pre-populated storage
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
-        providers: [provideZonelessChangeDetection()],
+        providers: [
+          provideZonelessChangeDetection(),
+          StorageContextService,
+          SetupService,
+        ],
       });
 
       const freshService = TestBed.inject(SetupService);
 
       // The constructor should have loaded the config
       expect(freshService.isConfigured()).toBe(true);
-      expect(freshService.appConfig()).toEqual(config);
+      expect(freshService.appConfig()).toEqual({
+        mode: 'local',
+        serverUrl: undefined,
+        userProfile: { name: 'Preloaded', username: 'preloaded' },
+      });
+    });
+
+    it('should migrate legacy v1 config to v2 on load', () => {
+      // Pre-populate storage with legacy v1 config
+      const legacyConfig = {
+        mode: 'local',
+        userProfile: { name: 'Legacy User', username: 'legacyuser' },
+      };
+      mockLocalStorage[APP_CONFIG_STORAGE_KEY] = JSON.stringify(legacyConfig);
+
+      // Reset TestBed to create a fresh service
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          StorageContextService,
+          SetupService,
+        ],
+      });
+
+      const freshService = TestBed.inject(SetupService);
+
+      // Should have migrated and loaded
+      expect(freshService.isConfigured()).toBe(true);
+      expect(freshService.appConfig()?.mode).toBe('local');
+      expect(freshService.appConfig()?.userProfile?.username).toBe(
+        'legacyuser'
+      );
+
+      // Verify v2 format was saved
+      const stored = JSON.parse(mockLocalStorage[APP_CONFIG_STORAGE_KEY]);
+      expect(stored.version).toBe(2);
     });
   });
 
@@ -81,31 +144,11 @@ describe('SetupService', () => {
     });
 
     it('should return true when valid config is stored', () => {
-      const config = {
-        mode: 'local' as const,
-        userProfile: { name: 'Test', username: 'test' },
-      };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+      service.configureLocalMode({ name: 'Test', username: 'test' });
 
       const result = service.checkConfiguration();
       expect(result).toBe(true);
       expect(service.isConfigured()).toBe(true);
-      expect(service.appConfig()).toEqual(config);
-    });
-
-    it('should handle corrupted stored config gracefully', () => {
-      mockLocalStorage[SETUP_STORAGE_KEY] = 'invalid-json';
-      const consoleSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-
-      const result = service.checkConfiguration();
-      expect(result).toBe(false);
-      expect(service.isConfigured()).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to load stored config:',
-        expect.any(Error)
-      );
     });
   });
 
@@ -119,12 +162,10 @@ describe('SetupService', () => {
       await service.configureServerMode(serverUrl);
 
       expect(service.isConfigured()).toBe(true);
-      expect(service.appConfig()).toEqual({
-        mode: 'server',
-        serverUrl: serverUrl,
-      });
+      expect(service.appConfig()?.mode).toBe('server');
+      expect(service.appConfig()?.serverUrl).toBe(serverUrl);
       expect(service.isLoading()).toBe(false);
-      expect(mockLocalStorage[SETUP_STORAGE_KEY]).toBeDefined();
+      expect(mockLocalStorage[APP_CONFIG_STORAGE_KEY]).toBeDefined();
     });
 
     it('should handle server connection failure', async () => {
@@ -176,18 +217,16 @@ describe('SetupService', () => {
   });
 
   describe('configureLocalMode', () => {
-    it('should configure offline mode successfully', () => {
+    it('should configure local mode successfully', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
 
       service.configureLocalMode(userProfile);
 
       expect(service.isConfigured()).toBe(true);
-      expect(service.appConfig()).toEqual({
-        mode: 'local',
-        userProfile: userProfile,
-      });
+      expect(service.appConfig()?.mode).toBe('local');
+      expect(service.appConfig()?.userProfile).toEqual(userProfile);
       expect(service.isLoading()).toBe(false);
-      expect(mockLocalStorage[SETUP_STORAGE_KEY]).toBeDefined();
+      expect(mockLocalStorage[APP_CONFIG_STORAGE_KEY]).toBeDefined();
     });
   });
 
@@ -203,7 +242,6 @@ describe('SetupService', () => {
 
       expect(service.isConfigured()).toBe(false);
       expect(service.appConfig()).toBe(null);
-      expect(localStorage.removeItem).toHaveBeenCalledWith(SETUP_STORAGE_KEY);
     });
   });
 
@@ -212,18 +250,14 @@ describe('SetupService', () => {
       expect(service.getMode()).toBe(null);
     });
 
-    it('should return server mode when configured', () => {
-      const config = {
-        mode: 'server' as const,
-        serverUrl: 'https://api.example.com',
-      };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
+    it('should return server mode when configured', async () => {
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+      await service.configureServerMode('https://api.example.com');
 
       expect(service.getMode()).toBe('server');
     });
 
-    it('should return offline mode when configured', () => {
+    it('should return local mode when configured', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
       service.configureLocalMode(userProfile);
 
@@ -236,7 +270,7 @@ describe('SetupService', () => {
       expect(service.getServerUrl()).toBe(null);
     });
 
-    it('should return null when in offline mode', () => {
+    it('should return null when in local mode', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
       service.configureLocalMode(userProfile);
 
@@ -250,14 +284,6 @@ describe('SetupService', () => {
 
       expect(service.getServerUrl()).toBe(serverUrl);
     });
-
-    it('should return null when server URL is not set in server mode', () => {
-      const config = { mode: 'server' as const };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
-
-      expect(service.getServerUrl()).toBe(null);
-    });
   });
 
   describe('getWebSocketUrl', () => {
@@ -265,73 +291,32 @@ describe('SetupService', () => {
       expect(service.getWebSocketUrl()).toBe(null);
     });
 
-    it('should return null in offline mode', () => {
+    it('should return null in local mode', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };
       service.configureLocalMode(userProfile);
 
       expect(service.getWebSocketUrl()).toBe(null);
     });
 
-    it('should convert HTTP server URL to WebSocket URL', () => {
-      const config = {
-        mode: 'server' as const,
-        serverUrl: 'http://localhost:8333',
-      };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
+    it('should convert HTTP server URL to WebSocket URL', async () => {
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+      await service.configureServerMode('http://localhost:8333');
 
       expect(service.getWebSocketUrl()).toBe('ws://localhost:8333');
     });
 
-    it('should convert HTTPS server URL to secure WebSocket URL', () => {
-      const config = {
-        mode: 'server' as const,
-        serverUrl: 'https://api.example.com',
-      };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
+    it('should convert HTTPS server URL to secure WebSocket URL', async () => {
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+      await service.configureServerMode('https://api.example.com');
 
       expect(service.getWebSocketUrl()).toBe('wss://api.example.com');
     });
 
-    it('should handle server URL with port', () => {
-      const config = {
-        mode: 'server' as const,
-        serverUrl: 'https://api.example.com:8080',
-      };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
+    it('should handle server URL with port', async () => {
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+      await service.configureServerMode('https://api.example.com:8080');
 
       expect(service.getWebSocketUrl()).toBe('wss://api.example.com:8080');
-    });
-
-    it('should handle server URL with path', () => {
-      const config = {
-        mode: 'server' as const,
-        serverUrl: 'https://api.example.com/api/v1',
-      };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
-
-      expect(service.getWebSocketUrl()).toBe('wss://api.example.com');
-    });
-
-    it('should return null when server URL is invalid', () => {
-      const config = {
-        mode: 'server' as const,
-        serverUrl: 'invalid-url',
-      };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
-
-      const consoleSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-      expect(service.getWebSocketUrl()).toBe(null);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to parse server URL for WebSocket:',
-        expect.anything()
-      );
     });
   });
 
@@ -348,60 +333,171 @@ describe('SetupService', () => {
       expect(service.getLocalUserProfile()).toBe(null);
     });
 
-    it('should return user profile when in offline mode', () => {
-      const userProfile = {
-        id: '',
-        name: 'Test User',
-        username: 'testuser',
-        enabled: true,
-      };
+    it('should return user profile when in local mode', () => {
+      const userProfile = { name: 'Test User', username: 'testuser' };
       service.configureLocalMode(userProfile);
 
-      expect(service.getLocalUserProfile()).toEqual(userProfile);
-    });
-
-    it('should return null when user profile is not set in offline mode', () => {
-      const config = { mode: 'local' as const };
-      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
-      service.checkConfiguration();
-
-      expect(service.getLocalUserProfile()).toBe(null);
+      const result = service.getLocalUserProfile();
+      expect(result?.name).toBe('Test User');
+      expect(result?.username).toBe('testuser');
+      expect(result?.enabled).toBe(true);
     });
   });
 
-  describe('localStorage error handling', () => {
-    it('should handle localStorage save errors', () => {
-      (localStorage.setItem as Mock).mockImplementation(() => {
-        throw new Error('Storage quota exceeded');
-      });
-      const consoleSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MULTI-SERVER MANAGEMENT TESTS
+  // ═══════════════════════════════════════════════════════════════════════════
 
-      const userProfile = { name: 'Test User', username: 'testuser' };
-      expect(() => service.configureLocalMode(userProfile)).toThrow(
-        'Storage quota exceeded'
-      );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to save config:',
-        expect.any(Error)
-      );
+  describe('multi-server management', () => {
+    describe('getConfigurations', () => {
+      it('should return empty array when no configs', () => {
+        expect(service.getConfigurations()).toEqual([]);
+      });
+
+      it('should return all configurations', async () => {
+        service.configureLocalMode({ name: 'Local', username: 'local' });
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+        await service.addServerConfig('https://server1.com');
+        await service.addServerConfig('https://server2.com');
+
+        const configs = service.getConfigurations();
+        expect(configs).toHaveLength(3);
+      });
     });
 
-    it('should handle localStorage read errors', () => {
-      (localStorage.getItem as Mock).mockImplementation(() => {
-        throw new Error('Storage access denied');
+    describe('getActiveConfig', () => {
+      it('should return null when no config', () => {
+        expect(service.getActiveConfig()).toBeNull();
       });
-      const consoleSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
 
-      const result = service.checkConfiguration();
-      expect(result).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to load stored config:',
-        expect.any(Error)
-      );
+      it('should return active config', () => {
+        service.configureLocalMode({ name: 'Local', username: 'local' });
+        const active = service.getActiveConfig();
+        expect(active?.id).toBe(LOCAL_CONFIG_ID);
+        expect(active?.type).toBe('local');
+      });
+    });
+
+    describe('addServerConfig', () => {
+      it('should add a new server without switching to it', async () => {
+        service.configureLocalMode({ name: 'Local', username: 'local' });
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+
+        const newConfig = await service.addServerConfig(
+          'https://server.com',
+          'My Server'
+        );
+
+        expect(newConfig.serverUrl).toBe('https://server.com');
+        expect(newConfig.displayName).toBe('My Server');
+        // Should still be in local mode
+        expect(service.getActiveConfig()?.type).toBe('local');
+      });
+
+      it('should validate server before adding', async () => {
+        service.configureLocalMode({ name: 'Local', username: 'local' });
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: false });
+
+        await expect(
+          service.addServerConfig('https://bad-server.com')
+        ).rejects.toThrow('Server is not reachable');
+      });
+    });
+
+    describe('hasServerConfig', () => {
+      it('should return true if server is configured', async () => {
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+        await service.configureServerMode('https://example.com');
+
+        expect(service.hasServerConfig('https://example.com')).toBe(true);
+        expect(service.hasServerConfig('https://EXAMPLE.COM')).toBe(true);
+      });
+
+      it('should return false if server is not configured', () => {
+        expect(service.hasServerConfig('https://example.com')).toBe(false);
+      });
+    });
+
+    describe('switchToConfig', () => {
+      it('should switch between configurations', async () => {
+        service.configureLocalMode({ name: 'Local', username: 'local' });
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+        const serverConfig =
+          await service.addServerConfig('https://server.com');
+
+        expect(service.getMode()).toBe('local');
+
+        service.switchToConfig(serverConfig.id);
+
+        expect(service.getMode()).toBe('server');
+        expect(service.getServerUrl()).toBe('https://server.com');
+      });
+    });
+
+    describe('removeConfig', () => {
+      it('should remove a configuration', async () => {
+        service.configureLocalMode({ name: 'Local', username: 'local' });
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+        const serverConfig =
+          await service.addServerConfig('https://server.com');
+
+        expect(service.getConfigurations()).toHaveLength(2);
+
+        service.removeConfig(serverConfig.id);
+
+        expect(service.getConfigurations()).toHaveLength(1);
+      });
+    });
+
+    describe('updateConfigDisplayName', () => {
+      it('should update display name', async () => {
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+        const config = await service.addServerConfig(
+          'https://server.com',
+          'Old Name'
+        );
+        service.switchToConfig(config.id);
+
+        service.updateConfigDisplayName(config.id, 'New Name');
+
+        expect(service.getConfigById(config.id)?.displayName).toBe('New Name');
+      });
+    });
+
+    describe('updateConfigUserProfile', () => {
+      it('should update user profile for a config', () => {
+        service.configureLocalMode({ name: 'Old', username: 'old' });
+
+        service.updateConfigUserProfile(LOCAL_CONFIG_ID, {
+          name: 'New Name',
+          username: 'newuser',
+          avatarUrl: 'https://example.com/avatar.png',
+        });
+
+        const profile = service.getActiveConfig()?.userProfile;
+        expect(profile?.name).toBe('New Name');
+        expect(profile?.username).toBe('newuser');
+      });
+    });
+
+    describe('getStoragePrefix', () => {
+      it('should return local prefix for local mode', () => {
+        service.configureLocalMode({ name: 'Local', username: 'local' });
+        expect(service.getStoragePrefix()).toBe('local:');
+      });
+
+      it('should return server prefix for server mode', async () => {
+        (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+        await service.configureServerMode('https://example.com');
+        expect(service.getStoragePrefix()).toMatch(/^srv:[a-f0-9]{8}:$/);
+      });
+    });
+
+    describe('getStorageContext', () => {
+      it('should return the StorageContextService instance', () => {
+        const context = service.getStorageContext();
+        expect(context).toBeInstanceOf(StorageContextService);
+      });
     });
   });
 });

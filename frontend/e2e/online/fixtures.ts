@@ -118,13 +118,24 @@ export const test = base.extend<OnlineTestFixtures>({
 
     const apiUrl = getApiBaseUrl();
 
-    // Set up app configuration for server mode
+    // Set up app configuration for server mode (v2 format)
     await page.addInitScript((serverUrl: string) => {
+      const now = Date.now();
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'server',
-          serverUrl,
+          version: 2,
+          activeConfigId: 'server-1',
+          configurations: [
+            {
+              id: 'server-1',
+              type: 'server',
+              displayName: 'Test Server',
+              serverUrl,
+              addedAt: now,
+              lastUsedAt: now,
+            },
+          ],
         })
       );
     }, apiUrl);
@@ -153,14 +164,25 @@ export const test = base.extend<OnlineTestFixtures>({
 
     const apiUrl = getApiBaseUrl();
 
-    // Set up app configuration with auth token in one addInitScript
+    // Set up app configuration with auth token in one addInitScript (v2 format)
     await page.addInitScript(
       ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        const now = Date.now();
         localStorage.setItem(
           'inkweld-app-config',
           JSON.stringify({
-            mode: 'server',
-            serverUrl,
+            version: 2,
+            activeConfigId: 'server-1',
+            configurations: [
+              {
+                id: 'server-1',
+                type: 'server',
+                displayName: 'Test Server',
+                serverUrl,
+                addedAt: now,
+                lastUsedAt: now,
+              },
+            ],
           })
         );
 
@@ -231,14 +253,25 @@ export const test = base.extend<OnlineTestFixtures>({
 
     const apiUrl = getApiBaseUrl();
 
-    // Set up app configuration with auth token
+    // Set up app configuration with auth token (v2 format)
     await page.addInitScript(
       ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        const now = Date.now();
         localStorage.setItem(
           'inkweld-app-config',
           JSON.stringify({
-            mode: 'server',
-            serverUrl,
+            version: 2,
+            activeConfigId: 'server-1',
+            configurations: [
+              {
+                id: 'server-1',
+                type: 'server',
+                displayName: 'Test Server',
+                serverUrl,
+                addedAt: now,
+                lastUsedAt: now,
+              },
+            ],
           })
         );
 
@@ -309,7 +342,7 @@ export const test = base.extend<OnlineTestFixtures>({
     // Navigate first
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Set up app configuration for offline mode (one-time, not on every navigation)
+    // Set up app configuration for offline mode (v2 format, one-time, not on every navigation)
     await page.evaluate(user => {
       const userProfile = {
         id: user,
@@ -318,19 +351,33 @@ export const test = base.extend<OnlineTestFixtures>({
         enabled: true,
       };
 
+      const now = Date.now();
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'local',
-          userProfile,
+          version: 2,
+          activeConfigId: 'local',
+          configurations: [
+            {
+              id: 'local',
+              type: 'local',
+              displayName: 'Local Mode',
+              userProfile,
+              addedAt: now,
+              lastUsedAt: now,
+            },
+          ],
         })
       );
 
       // IMPORTANT: Also set the offline user directly so OfflineUserService recognizes authentication
-      localStorage.setItem('inkweld-local-user', JSON.stringify(userProfile));
+      localStorage.setItem(
+        'local:inkweld-local-user',
+        JSON.stringify(userProfile)
+      );
 
       // Clear any existing offline projects
-      localStorage.removeItem('inkweld-local-projects');
+      localStorage.removeItem('local:inkweld-local-projects');
     }, username);
 
     // Reload to apply the configuration
@@ -360,14 +407,25 @@ export const test = base.extend<OnlineTestFixtures>({
     // Step 1: Register and authenticate user FIRST (server must be up)
     const token = await authenticateUser(page, username, password, true);
 
-    // Step 2: Set up app configuration with auth token
+    // Step 2: Set up app configuration with auth token (v2 format)
     await page.addInitScript(
       ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        const now = Date.now();
         localStorage.setItem(
           'inkweld-app-config',
           JSON.stringify({
-            mode: 'server',
-            serverUrl,
+            version: 2,
+            activeConfigId: 'server-1',
+            configurations: [
+              {
+                id: 'server-1',
+                type: 'server',
+                displayName: 'Test Server',
+                serverUrl,
+                addedAt: now,
+                lastUsedAt: now,
+              },
+            ],
           })
         );
         localStorage.setItem('auth_token', authToken);
@@ -736,7 +794,7 @@ export async function createOfflineProject(
 
   // Wait for localStorage to be updated by checking it directly
   await page.waitForFunction(expectedSlug => {
-    const stored = localStorage.getItem('inkweld-local-projects');
+    const stored = localStorage.getItem('local:inkweld-local-projects');
     if (!stored) return false;
     try {
       const projects = JSON.parse(stored) as Array<{ slug: string }>;
@@ -773,19 +831,32 @@ export async function getOfflineProjects(
   page: Page
 ): Promise<Array<{ slug: string }>> {
   return page.evaluate(() => {
-    const stored = localStorage.getItem('inkweld-local-projects');
+    const stored = localStorage.getItem('local:inkweld-local-projects');
     return stored ? (JSON.parse(stored) as Array<{ slug: string }>) : [];
   });
 }
 
 /**
- * Helper to verify app mode
+ * Helper to verify app mode (supports both v1 and v2 config formats)
  */
 export async function getAppMode(page: Page): Promise<string> {
   return page.evaluate(() => {
     const config = localStorage.getItem('inkweld-app-config');
     if (!config) return 'unknown';
-    const parsed = JSON.parse(config) as { mode?: string };
+    const parsed = JSON.parse(config) as {
+      mode?: string;
+      version?: number;
+      activeConfigId?: string;
+      configurations?: Array<{ id: string; type: string }>;
+    };
+    // v2 format
+    if (parsed.version === 2) {
+      const activeConfig = parsed.configurations?.find(
+        c => c.id === parsed.activeConfigId
+      );
+      return activeConfig?.type || 'unknown';
+    }
+    // v1 format (legacy)
     return parsed.mode || 'unknown';
   });
 }

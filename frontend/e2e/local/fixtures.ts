@@ -68,16 +68,35 @@ export const test = base.extend<LocalTestFixtures>({
         enabled: true,
       };
 
+      const now = new Date().toISOString();
+
+      // Use v2 config format with storage prefix support
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'local',
-          userProfile,
+          version: 2,
+          activeConfigId: 'local',
+          configurations: [
+            {
+              id: 'local',
+              type: 'local',
+              displayName: 'Local Mode',
+              userProfile: {
+                name: userProfile.name,
+                username: userProfile.username,
+              },
+              addedAt: now,
+              lastUsedAt: now,
+            },
+          ],
         })
       );
 
-      // Also set the local user directly so LocalUserService recognizes authentication
-      localStorage.setItem('inkweld-local-user', JSON.stringify(userProfile));
+      // Also set the local user directly with the prefixed key
+      localStorage.setItem(
+        'local:inkweld-local-user',
+        JSON.stringify(userProfile)
+      );
     });
 
     // Navigate to home
@@ -124,15 +143,35 @@ export const test = base.extend<LocalTestFixtures>({
         enabled: true,
       };
 
+      const now = new Date().toISOString();
+
+      // Use v2 config format with storage prefix support
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'local',
-          userProfile,
+          version: 2,
+          activeConfigId: 'local',
+          configurations: [
+            {
+              id: 'local',
+              type: 'local',
+              displayName: 'Local Mode',
+              userProfile: {
+                name: userProfile.name,
+                username: userProfile.username,
+              },
+              addedAt: now,
+              lastUsedAt: now,
+            },
+          ],
         })
       );
 
-      localStorage.setItem('inkweld-local-user', JSON.stringify(userProfile));
+      // Also set the local user directly with the prefixed key
+      localStorage.setItem(
+        'local:inkweld-local-user',
+        JSON.stringify(userProfile)
+      );
     });
 
     // Navigate to home
@@ -199,15 +238,35 @@ export const test = base.extend<LocalTestFixtures>({
         enabled: true,
       };
 
+      const now = new Date().toISOString();
+
+      // Use v2 config format with storage prefix support
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'local',
-          userProfile,
+          version: 2,
+          activeConfigId: 'local',
+          configurations: [
+            {
+              id: 'local',
+              type: 'local',
+              displayName: 'Local Mode',
+              userProfile: {
+                name: userProfile.name,
+                username: userProfile.username,
+              },
+              addedAt: now,
+              lastUsedAt: now,
+            },
+          ],
         })
       );
 
-      localStorage.setItem('inkweld-local-user', JSON.stringify(userProfile));
+      // Also set the local user directly with the prefixed key
+      localStorage.setItem(
+        'local:inkweld-local-user',
+        JSON.stringify(userProfile)
+      );
     });
 
     await use(context);
@@ -248,9 +307,9 @@ export async function createLocalProject(
   // Wait for project to be created
   await page.waitForURL(new RegExp(`.*${slug}.*`));
 
-  // Wait for localStorage to be updated
+  // Wait for localStorage to be updated (uses prefixed key in local mode)
   await page.waitForFunction(expectedSlug => {
-    const stored = localStorage.getItem('inkweld-local-projects');
+    const stored = localStorage.getItem('local:inkweld-local-projects');
     if (!stored) return false;
     try {
       const projects = JSON.parse(stored) as Array<{ slug: string }>;

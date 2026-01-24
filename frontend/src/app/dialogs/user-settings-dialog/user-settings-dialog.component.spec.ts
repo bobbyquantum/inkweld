@@ -1,9 +1,11 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child components
@@ -36,6 +38,11 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   }),
 });
+
+// Mock BreakpointObserver
+const mockBreakpointObserver = {
+  observe: vi.fn().mockReturnValue(of({ matches: false })),
+};
 
 describe('UserSettingsDialogComponent', () => {
   let component: UserSettingsDialogComponent;
@@ -81,6 +88,7 @@ describe('UserSettingsDialogComponent', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: BreakpointObserver, useValue: mockBreakpointObserver },
       ],
     }).compileComponents();
 

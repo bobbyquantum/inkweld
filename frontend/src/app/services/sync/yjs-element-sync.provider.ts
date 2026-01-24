@@ -16,6 +16,7 @@ import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
@@ -63,12 +64,16 @@ const DEFAULT_RECONNECTION_CONFIG: ReconnectionConfig = {
 export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly logger = inject(LoggerService);
   private readonly authTokenService = inject(AuthTokenService);
+  private readonly storageContext = inject(StorageContextService);
 
   // Yjs infrastructure
   private doc: Y.Doc | null = null;
   private wsProvider: WebsocketProvider | null = null;
   private idbProvider: IndexeddbPersistence | null = null;
+  /** Document ID for server communication (unprefixed) */
   private docId: string | null = null;
+  /** Document ID for local IndexedDB storage (prefixed) */
+  private localDocId: string | null = null;
 
   // Reconnection state
   private reconnectAttempts = 0;
@@ -148,10 +153,14 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     // Disconnect any existing session first
     this.disconnect();
 
+    // Document ID for server communication (unprefixed)
     this.docId = `${username}:${slug}:elements`;
+    // Document ID for local IndexedDB storage (prefixed for multi-server isolation)
+    this.localDocId = this.storageContext.prefixDocumentId(this.docId);
+
     this.logger.info(
       'YjsSync',
-      `🔗 Connecting to elements document: "${this.docId}"`
+      `🔗 Connecting to elements document: "${this.docId}" (local: "${this.localDocId}")`
     );
 
     // Set initial state to Syncing while we connect
@@ -163,7 +172,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
       // Set up IndexedDB persistence FIRST for local-first experience
       // This ensures we have local data available immediately
-      this.idbProvider = new IndexeddbPersistence(this.docId, this.doc);
+      // Use the prefixed localDocId for storage isolation
+      this.idbProvider = new IndexeddbPersistence(this.localDocId, this.doc);
       await this.idbProvider.whenSynced;
       this.logger.info('YjsSync', '✅ IndexedDB synced');
 
@@ -314,6 +324,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     }
 
     this.docId = null;
+    this.localDocId = null;
 
     // Reset state
     this.elementsSubject.next([]);
