@@ -5,13 +5,22 @@ import { Database as BunDatabase } from 'bun:sqlite';
 import { join } from 'path';
 import * as schema from '../src/db/schema';
 import { configService, type ConfigValue } from '../src/services/config.service';
-import { config } from '../src/db/schema/config';
+import { config, CONFIG_KEYS, type ConfigKey } from '../src/db/schema/config';
 import { eq } from 'drizzle-orm';
 
 let db: BunSQLiteDatabase<typeof schema>;
 let sqlite: BunDatabase;
 
 beforeAll(async () => {
+  // Clear config-related environment variables to ensure tests use defaults
+  // NOTE: This is critical for test stability - the codespace may have env vars like
+  // GITHUB_ENABLED or LOCAL_USERS_ENABLED set, which would cause tests to fail when
+  // checking for default values. Changes to process.env only affect this test process.
+  for (const key of Object.keys(CONFIG_KEYS)) {
+    const envVar = CONFIG_KEYS[key as ConfigKey].envVar;
+    delete process.env[envVar];
+  }
+
   // Create in-memory database for tests
   sqlite = new BunDatabase(':memory:');
   db = drizzle(sqlite, { schema });
