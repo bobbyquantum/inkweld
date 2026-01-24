@@ -1,0 +1,195 @@
+name: Electron Build Check
+
+on:
+  pull_request:
+    types: [labeled, synchronize, opened]
+    paths:
+      # Electron-specific files
+      - "frontend/electron/**"
+      - "frontend/electron-builder.json"
+      # Angular app (runs inside Electron)
+      - "frontend/src/**"
+      # Build configuration
+      - "frontend/angular.json"
+      - "frontend/package.json"
+      - "frontend/tsconfig*.json"
+      # This workflow itself
+      - ".github/workflows/electron-build-check.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: electron-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================
+  # Electron Build - Windows
+  # ===========================================
+  build-windows:
+    name: Build (Windows)
+    # Run on path changes OR when 'check-installation' label is applied
+    if: github.event_name == 'pull_request' && (github.event.action != 'labeled' || github.event.label.name == 'check-installation')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Angular app (Electron config)
+        run: cd frontend && npm run electron:build:angular
+
+      - name: Build Electron main process
+        run: cd frontend && npm run electron:build
+
+      - name: Package Electron app (Windows)
+        run: cd frontend && npx electron-builder --win --dir
+        env:
+          # Skip signing for CI builds
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: electron-build-windows
+          path: frontend/release/
+          retention-days: 3
+
+  # ===========================================
+  # Electron Build - macOS (Intel + Apple Silicon)
+  # ===========================================
+  build-macos:
+    name: Build (macOS)
+    # Run on path changes OR when 'check-installation' label is applied
+    if: github.event_name == 'pull_request' && (github.event.action != 'labeled' || github.event.label.name == 'check-installation')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Angular app (Electron config)
+        run: cd frontend && npm run electron:build:angular
+
+      - name: Build Electron main process
+        run: cd frontend && npm run electron:build
+
+      - name: Package Electron app (macOS)
+        run: cd frontend && npx electron-builder --mac --dir
+        env:
+          # Skip signing for CI builds
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: electron-build-macos
+          path: frontend/release/
+          retention-days: 3
+
+  # ===========================================
+  # Electron Build - Linux
+  # ===========================================
+  build-linux:
+    name: Build (Linux)
+    # Run on path changes OR when 'check-installation' label is applied
+    if: github.event_name == 'pull_request' && (github.event.action != 'labeled' || github.event.label.name == 'check-installation')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Angular app (Electron config)
+        run: cd frontend && npm run electron:build:angular
+
+      - name: Build Electron main process
+        run: cd frontend && npm run electron:build
+
+      - name: Package Electron app (Linux)
+        run: cd frontend && npx electron-builder --linux --dir
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: electron-build-linux
+          path: frontend/release/
+          retention-days: 3
+
+  # ===========================================
+  # Summary job for PR status
+  # ===========================================
+  build-status:
+    name: Electron Build Status
+    if: always()
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check build results
+        run: |
+          if [[ "${{ needs.build-windows.result }}" == "success" && "${{ needs.build-macos.result }}" == "success" && "${{ needs.build-linux.result }}" == "success" ]]; then
+            echo "✅ All Electron builds completed successfully for Windows, macOS, and Linux"
+          elif [[ "${{ needs.build-windows.result }}" == "skipped" && "${{ needs.build-macos.result }}" == "skipped" && "${{ needs.build-linux.result }}" == "skipped" ]]; then
+            echo "⏭️ Electron builds skipped (no relevant changes)"
+          else
+            echo "❌ Some Electron builds failed"
+            exit 1
+          fi
