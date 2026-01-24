@@ -388,44 +388,45 @@ describe('SetupComponent', () => {
   });
 
   describe('setupLocalMode', () => {
-    it('should show error if username is empty', async () => {
+    it('should use default username when username is empty', async () => {
       component['userName'] = '';
       component['displayName'] = 'Test User';
 
       await component['setupLocalMode']();
 
+      expect(mockSetupService.configureLocalMode).toHaveBeenCalledWith({
+        username: 'local',
+        name: 'Test User',
+      });
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Please fill in all fields',
+        'Local mode configured!',
         'Close',
         { duration: 3000 }
       );
-      expect(mockSetupService.configureLocalMode).not.toHaveBeenCalled();
     });
 
-    it('should show error if display name is empty', async () => {
+    it('should use default display name when display name is empty', async () => {
       component['userName'] = 'testuser';
       component['displayName'] = '';
 
       await component['setupLocalMode']();
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Please fill in all fields',
-        'Close',
-        { duration: 3000 }
-      );
+      expect(mockSetupService.configureLocalMode).toHaveBeenCalledWith({
+        username: 'testuser',
+        name: 'Local User',
+      });
     });
 
-    it('should show error if fields are whitespace', async () => {
+    it('should use defaults when fields are whitespace', async () => {
       component['userName'] = '   ';
       component['displayName'] = '   ';
 
       await component['setupLocalMode']();
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Please fill in all fields',
-        'Close',
-        { duration: 3000 }
-      );
+      expect(mockSetupService.configureLocalMode).toHaveBeenCalledWith({
+        username: 'local',
+        name: 'Local User',
+      });
     });
 
     it('should configure local mode successfully', async () => {

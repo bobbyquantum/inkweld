@@ -143,6 +143,7 @@ export class DocumentElementEditorComponent
   ];
   private idFormatted = false;
   private collaborationSetup = false;
+  private destroyed = false; // Track if component is destroyed to prevent stale async operations
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
   private cdr = inject(ChangeDetectorRef);
 
@@ -281,9 +282,22 @@ export class DocumentElementEditorComponent
 
       // Use requestAnimationFrame to ensure the view is fully rendered before setup
       requestAnimationFrame(() => {
+        // Check if component was destroyed or editor changed while waiting
+        if (this.destroyed || !this.editor?.view?.dom) {
+          console.log(
+            '[DocumentEditor] Skipping setupCollaboration - component destroyed or editor invalid'
+          );
+          this.collaborationSetup = false;
+          return;
+        }
+
         this.documentService
           .setupCollaboration(this.editor, this.documentId)
           .then(() => {
+            // Check again after async operation
+            if (this.destroyed || !this.editor?.view?.dom) {
+              return;
+            }
             console.log(
               `[DocumentEditor] setupCollaboration complete, editor doc size: ${this.editor.view.state.doc.nodeSize}`
             );
@@ -360,6 +374,9 @@ export class DocumentElementEditorComponent
   }
 
   ngOnDestroy(): void {
+    // Mark as destroyed to prevent stale async operations
+    this.destroyed = true;
+
     // Destroy editor FIRST before disconnecting
     // This prevents awareness cleanup from trying to update a destroyed editor
     this.editor.destroy();

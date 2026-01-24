@@ -23,6 +23,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project } from '@inkweld/index';
+import { ElectronService } from '@services/electron.service';
 
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import {
@@ -58,6 +59,7 @@ interface ProjectForm {
 export class CreateProjectComponent implements OnInit {
   private unifiedProjectService = inject(UnifiedProjectService);
   private templateService = inject(ProjectTemplateService);
+  private electronService = inject(ElectronService);
   protected unifiedUserService = inject(UnifiedUserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
@@ -88,7 +90,10 @@ export class CreateProjectComponent implements OnInit {
   readonly isSaving = signal(false);
 
   constructor() {
-    this.baseUrl = window.location.origin;
+    // Use inkweld:// protocol in Electron, otherwise use current origin
+    this.baseUrl = this.electronService.isElectron
+      ? 'inkweld:/'
+      : window.location.origin;
 
     this.projectForm
       .get('title')

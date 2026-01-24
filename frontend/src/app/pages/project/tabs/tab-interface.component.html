@@ -29,6 +29,7 @@
           [value]="'tab-' + i"
           type="button"
           (click)="onTabChange(i)"
+          (keydown.enter)="onTabChange(i)"
           [cdkContextMenuTriggerFor]="tabContextMenu"
           (contextmenu)="onTabContextMenu(i, tab)"
           [attr.data-testid]="
