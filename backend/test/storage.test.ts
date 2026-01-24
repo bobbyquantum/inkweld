@@ -124,4 +124,102 @@ describe('FileStorageService', () => {
       expect(file2Exists).toBe(false);
     });
   });
+
+  describe('listProjectFiles', () => {
+    it('should list all files in a project directory', async () => {
+      const username = 'testuser';
+      const projectSlug = 'test-project';
+
+      await service.saveProjectFile(username, projectSlug, 'doc1.txt', 'content1');
+      await service.saveProjectFile(username, projectSlug, 'doc2.txt', 'content2');
+      await service.saveProjectFile(username, projectSlug, 'image.png', Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+      const files = await service.listProjectFiles(username, projectSlug);
+
+      expect(files.length).toBe(3);
+      const filenames = files.map(f => f.filename).sort();
+      expect(filenames).toEqual(['doc1.txt', 'doc2.txt', 'image.png']);
+    });
+
+    it('should include file metadata', async () => {
+      const username = 'testuser';
+      const projectSlug = 'test-project';
+      const content = 'Hello, World!';
+
+      await service.saveProjectFile(username, projectSlug, 'test.txt', content);
+
+      const files = await service.listProjectFiles(username, projectSlug);
+
+      expect(files.length).toBe(1);
+      expect(files[0].filename).toBe('test.txt');
+      expect(files[0].size).toBe(content.length);
+      expect(files[0].mimeType).toBe('text/plain');
+      expect(files[0].uploadedAt).toBeInstanceOf(Date);
+    });
+
+    it('should filter files by prefix', async () => {
+      const username = 'testuser';
+      const projectSlug = 'test-project';
+
+      await service.saveProjectFile(username, projectSlug, 'media-image.png', Buffer.from([0x89]));
+      await service.saveProjectFile(username, projectSlug, 'media-video.mp4', Buffer.from([0x00]));
+      await service.saveProjectFile(username, projectSlug, 'document.txt', 'content');
+
+      const files = await service.listProjectFiles(username, projectSlug, 'media');
+
+      expect(files.length).toBe(2);
+      expect(files.every(f => f.filename.startsWith('media'))).toBe(true);
+    });
+
+    it('should return empty array for non-existent directory', async () => {
+      const username = 'testuser';
+      const projectSlug = 'nonexistent-project';
+
+      const files = await service.listProjectFiles(username, projectSlug);
+
+      expect(files).toEqual([]);
+    });
+
+    it('should skip hidden files (starting with dot)', async () => {
+      const username = 'testuser';
+      const projectSlug = 'test-project';
+
+      await service.saveProjectFile(username, projectSlug, '.hidden', 'hidden content');
+      await service.saveProjectFile(username, projectSlug, 'visible.txt', 'visible content');
+
+      const files = await service.listProjectFiles(username, projectSlug);
+
+      expect(files.length).toBe(1);
+      expect(files[0].filename).toBe('visible.txt');
+    });
+
+    it('should skip .level files', async () => {
+      const username = 'testuser';
+      const projectSlug = 'test-project';
+
+      await service.saveProjectFile(username, projectSlug, 'data.level', 'level data');
+      await service.saveProjectFile(username, projectSlug, 'document.txt', 'document content');
+
+      const files = await service.listProjectFiles(username, projectSlug);
+
+      expect(files.length).toBe(1);
+      expect(files[0].filename).toBe('document.txt');
+    });
+
+    it('should detect mime types correctly', async () => {
+      const username = 'testuser';
+      const projectSlug = 'test-project';
+
+      await service.saveProjectFile(username, projectSlug, 'image.jpg', Buffer.from([0xff, 0xd8]));
+      await service.saveProjectFile(username, projectSlug, 'script.js', 'console.log("hi")');
+      await service.saveProjectFile(username, projectSlug, 'styles.css', 'body { }');
+
+      const files = await service.listProjectFiles(username, projectSlug);
+      const fileMap = new Map(files.map(f => [f.filename, f.mimeType]));
+
+      expect(fileMap.get('image.jpg')).toBe('image/jpeg');
+      expect(fileMap.get('script.js')).toBe('text/javascript');
+      expect(fileMap.get('styles.css')).toBe('text/css');
+    });
+  });
 });
