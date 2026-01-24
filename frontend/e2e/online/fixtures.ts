@@ -606,11 +606,14 @@ export async function registerUser(
   // Blur the last field to trigger validation
   await page.locator('[data-testid="confirm-password-input"]').blur();
 
+  // Small delay to allow async validation to settle
+  await page.waitForTimeout(200);
+
   // Wait for the register button to be enabled (not just visible)
   const registerButton = page.locator(
     'mat-dialog-container [data-testid="register-button"]'
   );
-  await expect(registerButton).toBeEnabled();
+  await expect(registerButton).toBeEnabled({ timeout: 10000 });
 
   // Click register and wait for dialog to close
   await registerButton.click();

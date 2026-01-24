@@ -25,12 +25,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath: string) =>
     ipcRenderer.invoke('read-file', filePath),
 
-  // Menu actions listener (removed, menu is gone)
-  // onMenuAction: (callback: (action: string) => void) => {
-  //   const handler = (_event: Electron.IpcRendererEvent, action: string) => callback(action);
-  //   ipcRenderer.on('menu-action', handler);
-  //   return () => ipcRenderer.removeListener('menu-action', handler);
-  // },
+  // Deep link handler
+  onDeepLink: (callback: (path: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, path: string) => callback(path);
+    ipcRenderer.on('deep-link', handler);
+    return () => ipcRenderer.removeListener('deep-link', handler);
+  },
 
   // Check if running in Electron
   isElectron: true,
@@ -48,6 +48,7 @@ export interface ElectronAPI {
   showOpenDialog: (options: Electron.OpenDialogOptions) => Promise<Electron.OpenDialogReturnValue>;
   writeFile: (filePath: string, data: string | Buffer) => Promise<{ success: boolean; error?: string }>;
   readFile: (filePath: string) => Promise<{ success: boolean; data?: Buffer; error?: string }>;
+  onDeepLink: (callback: (path: string) => void) => () => void;
   isElectron: boolean;
 }
 
