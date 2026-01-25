@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   APP_CONFIG_STORAGE_KEY,
   AppConfigV2,
-  LegacyAppConfig,
   LOCAL_CONFIG_ID,
   StorageContextService,
 } from './storage-context.service';
@@ -83,56 +82,8 @@ describe('StorageContextService', () => {
     it('should default to local prefix when no config exists', () => {
       expect(service.getPrefix()).toBe('local:');
     });
-  });
 
-  describe('v1 to v2 migration', () => {
-    it('should migrate local mode v1 config to v2', () => {
-      const legacyConfig: LegacyAppConfig = {
-        mode: 'local',
-        userProfile: {
-          name: 'Test User',
-          username: 'testuser',
-        },
-      };
-      mockStorage[APP_CONFIG_STORAGE_KEY] = JSON.stringify(legacyConfig);
-
-      // Reload service to trigger migration
-      service.reloadConfig();
-
-      const config = service.getConfig();
-      expect(config).not.toBeNull();
-      expect(config!.version).toBe(2);
-      expect(config!.activeConfigId).toBe(LOCAL_CONFIG_ID);
-      expect(config!.configurations).toHaveLength(1);
-      expect(config!.configurations[0].type).toBe('local');
-      expect(config!.configurations[0].userProfile?.username).toBe('testuser');
-    });
-
-    it('should migrate server mode v1 config to v2', () => {
-      const legacyConfig: LegacyAppConfig = {
-        mode: 'server',
-        serverUrl: 'https://inkweld.example.com',
-        userProfile: {
-          name: 'Server User',
-          username: 'serveruser',
-        },
-      };
-      mockStorage[APP_CONFIG_STORAGE_KEY] = JSON.stringify(legacyConfig);
-
-      service.reloadConfig();
-
-      const config = service.getConfig();
-      expect(config).not.toBeNull();
-      expect(config!.version).toBe(2);
-      expect(config!.configurations).toHaveLength(1);
-      expect(config!.configurations[0].type).toBe('server');
-      expect(config!.configurations[0].serverUrl).toBe(
-        'https://inkweld.example.com'
-      );
-      expect(config!.configurations[0].displayName).toBe('inkweld.example.com');
-    });
-
-    it('should not migrate already v2 config', () => {
+    it('should load v2 config from localStorage', () => {
       const v2Config: AppConfigV2 = {
         version: 2,
         activeConfigId: 'local',
@@ -151,6 +102,7 @@ describe('StorageContextService', () => {
       service.reloadConfig();
 
       const config = service.getConfig();
+      expect(config!.version).toBe(2);
       expect(config!.configurations[0].displayName).toBe('My Local');
     });
   });
