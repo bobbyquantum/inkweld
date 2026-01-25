@@ -6,6 +6,18 @@ import { StorageContextService } from '../core/storage-context.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
 
 const LOCAL_PROJECTS_BASE_KEY = 'inkweld-local-projects';
+const MIGRATED_PROJECTS_BASE_KEY = 'inkweld-migrated-projects';
+
+/**
+ * Track which projects have been migrated to which servers
+ */
+export interface MigratedProjectInfo {
+  originalSlug: string;
+  migratedSlug: string;
+  serverUrl: string;
+  migratedAt: string;
+  migratedUsername: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -16,11 +28,13 @@ export class LocalProjectService {
   private localElementsService = inject(LocalProjectElementsService);
 
   readonly projects = signal<Project[]>([]);
+  readonly migratedProjects = signal<MigratedProjectInfo[]>([]);
   readonly isLoading = signal(false);
   readonly initialized = signal(false);
 
   constructor() {
     this.loadLocalProjects();
+    this.loadMigratedProjects();
   }
 
   /**
@@ -31,11 +45,19 @@ export class LocalProjectService {
   }
 
   /**
+   * Get the prefixed storage key for migrated projects
+   */
+  private get migratedStorageKey(): string {
+    return this.storageContext.prefixKey(MIGRATED_PROJECTS_BASE_KEY);
+  }
+
+  /**
    * Load all local projects
    */
   loadProjects(): void {
     if (!this.initialized()) {
       this.loadLocalProjects();
+      this.loadMigratedProjects();
       this.initialized.set(true);
     }
   }
@@ -46,6 +68,81 @@ export class LocalProjectService {
    */
   reloadProjects(): void {
     this.loadLocalProjects();
+    this.loadMigratedProjects();
+  }
+
+  /**
+   * Get non-migrated projects only (for migration flow)
+   */
+  getNonMigratedProjects(): Project[] {
+    const migrated = this.migratedProjects();
+    return this.projects().filter(
+      p => !migrated.some(m => m.originalSlug === p.slug)
+    );
+  }
+
+  /**
+   * Check if a project has been migrated
+   */
+  isProjectMigrated(slug: string): boolean {
+    return this.migratedProjects().some(m => m.originalSlug === slug);
+  }
+
+  /**
+   * Mark a project as migrated
+   */
+  markProjectAsMigrated(
+    originalSlug: string,
+    migratedSlug: string,
+    serverUrl: string,
+    migratedUsername: string
+  ): void {
+    const migrated = this.migratedProjects();
+    const existing = migrated.findIndex(m => m.originalSlug === originalSlug);
+
+    const info: MigratedProjectInfo = {
+      originalSlug,
+      migratedSlug,
+      serverUrl,
+      migratedUsername,
+      migratedAt: new Date().toISOString(),
+    };
+
+    if (existing >= 0) {
+      migrated[existing] = info;
+    } else {
+      migrated.push(info);
+    }
+
+    this.migratedProjects.set([...migrated]);
+    this.saveMigratedProjects(migrated);
+  }
+
+  /**
+   * Get migration info for a project
+   */
+  getMigrationInfo(slug: string): MigratedProjectInfo | null {
+    return this.migratedProjects().find(m => m.originalSlug === slug) ?? null;
+  }
+
+  private loadMigratedProjects(): void {
+    try {
+      const stored = localStorage.getItem(this.migratedStorageKey);
+      this.migratedProjects.set(
+        stored ? (JSON.parse(stored) as MigratedProjectInfo[]) : []
+      );
+    } catch (error) {
+      console.error('Failed to load migrated projects:', error);
+      this.migratedProjects.set([]);
+    }
+  }
+
+  private saveMigratedProjects(migrated: MigratedProjectInfo[]): void {
+    try {
+      localStorage.setItem(this.migratedStorageKey, JSON.stringify(migrated));
+    } catch (error) {
+      console.error('Failed to save migrated projects:', error);
+    }
   }
 
   /**

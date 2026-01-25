@@ -580,4 +580,194 @@ describe('LocalProjectService', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('migration tracking', () => {
+    const PREFIXED_MIGRATED_KEY = 'local:inkweld-migrated-projects';
+
+    beforeEach(() => {
+      // Reset migrated projects storage
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === PREFIXED_PROJECTS_KEY) {
+          return '[]';
+        }
+        if (key === PREFIXED_MIGRATED_KEY) {
+          return '[]';
+        }
+        return null;
+      });
+    });
+
+    it('should mark a project as migrated', () => {
+      service.markProjectAsMigrated(
+        'old-slug',
+        'new-slug',
+        'http://localhost:8333',
+        'testuser'
+      );
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        PREFIXED_MIGRATED_KEY,
+        expect.any(String)
+      );
+
+      const calls = mockLocalStorage.setItem.mock.calls as Array<
+        [string, string]
+      >;
+      const savedData = JSON.parse(
+        calls.find(call => call[0] === PREFIXED_MIGRATED_KEY)?.[1] || '[]'
+      );
+
+      expect(savedData).toHaveLength(1);
+      expect(savedData[0].originalSlug).toBe('old-slug');
+      expect(savedData[0].migratedSlug).toBe('new-slug');
+      expect(savedData[0].serverUrl).toBe('http://localhost:8333');
+      expect(savedData[0].migratedUsername).toBe('testuser');
+    });
+
+    it('should return true for migrated projects', () => {
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === PREFIXED_MIGRATED_KEY) {
+          return JSON.stringify([
+            {
+              originalSlug: 'test-project',
+              migratedSlug: 'test-project',
+              serverUrl: '',
+              migratedAt: new Date().toISOString(),
+              migratedUsername: 'testuser',
+            },
+          ]);
+        }
+        return '[]';
+      });
+
+      // Reset TestingModule to get a fresh service instance that reads from localStorage
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          LocalProjectService,
+          { provide: SetupService, useValue: mockSetupService },
+          { provide: StorageContextService, useValue: mockStorageContext },
+          {
+            provide: LocalProjectElementsService,
+            useValue: mockElementsService,
+          },
+        ],
+      });
+
+      const newService = TestBed.inject(LocalProjectService);
+
+      expect(newService.isProjectMigrated('test-project')).toBe(true);
+    });
+
+    it('should return false for non-migrated projects', () => {
+      expect(service.isProjectMigrated('non-existent')).toBe(false);
+    });
+
+    it('should filter out migrated projects from getNonMigratedProjects', () => {
+      const projects: Project[] = [
+        {
+          id: '1',
+          title: 'Project 1',
+          slug: 'project-1',
+          username: 'testuser',
+          createdDate: '2024-01-01',
+          updatedDate: '2024-01-01',
+        },
+        {
+          id: '2',
+          title: 'Project 2',
+          slug: 'project-2',
+          username: 'testuser',
+          createdDate: '2024-01-01',
+          updatedDate: '2024-01-01',
+        },
+      ];
+
+      // Set up localStorage to return our projects
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === PREFIXED_PROJECTS_KEY) {
+          return JSON.stringify(projects);
+        }
+        if (key === PREFIXED_MIGRATED_KEY) {
+          return JSON.stringify([
+            {
+              originalSlug: 'project-1',
+              migratedSlug: 'project-1',
+              serverUrl: '',
+              migratedAt: new Date().toISOString(),
+              migratedUsername: 'testuser',
+            },
+          ]);
+        }
+        return null;
+      });
+
+      // Create new service to load from storage
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          LocalProjectService,
+          { provide: SetupService, useValue: mockSetupService },
+          { provide: StorageContextService, useValue: mockStorageContext },
+          {
+            provide: LocalProjectElementsService,
+            useValue: mockElementsService,
+          },
+        ],
+      });
+
+      const newService = TestBed.inject(LocalProjectService);
+
+      const nonMigrated = newService.getNonMigratedProjects();
+      expect(nonMigrated).toHaveLength(1);
+      expect(nonMigrated[0].slug).toBe('project-2');
+    });
+
+    it('should get migration info for a migrated project', () => {
+      mockLocalStorage.getItem.mockImplementation((key: string) => {
+        if (key === PREFIXED_MIGRATED_KEY) {
+          return JSON.stringify([
+            {
+              originalSlug: 'test-project',
+              migratedSlug: 'new-project',
+              serverUrl: 'http://localhost:8333',
+              migratedAt: '2024-01-15T10:00:00.000Z',
+              migratedUsername: 'newuser',
+            },
+          ]);
+        }
+        return '[]';
+      });
+
+      // Create new service to load from storage
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          LocalProjectService,
+          { provide: SetupService, useValue: mockSetupService },
+          { provide: StorageContextService, useValue: mockStorageContext },
+          {
+            provide: LocalProjectElementsService,
+            useValue: mockElementsService,
+          },
+        ],
+      });
+
+      const newService = TestBed.inject(LocalProjectService);
+
+      const info = newService.getMigrationInfo('test-project');
+      expect(info).toBeDefined();
+      expect(info?.originalSlug).toBe('test-project');
+      expect(info?.migratedSlug).toBe('new-project');
+      expect(info?.migratedUsername).toBe('newuser');
+    });
+
+    it('should return null for non-migrated project migration info', () => {
+      const info = service.getMigrationInfo('non-existent');
+      expect(info).toBeNull();
+    });
+  });
 });

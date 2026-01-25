@@ -128,7 +128,7 @@ test.describe('Migration Service', () => {
 
     // Step 1: Verify we have a token
     const token = await authenticatedPage.evaluate(() => {
-      return localStorage.getItem('auth_token');
+      return localStorage.getItem('srv:server-1:auth_token');
     });
     expect(token).toBeTruthy();
 

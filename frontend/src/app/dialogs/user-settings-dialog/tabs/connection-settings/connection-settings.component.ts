@@ -10,6 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import {
   MigrationService,
@@ -42,6 +43,7 @@ export class ConnectionSettingsComponent {
   private setupService = inject(SetupService);
   private migrationService = inject(MigrationService);
   private userService = inject(UserService);
+  private authTokenService = inject(AuthTokenService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private dialog = inject(MatDialog);
@@ -261,7 +263,7 @@ export class ConnectionSettingsComponent {
       }
       console.log(
         '[Migration] After auth, token in localStorage:',
-        localStorage.getItem('auth_token') ? 'EXISTS' : 'MISSING'
+        this.authTokenService.hasToken() ? 'EXISTS' : 'MISSING'
       );
 
       // Start migration
@@ -311,7 +313,7 @@ export class ConnectionSettingsComponent {
         );
         console.log(
           '[Migration] After cleanup, auth_token:',
-          localStorage.getItem('auth_token') ? 'EXISTS' : 'MISSING'
+          this.authTokenService.hasToken() ? 'EXISTS' : 'MISSING'
         );
 
         // Reload the page to reinitialize the app in server mode

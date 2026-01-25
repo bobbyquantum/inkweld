@@ -19,6 +19,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { AnnouncementFeedComponent } from '@components/announcement-feed/announcement-feed.component';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
+import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
@@ -48,6 +49,7 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     RouterModule,
     AnnouncementFeedComponent,
     ProjectCardComponent,
+    ServerInfoBubbleComponent,
     UserMenuComponent,
     SideNavComponent,
     ThemeToggleComponent,

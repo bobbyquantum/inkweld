@@ -186,13 +186,30 @@ export const test = base.extend<OnlineTestFixtures>({
           })
         );
 
-        localStorage.setItem('auth_token', authToken);
+        // Store token with server-specific prefix (matches AuthTokenService)
+        localStorage.setItem('srv:server-1:auth_token', authToken);
       },
       { authToken: token, serverUrl: apiUrl }
     );
 
+    // Capture console logs for debugging (set before navigation)
+    const consoleLogs: string[] = [];
+    page.on('console', msg => {
+      consoleLogs.push(`[${msg.type()}] ${msg.text()}`);
+    });
+
+    // Capture network requests to see if auth token is being sent
+    const networkRequests: string[] = [];
+    page.on('request', request => {
+      const auth = request.headers()['authorization'] || 'none';
+      networkRequests.push(
+        `${request.method()} ${request.url().split('?')[0]} auth=${auth.substring(0, 30)}`
+      );
+    });
+
     // Navigate to the app with both config and token already set
     await page.goto('/');
+
     await page.waitForLoadState('networkidle');
 
     // Wait for the user menu button to be visible - this is the most reliable
@@ -209,9 +226,23 @@ export const test = base.extend<OnlineTestFixtures>({
       const currentUrl = page.url();
 
       if (welcomeHeading) {
+        // Get localStorage state for debugging
+        const localStorageState = await page.evaluate(() => {
+          const state: Record<string, string> = {};
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key) {
+              state[key] = localStorage.getItem(key)?.substring(0, 100) || '';
+            }
+          }
+          return state;
+        });
         throw new Error(
           `authenticatedPage fixture failed: app shows welcome/login screen instead of authenticated state. ` +
-            `Token may be invalid or not being sent. URL: ${currentUrl}`
+            `Token may be invalid or not being sent. URL: ${currentUrl}\n` +
+            `Console logs: ${consoleLogs.join('\\n')}\n` +
+            `Network requests: ${networkRequests.join('\\n')}\n` +
+            `LocalStorage: ${JSON.stringify(localStorageState, null, 2)}`
         );
       } else if (approvalPending) {
         throw new Error(
@@ -275,7 +306,8 @@ export const test = base.extend<OnlineTestFixtures>({
           })
         );
 
-        localStorage.setItem('auth_token', authToken);
+        // Store token with server-specific prefix (matches AuthTokenService)
+        localStorage.setItem('srv:server-1:auth_token', authToken);
       },
       { authToken: token, serverUrl: apiUrl }
     );
@@ -428,7 +460,8 @@ export const test = base.extend<OnlineTestFixtures>({
             ],
           })
         );
-        localStorage.setItem('auth_token', authToken);
+        // Store token with server-specific prefix (matches AuthTokenService)
+        localStorage.setItem('srv:server-1:auth_token', authToken);
       },
       { authToken: token, serverUrl: apiUrl }
     );
@@ -683,7 +716,14 @@ export async function registerUser(
   await expect(page.getByTestId('register-dialog')).toBeHidden();
 
   // Verify token was stored (registration should auto-login)
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'));
+  // Note: Token is stored with server-specific prefix (srv:server-1:auth_token)
+  const token = await page.evaluate(() => {
+    // Check for prefixed token first (new format), fallback to old format
+    return (
+      localStorage.getItem('srv:server-1:auth_token') ||
+      localStorage.getItem('auth_token')
+    );
+  });
   if (!token) {
     throw new Error(
       'registerUser: Expected auth_token in localStorage after registration, but none found'
@@ -698,9 +738,12 @@ export async function registerUser(
   } catch {
     // Log diagnostic info
     const url = page.url();
-    const hasToken = await page.evaluate(
-      () => !!localStorage.getItem('auth_token')
-    );
+    const hasToken = await page.evaluate(() => {
+      return !!(
+        localStorage.getItem('srv:server-1:auth_token') ||
+        localStorage.getItem('auth_token')
+      );
+    });
     throw new Error(
       `registerUser: User menu not visible after registration. ` +
         `URL: ${url}, Has token: ${hasToken}`
@@ -725,7 +768,7 @@ export async function createProject(
   if (url.includes('welcome') || url.includes('login')) {
     throw new Error(
       `createProject: Expected /create-project but landed on ${url}. ` +
-        `Token in localStorage: ${await page.evaluate(() => localStorage.getItem('auth_token'))}`
+        `Token in localStorage: ${await page.evaluate(() => localStorage.getItem('srv:server-1:auth_token') || localStorage.getItem('auth_token'))}`
     );
   }
 

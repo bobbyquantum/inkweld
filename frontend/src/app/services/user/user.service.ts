@@ -12,6 +12,7 @@ import {
   throwError,
 } from 'rxjs';
 
+import { AuthTokenService } from '../auth/auth-token.service';
 import { XsrfService } from '../auth/xsrf.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageService } from '../local/storage.service';
@@ -54,6 +55,7 @@ export class UserService {
   private readonly router = inject(Router);
   private readonly storage = inject(StorageService);
   private readonly logger = inject(LoggerService);
+  private readonly authTokenService = inject(AuthTokenService);
 
   readonly currentUser = signal<User>({
     id: '',
@@ -235,9 +237,9 @@ export class UserService {
         })
       );
 
-      // Store JWT token in localStorage
+      // Store JWT token using AuthTokenService (prefixed key)
       if ('token' in response && typeof response.token === 'string') {
-        localStorage.setItem('auth_token', response.token);
+        this.authTokenService.setToken(response.token);
       }
 
       if ('user' in response && response.user) {

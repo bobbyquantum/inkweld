@@ -367,6 +367,64 @@ describe('ElementRefService', () => {
       };
       expect(service.getElementIcon(customElement)).toBe('description');
     });
+
+    it('should return schema icon for worldbuilding element with schemaId', () => {
+      // Create a service with proper mocks for this test case
+      const mockProjectStateWithProject = {
+        elements: signal(mockElements),
+        project: signal({
+          username: 'testuser',
+          slug: 'testproject',
+        }),
+      };
+      const mockWorldbuildingService = {
+        getSchemaFromLibrary: vi.fn().mockReturnValue({
+          id: 'character-schema',
+          name: 'Character',
+          icon: 'person_pin',
+        }),
+      };
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          ElementRefService,
+          {
+            provide: ProjectStateService,
+            useValue: mockProjectStateWithProject,
+          },
+          { provide: LoggerService, useValue: { debug: vi.fn() } },
+          { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+        ],
+      });
+
+      const serviceWithSchema = TestBed.inject(ElementRefService);
+
+      const worldbuildingElement: Element = {
+        id: 'wb-1',
+        name: 'Test Character',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-schema',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      expect(serviceWithSchema.getElementIcon(worldbuildingElement)).toBe(
+        'person_pin'
+      );
+      expect(
+        mockWorldbuildingService.getSchemaFromLibrary
+      ).toHaveBeenCalledWith(
+        'testuser/testproject',
+        'character-schema',
+        'testuser',
+        'testproject'
+      );
+    });
   });
 
   describe('getDefaultIconForType', () => {

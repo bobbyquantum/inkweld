@@ -3,18 +3,33 @@ import {
   expect,
   getAppMode,
   getOfflineProjects,
-  openUserSettings,
   test,
 } from './fixtures';
+
+/**
+ * Helper function to open the profile manager dialog from user menu
+ */
+async function openProfileManager(page: import('@playwright/test').Page) {
+  // Click user menu button
+  await page.locator('[data-testid="user-menu-button"]').click();
+  // Click server switcher to open submenu
+  await page.locator('[data-testid="switch-server-button"]').click();
+  // Click manage profiles
+  await page.locator('[data-testid="manage-profiles-button"]').click();
+  // Wait for the dialog to open
+  await expect(
+    page.getByRole('heading', { name: /Server Profiles/i })
+  ).toBeVisible();
+}
 
 /**
  * Full-stack e2e test for offline→server migration
  *
  * This test verifies the complete migration workflow:
  * 1. Create projects in offline mode
- * 2. Register/login to server
- * 3. Switch to server mode
- * 4. Migrate projects to server
+ * 2. Open profile manager dialog
+ * 3. Add server and trigger migration
+ * 4. Authenticate
  * 5. Verify projects exist on server
  */
 test.describe('Offline to Server Migration', () => {
@@ -49,80 +64,102 @@ test.describe('Offline to Server Migration', () => {
       'offline-story'
     );
 
-    // Step 4: Open user settings (already on home page)
-    await openUserSettings(offlinePage);
+    // Step 4: Open profile manager dialog from user menu
+    await openProfileManager(offlinePage);
 
-    // Step 5: Navigate to Connection tab
-    await offlinePage.locator('[data-testid="connection-tab"]').click();
+    // Step 5: Click "Add Server" button
+    await offlinePage.locator('[data-testid="add-server-button"]').click();
 
-    // Wait for tab content to load
+    // Wait for add server form to load
     await expect(
-      offlinePage.locator('[data-testid="server-url-input"]')
+      offlinePage.locator('[data-testid="new-server-url-input"]')
     ).toBeVisible();
 
-    // Step 6: (Skipping visual check for offline projects count - the projects
-    // are in localStorage and will be migrated when we authenticate)
-
-    // Step 7: Enter server URL
+    // Step 6: Enter server URL
     await offlinePage
-      .locator('[data-testid="server-url-input"]')
+      .locator('[data-testid="new-server-url-input"]')
       .fill('http://localhost:9333');
 
-    // Step 8: Click "Connect to Server" button
-    const connectButton = offlinePage.locator(
-      '[data-testid="connect-to-server-button"]'
-    );
-    await connectButton.click();
+    // Step 7: Click "Connect" button - this will trigger migration flow since we have local projects
+    await offlinePage.locator('[data-testid="connect-server-button"]').click();
 
-    // Step 9: Should see confirmation dialog asking about migration
+    // Step 8: Should see migration view with authentication form (first step)
     await expect(
-      offlinePage.getByRole('heading', { name: /migrate local projects/i })
+      offlinePage.getByRole('heading', { name: /Log In to Server/i })
     ).toBeVisible();
 
-    // Confirm migration
-    await offlinePage.getByRole('button', { name: /continue/i }).click();
-
-    // Step 10: Should see authentication form
-    await expect(
-      offlinePage.locator('[data-testid="auth-form"]')
-    ).toBeVisible();
-
-    // Step 11: Register a new user
+    // Step 9: Register a new user
     const testUsername = `migrationtest-${Date.now()}`;
     const testPassword = 'TestPassword123!';
 
     await offlinePage
-      .locator('[data-testid="auth-username-input"]')
+      .locator('[data-testid="migration-username-input"]')
       .fill(testUsername);
     await offlinePage
-      .locator('[data-testid="auth-password-input"]')
+      .locator('[data-testid="migration-password-input"]')
       .fill(testPassword);
     await offlinePage
-      .locator('[data-testid="auth-confirm-password-input"]')
+      .locator('[data-testid="migration-confirm-password-input"]')
       .fill(testPassword);
 
-    await offlinePage.locator('[data-testid="authenticate-button"]').click();
+    // Step 9a: Click authenticate to complete step 1
+    await offlinePage
+      .locator('[data-testid="migrate-authenticate-button"]')
+      .click();
 
-    // Step 12: Wait for migration to complete
+    // Step 9b: Should now see project selection (step 2)
+    await expect(
+      offlinePage.getByRole('heading', { name: /Select Projects to Migrate/i })
+    ).toBeVisible();
+
+    // Step 9c: Select all projects to migrate (they're selected by default now, but click for safety)
+    await expect(
+      offlinePage.locator('[data-testid="select-all-projects"]')
+    ).toBeVisible();
+
+    // Step 9d: Click migrate button to complete step 2
+    await offlinePage
+      .locator('[data-testid="migrate-projects-button"]')
+      .click();
+
+    // Step 10: Wait for migration to complete
     // We wait for the snackbar to appear
     await expect(
       offlinePage
         .locator('.mat-mdc-snack-bar-label')
         .filter({ hasText: /Successfully migrated \d+ project/i })
         .first()
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 30000 });
 
-    // Step 13: Wait for mode to change to server in LocalStorage (indicates migration finish)
-    await offlinePage.waitForFunction(() => {
-      try {
-        const config = localStorage.getItem('inkweld-app-config');
-        return config && JSON.parse(config).mode === 'server';
-      } catch {
-        return false;
-      }
-    });
+    // Step 11: Wait for active config to change to a server type (new multi-profile format)
+    await offlinePage.waitForFunction(
+      () => {
+        try {
+          const config = localStorage.getItem('inkweld-app-config');
+          if (!config) return false;
+          const parsed = JSON.parse(config);
+          // New v2 format: check if active config is a server type
+          if (
+            parsed.version === 2 &&
+            parsed.activeConfigId &&
+            parsed.configurations
+          ) {
+            const activeConfig = parsed.configurations.find(
+              (c: { id: string; type: string }) =>
+                c.id === parsed.activeConfigId
+            );
+            return activeConfig?.type === 'server';
+          }
+          // Legacy format fallback
+          return parsed.mode === 'server';
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 30000 }
+    );
 
-    // Step 14: Force navigation to home to ensure we're seeing the latest server state
+    // Step 12: Force navigation to home to ensure we're seeing the latest server state
     await offlinePage.goto('/');
     await offlinePage.waitForLoadState('networkidle');
 
@@ -131,15 +168,15 @@ test.describe('Offline to Server Migration', () => {
       offlinePage.locator('[data-testid="user-menu-button"]')
     ).toBeVisible();
 
-    // Step 15: Close settings dialog if it's still open
-    const settingsDialog = offlinePage.locator(
-      '[data-testid="settings-close-button"]'
+    // Step 13: Close profile manager dialog if it's still open
+    const closeButton = offlinePage.locator(
+      'mat-dialog-container button[mat-dialog-close]'
     );
-    if (await settingsDialog.isVisible()) {
-      await settingsDialog.click();
+    if (await closeButton.isVisible().catch(() => false)) {
+      await closeButton.click();
     }
 
-    // Step 16: Verify projects are visible in the project grid
+    // Step 14: Verify projects are visible in the project grid
     // Use toPass to handle potential delay in server-side sync after migration/reload
     await expect(async () => {
       // Direct text check is most resilient against component/tag changes
@@ -221,48 +258,61 @@ test.describe('Offline to Server Migration', () => {
       await expect(offlinePage.locator('.sync-status')).toContainText('synced');
     }
 
-    // Step 3: Migrate to server
+    // Step 3: Migrate to server via Profile Manager
     await offlinePage.goto('/');
-    await openUserSettings(offlinePage);
-    await offlinePage.locator('[data-testid="connection-tab"]').click();
+    await openProfileManager(offlinePage);
 
-    // Wait for tab content to load
+    // Click "Add Server" button
+    await offlinePage.locator('[data-testid="add-server-button"]').click();
+
+    // Wait for add server form to load
     await expect(
-      offlinePage.locator('[data-testid="server-url-input"]')
+      offlinePage.locator('[data-testid="new-server-url-input"]')
     ).toBeVisible();
 
     await offlinePage
-      .locator('[data-testid="server-url-input"]')
+      .locator('[data-testid="new-server-url-input"]')
       .fill('http://localhost:9333');
 
-    await offlinePage
-      .locator('[data-testid="connect-to-server-button"]')
-      .click();
+    await offlinePage.locator('[data-testid="connect-server-button"]').click();
 
-    // Confirm migration dialog
+    // Should see migration view with authentication form (step 1)
     await expect(
-      offlinePage.getByRole('heading', { name: /migrate local projects/i })
-    ).toBeVisible();
-    await offlinePage.getByRole('button', { name: /continue/i }).click();
-
-    // Authenticate
-    await expect(
-      offlinePage.locator('[data-testid="auth-form"]')
+      offlinePage.getByRole('heading', { name: /Log In to Server/i })
     ).toBeVisible();
 
     const testUsername = `contenttest-${Date.now()}`;
     const testPassword = 'TestPassword123!';
 
     await offlinePage
-      .locator('[data-testid="auth-username-input"]')
+      .locator('[data-testid="migration-username-input"]')
       .fill(testUsername);
     await offlinePage
-      .locator('[data-testid="auth-password-input"]')
+      .locator('[data-testid="migration-password-input"]')
       .fill(testPassword);
     await offlinePage
-      .locator('[data-testid="auth-confirm-password-input"]')
+      .locator('[data-testid="migration-confirm-password-input"]')
       .fill(testPassword);
-    await offlinePage.locator('[data-testid="authenticate-button"]').click();
+
+    // Click authenticate to complete step 1
+    await offlinePage
+      .locator('[data-testid="migrate-authenticate-button"]')
+      .click();
+
+    // Should now see project selection (step 2)
+    await expect(
+      offlinePage.getByRole('heading', { name: /Select Projects to Migrate/i })
+    ).toBeVisible();
+
+    // Projects are selected by default after auth
+    await expect(
+      offlinePage.locator('[data-testid="select-all-projects"]')
+    ).toBeVisible();
+
+    // Click migrate button to complete step 2
+    await offlinePage
+      .locator('[data-testid="migrate-projects-button"]')
+      .click();
 
     // Wait for migration to complete (snackbar first, then mode change)
     // First wait for the snackbar to confirm migration success
@@ -273,19 +323,35 @@ test.describe('Offline to Server Migration', () => {
         .first()
     ).toBeVisible({ timeout: 30000 });
 
-    // Then wait for mode to change to server in LocalStorage
-    await offlinePage.waitForFunction(() => {
-      try {
-        const config = localStorage.getItem('inkweld-app-config');
-        if (!config) return false;
-        const parsed = JSON.parse(config);
-        return parsed.mode === 'server';
-      } catch {
-        return false;
-      }
-    });
+    // Wait for active config to change to a server type (new multi-profile format)
+    await offlinePage.waitForFunction(
+      () => {
+        try {
+          const config = localStorage.getItem('inkweld-app-config');
+          if (!config) return false;
+          const parsed = JSON.parse(config);
+          // New v2 format: check if active config is a server type
+          if (
+            parsed.version === 2 &&
+            parsed.activeConfigId &&
+            parsed.configurations
+          ) {
+            const activeConfig = parsed.configurations.find(
+              (c: { id: string; type: string }) =>
+                c.id === parsed.activeConfigId
+            );
+            return activeConfig?.type === 'server';
+          }
+          // Legacy format fallback
+          return parsed.mode === 'server';
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 30000 }
+    );
 
-    // Step 13: Wait for page to reload and fully stabilize
+    // Wait for page to reload and fully stabilize
     await offlinePage.waitForURL(/\/$/);
     await offlinePage.waitForLoadState('networkidle');
 
@@ -294,7 +360,7 @@ test.describe('Offline to Server Migration', () => {
       offlinePage.locator('[data-testid="user-menu-button"]')
     ).toBeVisible();
 
-    // Step 4: Navigate back to the project
+    // Navigate back to the project
     await offlinePage.goto('/');
     await offlinePage.waitForLoadState('networkidle');
 

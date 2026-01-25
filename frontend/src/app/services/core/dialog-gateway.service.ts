@@ -38,6 +38,7 @@ import {
   NewElementDialogComponent,
   NewElementDialogResult,
 } from '../../dialogs/new-element-dialog/new-element-dialog.component';
+import { ProfileManagerDialogComponent } from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
 import {
   RenameDialogComponent,
   RenameDialogData,
@@ -135,19 +136,14 @@ export class DialogGatewayService {
   }
 
   openUserSettingsDialog(
-    selectedCategory?:
-      | 'general'
-      | 'account'
-      | 'project-tree'
-      | 'project'
-      | 'connection'
+    selectedCategory?: 'project-tree' | 'project'
   ): Promise<void> {
     const dialogRef = this.dialog.open(UserSettingsDialogComponent, {
       width: '800px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
-      data: { selectedCategory: selectedCategory || 'general' },
+      data: { selectedCategory: selectedCategory || 'project-tree' },
     });
     return firstValueFrom(dialogRef.afterClosed());
   }
@@ -211,6 +207,16 @@ export class DialogGatewayService {
       width: '500px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openProfileManagerDialog(): Promise<void> {
+    const dialogRef = this.dialog.open(ProfileManagerDialogComponent, {
+      width: '500px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      disableClose: false,
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
+import { AuthTokenService } from '../services/auth/auth-token.service';
 import { SetupService } from '../services/core/setup.service';
 import { AuthInterceptor } from './auth.interceptor';
 
@@ -16,6 +17,7 @@ describe('AuthInterceptor', () => {
   let interceptor: AuthInterceptor;
   let router: MockedObject<Router> & { url: string };
   let setupService: MockedObject<SetupService>;
+  let authTokenService: MockedObject<AuthTokenService>;
 
   beforeEach(() => {
     const routerMock = {
@@ -27,18 +29,29 @@ describe('AuthInterceptor', () => {
       getMode: vi.fn().mockReturnValue('server'),
     };
 
+    const authTokenServiceMock = {
+      getToken: vi.fn().mockReturnValue(null),
+      setToken: vi.fn(),
+      clearToken: vi.fn(),
+      hasToken: vi.fn().mockReturnValue(false),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         AuthInterceptor,
         { provide: Router, useValue: routerMock },
         { provide: SetupService, useValue: setupServiceMock },
+        { provide: AuthTokenService, useValue: authTokenServiceMock },
       ],
     });
 
     interceptor = TestBed.inject(AuthInterceptor);
     router = TestBed.inject(Router) as MockedObject<Router> & { url: string };
     setupService = TestBed.inject(SetupService) as MockedObject<SetupService>;
+    authTokenService = TestBed.inject(
+      AuthTokenService
+    ) as MockedObject<AuthTokenService>;
   });
 
   it('should be created', () => {
@@ -173,7 +186,7 @@ describe('AuthInterceptor', () => {
   });
 
   it('should add Authorization header when token exists', () => {
-    localStorage.setItem('auth_token', 'test-token');
+    authTokenService.getToken.mockReturnValue('test-token');
     const request = new HttpRequest('GET', '/api/test');
     const response = new HttpResponse({ status: 200 });
 
@@ -188,8 +201,6 @@ describe('AuthInterceptor', () => {
         'Bearer test-token'
       );
     });
-
-    localStorage.removeItem('auth_token');
   });
 
   it('should handle navigation failure gracefully', async () => {

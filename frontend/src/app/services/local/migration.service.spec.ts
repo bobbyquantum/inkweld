@@ -7,26 +7,43 @@ import { Project } from '@inkweld/model/project';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
-import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { UserService } from '../user/user.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
+import { LocalStorageService } from './local-storage.service';
 import { MigrationService, MigrationStatus } from './migration.service';
 
 describe('MigrationService', () => {
   let service: MigrationService;
+  let storageContextServiceMock: {
+    getServerUrl: ReturnType<typeof vi.fn>;
+    getActiveConfig: ReturnType<typeof vi.fn>;
+    updateConfigUserProfile: ReturnType<typeof vi.fn>;
+    storagePrefix: ReturnType<typeof signal>;
+  };
   let localProjectService: {
     projects: ReturnType<typeof signal<Project[]>>;
+    getNonMigratedProjects: ReturnType<typeof vi.fn>;
+    markProjectAsMigrated: ReturnType<typeof vi.fn>;
     deleteProject: ReturnType<typeof vi.fn>;
   };
-  let projectsServiceMock: {
-    createProject: ReturnType<typeof vi.fn>;
+  let localElementsServiceMock: {
+    loadElements: ReturnType<typeof vi.fn>;
+    elements: ReturnType<typeof signal>;
   };
   let authServiceMock: {
     getCurrentUser: ReturnType<typeof vi.fn>;
     registerUser: ReturnType<typeof vi.fn>;
     login: ReturnType<typeof vi.fn>;
+  };
+  let authTokenServiceMock: {
+    setToken: ReturnType<typeof vi.fn>;
+    getToken: ReturnType<typeof vi.fn>;
+    hasToken: ReturnType<typeof vi.fn>;
+    clearToken: ReturnType<typeof vi.fn>;
   };
   let userServiceMock: {
     currentUser: ReturnType<typeof signal>;
@@ -38,6 +55,15 @@ describe('MigrationService', () => {
     debug: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
+  };
+  let localStorageMock: {
+    listMedia: ReturnType<typeof vi.fn>;
+    getMedia: ReturnType<typeof vi.fn>;
+    saveMedia: ReturnType<typeof vi.fn>;
+    deleteMedia: ReturnType<typeof vi.fn>;
+  };
+  let projectsApiMock: {
+    createProject: ReturnType<typeof vi.fn>;
   };
 
   const mockProjects: Project[] = [
@@ -65,14 +91,17 @@ describe('MigrationService', () => {
     // Clear localStorage before each test
     localStorage.clear();
 
-    projectsServiceMock = {
-      createProject: vi.fn().mockReturnValue(of(mockProjects[0])),
-    };
-
     authServiceMock = {
       getCurrentUser: vi.fn().mockReturnValue(of({ username: 'testuser' })),
       registerUser: vi.fn(),
       login: vi.fn(),
+    };
+
+    authTokenServiceMock = {
+      setToken: vi.fn(),
+      getToken: vi.fn().mockReturnValue(null),
+      hasToken: vi.fn().mockReturnValue(false),
+      clearToken: vi.fn(),
     };
 
     userServiceMock = {
@@ -88,9 +117,49 @@ describe('MigrationService', () => {
       error: vi.fn(),
     };
 
+    localStorageMock = {
+      listMedia: vi.fn().mockResolvedValue([]),
+      getMedia: vi.fn().mockResolvedValue(null),
+      saveMedia: vi.fn().mockResolvedValue(undefined),
+      deleteMedia: vi.fn().mockResolvedValue(undefined),
+    };
+
+    projectsApiMock = {
+      createProject: vi.fn().mockReturnValue(
+        of({
+          id: 'server-project-1',
+          title: 'Test Project',
+          slug: 'test-project',
+          username: 'testuser',
+        })
+      ),
+    };
+
+    storageContextServiceMock = {
+      getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
+      getActiveConfig: vi.fn().mockReturnValue({
+        id: 'test-config-123',
+        serverUrl: 'http://localhost:8333',
+        displayName: 'Test Server',
+        userProfile: {
+          name: 'Test User',
+          username: 'testuser',
+        },
+      }),
+      updateConfigUserProfile: vi.fn(),
+      storagePrefix: signal('local'),
+    };
+
     localProjectService = {
       projects: signal<Project[]>([]),
+      getNonMigratedProjects: vi.fn().mockReturnValue([]),
+      markProjectAsMigrated: vi.fn(),
       deleteProject: vi.fn(),
+    };
+
+    localElementsServiceMock = {
+      loadElements: vi.fn().mockResolvedValue(undefined),
+      elements: signal([]),
     };
 
     TestBed.configureTestingModule({
@@ -99,12 +168,17 @@ describe('MigrationService', () => {
         provideHttpClient(),
         MigrationService,
         { provide: LocalProjectService, useValue: localProjectService },
-        { provide: ProjectsService, useValue: projectsServiceMock },
         { provide: AuthenticationService, useValue: authServiceMock },
+        { provide: AuthTokenService, useValue: authTokenServiceMock },
         { provide: UserService, useValue: userServiceMock },
         { provide: LoggerService, useValue: loggerMock },
-        { provide: SetupService, useValue: {} },
-        { provide: LocalProjectElementsService, useValue: {} },
+        { provide: StorageContextService, useValue: storageContextServiceMock },
+        {
+          provide: LocalProjectElementsService,
+          useValue: localElementsServiceMock,
+        },
+        { provide: LocalStorageService, useValue: localStorageMock },
+        { provide: ProjectsService, useValue: projectsApiMock },
       ],
     });
 
@@ -114,6 +188,12 @@ describe('MigrationService', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  // Helper to set mock projects (updates both signal and getNonMigratedProjects mock)
+  const setMockProjects = (projects: Project[]) => {
+    localProjectService.projects.set(projects);
+    localProjectService.getNonMigratedProjects.mockReturnValue(projects);
+  };
 
   describe('initial state', () => {
     it('should have initial migration state', () => {
@@ -131,9 +211,18 @@ describe('MigrationService', () => {
     });
 
     it('should detect offline projects when they exist', () => {
-      localProjectService.projects.set(mockProjects);
+      setMockProjects(mockProjects);
       expect(service.hasLocalProjects()).toBe(true);
       expect(service.getLocalProjectsCount()).toBe(2);
+    });
+
+    it('should return empty array from getLocalProjects when no projects exist', () => {
+      expect(service.getLocalProjects()).toEqual([]);
+    });
+
+    it('should return local projects from getLocalProjects', () => {
+      setMockProjects(mockProjects);
+      expect(service.getLocalProjects()).toEqual(mockProjects);
     });
   });
 
@@ -168,34 +257,20 @@ describe('MigrationService', () => {
     });
   });
 
-  describe('migrateToServer', () => {
-    it('should do nothing when no offline projects exist', async () => {
-      await service.migrateToServer('http://localhost:8333');
+  describe('migrateToServerMode', () => {
+    it('should do nothing when no local projects exist', async () => {
+      await service.migrateToServerMode('config-123', 'testuser');
 
-      expect(projectsServiceMock.createProject).not.toHaveBeenCalled();
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
         'No local projects to migrate'
       );
     });
 
-    it('should migrate all offline projects successfully', async () => {
-      localProjectService.projects.set(mockProjects);
-      projectsServiceMock.createProject.mockReturnValue(of(mockProjects[0]));
+    it('should migrate local projects to server mode storage', async () => {
+      setMockProjects(mockProjects);
 
-      await service.migrateToServer('http://localhost:8333');
-
-      expect(projectsServiceMock.createProject).toHaveBeenCalledTimes(2);
-      expect(projectsServiceMock.createProject).toHaveBeenCalledWith({
-        title: 'Test Project 1',
-        slug: 'test-project-1',
-        description: 'Test description 1',
-      });
-      expect(projectsServiceMock.createProject).toHaveBeenCalledWith({
-        title: 'Test Project 2',
-        slug: 'test-project-2',
-        description: 'Test description 2',
-      });
+      await service.migrateToServerMode('config-123', 'testuser');
 
       const state = service.migrationState();
       expect(state.status).toBe(MigrationStatus.Completed);
@@ -204,61 +279,24 @@ describe('MigrationService', () => {
       expect(state.failedProjects).toBe(0);
     });
 
-    it('should handle 409 conflict (project already exists) gracefully', async () => {
-      localProjectService.projects.set([mockProjects[0]]);
-      projectsServiceMock.createProject.mockReturnValue(
-        throwError(() => ({ status: 409, message: 'Conflict' }))
+    it('should mark projects as migrated after successful migration', async () => {
+      setMockProjects([mockProjects[0]]);
+
+      await service.migrateToServerMode('config-123', 'testuser');
+
+      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'test-project-1',
+        'test-project-1',
+        'http://localhost:8333',
+        'testuser'
       );
-
-      await service.migrateToServer('http://localhost:8333');
-
-      const state = service.migrationState();
-      expect(state.status).toBe(MigrationStatus.Completed);
-      expect(state.completedProjects).toBe(1);
-      expect(state.failedProjects).toBe(0);
-      expect(loggerMock.warn).toHaveBeenCalledWith(
-        'MigrationService',
-        'Project test-project-1 already exists on server, skipping creation'
-      );
-    });
-
-    it('should handle project creation failure', async () => {
-      localProjectService.projects.set([mockProjects[0]]);
-      projectsServiceMock.createProject.mockReturnValue(
-        throwError(() => new Error('Network error'))
-      );
-
-      await service.migrateToServer('http://localhost:8333');
-
-      const state = service.migrationState();
-      expect(state.status).toBe(MigrationStatus.Failed);
-      expect(state.completedProjects).toBe(0);
-      expect(state.failedProjects).toBe(1);
-      expect(state.projectStatuses[0].status).toBe(MigrationStatus.Failed);
-      expect(state.projectStatuses[0].error).toBe('Network error');
-    });
-
-    it('should continue migrating other projects after one fails', async () => {
-      localProjectService.projects.set(mockProjects);
-
-      // First project fails, second succeeds
-      projectsServiceMock.createProject
-        .mockReturnValueOnce(throwError(() => new Error('Failed')))
-        .mockReturnValueOnce(of(mockProjects[1]));
-
-      await service.migrateToServer('http://localhost:8333');
-
-      const state = service.migrationState();
-      expect(state.status).toBe(MigrationStatus.Failed);
-      expect(state.completedProjects).toBe(1);
-      expect(state.failedProjects).toBe(1);
     });
 
     it('should update project statuses during migration', async () => {
-      localProjectService.projects.set([mockProjects[0]]);
-      projectsServiceMock.createProject.mockReturnValue(of(mockProjects[0]));
+      setMockProjects([mockProjects[0]]);
 
-      await service.migrateToServer('http://localhost:8333');
+      await service.migrateToServerMode('config-123', 'testuser');
 
       const state = service.migrationState();
       expect(state.projectStatuses.length).toBe(1);
@@ -267,23 +305,112 @@ describe('MigrationService', () => {
       expect(state.projectStatuses[0].status).toBe(MigrationStatus.Completed);
     });
 
-    it('should handle projects with undefined description', async () => {
-      const projectWithoutDescription: Project = {
-        ...mockProjects[0],
-        description: undefined,
-      };
-      localProjectService.projects.set([projectWithoutDescription]);
-      projectsServiceMock.createProject.mockReturnValue(
-        of(projectWithoutDescription)
+    it('should only migrate selected projects when projectSlugs is provided', async () => {
+      setMockProjects(mockProjects);
+
+      await service.migrateToServerMode('config-123', 'testuser', [
+        'test-project-1',
+      ]);
+
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledTimes(
+        1
       );
+      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'test-project-1',
+        'test-project-1',
+        'http://localhost:8333',
+        'testuser'
+      );
+
+      const state = service.migrationState();
+      expect(state.totalProjects).toBe(1);
+      expect(state.completedProjects).toBe(1);
+    });
+
+    it('should do nothing when projectSlugs is empty array', async () => {
+      setMockProjects(mockProjects);
+
+      await service.migrateToServerMode('config-123', 'testuser', []);
+
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+      expect(loggerMock.info).toHaveBeenCalledWith(
+        'MigrationService',
+        'No local projects to migrate'
+      );
+    });
+
+    it('should do nothing when projectSlugs contains no matching slugs', async () => {
+      setMockProjects(mockProjects);
+
+      await service.migrateToServerMode('config-123', 'testuser', [
+        'non-existent-project',
+      ]);
+
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+      expect(loggerMock.info).toHaveBeenCalledWith(
+        'MigrationService',
+        'No local projects to migrate'
+      );
+    });
+
+    it('should use renamed slug when slugRenames map is provided', async () => {
+      setMockProjects([mockProjects[0]]);
+
+      const renames = new Map([['test-project-1', 'renamed-project-1']]);
+
+      await service.migrateToServerMode(
+        'config-123',
+        'testuser',
+        ['test-project-1'],
+        renames
+      );
+
+      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      // The renamed slug should be used for targetSlug
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'test-project-1',
+        'renamed-project-1',
+        'http://localhost:8333',
+        'testuser'
+      );
+    });
+  });
+
+  describe('migrateToServer (deprecated wrapper)', () => {
+    it('should call migrateToServerMode with current config', async () => {
+      setMockProjects([mockProjects[0]]);
 
       await service.migrateToServer('http://localhost:8333');
 
-      expect(projectsServiceMock.createProject).toHaveBeenCalledWith({
-        title: 'Test Project 1',
-        slug: 'test-project-1',
-        description: undefined,
+      // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
+      expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
+        'test-project-1',
+        'test-project-1',
+        'http://localhost:8333',
+        'testuser'
+      );
+    });
+
+    it('should throw error when no current config exists', async () => {
+      storageContextServiceMock.getActiveConfig.mockReturnValue(null);
+
+      await expect(
+        service.migrateToServer('http://localhost:8333')
+      ).rejects.toThrow('No server configuration found');
+    });
+
+    it('should throw error when no current user exists', async () => {
+      storageContextServiceMock.getActiveConfig.mockReturnValue({
+        id: 'test-config-123',
+        serverUrl: 'http://localhost:8333',
+        displayName: 'Test Server',
+        userProfile: undefined, // No user profile
       });
+
+      await expect(
+        service.migrateToServer('http://localhost:8333')
+      ).rejects.toThrow('No current user found');
     });
   });
 
@@ -303,7 +430,9 @@ describe('MigrationService', () => {
         username: 'testuser',
         password: 'password123',
       });
-      expect(localStorage.getItem('auth_token')).toBe('test-token-123');
+      expect(authTokenServiceMock.setToken).toHaveBeenCalledWith(
+        'test-token-123'
+      );
       expect(userServiceMock.setCurrentUser).toHaveBeenCalledWith({
         id: '1',
         username: 'testuser',
@@ -371,7 +500,9 @@ describe('MigrationService', () => {
         username: 'testuser',
         password: 'password123',
       });
-      expect(localStorage.getItem('auth_token')).toBe('login-token-456');
+      expect(authTokenServiceMock.setToken).toHaveBeenCalledWith(
+        'login-token-456'
+      );
       expect(userServiceMock.setCurrentUser).toHaveBeenCalledWith({
         id: '1',
         username: 'testuser',
@@ -415,14 +546,14 @@ describe('MigrationService', () => {
 
       await service.loginToServer('testuser', 'password');
 
-      expect(localStorage.getItem('auth_token')).toBe('token-only');
+      expect(authTokenServiceMock.setToken).toHaveBeenCalledWith('token-only');
       expect(userServiceMock.setCurrentUser).not.toHaveBeenCalled();
     });
   });
 
   describe('cleanupLocalData', () => {
     it('should delete all offline projects', () => {
-      localProjectService.projects.set(mockProjects);
+      setMockProjects(mockProjects);
 
       service.cleanupLocalData();
 
@@ -440,14 +571,11 @@ describe('MigrationService', () => {
     it('should clear offline localStorage items', () => {
       localStorage.setItem('inkweld-local-elements', 'test-elements');
       localStorage.setItem('inkweld-local-user', 'test-user');
-      localStorage.setItem('auth_token', 'should-remain');
 
       service.cleanupLocalData();
 
       expect(localStorage.getItem('inkweld-local-elements')).toBeNull();
       expect(localStorage.getItem('inkweld-local-user')).toBeNull();
-      // auth_token should NOT be cleared
-      expect(localStorage.getItem('auth_token')).toBe('should-remain');
     });
 
     it('should log cleanup operation', () => {
@@ -455,7 +583,7 @@ describe('MigrationService', () => {
 
       expect(loggerMock.warn).toHaveBeenCalledWith(
         'MigrationService',
-        'Cleaning up local data (projects, elements, user)'
+        'Cleaning up all local data (projects, elements, user)'
       );
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
@@ -464,7 +592,7 @@ describe('MigrationService', () => {
     });
 
     it('should handle empty projects list', () => {
-      localProjectService.projects.set([]);
+      setMockProjects([]);
 
       service.cleanupLocalData();
 
@@ -472,6 +600,43 @@ describe('MigrationService', () => {
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
         'Local data cleanup completed'
+      );
+    });
+
+    it('should only delete selected projects when projectSlugs is provided', () => {
+      setMockProjects(mockProjects);
+
+      service.cleanupLocalData(['test-project-1']);
+
+      expect(localProjectService.deleteProject).toHaveBeenCalledTimes(1);
+      expect(localProjectService.deleteProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project-1'
+      );
+    });
+
+    it('should not clear local elements or user when cleaning up specific projects', () => {
+      localStorage.setItem('inkweld-local-elements', 'test-elements');
+      localStorage.setItem('inkweld-local-user', 'test-user');
+      setMockProjects(mockProjects);
+
+      service.cleanupLocalData(['test-project-1']);
+
+      // These should still exist after selective cleanup
+      expect(localStorage.getItem('inkweld-local-elements')).toBe(
+        'test-elements'
+      );
+      expect(localStorage.getItem('inkweld-local-user')).toBe('test-user');
+    });
+
+    it('should log selective cleanup when projectSlugs is provided', () => {
+      setMockProjects(mockProjects);
+
+      service.cleanupLocalData(['test-project-1', 'test-project-2']);
+
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        'MigrationService',
+        'Cleaning up 2 migrated project(s)'
       );
     });
   });

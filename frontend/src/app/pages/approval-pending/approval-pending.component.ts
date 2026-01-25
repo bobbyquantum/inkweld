@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { SystemConfigService } from '@services/core/system-config.service';
 
@@ -13,6 +14,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
     MatButtonModule,
     MatIconModule,
     RouterLink,
+    ServerInfoBubbleComponent,
     ThemeToggleComponent,
   ],
   templateUrl: './approval-pending.component.html',

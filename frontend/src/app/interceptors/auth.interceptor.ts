@@ -10,6 +10,7 @@ import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { AuthTokenService } from '../services/auth/auth-token.service';
 import { SetupService } from '../services/core/setup.service';
 
 /**
@@ -25,13 +26,14 @@ import { SetupService } from '../services/core/setup.service';
 export class AuthInterceptor implements HttpInterceptor {
   private router = inject(Router);
   private setupService = inject(SetupService);
+  private authTokenService = inject(AuthTokenService);
 
   intercept(
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
-    // Add Authorization header if token exists
-    const token = localStorage.getItem('auth_token');
+    // Add Authorization header if token exists (using prefixed storage key)
+    const token = this.authTokenService.getToken();
     if (token) {
       request = request.clone({
         setHeaders: {
@@ -54,8 +56,8 @@ export class AuthInterceptor implements HttpInterceptor {
           if (!isAuthEndpoint) {
             console.warn('Session expired or invalid, redirecting to login');
 
-            // Clear invalid token
-            localStorage.removeItem('auth_token');
+            // Clear invalid token (using prefixed storage key)
+            this.authTokenService.clearToken();
 
             // Don't redirect if we're already on the home page
             const currentUrl = this.router.url;

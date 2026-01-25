@@ -108,16 +108,31 @@ export const test = base.extend<ScreenshotFixtures>({
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Set up app configuration and auth token in localStorage
+    // Use v2 config format with unique config ID for auth token prefixing
     await page.addInitScript(() => {
+      const now = Date.now();
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'server',
-          serverUrl: 'http://localhost:8333',
+          version: 2,
+          activeConfigId: 'screenshot-server',
+          configurations: [
+            {
+              id: 'screenshot-server',
+              type: 'server',
+              displayName: 'Screenshot Test Server',
+              serverUrl: 'http://localhost:8333',
+              addedAt: new Date(now).toISOString(),
+              lastUsedAt: new Date(now).toISOString(),
+            },
+          ],
         })
       );
-      // Set mock auth token for authenticated user
-      localStorage.setItem('auth_token', 'mock-token-testuser');
+      // Set mock auth token with server-specific prefix (matches AuthTokenService)
+      localStorage.setItem(
+        'srv:screenshot-server:auth_token',
+        'mock-token-testuser'
+      );
     });
 
     // First, do a blank navigation to establish the page context with localStorage
@@ -173,16 +188,31 @@ export const test = base.extend<ScreenshotFixtures>({
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Set up app configuration and auth token in localStorage
+    // Use v2 config format with unique config ID for auth token prefixing
     await page.addInitScript(() => {
+      const now = Date.now();
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'server',
-          serverUrl: 'http://localhost:8333',
+          version: 2,
+          activeConfigId: 'screenshot-server',
+          configurations: [
+            {
+              id: 'screenshot-server',
+              type: 'server',
+              displayName: 'Screenshot Test Server',
+              serverUrl: 'http://localhost:8333',
+              addedAt: new Date(now).toISOString(),
+              lastUsedAt: new Date(now).toISOString(),
+            },
+          ],
         })
       );
-      // Set mock auth token for admin user
-      localStorage.setItem('auth_token', 'mock-token-testuser');
+      // Set mock auth token with server-specific prefix (matches AuthTokenService)
+      localStorage.setItem(
+        'srv:screenshot-server:auth_token',
+        'mock-token-testuser'
+      );
     });
 
     // First, navigate to home to establish user session
@@ -238,16 +268,27 @@ export const test = base.extend<ScreenshotFixtures>({
     // Suppress console logs for cleaner test output
     page.on('console', () => {});
 
-    // Configure offline mode to avoid WebSocket connection attempts
+    // Configure offline mode with v2 config format
     await page.addInitScript(() => {
+      const now = Date.now();
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'local',
-          userProfile: {
-            name: 'Demo User',
-            username: 'demouser',
-          },
+          version: 2,
+          activeConfigId: 'local',
+          configurations: [
+            {
+              id: 'local',
+              type: 'local',
+              displayName: 'Local Mode',
+              userProfile: {
+                name: 'Demo User',
+                username: 'demouser',
+              },
+              addedAt: new Date(now).toISOString(),
+              lastUsedAt: new Date(now).toISOString(),
+            },
+          ],
         })
       );
     });

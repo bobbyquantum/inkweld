@@ -136,6 +136,74 @@ describe('SetupService', () => {
     });
   });
 
+  describe('migrateStorageKeys', () => {
+    it('should migrate legacy offline user key to local user key', () => {
+      // Pre-populate storage with legacy key
+      const legacyUser = JSON.stringify({ name: 'Legacy', username: 'legacy' });
+      mockLocalStorage['inkweld-offline-user'] = legacyUser;
+
+      // Reset TestBed to create a fresh service (migration runs in constructor)
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          StorageContextService,
+          SetupService,
+        ],
+      });
+      TestBed.inject(SetupService);
+
+      // Verify migration happened
+      expect(mockLocalStorage['inkweld-local-user']).toBe(legacyUser);
+      expect(mockLocalStorage['inkweld-offline-user']).toBeUndefined();
+    });
+
+    it('should migrate legacy offline projects key to local projects key', () => {
+      // Pre-populate storage with legacy key
+      const legacyProjects = JSON.stringify([{ slug: 'test-project' }]);
+      mockLocalStorage['inkweld-offline-projects'] = legacyProjects;
+
+      // Reset TestBed to create a fresh service
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          StorageContextService,
+          SetupService,
+        ],
+      });
+      TestBed.inject(SetupService);
+
+      // Verify migration happened
+      expect(mockLocalStorage['inkweld-local-projects']).toBe(legacyProjects);
+      expect(mockLocalStorage['inkweld-offline-projects']).toBeUndefined();
+    });
+
+    it('should not overwrite existing local keys during migration', () => {
+      // Pre-populate storage with both legacy and new keys
+      const legacyUser = JSON.stringify({ name: 'Legacy', username: 'legacy' });
+      const newUser = JSON.stringify({ name: 'New', username: 'new' });
+      mockLocalStorage['inkweld-offline-user'] = legacyUser;
+      mockLocalStorage['inkweld-local-user'] = newUser;
+
+      // Reset TestBed to create a fresh service
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          StorageContextService,
+          SetupService,
+        ],
+      });
+      TestBed.inject(SetupService);
+
+      // Verify new key was NOT overwritten
+      expect(mockLocalStorage['inkweld-local-user']).toBe(newUser);
+      // Legacy key should still exist (not removed because new key existed)
+      expect(mockLocalStorage['inkweld-offline-user']).toBe(legacyUser);
+    });
+  });
+
   describe('checkConfiguration', () => {
     it('should return false when no config is stored', () => {
       const result = service.checkConfiguration();

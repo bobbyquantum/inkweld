@@ -701,5 +701,24 @@ describe('DocumentService', () => {
         expect(result.failed[0]).toBe('invalid:id');
       });
     });
+
+    describe('syncElementsToServer', () => {
+      it('should throw error when WebSocket URL is not available', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        await expect(
+          service.syncElementsToServer('testuser', 'test-project')
+        ).rejects.toThrow('No WebSocket URL available');
+      });
+
+      it('should throw error when auth token is not available', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+        mockAuthTokenService.getToken.mockReturnValue(null);
+
+        await expect(
+          service.syncElementsToServer('testuser', 'test-project')
+        ).rejects.toThrow('No auth token available');
+      });
+    });
   });
 });

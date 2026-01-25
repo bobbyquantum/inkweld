@@ -28,9 +28,9 @@ test.describe('Authentication', () => {
   test('authenticatedPage fixture should work', async ({
     authenticatedPage,
   }) => {
-    // Verify we have auth token in localStorage
+    // Verify we have auth token in localStorage (prefixed with server ID)
     const token = await authenticatedPage.evaluate(() => {
-      return localStorage.getItem('auth_token');
+      return localStorage.getItem('srv:server-1:auth_token');
     });
     expect(token).toBeTruthy();
     expect(token).toMatch(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/); // JWT format

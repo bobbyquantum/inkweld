@@ -1,0 +1,86 @@
+.server-info-bubble {
+  display: flex;
+  align-items: center;
+
+  .bubble-button {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    color: rgba(0, 0, 0, 0.7);
+
+    .dark-theme & {
+      background: rgba(18, 18, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    &:hover {
+      color: var(--sys-primary);
+    }
+
+    &.disconnected {
+      opacity: 0.6;
+    }
+  }
+}
+
+// Menu styling
+.profile-menu {
+  .menu-header {
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    margin-bottom: 4px;
+
+    .dark-theme & {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .header-title {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(0, 0, 0, 0.5);
+
+      .dark-theme & {
+        color: rgba(255, 255, 255, 0.5);
+      }
+    }
+  }
+
+  .mat-mdc-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 200px;
+
+    .profile-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .check-icon {
+      color: var(--sys-primary);
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .auth-indicator {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--sys-tertiary, #4caf50);
+      opacity: 0.8;
+    }
+
+    &.active-profile {
+      background: rgba(var(--sys-primary-rgb), 0.08);
+    }
+  }
+}

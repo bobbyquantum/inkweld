@@ -238,6 +238,9 @@ export class ConnectionStatusComponent {
   /** Last connection error message (shown in retry button tooltip) */
   lastError = input<string | null>(null);
 
+  /** Whether the app is in local-only mode (no server configured) */
+  isLocalMode = input<boolean>(false);
+
   /** Event emitted when user clicks retry sync */
   syncRequested = output<void>();
 
@@ -252,8 +255,12 @@ export class ConnectionStatusComponent {
     );
   });
 
-  /** Show retry button when offline, connecting, or unavailable */
+  /** Show retry button when offline, connecting, or unavailable - but not in local mode */
   showRetryButton = computed(() => {
+    // No retry button in local mode - there's no server to connect to
+    if (this.isLocalMode()) {
+      return false;
+    }
     const state = this.syncState();
     return (
       state === DocumentSyncState.Local ||
@@ -264,6 +271,10 @@ export class ConnectionStatusComponent {
 
   /** Get the appropriate icon for sync state */
   syncIcon = computed(() => {
+    // In local mode, show folder icon instead of cloud
+    if (this.isLocalMode()) {
+      return 'folder';
+    }
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
         return 'cloud_done';
@@ -280,6 +291,10 @@ export class ConnectionStatusComponent {
 
   /** Get the status text for display */
   syncStatusText = computed(() => {
+    // In local mode, always show "Local Mode" regardless of sync state
+    if (this.isLocalMode()) {
+      return 'Local Mode';
+    }
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
         return 'Connected';
@@ -296,6 +311,10 @@ export class ConnectionStatusComponent {
 
   /** Get tooltip text for sync status row - includes last error when offline */
   syncTooltip = computed(() => {
+    // In local mode, show local-specific tooltip
+    if (this.isLocalMode()) {
+      return 'Working in local mode - changes saved to browser storage';
+    }
     const error = this.lastError();
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
