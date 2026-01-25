@@ -39,17 +39,43 @@ async function triggerContextMenu(
 
 test.describe('Element Reference (@mentions)', () => {
   test.beforeEach(async ({ page }) => {
-    // Configure local mode for isolated testing
+    // Configure local mode for isolated testing (v2 config format)
     await page.addInitScript(() => {
+      const userProfile = {
+        id: 'local-test-user',
+        username: 'testuser',
+        name: 'Test User',
+        enabled: true,
+      };
+
+      const now = new Date().toISOString();
+
+      // Use v2 config format with storage prefix support
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
-          mode: 'local',
-          userProfile: {
-            name: 'Test User',
-            username: 'testuser',
-          },
+          version: 2,
+          activeConfigId: 'local',
+          configurations: [
+            {
+              id: 'local',
+              type: 'local',
+              displayName: 'Local Mode',
+              userProfile: {
+                name: userProfile.name,
+                username: userProfile.username,
+              },
+              addedAt: now,
+              lastUsedAt: now,
+            },
+          ],
         })
+      );
+
+      // Also set the local user directly with the prefixed key
+      localStorage.setItem(
+        'local:inkweld-local-user',
+        JSON.stringify(userProfile)
       );
     });
   });

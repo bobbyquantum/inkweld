@@ -1,9 +1,10 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { MediaService, Project, ProjectsService } from '@inkweld/index';
+import { Project, ProjectsService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { MediaSyncService } from '../local/media-sync.service';
 
 /**
  * Sync stage for a project
@@ -59,7 +60,7 @@ export class SyncQueueService {
   private logger = inject(LoggerService);
   private setupService = inject(SetupService);
   private projectsApi = inject(ProjectsService);
-  private mediaApi = inject(MediaService);
+  private mediaSyncService = inject(MediaSyncService);
 
   /** Queue of project keys waiting to be synced */
   private queue: string[] = [];
@@ -372,17 +373,39 @@ export class SyncQueueService {
 
   /**
    * Sync media files (cover image, media library)
+   * Downloads any media that exists on server but not locally
    */
   private async syncMedia(projectKey: string): Promise<void> {
-    const [username, slug] = projectKey.split('/');
-
     try {
-      // Fetch media list from server to verify what's synced
-      await firstValueFrom(this.mediaApi.listProjectMedia(username, slug));
-      this.logger.debug('SyncQueueService', `[${projectKey}] Media synced`);
-    } catch {
-      // Media endpoints may not exist for all projects
-      this.logger.debug('SyncQueueService', `[${projectKey}] No media to sync`);
+      // Check what needs to be synced
+      const syncState = await this.mediaSyncService.checkSyncStatus(projectKey);
+
+      if (syncState.needsDownload > 0) {
+        this.logger.debug(
+          'SyncQueueService',
+          `[${projectKey}] Downloading ${syncState.needsDownload} media files`
+        );
+
+        // Download all missing media from server
+        await this.mediaSyncService.downloadAllFromServer(projectKey);
+
+        this.logger.debug(
+          'SyncQueueService',
+          `[${projectKey}] Media synced (${syncState.needsDownload} downloaded)`
+        );
+      } else {
+        this.logger.debug(
+          'SyncQueueService',
+          `[${projectKey}] Media already synced`
+        );
+      }
+    } catch (error) {
+      // Log the actual error for debugging, but don't fail the sync
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(
+        'SyncQueueService',
+        `[${projectKey}] Media sync failed: ${message}`
+      );
     }
   }
 

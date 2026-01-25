@@ -9,9 +9,7 @@ import {
 } from './storage-context.service';
 
 /**
- * Legacy AppConfig interface for backward compatibility.
- * New code should use ServerConfig from StorageContextService.
- * @deprecated Use StorageContextService for new code
+ * App config interface for convenience access.
  */
 export interface AppConfig {
   mode: 'server' | 'local';
@@ -21,13 +19,6 @@ export interface AppConfig {
     username: string;
   };
 }
-
-/** Legacy key for migration - can be removed after v1 */
-const LEGACY_LOCAL_USER_KEY = 'inkweld-offline-user';
-const LOCAL_USER_KEY = 'inkweld-local-user';
-/** Legacy key for migration - can be removed after v1 */
-const LEGACY_LOCAL_PROJECTS_KEY = 'inkweld-offline-projects';
-const LOCAL_PROJECTS_KEY = 'inkweld-local-projects';
 
 /**
  * Service for managing app configuration and setup.
@@ -67,31 +58,6 @@ export class SetupService {
   readonly isLoading = signal(false);
 
   constructor() {
-    this.migrateStorageKeys();
-  }
-
-  /**
-   * Migrate legacy 'offline' storage keys to new 'local' keys.
-   * This ensures smooth transition for existing users.
-   * Can be removed after v1 release.
-   */
-  private migrateStorageKeys(): void {
-    // Migrate user key
-    const oldUser = localStorage.getItem(LEGACY_LOCAL_USER_KEY);
-    if (oldUser && !localStorage.getItem(LOCAL_USER_KEY)) {
-      localStorage.setItem(LOCAL_USER_KEY, oldUser);
-      localStorage.removeItem(LEGACY_LOCAL_USER_KEY);
-      console.log('[SetupService] Migrated local user storage key');
-    }
-
-    // Migrate projects key
-    const oldProjects = localStorage.getItem(LEGACY_LOCAL_PROJECTS_KEY);
-    if (oldProjects && !localStorage.getItem(LOCAL_PROJECTS_KEY)) {
-      localStorage.setItem(LOCAL_PROJECTS_KEY, oldProjects);
-      localStorage.removeItem(LEGACY_LOCAL_PROJECTS_KEY);
-      console.log('[SetupService] Migrated local projects storage key');
-    }
-
     // Check for auto-configuration on hosted deployments
     this.autoConfigureIfNeeded();
   }

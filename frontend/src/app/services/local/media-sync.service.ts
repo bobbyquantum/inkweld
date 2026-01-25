@@ -120,6 +120,12 @@ export class MediaSyncService {
   >();
 
   /**
+   * Version counter that increments whenever media downloads complete.
+   * Components can watch this to trigger cover image refreshes.
+   */
+  readonly mediaSyncVersion = signal(0);
+
+  /**
    * Get the sync state signal for a project
    */
   getSyncState(projectKey: string): ReturnType<typeof signal<MediaSyncState>> {
@@ -332,6 +338,11 @@ export class MediaSyncService {
       }
 
       state.update(s => ({ ...s, isSyncing: false, downloadProgress: 100 }));
+
+      // Increment version to trigger UI refreshes (e.g., project covers)
+      if (downloaded > 0) {
+        this.mediaSyncVersion.update(v => v + 1);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';

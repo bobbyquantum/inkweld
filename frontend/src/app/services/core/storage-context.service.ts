@@ -44,18 +44,6 @@ export interface AppConfigV2 {
   configurations: ServerConfig[];
 }
 
-/**
- * Legacy app config (v1) for migration
- */
-export interface LegacyAppConfig {
-  mode: 'server' | 'local';
-  serverUrl?: string;
-  userProfile?: {
-    name: string;
-    username: string;
-  };
-}
-
 /** Storage key for app configuration */
 export const APP_CONFIG_STORAGE_KEY = 'inkweld-app-config';
 
@@ -68,7 +56,6 @@ export const LOCAL_CONFIG_ID = 'local';
  * This service provides:
  * - Storage key prefixes based on current server context
  * - Multi-server configuration management
- * - Migration from legacy single-server config
  *
  * Storage prefixes:
  * - "local:" for local mode
@@ -129,7 +116,7 @@ export class StorageContextService {
   }
 
   /**
-   * Load configuration from localStorage, migrating if necessary
+   * Load configuration from localStorage
    */
   private loadConfig(): void {
     try {
@@ -141,7 +128,7 @@ export class StorageContextService {
 
       const parsed: unknown = JSON.parse(stored);
 
-      // Check if this is v2 config
+      // Validate this is a v2 config
       if (
         typeof parsed === 'object' &&
         parsed !== null &&
@@ -152,66 +139,13 @@ export class StorageContextService {
         return;
       }
 
-      // Migrate from v1
-      const migrated = this.migrateFromV1(parsed as LegacyAppConfig);
-      this.saveConfig(migrated);
-      this.configSignal.set(migrated);
+      // Unknown config format, reset
+      console.warn('[StorageContext] Unknown config format, resetting');
+      this.configSignal.set(null);
     } catch (error) {
       console.error('[StorageContext] Failed to load config:', error);
       this.configSignal.set(null);
     }
-  }
-
-  /**
-   * Migrate legacy v1 config to v2 format
-   */
-  private migrateFromV1(legacy: LegacyAppConfig): AppConfigV2 {
-    const now = new Date().toISOString();
-
-    if (legacy.mode === 'local') {
-      return {
-        version: 2,
-        activeConfigId: LOCAL_CONFIG_ID,
-        configurations: [
-          {
-            id: LOCAL_CONFIG_ID,
-            type: 'local',
-            displayName: 'Local Mode',
-            userProfile: legacy.userProfile
-              ? {
-                  name: legacy.userProfile.name,
-                  username: legacy.userProfile.username,
-                }
-              : undefined,
-            addedAt: now,
-            lastUsedAt: now,
-          },
-        ],
-      };
-    }
-
-    // Server mode
-    const serverId = this.hashServerUrl(legacy.serverUrl!);
-    return {
-      version: 2,
-      activeConfigId: serverId,
-      configurations: [
-        {
-          id: serverId,
-          type: 'server',
-          serverUrl: legacy.serverUrl,
-          displayName: this.getDefaultDisplayName(legacy.serverUrl!),
-          userProfile: legacy.userProfile
-            ? {
-                name: legacy.userProfile.name,
-                username: legacy.userProfile.username,
-              }
-            : undefined,
-          addedAt: now,
-          lastUsedAt: now,
-        },
-      ],
-    };
   }
 
   /**

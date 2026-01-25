@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import {
   Component,
   computed,
+  DestroyRef,
+  effect,
   inject,
   Input,
   OnChanges,
@@ -13,6 +15,7 @@ import { Project } from '@inkweld/index';
 
 import { SetupService } from '../../services/core/setup.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
+import { MediaSyncService } from '../../services/local/media-sync.service';
 
 export type ProjectCoverVariant = 'card' | 'list' | 'small';
 
@@ -27,6 +30,8 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   private readonly localStorage = inject(LocalStorageService);
   private readonly setupService = inject(SetupService);
   private readonly http = inject(HttpClient);
+  private readonly mediaSyncService = inject(MediaSyncService);
+  private readonly destroyRef = inject(DestroyRef);
 
   @Input() project!: Project;
   @Input() variant: ProjectCoverVariant = 'card';
@@ -52,6 +57,27 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
 
   /** Track loading state to prevent duplicate fetches */
   private isLoading = false;
+
+  /** Track the last sync version to detect changes */
+  private lastSyncVersion = 0;
+
+  constructor() {
+    // Watch for media sync completions and reload cover if needed
+    effect(() => {
+      const syncVersion = this.mediaSyncService.mediaSyncVersion();
+      if (
+        syncVersion > this.lastSyncVersion &&
+        this.project &&
+        !this.hasCover
+      ) {
+        this.lastSyncVersion = syncVersion;
+        // Reload cover - new media may have been downloaded
+        void this.loadCover(this.project);
+      } else {
+        this.lastSyncVersion = syncVersion;
+      }
+    });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     // Load cover when project or coverMediaId changes
