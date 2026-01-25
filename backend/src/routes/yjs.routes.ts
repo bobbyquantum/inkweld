@@ -81,8 +81,16 @@ app.get(
               return;
             }
 
-            // Validate document access (format: username:slug:documentId or username:slug:elements)
-            const parts = documentId.split(':');
+            // Validate document access
+            // Format: username:slug:documentId, username:slug:elements, or worldbuilding:username:slug:elementId
+            let docIdForParsing = documentId;
+
+            // Strip 'worldbuilding:' prefix if present - worldbuilding docs have format worldbuilding:username:slug:elementId
+            if (docIdForParsing.startsWith('worldbuilding:')) {
+              docIdForParsing = docIdForParsing.substring('worldbuilding:'.length);
+            }
+
+            const parts = docIdForParsing.split(':');
             if (parts.length < 2) {
               wsLog.error(`Invalid document ID format: ${documentId}`);
               ws.send('access-denied:invalid-document');

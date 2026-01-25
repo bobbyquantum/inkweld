@@ -37,7 +37,7 @@ test.describe('Online Application Launch', () => {
 
     // Should have auth token
     const token = await authenticatedPage.evaluate(() => {
-      return localStorage.getItem('auth_token');
+      return localStorage.getItem('srv:server-1:auth_token');
     });
     expect(token).toBeTruthy();
   });

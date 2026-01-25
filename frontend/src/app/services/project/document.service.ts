@@ -37,6 +37,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import {
@@ -99,6 +100,7 @@ export class DocumentService {
   private logger = inject(LoggerService);
   private userService = inject(UnifiedUserService);
   private localStorage = inject(LocalStorageService);
+  private storageContext = inject(StorageContextService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -1582,17 +1584,26 @@ export class DocumentService {
    * connects to WebSocket, waits for sync to complete, then cleans up.
    * This is used after project creation to sync all template documents immediately.
    *
-   * @param documentId - Full document ID (username:slug:elementId)
+   * @param documentId - Full document ID (username:slug:elementId) - target for server
    * @param timeoutMs - Maximum time to wait for sync (default 30s)
+   * @param sourceDocumentId - Optional source document ID for local data (if different from target, e.g., during migration)
+   * @param sourceConfigId - Source config ID for storage prefix (e.g., 'local' for local mode migration)
    * @returns Promise that resolves when sync is complete or rejects on error/timeout
    */
   async syncDocumentToServer(
     documentId: string,
-    timeoutMs: number = 30000
+    timeoutMs: number = 30000,
+    sourceDocumentId?: string,
+    _sourceConfigId?: string
   ): Promise<void> {
+    // Use sourceDocumentId for local lookup if provided (migration scenario)
+    // NOTE: Documents are stored in IndexedDB WITHOUT a prefix (unlike elements which use prefixDocumentId).
+    // The sourceConfigId parameter is kept for API compatibility but not used for documents.
+    const localDocId = sourceDocumentId ?? documentId;
+
     this.logger.info(
       'DocumentService',
-      `syncDocumentToServer: Starting headless sync for ${documentId}`
+      `syncDocumentToServer: Starting headless sync for ${documentId}${sourceDocumentId ? ` (source: ${sourceDocumentId})` : ''}`
     );
 
     // Validate documentId format (must be username:slug:docId)
@@ -1629,13 +1640,24 @@ export class DocumentService {
     const ydoc = new Y.Doc();
     const type = ydoc.getXmlFragment('prosemirror');
 
-    // Initialize IndexedDB provider and wait for local data to load
-    const indexeddbProvider = new IndexeddbPersistence(documentId, ydoc);
+    // Initialize IndexedDB provider with the LOCAL document ID (may differ from server ID during migration)
+    console.log(
+      `[syncDocumentToServer] Looking up IndexedDB key: "${localDocId}"`
+    );
+    const indexeddbProvider = new IndexeddbPersistence(localDocId, ydoc);
     await indexeddbProvider.whenSynced;
+
+    console.log(
+      `[syncDocumentToServer] IndexedDB synced for "${localDocId}":`,
+      {
+        xmlFragmentLength: type.length,
+        xmlContent: type.length > 0 ? type.toJSON() : '(empty)',
+      }
+    );
 
     this.logger.debug(
       'DocumentService',
-      `syncDocumentToServer: IndexedDB synced for ${documentId}, XmlFragment length: ${type.length}`
+      `syncDocumentToServer: IndexedDB synced for ${localDocId}, XmlFragment length: ${type.length}`
     );
 
     // Check for imported content and apply it to the XmlFragment
@@ -1726,13 +1748,17 @@ export class DocumentService {
    * This is a convenience method for syncing all documents after project creation.
    * It handles errors gracefully - if one document fails to sync, others continue.
    *
-   * @param documentIds - Array of document IDs to sync
+   * @param documentIds - Array of document IDs to sync (target server IDs)
    * @param concurrency - Maximum number of concurrent syncs (default 3)
+   * @param sourceDocumentIds - Optional array of source document IDs for local data (for migration)
+   * @param sourceConfigId - Source config ID for storage prefix (e.g., 'local' for local mode migration)
    * @returns Promise that resolves when all syncs are attempted
    */
   async syncDocumentsToServer(
     documentIds: string[],
-    concurrency: number = 3
+    concurrency: number = 3,
+    sourceDocumentIds?: string[],
+    sourceConfigId?: string
   ): Promise<{ success: string[]; failed: string[] }> {
     const success: string[] = [];
     const failed: string[] = [];
@@ -1740,8 +1766,16 @@ export class DocumentService {
     // Process in batches for controlled concurrency
     for (let i = 0; i < documentIds.length; i += concurrency) {
       const batch = documentIds.slice(i, i + concurrency);
+      const sourceBatch = sourceDocumentIds?.slice(i, i + concurrency);
       const results = await Promise.allSettled(
-        batch.map(id => this.syncDocumentToServer(id))
+        batch.map((id, idx) =>
+          this.syncDocumentToServer(
+            id,
+            30000,
+            sourceBatch ? sourceBatch[idx] : undefined,
+            sourceConfigId
+          )
+        )
       );
 
       results.forEach((result, idx) => {
@@ -1773,17 +1807,26 @@ export class DocumentService {
    * Similar to syncDocumentToServer, but for worldbuilding elements
    * which use a different Yjs map structure ('worldbuilding' map instead of 'prosemirror' XmlFragment).
    *
-   * @param worldbuildingId - Full worldbuilding ID (worldbuilding:username:slug:elementId)
+   * @param worldbuildingId - Full worldbuilding ID (worldbuilding:username:slug:elementId) - target for server
    * @param timeoutMs - Maximum time to wait for sync (default 30s)
+   * @param sourceWorldbuildingId - Optional source worldbuilding ID for local data (if different, e.g., during migration)
+   * @param sourceConfigId - Source config ID for storage prefix (e.g., 'local' for local mode migration)
    * @returns Promise that resolves when sync is complete or rejects on error/timeout
    */
   async syncWorldbuildingToServer(
     worldbuildingId: string,
-    timeoutMs: number = 30000
+    timeoutMs: number = 30000,
+    sourceWorldbuildingId?: string,
+    _sourceConfigId?: string
   ): Promise<void> {
+    // Use sourceWorldbuildingId for local lookup if provided (migration scenario)
+    // NOTE: Worldbuilding data is stored in IndexedDB WITHOUT a prefix (like documents, unlike elements).
+    // The sourceConfigId parameter is kept for API compatibility but not used for worldbuilding.
+    const localDocId = sourceWorldbuildingId ?? worldbuildingId;
+
     this.logger.info(
       'DocumentService',
-      `syncWorldbuildingToServer: Starting headless sync for ${worldbuildingId}`
+      `syncWorldbuildingToServer: Starting headless sync for ${worldbuildingId}${sourceWorldbuildingId ? ` (source: ${sourceWorldbuildingId})` : ''}`
     );
 
     // Validate worldbuildingId format (must be worldbuilding:username:slug:elementId)
@@ -1821,15 +1864,15 @@ export class DocumentService {
     // Create a new Yjs doc for this sync operation
     const ydoc = new Y.Doc();
 
-    // Initialize IndexedDB provider and wait for local data to load
-    const indexeddbProvider = new IndexeddbPersistence(worldbuildingId, ydoc);
+    // Initialize IndexedDB provider with LOCAL document ID (may differ from server ID during migration)
+    const indexeddbProvider = new IndexeddbPersistence(localDocId, ydoc);
     await indexeddbProvider.whenSynced;
 
     // Access the worldbuilding map to ensure it's loaded
     const worldbuildingMap = ydoc.getMap<unknown>('worldbuilding');
     this.logger.debug(
       'DocumentService',
-      `syncWorldbuildingToServer: IndexedDB synced for ${worldbuildingId}, map size: ${worldbuildingMap.size}`
+      `syncWorldbuildingToServer: IndexedDB synced for ${localDocId}, map size: ${worldbuildingMap.size}`
     );
 
     // Format worldbuildingId for WebSocket URL (remove leading slashes if any)
@@ -1898,13 +1941,17 @@ export class DocumentService {
   /**
    * Sync multiple worldbuilding elements to the server in parallel.
    *
-   * @param worldbuildingIds - Array of worldbuilding IDs to sync
+   * @param worldbuildingIds - Array of worldbuilding IDs to sync (target server IDs)
    * @param concurrency - Maximum number of concurrent syncs (default 3)
+   * @param sourceWorldbuildingIds - Optional array of source IDs for local data (for migration)
+   * @param sourceConfigId - Source config ID for storage prefix (e.g., 'local' for local mode migration)
    * @returns Promise that resolves when all syncs are attempted
    */
   async syncWorldbuildingToServerBatch(
     worldbuildingIds: string[],
-    concurrency: number = 3
+    concurrency: number = 3,
+    sourceWorldbuildingIds?: string[],
+    sourceConfigId?: string
   ): Promise<{ success: string[]; failed: string[] }> {
     const success: string[] = [];
     const failed: string[] = [];
@@ -1912,8 +1959,16 @@ export class DocumentService {
     // Process in batches for controlled concurrency
     for (let i = 0; i < worldbuildingIds.length; i += concurrency) {
       const batch = worldbuildingIds.slice(i, i + concurrency);
+      const sourceBatch = sourceWorldbuildingIds?.slice(i, i + concurrency);
       const results = await Promise.allSettled(
-        batch.map(id => this.syncWorldbuildingToServer(id))
+        batch.map((id, idx) =>
+          this.syncWorldbuildingToServer(
+            id,
+            30000,
+            sourceBatch ? sourceBatch[idx] : undefined,
+            sourceConfigId
+          )
+        )
       );
 
       results.forEach((result, idx) => {
@@ -1937,6 +1992,142 @@ export class DocumentService {
     );
 
     return { success, failed };
+  }
+
+  /**
+   * Sync the project elements document to the server (headless).
+   *
+   * This method syncs the elements Yjs document which contains:
+   * - Element tree (folders, documents, worldbuilding items)
+   * - Publish plans
+   * - Element relationships
+   * - Custom relationship types
+   * - Worldbuilding schemas
+   * - Element tags
+   *
+   * Similar to syncDocumentToServer, but for the elements document structure.
+   * Uses the format: username:slug:elements (not prefixed - server format)
+   *
+   * @param username - Target project owner username (server)
+   * @param slug - Target project slug (server)
+   * @param timeoutMs - Maximum time to wait for sync (default 30s)
+   * @param sourceUsername - Source username for local data (if different from target, e.g., during migration)
+   * @param sourceSlug - Source slug for local data (if different from target, e.g., during migration)
+   * @param sourceConfigId - Source config ID for storage prefix (e.g., 'local' for local mode migration)
+   * @returns Promise that resolves when sync is complete or rejects on error/timeout
+   */
+  async syncElementsToServer(
+    username: string,
+    slug: string,
+    timeoutMs: number = 30000,
+    sourceUsername?: string,
+    sourceSlug?: string,
+    sourceConfigId?: string
+  ): Promise<void> {
+    // Server document ID (unprefixed) - where to send data
+    const serverDocId = `${username}:${slug}:elements`;
+    // Source document ID - where to read local data from (may differ during migration)
+    const sourceDocId = `${sourceUsername ?? username}:${sourceSlug ?? slug}:elements`;
+    // Local document ID (prefixed for multi-server isolation) - use SOURCE config's prefix if provided
+    const sourcePrefix = sourceConfigId
+      ? this.storageContext.getPrefixForConfig(sourceConfigId)
+      : this.storageContext.getPrefix();
+    const localDocId = `${sourcePrefix}${sourceDocId}`;
+
+    this.logger.info(
+      'DocumentService',
+      `syncElementsToServer: Starting sync for ${serverDocId} (source: ${sourceDocId}, local: ${localDocId})`
+    );
+
+    const websocketUrl = this.setupService.getWebSocketUrl();
+    if (!websocketUrl) {
+      throw new Error(
+        `syncElementsToServer: No WebSocket URL available for ${serverDocId}`
+      );
+    }
+
+    // Get auth token for WebSocket authentication
+    const authToken = this.authTokenService.getToken();
+    if (!authToken) {
+      throw new Error(
+        `syncElementsToServer: No auth token available for ${serverDocId}`
+      );
+    }
+
+    // Create a new Yjs doc for this sync operation
+    const ydoc = new Y.Doc();
+
+    // Initialize IndexedDB provider with the LOCAL (prefixed) document ID
+    const indexeddbProvider = new IndexeddbPersistence(localDocId, ydoc);
+    await indexeddbProvider.whenSynced;
+
+    // Check what data we have locally
+    const elementsArray = ydoc.getArray<unknown>('elements');
+    const publishPlansArray = ydoc.getArray<unknown>('publishPlans');
+    const schemasArray = ydoc.getArray<unknown>('schemas');
+
+    this.logger.debug(
+      'DocumentService',
+      `syncElementsToServer: IndexedDB synced for ${localDocId}, ` +
+        `elements: ${elementsArray.length}, publishPlans: ${publishPlansArray.length}, schemas: ${schemasArray.length}`
+    );
+
+    // Connect to WebSocket with the SERVER (unprefixed) document ID
+    const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${serverDocId}`;
+
+    let provider: WebsocketProvider | null = null;
+
+    try {
+      // Connect to WebSocket with authentication
+      provider = await createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        ydoc,
+        authToken,
+        { resyncInterval: 10000 }
+      );
+
+      // Wait for the document to be synced
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error(`Sync timeout for elements ${serverDocId}`));
+        }, timeoutMs);
+
+        // y-websocket fires 'sync' event when initial sync is complete
+        const checkSynced = (isSynced: boolean) => {
+          if (isSynced) {
+            clearTimeout(timeout);
+            provider?.off('sync', checkSynced);
+            resolve();
+          }
+        };
+
+        // Check if already synced
+        if (provider?.synced) {
+          clearTimeout(timeout);
+          resolve();
+          return;
+        }
+
+        provider?.on('sync', checkSynced);
+      });
+
+      // Force save to IndexedDB to persist the synced state
+      await storeState(indexeddbProvider);
+
+      this.logger.info(
+        'DocumentService',
+        `syncElementsToServer: Successfully synced ${serverDocId}`
+      );
+    } finally {
+      // Clean up: disconnect WebSocket and destroy providers
+      if (provider) {
+        provider.disconnect();
+        provider.destroy();
+      }
+      await indexeddbProvider.destroy();
+      ydoc.destroy();
+    }
   }
 
   /**

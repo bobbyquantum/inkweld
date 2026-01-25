@@ -644,6 +644,14 @@
   }
 }
 
+// Server info bubble for unauthenticated view
+.server-info-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 100;
+}
+
 // Theme toggle for unauthenticated view
 .theme-toggle-container {
   position: fixed;

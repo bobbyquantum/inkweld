@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,15 +62,18 @@ describe('UserSettingsDialogComponent', () => {
         <div class="settings-dialog">
           <nav class="settings-nav">
             <button
-              (click)="selectCategory('connection')"
-              [attr.aria-selected]="selectedCategory === 'connection'">
-              Connection
+              (click)="selectCategory('project-tree')"
+              [attr.aria-selected]="selectedCategory === 'project-tree'">
+              Project Tree
+            </button>
+            <button
+              (click)="selectCategory('project')"
+              [attr.aria-selected]="selectedCategory === 'project'">
+              Project
             </button>
           </nav>
           <div class="settings-content">
-            @if (selectedCategory === 'connection') {
-              <div class="connection-settings">Connection Settings</div>
-            } @else if (selectedCategory === 'project') {
+            @if (selectedCategory === 'project') {
               <app-project-settings />
             } @else if (selectedCategory === 'project-tree') {
               <app-project-tree-settings />
@@ -101,47 +104,39 @@ describe('UserSettingsDialogComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with connection category selected', () => {
-    expect(component.selectedCategory).toBe('connection');
+  it('should initialize with project-tree category selected', () => {
+    expect(component.selectedCategory).toBe('project-tree');
   });
 
   it('should change category when selectCategory is called', () => {
-    component.selectCategory('project-tree');
-    expect(component.selectedCategory).toBe('project-tree');
-    expect(component.previousCategory).toBe('connection');
+    component.selectCategory('project');
+    expect(component.selectedCategory).toBe('project');
+    expect(component.previousCategory).toBe('project-tree');
   });
 
-  it('should return correct animation state', () => {
-    component.selectCategory('project-tree');
+  it('should return correct animation state when moving from project-tree to project', () => {
+    component.selectCategory('project');
     const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('project-tree');
+    expect(animationState.value).toBe('project');
     expect(animationState.params.enterTransform).toBe('100%');
     expect(animationState.params.leaveTransform).toBe('-100%');
   });
 
-  it('should return correct animation state when moving from connection to project-tree', () => {
+  it('should return correct animation state when moving from project to project-tree', () => {
+    component.selectCategory('project');
     component.selectCategory('project-tree');
     const animationState = component.getAnimationState();
     expect(animationState.value).toBe('project-tree');
-    expect(animationState.params.enterTransform).toBe('100%');
-    expect(animationState.params.leaveTransform).toBe('-100%');
-  });
-
-  it('should return correct animation state when moving from project-tree to connection', () => {
-    component.selectCategory('project-tree');
-    component.selectCategory('connection');
-    const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('connection');
     expect(animationState.params.enterTransform).toBe('-100%');
     expect(animationState.params.leaveTransform).toBe('100%');
   });
 
   // TODO: Fix animation timing issue in zoneless mode
   it.skip('should display correct content based on selected category', async () => {
-    // Component already starts with 'connection', so just verify it
+    // Component already starts with 'project-tree', so just verify it
     await fixture.whenStable();
     expect(
-      fixture.debugElement.query(By.css('.connection-settings'))
+      fixture.debugElement.query(By.css('app-project-tree-settings'))
     ).toBeTruthy();
 
     // Now switch to project
@@ -155,21 +150,22 @@ describe('UserSettingsDialogComponent', () => {
 
   it('should have correct aria-selected attribute for nav items', () => {
     // Test component state instead of DOM to avoid ExpressionChangedAfterItHasBeenCheckedError
-    expect(component.selectedCategory).toBe('connection');
+    expect(component.selectedCategory).toBe('project-tree');
+
+    component.selectCategory('project');
+    expect(component.selectedCategory).toBe('project');
 
     component.selectCategory('project-tree');
     expect(component.selectedCategory).toBe('project-tree');
-
-    component.selectCategory('connection');
-    expect(component.selectedCategory).toBe('connection');
   });
 
   it('should change category when nav item is clicked', () => {
     const navItems = fixture.debugElement.queryAll(
       By.css('.settings-nav button')
     );
-    (navItems[0].nativeElement as HTMLElement).click();
-    expect(component.selectedCategory).toBe('connection');
+    // Click on project button (second button)
+    (navItems[1].nativeElement as HTMLElement).click();
+    expect(component.selectedCategory).toBe('project');
   });
 
   it('should have a close button', () => {
@@ -180,39 +176,5 @@ describe('UserSettingsDialogComponent', () => {
     expect((closeButton.nativeElement as HTMLElement).textContent).toContain(
       'Close'
     );
-  });
-
-  describe('dialog data', () => {
-    it('should initialize with category from dialog data', async () => {
-      const dialogData = { selectedCategory: 'project-tree' };
-
-      @Component({
-        selector: 'app-test-wrapper-data',
-        standalone: true,
-        imports: [MatDialogModule],
-        template: '<div></div>',
-      })
-      class TestWrapperWithDataComponent extends UserSettingsDialogComponent {}
-
-      await TestBed.resetTestingModule()
-        .configureTestingModule({
-          imports: [TestWrapperWithDataComponent],
-          providers: [
-            provideZonelessChangeDetection(),
-            provideHttpClient(),
-            provideHttpClientTesting(),
-            { provide: MAT_DIALOG_DATA, useValue: dialogData },
-          ],
-        })
-        .compileComponents();
-
-      const fixtureWithData = TestBed.createComponent(
-        TestWrapperWithDataComponent
-      );
-      const componentWithData = fixtureWithData.componentInstance;
-      fixtureWithData.detectChanges();
-
-      expect(componentWithData.selectedCategory).toBe('project-tree');
-    });
   });
 });

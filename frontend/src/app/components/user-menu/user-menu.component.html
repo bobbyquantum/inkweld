@@ -37,11 +37,21 @@
             </div>
           </div>
         </button>
-        <div class="connection-status" [class]="getConnectionStatus().cssClass">
-          <mat-icon>{{ getConnectionStatus().icon }}</mat-icon>
-          <span>{{ getConnectionStatus().text }}</span>
-        </div>
       </div>
+      <mat-divider></mat-divider>
+      <!-- Server/Profile Switcher - Always visible -->
+      <button
+        mat-menu-item
+        [matMenuTriggerFor]="profileMenu"
+        class="switch-server-trigger"
+        data-testid="switch-server-button">
+        <mat-icon>{{ getConnectionStatus().icon }}</mat-icon>
+        <div class="server-info-content">
+          <span class="server-label">{{ getCurrentServerName() }}</span>
+          <span class="server-sublabel">{{ getConnectionStatus().text }}</span>
+        </div>
+        <mat-icon class="menu-arrow">arrow_right</mat-icon>
+      </button>
       <mat-divider></mat-divider>
       <div class="menu-actions">
         <!-- Theme Selection -->
@@ -116,5 +126,42 @@
         }
       </div>
     }
+  </mat-menu>
+
+  <!-- Server/Profile Switcher Submenu -->
+  <mat-menu #profileMenu="matMenu" class="profile-submenu">
+    <div class="profile-menu-header">
+      <span>Switch Server</span>
+    </div>
+    @for (profile of profiles(); track profile.id) {
+      @let display = getProfileDisplay(profile);
+      <button
+        mat-menu-item
+        (click)="onSwitchProfile(profile)"
+        [class.active-profile]="display.isActive"
+        [attr.data-testid]="'profile-' + profile.id">
+        <mat-icon>{{ display.icon }}</mat-icon>
+        <div class="profile-item-content">
+          <span class="profile-name">{{ display.name }}</span>
+          <span class="profile-subtitle">
+            @if (display.isActive) {
+              <mat-icon class="active-indicator">check</mat-icon>
+            }
+            {{ display.subtitle }}
+            @if (!display.hasAuth && profile.type === 'server') {
+              <span class="needs-login">(login required)</span>
+            }
+          </span>
+        </div>
+      </button>
+    }
+    <mat-divider></mat-divider>
+    <button
+      mat-menu-item
+      (click)="onManageProfiles()"
+      data-testid="manage-profiles-button">
+      <mat-icon>settings</mat-icon>
+      <span>Manage Profiles...</span>
+    </button>
   </mat-menu>
 </div>

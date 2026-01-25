@@ -67,6 +67,7 @@
           <app-connection-status
             [syncState]="projectSyncState()"
             [lastError]="lastConnectionError()"
+            [isLocalMode]="isLocalMode()"
             (syncRequested)="onRetrySyncConnection()"
             data-testid="mobile-connection-status">
           </app-connection-status>
@@ -274,6 +275,7 @@
                   <app-connection-status
                     [syncState]="projectSyncState()"
                     [lastError]="lastConnectionError()"
+                    [isLocalMode]="isLocalMode()"
                     [collapsed]="true"
                     (syncRequested)="onRetrySyncConnection()"
                     data-testid="collapsed-connection-status">
@@ -371,6 +373,7 @@
                   <app-connection-status
                     [syncState]="projectSyncState()"
                     [lastError]="lastConnectionError()"
+                    [isLocalMode]="isLocalMode()"
                     (syncRequested)="onRetrySyncConnection()"
                     data-testid="sidebar-connection-status">
                   </app-connection-status>
