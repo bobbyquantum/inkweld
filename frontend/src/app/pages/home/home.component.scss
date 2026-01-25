@@ -252,6 +252,48 @@
     }
   }
 
+  .sync-btn {
+    font-weight: 500;
+    color: var(--link-color) !important;
+    background: transparent !important;
+    min-width: auto;
+
+    &:hover:not(:disabled) {
+      color: var(--link-hover-color) !important;
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+    }
+
+    &.syncing {
+      color: var(--focus-color) !important;
+    }
+
+    mat-icon {
+      margin-right: 4px;
+
+      &.spin {
+        animation: spin 1s linear infinite;
+      }
+    }
+
+    .sync-progress {
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .auth-buttons {
     display: flex;
     gap: 12px;

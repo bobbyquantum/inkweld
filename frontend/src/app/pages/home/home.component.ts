@@ -14,8 +14,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { AnnouncementFeedComponent } from '@components/announcement-feed/announcement-feed.component';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
@@ -31,6 +33,7 @@ import { CollaboratedProject, PendingInvitation } from '@inkweld/model/models';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
+import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { firstValueFrom, Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
@@ -44,7 +47,9 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     MatIconModule,
     MatInputModule,
     MatFormFieldModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     ReactiveFormsModule,
     RouterModule,
     AnnouncementFeedComponent,
@@ -66,6 +71,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly collaborationApiService = inject(CollaborationApiService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly setupService = inject(SetupService);
+  readonly syncQueueService = inject(SyncQueueService);
 
   // Component state
   loadError = false;
@@ -85,6 +91,34 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected isLoading = this.projectService.isLoading;
   protected isAuthenticated = this.userService.isAuthenticated;
   protected destroy$ = new Subject<void>();
+
+  /** Whether we're in server mode (enables Sync All button) */
+  protected isServerMode = computed(
+    () => this.setupService.getMode() === 'server'
+  );
+
+  /** Whether Sync All button should be enabled */
+  protected canSyncAll = computed(() => {
+    return (
+      this.isServerMode() &&
+      this.isAuthenticated() &&
+      navigator.onLine &&
+      !this.syncQueueService.isSyncing() &&
+      this.projectService.projects().length > 0
+    );
+  });
+
+  /** Tooltip for Sync All button */
+  protected syncAllTooltip = computed(() => {
+    if (!this.isServerMode()) return 'Only available in online mode';
+    if (!navigator.onLine) return 'Cannot sync while offline';
+    if (this.syncQueueService.isSyncing()) return 'Sync in progress...';
+    const hasProjects =
+      this.projectService.projects().length > 0 ||
+      this.collaboratedProjects().length > 0;
+    if (!hasProjects) return 'No projects to sync';
+    return 'Sync all projects with server';
+  });
 
   // Computed state - unified project list combining owned and shared projects
   protected allProjects = computed(() => {
@@ -246,6 +280,43 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.mobileSearchActive()) {
       this.searchControl.setValue('');
     }
+  }
+
+  /**
+   * Sync all projects (owned and shared) with the server
+   */
+  syncAllProjects(): void {
+    const ownProjects = this.projectService.projects();
+    const sharedProjects = this.collaboratedProjects();
+
+    // Convert shared projects to Project format
+    const sharedAsProjects: Project[] = sharedProjects.map(cp => ({
+      id: cp.projectId,
+      slug: cp.projectSlug,
+      title: cp.projectTitle,
+      description: null,
+      username: cp.ownerUsername,
+      coverImage: null,
+      createdDate: new Date(cp.acceptedAt).toISOString(),
+      updatedDate: new Date(cp.acceptedAt).toISOString(),
+    }));
+
+    const allProjects = [...ownProjects, ...sharedAsProjects];
+
+    if (allProjects.length === 0) {
+      this.snackBar.open('No projects to sync', 'Dismiss', { duration: 3000 });
+      return;
+    }
+
+    void this.syncQueueService.syncAllProjects(allProjects);
+  }
+
+  /**
+   * Cancel the current sync operation
+   */
+  cancelSync(): void {
+    this.syncQueueService.cancelSync();
+    this.snackBar.open('Sync cancelled', 'Dismiss', { duration: 3000 });
   }
 
   selectProject(project: Project) {

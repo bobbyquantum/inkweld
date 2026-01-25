@@ -243,6 +243,76 @@
         }
       }
 
+      // Sync overlay for mini project tiles
+      .sync-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(1px);
+        transition: opacity 0.3s ease;
+        border-radius: inherit;
+
+        &.synced {
+          background: rgba(0, 100, 0, 0.7);
+          animation: fadeOutOverlay 2s ease-out forwards;
+          animation-delay: 1s;
+        }
+
+        &.failed {
+          background: rgba(150, 0, 0, 0.7);
+        }
+
+        mat-spinner {
+          --mdc-circular-progress-active-indicator-color: #fff;
+        }
+
+        .sync-icon {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+
+          &.success-icon {
+            color: #4caf50;
+          }
+
+          &.error-icon {
+            color: #f44336;
+          }
+
+          &.queued-icon {
+            color: rgba(255, 255, 255, 0.7);
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+        }
+      }
+
+      @keyframes fadeOutOverlay {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+          pointer-events: none;
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
       ::ng-deep .cover-image {
         width: 100%;
         height: 100%;
@@ -313,6 +383,29 @@
 
     mat-icon {
       color: #333 !important;
+    }
+  }
+
+  // Light mode sync overlay
+  .sync-overlay {
+    background: rgba(255, 255, 255, 0.85);
+
+    &.synced {
+      background: rgba(200, 255, 200, 0.9);
+    }
+
+    &.failed {
+      background: rgba(255, 200, 200, 0.9);
+    }
+
+    mat-spinner {
+      --mdc-circular-progress-active-indicator-color: #333;
+    }
+
+    .sync-icon {
+      &.queued-icon {
+        color: rgba(0, 0, 0, 0.5);
+      }
     }
   }
 }

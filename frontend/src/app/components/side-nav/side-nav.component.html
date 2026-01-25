@@ -47,6 +47,30 @@
                     <mat-icon>group</mat-icon>
                   </div>
                 }
+                <!-- Sync overlay: shows when project is in sync queue -->
+                @if (getSyncStatus(item.project)) {
+                  <div
+                    class="sync-overlay"
+                    [class.syncing]="isSyncing(item.project)"
+                    [class.queued]="isQueued(item.project)"
+                    [class.synced]="isSynced(item.project)"
+                    [class.failed]="hasFailed(item.project)"
+                    data-testid="tile-sync-overlay">
+                    @if (isSyncing(item.project)) {
+                      <mat-spinner diameter="14" strokeWidth="2"></mat-spinner>
+                    } @else if (isQueued(item.project)) {
+                      <mat-icon class="sync-icon queued-icon"
+                        >schedule</mat-icon
+                      >
+                    } @else if (isSynced(item.project)) {
+                      <mat-icon class="sync-icon success-icon"
+                        >check_circle</mat-icon
+                      >
+                    } @else if (hasFailed(item.project)) {
+                      <mat-icon class="sync-icon error-icon">error</mat-icon>
+                    }
+                  </div>
+                }
               </div>
               <div class="tile-info">
                 <span class="tile-title">{{ item.project.title }}</span>
