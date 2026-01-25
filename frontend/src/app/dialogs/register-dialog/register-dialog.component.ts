@@ -40,6 +40,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { AuthenticationService, UsernameAvailability } from '@inkweld/index';
+import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
@@ -67,6 +68,7 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
   private dialogRef = inject(MatDialogRef<RegisterDialogComponent>);
   private httpClient = inject(HttpClient);
   private authService = inject(AuthenticationService);
+  private authTokenService = inject(AuthTokenService);
   private userService = inject(UserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
@@ -443,9 +445,9 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
           },
         });
       } else {
-        // Store authentication token for subsequent requests
+        // Store authentication token for subsequent requests (using prefixed key)
         if (response.token) {
-          localStorage.setItem('auth_token', response.token);
+          this.authTokenService.setToken(response.token);
         }
 
         // Set the user in the user service so isAuthenticated() returns true

@@ -51,6 +51,7 @@ import {
 } from '../../models/publish-plan';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
+import { StorageContextService } from '../../services/core/storage-context.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
@@ -94,6 +95,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly settingsService = inject(SettingsService);
   private readonly quickOpenService = inject(QuickOpenService);
+  private readonly storageContext = inject(StorageContextService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -108,6 +110,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Last connection error - shown in tooltip when sync fails */
   protected readonly lastConnectionError =
     this.projectState.getLastConnectionError;
+  /** Whether we're in local-only mode (no server configured) */
+  protected readonly isLocalMode = this.storageContext.isLocalMode;
 
   // Define a consistent breakpoint value for the application
   private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';

@@ -4,7 +4,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UserAvatarComponent } from './user-avatar.component';
@@ -198,6 +198,25 @@ describe('UserAvatarComponent', () => {
       await component.loadAvatar();
 
       expect(mockUserService.getUserAvatar).toHaveBeenCalledWith('testuser');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should set error state when server request fails', async () => {
+      mockLocalStorageService.getUserAvatarUrl.mockResolvedValue(null);
+      mockUserService.getUserAvatar.mockReturnValue(
+        throwError(() => new Error('Server error'))
+      );
+
+      component.username = 'testuser';
+      component.hasAvatar = true;
+      await component.loadAvatar();
+
+      // Wait for the observable subscription to complete (throwError fires synchronously)
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(component['error']).toBe(true);
+      expect(component['isLoading']()).toBe(false);
     });
   });
 });

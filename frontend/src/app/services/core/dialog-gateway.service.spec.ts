@@ -27,6 +27,7 @@ import {
   NewElementDialogComponent,
   NewElementDialogResult,
 } from '../../dialogs/new-element-dialog/new-element-dialog.component';
+import { ProfileManagerDialogComponent } from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
 import {
   RenameDialogComponent,
   RenameDialogData,
@@ -218,21 +219,21 @@ describe('DialogGatewayService', () => {
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
-      data: { selectedCategory: 'general' },
+      data: { selectedCategory: 'project-tree' },
     });
   });
 
   it('should open user settings dialog with specified category', async () => {
     (dialogRefMock.afterClosed as Mock).mockReturnValue(of(undefined));
 
-    await service.openUserSettingsDialog('account');
+    await service.openUserSettingsDialog('project-tree');
 
     expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
       width: '800px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
-      data: { selectedCategory: 'account' },
+      data: { selectedCategory: 'project-tree' },
     });
   });
 
@@ -367,5 +368,21 @@ describe('DialogGatewayService', () => {
       }
     );
     expect(dialogResult).toEqual(result);
+  });
+
+  it('should open profile manager dialog', async () => {
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(undefined));
+
+    await service.openProfileManagerDialog();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      ProfileManagerDialogComponent,
+      {
+        width: '500px',
+        maxWidth: '95vw',
+        maxHeight: '90vh',
+        disableClose: false,
+      }
+    );
   });
 });

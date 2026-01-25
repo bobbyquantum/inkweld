@@ -336,9 +336,9 @@ test.describe('Admin Settings', () => {
   test('should toggle user approval setting and persist', async ({
     adminPage,
   }) => {
-    // Get auth token for API calls
+    // Get auth token for API calls (prefixed with server ID)
     const token = await adminPage.evaluate(() =>
-      localStorage.getItem('auth_token')
+      localStorage.getItem('srv:server-1:auth_token')
     );
 
     // IMPORTANT: This test modifies USER_APPROVAL_REQUIRED which can affect other

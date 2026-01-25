@@ -10,7 +10,6 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
-  MAT_DIALOG_DATA,
   MatDialogClose,
   MatDialogContent,
   MatDialogTitle,
@@ -21,7 +20,6 @@ import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 
-import { ConnectionSettingsComponent } from './tabs/connection-settings/connection-settings.component';
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
 
@@ -70,7 +68,6 @@ const slideAnimation = trigger('slideAnimation', [
     MatTooltipModule,
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,
-    ConnectionSettingsComponent,
   ],
   animations: [slideAnimation],
   templateUrl: './user-settings-dialog.component.html',
@@ -78,24 +75,13 @@ const slideAnimation = trigger('slideAnimation', [
 })
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   private breakpointObserver = inject(BreakpointObserver);
-  private dialogData = inject<{ selectedCategory?: string }>(MAT_DIALOG_DATA, {
-    optional: true,
-  });
 
-  @Input() selectedCategory: 'connection' | 'project-tree' | 'project' =
-    'connection';
-  previousCategory: 'connection' | 'project-tree' | 'project' = 'connection';
+  @Input() selectedCategory: 'project-tree' | 'project' = 'project-tree';
+  previousCategory: 'project-tree' | 'project' = 'project-tree';
   isMobile = false;
   private destroyed = new Subject<void>();
 
   ngOnInit() {
-    // Set initial category from dialog data if provided
-    if (this.dialogData?.selectedCategory) {
-      this.selectedCategory = this.dialogData
-        .selectedCategory as typeof this.selectedCategory;
-      this.previousCategory = this.selectedCategory;
-    }
-
     this.breakpointObserver
       .observe([Breakpoints.HandsetPortrait, Breakpoints.TabletPortrait])
       .pipe(takeUntil(this.destroyed))
@@ -109,13 +95,13 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.destroyed.complete();
   }
 
-  selectCategory(category: 'connection' | 'project-tree' | 'project') {
+  selectCategory(category: 'project-tree' | 'project') {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
 
   getAnimationState() {
-    const categories = ['connection', 'project-tree', 'project'];
+    const categories = ['project-tree', 'project'];
     const currentIndex = categories.indexOf(this.selectedCategory);
     const previousIndex = categories.indexOf(this.previousCategory);
     const isMovingDown = currentIndex > previousIndex;

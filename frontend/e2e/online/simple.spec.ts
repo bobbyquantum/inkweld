@@ -53,18 +53,29 @@ test.describe('Online Infrastructure', () => {
 
     expect(registerData.token).toBeDefined();
 
-    // Set server mode with token
+    // Set server mode with token (v2 config format)
     await page.addInitScript(
       ({ token, serverUrl }: { token: string; serverUrl: string }) => {
+        const now = Date.now();
         localStorage.clear();
         localStorage.setItem(
           'inkweld-app-config',
           JSON.stringify({
-            mode: 'server',
-            serverUrl,
+            version: 2,
+            activeConfigId: 'server-1',
+            configurations: [
+              {
+                id: 'server-1',
+                type: 'server',
+                displayName: 'Test Server',
+                serverUrl,
+                addedAt: now,
+                lastUsedAt: now,
+              },
+            ],
           })
         );
-        localStorage.setItem('auth_token', token);
+        localStorage.setItem('srv:server-1:auth_token', token);
       },
       { token: registerData.token!, serverUrl: 'http://localhost:9333' }
     );

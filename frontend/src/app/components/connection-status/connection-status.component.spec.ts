@@ -250,4 +250,54 @@ describe('ConnectionStatusComponent', () => {
       );
     });
   });
+
+  describe('local mode display', () => {
+    it('should display "Local Mode" when isLocalMode is true', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', true);
+      await fixture.whenStable();
+
+      const statusText = fixture.nativeElement.querySelector('.status-text');
+      expect(statusText?.textContent?.trim()).toBe('Local Mode');
+    });
+
+    it('should show folder icon when in local mode', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', true);
+      await fixture.whenStable();
+
+      const icon = fixture.nativeElement.querySelector('.status-icon');
+      expect(icon?.textContent?.trim()).toBe('folder');
+    });
+
+    it('should not show retry button in local mode', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', true);
+      await fixture.whenStable();
+
+      const retryButton = fixture.nativeElement.querySelector(
+        '[data-testid="retry-sync-button"]'
+      );
+      expect(retryButton).toBeFalsy();
+    });
+
+    it('should show local mode tooltip', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', true);
+      await fixture.whenStable();
+
+      expect(component.syncTooltip()).toBe(
+        'Working in local mode - changes saved to browser storage'
+      );
+    });
+
+    it('should show "Offline Mode" when isLocalMode is false and state is Local', async () => {
+      fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
+      fixture.componentRef.setInput('isLocalMode', false);
+      await fixture.whenStable();
+
+      const statusText = fixture.nativeElement.querySelector('.status-text');
+      expect(statusText?.textContent?.trim()).toBe('Offline Mode');
+    });
+  });
 });

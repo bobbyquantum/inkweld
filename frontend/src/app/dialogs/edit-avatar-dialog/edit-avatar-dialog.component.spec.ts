@@ -177,5 +177,21 @@ describe('EditAvatarDialogComponent', () => {
       );
       expect(dialogRefMock.close).not.toHaveBeenCalled();
     });
+
+    it('should show alert when no user is logged in', async () => {
+      const blob = new Blob([''], { type: 'image/png' });
+      component.croppedBlob = blob;
+      component.fileName = 'test.png';
+      setupServiceMock.getMode.mockReturnValue('server');
+      unifiedUserServiceMock.currentUser.mockReturnValue(null);
+      vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+      await component.submit();
+
+      expect(window.alert).toHaveBeenCalledWith(
+        'Failed to upload avatar. Please try again.'
+      );
+      expect(dialogRefMock.close).not.toHaveBeenCalled();
+    });
   });
 });

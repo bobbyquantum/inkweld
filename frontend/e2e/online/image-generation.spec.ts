@@ -21,13 +21,18 @@ async function waitForDialogReady(page: Page): Promise<void> {
   // Wait for dialog content to be present
   await expect(
     page.locator('[data-testid="image-gen-dialog-content"]')
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
 
   // Wait for any loading spinners to disappear
-  await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden();
+  await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden({
+    timeout: 15000,
+  });
 
   // Now the stepper should be visible (or an error/disabled notice)
-  await expect(page.locator('.image-generation-stepper')).toBeVisible();
+  // This may take time to load config and profiles from backend
+  await expect(page.locator('.image-generation-stepper')).toBeVisible({
+    timeout: 20000,
+  });
 }
 
 // Fake API keys that look valid but won't work
@@ -62,7 +67,9 @@ async function setProviderApiKey(
   providerId: string,
   apiKey: string
 ): Promise<void> {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'));
+  const token = await page.evaluate(() =>
+    localStorage.getItem('srv:server-1:auth_token')
+  );
   const response = await page.request.put(
     `${getApiBaseUrl()}/api/v1/ai/providers/${providerId}/key`,
     {
@@ -90,7 +97,9 @@ async function createImageProfile(
     defaultSize: string;
   }
 ): Promise<string> {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'));
+  const token = await page.evaluate(() =>
+    localStorage.getItem('srv:server-1:auth_token')
+  );
   const response = await page.request.post(
     `${getApiBaseUrl()}/api/v1/admin/image-profiles`,
     {
@@ -130,7 +139,9 @@ async function deleteImageProfileByName(
   page: Page,
   name: string
 ): Promise<void> {
-  const token = await page.evaluate(() => localStorage.getItem('auth_token'));
+  const token = await page.evaluate(() =>
+    localStorage.getItem('srv:server-1:auth_token')
+  );
 
   const listResponse = await page.request.get(
     `${getApiBaseUrl()}/api/v1/admin/image-profiles`,
