@@ -1,9 +1,8 @@
 /**
  * OpenRouter image generation provider.
- * Uses the OpenRouter SDK to access various image models (FLUX, Gemini, GPT, etc.).
- * Models are fetched dynamically from OpenRouter's API.
+ * Uses direct fetch to the chat/completions API for Cloudflare Workers compatibility.
+ * The SDK's Responses API accumulates CPU time through streaming, exceeding Workers limits.
  */
-import { CallModelInput, OpenRouter } from '@openrouter/sdk';
 import type {
   ResolvedImageRequest,
   ImageGenerateResponse,
@@ -15,7 +14,7 @@ import { logger } from '../logger.service';
 import {
   optimizePromptForModel,
   validateReferenceImages,
-  formatReferenceImagesForOpenRouter,
+  normalizeImageDataUrl,
 } from '../../utils/prompt-utils';
 
 const orLog = logger.child('OpenRouter');
@@ -100,34 +99,40 @@ export class OpenRouterImageProvider extends BaseImageProvider {
     });
 
     try {
-      const openRouter = new OpenRouter({
-        apiKey: this.apiKey!,
-        httpReferer: 'https://inkweld.app',
-        xTitle: 'Inkweld',
-      });
-
-      // Build input content - text prompt + optional reference images
+      // Build message content - text prompt + optional reference images
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inputContent: any[] = [{ type: 'input_text', text: prompt }];
+      const messageContent: any[] = [{ type: 'text', text: prompt }];
       if (imageResult.images.length > 0) {
-        inputContent.push(...formatReferenceImagesForOpenRouter(imageResult.images));
+        for (const img of imageResult.images) {
+          messageContent.push({
+            type: 'image_url',
+            image_url: {
+              url: normalizeImageDataUrl(img.data, img.mimeType),
+              detail: 'auto',
+            },
+          });
+        }
       }
 
-      const sendOptions: CallModelInput = {
+      // Build request body for chat/completions API
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const requestBody: any = {
         model,
-        imageConfig: {
-          aspect_ratio: aspectRatio,
-        },
-        input: [
+        modalities: ['text', 'image'],
+        messages: [
           {
             role: 'user',
-            type: 'message',
-            content: inputContent,
+            content: messageContent,
           },
         ],
-        truncation: 'auto',
-        modalities: ['image', 'text'] as ('image' | 'text')[],
       };
+
+      // Add image_config for aspect ratio (supported by some models like Gemini)
+      if (aspectRatio && aspectRatio !== '1:1') {
+        requestBody.image_config = {
+          aspect_ratio: aspectRatio,
+        };
+      }
 
       orLog.info(`Sending request`, {
         model,
@@ -136,15 +141,55 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         imageCount: imageResult.images.length,
       });
 
-      const result = await openRouter.callModel(sendOptions);
-      const response = await result.getResponse();
+      // Use direct fetch instead of SDK to avoid CPU accumulation from streaming infrastructure
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://inkweld.app',
+          'X-Title': 'Inkweld',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        let parsedError: any = null;
+        try {
+          parsedError = JSON.parse(errorBody);
+        } catch {
+          // Not JSON
+        }
+
+        // Check for moderation in error response
+        const errorMessage = parsedError?.error?.message || errorBody;
+        const rawMetadata = parsedError?.error?.metadata?.raw || '';
+        const providerName = parsedError?.error?.metadata?.provider_name || 'the provider';
+
+        if (
+          errorMessage.includes('Request Moderated') ||
+          errorMessage.includes('Content Moderated') ||
+          rawMetadata.includes('Request Moderated') ||
+          rawMetadata.includes('Moderated')
+        ) {
+          throw new Error(
+            `MODERATION_BLOCKED: Your request was blocked by ${providerName}'s content filter. Try rephrasing the prompt or using a different model.`
+          );
+        }
+
+        throw new Error(`OpenRouter API error (${response.status}): ${errorMessage}`);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = (await response.json()) as any;
 
       orLog.info(`Received response`, {
         status: response.status,
-        outputLength: response.output?.length,
+        choicesLength: data.choices?.length,
       });
 
-      // Extract images from the responses API format
+      // Extract images from the chat completions response format
       const images: Array<{
         b64Json?: string;
         url?: string;
@@ -152,15 +197,16 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         index: number;
       }> = [];
 
-      if (response.output && Array.isArray(response.output)) {
-        for (let i = 0; i < response.output.length; i++) {
-          const item = response.output[i];
-          // Image generation results come as { type: 'image_generation_call', result: 'data:image/png;base64,...' }
-          if (item.type === 'image_generation_call' && item.result) {
-            const dataUrl = item.result as string;
-            if (dataUrl.startsWith('data:image/')) {
+      const message = data.choices?.[0]?.message;
+      if (message?.images && Array.isArray(message.images)) {
+        // Images returned in message.images array
+        for (let i = 0; i < message.images.length; i++) {
+          const img = message.images[i];
+          const imageUrl = img.image_url?.url || img.url;
+          if (imageUrl) {
+            if (imageUrl.startsWith('data:image/')) {
               // Extract base64 from data URL
-              const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+              const base64Match = imageUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
               if (base64Match) {
                 images.push({
                   b64Json: base64Match[1],
@@ -168,10 +214,44 @@ export class OpenRouterImageProvider extends BaseImageProvider {
                 });
               } else {
                 images.push({
-                  url: dataUrl,
+                  url: imageUrl,
                   index: i,
                 });
               }
+            } else {
+              images.push({
+                url: imageUrl,
+                index: i,
+              });
+            }
+          }
+        }
+      }
+
+      // Also check for images in content array (alternative format)
+      if (images.length === 0 && message?.content && Array.isArray(message.content)) {
+        for (let i = 0; i < message.content.length; i++) {
+          const item = message.content[i];
+          if (item.type === 'image_url' && item.image_url?.url) {
+            const imageUrl = item.image_url.url;
+            if (imageUrl.startsWith('data:image/')) {
+              const base64Match = imageUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+              if (base64Match) {
+                images.push({
+                  b64Json: base64Match[1],
+                  index: i,
+                });
+              } else {
+                images.push({
+                  url: imageUrl,
+                  index: i,
+                });
+              }
+            } else {
+              images.push({
+                url: imageUrl,
+                index: i,
+              });
             }
           }
         }
@@ -179,11 +259,19 @@ export class OpenRouterImageProvider extends BaseImageProvider {
 
       if (images.length === 0) {
         // Check for text response (might be a refusal/explanation)
-        const textContent = response.outputText?.trim();
+        let textContent = '';
+        if (typeof message?.content === 'string') {
+          textContent = message.content.trim();
+        } else if (Array.isArray(message?.content)) {
+          const textParts = message.content
+            .filter((c: any) => c.type === 'text')
+            .map((c: any) => c.text);
+          textContent = textParts.join('\n').trim();
+        }
 
         orLog.error('No images in response', undefined, {
           textContent: textContent?.substring(0, 500),
-          rawOutput: JSON.stringify(response.output).substring(0, 2000),
+          rawMessage: JSON.stringify(message).substring(0, 2000),
         });
 
         if (textContent) {
@@ -225,29 +313,9 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       const err = error as any;
       const errorMessage = err.message || 'Unknown error';
 
-      // SDK throws ChatError with body as JSON string - parse it
-      let parsedBody: any = null;
-      if (err.body && typeof err.body === 'string') {
-        try {
-          parsedBody = JSON.parse(err.body);
-        } catch {
-          // Body isn't JSON, that's fine
-        }
-      }
-
-      // Check for moderation block in various places
-      const rawMetadata = parsedBody?.error?.metadata?.raw || '';
-      const providerName = parsedBody?.error?.metadata?.provider_name || 'the provider';
-
-      if (
-        errorMessage.includes('Request Moderated') ||
-        errorMessage.includes('Content Moderated') ||
-        rawMetadata.includes('Request Moderated') ||
-        rawMetadata.includes('Moderated')
-      ) {
-        throw new Error(
-          `MODERATION_BLOCKED: Your request was blocked by ${providerName}'s content filter. Try rephrasing the prompt or using a different model.`
-        );
+      // Re-throw moderation errors as-is
+      if (errorMessage.startsWith('MODERATION_BLOCKED:')) {
+        throw error;
       }
 
       if (err.name === 'AbortError') {
