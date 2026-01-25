@@ -98,7 +98,7 @@
               </div>
             }
 
-            <!-- Right section: Search icon (mobile) + Create button + User menu -->
+            <!-- Right section: Search icon (mobile) + Sync All + Create button + User menu -->
             <div class="right-section">
               @if (isAuthenticated() && isMobile) {
                 <button
@@ -108,6 +108,40 @@
                   class="search-icon-btn">
                   <mat-icon>search</mat-icon>
                 </button>
+              }
+
+              <!-- Sync All button (server mode only) -->
+              @if (isAuthenticated() && isServerMode()) {
+                @if (syncQueueService.isSyncing()) {
+                  <button
+                    mat-button
+                    (click)="cancelSync()"
+                    class="sync-btn syncing"
+                    [matTooltip]="
+                      'Cancel sync (' +
+                      syncQueueService.overallProgress() +
+                      '% complete)'
+                    "
+                    data-testid="cancel-sync-btn">
+                    <mat-icon class="spin">sync</mat-icon>
+                    <span class="sync-progress"
+                      >{{ syncQueueService.overallProgress() }}%</span
+                    >
+                  </button>
+                } @else {
+                  <button
+                    mat-button
+                    (click)="syncAllProjects()"
+                    [disabled]="!canSyncAll()"
+                    [matTooltip]="syncAllTooltip()"
+                    class="sync-btn"
+                    data-testid="sync-all-btn">
+                    <mat-icon>sync</mat-icon>
+                    @if (!isMobile) {
+                      <span>Sync All</span>
+                    }
+                  </button>
+                }
               }
 
               @if (isAuthenticated()) {
@@ -313,6 +347,9 @@
                     [attr.aria-label]="'Open project ' + item.project.title">
                     <app-project-card
                       [project]="item.project"
+                      [projectKey]="
+                        item.project.username + '/' + item.project.slug
+                      "
                       [isShared]="item.isShared"
                       [sharedByUsername]="item.sharedByUsername">
                     </app-project-card>

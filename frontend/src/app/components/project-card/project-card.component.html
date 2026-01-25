@@ -5,4 +5,28 @@
       <mat-icon>group</mat-icon>
     </div>
   }
+
+  <!-- Sync overlay: shows when project is in sync queue -->
+  @if (syncStatus()) {
+    <div
+      class="sync-overlay"
+      [class.syncing]="isSyncing()"
+      [class.queued]="isQueued()"
+      [class.synced]="isSynced()"
+      [class.failed]="hasFailed()"
+      data-testid="sync-overlay">
+      <div class="sync-content">
+        @if (isSyncing()) {
+          <mat-spinner diameter="32" strokeWidth="3"></mat-spinner>
+        } @else if (isQueued()) {
+          <mat-icon class="sync-icon queued-icon">schedule</mat-icon>
+        } @else if (isSynced()) {
+          <mat-icon class="sync-icon success-icon">check_circle</mat-icon>
+        } @else if (hasFailed()) {
+          <mat-icon class="sync-icon error-icon">error</mat-icon>
+        }
+        <span class="sync-label">{{ syncStageLabel() }}</span>
+      </div>
+    </div>
+  }
 </mat-card>
