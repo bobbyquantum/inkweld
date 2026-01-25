@@ -289,6 +289,48 @@ describe('MediaSyncService', () => {
       expect(localStorageMock.saveMedia).toHaveBeenCalledTimes(2);
     });
 
+    it('should increment mediaSyncVersion when downloads complete', async () => {
+      const blob = new Blob(['test'], { type: 'image/jpeg' });
+      httpMock.get.mockReturnValue(of(blob));
+
+      const initialVersion = service.mediaSyncVersion();
+
+      // Setup initial state with a server-only item
+      const state = service.getSyncState(TEST_PROJECT_KEY);
+      state.update(s => ({
+        ...s,
+        needsDownload: 1,
+        items: [
+          {
+            mediaId: 'cover',
+            filename: 'cover.jpg',
+            size: 1000,
+            status: 'server-only',
+          },
+        ],
+      }));
+
+      await service.downloadAllFromServer(TEST_PROJECT_KEY);
+
+      expect(service.mediaSyncVersion()).toBe(initialVersion + 1);
+    });
+
+    it('should not increment mediaSyncVersion when nothing downloaded', async () => {
+      const initialVersion = service.mediaSyncVersion();
+
+      // Setup initial state with no items to download
+      const state = service.getSyncState(TEST_PROJECT_KEY);
+      state.update(s => ({
+        ...s,
+        needsDownload: 0,
+        items: [],
+      }));
+
+      await service.downloadAllFromServer(TEST_PROJECT_KEY);
+
+      expect(service.mediaSyncVersion()).toBe(initialVersion);
+    });
+
     it('should complete immediately when nothing to download', async () => {
       const state = service.getSyncState(TEST_PROJECT_KEY);
       state.update(s => ({

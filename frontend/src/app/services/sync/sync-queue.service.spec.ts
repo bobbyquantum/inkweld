@@ -1,16 +1,20 @@
 import { TestBed } from '@angular/core/testing';
-import { MediaService, Project, ProjectsService } from '@inkweld/index';
+import { Project, ProjectsService } from '@inkweld/index';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { MediaSyncService, MediaSyncState } from '../local/media-sync.service';
 import { SyncQueueService, SyncStage } from './sync-queue.service';
 
 describe('SyncQueueService', () => {
   let service: SyncQueueService;
   let mockProjectsApi: { getProject: Mock };
-  let mockMediaApi: { listProjectMedia: Mock };
+  let mockMediaSyncService: {
+    checkSyncStatus: Mock;
+    downloadAllFromServer: Mock;
+  };
   let mockSetupService: { getMode: Mock };
   let mockLogger: { info: Mock; warn: Mock; error: Mock; debug: Mock };
 
@@ -25,13 +29,23 @@ describe('SyncQueueService', () => {
     updatedDate: new Date().toISOString(),
   });
 
+  const createMockMediaSyncState = (needsDownload = 0): MediaSyncState => ({
+    isSyncing: false,
+    lastChecked: new Date().toISOString(),
+    needsDownload,
+    needsUpload: 0,
+    items: [],
+    downloadProgress: 100,
+  });
+
   beforeEach(() => {
     mockProjectsApi = {
       getProject: vi.fn().mockReturnValue(of({ id: '1', slug: 'test' })),
     };
 
-    mockMediaApi = {
-      listProjectMedia: vi.fn().mockReturnValue(of([])),
+    mockMediaSyncService = {
+      checkSyncStatus: vi.fn().mockResolvedValue(createMockMediaSyncState()),
+      downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
     };
 
     mockSetupService = {
@@ -49,7 +63,7 @@ describe('SyncQueueService', () => {
       providers: [
         SyncQueueService,
         { provide: ProjectsService, useValue: mockProjectsApi },
-        { provide: MediaService, useValue: mockMediaApi },
+        { provide: MediaSyncService, useValue: mockMediaSyncService },
         { provide: SetupService, useValue: mockSetupService },
         { provide: LoggerService, useValue: mockLogger },
       ],
@@ -178,6 +192,58 @@ describe('SyncQueueService', () => {
         'SyncQueueService',
         'Sync already in progress'
       );
+    });
+
+    it('should download missing media during sync', async () => {
+      // Mock that media needs downloading
+      mockMediaSyncService.checkSyncStatus.mockResolvedValue(
+        createMockMediaSyncState(3) // 3 items need download
+      );
+
+      const projects = [createMockProject('1', 'project-1')];
+
+      await service.syncAllProjects(projects);
+
+      // Should have checked sync status
+      expect(mockMediaSyncService.checkSyncStatus).toHaveBeenCalledWith(
+        'testuser/project-1'
+      );
+      // Should have downloaded missing media
+      expect(mockMediaSyncService.downloadAllFromServer).toHaveBeenCalledWith(
+        'testuser/project-1'
+      );
+    });
+
+    it('should skip media download when all media is synced', async () => {
+      // Mock that no media needs downloading
+      mockMediaSyncService.checkSyncStatus.mockResolvedValue(
+        createMockMediaSyncState(0) // No items need download
+      );
+
+      const projects = [createMockProject('1', 'project-1')];
+
+      await service.syncAllProjects(projects);
+
+      // Should have checked sync status
+      expect(mockMediaSyncService.checkSyncStatus).toHaveBeenCalledWith(
+        'testuser/project-1'
+      );
+      // Should NOT have downloaded since nothing needed
+      expect(mockMediaSyncService.downloadAllFromServer).not.toHaveBeenCalled();
+    });
+
+    it('should continue sync even if media sync fails', async () => {
+      mockMediaSyncService.checkSyncStatus.mockRejectedValue(
+        new Error('Media endpoint not available')
+      );
+
+      const projects = [createMockProject('1', 'project-1')];
+
+      await service.syncAllProjects(projects);
+
+      // Sync should complete successfully (media error is non-fatal)
+      expect(service.queueState().completedProjects).toBe(1);
+      expect(service.queueState().failedProjects).toBe(0);
     });
   });
 
