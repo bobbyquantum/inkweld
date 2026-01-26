@@ -99,20 +99,18 @@ test.describe('Tags Feature Screenshots', () => {
 
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
     });
 
     await page.click('button:has-text("Create Project")');
 
     // Step 1: Template selection - click Next to proceed
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.waitFor({ state: 'visible' });
     await nextButton.click();
 
     // Step 2: Fill in project details
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     await page.fill('input[data-testid="project-title-input"]', projectTitle);
@@ -120,15 +118,12 @@ test.describe('Tags Feature Screenshots', () => {
 
     await page.click('button[data-testid="create-project-button"]');
 
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
-      timeout: 5000,
-    });
+    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {});
 
     // Navigate to Settings tab first
     await page.goto(`/demouser/${projectSlug}/settings`);
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
-      timeout: 10000,
     });
 
     // Click on the "Tags" inner tab
@@ -137,7 +132,6 @@ test.describe('Tags Feature Screenshots', () => {
     // Wait for tags container
     await page.waitForSelector('.tags-tab', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(500);
   }
@@ -157,7 +151,6 @@ test.describe('Tags Feature Screenshots', () => {
     // Wait for dialog
     await page.waitForSelector('mat-dialog-container', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(300);
 
@@ -254,7 +247,6 @@ test.describe('Tags Feature Screenshots', () => {
 
       await page.waitForSelector('mat-dialog-container', {
         state: 'visible',
-        timeout: 3000,
       });
       await page.waitForTimeout(300);
 
@@ -352,7 +344,6 @@ test.describe('Tags Feature Screenshots', () => {
 
       await page.waitForSelector('mat-dialog-container', {
         state: 'visible',
-        timeout: 3000,
       });
       await page.waitForTimeout(300);
 

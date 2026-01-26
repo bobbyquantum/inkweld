@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { eq } from 'drizzle-orm';
+import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { getDatabase } from '../src/db/index';
+import { users, projects } from '../src/db/schema/index';
 
 describe('Media Routes', () => {
   let baseUrl: string;
@@ -13,13 +17,26 @@ describe('Media Routes', () => {
     baseUrl = server.baseUrl;
     client = new TestClient(baseUrl);
 
-    // Register and login
-    await client.request('/api/v1/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, email: 'media@example.com' }),
+    const db = getDatabase();
+
+    // Clean up any existing test data
+    await db.delete(projects).where(eq(projects.slug, slug));
+    await db.delete(users).where(eq(users.username, username));
+
+    // Create approved test user directly in database
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.insert(users).values({
+      id: crypto.randomUUID(),
+      username,
+      email: 'media@example.com',
+      password: hashedPassword,
+      approved: true,
+      enabled: true,
     });
-    await client.login(username, password);
+
+    // Login to get session
+    const loggedIn = await client.login(username, password);
+    expect(loggedIn).toBe(true);
 
     // Create a project
     await client.request('/api/v1/projects', {

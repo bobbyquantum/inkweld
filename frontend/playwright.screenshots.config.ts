@@ -13,10 +13,17 @@ export default defineConfig({
   retries: 0, // No retries for screenshot generation
   reporter: [['list'], ['html', { open: 'never' }]],
 
+  /* Expect timeout for assertions */
+  expect: {
+    timeout: 10000,
+  },
+
   use: {
     baseURL: 'http://localhost:4200',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    actionTimeout: 10000,
+    navigationTimeout: 15000,
   },
 
   projects: [
