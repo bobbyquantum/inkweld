@@ -13,7 +13,6 @@
         "@hono/zod-openapi": "^1.2.0",
         "@hono/zod-validator": "^0.7.6",
         "@modelcontextprotocol/sdk": "^1.25.1",
-        "@openrouter/sdk": "^0.4.0",
         "bcryptjs": "^3.0.3",
         "diff-match-patch": "^1.0.5",
         "dotenv": "^17.2.3",
@@ -259,8 +258,6 @@
     "@nuxtjs/opencollective": ["@nuxtjs/opencollective@0.3.2", "", { "dependencies": { "chalk": "^4.1.0", "consola": "^2.15.0", "node-fetch": "^2.6.1" }, "bin": { "opencollective": "bin/opencollective.js" } }, "sha512-um0xL3fO7Mf4fDxcqx9KryrB7zgRM5JSlvGN5AGkP6JLM5XEKyjeAiPbNxdXVXQ16isuAhYpvP88NgL2BGd6aA=="],
 
     "@openapitools/openapi-generator-cli": ["@openapitools/openapi-generator-cli@2.28.0", "", { "dependencies": { "@nestjs/axios": "4.0.1", "@nestjs/common": "11.1.12", "@nestjs/core": "11.1.12", "@nuxtjs/opencollective": "0.3.2", "axios": "1.13.2", "chalk": "4.1.2", "commander": "8.3.0", "compare-versions": "6.1.1", "concurrently": "9.2.1", "console.table": "0.10.0", "fs-extra": "11.3.3", "glob": "13.0.0", "inquirer": "8.2.7", "proxy-agent": "6.5.0", "reflect-metadata": "0.2.2", "rxjs": "7.8.2", "tslib": "2.8.1" }, "bin": { "openapi-generator-cli": "main.js" } }, "sha512-eWLMHYGxaRSO8NCIovYeRiT1JFWjVzcLdxPpaCGUiIWOFUW4gnPHOppPp4x0adFRji6dTezg9L4Cm4tHSaftgQ=="],
-
-    "@openrouter/sdk": ["@openrouter/sdk@0.4.0", "", { "dependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-FKT6fT3LzIJA2UEXj9WVnNT74i5aeyz25YvjxfGMxu/lIuInpzkYkd7c7rZGQfMxXzq5d9syglrA4AVv08q0eQ=="],
 
     "@pkgr/core": ["@pkgr/core@0.2.9", "", {}, "sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA=="],
 
