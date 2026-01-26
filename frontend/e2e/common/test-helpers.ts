@@ -414,13 +414,12 @@ export async function createProjectWithTwoSteps(
 
   // Click Next to proceed to step 2
   const nextButton = page.getByRole('button', { name: /next/i });
-  await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+  await nextButton.waitFor({ state: 'visible' });
   await nextButton.click();
 
   // Step 2: Fill in project details
   await page.waitForSelector('input[data-testid="project-title-input"]', {
     state: 'visible',
-    timeout: 5000,
   });
 
   await page.fill('input[data-testid="project-title-input"]', projectTitle);

@@ -93,7 +93,7 @@ test.describe('Quick Open', () => {
 
     // The dialog proceeds to document name entry
     const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible', timeout: 10000 });
+    await dialogInput.waitFor({ state: 'visible' });
     await dialogInput.fill('Searchable Document');
     await page.getByTestId('create-element-button').click();
 
@@ -131,7 +131,7 @@ test.describe('Quick Open', () => {
 
       // The dialog proceeds to document name entry
       const dialogInput = page.getByLabel('Document Name');
-      await dialogInput.waitFor({ state: 'visible', timeout: 10000 });
+      await dialogInput.waitFor({ state: 'visible' });
       await dialogInput.fill(name);
       await page.getByTestId('create-element-button').click();
       await page.waitForTimeout(300);
@@ -176,7 +176,7 @@ test.describe('Quick Open', () => {
 
     // The dialog proceeds to document name entry
     const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible', timeout: 10000 });
+    await dialogInput.waitFor({ state: 'visible' });
     await dialogInput.fill('Quick Open Target');
     await page.getByTestId('create-element-button').click();
     await page.waitForTimeout(500);
@@ -221,7 +221,7 @@ test.describe('Quick Open', () => {
 
     // The dialog proceeds to document name entry
     const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible', timeout: 10000 });
+    await dialogInput.waitFor({ state: 'visible' });
     await dialogInput.fill('Click Target Doc');
     await page.getByTestId('create-element-button').click();
     await page.waitForTimeout(500);

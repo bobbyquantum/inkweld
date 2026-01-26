@@ -41,7 +41,7 @@ async function navigateToAdminAiViaMenu(
     // Use specific data-testid to avoid matching ai-providers link
     const aiLink = page.locator('[data-testid="admin-nav-ai"]');
     try {
-      await aiLink.waitFor({ state: 'visible', timeout: 5000 });
+      await aiLink.waitFor({ state: 'visible' });
       await aiLink.click();
       await page.waitForLoadState('networkidle');
     } catch {
@@ -58,18 +58,16 @@ test.describe('Admin AI Settings Screenshots', () => {
     await navigateToAdminAiViaMenu(adminPage);
 
     // Wait for the page to load - either settings card or loading
-    await adminPage.waitForSelector('.settings-card, .loading-container', {
-      timeout: 10000,
-    });
+    await adminPage.waitForSelector('.settings-card, .loading-container', {});
 
     // Wait for loading to complete
     const loadingContainer = adminPage.locator('.loading-container');
     if (await loadingContainer.isVisible()) {
-      await loadingContainer.waitFor({ state: 'hidden', timeout: 10000 });
+      await loadingContainer.waitFor({ state: 'hidden' });
     }
 
     // Ensure settings cards are visible
-    await adminPage.waitForSelector('.settings-card', { timeout: 5000 });
+    await adminPage.waitForSelector('.settings-card');
   });
 
   test('AI settings page overview - light mode', async ({ adminPage }) => {
@@ -114,9 +112,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     });
 
     // Wait for settings cards to appear
-    await adminPage.waitForSelector('.settings-card', {
-      timeout: 10000,
-    });
+    await adminPage.waitForSelector('.settings-card', {});
 
     // Get all provider cards
     const providerCards = adminPage.locator('.provider-card');
@@ -148,7 +144,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     const aiProvidersLink = adminPage.locator(
       '[data-testid="admin-nav-ai-providers"]'
     );
-    if (await aiProvidersLink.isVisible({ timeout: 5000 })) {
+    if (await aiProvidersLink.isVisible()) {
       await aiProvidersLink.click();
       await adminPage.waitForLoadState('networkidle');
     } else {
@@ -164,9 +160,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     });
 
     // Wait for provider cards to load
-    await adminPage.waitForSelector('.provider-card', {
-      timeout: 10000,
-    });
+    await adminPage.waitForSelector('.provider-card', {});
 
     // Find the OpenAI card
     const openaiCard = adminPage.locator('.provider-card').first();
@@ -182,7 +176,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     const aiProvidersLink = adminPage.locator(
       '[data-testid="admin-nav-ai-providers"]'
     );
-    if (await aiProvidersLink.isVisible({ timeout: 5000 })) {
+    if (await aiProvidersLink.isVisible()) {
       await aiProvidersLink.click();
       await adminPage.waitForLoadState('networkidle');
     } else {
@@ -198,9 +192,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     });
 
     // Wait for provider cards to load
-    await adminPage.waitForSelector('.provider-card', {
-      timeout: 10000,
-    });
+    await adminPage.waitForSelector('.provider-card', {});
 
     // Find the OpenRouter card (second provider card)
     const providerCards = adminPage.locator('.provider-card');
@@ -241,14 +233,12 @@ test.describe('Image Model Profiles Screenshots', () => {
     await navigateToAdminAiViaMenu(adminPage);
 
     // Wait for the page to load
-    await adminPage.waitForSelector('.settings-card, .loading-container', {
-      timeout: 10000,
-    });
+    await adminPage.waitForSelector('.settings-card, .loading-container', {});
 
     // Wait for loading to complete
     const loadingContainer = adminPage.locator('.loading-container');
     if (await loadingContainer.isVisible()) {
-      await loadingContainer.waitFor({ state: 'hidden', timeout: 10000 });
+      await loadingContainer.waitFor({ state: 'hidden' });
     }
   });
 
@@ -263,15 +253,13 @@ test.describe('Image Model Profiles Screenshots', () => {
 
     // Wait for profiles section to be visible
     const profilesSection = adminPage.locator('.profiles-section-card');
-    if (await profilesSection.isVisible({ timeout: 5000 })) {
+    if (await profilesSection.isVisible()) {
       // Scroll to ensure the profiles section is in view
       await profilesSection.scrollIntoViewIfNeeded();
       await adminPage.waitForTimeout(300);
 
       // Wait for profiles grid to appear
-      await adminPage.waitForSelector('.profiles-grid, .empty-state', {
-        timeout: 5000,
-      });
+      await adminPage.waitForSelector('.profiles-grid, .empty-state', {});
 
       // Take screenshot of the profiles section
       await profilesSection.screenshot({
@@ -291,15 +279,13 @@ test.describe('Image Model Profiles Screenshots', () => {
 
     // Wait for profiles section to be visible
     const profilesSection = adminPage.locator('.profiles-section-card');
-    if (await profilesSection.isVisible({ timeout: 5000 })) {
+    if (await profilesSection.isVisible()) {
       // Scroll to ensure the profiles section is in view
       await profilesSection.scrollIntoViewIfNeeded();
       await adminPage.waitForTimeout(300);
 
       // Wait for profiles grid to appear
-      await adminPage.waitForSelector('.profiles-grid, .empty-state', {
-        timeout: 5000,
-      });
+      await adminPage.waitForSelector('.profiles-grid, .empty-state', {});
 
       // Take screenshot of the profiles section
       await profilesSection.screenshot({
@@ -319,13 +305,11 @@ test.describe('Image Model Profiles Screenshots', () => {
 
     // Wait for profiles section and find the create button
     const createButton = adminPage.locator('button:has-text("Create Profile")');
-    if (await createButton.isVisible({ timeout: 5000 })) {
+    if (await createButton.isVisible()) {
       await createButton.click();
 
       // Wait for dialog to appear
-      await adminPage.waitForSelector('mat-dialog-container', {
-        timeout: 5000,
-      });
+      await adminPage.waitForSelector('mat-dialog-container', {});
 
       // Wait for dialog to fully render
       await adminPage.waitForTimeout(500);
@@ -361,13 +345,11 @@ test.describe('Image Model Profiles Screenshots', () => {
 
     // Wait for profiles section and find the create button
     const createButton = adminPage.locator('button:has-text("Create Profile")');
-    if (await createButton.isVisible({ timeout: 5000 })) {
+    if (await createButton.isVisible()) {
       await createButton.click();
 
       // Wait for dialog to appear
-      await adminPage.waitForSelector('mat-dialog-container', {
-        timeout: 5000,
-      });
+      await adminPage.waitForSelector('mat-dialog-container', {});
 
       // Wait for dialog to fully render
       await adminPage.waitForTimeout(500);
@@ -411,9 +393,7 @@ test.describe('Image Generation Dialog Screenshots', () => {
       await generateButton.click();
 
       // Wait for dialog to appear
-      await authenticatedPage.waitForSelector('mat-dialog-container', {
-        timeout: 5000,
-      });
+      await authenticatedPage.waitForSelector('mat-dialog-container', {});
 
       // Wait a moment for the dialog to fully render
       await authenticatedPage.waitForTimeout(500);
@@ -450,9 +430,7 @@ test.describe('Image Generation Dialog Screenshots', () => {
       await generateButton.click();
 
       // Wait for dialog to appear
-      await authenticatedPage.waitForSelector('mat-dialog-container', {
-        timeout: 5000,
-      });
+      await authenticatedPage.waitForSelector('mat-dialog-container', {});
 
       // Wait a moment for the dialog to fully render
       await authenticatedPage.waitForTimeout(500);

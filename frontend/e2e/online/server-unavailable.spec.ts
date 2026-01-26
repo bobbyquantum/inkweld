@@ -28,7 +28,7 @@ test.describe('Server Unavailable - Local First Behavior', () => {
 
       // Step 1: Template selection (default 'empty' is already selected)
       const nextButton = page.getByRole('button', { name: /next/i });
-      await nextButton.waitFor({ timeout: 5000 });
+      await nextButton.waitFor();
       await nextButton.click();
 
       // Step 2: Fill in project details
@@ -69,7 +69,7 @@ test.describe('Server Unavailable - Local First Behavior', () => {
 
       // Skip template selection
       const nextButton = page.getByRole('button', { name: /next/i });
-      await nextButton.waitFor({ timeout: 5000 });
+      await nextButton.waitFor();
       await nextButton.click();
 
       // Fill in project details
@@ -100,7 +100,7 @@ test.describe('Server Unavailable - Local First Behavior', () => {
 
       // Skip template selection
       const nextButton = page.getByRole('button', { name: /next/i });
-      await nextButton.waitFor({ timeout: 5000 });
+      await nextButton.waitFor();
       await nextButton.click();
 
       // Create project while server is down
@@ -143,7 +143,7 @@ test.describe('Server Unavailable - Local First Behavior', () => {
 
       // Skip template selection
       const nextButton = page.getByRole('button', { name: /next/i });
-      await nextButton.waitFor({ timeout: 5000 });
+      await nextButton.waitFor();
       await nextButton.click();
 
       // Fill in project details
@@ -171,7 +171,7 @@ test.describe('Server Unavailable - Local First Behavior', () => {
 
       // Skip template selection - longer timeout for slow network
       const nextButton = page.getByRole('button', { name: /next/i });
-      await nextButton.waitFor({ timeout: 15000 });
+      await nextButton.waitFor();
       await nextButton.click();
 
       // Fill in project details

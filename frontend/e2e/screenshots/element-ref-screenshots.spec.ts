@@ -103,7 +103,6 @@ test.describe('Element Reference Screenshots', () => {
     // Wait for the empty state and create a project
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -118,7 +117,6 @@ test.describe('Element Reference Screenshots', () => {
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -139,7 +137,7 @@ test.describe('Element Reference Screenshots', () => {
 
     // Wait for editor to load and click into it
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible' });
     await editor.click();
 
     return editor;
@@ -160,7 +158,6 @@ test.describe('Element Reference Screenshots', () => {
     // Wait for the empty state and create a project
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -175,7 +172,6 @@ test.describe('Element Reference Screenshots', () => {
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -203,7 +199,7 @@ test.describe('Element Reference Screenshots', () => {
 
     // Wait for editor to load and click into it
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible' });
     await editor.click();
 
     return editor;
@@ -219,7 +215,7 @@ test.describe('Element Reference Screenshots', () => {
       'button[aria-label*="theme"], button[matTooltip*="theme"], button:has(mat-icon:text("dark_mode")), button:has(mat-icon:text("light_mode"))'
     );
 
-    if (await themeToggle.isVisible({ timeout: 1000 }).catch(() => false)) {
+    if (await themeToggle.isVisible().catch(() => false)) {
       await themeToggle.click();
       await page.waitForTimeout(300);
     } else {
@@ -256,7 +252,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -287,7 +282,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         // Press Enter to select first result
@@ -349,7 +344,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 2000,
         })
         .catch(() => {});
 
@@ -361,7 +355,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -413,7 +407,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -433,9 +426,7 @@ test.describe('Element Reference Screenshots', () => {
       const characterResult = page
         .locator('[data-testid="element-ref-result-item"]')
         .filter({ hasText: characterName });
-      if (
-        await characterResult.isVisible({ timeout: 1000 }).catch(() => false)
-      ) {
+      if (await characterResult.isVisible().catch(() => false)) {
         await characterResult.click();
       } else {
         await page.keyboard.press('Enter');
@@ -502,7 +493,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -532,7 +522,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -596,7 +586,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 2000,
         })
         .catch(() => {});
 
@@ -608,7 +597,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -662,7 +651,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -682,9 +670,7 @@ test.describe('Element Reference Screenshots', () => {
       const characterResult = page
         .locator('[data-testid="element-ref-result-item"]')
         .filter({ hasText: characterName });
-      if (
-        await characterResult.isVisible({ timeout: 1000 }).catch(() => false)
-      ) {
+      if (await characterResult.isVisible().catch(() => false)) {
         await characterResult.click();
       } else {
         await page.keyboard.press('Enter');
@@ -748,7 +734,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -785,7 +770,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -796,7 +780,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -815,7 +799,7 @@ test.describe('Element Reference Screenshots', () => {
 
       // Wait for the rich Angular tooltip component to appear
       const tooltip = page.locator('.element-ref-tooltip');
-      await expect(tooltip).toBeVisible({ timeout: 2000 });
+      await expect(tooltip).toBeVisible();
       await page.waitForTimeout(200);
 
       // Screenshot with rich tooltip visible
@@ -849,7 +833,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -860,7 +843,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -879,7 +862,7 @@ test.describe('Element Reference Screenshots', () => {
 
       // Wait for the rich Angular tooltip component to appear
       const tooltip = page.locator('.element-ref-tooltip');
-      await expect(tooltip).toBeVisible({ timeout: 2000 });
+      await expect(tooltip).toBeVisible();
       await page.waitForTimeout(200);
 
       // Screenshot with rich tooltip visible
@@ -909,7 +892,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -920,7 +902,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -932,14 +914,14 @@ test.describe('Element Reference Screenshots', () => {
 
       // Find the element reference and right-click
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 2000 });
+      await expect(elementRef).toBeVisible();
       await elementRef.click({ button: 'right' });
 
       // Wait for context menu
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 2000 });
+      await expect(contextMenu).toBeVisible();
       await page.waitForTimeout(200);
 
       // Screenshot with context menu open
@@ -971,7 +953,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -982,7 +963,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -994,14 +975,14 @@ test.describe('Element Reference Screenshots', () => {
 
       // Find the element reference and right-click
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 2000 });
+      await expect(elementRef).toBeVisible();
       await elementRef.click({ button: 'right' });
 
       // Wait for context menu
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 2000 });
+      await expect(contextMenu).toBeVisible();
       await page.waitForTimeout(200);
 
       // Screenshot with context menu open
@@ -1031,7 +1012,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -1042,7 +1022,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -1054,14 +1034,14 @@ test.describe('Element Reference Screenshots', () => {
 
       // Find the element reference and right-click
       const elementRef = page.locator('.element-ref').first();
-      await expect(elementRef).toBeVisible({ timeout: 2000 });
+      await expect(elementRef).toBeVisible();
       await elementRef.click({ button: 'right' });
 
       // Wait for context menu
       const contextMenu = page.locator(
         '[data-testid="element-ref-context-menu"]'
       );
-      await expect(contextMenu).toBeVisible({ timeout: 2000 });
+      await expect(contextMenu).toBeVisible();
 
       // Click edit button
       const editBtn = page.locator('[data-testid="context-menu-edit"]');
@@ -1069,7 +1049,7 @@ test.describe('Element Reference Screenshots', () => {
 
       // Wait for edit input
       const editInput = page.locator('[data-testid="context-menu-edit-input"]');
-      await expect(editInput).toBeVisible({ timeout: 1000 });
+      await expect(editInput).toBeVisible();
       await page.waitForTimeout(200);
 
       // Screenshot with edit mode open
@@ -1105,7 +1085,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -1116,7 +1095,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -1140,15 +1119,12 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="worldbuilding-editor"]', {
           state: 'visible',
-          timeout: 5000,
         })
         .catch(() => {});
 
       // Open the meta panel to see relationships
       const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
-      if (
-        await metaPanelToggle.isVisible({ timeout: 2000 }).catch(() => false)
-      ) {
+      if (await metaPanelToggle.isVisible().catch(() => false)) {
         await metaPanelToggle.click();
         await page.waitForTimeout(400);
       }
@@ -1157,11 +1133,7 @@ test.describe('Element Reference Screenshots', () => {
       const relationshipsSection = page.locator(
         '[data-testid="relationships-section"]'
       );
-      if (
-        await relationshipsSection
-          .isVisible({ timeout: 2000 })
-          .catch(() => false)
-      ) {
+      if (await relationshipsSection.isVisible().catch(() => false)) {
         await relationshipsSection.click();
         await page.waitForTimeout(300);
       }
@@ -1228,7 +1200,6 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-          timeout: 3000,
         })
         .catch(() => {});
 
@@ -1239,7 +1210,7 @@ test.describe('Element Reference Screenshots', () => {
       const resultItem = page
         .locator('[data-testid="element-ref-result-item"]')
         .first();
-      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+      if (await resultItem.isVisible().catch(() => false)) {
         await resultItem.click();
       } else {
         await page.keyboard.press('Enter');
@@ -1263,15 +1234,12 @@ test.describe('Element Reference Screenshots', () => {
       await page
         .waitForSelector('[data-testid="worldbuilding-editor"]', {
           state: 'visible',
-          timeout: 5000,
         })
         .catch(() => {});
 
       // Open the meta panel to see relationships
       const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
-      if (
-        await metaPanelToggle.isVisible({ timeout: 2000 }).catch(() => false)
-      ) {
+      if (await metaPanelToggle.isVisible().catch(() => false)) {
         await metaPanelToggle.click();
         await page.waitForTimeout(400);
       }
@@ -1280,11 +1248,7 @@ test.describe('Element Reference Screenshots', () => {
       const relationshipsSection = page.locator(
         '[data-testid="relationships-section"]'
       );
-      if (
-        await relationshipsSection
-          .isVisible({ timeout: 2000 })
-          .catch(() => false)
-      ) {
+      if (await relationshipsSection.isVisible().catch(() => false)) {
         await relationshipsSection.click();
         await page.waitForTimeout(300);
       }

@@ -41,13 +41,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the covers grid to load (short timeout for mock data)
     await page.waitForSelector('.covers-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Wait for project cards to render
     await page.waitForSelector('[data-testid="project-card"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Brief pause for images and animations to settle
@@ -72,7 +70,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the covers grid to load
     await page.waitForSelector('.covers-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Wait a bit for project cards and images to load
@@ -80,7 +77,7 @@ test.describe('PWA Screenshots', () => {
 
     // No carousel clicking needed - grid shows all projects
     const projectCards = page.locator('[data-testid="project-card"]');
-    await projectCards.first().waitFor({ state: 'visible', timeout: 3000 });
+    await projectCards.first().waitFor({ state: 'visible' });
 
     // Take screenshot
     await page.screenshot({
@@ -101,7 +98,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for covers grid to load
     await page.waitForSelector('.covers-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Wait for project cards to load
@@ -109,7 +105,7 @@ test.describe('PWA Screenshots', () => {
 
     // No carousel clicking needed - grid shows all projects
     const projectCards = page.locator('[data-testid="project-card"]');
-    await projectCards.first().waitFor({ state: 'visible', timeout: 3000 });
+    await projectCards.first().waitFor({ state: 'visible' });
 
     // Take screenshot
     await page.screenshot({
@@ -133,7 +129,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for covers grid to load
     await page.waitForSelector('.covers-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Wait for project cards to load
@@ -141,7 +136,7 @@ test.describe('PWA Screenshots', () => {
 
     // No carousel clicking needed - grid shows all projects
     const projectCards = page.locator('[data-testid="project-card"]');
-    await projectCards.first().waitFor({ state: 'visible', timeout: 3000 });
+    await projectCards.first().waitFor({ state: 'visible' });
 
     // Take screenshot
     await page.screenshot({
@@ -160,7 +155,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -173,12 +167,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the home tab to be visible (project home page)
     await page.waitForSelector('.home-tab-content', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(500);
 
@@ -201,7 +194,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -214,12 +206,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -230,7 +221,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the dialog to appear
     await page.waitForSelector('mat-dialog-container', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Take screenshot of the element type chooser
@@ -255,7 +245,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -268,12 +257,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -284,7 +272,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the dialog to appear
     await page.waitForSelector('mat-dialog-container', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Take screenshot of the element type chooser
@@ -306,7 +293,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -319,12 +305,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -336,7 +321,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for context menu to appear
     await page.waitForSelector('.context-menu', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Take cropped screenshot including the folder and context menu
@@ -382,7 +366,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -395,12 +378,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -412,7 +394,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for context menu to appear
     await page.waitForSelector('.context-menu', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Take cropped screenshot including the folder and context menu
@@ -455,7 +436,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template (includes sample tags)
@@ -468,12 +448,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -484,7 +463,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for settings to load
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Click the Tags sub-tab
@@ -494,7 +472,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for tags tab to be visible
     await page.waitForSelector('[data-testid="new-tag-button"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Screenshot of the tags management tab
@@ -521,7 +498,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template (includes sample tags)
@@ -534,12 +510,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -550,7 +525,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for settings to load
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Click the Tags sub-tab
@@ -560,7 +534,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for tags tab to be visible
     await page.waitForSelector('[data-testid="new-tag-button"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Screenshot of the tags management tab
@@ -584,7 +557,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template (includes sample tags)
@@ -597,12 +569,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -613,7 +584,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for settings to load
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Click the Tags sub-tab
@@ -627,7 +597,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for dialog to appear
     await page.waitForSelector('mat-dialog-container', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Screenshot of the tag edit dialog
@@ -650,7 +619,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template (includes sample tags)
@@ -663,12 +631,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -679,7 +646,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for settings to load
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Click the Tags sub-tab
@@ -693,7 +659,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for dialog to appear
     await page.waitForSelector('mat-dialog-container', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Screenshot of the tag edit dialog
@@ -715,7 +680,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -728,12 +692,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -744,7 +707,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the dialog to appear
     await page.waitForSelector('mat-dialog-container', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Click on Document type to proceed to step 2
@@ -753,7 +715,7 @@ test.describe('PWA Screenshots', () => {
 
     // Wait for the name input to appear
     const nameInput = page.getByTestId('element-name-input');
-    await nameInput.waitFor({ state: 'visible', timeout: 2000 });
+    await nameInput.waitFor({ state: 'visible' });
 
     // Fill in a sample name
     await nameInput.fill('Chapter 1: The Beginning');
@@ -781,7 +743,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -794,12 +755,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -810,7 +770,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the dialog to appear
     await page.waitForSelector('mat-dialog-container', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Click on Document type to proceed to step 2
@@ -819,7 +778,7 @@ test.describe('PWA Screenshots', () => {
 
     // Wait for the name input to appear
     const nameInput = page.getByTestId('element-name-input');
-    await nameInput.waitFor({ state: 'visible', timeout: 2000 });
+    await nameInput.waitFor({ state: 'visible' });
 
     // Fill in a sample name
     await nameInput.fill('Chapter 1: The Beginning');
@@ -847,7 +806,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -860,12 +818,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the home tab to be visible (project home page)
     await page.waitForSelector('.home-tab-content', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(500);
 
@@ -888,7 +845,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -901,12 +857,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -924,7 +879,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the document tab to appear
     await page.waitForSelector('[data-testid="tab-The Moonveil Accord"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Right-click on the document tab to open context menu
@@ -935,7 +889,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for context menu to appear
     await page.waitForSelector('.tab-context-menu', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Capture tab bar and context menu together for context
@@ -984,7 +937,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -997,12 +949,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -1020,7 +971,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the document tab to appear
     await page.waitForSelector('[data-testid="tab-The Moonveil Accord"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Right-click on the document tab to open context menu
@@ -1031,7 +981,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for context menu to appear
     await page.waitForSelector('.tab-context-menu', {
       state: 'visible',
-      timeout: 2000,
     });
 
     // Capture tab bar and context menu together for context
@@ -1075,7 +1024,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (since no projects exist in offline mode initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -1088,12 +1036,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible (not just app-project component)
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(1500);
 
@@ -1111,7 +1058,7 @@ test.describe('PWA Screenshots', () => {
 
     // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible' });
 
     // Wait for content to settle
     await page.waitForTimeout(300);
@@ -1133,7 +1080,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (no projects initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -1146,12 +1092,12 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to project page
-    await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/mobile-story/);
 
     // On mobile, the project tree is in a sidebar - click hamburger menu to open it
     await page.waitForSelector(
       'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
-      { state: 'visible', timeout: 5000 }
+      { state: 'visible' }
     );
     await page.click(
       'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
@@ -1161,7 +1107,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for project tree to appear in sidebar
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -1178,7 +1123,7 @@ test.describe('PWA Screenshots', () => {
 
     // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible' });
 
     await page.waitForTimeout(500);
 
@@ -1209,7 +1154,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (since no projects exist in offline mode initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -1222,12 +1166,11 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/my-novel/);
 
     // Wait for the project tree to be visible (not just app-project component)
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(1500);
 
@@ -1245,7 +1188,7 @@ test.describe('PWA Screenshots', () => {
 
     // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible' });
 
     // Wait for content to settle
     await page.waitForTimeout(300);
@@ -1272,7 +1215,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (no projects initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create project using worldbuilding-demo template for rich content
@@ -1285,12 +1227,12 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for navigation to project page
-    await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/mobile-story/);
 
     // On mobile, the project tree is in a sidebar - click hamburger menu to open it
     await page.waitForSelector(
       'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
-      { state: 'visible', timeout: 5000 }
+      { state: 'visible' }
     );
     await page.click(
       'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
@@ -1300,7 +1242,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for project tree to appear in sidebar
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -1317,7 +1258,7 @@ test.describe('PWA Screenshots', () => {
 
     // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
-    await editor.waitFor({ state: 'visible', timeout: 5000 });
+    await editor.waitFor({ state: 'visible' });
 
     await page.waitForTimeout(500);
 
@@ -1351,7 +1292,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create a project first
@@ -1361,7 +1301,7 @@ test.describe('PWA Screenshots', () => {
       'media-showcase',
       'A project demonstrating media storage'
     );
-    await page.waitForURL(/\/demouser\/media-showcase/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/media-showcase/);
     await page.waitForTimeout(500);
 
     const projectKey = 'demouser/media-showcase';
@@ -1409,7 +1349,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for media grid to load
     await page.waitForSelector('.media-grid', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(500);
 
@@ -1432,12 +1371,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create a project first
     await createProjectWithTwoSteps(page, 'Filtered Media', 'filtered-media');
-    await page.waitForURL(/\/demouser\/filtered-media/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/filtered-media/);
     await page.waitForTimeout(500);
 
     const projectKey = 'demouser/filtered-media';
@@ -1477,7 +1415,6 @@ test.describe('PWA Screenshots', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('.media-grid', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Click the "Inline Images" filter
@@ -1501,12 +1438,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create a project
     await createProjectWithTwoSteps(page, 'Empty Media', 'empty-media');
-    await page.waitForURL(/\/demouser\/empty-media/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/empty-media/);
     await page.waitForTimeout(500);
 
     // Navigate directly to media tab (no media stored)
@@ -1516,7 +1452,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for empty state to appear
     await page.waitForSelector('.empty-card', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(300);
 
@@ -1537,12 +1472,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create a project
     await createProjectWithTwoSteps(page, 'Mobile Media', 'mobile-media');
-    await page.waitForURL(/\/demouser\/mobile-media/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/mobile-media/);
     await page.waitForTimeout(500);
 
     const projectKey = 'demouser/mobile-media';
@@ -1575,7 +1509,6 @@ test.describe('PWA Screenshots', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('.media-grid', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(300);
 
@@ -1599,12 +1532,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Create a project
     await createProjectWithTwoSteps(page, 'Dark Media', 'dark-media');
-    await page.waitForURL(/\/demouser\/dark-media/, { timeout: 3000 });
+    await page.waitForURL(/\/demouser\/dark-media/);
     await page.waitForTimeout(500);
 
     const projectKey = 'demouser/dark-media';
@@ -1644,7 +1576,6 @@ test.describe('PWA Screenshots', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('.media-grid', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(500);
 
@@ -1668,12 +1599,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the page to load
     await page.waitForSelector('.covers-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Take a cropped screenshot of just the header area with the Create button
     const headerSection = page.locator('.header-section');
-    await headerSection.waitFor({ state: 'visible', timeout: 3000 });
+    await headerSection.waitFor({ state: 'visible' });
 
     await headerSection.screenshot({
       path: join(SCREENSHOTS_DIR, 'create-button-nav-light.png'),
@@ -1692,12 +1622,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the page to load
     await page.waitForSelector('.covers-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Take a cropped screenshot of just the header area with the Create button
     const headerSection = page.locator('.header-section');
-    await headerSection.waitFor({ state: 'visible', timeout: 3000 });
+    await headerSection.waitFor({ state: 'visible' });
 
     await headerSection.screenshot({
       path: join(SCREENSHOTS_DIR, 'create-button-nav-dark.png'),
@@ -1714,10 +1643,9 @@ test.describe('PWA Screenshots', () => {
     await page.click('.create-btn');
 
     // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/, { timeout: 5000 });
+    await page.waitForURL(/\/create-project/);
     await page.waitForSelector('.template-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Wait for templates to render
@@ -1743,10 +1671,9 @@ test.describe('PWA Screenshots', () => {
     await page.click('.create-btn');
 
     // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/, { timeout: 5000 });
+    await page.waitForURL(/\/create-project/);
     await page.waitForSelector('.template-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Wait for templates to render
@@ -1769,10 +1696,9 @@ test.describe('PWA Screenshots', () => {
     await page.click('.create-btn');
 
     // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/, { timeout: 5000 });
+    await page.waitForURL(/\/create-project/);
     await page.waitForSelector('.template-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Select a template and click Next
@@ -1782,7 +1708,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for step 2 form to appear
     await page.waitForSelector('[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Fill in the form with sample data
@@ -1809,10 +1734,9 @@ test.describe('PWA Screenshots', () => {
     await page.click('.create-btn');
 
     // Wait for the template selection page to load
-    await page.waitForURL(/\/create-project/, { timeout: 5000 });
+    await page.waitForURL(/\/create-project/);
     await page.waitForSelector('.template-grid', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Select a template and click Next
@@ -1822,7 +1746,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for step 2 form to appear
     await page.waitForSelector('[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Fill in the form with sample data
@@ -1855,17 +1778,14 @@ test.describe('PWA Screenshots', () => {
     // Wait for setup card to be visible
     await page.waitForSelector('[data-testid="setup-card"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Wait for mode selection buttons to appear
     await page.waitForSelector('[data-testid="local-mode-button"]', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForSelector('[data-testid="server-mode-button"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Take full page screenshot
@@ -1890,17 +1810,14 @@ test.describe('PWA Screenshots', () => {
     // Wait for setup card to be visible
     await page.waitForSelector('[data-testid="setup-card"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Wait for mode selection buttons to appear
     await page.waitForSelector('[data-testid="local-mode-button"]', {
       state: 'visible',
-      timeout: 3000,
     });
     await page.waitForSelector('[data-testid="server-mode-button"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Take full page screenshot
@@ -1925,7 +1842,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for setup card to be visible
     await page.waitForSelector('[data-testid="setup-card"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Click the offline mode button
@@ -1934,7 +1850,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for offline setup form to appear
     await page.waitForSelector('[data-testid="local-username-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Fill in sample data for the screenshot
@@ -1963,7 +1878,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for setup card to be visible
     await page.waitForSelector('[data-testid="setup-card"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Click the offline mode button
@@ -1972,7 +1886,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for offline setup form to appear
     await page.waitForSelector('[data-testid="local-username-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // Fill in sample data for the screenshot
@@ -2001,7 +1914,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for setup card to be visible
     await page.waitForSelector('[data-testid="setup-card"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Click the server mode button
@@ -2010,7 +1922,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for server setup form to appear
     await page.waitForSelector('[data-testid="server-url-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // The default URL should already be shown (localhost:8333)
@@ -2042,7 +1953,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for setup card to be visible
     await page.waitForSelector('[data-testid="setup-card"]', {
       state: 'visible',
-      timeout: 5000,
     });
 
     // Click the server mode button
@@ -2051,7 +1961,6 @@ test.describe('PWA Screenshots', () => {
     // Wait for server setup form to appear
     await page.waitForSelector('[data-testid="server-url-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     // The default URL should already be shown (localhost:8333)
