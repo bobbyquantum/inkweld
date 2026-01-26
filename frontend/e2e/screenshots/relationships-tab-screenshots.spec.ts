@@ -99,20 +99,18 @@ test.describe('Relationships Tab Screenshots', () => {
 
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
     });
 
     await page.click('button:has-text("Create Project")');
 
     // Step 1: Template selection - click Next to proceed
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.waitFor({ state: 'visible' });
     await nextButton.click();
 
     // Step 2: Fill in project details
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     await page.fill('input[data-testid="project-title-input"]', projectTitle);
@@ -120,15 +118,12 @@ test.describe('Relationships Tab Screenshots', () => {
 
     await page.click('button[data-testid="create-project-button"]');
 
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
-      timeout: 5000,
-    });
+    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {});
 
     // Navigate to Settings tab first via sidebar button (keeps sidenav visible)
     await page.click('[data-testid="sidebar-settings-button"]');
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
-      timeout: 10000,
     });
 
     // Click on the "Relationship Types" inner tab
@@ -137,7 +132,6 @@ test.describe('Relationships Tab Screenshots', () => {
     // Wait for relationships container
     await page.waitForSelector('.relationships-tab-container', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(500);
 
@@ -162,19 +156,17 @@ test.describe('Relationships Tab Screenshots', () => {
     // Second dialog: Enter the inverse label
     await page
       .locator('app-rename-dialog h2:has-text("Inverse Label")')
-      .waitFor({ state: 'visible', timeout: 5000 });
+      .waitFor({ state: 'visible' });
     await page.locator('app-rename-dialog input').clear();
     await page.locator('app-rename-dialog input').fill('Child');
     await page.locator('app-rename-dialog button:has-text("Rename")').click();
 
     // Wait for dialog to close and type to appear
-    await page
-      .locator('app-rename-dialog')
-      .waitFor({ state: 'hidden', timeout: 5000 });
+    await page.locator('app-rename-dialog').waitFor({ state: 'hidden' });
     await page
       .locator('[data-testid="relationship-type-card"]')
       .first()
-      .waitFor({ state: 'visible', timeout: 5000 });
+      .waitFor({ state: 'visible' });
   }
 
   test.describe('Light Mode Screenshots', () => {
@@ -188,7 +180,6 @@ test.describe('Relationships Tab Screenshots', () => {
       // Wait for types to load
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -216,7 +207,6 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -242,7 +232,6 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('[data-testid="create-type-button"]');
       await page.waitForSelector('app-rename-dialog', {
         state: 'visible',
-        timeout: 3000,
       });
       await page.waitForTimeout(200);
 
@@ -271,7 +260,6 @@ test.describe('Relationships Tab Screenshots', () => {
       // Wait for type cards to load
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -291,7 +279,6 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -325,7 +312,6 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
 
       // Capture cropped view showing sidebar and settings content
@@ -355,7 +341,6 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
 
       const typesSection = page.locator('.types-grid').first();
@@ -381,7 +366,6 @@ test.describe('Relationships Tab Screenshots', () => {
       // Wait for type cards to load
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -405,7 +389,6 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(500);
 
@@ -440,7 +423,6 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.waitForSelector('.empty-state', {
         state: 'visible',
-        timeout: 5000,
       });
 
       await page.click('button:has-text("Create Project")');
@@ -448,17 +430,16 @@ test.describe('Relationships Tab Screenshots', () => {
       // Step 1: Template selection - select worldbuilding-empty template
       // which includes relationship types with proper schema constraints
       const wbTemplate = page.getByTestId('template-worldbuilding-empty');
-      await wbTemplate.waitFor({ state: 'visible', timeout: 5000 });
+      await wbTemplate.waitFor({ state: 'visible' });
       await wbTemplate.click();
 
       const nextButton = page.getByRole('button', { name: /next/i });
-      await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+      await nextButton.waitFor({ state: 'visible' });
       await nextButton.click();
 
       // Step 2: Fill in project details
       await page.waitForSelector('input[data-testid="project-title-input"]', {
         state: 'visible',
-        timeout: 3000,
       });
 
       await page.fill('input[data-testid="project-title-input"]', projectTitle);
@@ -466,14 +447,11 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.click('button[data-testid="create-project-button"]');
 
-      await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
-        timeout: 5000,
-      });
+      await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {});
 
       // Wait for project tree to be visible
       await page.waitForSelector('app-project-tree', {
         state: 'visible',
-        timeout: 3000,
       });
       await page.waitForTimeout(500);
 
@@ -728,7 +706,7 @@ test.describe('Relationships Tab Screenshots', () => {
 
       // Wait for dialog to appear
       const dialog = page.locator('mat-dialog-container');
-      await dialog.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+      await dialog.waitFor({ state: 'visible' }).catch(() => {});
 
       if (await dialog.isVisible().catch(() => false)) {
         // Select "Parent" as the relationship type
@@ -861,9 +839,7 @@ test.describe('Relationships Tab Screenshots', () => {
         await page.waitForTimeout(400);
 
         const dialog = page.locator('mat-dialog-container');
-        await dialog
-          .waitFor({ state: 'visible', timeout: 3000 })
-          .catch(() => {});
+        await dialog.waitFor({ state: 'visible' }).catch(() => {});
 
         if (!(await dialog.isVisible().catch(() => false))) {
           return false;
@@ -978,7 +954,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.waitForTimeout(500);
 
       const dialog = page.locator('mat-dialog-container');
-      await dialog.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+      await dialog.waitFor({ state: 'visible' }).catch(() => {});
 
       if (await dialog.isVisible().catch(() => false)) {
         // Select "Parent" type
@@ -1100,9 +1076,7 @@ test.describe('Relationships Tab Screenshots', () => {
         await page.waitForTimeout(400);
 
         const dialog = page.locator('mat-dialog-container');
-        await dialog
-          .waitFor({ state: 'visible', timeout: 3000 })
-          .catch(() => {});
+        await dialog.waitFor({ state: 'visible' }).catch(() => {});
 
         if (!(await dialog.isVisible().catch(() => false))) {
           return false;

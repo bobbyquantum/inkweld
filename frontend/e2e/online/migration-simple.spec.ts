@@ -5,6 +5,9 @@ import { expect, getAppMode, test } from './fixtures';
  * without complex UI interactions
  */
 test.describe('Migration Service', () => {
+  // Run migration tests serially to avoid parallel execution interference
+  test.describe.configure({ mode: 'serial' });
+
   test('should register user and prepare for migration', async ({
     offlinePage,
   }) => {

@@ -21,18 +21,14 @@ async function waitForDialogReady(page: Page): Promise<void> {
   // Wait for dialog content to be present
   await expect(
     page.locator('[data-testid="image-gen-dialog-content"]')
-  ).toBeVisible({ timeout: 15000 });
+  ).toBeVisible();
 
   // Wait for any loading spinners to disappear
-  await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden({
-    timeout: 15000,
-  });
+  await expect(page.locator('mat-dialog-container mat-spinner')).toBeHidden();
 
   // Now the stepper should be visible (or an error/disabled notice)
   // This may take time to load config and profiles from backend
-  await expect(page.locator('.image-generation-stepper')).toBeVisible({
-    timeout: 20000,
-  });
+  await expect(page.locator('.image-generation-stepper')).toBeVisible();
 }
 
 // Fake API keys that look valid but won't work
@@ -193,6 +189,18 @@ async function navigateToMediaTab(page: Page): Promise<void> {
   // Wait for networkidle to ensure system config API call completes,
   // which determines if the generate image button should be visible
   await page.waitForLoadState('networkidle');
+
+  // Wait for the media tab content to be active
+  // Use toPass to handle potential timing issues with tab switching
+  await expect(async () => {
+    // Check that we're on the media tab by looking for media-specific content
+    const mediaContent = page.locator('[data-testid="media-tab-content"]');
+    const generateButton = page.locator(
+      '[data-testid="generate-image-button"]'
+    );
+    // Either the media content container or the generate button should be visible
+    await expect(mediaContent.or(generateButton)).toBeVisible();
+  }).toPass();
 }
 
 test.describe('Image Generation - Admin Profile Management', () => {

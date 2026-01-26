@@ -80,7 +80,6 @@ async function setupProjectWithDocuments(
   // Wait for empty state (local/offline mode)
   await page.waitForSelector('.empty-state', {
     state: 'visible',
-    timeout: 5000,
   });
 
   // Click create project button
@@ -88,13 +87,12 @@ async function setupProjectWithDocuments(
 
   // Step 1: Template selection - click Next to proceed
   const nextButton = page.getByRole('button', { name: /next/i });
-  await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+  await nextButton.waitFor({ state: 'visible' });
   await nextButton.click();
 
   // Step 2: Fill in project details
   await page.waitForSelector('input[data-testid="project-title-input"]', {
     state: 'visible',
-    timeout: 3000,
   });
 
   await page.fill('input[data-testid="project-title-input"]', projectTitle);
@@ -103,13 +101,10 @@ async function setupProjectWithDocuments(
   await page.click('button[data-testid="create-project-button"]');
 
   // Wait for project to load
-  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
-    timeout: 5000,
-  });
+  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {});
 
   await page.waitForSelector('[data-testid="project-tree"]', {
     state: 'visible',
-    timeout: 5000,
   });
 
   // Create some documents to show in Quick Open
@@ -129,7 +124,7 @@ async function setupProjectWithDocuments(
 
     // Fill in name
     const dialogInput = page.getByLabel('Document Name');
-    await dialogInput.waitFor({ state: 'visible', timeout: 5000 });
+    await dialogInput.waitFor({ state: 'visible' });
     await dialogInput.fill(name);
     await page.getByTestId('create-element-button').click();
     await page.waitForTimeout(300);
@@ -169,7 +164,6 @@ test.describe('Quick Open Screenshots', () => {
       // Wait for dialog to appear
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {
         state: 'visible',
-        timeout: 3000,
       });
 
       // Wait for results to populate
@@ -199,7 +193,6 @@ test.describe('Quick Open Screenshots', () => {
       // Wait for dialog
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {
         state: 'visible',
-        timeout: 3000,
       });
 
       // Type search query
@@ -233,7 +226,6 @@ test.describe('Quick Open Screenshots', () => {
       // Wait for dialog
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {
         state: 'visible',
-        timeout: 3000,
       });
       await page.waitForTimeout(300);
 
@@ -264,7 +256,6 @@ test.describe('Quick Open Screenshots', () => {
       // Wait for dialog
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {
         state: 'visible',
-        timeout: 3000,
       });
 
       // Type search

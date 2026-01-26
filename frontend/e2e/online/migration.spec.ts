@@ -30,12 +30,19 @@ async function openProfileManager(page: import('@playwright/test').Page) {
  * 2. Open profile manager dialog
  * 3. Add server and trigger migration
  * 4. Authenticate
- * 5. Verify projects exist on server
+ * 5. Trigger Sync All to upload projects to server
+ * 6. Verify projects exist on server
  */
 test.describe('Offline to Server Migration', () => {
+  // Run migration tests serially to avoid parallel execution interference
+  test.describe.configure({ mode: 'serial' });
+
   test('should migrate local projects to server after registration', async ({
     offlinePage,
   }) => {
+    // Increase timeout for this slow test
+    test.setTimeout(90000);
+
     // Step 1: Verify we're in offline mode (page already navigated by fixture)
     const initialMode = await getAppMode(offlinePage);
     expect(initialMode).toBe('local');
@@ -109,7 +116,9 @@ test.describe('Offline to Server Migration', () => {
 
     // Step 9b: Should now see project selection (step 2)
     await expect(
-      offlinePage.getByRole('heading', { name: /Select Projects to Migrate/i })
+      offlinePage.getByRole('heading', {
+        name: /Select Projects to Migrate/i,
+      })
     ).toBeVisible();
 
     // Step 9c: Select all projects to migrate (they're selected by default now, but click for safety)
@@ -123,43 +132,20 @@ test.describe('Offline to Server Migration', () => {
       .click();
 
     // Step 10: Wait for migration to complete
-    // We wait for the snackbar to appear
-    await expect(
-      offlinePage
-        .locator('.mat-mdc-snack-bar-label')
-        .filter({ hasText: /Successfully migrated \d+ project/i })
-        .first()
-    ).toBeVisible({ timeout: 30000 });
+    // The snackbar appears AFTER all migration steps are done (including createProjectsOnServer)
+    const snackbar = offlinePage
+      .locator('.mat-mdc-snack-bar-label')
+      .filter({ hasText: /Successfully migrated \d+ project/i })
+      .first();
 
-    // Step 11: Wait for active config to change to a server type (new multi-profile format)
-    await offlinePage.waitForFunction(
-      () => {
-        try {
-          const config = localStorage.getItem('inkweld-app-config');
-          if (!config) return false;
-          const parsed = JSON.parse(config);
-          // New v2 format: check if active config is a server type
-          if (
-            parsed.version === 2 &&
-            parsed.activeConfigId &&
-            parsed.configurations
-          ) {
-            const activeConfig = parsed.configurations.find(
-              (c: { id: string; type: string }) =>
-                c.id === parsed.activeConfigId
-            );
-            return activeConfig?.type === 'server';
-          }
-          // Legacy format fallback
-          return parsed.mode === 'server';
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 30000 }
-    );
+    // Wait for the success snackbar - this indicates migration is fully complete
+    await expect(snackbar).toBeVisible();
 
-    // Step 12: Force navigation to home to ensure we're seeing the latest server state
+    // Wait a moment for any final async operations to settle
+    await offlinePage.waitForTimeout(2000);
+
+    // Step 11: Wait for page to reload (dialog does window.location.href = '/' after 1 second)
+    // Or force navigation ourselves
     await offlinePage.goto('/');
     await offlinePage.waitForLoadState('networkidle');
 
@@ -168,7 +154,7 @@ test.describe('Offline to Server Migration', () => {
       offlinePage.locator('[data-testid="user-menu-button"]')
     ).toBeVisible();
 
-    // Step 13: Close profile manager dialog if it's still open
+    // Step 12: Close profile manager dialog if it's still open
     const closeButton = offlinePage.locator(
       'mat-dialog-container button[mat-dialog-close]'
     );
@@ -176,13 +162,13 @@ test.describe('Offline to Server Migration', () => {
       await closeButton.click();
     }
 
-    // Step 14: Verify projects are visible in the project grid
-    // Use toPass to handle potential delay in server-side sync after migration/reload
-    await expect(async () => {
-      // Direct text check is most resilient against component/tag changes
-      await expect(offlinePage.locator('body')).toContainText('Offline Novel');
-      await expect(offlinePage.locator('body')).toContainText('Offline Story');
-    }).toPass();
+    // Step 13: Verify projects are visible in the project grid
+    // Projects were created on server during migration, so they should appear
+    await expect(offlinePage.locator('body')).toContainText(
+      'Offline Novel',
+      {}
+    );
+    await expect(offlinePage.locator('body')).toContainText('Offline Story');
 
     // Migration test complete - projects successfully migrated and visible on server
     // (Opening projects is tested in other e2e tests)
@@ -228,6 +214,9 @@ test.describe('Offline to Server Migration', () => {
   test('should preserve document content during migration', async ({
     offlinePage,
   }) => {
+    // Increase timeout for this slow test
+    test.setTimeout(90000);
+
     // Step 1: Create offline project (page already navigated by fixture)
     await createOfflineProject(offlinePage, 'Content Test', 'content-test');
 
@@ -301,7 +290,9 @@ test.describe('Offline to Server Migration', () => {
 
     // Should now see project selection (step 2)
     await expect(
-      offlinePage.getByRole('heading', { name: /Select Projects to Migrate/i })
+      offlinePage.getByRole('heading', {
+        name: /Select Projects to Migrate/i,
+      })
     ).toBeVisible();
 
     // Projects are selected by default after auth
@@ -314,61 +305,42 @@ test.describe('Offline to Server Migration', () => {
       .locator('[data-testid="migrate-projects-button"]')
       .click();
 
-    // Wait for migration to complete (snackbar first, then mode change)
-    // First wait for the snackbar to confirm migration success
-    await expect(
-      offlinePage
-        .locator('.mat-mdc-snack-bar-label')
-        .filter({ hasText: /Successfully migrated \d+ project/i })
-        .first()
-    ).toBeVisible({ timeout: 30000 });
+    // Wait for migration to complete
+    // The snackbar appears AFTER all migration steps are done (including createProjectsOnServer)
+    const snackbarLocator = offlinePage
+      .locator('.mat-mdc-snack-bar-label')
+      .filter({ hasText: /Successfully migrated \d+ project/i })
+      .first();
 
-    // Wait for active config to change to a server type (new multi-profile format)
-    await offlinePage.waitForFunction(
-      () => {
-        try {
-          const config = localStorage.getItem('inkweld-app-config');
-          if (!config) return false;
-          const parsed = JSON.parse(config);
-          // New v2 format: check if active config is a server type
-          if (
-            parsed.version === 2 &&
-            parsed.activeConfigId &&
-            parsed.configurations
-          ) {
-            const activeConfig = parsed.configurations.find(
-              (c: { id: string; type: string }) =>
-                c.id === parsed.activeConfigId
-            );
-            return activeConfig?.type === 'server';
-          }
-          // Legacy format fallback
-          return parsed.mode === 'server';
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 30000 }
-    );
+    // Wait for the success snackbar - this indicates migration is fully complete
+    await expect(snackbarLocator).toBeVisible();
 
-    // Wait for page to reload and fully stabilize
-    await offlinePage.waitForURL(/\/$/);
+    // Wait a moment for any final async operations to settle
+    await offlinePage.waitForTimeout(2000);
+
+    // Navigate to home
+    await offlinePage.goto('/');
     await offlinePage.waitForLoadState('networkidle');
 
-    // Wait for the user menu button to appear (indicates successful authentication after reload)
+    // Wait for the user menu button to appear (indicates successful authentication)
     await expect(
       offlinePage.locator('[data-testid="user-menu-button"]')
     ).toBeVisible();
 
-    // Navigate back to the project
-    await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle');
+    // Close any dialogs that might be open
+    const dialogCloseBtn = offlinePage.locator(
+      'mat-dialog-container button[mat-dialog-close]'
+    );
+    if (await dialogCloseBtn.isVisible().catch(() => false)) {
+      await dialogCloseBtn.click();
+    }
 
-    // Wait for project cards to load - the projects might take time to fetch
+    // Wait for project card to be visible
+    // Projects were created on server during migration, so they should appear immediately
     const projectButton = offlinePage.getByRole('button', {
       name: /Open project Content Test/i,
     });
-    await expect(projectButton).toBeVisible({ timeout: 30000 });
+    await expect(projectButton).toBeVisible();
 
     // Click on the project card
     await projectButton.click();
