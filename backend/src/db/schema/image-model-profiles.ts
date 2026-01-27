@@ -83,5 +83,11 @@ export type InsertImageModelProfile = typeof imageModelProfiles.$inferInsert;
 /**
  * Provider types supported by the image generation system
  */
-export const IMAGE_PROVIDERS = ['openai', 'openrouter', 'falai', 'stable-diffusion'] as const;
+export const IMAGE_PROVIDERS = [
+  'openai',
+  'openrouter',
+  'falai',
+  'stable-diffusion',
+  'workersai',
+] as const;
 export type ImageProvider = (typeof IMAGE_PROVIDERS)[number];

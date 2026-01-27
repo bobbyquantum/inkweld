@@ -40,6 +40,14 @@ const ProviderStatusSchema = z
       .boolean()
       .optional()
       .openapi({ description: 'Whether a custom endpoint is configured' }),
+    requiresAccountId: z
+      .boolean()
+      .optional()
+      .openapi({ description: 'Whether provider requires an account ID (e.g., Workers AI)' }),
+    hasAccountId: z
+      .boolean()
+      .optional()
+      .openapi({ description: 'Whether an account ID is configured' }),
     imageEnabled: z
       .boolean()
       .optional()
@@ -68,6 +76,12 @@ const SetProviderEndpointRequestSchema = z
   })
   .openapi('SetProviderEndpointRequest');
 
+const SetProviderAccountIdRequestSchema = z
+  .object({
+    accountId: z.string().openapi({ description: 'Account ID (or empty to clear)' }),
+  })
+  .openapi('SetProviderAccountIdRequest');
+
 const SuccessResponseSchema = z
   .object({
     success: z.boolean().openapi({ description: 'Whether the operation succeeded' }),
@@ -92,7 +106,9 @@ interface ProviderDef {
   supportsText: boolean;
   apiKeyConfigKey: string;
   endpointConfigKey?: string;
+  accountIdConfigKey?: string; // Config key for account ID (e.g., Workers AI)
   imageEnabledConfigKey?: string; // Config key for image generation enabled state
+  textEnabledConfigKey?: string; // Config key for text generation enabled state
 }
 
 const PROVIDER_DEFINITIONS: ProviderDef[] = [
@@ -142,6 +158,17 @@ const PROVIDER_DEFINITIONS: ProviderDef[] = [
     apiKeyConfigKey: 'AI_FALAI_API_KEY',
     imageEnabledConfigKey: 'AI_IMAGE_FALAI_ENABLED',
   },
+  {
+    id: 'workersai',
+    name: 'Cloudflare Workers AI',
+    description: 'Cloudflare AI models (Llama, Mistral, FLUX). Free tier: 10K neurons/day.',
+    supportsImages: true,
+    supportsText: true,
+    apiKeyConfigKey: 'AI_WORKERSAI_API_TOKEN',
+    accountIdConfigKey: 'AI_WORKERSAI_ACCOUNT_ID',
+    imageEnabledConfigKey: 'AI_IMAGE_WORKERSAI_ENABLED',
+    textEnabledConfigKey: 'AI_TEXT_WORKERSAI_ENABLED',
+  },
 ];
 
 // ============================================================================
@@ -188,6 +215,16 @@ aiProvidersRoutes.openapi(getStatusRoute, async (c) => {
         hasEndpoint = !!endpointConfig.value;
       }
 
+      // Check account ID for providers that require it (e.g., Workers AI)
+      let hasAccountId: boolean | undefined;
+      if (def.accountIdConfigKey) {
+        const accountIdConfig = await configService.get(
+          db,
+          def.accountIdConfigKey as Parameters<typeof configService.get>[1]
+        );
+        hasAccountId = !!accountIdConfig.value;
+      }
+
       // Get image enabled state if this provider supports images
       let imageEnabled: boolean | undefined;
       let imageEnabledExplicit: boolean | undefined;
@@ -214,6 +251,8 @@ aiProvidersRoutes.openapi(getStatusRoute, async (c) => {
         supportsText: def.supportsText,
         requiresEndpoint: !!def.endpointConfigKey,
         hasEndpoint,
+        requiresAccountId: !!def.accountIdConfigKey,
+        hasAccountId,
         imageEnabled,
         imageEnabledExplicit,
       };
@@ -390,6 +429,68 @@ aiProvidersRoutes.openapi(setEndpointRoute, async (c) => {
     db,
     provider.endpointConfigKey as Parameters<typeof configService.set>[1],
     endpoint
+  );
+
+  return c.json({ success: true }, 200);
+});
+
+// Set provider account ID (admin only, for providers that require it like Workers AI)
+const setAccountIdRoute = createRoute({
+  method: 'put',
+  path: '/:providerId/account-id',
+  tags: ['AI Providers'],
+  summary: 'Set provider account ID',
+  description: 'Set or update the account ID for a provider (e.g., Cloudflare Workers AI)',
+  operationId: 'setAiProviderAccountId',
+  request: {
+    params: z.object({
+      providerId: z.string().openapi({ description: 'Provider ID' }),
+    }),
+    body: {
+      content: {
+        'application/json': { schema: SetProviderAccountIdRequestSchema },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Account ID updated',
+      content: { 'application/json': { schema: SuccessResponseSchema } },
+    },
+    400: {
+      description: 'Invalid provider or provider does not require account ID',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    403: {
+      description: 'Admin access required',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+aiProvidersRoutes.use('/:providerId/account-id', requireAdmin);
+aiProvidersRoutes.openapi(setAccountIdRoute, async (c) => {
+  const db = c.get('db');
+  const { providerId } = c.req.valid('param');
+  const { accountId } = c.req.valid('json');
+
+  const provider = PROVIDER_DEFINITIONS.find((p) => p.id === providerId);
+  if (!provider) {
+    return c.json({ error: `Unknown provider: ${providerId}` }, 400);
+  }
+
+  if (!provider.accountIdConfigKey) {
+    return c.json({ error: `Provider ${providerId} does not require an account ID` }, 400);
+  }
+
+  await configService.set(
+    db,
+    provider.accountIdConfigKey as Parameters<typeof configService.set>[1],
+    accountId
   );
 
   return c.json({ success: true }, 200);
@@ -1065,6 +1166,349 @@ aiProvidersRoutes.openapi(getFalaiModelMetadataRoute, async (c) => {
   } catch (err) {
     providerLog.error(' Error fetching model metadata:', err);
     return c.json({ error: 'Failed to fetch model metadata from Fal.ai' }, 502);
+  }
+});
+
+// ============================================================================
+// Workers AI Model Search
+// ============================================================================
+
+// Cache for Workers AI models (keyed by task type)
+const workersAiModelsCacheByTask: Record<
+  string,
+  {
+    models: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      task?: string;
+      provider: 'workersai';
+    }>;
+    timestamp: number;
+  }
+> = {};
+
+const WorkersAiModelsResponseSchema = z
+  .object({
+    models: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string().optional(),
+        task: z.string().optional(),
+        provider: z.literal('workersai'),
+      })
+    ),
+    cached: z.boolean(),
+    lastUpdated: z.string(),
+  })
+  .openapi('WorkersAiModelsResponse');
+
+// Get Workers AI models
+const getWorkersAiModelsRoute = createRoute({
+  method: 'get',
+  path: '/workersai/models',
+  tags: ['AI Providers'],
+  summary: 'Get Cloudflare Workers AI models',
+  description:
+    'Fetch available models from Cloudflare Workers AI. Can filter by task type. Results are cached for 1 hour.',
+  operationId: 'getWorkersAiModels',
+  parameters: [
+    {
+      name: 'task',
+      in: 'query',
+      required: false,
+      schema: {
+        type: 'string',
+        enum: [
+          'Text Generation',
+          'Text-to-Image',
+          'Image-to-Text',
+          'Text Embeddings',
+          'Automatic Speech Recognition',
+          'Translation',
+          'Summarization',
+          'Text Classification',
+          'Object Detection',
+          'Image Classification',
+        ],
+      },
+      description: 'Filter models by task type',
+    },
+    {
+      name: 'q',
+      in: 'query',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Search query to filter models by name',
+    },
+  ],
+  responses: {
+    200: {
+      description: 'List of available models',
+      content: { 'application/json': { schema: WorkersAiModelsResponseSchema } },
+    },
+    400: {
+      description: 'Workers AI API credentials not configured',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    502: {
+      description: 'Failed to fetch from Workers AI',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+aiProvidersRoutes.openapi(getWorkersAiModelsRoute, async (c) => {
+  const db = c.get('db');
+  const task = c.req.query('task');
+  const searchQuery = c.req.query('q');
+
+  // Cache key based on task (or 'all')
+  const cacheKey = task || 'all';
+
+  // If searching, don't use cache (search is dynamic)
+  const useCache = !searchQuery;
+
+  // Check if we have a valid cache for this task (only for non-search requests)
+  const cachedData = workersAiModelsCacheByTask[cacheKey];
+  if (useCache && cachedData && Date.now() - cachedData.timestamp < CACHE_TTL_MS) {
+    return c.json(
+      {
+        models: cachedData.models,
+        cached: true,
+        lastUpdated: new Date(cachedData.timestamp).toISOString(),
+      },
+      200
+    );
+  }
+
+  // Get Workers AI credentials
+  const apiTokenConfig = await configService.get(db, 'AI_WORKERSAI_API_TOKEN');
+  const accountIdConfig = await configService.get(db, 'AI_WORKERSAI_ACCOUNT_ID');
+
+  if (!apiTokenConfig.value || !accountIdConfig.value) {
+    return c.json({ error: 'Workers AI API token and account ID must be configured' }, 400);
+  }
+
+  try {
+    // Build URL with query parameters
+    const url = new URL(
+      `https://api.cloudflare.com/client/v4/accounts/${accountIdConfig.value}/ai/models/search`
+    );
+    if (task) {
+      url.searchParams.set('task', task);
+    }
+    if (searchQuery) {
+      url.searchParams.set('search', searchQuery);
+    }
+    url.searchParams.set('per_page', '100');
+
+    // Fetch models from Cloudflare
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${apiTokenConfig.value}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      providerLog.error('Failed to fetch Workers AI models', {
+        status: response.status,
+        error: errorText,
+      });
+      return c.json({ error: `Workers AI API error: ${response.status}` }, 502);
+    }
+
+    const data = (await response.json()) as {
+      success: boolean;
+      result: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        task?: { name?: string };
+      }>;
+      errors?: Array<{ message: string }>;
+    };
+
+    if (!data.success) {
+      const errorMsg = data.errors?.[0]?.message || 'Unknown error';
+      providerLog.error('Workers AI API error', { error: errorMsg });
+      return c.json({ error: `Workers AI API error: ${errorMsg}` }, 502);
+    }
+
+    // Transform models
+    const models = data.result
+      .map((m) => ({
+        id: m.name, // Workers AI uses 'name' as the model identifier in run calls
+        name: m.name.split('/').pop() || m.name,
+        description: m.description,
+        task: m.task?.name,
+        provider: 'workersai' as const,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Update cache for this task (only for non-search requests)
+    if (useCache) {
+      workersAiModelsCacheByTask[cacheKey] = {
+        models,
+        timestamp: Date.now(),
+      };
+    }
+
+    return c.json(
+      {
+        models,
+        cached: false,
+        lastUpdated: new Date().toISOString(),
+      },
+      200
+    );
+  } catch (err) {
+    providerLog.error('Error fetching Workers AI models:', err);
+    return c.json({ error: 'Failed to fetch models from Workers AI' }, 502);
+  }
+});
+
+// Get Workers AI image models (shortcut filtered by Text-to-Image task)
+const getWorkersAiImageModelsRoute = createRoute({
+  method: 'get',
+  path: '/workersai/image-models',
+  tags: ['AI Providers'],
+  summary: 'Get Cloudflare Workers AI image generation models',
+  description:
+    'Fetch available image generation models from Cloudflare Workers AI. This is a shortcut for filtering by Text-to-Image task.',
+  operationId: 'getWorkersAiImageModels',
+  responses: {
+    200: {
+      description: 'List of available image models',
+      content: { 'application/json': { schema: ImageModelsResponseSchema } },
+    },
+    400: {
+      description: 'Workers AI API credentials not configured',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    401: {
+      description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    502: {
+      description: 'Failed to fetch from Workers AI',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+aiProvidersRoutes.openapi(getWorkersAiImageModelsRoute, async (c) => {
+  const db = c.get('db');
+
+  // Check if we have a valid cache for image models
+  const cacheKey = 'Text-to-Image';
+  const cachedData = workersAiModelsCacheByTask[cacheKey];
+  if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL_MS) {
+    return c.json(
+      {
+        models: cachedData.models,
+        cached: true,
+        lastUpdated: new Date(cachedData.timestamp).toISOString(),
+      },
+      200
+    );
+  }
+
+  // Get Workers AI credentials
+  const apiTokenConfig = await configService.get(db, 'AI_WORKERSAI_API_TOKEN');
+  const accountIdConfig = await configService.get(db, 'AI_WORKERSAI_ACCOUNT_ID');
+
+  if (!apiTokenConfig.value || !accountIdConfig.value) {
+    return c.json({ error: 'Workers AI API token and account ID must be configured' }, 400);
+  }
+
+  try {
+    // Fetch image generation models specifically
+    const url = new URL(
+      `https://api.cloudflare.com/client/v4/accounts/${accountIdConfig.value}/ai/models/search`
+    );
+    url.searchParams.set('task', 'Text-to-Image');
+    url.searchParams.set('per_page', '100');
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${apiTokenConfig.value}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      providerLog.error('Failed to fetch Workers AI image models', {
+        status: response.status,
+        error: errorText,
+      });
+      // Parse error if possible for better user feedback
+      let errorDetail = `HTTP ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.errors?.[0]?.message) {
+          errorDetail = errorJson.errors[0].message;
+        }
+      } catch {
+        // Use status code if JSON parsing fails
+      }
+      return c.json({ error: `Workers AI API error: ${errorDetail}` }, 502);
+    }
+
+    const data = (await response.json()) as {
+      success: boolean;
+      result: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        task?: { name?: string };
+      }>;
+      errors?: Array<{ message: string }>;
+    };
+
+    if (!data.success) {
+      const errorMsg = data.errors?.[0]?.message || 'Unknown error';
+      providerLog.error('Workers AI API error', { error: errorMsg });
+      return c.json({ error: `Workers AI API error: ${errorMsg}` }, 502);
+    }
+
+    // Transform models
+    const models = data.result
+      .map((m) => ({
+        id: m.name,
+        name: m.name.split('/').pop() || m.name,
+        description: m.description,
+        task: m.task?.name,
+        provider: 'workersai' as const,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Update cache
+    workersAiModelsCacheByTask[cacheKey] = {
+      models,
+      timestamp: Date.now(),
+    };
+
+    return c.json(
+      {
+        models,
+        cached: false,
+        lastUpdated: new Date().toISOString(),
+      },
+      200
+    );
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err);
+    providerLog.error('Error fetching Workers AI image models', { error: errMessage });
+    return c.json({ error: `Failed to fetch image models from Workers AI: ${errMessage}` }, 502);
   }
 });
 

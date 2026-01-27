@@ -185,6 +185,20 @@ export const CONFIG_KEYS = {
     envVar: 'FALAI_API_KEY',
     type: 'string' as const,
   },
+  AI_WORKERSAI_API_TOKEN: {
+    category: 'ai' as ConfigCategory,
+    description: 'Cloudflare Workers AI API token (for REST API access)',
+    encrypted: true,
+    envVar: 'WORKERSAI_API_TOKEN',
+    type: 'string' as const,
+  },
+  AI_WORKERSAI_ACCOUNT_ID: {
+    category: 'ai' as ConfigCategory,
+    description: 'Cloudflare account ID (for REST API access)',
+    encrypted: false,
+    envVar: 'WORKERSAI_ACCOUNT_ID',
+    type: 'string' as const,
+  },
 
   // ============================================================================
   // Image Generation Feature Settings
@@ -236,6 +250,20 @@ export const CONFIG_KEYS = {
     description: 'JSON array of available Fal.ai models (leave empty for defaults)',
     encrypted: false,
     envVar: 'AI_IMAGE_FALAI_MODELS',
+    type: 'string' as const,
+  },
+  AI_IMAGE_WORKERSAI_ENABLED: {
+    category: 'ai' as ConfigCategory,
+    description: 'Enable Cloudflare Workers AI for image generation',
+    encrypted: false,
+    envVar: 'AI_IMAGE_WORKERSAI_ENABLED',
+    type: 'boolean' as const,
+  },
+  AI_IMAGE_WORKERSAI_MODELS: {
+    category: 'ai' as ConfigCategory,
+    description: 'JSON array of available Workers AI models (leave empty for defaults)',
+    encrypted: false,
+    envVar: 'AI_IMAGE_WORKERSAI_MODELS',
     type: 'string' as const,
   },
   AI_IMAGE_CUSTOM_SIZES: {

@@ -34,7 +34,8 @@ export enum UpdateImageModelProfileRequestProvider {
     Openai = 'openai',
     Openrouter = 'openrouter',
     Falai = 'falai',
-    StableDiffusion = 'stable-diffusion'
+    StableDiffusion = 'stable-diffusion',
+    Workersai = 'workersai'
 };
 
 

@@ -1177,6 +1177,69 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
       }
     }
 
+    // Workers AI Configuration (Optional)
+    header('Workers AI Configuration (Optional)');
+
+    info('Cloudflare Workers AI provides AI image generation with no additional billing.');
+    info('Since your backend runs on Cloudflare Workers, you can use Workers AI natively.');
+    console.log();
+
+    const configureWorkersAi = await confirm(
+      rl,
+      'Configure Workers AI for image generation?',
+      false
+    );
+
+    if (configureWorkersAi) {
+      info('To use Workers AI, you need your Cloudflare Account ID.');
+      info('Find it at: https://dash.cloudflare.com → Overview → Account ID (right sidebar)');
+      console.log();
+
+      const accountId = await prompt(rl, 'Your Cloudflare Account ID:');
+
+      if (accountId) {
+        info('For REST API access, you also need a Workers AI API token.');
+        info('Create one at: https://dash.cloudflare.com/profile/api-tokens');
+        info('Required permissions: Workers AI → Read');
+        console.log();
+
+        const apiToken = await prompt(rl, 'Your Workers AI API Token (leave empty to skip):');
+
+        if (apiToken) {
+          // Set secrets for each environment
+          if (setupPreview && previewDbId) {
+            if (setSecret('preview', 'WORKERSAI_ACCOUNT_ID', accountId)) {
+              success('Preview Workers AI Account ID set');
+            }
+            if (setSecret('preview', 'WORKERSAI_API_TOKEN', apiToken)) {
+              success('Preview Workers AI API Token set');
+            }
+          }
+
+          if (setupProd && prodDbId) {
+            if (setSecret('production', 'WORKERSAI_ACCOUNT_ID', accountId)) {
+              success('Production Workers AI Account ID set');
+            }
+            if (setSecret('production', 'WORKERSAI_API_TOKEN', apiToken)) {
+              success('Production Workers AI API Token set');
+            }
+          }
+
+          success('Workers AI configured!');
+          info('Enable it in Admin → AI Image Generation after deployment.');
+        } else {
+          warn('Skipped Workers AI API token. You can add it later via:');
+          info('  bun run wrangler secret put WORKERSAI_API_TOKEN --env <environment>');
+        }
+      } else {
+        warn('Skipped Workers AI configuration.');
+      }
+    } else {
+      info('You can configure Workers AI later in the Admin panel or via secrets:');
+      info('  bun run wrangler secret put WORKERSAI_ACCOUNT_ID --env <environment>');
+      info('  bun run wrangler secret put WORKERSAI_API_TOKEN --env <environment>');
+    }
+
     // Summary
     header('Setup Complete! 🎉');
 

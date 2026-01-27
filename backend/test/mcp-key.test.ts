@@ -425,7 +425,8 @@ describe('MCP Key Service - Database Operations', () => {
         permissions: [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.WRITE_ELEMENTS],
       });
 
-      const permissions = parsePermissions(updated!.permissions);
+      expect(updated).toBeDefined();
+      const permissions = parsePermissions(updated?.permissions ?? '');
       expect(permissions).toContain(MCP_PERMISSIONS.READ_PROJECT);
       expect(permissions).toContain(MCP_PERMISSIONS.WRITE_ELEMENTS);
     });

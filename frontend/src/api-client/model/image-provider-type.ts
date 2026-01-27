@@ -17,6 +17,8 @@ export enum ImageProviderType {
 
     StableDiffusion = 'stable-diffusion',
 
-    Falai = 'falai'
+    Falai = 'falai',
+
+    Workersai = 'workersai'
 }
 

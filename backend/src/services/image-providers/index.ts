@@ -7,3 +7,4 @@ export { FalAiImageProvider } from './falai-provider';
 export { OpenAIImageProvider } from './openai-provider';
 export { OpenRouterImageProvider } from './openrouter-provider';
 export { StableDiffusionProvider } from './stable-diffusion-provider';
+export { WorkersAIImageProvider } from './workersai-provider';

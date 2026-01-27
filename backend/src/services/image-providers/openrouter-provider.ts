@@ -155,7 +155,9 @@ export class OpenRouterImageProvider extends BaseImageProvider {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        let parsedError: any = null;
+        let parsedError: {
+          error?: { message?: string; metadata?: { raw?: string; provider_name?: string } };
+        } | null = null;
         try {
           parsedError = JSON.parse(errorBody);
         } catch {
@@ -181,8 +183,16 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         throw new Error(`OpenRouter API error (${response.status}): ${errorMessage}`);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = (await response.json()) as any;
+      // OpenRouter response structure
+      interface OpenRouterImageResponse {
+        choices?: Array<{
+          message?: {
+            content?: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+            images?: Array<{ url?: string; image_url?: { url: string } }>;
+          };
+        }>;
+      }
+      const data = (await response.json()) as OpenRouterImageResponse;
 
       orLog.info(`Received response`, {
         status: response.status,
@@ -263,9 +273,9 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         if (typeof message?.content === 'string') {
           textContent = message.content.trim();
         } else if (Array.isArray(message?.content)) {
-          const textParts = message.content
-            .filter((c: any) => c.type === 'text')
-            .map((c: any) => c.text);
+          const textParts = (message.content as Array<{ type: string; text?: string }>)
+            .filter((c) => c.type === 'text')
+            .map((c) => c.text ?? '');
           textContent = textParts.join('\n').trim();
         }
 

@@ -6,7 +6,7 @@
 /**
  * Supported text-to-text provider types
  */
-export type TextProviderType = 'openai' | 'openrouter' | 'anthropic';
+export type TextProviderType = 'openai' | 'openrouter' | 'anthropic' | 'workersai';
 
 /**
  * Information about a text generation model

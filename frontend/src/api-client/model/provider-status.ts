@@ -43,6 +43,14 @@ export interface ProviderStatus {
      */
     hasEndpoint?: boolean;
     /**
+     * Whether provider requires an account ID (e.g., Workers AI)
+     */
+    requiresAccountId?: boolean;
+    /**
+     * Whether an account ID is configured
+     */
+    hasAccountId?: boolean;
+    /**
      * Whether image generation is enabled for this provider
      */
     imageEnabled?: boolean;

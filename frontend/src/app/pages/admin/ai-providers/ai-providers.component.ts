@@ -16,8 +16,10 @@ import { firstValueFrom } from 'rxjs';
 interface ProviderUIState extends ProviderStatus {
   isEditingKey: boolean;
   isEditingEndpoint: boolean;
+  isEditingAccountId: boolean;
   apiKey: string;
   endpoint: string;
+  accountId: string;
   isSaving: boolean;
 }
 
@@ -67,8 +69,10 @@ export class AdminAiProvidersComponent implements OnInit {
           ...p,
           isEditingKey: false,
           isEditingEndpoint: false,
+          isEditingAccountId: false,
           apiKey: '',
           endpoint: '',
+          accountId: '',
           isSaving: false,
         }))
       );
@@ -96,6 +100,20 @@ export class AdminAiProvidersComponent implements OnInit {
     this.updateProvider(provider.id, {
       isEditingEndpoint: false,
       endpoint: '',
+    });
+  }
+
+  startEditingAccountId(provider: ProviderUIState): void {
+    this.updateProvider(provider.id, {
+      isEditingAccountId: true,
+      accountId: '',
+    });
+  }
+
+  cancelEditingAccountId(provider: ProviderUIState): void {
+    this.updateProvider(provider.id, {
+      isEditingAccountId: false,
+      accountId: '',
     });
   }
 
@@ -200,6 +218,42 @@ export class AdminAiProvidersComponent implements OnInit {
     }
   }
 
+  async saveAccountId(provider: ProviderUIState): Promise<void> {
+    if (!provider.accountId.trim()) {
+      this.snackBar.open('Account ID cannot be empty', 'Dismiss', {
+        duration: 3000,
+      });
+      return;
+    }
+
+    this.updateProvider(provider.id, { isSaving: true });
+
+    try {
+      await firstValueFrom(
+        this.providersService.setAiProviderAccountId(provider.id, {
+          accountId: provider.accountId.trim(),
+        })
+      );
+
+      this.snackBar.open(`${provider.name} account ID saved`, 'Dismiss', {
+        duration: 3000,
+      });
+
+      // Reload to get updated status
+      await this.loadProviders();
+    } catch (err) {
+      console.error(`Failed to save ${provider.name} account ID:`, err);
+      this.snackBar.open(
+        `Failed to save ${provider.name} account ID`,
+        'Dismiss',
+        {
+          duration: 3000,
+        }
+      );
+      this.updateProvider(provider.id, { isSaving: false });
+    }
+  }
+
   private updateProvider(id: string, updates: Partial<ProviderUIState>): void {
     this.providers.update(providers =>
       providers.map(p => (p.id === id ? { ...p, ...updates } : p))
@@ -214,6 +268,10 @@ export class AdminAiProvidersComponent implements OnInit {
     this.updateProvider(provider.id, { endpoint: value });
   }
 
+  updateProviderAccountId(provider: ProviderUIState, value: string): void {
+    this.updateProvider(provider.id, { accountId: value });
+  }
+
   getProviderIcon(providerId: string): string {
     // Use custom SVG icons for OpenRouter and Fal.ai
     if (providerId === 'openrouter' || providerId === 'falai') {
@@ -223,6 +281,7 @@ export class AdminAiProvidersComponent implements OnInit {
       openai: 'auto_awesome',
       anthropic: 'psychology',
       'stable-diffusion': 'brush',
+      workersai: 'cloud',
     };
     return icons[providerId] || 'extension';
   }
