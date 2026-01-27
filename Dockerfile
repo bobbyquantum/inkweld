@@ -10,7 +10,7 @@
 
 # Frontend builder stage (Angular)
 # Angular build outputs to dist/browser/ in production mode (default configuration)
-FROM oven/bun:1.3.6 AS frontend-builder
+FROM oven/bun:1.3.7 AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/bun.lock frontend/package.json ./
@@ -28,7 +28,7 @@ RUN bun run build \
   && node scripts/compress-wasm.js
 
 # Backend builder stage - produces a single compiled binary
-FROM oven/bun:1.3.6 AS backend-builder
+FROM oven/bun:1.3.7 AS backend-builder
 WORKDIR /app/backend
 
 # No build tools needed - we use bun:sqlite (native to Bun), not better-sqlite3
