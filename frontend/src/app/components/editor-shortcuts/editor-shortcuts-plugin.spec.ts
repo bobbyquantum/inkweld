@@ -285,7 +285,7 @@ describe('KEYBOARD_SHORTCUTS_LIST', () => {
     }
   });
 
-  it('should have 13 keyboard shortcuts defined', () => {
-    expect(KEYBOARD_SHORTCUTS_LIST.length).toBe(13);
+  it('should have 14 keyboard shortcuts defined', () => {
+    expect(KEYBOARD_SHORTCUTS_LIST.length).toBe(14);
   });
 });

@@ -43,7 +43,10 @@
                 "output": "assets/wasm"
               }
             ],
-            "styles": ["src/themes/theme.scss"],
+            "styles": [
+              "src/themes/theme.scss",
+              "src/app/components/find-in-document/find-in-document.css"
+            ],
             "scripts": []
           },
           "configurations": {

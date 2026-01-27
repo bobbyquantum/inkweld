@@ -1,0 +1,31 @@
+/**
+ * Find in Document Styles
+ *
+ * CSS classes applied by the find plugin decorations.
+ * Uses theme-based colors that work in both light and dark modes.
+ * Uses !important to override editor styles that may set background-color.
+ */
+
+/* Base style for all search matches - light theme */
+.find-match {
+  background-color: rgba(255, 235, 59, 0.5) !important; /* Yellow highlight */
+  color: inherit !important;
+  border-radius: 2px;
+}
+
+/* Currently selected match - more prominent highlight */
+.find-match-current {
+  background-color: rgba(255, 152, 0, 0.7) !important; /* Orange highlight */
+  outline: 2px solid rgba(255, 152, 0, 0.9) !important;
+  outline-offset: -1px;
+}
+
+/* Dark theme adjustments using class-based detection */
+.dark-theme .find-match {
+  background-color: rgba(255, 235, 59, 0.35) !important;
+}
+
+.dark-theme .find-match-current {
+  background-color: rgba(255, 152, 0, 0.55) !important;
+  outline-color: rgba(255, 152, 0, 0.75) !important;
+}

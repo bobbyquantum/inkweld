@@ -240,7 +240,7 @@ This will execute the unit tests for both the frontend and backend projects.
 
 - [x] Quick file open (Ctrl/Cmd + P)
 - [ ] Project-wide search
-- [ ] Find in document (Ctrl/Cmd + F)
+- [x] Find in document (Ctrl/Cmd + F)
 - [ ] Find and replace
 - [ ] Breadcrumb navigation
 - [ ] Recent documents list

@@ -19,6 +19,12 @@ export interface KeyboardShortcutsOptions {
    * If not provided, the shortcut will be disabled
    */
   onInsertLink?: () => void;
+
+  /**
+   * Callback to execute when find shortcut is triggered (Ctrl/Cmd + F)
+   * If not provided, the shortcut will be disabled and browser default will apply
+   */
+  onOpenFind?: () => void;
 }
 
 /**
@@ -266,6 +272,15 @@ export function createKeyboardShortcutsPlugin(
     };
   }
 
+  // Add find shortcut if callback provided
+  if (options.onOpenFind) {
+    const callback = options.onOpenFind;
+    keyBindings['Mod-f'] = () => {
+      callback();
+      return true;
+    };
+  }
+
   return keymap(keyBindings);
 }
 
@@ -279,6 +294,7 @@ export const KEYBOARD_SHORTCUTS_LIST = [
   { keys: 'Ctrl/Cmd + Shift + X', action: 'Strikethrough' },
   { keys: 'Ctrl/Cmd + E', action: 'Inline code' },
   { keys: 'Ctrl/Cmd + K', action: 'Insert link' },
+  { keys: 'Ctrl/Cmd + F', action: 'Find in document' },
   { keys: 'Ctrl/Cmd + 1-6', action: 'Heading levels 1-6' },
   { keys: 'Ctrl/Cmd + 0', action: 'Paragraph (remove heading)' },
   { keys: 'Ctrl/Cmd + Shift + 7', action: 'Bullet list' },
