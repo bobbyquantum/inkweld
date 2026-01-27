@@ -153,6 +153,7 @@ model/register-request.ts
 model/register-response.ts
 model/restore-response.ts
 model/set-image-enabled-request.ts
+model/set-provider-account-id-request.ts
 model/set-provider-endpoint-request.ts
 model/set-provider-key-request.ts
 model/share-link-response.ts
@@ -172,6 +173,8 @@ model/update-published-file-request.ts
 model/upload-project-media200-response.ts
 model/user.ts
 model/username-availability.ts
+model/workers-ai-models-response-models-inner.ts
+model/workers-ai-models-response.ts
 model/worldbuilding-context.ts
 param.ts
 provide-api.ts

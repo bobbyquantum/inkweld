@@ -9,14 +9,10 @@
  */
 
 
-export enum TextProviderType {
-
-    Openai = 'openai',
-
-    Openrouter = 'openrouter',
-
-    Anthropic = 'anthropic',
-
-    Workersai = 'workersai'
+export interface SetProviderAccountIdRequest { 
+    /**
+     * Account ID (or empty to clear)
+     */
+    accountId: string;
 }
 

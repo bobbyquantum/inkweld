@@ -5,7 +5,12 @@
 /**
  * Supported image generation provider types
  */
-export type ImageProviderType = 'openai' | 'openrouter' | 'stable-diffusion' | 'falai';
+export type ImageProviderType =
+  | 'openai'
+  | 'openrouter'
+  | 'stable-diffusion'
+  | 'falai'
+  | 'workersai';
 
 /**
  * Image sizes supported across providers.
@@ -117,6 +122,14 @@ export interface ModelLimits {
   maxInputImages?: number;
   /** Whether the model supports image input at all */
   supportsImageInput?: boolean;
+  /** Whether the model requires multipart/form-data format (Workers AI FLUX.2) */
+  requiresMultipart?: boolean;
+  /**
+   * Supported image sizes. If specified, requested sizes will be
+   * normalized to the nearest supported size.
+   * Format: "WxH" strings like "1024x1024"
+   */
+  supportedSizes?: string[];
   /** Prompting guide notes for this model */
   promptingNotes?: string;
 }
@@ -155,6 +168,40 @@ For image editing with references:
 - "Change image 1 to match the style of image 2"
 - Be specific about what changes, avoid vague "make it better"`,
   },
+  // Cloudflare Workers AI FLUX.2 models - require multipart format
+  {
+    models: [
+      '@cf/black-forest-labs/flux-2-klein-4b', // Workers AI klein
+      '@cf/black-forest-labs/flux-2-dev', // Workers AI dev
+    ],
+    maxPromptChars: 3000,
+    maxInputImages: 2,
+    supportsImageInput: true,
+    /** Workers AI FLUX.2 models require multipart/form-data format */
+    requiresMultipart: true,
+    /** FLUX models work with multiples of 256, common sizes below */
+    supportedSizes: [
+      '512x512',
+      '768x512',
+      '512x768',
+      '1024x512',
+      '512x1024',
+      '1024x768',
+      '768x1024',
+      '1024x1024',
+      '1280x768',
+      '768x1280',
+      '1280x1024',
+      '1024x1280',
+      '1536x1024',
+      '1024x1536',
+    ],
+    promptingNotes: `Workers AI FLUX.2 Prompting Guide:
+- Write like a novelist, not keywords. Flowing prose with subject first.
+- Structure: Subject → Setting → Details → Lighting → Atmosphere
+- Lighting is THE most important element - describe source, quality, direction, temperature
+- Optimal length: 30-80 words for most work, up to 300+ words for complex scenes`,
+  },
   // Add more model families as we discover their limits
 ];
 
@@ -175,6 +222,56 @@ export function findModelLimits(modelId: string, provider?: string): ModelLimits
     }
   }
   return undefined;
+}
+
+/**
+ * Normalize a requested size to the nearest supported size for a model.
+ * If the model has no size constraints, returns the original size.
+ *
+ * @param width Requested width
+ * @param height Requested height
+ * @param modelLimits Model limits with optional supportedSizes
+ * @returns [normalizedWidth, normalizedHeight]
+ */
+export function normalizeSize(
+  width: number,
+  height: number,
+  modelLimits?: ModelLimits
+): [number, number] {
+  // If no model limits or no size constraints, return as-is
+  if (!modelLimits?.supportedSizes || modelLimits.supportedSizes.length === 0) {
+    return [width, height];
+  }
+
+  const supportedSizes = modelLimits.supportedSizes;
+  const requestedPixels = width * height;
+  const requestedRatio = width / height;
+
+  let bestMatch = supportedSizes[0];
+  let bestScore = Infinity;
+
+  for (const sizeStr of supportedSizes) {
+    const [w, h] = sizeStr.split('x').map(Number);
+    if (!w || !h) continue;
+
+    // Score based on aspect ratio similarity and total pixel difference
+    const ratio = w / h;
+    const pixels = w * h;
+
+    // Weight aspect ratio match heavily, then consider size
+    const ratioDiff = Math.abs(ratio - requestedRatio);
+    const pixelDiff = Math.abs(pixels - requestedPixels) / 1000000; // Normalize
+
+    const score = ratioDiff * 10 + pixelDiff;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestMatch = sizeStr;
+    }
+  }
+
+  const [normalizedWidth, normalizedHeight] = bestMatch.split('x').map(Number);
+  return [normalizedWidth || width, normalizedHeight || height];
 }
 
 /**

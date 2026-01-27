@@ -18,6 +18,7 @@ For how users interact with this feature, see the [User Guide: AI Image Generati
 | **OpenRouter** | OpenRouter API key |
 | **Fal.ai** | Fal.ai API key |
 | **Stable Diffusion** | Self-hosted AUTOMATIC1111 WebUI with `--api` flag |
+| **Cloudflare Workers AI** | Cloudflare Account ID + API Token |
 
 ## Configuration
 
@@ -51,6 +52,7 @@ Expand a provider card and add your API key to enable it.
 | OpenRouter | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | Fal.ai | [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys) |
 | Stable Diffusion | Self-hosted — enter your WebUI endpoint URL |
+| Workers AI | [dash.cloudflare.com](https://dash.cloudflare.com) — Account ID + [API Token](https://dash.cloudflare.com/profile/api-tokens) |
 
 ## Environment Variables
 
@@ -74,6 +76,11 @@ AI_FALAI_API_KEY=fal-...
 # Stable Diffusion
 AI_IMAGE_SD_ENABLED=true
 AI_IMAGE_SD_ENDPOINT=http://localhost:7860
+
+# Cloudflare Workers AI
+AI_IMAGE_WORKERSAI_ENABLED=true
+WORKERSAI_ACCOUNT_ID=your-cloudflare-account-id
+WORKERSAI_API_TOKEN=your-workers-ai-api-token
 ```
 
 :::note

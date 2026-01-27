@@ -152,7 +152,7 @@ export class ImageProfileDialogComponent {
   readonly selectedFalaiCategory = signal<FalaiCategory>('text-to-image');
 
   // Providers that support model browsing (require API fetch)
-  readonly browsableProviders = ['openrouter', 'falai'];
+  readonly browsableProviders = ['openrouter', 'falai', 'workersai'];
 
   // OpenAI hardcoded models - no API fetch needed
   readonly openaiModels: ExtendedImageModelInfo[] = [
@@ -254,6 +254,11 @@ export class ImageProfileDialogComponent {
   /** Check if current provider is Fal.ai (needs category selection first) */
   isFalaiProvider(): boolean {
     return this.form?.get('provider')?.value === 'falai';
+  }
+
+  /** Check if current provider is Workers AI */
+  isWorkersAiProvider(): boolean {
+    return this.form?.get('provider')?.value === 'workersai';
   }
 
   /** Check if current provider supports model browsing via API */
@@ -359,6 +364,33 @@ export class ImageProfileDialogComponent {
             supportsImageInput,
             maxImages: 4,
           })) ?? [];
+      } else if (provider === 'workersai') {
+        // Fetch from Workers AI image models API
+        const response = await firstValueFrom(
+          this.aiProvidersService.getWorkersAiImageModels()
+        );
+        models =
+          response?.models?.map(m => ({
+            id: m.id,
+            name: m.name,
+            description: m.description,
+            provider: 'workersai' as ImageProviderType,
+            // Workers AI FLUX.2 models support various aspect ratios
+            supportedSizes: [
+              '512x512',
+              '1024x1024',
+              '1024x768',
+              '768x1024',
+              '1280x768',
+              '768x1280',
+              '1536x1024',
+              '1024x1536',
+            ],
+            supportsQuality: false,
+            supportsStyle: false,
+            supportsImageInput: m.id?.includes('flux-2') ?? false,
+            maxImages: 1,
+          })) ?? [];
       } else {
         // Fallback to legacy endpoint for other providers
         const response = await firstValueFrom(
@@ -402,6 +434,32 @@ export class ImageProfileDialogComponent {
         this.sizesArray.push(this.fb.control(ratio, Validators.required));
       });
       this.form.patchValue({ defaultSize: '1:1' });
+
+      void this.loadModelsForProvider();
+    } else if (this.isWorkersAiProvider()) {
+      // Workers AI uses pixel dimensions, not aspect ratios
+      this.form.patchValue({
+        usesAspectRatioOnly: false,
+        supportsCustomResolutions: true,
+      });
+
+      // Pre-populate with FLUX.2 supported sizes for Workers AI
+      while (this.sizesArray.length) {
+        this.sizesArray.removeAt(0);
+      }
+      [
+        '512x512',
+        '1024x1024',
+        '1024x768',
+        '768x1024',
+        '1280x768',
+        '768x1280',
+        '1536x1024',
+        '1024x1536',
+      ].forEach(size => {
+        this.sizesArray.push(this.fb.control(size, Validators.required));
+      });
+      this.form.patchValue({ defaultSize: '1024x1024' });
 
       void this.loadModelsForProvider();
     } else if (this.canBrowseModels() && !this.isFalaiProvider()) {

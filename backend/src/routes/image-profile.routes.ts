@@ -67,9 +67,11 @@ function formatAdminProfile(profile: {
 // Schemas
 // ============================================
 
-const ProviderSchema = z.enum(['openai', 'openrouter', 'falai', 'stable-diffusion']).openapi({
-  description: 'Image generation provider',
-});
+const ProviderSchema = z
+  .enum(['openai', 'openrouter', 'falai', 'stable-diffusion', 'workersai'])
+  .openapi({
+    description: 'Image generation provider',
+  });
 
 const PublicProfileSchema = z
   .object({
@@ -280,6 +282,7 @@ imageProfileAdminRoutes.openapi(listProvidersRoute, async (c) => {
       openrouter: 'OpenRouter',
       falai: 'Fal.ai',
       'stable-diffusion': 'Stable Diffusion (Local)',
+      workersai: 'Cloudflare Workers AI',
     }[id],
   }));
   return c.json(providers, 200);

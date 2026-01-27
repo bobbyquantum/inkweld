@@ -38,7 +38,7 @@ aiImageRoutes.use('*', requireAuth);
 // ============================================================================
 
 const ProviderTypeSchema = z
-  .enum(['openai', 'openrouter', 'stable-diffusion', 'falai'])
+  .enum(['openai', 'openrouter', 'stable-diffusion', 'falai', 'workersai'])
   .openapi('ImageProviderType');
 
 // Image sizes supported across providers
@@ -437,9 +437,10 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       .map((d) => d.url || 'data:image/png;base64,[generated-image]');
 
     // Record audit (for both success and moderated - not for general errors)
+    // Note: user is guaranteed to exist here due to auth middleware
     try {
       await imageAuditService.create(db, {
-        userId: user!.id,
+        userId: user?.id ?? '',
         profileId: profile.id,
         profileName: profile.name,
         prompt: validatedBody.prompt,

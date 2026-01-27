@@ -1110,7 +1110,8 @@
           "openai",
           "openrouter",
           "stable-diffusion",
-          "falai"
+          "falai",
+          "workersai"
         ]
       },
       "ImageModelInfo": {
@@ -1673,7 +1674,8 @@
         "enum": [
           "openai",
           "openrouter",
-          "anthropic"
+          "anthropic",
+          "workersai"
         ]
       },
       "TextGenerationError": {
@@ -1870,6 +1872,14 @@
             "type": "boolean",
             "description": "Whether a custom endpoint is configured"
           },
+          "requiresAccountId": {
+            "type": "boolean",
+            "description": "Whether provider requires an account ID (e.g., Workers AI)"
+          },
+          "hasAccountId": {
+            "type": "boolean",
+            "description": "Whether an account ID is configured"
+          },
           "imageEnabled": {
             "type": "boolean",
             "description": "Whether image generation is enabled for this provider"
@@ -1935,6 +1945,18 @@
         },
         "required": [
           "endpoint"
+        ]
+      },
+      "SetProviderAccountIdRequest": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "Account ID (or empty to clear)"
+          }
+        },
+        "required": [
+          "accountId"
         ]
       },
       "SetImageEnabledRequest": {
@@ -2139,6 +2161,53 @@
           "sizeMode"
         ]
       },
+      "WorkersAiModelsResponse": {
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "task": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string",
+                  "enum": [
+                    "workersai"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "provider"
+              ]
+            }
+          },
+          "cached": {
+            "type": "boolean"
+          },
+          "lastUpdated": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "models",
+          "cached",
+          "lastUpdated"
+        ]
+      },
       "JsonRpcResponse": {
         "type": "object",
         "properties": {
@@ -2253,7 +2322,8 @@
               "openai",
               "openrouter",
               "falai",
-              "stable-diffusion"
+              "stable-diffusion",
+              "workersai"
             ],
             "description": "Image generation provider"
           },
@@ -2359,7 +2429,8 @@
               "openai",
               "openrouter",
               "falai",
-              "stable-diffusion"
+              "stable-diffusion",
+              "workersai"
             ],
             "description": "Image generation provider"
           },
@@ -2437,7 +2508,8 @@
               "openai",
               "openrouter",
               "falai",
-              "stable-diffusion"
+              "stable-diffusion",
+              "workersai"
             ],
             "description": "Image generation provider"
           },
@@ -7046,6 +7118,79 @@
         }
       }
     },
+    "/api/v1/ai/providers/{providerId}/account-id": {
+      "put": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Set provider account ID",
+        "description": "Set or update the account ID for a provider (e.g., Cloudflare Workers AI)",
+        "operationId": "setAiProviderAccountId",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Provider ID"
+            },
+            "required": true,
+            "description": "Provider ID",
+            "name": "providerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProviderAccountIdRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account ID updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid provider or provider does not require account ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ai/providers/{providerId}/image-enabled": {
       "put": {
         "tags": [
@@ -7363,6 +7508,142 @@
           },
           "502": {
             "description": "Failed to fetch from Fal.ai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/workersai/models": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get Cloudflare Workers AI models",
+        "description": "Fetch available models from Cloudflare Workers AI. Can filter by task type. Results are cached for 1 hour.",
+        "operationId": "getWorkersAiModels",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Text Generation",
+                "Text-to-Image",
+                "Image-to-Text",
+                "Text Embeddings",
+                "Automatic Speech Recognition",
+                "Translation",
+                "Summarization",
+                "Text Classification",
+                "Object Detection",
+                "Image Classification"
+              ]
+            },
+            "description": "Filter models by task type"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search query to filter models by name"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkersAiModelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Workers AI API credentials not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from Workers AI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/providers/workersai/image-models": {
+      "get": {
+        "tags": [
+          "AI Providers"
+        ],
+        "summary": "Get Cloudflare Workers AI image generation models",
+        "description": "Fetch available image generation models from Cloudflare Workers AI. This is a shortcut for filtering by Text-to-Image task.",
+        "operationId": "getWorkersAiImageModels",
+        "responses": {
+          "200": {
+            "description": "List of available image models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageModelsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Workers AI API credentials not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Failed to fetch from Workers AI",
             "content": {
               "application/json": {
                 "schema": {
