@@ -98,20 +98,18 @@ test.describe('Templates Tab Screenshots', () => {
 
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 5000,
     });
 
     await page.click('button:has-text("Create Project")');
 
     // Step 1: Template selection - click Next to proceed
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.waitFor({ state: 'visible' });
     await nextButton.click();
 
     // Step 2: Fill in project details
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 3000,
     });
 
     await page.fill('input[data-testid="project-title-input"]', projectTitle);
@@ -119,15 +117,12 @@ test.describe('Templates Tab Screenshots', () => {
 
     await page.click('button[data-testid="create-project-button"]');
 
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
-      timeout: 5000,
-    });
+    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {});
 
     // Navigate to Settings tab first
     await page.goto(`/demouser/${projectSlug}/settings`);
     await page.waitForSelector('[data-testid="settings-tab-content"]', {
       state: 'visible',
-      timeout: 10000,
     });
 
     // Click on the "Element Templates" inner tab
@@ -136,7 +131,6 @@ test.describe('Templates Tab Screenshots', () => {
     // Wait for templates container
     await page.waitForSelector('.templates-tab-container', {
       state: 'visible',
-      timeout: 5000,
     });
     await page.waitForTimeout(500);
   }
@@ -152,7 +146,6 @@ test.describe('Templates Tab Screenshots', () => {
       // Wait for templates to load
       await page.waitForSelector('[data-testid="template-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -172,7 +165,6 @@ test.describe('Templates Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="template-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -218,7 +210,6 @@ test.describe('Templates Tab Screenshots', () => {
       // Wait for template editor dialog
       await page.waitForSelector('app-template-editor-dialog', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -244,7 +235,6 @@ test.describe('Templates Tab Screenshots', () => {
       // Wait for template cards
       await page.waitForSelector('[data-testid="template-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
 
       // Open menu on first template
@@ -277,7 +267,6 @@ test.describe('Templates Tab Screenshots', () => {
       // Wait for template cards to load
       await page.waitForSelector('[data-testid="template-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -311,7 +300,6 @@ test.describe('Templates Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="template-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -335,7 +323,6 @@ test.describe('Templates Tab Screenshots', () => {
       // Wait for template editor dialog
       await page.waitForSelector('app-template-editor-dialog', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -361,7 +348,6 @@ test.describe('Templates Tab Screenshots', () => {
 
       await page.waitForSelector('[data-testid="template-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
       await page.waitForTimeout(300);
 
@@ -387,7 +373,6 @@ test.describe('Templates Tab Screenshots', () => {
       // Wait for template cards
       await page.waitForSelector('[data-testid="template-card"]', {
         state: 'visible',
-        timeout: 5000,
       });
 
       // Open menu on first template

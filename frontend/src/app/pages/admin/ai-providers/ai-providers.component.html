@@ -105,6 +105,27 @@
               </div>
             }
 
+            @if (provider.requiresAccountId) {
+              <div class="status-row">
+                <span class="status-label">Account ID:</span>
+                @if (provider.hasAccountId) {
+                  <span
+                    class="status-value configured"
+                    data-testid="ai-provider-account-id-configured">
+                    <mat-icon>check_circle</mat-icon>
+                    Configured
+                  </span>
+                } @else {
+                  <span
+                    class="status-value not-configured"
+                    data-testid="ai-provider-account-id-not-configured">
+                    <mat-icon>cancel</mat-icon>
+                    Not configured
+                  </span>
+                }
+              </div>
+            }
+
             <!-- API Key editing -->
             @if (provider.isEditingKey) {
               <div class="edit-section" data-testid="ai-provider-key-edit">
@@ -185,6 +206,50 @@
                 </div>
               </div>
             }
+
+            <!-- Account ID editing (for Workers AI) -->
+            @if (provider.isEditingAccountId) {
+              <div
+                class="edit-section"
+                data-testid="ai-provider-account-id-edit">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Account ID</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    [value]="provider.accountId"
+                    (input)="
+                      updateProviderAccountId(
+                        provider,
+                        $any($event.target).value
+                      )
+                    "
+                    placeholder="Your Cloudflare Account ID"
+                    data-testid="ai-provider-account-id-input" />
+                </mat-form-field>
+                <div class="edit-actions">
+                  <button
+                    mat-button
+                    (click)="cancelEditingAccountId(provider)"
+                    [disabled]="provider.isSaving"
+                    data-testid="ai-provider-account-id-cancel">
+                    Cancel
+                  </button>
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    (click)="saveAccountId(provider)"
+                    [disabled]="provider.isSaving || !provider.accountId.trim()"
+                    data-testid="ai-provider-account-id-save">
+                    @if (provider.isSaving) {
+                      <mat-spinner diameter="20"></mat-spinner>
+                    } @else {
+                      Save
+                    }
+                  </button>
+                </div>
+              </div>
+            }
           </mat-card-content>
 
           <mat-divider></mat-divider>
@@ -231,6 +296,26 @@
                 ">
                 <mat-icon>{{ provider.hasEndpoint ? 'edit' : 'add' }}</mat-icon>
                 {{ provider.hasEndpoint ? 'Update Endpoint' : 'Add Endpoint' }}
+              </button>
+            }
+
+            @if (provider.requiresAccountId && !provider.isEditingAccountId) {
+              <button
+                mat-button
+                color="primary"
+                (click)="startEditingAccountId(provider)"
+                [disabled]="provider.isSaving"
+                [attr.data-testid]="
+                  provider.hasAccountId
+                    ? 'ai-provider-update-account-id-' + provider.id
+                    : 'ai-provider-add-account-id-' + provider.id
+                ">
+                <mat-icon>{{
+                  provider.hasAccountId ? 'edit' : 'add'
+                }}</mat-icon>
+                {{
+                  provider.hasAccountId ? 'Update Account ID' : 'Add Account ID'
+                }}
               </button>
             }
           </mat-card-actions>

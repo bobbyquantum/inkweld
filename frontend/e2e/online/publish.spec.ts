@@ -31,13 +31,18 @@ test.describe('Online Publishing Workflow', () => {
 
     // Wait for project page
     await page.waitForURL(new RegExp(uniqueSlug));
+    await page.waitForLoadState('networkidle');
 
     // Wait for project home to load - use role to avoid multiple matches
     await expect(
       page.getByRole('heading', { name: 'Publish Plans' })
     ).toBeVisible();
 
-    await page.getByTestId('create-publish-plan-button').click();
+    // Ensure button is visible and clickable before clicking
+    const createPlanButton = page.getByTestId('create-publish-plan-button');
+    await expect(createPlanButton).toBeVisible();
+    await expect(createPlanButton).toBeEnabled();
+    await createPlanButton.click();
     await page.waitForURL(/\/publish-plan\//);
     await expect(page.getByTestId('plan-name-display')).toBeVisible();
 

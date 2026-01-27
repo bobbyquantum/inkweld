@@ -8,6 +8,7 @@ import {
   OpenAIImageProvider,
   OpenRouterImageProvider,
   StableDiffusionProvider,
+  WorkersAIImageProvider,
 } from './image-providers/index';
 import type { IImageProvider } from '../types/image-generation';
 import type {
@@ -34,6 +35,7 @@ class ImageGenerationService {
     this.providers.set('openrouter', new OpenRouterImageProvider());
     this.providers.set('stable-diffusion', new StableDiffusionProvider());
     this.providers.set('falai', new FalAiImageProvider());
+    this.providers.set('workersai', new WorkersAIImageProvider());
   }
 
   /**
@@ -154,6 +156,37 @@ class ImageGenerationService {
         }
       } catch (e) {
         imgLog.warn('Failed to parse Fal.ai models config', { error: e });
+      }
+    }
+
+    // Configure Workers AI provider
+    const workersaiProvider = this.providers.get('workersai') as WorkersAIImageProvider;
+    const workersaiEnabledConfig = await configService.getBooleanWithSource(
+      db,
+      'AI_IMAGE_WORKERSAI_ENABLED'
+    );
+    const workersaiApiKey = await this.getConfigValue(db, 'AI_WORKERSAI_API_TOKEN');
+    const workersaiAccountId = await this.getConfigValue(db, 'AI_WORKERSAI_ACCOUNT_ID');
+    // If enabled is explicitly set, respect that; otherwise auto-enable if API key and account ID are present
+    const workersaiEnabled = workersaiEnabledConfig.isExplicitlySet
+      ? workersaiEnabledConfig.value
+      : !!(workersaiApiKey && workersaiAccountId);
+    workersaiProvider.configure({
+      enabled: workersaiEnabled,
+      apiKey: workersaiApiKey,
+      accountId: workersaiAccountId,
+    });
+    // Load custom model configuration for Workers AI
+    const workersaiModelsJson = await this.getConfigValue(db, 'AI_IMAGE_WORKERSAI_MODELS');
+    if (workersaiModelsJson) {
+      try {
+        const customModels = JSON.parse(workersaiModelsJson);
+        if (Array.isArray(customModels) && customModels.length > 0) {
+          workersaiProvider.setModels(customModels);
+          imgLog.debug(`Workers AI using ${customModels.length} custom models`);
+        }
+      } catch (e) {
+        imgLog.warn('Failed to parse Workers AI models config', { error: e });
       }
     }
 

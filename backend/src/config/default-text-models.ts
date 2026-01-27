@@ -227,5 +227,6 @@ export function getAllDefaultTextModels(): Record<TextProviderType, TextModelInf
     openai: DEFAULT_OPENAI_TEXT_MODELS,
     openrouter: DEFAULT_OPENROUTER_TEXT_MODELS,
     anthropic: DEFAULT_ANTHROPIC_TEXT_MODELS,
+    workersai: [], // No default models - fetched from API
   };
 }

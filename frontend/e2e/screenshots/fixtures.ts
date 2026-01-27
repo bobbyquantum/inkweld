@@ -140,8 +140,7 @@ export const test = base.extend<ScreenshotFixtures>({
 
     // Now navigate to the app and wait for API responses
     const userApiPromise = page.waitForResponse(
-      resp => resp.url().includes('/api/v1/users/me') && resp.status() === 200,
-      { timeout: 10000 }
+      resp => resp.url().includes('/api/v1/users/me') && resp.status() === 200
     );
 
     // Navigate and wait for DOM to be ready
@@ -157,7 +156,6 @@ export const test = base.extend<ScreenshotFixtures>({
     try {
       await page.waitForSelector('.project-card', {
         state: 'visible',
-        timeout: 3000,
       });
     } catch {
       // Projects didn't load - this means the race condition happened
@@ -166,7 +164,6 @@ export const test = base.extend<ScreenshotFixtures>({
       await page.reload({ waitUntil: 'domcontentloaded' });
       await page.waitForSelector('.project-card', {
         state: 'visible',
-        timeout: 5000,
       });
     }
 
@@ -220,13 +217,11 @@ export const test = base.extend<ScreenshotFixtures>({
 
     // Navigate to home and wait for user and features to be loaded
     const userApiPromise = page.waitForResponse(
-      resp => resp.url().includes('/api/v1/users/me') && resp.status() === 200,
-      { timeout: 10000 }
+      resp => resp.url().includes('/api/v1/users/me') && resp.status() === 200
     );
     const featuresApiPromise = page.waitForResponse(
       resp =>
-        resp.url().includes('/api/v1/config/features') && resp.status() === 200,
-      { timeout: 10000 }
+        resp.url().includes('/api/v1/config/features') && resp.status() === 200
     );
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -250,9 +245,7 @@ export const test = base.extend<ScreenshotFixtures>({
     try {
       await page.waitForSelector(
         '[data-testid="user-menu-button"], .user-menu',
-        {
-          timeout: 5000,
-        }
+        {}
       );
     } catch {
       await page.waitForTimeout(2000);

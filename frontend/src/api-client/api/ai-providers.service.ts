@@ -31,9 +31,13 @@ import { ProvidersStatusResponse } from '../model/providers-status-response';
 // @ts-ignore
 import { SetImageEnabledRequest } from '../model/set-image-enabled-request';
 // @ts-ignore
+import { SetProviderAccountIdRequest } from '../model/set-provider-account-id-request';
+// @ts-ignore
 import { SetProviderEndpointRequest } from '../model/set-provider-endpoint-request';
 // @ts-ignore
 import { SetProviderKeyRequest } from '../model/set-provider-key-request';
+// @ts-ignore
+import { WorkersAiModelsResponse } from '../model/workers-ai-models-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -388,6 +392,195 @@ export class AIProvidersService extends BaseService {
         return this.httpClient.request<OpenRouterModelsResponse>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Get Cloudflare Workers AI image generation models
+     * Fetch available image generation models from Cloudflare Workers AI. This is a shortcut for filtering by Text-to-Image task.
+     * @endpoint get /api/v1/ai/providers/workersai/image-models
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getWorkersAiImageModels(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ImageModelsResponse>;
+    public getWorkersAiImageModels(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ImageModelsResponse>>;
+    public getWorkersAiImageModels(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ImageModelsResponse>>;
+    public getWorkersAiImageModels(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/providers/workersai/image-models`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<ImageModelsResponse>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Get Cloudflare Workers AI models
+     * Fetch available models from Cloudflare Workers AI. Can filter by task type. Results are cached for 1 hour.
+     * @endpoint get /api/v1/ai/providers/workersai/models
+     * @param task Filter models by task type
+     * @param q Search query to filter models by name
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getWorkersAiModels(task?: 'Text Generation' | 'Text-to-Image' | 'Image-to-Text' | 'Text Embeddings' | 'Automatic Speech Recognition' | 'Translation' | 'Summarization' | 'Text Classification' | 'Object Detection' | 'Image Classification', q?: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<WorkersAiModelsResponse>;
+    public getWorkersAiModels(task?: 'Text Generation' | 'Text-to-Image' | 'Image-to-Text' | 'Text Embeddings' | 'Automatic Speech Recognition' | 'Translation' | 'Summarization' | 'Text Classification' | 'Object Detection' | 'Image Classification', q?: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WorkersAiModelsResponse>>;
+    public getWorkersAiModels(task?: 'Text Generation' | 'Text-to-Image' | 'Image-to-Text' | 'Text Embeddings' | 'Automatic Speech Recognition' | 'Translation' | 'Summarization' | 'Text Classification' | 'Object Detection' | 'Image Classification', q?: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WorkersAiModelsResponse>>;
+    public getWorkersAiModels(task?: 'Text Generation' | 'Text-to-Image' | 'Image-to-Text' | 'Text Embeddings' | 'Automatic Speech Recognition' | 'Translation' | 'Summarization' | 'Text Classification' | 'Object Detection' | 'Image Classification', q?: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarQueryParameters = new HttpParams({encoder: this.encoder});
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>task, 'task');
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>q, 'q');
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/providers/workersai/models`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<WorkersAiModelsResponse>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                params: localVarQueryParameters,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Set provider account ID
+     * Set or update the account ID for a provider (e.g., Cloudflare Workers AI)
+     * @endpoint put /api/v1/ai/providers/{providerId}/account-id
+     * @param providerId Provider ID
+     * @param setProviderAccountIdRequest 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public setAiProviderAccountId(providerId: string, setProviderAccountIdRequest?: SetProviderAccountIdRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProviderSuccessResponse>;
+    public setAiProviderAccountId(providerId: string, setProviderAccountIdRequest?: SetProviderAccountIdRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProviderSuccessResponse>>;
+    public setAiProviderAccountId(providerId: string, setProviderAccountIdRequest?: SetProviderAccountIdRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProviderSuccessResponse>>;
+    public setAiProviderAccountId(providerId: string, setProviderAccountIdRequest?: SetProviderAccountIdRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (providerId === null || providerId === undefined) {
+            throw new Error('Required parameter providerId was null or undefined when calling setAiProviderAccountId.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        // authentication (bearerAuth) required
+        localVarHeaders = this.configuration.addCredentialToHeaders('bearerAuth', 'Authorization', localVarHeaders, 'Bearer ');
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/ai/providers/${this.configuration.encodeParam({name: "providerId", value: providerId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/account-id`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<ProviderSuccessResponse>('put', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: setProviderAccountIdRequest,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

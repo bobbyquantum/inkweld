@@ -28,7 +28,7 @@ aiTextRoutes.use('*', requireAuth);
 // ============================================================================
 
 const TextProviderTypeSchema = z
-  .enum(['openai', 'openrouter', 'anthropic'])
+  .enum(['openai', 'openrouter', 'anthropic', 'workersai'])
   .openapi('TextProviderType');
 
 const TextModelInfoSchema = z

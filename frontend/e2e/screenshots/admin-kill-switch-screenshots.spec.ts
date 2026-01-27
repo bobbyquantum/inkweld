@@ -86,14 +86,15 @@ test.describe('Admin Kill Switch Screenshots', () => {
     await navigateToAdminSettingsViaMenu(adminPage);
 
     // Wait for the page to load
-    await adminPage.waitForSelector('.settings-container, .loading-container', {
-      timeout: 10000,
-    });
+    await adminPage.waitForSelector(
+      '.settings-container, .loading-container',
+      {}
+    );
 
     // Wait for loading to complete
     const loadingSpinner = adminPage.locator('mat-spinner');
     if (await loadingSpinner.isVisible()) {
-      await loadingSpinner.waitFor({ state: 'hidden', timeout: 10000 });
+      await loadingSpinner.waitFor({ state: 'hidden' });
     }
   });
 

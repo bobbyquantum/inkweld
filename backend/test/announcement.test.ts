@@ -97,8 +97,14 @@ describe('AnnouncementService', () => {
       expect(announcement.priority).toBe('high');
       expect(announcement.isPublic).toBe(false);
       // SQLite stores timestamps with second precision, so compare within 1 second
-      expect(Math.abs(announcement.publishedAt!.getTime() - now.getTime())).toBeLessThan(1000);
-      expect(Math.abs(announcement.expiresAt!.getTime() - expires.getTime())).toBeLessThan(1000);
+      expect(announcement.publishedAt).toBeDefined();
+      expect(announcement.expiresAt).toBeDefined();
+      expect(Math.abs((announcement.publishedAt as Date).getTime() - now.getTime())).toBeLessThan(
+        1000
+      );
+      expect(Math.abs((announcement.expiresAt as Date).getTime() - expires.getTime())).toBeLessThan(
+        1000
+      );
     });
   });
 

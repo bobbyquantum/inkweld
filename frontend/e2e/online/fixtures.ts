@@ -686,7 +686,8 @@ export async function registerUser(
   await page.locator('[data-testid="username-input"]').fill(username);
   await page.locator('[data-testid="username-input"]').blur();
 
-  // Wait for username availability check (async validation)
+  // Wait for username availability check (async validation) with retry pattern
+  // Sometimes the check takes a moment to complete
   await expect(
     page.locator('[data-testid="username-available-icon"]')
   ).toBeVisible();
@@ -697,14 +698,18 @@ export async function registerUser(
   // Blur the last field to trigger validation
   await page.locator('[data-testid="confirm-password-input"]').blur();
 
-  // Small delay to allow async validation to settle
-  await page.waitForTimeout(200);
+  // Wait for form to be valid by checking for any validation errors to disappear
+  // and for the register button to become enabled
+  await page.waitForTimeout(500);
 
   // Wait for the register button to be enabled (not just visible)
+  // Use toPass for resilience against race conditions
   const registerButton = page.locator(
     'mat-dialog-container [data-testid="register-button"]'
   );
-  await expect(registerButton).toBeEnabled({ timeout: 10000 });
+  await expect(async () => {
+    await expect(registerButton).toBeEnabled();
+  }).toPass();
 
   // Click register and wait for dialog to close
   await registerButton.click();

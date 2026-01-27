@@ -524,9 +524,9 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    void this.loadStatus();
+    // Load status first, then profiles (profiles depend on status for filtering)
+    void this.loadStatus().then(() => void this.loadProfiles());
     void this.loadCustomSizes();
-    void this.loadProfiles();
   }
 
   ngOnDestroy(): void {
