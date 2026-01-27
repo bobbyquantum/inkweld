@@ -25,6 +25,7 @@ import {
   createElementRefPlugin,
   ElementRefService,
 } from '../../components/element-ref';
+import { createFindPlugin } from '../../components/find-in-document';
 import {
   createImagePastePlugin,
   extractMediaId,
@@ -35,6 +36,7 @@ import { LintApiService } from '../../components/lint/lint-api.service';
 import { createLintPlugin } from '../../components/lint/lint-plugin';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { FindInDocumentService } from '../core/find-in-document.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -97,6 +99,7 @@ export class DocumentService {
   private projectStateService = inject(ProjectStateService);
   private lintApiService = inject(LintApiService);
   private elementRefService = inject(ElementRefService);
+  private findInDocumentService = inject(FindInDocumentService);
   private logger = inject(LoggerService);
   private userService = inject(UnifiedUserService);
   private localStorage = inject(LocalStorageService);
@@ -789,9 +792,17 @@ export class DocumentService {
       {
         // Link insertion could be wired up to a dialog in the future
         onInsertLink: undefined,
+        // Find in document shortcut (Ctrl/Cmd + F)
+        onOpenFind: () => {
+          this.findInDocumentService.open();
+        },
       }
     );
     plugins.push(keyboardShortcutsPlugin);
+
+    // Add find in document plugin for search highlighting
+    const findPlugin = createFindPlugin();
+    plugins.push(findPlugin);
 
     // Add the element reference plugin for @ mentions
     const elementRefPlugin = createElementRefPlugin({

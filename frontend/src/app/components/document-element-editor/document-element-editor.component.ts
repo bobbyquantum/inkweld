@@ -35,6 +35,7 @@ import {
   TagEditorDialogComponent,
   TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -51,6 +52,7 @@ import {
   insertElementRef,
   updateElementRefText,
 } from '../element-ref';
+import { FindInDocumentComponent } from '../find-in-document';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
@@ -73,6 +75,7 @@ import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
     ElementRefTooltipComponent,
     EditorToolbarComponent,
     EditorFloatingMenuComponent,
+    FindInDocumentComponent,
   ],
   templateUrl: './document-element-editor.component.html',
   styleUrls: [
@@ -89,6 +92,7 @@ export class DocumentElementEditorComponent
   private relationshipService = inject(RelationshipService);
   private dialog = inject(MatDialog);
   protected elementRefService = inject(ElementRefService);
+  protected findService = inject(FindInDocumentService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';
@@ -302,6 +306,9 @@ export class DocumentElementEditorComponent
               `[DocumentEditor] setupCollaboration complete, editor doc size: ${this.editor.view.state.doc.nodeSize}`
             );
 
+            // Register editor with find service for Ctrl+F support
+            this.findService.setEditor(this.editor);
+
             // Set read-only mode for viewers who can't write
             this.updateEditableState();
 
@@ -376,6 +383,9 @@ export class DocumentElementEditorComponent
   ngOnDestroy(): void {
     // Mark as destroyed to prevent stale async operations
     this.destroyed = true;
+
+    // Clear find service editor reference
+    this.findService.setEditor(null);
 
     // Destroy editor FIRST before disconnecting
     // This prevents awareness cleanup from trying to update a destroyed editor

@@ -3,6 +3,10 @@
   <div class="editor-with-panel">
     <!-- Main editor section -->
     <div class="editor-section" [class.no-tabs]="tabsDisabled">
+      <!-- Find in document bar (Ctrl/Cmd + F) -->
+      @if (findService.isOpen()) {
+        <app-find-in-document></app-find-in-document>
+      }
       <!-- Only show toolbar when not in zen mode -->
       @if (!zenMode) {
         <app-editor-toolbar
