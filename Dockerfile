@@ -13,6 +13,9 @@
 FROM oven/bun:1.3.7 AS frontend-builder
 WORKDIR /app/frontend
 
+# Install git for dependencies that need to be cloned
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 COPY frontend/bun.lock frontend/package.json ./
 RUN bun install --frozen-lockfile
 
@@ -30,6 +33,9 @@ RUN bun run build \
 # Backend builder stage - produces a single compiled binary
 FROM oven/bun:1.3.7 AS backend-builder
 WORKDIR /app/backend
+
+# Install git for dependencies that need to be cloned
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # No build tools needed - we use bun:sqlite (native to Bun), not better-sqlite3
 # better-sqlite3 is only needed for the Node.js runner (node-runner.ts)
