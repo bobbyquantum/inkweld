@@ -2,7 +2,7 @@
   "name": "Inkweld",
   "short_name": "Inkweld",
   "theme_color": "#006874",
-  "background_color": "#191c1d",
+  "background_color": "#000000",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
