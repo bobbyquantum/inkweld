@@ -25,6 +25,12 @@ export interface KeyboardShortcutsOptions {
    * If not provided, the shortcut will be disabled and browser default will apply
    */
   onOpenFind?: () => void;
+
+  /**
+   * Callback to execute when insert image shortcut is triggered (Ctrl/Cmd + Shift + I)
+   * If not provided, the shortcut will be disabled
+   */
+  onInsertImage?: () => void;
 }
 
 /**
@@ -281,6 +287,15 @@ export function createKeyboardShortcutsPlugin(
     };
   }
 
+  // Add insert image shortcut if callback provided
+  if (options.onInsertImage) {
+    const callback = options.onInsertImage;
+    keyBindings['Mod-Shift-i'] = () => {
+      callback();
+      return true;
+    };
+  }
+
   return keymap(keyBindings);
 }
 
@@ -295,6 +310,7 @@ export const KEYBOARD_SHORTCUTS_LIST = [
   { keys: 'Ctrl/Cmd + E', action: 'Inline code' },
   { keys: 'Ctrl/Cmd + K', action: 'Insert link' },
   { keys: 'Ctrl/Cmd + F', action: 'Find in document' },
+  { keys: 'Ctrl/Cmd + Shift + I', action: 'Insert image' },
   { keys: 'Ctrl/Cmd + 1-6', action: 'Heading levels 1-6' },
   { keys: 'Ctrl/Cmd + 0', action: 'Paragraph (remove heading)' },
   { keys: 'Ctrl/Cmd + Shift + 7', action: 'Bullet list' },
