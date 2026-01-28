@@ -185,11 +185,13 @@ Frontend runs on `:4200`, backend on `:8333`.
 
 ## AI Stance
 
-Inkweld is self-hosted — your content never leaves your server.
+Inkweld is self-hosted — the content on your server doesn't leave your server and any browsers you connect with.  
 
-There's an **AI Kill Switch** (on by default) that disables all AI features. If you choose to enable them, optional integrations include cover generation and grammar suggestions.
+The only exceptions to this are if you use external AI services.  There's an **AI Kill Switch** that disables all AI features, and AI is disabled by default.   If you choose to enable AI features, you can connect to self hosted services, or external services, and uses include image generation based on content, and grammar suggestions.
 
-**Disclosure:** GitHub Copilot is used in development. The desktop background image is AI-generated. The logo is hand-drawn in Inkscape.
+**Disclosure:** GitHub Copilot and Claude Code is used in development (a lot). The desktop background image in the main app is currently AI-generated.  Some of the examples in the docs use generative AI for images and text. 
+
+The main logo is not AI, this was hand-drawn in Inkscape as SVG.
 
 ---
 
