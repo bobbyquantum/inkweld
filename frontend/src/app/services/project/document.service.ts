@@ -37,6 +37,7 @@ import { createLintPlugin } from '../../components/lint/lint-plugin';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { FindInDocumentService } from '../core/find-in-document.service';
+import { InsertImageService } from '../core/insert-image.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -100,6 +101,7 @@ export class DocumentService {
   private lintApiService = inject(LintApiService);
   private elementRefService = inject(ElementRefService);
   private findInDocumentService = inject(FindInDocumentService);
+  private insertImageService = inject(InsertImageService);
   private logger = inject(LoggerService);
   private userService = inject(UnifiedUserService);
   private localStorage = inject(LocalStorageService);
@@ -795,6 +797,10 @@ export class DocumentService {
         // Find in document shortcut (Ctrl/Cmd + F)
         onOpenFind: () => {
           this.findInDocumentService.open();
+        },
+        // Insert image shortcut (Ctrl/Cmd + Shift + I)
+        onInsertImage: () => {
+          this.insertImageService.trigger();
         },
       }
     );

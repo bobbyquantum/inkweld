@@ -119,4 +119,26 @@ describe('StorageService', () => {
       ).rejects.toThrow('IndexedDB is not available in this environment');
     });
   });
+
+  describe('closeDatabase', () => {
+    it('should close a specific database connection', async () => {
+      const config = {
+        dbName: TEST_DB,
+        version: 1,
+        stores: { testStore: null },
+      };
+
+      await service.initializeDatabase(config);
+      service.closeDatabase(TEST_DB);
+
+      // Reinitialize should create a new connection
+      const db = await service.initializeDatabase(config);
+      expect(db).toBeTruthy();
+    });
+
+    it('should handle closing non-existent database', () => {
+      // Should not throw
+      expect(() => service.closeDatabase('nonexistent')).not.toThrow();
+    });
+  });
 });

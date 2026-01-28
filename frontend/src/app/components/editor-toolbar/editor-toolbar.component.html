@@ -215,6 +215,14 @@
       </button>
       <button
         ngToolbarWidget
+        value="image"
+        matTooltip="Insert image (Ctrl+Shift+I)"
+        (click)="insertImage()"
+        data-testid="toolbar-image">
+        <mat-icon>image</mat-icon>
+      </button>
+      <button
+        ngToolbarWidget
         value="hr"
         matTooltip="Horizontal rule"
         (click)="insertHorizontalRule()"

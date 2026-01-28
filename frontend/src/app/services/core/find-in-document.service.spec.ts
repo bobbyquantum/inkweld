@@ -174,6 +174,23 @@ describe('FindInDocumentService', () => {
       expect(service.matchCount()).toBe(1); // Only lowercase 'test'
     });
   });
+
+  describe('getPluginState', () => {
+    it('should return undefined when no editor is set', () => {
+      expect(service.getPluginState()).toBeUndefined();
+    });
+
+    it('should return plugin state when editor is set', () => {
+      const mockView = createMockEditorView('test text');
+      const mockEditor = { view: mockView } as unknown as Editor;
+      service.setEditor(mockEditor);
+      service.search('test');
+
+      const state = service.getPluginState();
+      expect(state).toBeDefined();
+      expect(state?.query).toBe('test');
+    });
+  });
 });
 
 /**

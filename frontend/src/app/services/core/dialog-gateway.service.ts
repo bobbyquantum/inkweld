@@ -30,6 +30,11 @@ import {
   ImportProjectDialogResult,
 } from '../../dialogs/import-project-dialog/import-project-dialog.component';
 import {
+  InsertImageDialogComponent,
+  InsertImageDialogData,
+  InsertImageDialogResult,
+} from '../../dialogs/insert-image-dialog/insert-image-dialog.component';
+import {
   MediaSelectorDialogComponent,
   MediaSelectorDialogData,
   MediaSelectorDialogResult,
@@ -217,6 +222,19 @@ export class DialogGatewayService {
       maxWidth: '95vw',
       maxHeight: '90vh',
       disableClose: false,
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openInsertImageDialog(
+    data: InsertImageDialogData
+  ): Promise<InsertImageDialogResult | undefined> {
+    const dialogRef = this.dialog.open(InsertImageDialogComponent, {
+      data,
+      disableClose: false,
+      width: '500px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }
