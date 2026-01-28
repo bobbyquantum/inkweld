@@ -1,0 +1,121 @@
+<h2 mat-dialog-title>
+  @if (showCropper) {
+    Crop Image
+  } @else {
+    Insert Image
+  }
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  @if (showCropper) {
+    <!-- Cropper View -->
+    <div class="cropper-view">
+      <p class="cropper-subtitle">
+        Adjust the selection to crop your image (free aspect ratio)
+      </p>
+      <div class="cropper-container">
+        <image-cropper
+          [imageChangedEvent]="imageChangedEvent"
+          [imageBase64]="imageBase64"
+          [maintainAspectRatio]="maintainAspectRatio"
+          [aspectRatio]="aspectRatio"
+          [roundCropper]="false"
+          format="png"
+          output="blob"
+          [resizeToWidth]="1024"
+          [cropperMinWidth]="50"
+          [cropperMinHeight]="50"
+          [onlyScaleDown]="true"
+          (imageCropped)="imageCropped($event)"
+          (imageLoaded)="onImageLoaded($event)"
+          (cropperReady)="onCropperReady()"
+          (loadImageFailed)="onLoadImageFailed()">
+        </image-cropper>
+      </div>
+    </div>
+  } @else {
+    <!-- Main View -->
+    <div class="main-view">
+      <!-- Placeholder -->
+      <div class="image-preview">
+        <div class="no-image-placeholder">
+          <mat-icon>add_photo_alternate</mat-icon>
+          <span>Select an image to insert</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="openFileSelector()"
+          [disabled]="isLoading()"
+          data-testid="insert-image-upload">
+          <mat-icon>add_photo_alternate</mat-icon>
+          Upload Image
+        </button>
+
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="openMediaLibrary()"
+          [disabled]="isLoading()"
+          data-testid="insert-image-library">
+          <mat-icon>photo_library</mat-icon>
+          Select from Library
+        </button>
+
+        @if (aiGenerationStatus().status !== 'hidden') {
+          <button
+            mat-stroked-button
+            color="primary"
+            (click)="openGenerateDialog()"
+            [disabled]="
+              isLoading() || aiGenerationStatus().status === 'disabled'
+            "
+            [matTooltip]="aiGenerationStatus().tooltip ?? ''"
+            data-testid="insert-image-generate">
+            <mat-icon>auto_awesome</mat-icon>
+            Generate with AI
+            @if (aiGenerationStatus().status === 'disabled') {
+              <mat-icon class="disconnected-icon">cloud_off</mat-icon>
+            }
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Loading indicator -->
+  @if (isLoading()) {
+    <mat-progress-bar
+      mode="indeterminate"
+      class="loading-bar"></mat-progress-bar>
+  }
+
+  <!-- Hidden file input -->
+  <input
+    #fileInput
+    type="file"
+    accept="image/jpeg,image/jpg,image/png"
+    style="display: none"
+    (change)="onFileSelected($event)"
+    data-testid="insert-image-file-input" />
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (showCropper) {
+    <button mat-button (click)="cancelCropping()">Back</button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="applyCroppedImage()"
+      [disabled]="!croppedBlob"
+      data-testid="insert-image-apply">
+      Insert
+    </button>
+  } @else {
+    <button mat-button (click)="cancel()">Cancel</button>
+  }
+</mat-dialog-actions>

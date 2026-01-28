@@ -83,6 +83,9 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Emitted when the snapshots button is clicked */
   @Output() snapshotsClick = new EventEmitter<void>();
 
+  /** Emitted when the insert image button is clicked */
+  @Output() insertImageClick = new EventEmitter<void>();
+
   /** Signal for tracking the current selection state */
   private selectionState = signal({
     bold: false,
@@ -648,5 +651,12 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Open the snapshots dialog */
   openSnapshots(): void {
     this.snapshotsClick.emit();
+  }
+
+  // ========== Image Insert ==========
+
+  /** Emit event to open insert image dialog */
+  insertImage(): void {
+    this.insertImageClick.emit();
   }
 }

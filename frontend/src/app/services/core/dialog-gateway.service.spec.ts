@@ -22,6 +22,7 @@ import {
   ImageViewerDialogData,
 } from '../../dialogs/image-viewer-dialog/image-viewer-dialog.component';
 import { ImportProjectDialogComponent } from '../../dialogs/import-project-dialog/import-project-dialog.component';
+import { InsertImageDialogComponent } from '../../dialogs/insert-image-dialog/insert-image-dialog.component';
 import { MediaSelectorDialogComponent } from '../../dialogs/media-selector-dialog/media-selector-dialog.component';
 import {
   NewElementDialogComponent,
@@ -384,5 +385,40 @@ describe('DialogGatewayService', () => {
         disableClose: false,
       }
     );
+  });
+
+  it('should open new folder dialog', async () => {
+    const dialogResult = { name: 'New Folder' };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(dialogResult));
+
+    const result = await service.openNewFolderDialog();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(NewElementDialogComponent, {
+      disableClose: true,
+      width: '500px',
+      data: { skipTypeSelection: true, preselectedType: ElementType.Folder },
+    });
+    expect(result).toEqual(dialogResult);
+  });
+
+  it('should open insert image dialog', async () => {
+    const data = {
+      projectKey: 'testuser/test-project',
+      username: 'testuser',
+      slug: 'test-project',
+    };
+    const dialogResult = { imageUrl: 'https://example.com/image.png' };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(dialogResult));
+
+    const result = await service.openInsertImageDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(InsertImageDialogComponent, {
+      data,
+      disableClose: false,
+      width: '500px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+    });
+    expect(result).toEqual(dialogResult);
   });
 });

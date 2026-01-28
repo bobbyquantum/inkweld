@@ -15,7 +15,8 @@
           [elementName]="elementName()"
           [disabled]="!projectState.canWrite()"
           (tagsClick)="openTagsDialog()"
-          (snapshotsClick)="openSnapshotsDialog()">
+          (snapshotsClick)="openSnapshotsDialog()"
+          (insertImageClick)="openInsertImageDialog()">
         </app-editor-toolbar>
       }
       <div

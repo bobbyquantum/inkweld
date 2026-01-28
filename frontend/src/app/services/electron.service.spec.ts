@@ -58,6 +58,26 @@ describe('ElectronService', () => {
       expect(result).toBeNull();
     });
 
+    it('should do nothing for windowMinimize', async () => {
+      await service.windowMinimize();
+      // No error should be thrown
+    });
+
+    it('should return false for windowMaximize', async () => {
+      const result = await service.windowMaximize();
+      expect(result).toBe(false);
+    });
+
+    it('should do nothing for windowClose', async () => {
+      await service.windowClose();
+      // No error should be thrown
+    });
+
+    it('should return false for windowIsMaximized', async () => {
+      const result = await service.windowIsMaximized();
+      expect(result).toBe(false);
+    });
+
     it('should return { saved: false } for saveFileWithDialog', async () => {
       const result = await service.saveFileWithDialog('content', {
         title: 'Save',
@@ -76,6 +96,10 @@ describe('ElectronService', () => {
       writeFile: vi.fn(),
       readFile: vi.fn(),
       onMenuAction: vi.fn().mockReturnValue(() => {}),
+      windowMinimize: vi.fn().mockResolvedValue(undefined),
+      windowMaximize: vi.fn().mockResolvedValue(true),
+      windowClose: vi.fn().mockResolvedValue(undefined),
+      windowIsMaximized: vi.fn().mockResolvedValue(true),
     };
 
     beforeEach(() => {
@@ -88,6 +112,28 @@ describe('ElectronService', () => {
 
     it('should return true for isElectron', () => {
       expect(service.isElectron).toBe(true);
+    });
+
+    it('should call windowMinimize on Electron API', async () => {
+      await service.windowMinimize();
+      expect(mockElectronAPI.windowMinimize).toHaveBeenCalled();
+    });
+
+    it('should call windowMaximize on Electron API and return result', async () => {
+      const result = await service.windowMaximize();
+      expect(mockElectronAPI.windowMaximize).toHaveBeenCalled();
+      expect(result).toBe(true);
+    });
+
+    it('should call windowClose on Electron API', async () => {
+      await service.windowClose();
+      expect(mockElectronAPI.windowClose).toHaveBeenCalled();
+    });
+
+    it('should call windowIsMaximized on Electron API and return result', async () => {
+      const result = await service.windowIsMaximized();
+      expect(mockElectronAPI.windowIsMaximized).toHaveBeenCalled();
+      expect(result).toBe(true);
     });
 
     it('should return version from Electron API', async () => {

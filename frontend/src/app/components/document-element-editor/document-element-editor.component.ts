@@ -22,7 +22,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Editor, NgxEditorModule, Toolbar } from '@bobbyquantum/ngx-editor';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { InsertImageService } from '@services/core/insert-image.service';
 import { SettingsService } from '@services/core/settings.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
@@ -53,6 +56,7 @@ import {
   updateElementRefText,
 } from '../element-ref';
 import { FindInDocumentComponent } from '../find-in-document';
+import { createMediaUrl } from '../image-paste';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
@@ -91,6 +95,9 @@ export class DocumentElementEditorComponent
   private settingsService = inject(SettingsService);
   private relationshipService = inject(RelationshipService);
   private dialog = inject(MatDialog);
+  private dialogGateway = inject(DialogGatewayService);
+  private localStorage = inject(LocalStorageService);
+  private insertImageService = inject(InsertImageService);
   protected elementRefService = inject(ElementRefService);
   protected findService = inject(FindInDocumentService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
@@ -223,6 +230,15 @@ export class DocumentElementEditorComponent
         this.tooltipData.set(data);
       } else {
         this.tooltipData.set(null);
+      }
+    });
+
+    // Watch for insert image trigger from keyboard shortcut
+    effect(() => {
+      const triggerCount = this.insertImageService.triggerCount();
+      // Only trigger if count > 0 (skip initial value)
+      if (triggerCount > 0 && this.editor?.view && this.collaborationSetup) {
+        void this.openInsertImageDialog();
       }
     });
   }
@@ -746,5 +762,41 @@ export class DocumentElementEditorComponent
       width: '550px',
       autoFocus: false,
     });
+  }
+
+  /**
+   * Open the insert image dialog and insert the selected image into the document
+   */
+  async openInsertImageDialog(): Promise<void> {
+    if (!this.editor?.view) return;
+
+    const project = this.projectState.project();
+    if (!project) return;
+
+    // Store selection BEFORE opening dialog (dialog will steal focus)
+    const storedPos = this.editor.view.state.selection.from;
+
+    const result = await this.dialogGateway.openInsertImageDialog({
+      username: project.username,
+      slug: project.slug,
+    });
+
+    if (result?.mediaId && result?.imageBlob) {
+      // Save the image to local storage
+      const projectKey = `${project.username}/${project.slug}`;
+      await this.localStorage.saveMedia(
+        projectKey,
+        result.mediaId,
+        result.imageBlob
+      );
+
+      // Insert image at stored position
+      const imageNode = this.editor.view.state.schema.nodes['image'].create({
+        src: createMediaUrl(result.mediaId),
+      });
+      const tr = this.editor.view.state.tr.insert(storedPos, imageNode);
+      this.editor.view.dispatch(tr);
+      this.editor.view.focus();
+    }
   }
 }
