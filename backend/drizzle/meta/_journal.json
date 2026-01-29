@@ -99,6 +99,13 @@
       "when": 1768775871987,
       "tag": "0013_empty_dark_phoenix",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1769646170309,
+      "tag": "0015_add-min-client-version-fix",
+      "breakpoints": true
     }
   ]
 }
