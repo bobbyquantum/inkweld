@@ -7,6 +7,7 @@ import { Router, RouterOutlet } from '@angular/router';
 import { ThemeService } from '../themes/theme.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
+import { VersionCompatibilityService } from './services/core/version-compatibility.service';
 import { ViewportService } from './services/core/viewport.service';
 import { BackgroundSyncService } from './services/local/background-sync.service';
 import { UnifiedUserService } from './services/user/unified-user.service';
@@ -28,6 +29,7 @@ export class AppComponent implements OnInit {
   protected readonly themeService = inject(ThemeService);
   protected readonly setupService = inject(SetupService);
   protected readonly updateService = inject(UpdateService);
+  protected readonly versionCompatibility = inject(VersionCompatibilityService);
   protected readonly viewportService = inject(ViewportService);
   protected readonly unifiedUserService = inject(UnifiedUserService);
   protected readonly backgroundSync = inject(BackgroundSyncService);
@@ -72,6 +74,10 @@ export class AppComponent implements OnInit {
     this.offlineMode.set(true);
   }
 
+  protected refreshPage(): void {
+    window.location.reload();
+  }
+
   private async initializeApp(): Promise<void> {
     try {
       // Check if app is configured
@@ -100,6 +106,12 @@ export class AppComponent implements OnInit {
       // Set offline mode flag for UI
       const mode = this.setupService.getMode();
       this.offlineMode.set(mode === 'local');
+
+      // Check version compatibility with server (only in server mode)
+      // This runs in the background and updates syncBlocked signal if mismatch
+      if (mode === 'server') {
+        void this.versionCompatibility.initialize();
+      }
 
       // Initialize background sync service for pending changes
       this.backgroundSync.initialize();

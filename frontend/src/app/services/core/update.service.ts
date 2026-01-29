@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
@@ -8,11 +8,18 @@ import { filter } from 'rxjs/operators';
   providedIn: 'root',
 })
 export class UpdateService {
-  private swUpdate = inject(SwUpdate);
+  // SwUpdate is optional - may not be available in tests or when service worker is disabled
+  private swUpdate = inject(SwUpdate, { optional: true });
   private dialog = inject(MatDialog);
 
+  /** Whether an update is available and waiting to be applied */
+  readonly updateAvailable = signal(false);
+
+  /** Whether we're currently checking for updates */
+  readonly checking = signal(false);
+
   constructor() {
-    if (this.swUpdate.isEnabled) {
+    if (this.swUpdate?.isEnabled) {
       console.log('Service Worker Update Service initialized');
 
       this.swUpdate.versionUpdates
@@ -23,14 +30,49 @@ export class UpdateService {
         )
         .subscribe(evt => {
           console.log('New version available!', evt);
+          this.updateAvailable.set(true);
           this.showUpdateDialog();
         });
 
-      // Check for updates every hour
+      // Check for updates immediately on startup (don't wait an hour!)
+      void this.checkForUpdate();
+
+      // Then check every hour
       setInterval(() => {
-        void this.swUpdate.checkForUpdate();
+        void this.checkForUpdate();
       }, 3600000);
     }
+  }
+
+  /**
+   * Manually check for updates.
+   * Returns true if an update is available.
+   */
+  async checkForUpdate(): Promise<boolean> {
+    if (!this.swUpdate?.isEnabled) {
+      return false;
+    }
+
+    this.checking.set(true);
+    try {
+      const hasUpdate = await this.swUpdate.checkForUpdate();
+      if (hasUpdate) {
+        this.updateAvailable.set(true);
+      }
+      return hasUpdate;
+    } catch (error) {
+      console.error('Error checking for update:', error);
+      return false;
+    } finally {
+      this.checking.set(false);
+    }
+  }
+
+  /**
+   * Apply the pending update by reloading the page.
+   */
+  applyUpdate(): void {
+    window.location.reload();
   }
 
   private showUpdateDialog(): void {

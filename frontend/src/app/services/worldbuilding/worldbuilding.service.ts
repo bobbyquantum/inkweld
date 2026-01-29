@@ -9,6 +9,7 @@ import { ElementTypeSchema } from '../../models/schema-types';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
+import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { createAuthenticatedWebsocketProvider } from '../sync/authenticated-websocket-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
@@ -43,6 +44,7 @@ export class WorldbuildingService {
   private setupService = inject(SetupService);
   private syncProviderFactory = inject(ElementSyncProviderFactory);
   private authTokenService = inject(AuthTokenService);
+  private versionCompatibility = inject(VersionCompatibilityService);
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private connections = new Map<string, WorldbuildingConnection>();
@@ -200,7 +202,9 @@ export class WorldbuildingService {
 
       // Get auth token for WebSocket authentication
       const authToken = this.authTokenService.getToken();
-      if (authToken) {
+      // Check version compatibility before connecting to WebSocket
+      const syncBlocked = this.versionCompatibility.syncBlocked();
+      if (authToken && !syncBlocked) {
         // Use authenticated WebSocket provider (sends auth token on connect)
         const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
         try {
