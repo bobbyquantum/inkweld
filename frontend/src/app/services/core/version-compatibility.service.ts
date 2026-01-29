@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 
 import { environment } from '../../../environments/environment';
 import {
@@ -6,6 +6,7 @@ import {
   ServerVersionInfo,
   StorageContextService,
 } from './storage-context.service';
+import { UpdateService } from './update.service';
 
 /**
  * Expected health endpoint response shape for type safety
@@ -119,12 +120,78 @@ export interface ProjectCompatibilityResult {
 })
 export class VersionCompatibilityService {
   private storageContext = inject(StorageContextService);
+  private updateService = inject(UpdateService);
 
   /** Signal indicating if a compatibility check is in progress */
   readonly checking = signal(false);
 
   /** Signal with the last compatibility result for the active server */
   readonly lastResult = signal<CompatibilityResult | null>(null);
+
+  /**
+   * Whether sync should be blocked due to version incompatibility.
+   * This is true when:
+   * - The server protocol version doesn't match the client, OR
+   * - The client version is too old for the server
+   *
+   * When sync is blocked, users should update before their changes will sync.
+   */
+  readonly syncBlocked = computed(() => {
+    const result = this.lastResult();
+    if (!result) return false; // No check performed yet, allow sync
+    return !result.compatible;
+  });
+
+  /**
+   * Whether an update is available that could resolve the sync block.
+   */
+  readonly updateAvailable = computed(() => {
+    return this.updateService.updateAvailable();
+  });
+
+  /**
+   * User-friendly message explaining why sync is blocked.
+   */
+  readonly syncBlockedMessage = computed(() => {
+    const result = this.lastResult();
+    if (!result || result.compatible) return null;
+
+    const updateAvail = this.updateAvailable();
+    if (updateAvail) {
+      return 'A new version of Inkweld is available. Please update to sync your changes.';
+    }
+
+    if (!result.protocolCompatible) {
+      return `This client is incompatible with the server. Please refresh or reinstall the app.`;
+    }
+
+    if (!result.clientVersionCompatible && result.serverInfo) {
+      return `This client (${this.getClientVersion()}) is too old. Server requires version ${result.serverInfo.minClientVersion} or later.`;
+    }
+
+    return result.message || 'Client-server version mismatch. Please update.';
+  });
+
+  /**
+   * Initialize version compatibility checking.
+   * Call this on app startup to check server compatibility.
+   * Only checks if in server mode.
+   */
+  async initialize(): Promise<void> {
+    const activeConfig = this.storageContext.activeConfig();
+    if (!activeConfig || activeConfig.type === 'local') {
+      // Local mode is always compatible
+      this.lastResult.set({
+        compatible: true,
+        protocolCompatible: true,
+        clientVersionCompatible: true,
+      });
+      return;
+    }
+
+    // Check compatibility with the active server
+    await this.checkAndUpdateProfileCompatibility(activeConfig);
+  }
 
   /**
    * Get the current client version
