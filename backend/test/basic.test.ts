@@ -20,6 +20,18 @@ describe('Health Check', () => {
     expect(data.status).toBe('ok');
   });
 
+  it('should return version information in health check', async () => {
+    const { response, json } = await client.request('/api/v1/health');
+    expect(response.status).toBe(200);
+    const data = await json();
+    expect(data).toHaveProperty('version');
+    expect(data).toHaveProperty('protocolVersion');
+    expect(data).toHaveProperty('minClientVersion');
+    expect(typeof data.version).toBe('string');
+    expect(typeof data.protocolVersion).toBe('number');
+    expect(typeof data.minClientVersion).toBe('string');
+  });
+
   it('should return 200 for readiness check', async () => {
     const { response, json } = await client.request('/api/v1/health/ready');
     expect(response.status).toBe(200);

@@ -1,5 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
+import { config } from '../config/env';
+import { PROTOCOL_VERSION, MIN_CLIENT_VERSION } from '../config/protocol';
 
 const healthRoutes = new OpenAPIHono();
 
@@ -11,6 +13,15 @@ const HealthResponseSchema = z
       .string()
       .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Current server timestamp' }),
     uptime: z.number().openapi({ example: 123.45, description: 'Server uptime in seconds' }),
+    version: z.string().openapi({ example: '0.1.0', description: 'Server version' }),
+    protocolVersion: z.number().openapi({
+      example: 1,
+      description: 'API protocol version for client compatibility checking',
+    }),
+    minClientVersion: z.string().openapi({
+      example: '0.1.0',
+      description: 'Minimum client version required to connect to this server',
+    }),
   })
   .openapi('HealthResponse');
 
@@ -46,6 +57,9 @@ healthRoutes.openapi(healthRoute, (c) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    version: config.version,
+    protocolVersion: PROTOCOL_VERSION,
+    minClientVersion: MIN_CLIENT_VERSION,
   });
 });
 

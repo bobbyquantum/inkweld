@@ -243,8 +243,11 @@ test.describe('Image Insert', () => {
       await editor.click();
       await expect(editor).toBeFocused();
 
-      // Press keyboard shortcut
-      await page.keyboard.press('Control+Shift+KeyI');
+      // Press keyboard shortcut (Meta on macOS, Control on Windows/Linux)
+      const isMac = process.platform === 'darwin';
+      await page.keyboard.press(
+        isMac ? 'Meta+Shift+KeyI' : 'Control+Shift+KeyI'
+      );
 
       // Dialog should open
       await expect(page.getByRole('dialog')).toBeVisible();
