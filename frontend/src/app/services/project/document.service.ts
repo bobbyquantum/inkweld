@@ -42,6 +42,7 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
+import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import {
   createAuthenticatedWebsocketProvider,
@@ -106,6 +107,7 @@ export class DocumentService {
   private userService = inject(UnifiedUserService);
   private localStorage = inject(LocalStorageService);
   private storageContext = inject(StorageContextService);
+  private versionCompatibility = inject(VersionCompatibilityService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -970,6 +972,17 @@ export class DocumentService {
       this.logger.error(
         'DocumentService',
         'No auth token available for WebSocket connection'
+      );
+      this.updateSyncStatus(documentId, DocumentSyncState.Local);
+      return;
+    }
+
+    // Check version compatibility before connecting to WebSocket
+    // If sync is blocked due to version mismatch, stay in local mode
+    if (this.versionCompatibility.syncBlocked()) {
+      this.logger.warn(
+        'DocumentService',
+        `Sync blocked due to version incompatibility for document ${documentId} - working in local mode only`
       );
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
       return;

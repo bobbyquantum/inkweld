@@ -1,3 +1,22 @@
+<!-- Version Compatibility Warning Bar -->
+@if (versionCompatibility.syncBlocked()) {
+  <mat-toolbar class="version-warning-bar" color="warn">
+    <span>{{ versionCompatibility.syncBlockedMessage() }}</span>
+    <div class="version-warning-actions">
+      @if (updateService.updateAvailable()) {
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="updateService.applyUpdate()">
+          Update Now
+        </button>
+      } @else {
+        <button mat-button (click)="refreshPage()">Refresh</button>
+      }
+    </div>
+  </mat-toolbar>
+}
+
 <!-- Authentication Error Bar -->
 @if (shouldShowErrorBar()) {
   <mat-toolbar class="auth-error-bar" color="warn">

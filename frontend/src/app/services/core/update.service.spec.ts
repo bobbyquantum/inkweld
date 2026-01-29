@@ -94,4 +94,51 @@ describe('UpdateService', () => {
 
     expect(window.location.reload).not.toHaveBeenCalled();
   });
+
+  it('should apply update by reloading the page', () => {
+    service.applyUpdate();
+    expect(window.location.reload).toHaveBeenCalled();
+  });
+
+  it('should handle checkForUpdate error gracefully', async () => {
+    swUpdateMock.checkForUpdate.mockRejectedValue(new Error('Network error'));
+    const result = await service.checkForUpdate();
+    expect(result).toBe(false);
+  });
+});
+
+describe('UpdateService without SwUpdate', () => {
+  let service: UpdateService;
+  let dialogMock: any;
+
+  beforeEach(() => {
+    dialogMock = {
+      open: vi.fn().mockReturnValue({
+        afterClosed: vi.fn().mockReturnValue(of(true)),
+      }),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        UpdateService,
+        { provide: MatDialog, useValue: dialogMock },
+        // No SwUpdate provider - it will be null via optional injection
+      ],
+    });
+
+    service = TestBed.inject(UpdateService);
+  });
+
+  it('should be created without SwUpdate', () => {
+    expect(service).toBeTruthy();
+  });
+
+  it('should return false when checking for update without SwUpdate', async () => {
+    const result = await service.checkForUpdate();
+    expect(result).toBe(false);
+  });
+
+  it('should report updateAvailable as false', () => {
+    expect(service.updateAvailable()).toBe(false);
+  });
 });

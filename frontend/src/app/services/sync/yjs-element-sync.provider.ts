@@ -17,6 +17,7 @@ import { ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
+import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
@@ -65,6 +66,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly logger = inject(LoggerService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly versionCompatibility = inject(VersionCompatibilityService);
 
   // Yjs infrastructure
   private doc: Y.Doc | null = null;
@@ -188,6 +190,17 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           'No auth token available for WebSocket connection'
         );
         // Continue offline - we already have IndexedDB data
+        this.syncStateSubject.next(DocumentSyncState.Local);
+        return { success: true };
+      }
+
+      // Check version compatibility before connecting to WebSocket
+      // If sync is blocked due to version mismatch, stay in local mode
+      if (this.versionCompatibility.syncBlocked()) {
+        this.logger.warn(
+          'YjsSync',
+          'Sync blocked due to version incompatibility - working in local mode only'
+        );
         this.syncStateSubject.next(DocumentSyncState.Local);
         return { success: true };
       }
