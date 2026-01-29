@@ -73,6 +73,7 @@ projectRoutes.openapi(listProjectsRoute, async (c) => {
       description: p.description,
       username: p.username,
       coverImage: p.coverImage ?? null,
+      minClientVersion: p.minClientVersion ?? null,
       createdDate: new Date(p.createdDate).toISOString(),
       updatedDate: new Date(p.updatedDate).toISOString(),
     })),
@@ -158,6 +159,7 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
       description: project.description,
       username: project.username,
       coverImage: project.coverImage ?? null,
+      minClientVersion: project.minClientVersion ?? null,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
       access: {
@@ -260,6 +262,7 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
       description: project.description,
       username: user.username,
       coverImage: project.coverImage ?? null,
+      minClientVersion: project.minClientVersion ?? null,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
       // Creator is always the owner with full access
@@ -369,6 +372,7 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
       description: updated.description,
       username: project.username,
       coverImage: updated.coverImage ?? null,
+      minClientVersion: updated.minClientVersion ?? null,
       createdDate: new Date(updated.createdDate).toISOString(),
       updatedDate: new Date(updated.updatedDate).toISOString(),
       access: {

@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { config } from '../config/env';
+import { PROTOCOL_VERSION, MIN_CLIENT_VERSION } from '../config/protocol';
 import { imageGenerationService } from '../services/image-generation.service';
 import { configService } from '../services/config.service';
 import type { AppContext } from '../types/context';
@@ -11,6 +12,14 @@ const configRoutes = new OpenAPIHono<AppContext>();
 const ConfigResponseSchema = z
   .object({
     version: z.string().openapi({ example: '1.0.0', description: 'Application version' }),
+    protocolVersion: z.number().openapi({
+      example: 1,
+      description: 'API protocol version for client compatibility checking',
+    }),
+    minClientVersion: z.string().openapi({
+      example: '0.1.0',
+      description: 'Minimum client version required to connect to this server',
+    }),
     userApprovalRequired: z
       .boolean()
       .openapi({ example: false, description: 'Whether admin approval is required for new users' }),
@@ -72,6 +81,8 @@ const getConfigRoute = createRoute({
 configRoutes.openapi(getConfigRoute, (c) => {
   return c.json({
     version: config.version,
+    protocolVersion: PROTOCOL_VERSION,
+    minClientVersion: MIN_CLIENT_VERSION,
     userApprovalRequired: config.userApprovalRequired,
     githubEnabled: config.github.enabled,
   });

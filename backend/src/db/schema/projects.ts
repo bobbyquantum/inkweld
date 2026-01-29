@@ -13,6 +13,8 @@ export const projects = sqliteTable('projects', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   coverImage: text('cover_image'), // nullable - null when no cover, filename when cover exists
+  /** Minimum client version required to open this project (e.g., "0.2.0") */
+  minClientVersion: text('min_client_version'),
   createdDate: integer('created_date', { mode: 'number' }).notNull(),
   updatedDate: integer('updated_date', { mode: 'number' }).notNull(),
 });

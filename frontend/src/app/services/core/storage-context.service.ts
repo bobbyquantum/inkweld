@@ -1,6 +1,23 @@
 import { computed, Injectable, signal } from '@angular/core';
 
 /**
+ * Server version information for compatibility checking
+ */
+export interface ServerVersionInfo {
+  /** Server version string (e.g., "0.1.0") */
+  serverVersion: string;
+
+  /** API protocol version number */
+  protocolVersion: number;
+
+  /** Minimum client version required by the server */
+  minClientVersion: string;
+
+  /** When this version info was last checked */
+  lastCheckedAt: string;
+}
+
+/**
  * Server/mode configuration for storage isolation
  */
 export interface ServerConfig {
@@ -22,6 +39,9 @@ export interface ServerConfig {
     username: string;
     avatarUrl?: string;
   };
+
+  /** Cached server version information for compatibility checking */
+  versionInfo?: ServerVersionInfo;
 
   /** When this configuration was added */
   addedAt: string;
@@ -492,6 +512,27 @@ export class StorageContextService {
       ...currentConfig,
       configurations: currentConfig.configurations.map(c =>
         c.id === configId ? { ...c, userProfile } : c
+      ),
+    };
+
+    this.saveConfig(updated);
+    this.configSignal.set(updated);
+  }
+
+  /**
+   * Update the server version info for a configuration
+   */
+  updateConfigVersionInfo(
+    configId: string,
+    versionInfo: ServerVersionInfo
+  ): void {
+    const currentConfig = this.configSignal();
+    if (!currentConfig) return;
+
+    const updated: AppConfigV2 = {
+      ...currentConfig,
+      configurations: currentConfig.configurations.map(c =>
+        c.id === configId ? { ...c, versionInfo } : c
       ),
     };
 

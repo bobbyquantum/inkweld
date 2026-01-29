@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `min_client_version` text;

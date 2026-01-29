@@ -15,6 +15,11 @@ export const ProjectSchema = z
     description: z.string().nullable().optional().openapi({ description: 'Project description' }),
     username: z.string().openapi({ description: 'Project owner username' }),
     coverImage: z.string().nullable().optional().openapi({ description: 'Cover image URL' }),
+    minClientVersion: z.string().nullable().optional().openapi({
+      description:
+        'Minimum client version required to open this project. If null, any client version is acceptable.',
+      example: '0.2.0',
+    }),
     createdDate: z.string().datetime().openapi({ description: 'Project creation date' }),
     updatedDate: z.string().datetime().openapi({ description: 'Last update date' }),
     // Access permissions (only set when user is authenticated)
@@ -67,6 +72,11 @@ export const UpdateProjectRequestSchema = z
       .optional()
       .openapi({ description: 'Updated project title', example: 'My Updated Novel' }),
     description: z.string().optional().openapi({ description: 'Updated project description' }),
+    minClientVersion: z.string().nullable().optional().openapi({
+      description:
+        'Minimum client version required to open this project. Set to null to remove the requirement.',
+      example: '0.2.0',
+    }),
   })
   .openapi('UpdateProjectRequest');
 
