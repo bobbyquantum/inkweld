@@ -6,12 +6,12 @@
 
 **Collaborative creative writing platform** with monorepo structure:
 
-| Layer | Tech | Runtime | Port |
-|-------|------|---------|------|
-| Frontend | Angular 21 (standalone) | Node.js | 4200 |
-| Backend | Hono + Drizzle ORM | Bun | 8333 |
-| Real-time | Yjs + ProseMirror | WebSocket | — |
-| Storage | SQLite + per-project LevelDB | — | — |
+| Layer     | Tech                         | Runtime   | Port |
+| --------- | ---------------------------- | --------- | ---- |
+| Frontend  | Angular 21 (standalone)      | Node.js   | 4200 |
+| Backend   | Hono + Drizzle ORM           | Bun       | 8333 |
+| Real-time | Yjs + ProseMirror            | WebSocket | —    |
+| Storage   | SQLite + per-project LevelDB | —         | —    |
 
 ## Mandatory Verification
 
@@ -43,8 +43,7 @@ import { MyComponent } from '@components/my-component';
 
 ```html
 <!-- ✅ Modern control flow with track -->
-@for (item of items; track item.id) { ... }
-@if (condition) { ... } @else { ... }
+@for (item of items; track item.id) { ... } @if (condition) { ... } @else { ... }
 
 <!-- ❌ Never use legacy directives -->
 *ngIf, *ngFor, *ngSwitch
@@ -53,12 +52,14 @@ import { MyComponent } from '@components/my-component';
 ## Key Workflows
 
 ### API Changes
+
 ```bash
 cd backend
 bun run generate:openapi && bun run generate:angular-client
 ```
 
 ### E2E Tests
+
 - Use `data-testid` selectors (never text/class-based)
 - Helpers in `frontend/e2e/common/test-helpers.ts`
 - See `frontend/e2e/BEST_PRACTICES.md`
@@ -71,10 +72,10 @@ bun run generate:openapi && bun run generate:angular-client
 
 ## Key Files
 
-| Purpose | Location |
-|---------|----------|
-| Project state | `frontend/src/app/services/project/project-state.service.ts` |
-| Document sync | `frontend/src/app/services/project/document.service.ts` |
-| Backend routes | `backend/src/routes/` |
-| API schemas | `backend/src/schemas/` |
-| E2E helpers | `frontend/e2e/common/test-helpers.ts` |
+| Purpose        | Location                                                     |
+| -------------- | ------------------------------------------------------------ |
+| Project state  | `frontend/src/app/services/project/project-state.service.ts` |
+| Document sync  | `frontend/src/app/services/project/document.service.ts`      |
+| Backend routes | `backend/src/routes/`                                        |
+| API schemas    | `backend/src/schemas/`                                       |
+| E2E helpers    | `frontend/e2e/common/test-helpers.ts`                        |
