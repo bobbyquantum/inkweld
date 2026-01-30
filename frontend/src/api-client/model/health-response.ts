@@ -22,5 +22,17 @@ export interface HealthResponse {
      * Server uptime in seconds
      */
     uptime: number;
+    /**
+     * Server version
+     */
+    version: string;
+    /**
+     * API protocol version for client compatibility checking
+     */
+    protocolVersion: number;
+    /**
+     * Minimum client version required to connect to this server
+     */
+    minClientVersion: string;
 }
 

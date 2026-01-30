@@ -301,6 +301,12 @@
             "nullable": true,
             "description": "Cover image URL"
           },
+          "minClientVersion": {
+            "type": "string",
+            "nullable": true,
+            "description": "Minimum client version required to open this project. If null, any client version is acceptable.",
+            "example": "0.2.0"
+          },
           "createdDate": {
             "type": "string",
             "format": "date-time",
@@ -361,6 +367,42 @@
           "updatedDate"
         ]
       },
+      "ProjectRenameRedirect": {
+        "type": "object",
+        "properties": {
+          "renamed": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Indicates this is a redirect response"
+          },
+          "oldSlug": {
+            "type": "string",
+            "description": "The old slug that was requested"
+          },
+          "newSlug": {
+            "type": "string",
+            "description": "The new slug to redirect to"
+          },
+          "username": {
+            "type": "string",
+            "description": "Project owner username"
+          },
+          "renamedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the rename occurred"
+          }
+        },
+        "required": [
+          "renamed",
+          "oldSlug",
+          "newSlug",
+          "username",
+          "renamedAt"
+        ]
+      },
       "CreateProjectRequest": {
         "type": "object",
         "properties": {
@@ -390,6 +432,13 @@
       "UpdateProjectRequest": {
         "type": "object",
         "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 3,
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Updated URL-friendly project identifier (lowercase, numbers, hyphens only). Changing this will update the project URL.",
+            "example": "my-renamed-novel"
+          },
           "title": {
             "type": "string",
             "minLength": 1,
@@ -399,8 +448,73 @@
           "description": {
             "type": "string",
             "description": "Updated project description"
+          },
+          "minClientVersion": {
+            "type": "string",
+            "nullable": true,
+            "description": "Minimum client version required to open this project. Set to null to remove the requirement.",
+            "example": "0.2.0"
           }
         }
+      },
+      "CheckTombstonesResponse": {
+        "type": "object",
+        "properties": {
+          "tombstones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectTombstone"
+            },
+            "description": "List of tombstones found for the requested slugs"
+          }
+        },
+        "required": [
+          "tombstones"
+        ]
+      },
+      "ProjectTombstone": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "The owner username of the deleted project"
+          },
+          "slug": {
+            "type": "string",
+            "description": "The slug of the deleted project"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the project was deleted"
+          }
+        },
+        "required": [
+          "username",
+          "slug",
+          "deletedAt"
+        ]
+      },
+      "CheckTombstonesRequest": {
+        "type": "object",
+        "properties": {
+          "projectKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "description": "List of project keys (username/slug format) to check for tombstones (max 100)",
+            "example": [
+              "alice/my-project",
+              "bob/another-project"
+            ]
+          }
+        },
+        "required": [
+          "projectKeys"
+        ]
       },
       "Document": {
         "type": "object",
@@ -738,12 +852,30 @@
             "type": "number",
             "example": 123.45,
             "description": "Server uptime in seconds"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.1.0",
+            "description": "Server version"
+          },
+          "protocolVersion": {
+            "type": "number",
+            "example": 1,
+            "description": "API protocol version for client compatibility checking"
+          },
+          "minClientVersion": {
+            "type": "string",
+            "example": "0.1.0",
+            "description": "Minimum client version required to connect to this server"
           }
         },
         "required": [
           "status",
           "timestamp",
-          "uptime"
+          "uptime",
+          "version",
+          "protocolVersion",
+          "minClientVersion"
         ]
       },
       "ReadyResponse": {
@@ -773,6 +905,16 @@
             "example": "1.0.0",
             "description": "Application version"
           },
+          "protocolVersion": {
+            "type": "number",
+            "example": 1,
+            "description": "API protocol version for client compatibility checking"
+          },
+          "minClientVersion": {
+            "type": "string",
+            "example": "0.1.0",
+            "description": "Minimum client version required to connect to this server"
+          },
           "userApprovalRequired": {
             "type": "boolean",
             "example": false,
@@ -786,6 +928,8 @@
         },
         "required": [
           "version",
+          "protocolVersion",
+          "minClientVersion",
           "userApprovalRequired",
           "githubEnabled"
         ]
@@ -5064,6 +5208,16 @@
               }
             }
           },
+          "301": {
+            "description": "Project was renamed - client should update local storage and redirect",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRenameRedirect"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Not authenticated",
             "content": {
@@ -5239,6 +5393,46 @@
           },
           "404": {
             "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/tombstones/check": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "checkTombstones",
+        "description": "Check if any of the given projects have been deleted. Accepts project keys in username/slug format. Used by clients to detect when local copies should be purged.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckTombstonesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of tombstones for deleted projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckTombstonesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
             "content": {
               "application/json": {
                 "schema": {

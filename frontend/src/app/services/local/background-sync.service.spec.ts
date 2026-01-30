@@ -18,6 +18,7 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
 import { BackgroundSyncService } from './background-sync.service';
+import { LocalProjectService } from './local-project.service';
 import { ProjectSyncService } from './project-sync.service';
 import { StorageService } from './storage.service';
 
@@ -32,12 +33,17 @@ describe('BackgroundSyncService', () => {
   const mockProjectsApi = {
     createProject: vi.fn(),
     updateProject: vi.fn(),
+    checkTombstones: vi.fn(),
   };
 
   const mockProjectService = {
     updateLocalProjectWithServerData: vi.fn(),
     getProjectByUsernameAndSlug: vi.fn(),
     updateProject: vi.fn(),
+  };
+
+  const mockLocalProjectService = {
+    deleteProject: vi.fn(),
   };
 
   const mockSetupService = {
@@ -57,6 +63,9 @@ describe('BackgroundSyncService', () => {
     // Default to server mode
     mockSetupService.getMode.mockReturnValue('server');
 
+    // Default mock for tombstones check - no tombstones by default
+    mockProjectsApi.checkTombstones.mockReturnValue(of({ tombstones: [] }));
+
     // Mock navigator.onLine
     Object.defineProperty(navigator, 'onLine', {
       value: true,
@@ -72,6 +81,7 @@ describe('BackgroundSyncService', () => {
         { provide: SetupService, useValue: mockSetupService },
         { provide: ProjectsService, useValue: mockProjectsApi },
         { provide: ProjectService, useValue: mockProjectService },
+        { provide: LocalProjectService, useValue: mockLocalProjectService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     });
@@ -329,6 +339,188 @@ describe('BackgroundSyncService', () => {
         'BackgroundSync',
         'Network connectivity restored, syncing pending items...'
       );
+    });
+  });
+
+  describe('checkAndRemoveTombstonedProjects', () => {
+    it('should check tombstones before syncing pending creations', async () => {
+      // Set up a pending creation
+      const projectKey = 'alice/my-project';
+      await projectSyncService.markPendingCreation(projectKey, {
+        title: 'My Project',
+        slug: 'my-project',
+      });
+
+      // Mock no tombstones
+      mockProjectsApi.checkTombstones.mockReturnValue(of({ tombstones: [] }));
+
+      // Mock successful API call for creation
+      mockProjectsApi.createProject.mockReturnValue(
+        of({
+          id: 'server-id-123',
+          title: 'My Project',
+          slug: 'my-project',
+          username: 'alice',
+        })
+      );
+      mockProjectService.updateLocalProjectWithServerData.mockResolvedValue(
+        undefined
+      );
+
+      await service.syncPendingItems();
+
+      // Should have called checkTombstones with projectKeys
+      expect(mockProjectsApi.checkTombstones).toHaveBeenCalledWith({
+        projectKeys: ['alice/my-project'],
+      });
+    });
+
+    it('should remove local project when tombstone is found', async () => {
+      // Set up a pending creation
+      const projectKey = 'alice/deleted-project';
+      await projectSyncService.markPendingCreation(projectKey, {
+        title: 'Deleted Project',
+        slug: 'deleted-project',
+      });
+
+      // Mock tombstone found
+      mockProjectsApi.checkTombstones.mockReturnValue(
+        of({
+          tombstones: [
+            {
+              username: 'alice',
+              slug: 'deleted-project',
+              deletedAt: '2024-01-15T10:00:00Z',
+            },
+          ],
+        })
+      );
+
+      await service.syncPendingItems();
+
+      // Should have deleted the local project without creating another tombstone
+      expect(mockLocalProjectService.deleteProject).toHaveBeenCalledWith(
+        'alice',
+        'deleted-project',
+        { createTombstone: false }
+      );
+
+      // Should NOT have tried to create the project on server
+      expect(mockProjectsApi.createProject).not.toHaveBeenCalled();
+
+      // Should have logged the removal
+      expect(mockLoggerService.info).toHaveBeenCalledWith(
+        'BackgroundSync',
+        expect.stringContaining(
+          'Removed tombstoned project: alice/deleted-project'
+        )
+      );
+    });
+
+    it('should handle multiple projects with mixed tombstones', async () => {
+      // Set up two pending creations
+      await projectSyncService.markPendingCreation('alice/existing-project', {
+        title: 'Existing Project',
+        slug: 'existing-project',
+      });
+      await projectSyncService.markPendingCreation('alice/deleted-project', {
+        title: 'Deleted Project',
+        slug: 'deleted-project',
+      });
+
+      // Mock one tombstone found (for deleted-project)
+      mockProjectsApi.checkTombstones.mockReturnValue(
+        of({
+          tombstones: [
+            {
+              username: 'alice',
+              slug: 'deleted-project',
+              deletedAt: '2024-01-15T10:00:00Z',
+            },
+          ],
+        })
+      );
+
+      // Mock successful API call for existing project
+      mockProjectsApi.createProject.mockReturnValue(
+        of({
+          id: 'server-id-456',
+          title: 'Existing Project',
+          slug: 'existing-project',
+          username: 'alice',
+        })
+      );
+      mockProjectService.updateLocalProjectWithServerData.mockResolvedValue(
+        undefined
+      );
+
+      await service.syncPendingItems();
+
+      // Should have deleted only the tombstoned project
+      expect(mockLocalProjectService.deleteProject).toHaveBeenCalledWith(
+        'alice',
+        'deleted-project',
+        { createTombstone: false }
+      );
+      expect(mockLocalProjectService.deleteProject).toHaveBeenCalledTimes(1);
+
+      // Should have created only the existing project
+      expect(mockProjectsApi.createProject).toHaveBeenCalledWith({
+        title: 'Existing Project',
+        slug: 'existing-project',
+        description: undefined,
+      });
+      expect(mockProjectsApi.createProject).toHaveBeenCalledTimes(1);
+    });
+
+    it('should continue syncing even if tombstone check fails', async () => {
+      // Set up a pending creation
+      await projectSyncService.markPendingCreation('alice/my-project', {
+        title: 'My Project',
+        slug: 'my-project',
+      });
+
+      // Mock tombstone check failure
+      mockProjectsApi.checkTombstones.mockReturnValue(
+        throwError(() => new Error('Network error'))
+      );
+
+      // Mock successful API call for creation
+      mockProjectsApi.createProject.mockReturnValue(
+        of({
+          id: 'server-id-789',
+          title: 'My Project',
+          slug: 'my-project',
+          username: 'alice',
+        })
+      );
+      mockProjectService.updateLocalProjectWithServerData.mockResolvedValue(
+        undefined
+      );
+
+      const result = await service.syncPendingItems();
+
+      // Should still succeed
+      expect(result).toBe(true);
+
+      // Should have logged the error
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'BackgroundSync',
+        'Failed to check server tombstones',
+        expect.any(Error)
+      );
+
+      // Should have still tried to create the project
+      expect(mockProjectsApi.createProject).toHaveBeenCalled();
+    });
+
+    it('should not check tombstones when no pending creations', async () => {
+      // No pending creations
+
+      await service.syncPendingItems();
+
+      // Should not have called checkTombstones
+      expect(mockProjectsApi.checkTombstones).not.toHaveBeenCalled();
     });
   });
 });

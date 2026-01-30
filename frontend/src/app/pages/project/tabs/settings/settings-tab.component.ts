@@ -24,8 +24,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   Collaborator,
   CollaboratorRole,
@@ -34,12 +36,14 @@ import {
   McpPermission,
   McpPublicKey,
 } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
   MediaSyncService,
   MediaSyncState,
 } from '@services/local/media-sync.service';
+import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -106,6 +110,10 @@ export class SettingsTabComponent implements AfterViewInit {
   protected readonly projectState = inject(ProjectStateService);
   private readonly mcpKeysService = inject(MCPKeysService);
   private readonly collaborationService = inject(CollaborationApiService);
+  private readonly projectsService = inject(ProjectsService);
+  private readonly projectService = inject(UnifiedProjectService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly setupService = inject(SetupService);
   private readonly mediaSyncService = inject(MediaSyncService);
@@ -126,6 +134,15 @@ export class SettingsTabComponent implements AfterViewInit {
 
   // Reset local data state
   protected readonly isResettingLocalData = signal(false);
+
+  // Danger zone: project rename state
+  protected readonly showRenameForm = signal(false);
+  protected readonly isRenaming = signal(false);
+  protected readonly renameError = signal<string | null>(null);
+  protected newProjectSlug = '';
+
+  // Danger zone: project delete state
+  protected readonly isDeleting = signal(false);
 
   // Collaboration state
   protected readonly collaborators = signal<Collaborator[]>([]);
@@ -934,5 +951,116 @@ export class SettingsTabComponent implements AfterViewInit {
     const state = this.mediaSyncState();
     if (!state) return 0;
     return state.items.filter(item => item.local).length;
+  }
+
+  // =====================
+  // Danger Zone Methods
+  // =====================
+
+  /**
+   * Check if the entered slug is valid
+   */
+  isValidSlug(): boolean {
+    const slug = this.newProjectSlug.trim();
+    if (!slug || slug.length < 3) return false;
+    if (!/^[a-z0-9-]+$/.test(slug)) return false;
+
+    // Check it's different from current slug
+    const project = this.projectState.project();
+    if (project && slug === project.slug) return false;
+
+    return true;
+  }
+
+  /**
+   * Cancel the rename form
+   */
+  cancelRename(): void {
+    this.showRenameForm.set(false);
+    this.newProjectSlug = '';
+    this.renameError.set(null);
+  }
+
+  /**
+   * Rename the project (change its slug)
+   */
+  async renameProject(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project || !this.isValidSlug()) return;
+
+    const newSlug = this.newProjectSlug.trim();
+    const oldSlug = project.slug;
+
+    this.isRenaming.set(true);
+    this.renameError.set(null);
+
+    try {
+      // Call the API to rename the project
+      await firstValueFrom(
+        this.projectsService.updateProject(project.username, oldSlug, {
+          slug: newSlug,
+        })
+      );
+
+      this.snackBar.open(
+        `Project renamed to "${newSlug}". Redirecting...`,
+        'Close',
+        { duration: 3000 }
+      );
+
+      // Navigate to the new URL
+      setTimeout(() => {
+        void this.router.navigate(['/', project.username, newSlug, 'settings']);
+        // Reload to ensure all state is refreshed
+        window.location.href = `/${project.username}/${newSlug}/settings`;
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to rename project:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'A project with this slug may already exist';
+      this.renameError.set(message);
+    } finally {
+      this.isRenaming.set(false);
+    }
+  }
+
+  /**
+   * Delete the project
+   */
+  async deleteProject(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: 'Delete Project',
+      message: `To confirm deletion, please type the project slug "${project.slug}" below. This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      requireConfirmationText: project.slug,
+    });
+
+    if (!confirmed) return;
+
+    this.isDeleting.set(true);
+
+    try {
+      await this.projectService.deleteProject(project.username, project.slug);
+
+      this.snackBar.open('Project deleted successfully', 'Close', {
+        duration: 3000,
+      });
+
+      // Navigate to home
+      void this.router.navigate(['/']);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      this.snackBar.open('Failed to delete project', 'Close', {
+        duration: 5000,
+      });
+    } finally {
+      this.isDeleting.set(false);
+    }
   }
 }

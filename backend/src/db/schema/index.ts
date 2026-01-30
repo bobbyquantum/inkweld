@@ -2,6 +2,8 @@ export * from './users';
 export * from './sessions';
 export * from './projects';
 export * from './project-collaborators';
+export * from './project-slug-aliases';
+export * from './project-tombstones';
 export * from './document-snapshots';
 export * from './published-files';
 export * from './config';

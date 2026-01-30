@@ -36,6 +36,10 @@ export interface Project {
      */
     coverImage?: string | null;
     /**
+     * Minimum client version required to open this project. If null, any client version is acceptable.
+     */
+    minClientVersion?: string | null;
+    /**
      * Project creation date
      */
     createdDate: string;

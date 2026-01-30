@@ -241,4 +241,47 @@ describe('ProjectSyncService', () => {
       expect(state().pendingUploads).toContain('cover');
     });
   });
+
+  describe('tombstones', () => {
+    it('should create and retrieve a tombstone', async () => {
+      await service.createTombstone(TEST_PROJECT_KEY);
+
+      const hasTombstone = await service.hasTombstone(TEST_PROJECT_KEY);
+      expect(hasTombstone).toBe(true);
+    });
+
+    it('should return false for non-existent tombstone', async () => {
+      const hasTombstone = await service.hasTombstone('nonexistent/project');
+      expect(hasTombstone).toBe(false);
+    });
+
+    it('should list all tombstones', async () => {
+      await service.createTombstone('alice/project-1');
+      await service.createTombstone('alice/project-2');
+
+      const tombstones = await service.getAllTombstones();
+      expect(tombstones).toHaveLength(2);
+      expect(tombstones.map(t => t.projectKey)).toContain('alice/project-1');
+      expect(tombstones.map(t => t.projectKey)).toContain('alice/project-2');
+    });
+
+    it('should remove a tombstone', async () => {
+      await service.createTombstone(TEST_PROJECT_KEY);
+      await service.removeTombstone(TEST_PROJECT_KEY);
+
+      const hasTombstone = await service.hasTombstone(TEST_PROJECT_KEY);
+      expect(hasTombstone).toBe(false);
+    });
+
+    it('should include deletedAt timestamp', async () => {
+      const before = new Date().toISOString();
+      await service.createTombstone(TEST_PROJECT_KEY);
+      const after = new Date().toISOString();
+
+      const tombstones = await service.getAllTombstones();
+      expect(tombstones).toHaveLength(1);
+      expect(tombstones[0].deletedAt >= before).toBe(true);
+      expect(tombstones[0].deletedAt <= after).toBe(true);
+    });
+  });
 });

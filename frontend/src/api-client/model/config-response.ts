@@ -15,6 +15,14 @@ export interface ConfigResponse {
      */
     version: string;
     /**
+     * API protocol version for client compatibility checking
+     */
+    protocolVersion: number;
+    /**
+     * Minimum client version required to connect to this server
+     */
+    minClientVersion: string;
+    /**
      * Whether admin approval is required for new users
      */
     userApprovalRequired: boolean;

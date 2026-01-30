@@ -78,7 +78,7 @@ Coming soon.
 - ✅ Worldbuilding elements with custom templates
 - ✅ Real-time collaboration via WebSocket
 - ✅ Import/export project archives
-- ⬜ Project renaming
+- ✅ Project renaming
 
 ### Export ✅
 - ✅ EPUB export

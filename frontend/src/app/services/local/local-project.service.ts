@@ -4,6 +4,7 @@ import { Project } from '@inkweld/index';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
+import { ProjectSyncService } from './project-sync.service';
 
 const LOCAL_PROJECTS_BASE_KEY = 'inkweld-local-projects';
 const MIGRATED_PROJECTS_BASE_KEY = 'inkweld-migrated-projects';
@@ -26,6 +27,7 @@ export class LocalProjectService {
   private setupService = inject(SetupService);
   private storageContext = inject(StorageContextService);
   private localElementsService = inject(LocalProjectElementsService);
+  private projectSyncService = inject(ProjectSyncService);
 
   readonly projects = signal<Project[]>([]);
   readonly migratedProjects = signal<MigratedProjectInfo[]>([]);
@@ -248,12 +250,23 @@ export class LocalProjectService {
   }
 
   /**
-   * Delete a project
+   * Delete a project and optionally create a tombstone to prevent re-sync.
+   * @param username - The project owner's username
+   * @param slug - The project slug
+   * @param options - Optional settings for the delete operation
+   * @param options.createTombstone - Whether to create a tombstone (default: true).
+   *        Set to false when deleting due to discovering a tombstone from another device.
    */
-  deleteProject(username: string, slug: string): void {
+  deleteProject(
+    username: string,
+    slug: string,
+    options: { createTombstone?: boolean } = {}
+  ): void {
+    const { createTombstone = true } = options;
     this.isLoading.set(true);
 
     try {
+      const projectKey = `${username}/${slug}`;
       const projects = this.projects();
       const updatedProjects = projects.filter(
         p => !(p.username === username && p.slug === slug)
@@ -261,6 +274,12 @@ export class LocalProjectService {
 
       this.projects.set(updatedProjects);
       this.saveProjects(updatedProjects);
+
+      // Create a tombstone to prevent this project from being re-uploaded
+      // from other offline devices (unless we're deleting due to an existing tombstone)
+      if (createTombstone) {
+        void this.projectSyncService.createTombstone(projectKey);
+      }
     } finally {
       this.isLoading.set(false);
     }

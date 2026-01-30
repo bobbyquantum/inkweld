@@ -43,6 +43,8 @@ model/admin-list-pending-users200-response-inner.ts
 model/admin-set-config-request.ts
 model/admin-set-user-admin-request.ts
 model/admin-update-announcement-request.ts
+model/check-tombstones-request.ts
+model/check-tombstones-response.ts
 model/collaborated-project.ts
 model/collaboration-error.ts
 model/collaboration-message.ts
@@ -139,6 +141,8 @@ model/paginated-image-audits.ts
 model/paginated-users-response.ts
 model/pending-invitation.ts
 model/project-access.ts
+model/project-rename-redirect.ts
+model/project-tombstone.ts
 model/project.ts
 model/provider-error.ts
 model/provider-status.ts

@@ -15,13 +15,55 @@ export class ProjectServiceError extends Error {
       | 'NETWORK_ERROR'
       | 'SESSION_EXPIRED'
       | 'SERVER_ERROR'
-      | 'PROJECT_NOT_FOUND',
+      | 'PROJECT_NOT_FOUND'
+      | 'PROJECT_RENAMED',
     message: string,
     public readonly canUseCache: boolean = false
   ) {
     super(message);
     this.name = 'ProjectServiceError';
   }
+}
+
+/**
+ * Error thrown when a project has been renamed.
+ * Contains redirect information for the client to migrate local data.
+ */
+export class ProjectRenamedError extends ProjectServiceError {
+  constructor(
+    public readonly oldSlug: string,
+    public readonly newSlug: string,
+    public readonly username: string,
+    public readonly renamedAt: string
+  ) {
+    super(
+      'PROJECT_RENAMED',
+      `Project renamed from ${oldSlug} to ${newSlug}`,
+      false
+    );
+    this.name = 'ProjectRenamedError';
+  }
+}
+
+/**
+ * Type guard to check if response body is a project rename redirect
+ */
+function isProjectRenameRedirect(body: unknown): body is {
+  renamed: true;
+  oldSlug: string;
+  newSlug: string;
+  username: string;
+  renamedAt: string;
+} {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'renamed' in body &&
+    (body as Record<string, unknown>)['renamed'] === true &&
+    'oldSlug' in body &&
+    'newSlug' in body &&
+    'username' in body
+  );
 }
 
 /**
@@ -840,6 +882,16 @@ export class ProjectService {
   private formatError(error: unknown): ProjectServiceError {
     if (error instanceof HttpErrorResponse) {
       const canUseCache = isRecoverableWithCache(error);
+
+      // Check for project rename redirect (301 with redirect body)
+      if (error.status === 301 && isProjectRenameRedirect(error.error)) {
+        return new ProjectRenamedError(
+          error.error.oldSlug,
+          error.error.newSlug,
+          error.error.username,
+          error.error.renamedAt
+        );
+      }
 
       if (error.status === 0) {
         return new ProjectServiceError(
