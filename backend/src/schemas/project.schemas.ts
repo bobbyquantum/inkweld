@@ -66,6 +66,16 @@ export const CreateProjectRequestSchema = z
  */
 export const UpdateProjectRequestSchema = z
   .object({
+    slug: z
+      .string()
+      .min(3)
+      .regex(/^[a-z0-9-]+$/)
+      .optional()
+      .openapi({
+        description:
+          'Updated URL-friendly project identifier (lowercase, numbers, hyphens only). Changing this will update the project URL.',
+        example: 'my-renamed-novel',
+      }),
     title: z
       .string()
       .min(1)
@@ -79,6 +89,62 @@ export const UpdateProjectRequestSchema = z
     }),
   })
   .openapi('UpdateProjectRequest');
+
+/**
+ * Project rename redirect response - returned when accessing old slug
+ * @component ProjectRenameRedirect
+ */
+export const ProjectRenameRedirectSchema = z
+  .object({
+    renamed: z.literal(true).openapi({ description: 'Indicates this is a redirect response' }),
+    oldSlug: z.string().openapi({ description: 'The old slug that was requested' }),
+    newSlug: z.string().openapi({ description: 'The new slug to redirect to' }),
+    username: z.string().openapi({ description: 'Project owner username' }),
+    renamedAt: z.string().datetime().openapi({ description: 'When the rename occurred' }),
+  })
+  .openapi('ProjectRenameRedirect');
+
+/**
+ * Project tombstone - indicates a project was deleted
+ * @component ProjectTombstone
+ */
+export const ProjectTombstoneSchema = z
+  .object({
+    username: z.string().openapi({ description: 'The owner username of the deleted project' }),
+    slug: z.string().openapi({ description: 'The slug of the deleted project' }),
+    deletedAt: z.string().datetime().openapi({ description: 'When the project was deleted' }),
+  })
+  .openapi('ProjectTombstone');
+
+/**
+ * Check tombstones request - for batch checking multiple project keys
+ * @component CheckTombstonesRequest
+ */
+export const CheckTombstonesRequestSchema = z
+  .object({
+    projectKeys: z
+      .array(z.string())
+      .min(1)
+      .max(100)
+      .openapi({
+        description:
+          'List of project keys (username/slug format) to check for tombstones (max 100)',
+        example: ['alice/my-project', 'bob/another-project'],
+      }),
+  })
+  .openapi('CheckTombstonesRequest');
+
+/**
+ * Check tombstones response
+ * @component CheckTombstonesResponse
+ */
+export const CheckTombstonesResponseSchema = z
+  .object({
+    tombstones: z.array(ProjectTombstoneSchema).openapi({
+      description: 'List of tombstones found for the requested slugs',
+    }),
+  })
+  .openapi('CheckTombstonesResponse');
 
 /**
  * Projects list response

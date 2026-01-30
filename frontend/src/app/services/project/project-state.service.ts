@@ -6,6 +6,8 @@ import {
   OnDestroy,
   signal,
 } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { Element, ElementType, Project } from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
@@ -18,6 +20,7 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { BackgroundSyncService } from '../local/background-sync.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { ProjectRenameMigrationService } from '../local/project-rename-migration.service';
 import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
 import { UnifiedProjectService } from '../local/unified-project.service';
@@ -28,6 +31,7 @@ import {
 import { UnifiedUserService } from '../user/unified-user.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { ElementTreeService, ValidDropLevels } from './element-tree.service';
+import { ProjectRenamedError } from './project.service';
 import { RecentFilesService } from './recent-files.service';
 import { AppTab, TabManagerService } from './tab-manager.service';
 
@@ -78,6 +82,9 @@ export class ProjectStateService implements OnDestroy {
   private readonly ngZone = inject(NgZone);
   private readonly projectSyncService = inject(ProjectSyncService);
   private readonly backgroundSyncService = inject(BackgroundSyncService);
+  private readonly router = inject(Router);
+  private readonly renameMigration = inject(ProjectRenameMigrationService);
+  private readonly snackBar = inject(MatSnackBar);
 
   // Current sync provider (set when project is loaded)
   private syncProvider: IElementSyncProvider | null = null;
@@ -355,6 +362,12 @@ export class ProjectStateService implements OnDestroy {
     try {
       project = await this.unifiedProjectService.getProject(username, slug);
     } catch (err) {
+      // Check if this is a project rename redirect
+      if (err instanceof ProjectRenamedError) {
+        await this.handleProjectRenamed(err);
+        return; // Navigation will reload with new slug
+      }
+
       // Server might be down - save error but continue
       serverError = err instanceof Error ? err : new Error('Unknown error');
       this.logger.warn(
@@ -399,6 +412,65 @@ export class ProjectStateService implements OnDestroy {
       // No project and sync provider failed too
       throw serverError || new Error('Failed to load project');
     }
+  }
+
+  /**
+   * Handle a project that has been renamed on the server.
+   *
+   * This method:
+   * 1. Migrates local IndexedDB data from old slug to new slug
+   * 2. Navigates to the new project URL
+   * 3. The new URL will trigger a fresh load with the new slug
+   */
+  private async handleProjectRenamed(
+    error: ProjectRenamedError
+  ): Promise<void> {
+    const { username, oldSlug, newSlug } = error;
+
+    this.logger.info(
+      'ProjectState',
+      `Project renamed: ${username}/${oldSlug} -> ${username}/${newSlug}`
+    );
+
+    // Show a brief notification to the user
+    this.snackBar.open(
+      `Project was renamed to "${newSlug}". Migrating local data...`,
+      'Close',
+      { duration: 5000 }
+    );
+
+    // Migrate local IndexedDB data to new slug
+    try {
+      const result = await this.renameMigration.migrateProject(
+        username,
+        oldSlug,
+        newSlug
+      );
+
+      if (result.success) {
+        this.logger.info(
+          'ProjectState',
+          `Migration complete: ${result.documentsMigrated} documents migrated`
+        );
+      } else {
+        this.logger.warn(
+          'ProjectState',
+          `Migration had errors: ${result.errors.join(', ')}`
+        );
+        // Continue anyway - sync will rebuild from server
+      }
+    } catch (migrationError) {
+      this.logger.error(
+        'ProjectState',
+        'Migration failed, continuing with redirect',
+        migrationError
+      );
+      // Continue anyway - sync will rebuild from server
+    }
+
+    // Navigate to the new project URL
+    // This will trigger a fresh loadProject with the new slug
+    await this.router.navigate(['/', username, newSlug], { replaceUrl: true });
   }
 
   /**

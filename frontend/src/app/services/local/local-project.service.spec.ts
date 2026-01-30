@@ -7,6 +7,7 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
+import { ProjectSyncService } from './project-sync.service';
 
 type MockedObject<T> = {
   [K in keyof T]: T[K] extends (...args: any[]) => any
@@ -19,6 +20,7 @@ describe('LocalProjectService', () => {
   let mockSetupService: MockedObject<SetupService>;
   let mockElementsService: MockedObject<LocalProjectElementsService>;
   let mockStorageContext: MockedObject<StorageContextService>;
+  let mockProjectSyncService: MockedObject<ProjectSyncService>;
 
   // The prefixed key that will be used in storage
   const PREFIXED_PROJECTS_KEY = 'local:inkweld-local-projects';
@@ -62,6 +64,11 @@ describe('LocalProjectService', () => {
       getPrefix: vi.fn().mockReturnValue('local:'),
     } as any;
 
+    // Mock ProjectSyncService
+    mockProjectSyncService = {
+      createTombstone: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
     // Reset mocks
     mockLocalStorage.getItem.mockReset();
     mockLocalStorage.setItem.mockReset();
@@ -80,6 +87,10 @@ describe('LocalProjectService', () => {
         {
           provide: LocalProjectElementsService,
           useValue: mockElementsService,
+        },
+        {
+          provide: ProjectSyncService,
+          useValue: mockProjectSyncService,
         },
       ],
     });
@@ -395,6 +406,22 @@ describe('LocalProjectService', () => {
       service.deleteProject('testuser', 'non-existent');
 
       expect(service.projects()).toHaveLength(originalCount);
+    });
+
+    it('should create a tombstone when deleting a project', () => {
+      service.deleteProject('testuser', 'project-1');
+
+      expect(mockProjectSyncService.createTombstone).toHaveBeenCalledWith(
+        'testuser/project-1'
+      );
+    });
+
+    it('should not create a tombstone when createTombstone option is false', () => {
+      service.deleteProject('testuser', 'project-1', {
+        createTombstone: false,
+      });
+
+      expect(mockProjectSyncService.createTombstone).not.toHaveBeenCalled();
     });
   });
 

@@ -106,6 +106,20 @@
       "when": 1769646170309,
       "tag": "0015_add-min-client-version-fix",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1769740800000,
+      "tag": "0016_add-project-slug-aliases",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1769807183827,
+      "tag": "0017_lean_pet_avengers",
+      "breakpoints": true
     }
   ]
 }

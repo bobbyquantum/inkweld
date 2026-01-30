@@ -91,6 +91,17 @@
               <mat-icon class="tab-icon">key</mat-icon>
               <span class="tab-name">MCP</span>
             </button>
+            <button
+              ngTab
+              value="danger"
+              type="button"
+              role="tab"
+              (click)="onTabChange('danger')"
+              class="tab-button danger-tab"
+              data-testid="settings-tab-danger">
+              <mat-icon class="tab-icon">warning</mat-icon>
+              <span class="tab-name">Danger Zone</span>
+            </button>
           }
         </nav>
       </div>
@@ -844,6 +855,151 @@
               </mat-card-content>
             </mat-card>
           }
+        </section>
+      </div>
+    }
+
+    <!-- Danger Zone Tab -->
+    @if (selectedTab() === 'danger') {
+      <div class="tab-content danger-zone-content">
+        <section
+          class="settings-section danger-zone"
+          data-testid="danger-zone-section">
+          <h3 class="danger-title">
+            <mat-icon>warning</mat-icon>
+            Danger Zone
+          </h3>
+          <p class="section-description danger-description">
+            These actions are destructive and may affect other users with
+            offline copies of this project.
+          </p>
+
+          <!-- Rename Project Section -->
+          <mat-card class="danger-card" data-testid="rename-project-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>edit</mat-icon>
+                Rename Project URL
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="warning-text">
+                <strong>Warning:</strong> Changing the project slug will change
+                the URL used to access this project. This is similar to renaming
+                a GitHub repository.
+              </p>
+              <ul class="consequence-list">
+                <li>Existing bookmarks and links will break</li>
+                <li>Other users with offline copies will need to re-sync</li>
+                <li>The old URL will redirect to the new one temporarily</li>
+              </ul>
+
+              @if (!showRenameForm()) {
+                <div class="action-buttons">
+                  <button
+                    mat-stroked-button
+                    color="warn"
+                    (click)="showRenameForm.set(true)"
+                    data-testid="rename-project-button">
+                    <mat-icon>edit</mat-icon>
+                    Rename Project
+                  </button>
+                </div>
+              } @else {
+                <div class="rename-form">
+                  <mat-form-field class="full-width">
+                    <mat-label>New Project Slug</mat-label>
+                    <input
+                      matInput
+                      [(ngModel)]="newProjectSlug"
+                      placeholder="my-new-project-name"
+                      data-testid="new-slug-input"
+                      [pattern]="'^[a-z0-9-]+$'"
+                      (keyup.enter)="renameProject()" />
+                    <mat-hint
+                      >Lowercase letters, numbers, and hyphens only</mat-hint
+                    >
+                  </mat-form-field>
+
+                  @if (renameError()) {
+                    <mat-card class="error-card inline-error">
+                      <mat-card-content>
+                        <mat-icon>error</mat-icon>
+                        <span>{{ renameError() }}</span>
+                      </mat-card-content>
+                    </mat-card>
+                  }
+
+                  <div class="form-actions">
+                    <button
+                      mat-button
+                      (click)="cancelRename()"
+                      data-testid="cancel-rename-button">
+                      Cancel
+                    </button>
+                    <button
+                      mat-raised-button
+                      color="warn"
+                      [disabled]="!isValidSlug() || isRenaming()"
+                      (click)="renameProject()"
+                      data-testid="confirm-rename-button">
+                      @if (isRenaming()) {
+                        <mat-progress-spinner
+                          diameter="20"
+                          mode="indeterminate">
+                        </mat-progress-spinner>
+                      } @else {
+                        <mat-icon>check</mat-icon>
+                        Rename Project
+                      }
+                    </button>
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Delete Project Section -->
+          <mat-card
+            class="danger-card delete-card"
+            data-testid="delete-project-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>delete_forever</mat-icon>
+                Delete Project
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="warning-text">
+                <strong>Warning:</strong> This action
+                <strong>cannot be undone</strong>. All project data, documents,
+                worldbuilding elements, and media will be permanently deleted.
+              </p>
+              <ul class="consequence-list">
+                <li>All documents and content will be permanently lost</li>
+                <li>Collaborators will lose access immediately</li>
+                <li>Offline copies will become orphaned</li>
+              </ul>
+
+              <div class="action-buttons">
+                <button
+                  mat-raised-button
+                  color="warn"
+                  class="delete-button"
+                  (click)="deleteProject()"
+                  [disabled]="isDeleting()"
+                  data-testid="delete-project-button">
+                  @if (isDeleting()) {
+                    <mat-progress-spinner diameter="20" mode="indeterminate">
+                    </mat-progress-spinner>
+                  } @else {
+                    <mat-icon>delete_forever</mat-icon>
+                    Delete This Project
+                  }
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
         </section>
       </div>
     }

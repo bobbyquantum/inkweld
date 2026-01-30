@@ -11,6 +11,10 @@
 
 export interface UpdateProjectRequest { 
     /**
+     * Updated URL-friendly project identifier (lowercase, numbers, hyphens only). Changing this will update the project URL.
+     */
+    slug?: string;
+    /**
      * Updated project title
      */
     title?: string;
@@ -18,5 +22,9 @@ export interface UpdateProjectRequest {
      * Updated project description
      */
     description?: string;
+    /**
+     * Minimum client version required to open this project. Set to null to remove the requirement.
+     */
+    minClientVersion?: string | null;
 }
 

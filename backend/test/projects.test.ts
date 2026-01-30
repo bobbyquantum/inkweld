@@ -218,5 +218,160 @@ describe('Projects', () => {
       );
       expect(getResponse.status).toBe(404);
     });
+
+    it('should create tombstone on delete', async () => {
+      // Create a project
+      const { json: createJson } = await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: 'tombstone-test-project',
+          title: 'Tombstone Test Project',
+        }),
+      });
+      const project = await createJson();
+
+      // Delete it
+      const { response } = await client.request(
+        `/api/v1/projects/${testUsername}/${project.slug}`,
+        {
+          method: 'DELETE',
+        }
+      );
+      expect(response.status).toBe(200);
+
+      // Check tombstone exists via the check endpoint
+      const { response: tombstoneResponse, json: tombstoneJson } = await client.request(
+        '/api/v1/projects/tombstones/check',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectKeys: [`${testUsername}/tombstone-test-project`],
+          }),
+        }
+      );
+
+      expect(tombstoneResponse.status).toBe(200);
+      const tombstoneData = await tombstoneJson();
+      expect(tombstoneData.tombstones).toHaveLength(1);
+      expect(tombstoneData.tombstones[0].username).toBe(testUsername);
+      expect(tombstoneData.tombstones[0].slug).toBe('tombstone-test-project');
+      expect(tombstoneData.tombstones[0].deletedAt).toBeDefined();
+    });
+  });
+
+  describe('POST /api/v1/projects/tombstones/check', () => {
+    it('should return empty array for non-deleted projects', async () => {
+      const { response, json } = await client.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectKeys: [
+            `${testUsername}/nonexistent-project`,
+            `${testUsername}/another-nonexistent`,
+          ],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data.tombstones).toHaveLength(0);
+    });
+
+    it('should check multiple projectKeys at once', async () => {
+      // Create and delete multiple projects
+      for (const slug of ['batch-tombstone-1', 'batch-tombstone-2']) {
+        await client.request('/api/v1/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, title: `Batch Tombstone ${slug}` }),
+        });
+        await client.request(`/api/v1/projects/${testUsername}/${slug}`, {
+          method: 'DELETE',
+        });
+      }
+
+      // Check tombstones for all
+      const { response, json } = await client.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectKeys: [
+            `${testUsername}/batch-tombstone-1`,
+            `${testUsername}/batch-tombstone-2`,
+            `${testUsername}/nonexistent`,
+          ],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data.tombstones).toHaveLength(2);
+      expect(data.tombstones.map((t: { slug: string }) => t.slug).sort()).toEqual([
+        'batch-tombstone-1',
+        'batch-tombstone-2',
+      ]);
+    });
+
+    it('should require authentication', async () => {
+      const unauthClient = new TestClient(client['baseUrl']);
+      const { response } = await unauthClient.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectKeys: [`${testUsername}/test`] }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('Tombstone cleanup on project recreation', () => {
+    it('should remove tombstone when creating project with same slug', async () => {
+      // Create, delete, then recreate with same slug
+      const slug = 'recreated-project';
+
+      // Create
+      await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Original Project' }),
+      });
+
+      // Delete (creates tombstone)
+      await client.request(`/api/v1/projects/${testUsername}/${slug}`, {
+        method: 'DELETE',
+      });
+
+      // Verify tombstone exists
+      const { json: beforeJson } = await client.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectKeys: [`${testUsername}/${slug}`] }),
+      });
+      const beforeData = await beforeJson();
+      expect(beforeData.tombstones).toHaveLength(1);
+
+      // Recreate with same slug
+      await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Recreated Project' }),
+      });
+
+      // Verify tombstone is removed
+      const { json: afterJson } = await client.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectKeys: [`${testUsername}/${slug}`] }),
+      });
+      const afterData = await afterJson();
+      expect(afterData.tombstones).toHaveLength(0);
+
+      // Cleanup: delete the recreated project
+      await client.request(`/api/v1/projects/${testUsername}/${slug}`, {
+        method: 'DELETE',
+      });
+    });
   });
 });

@@ -5,6 +5,8 @@ description: Configure project title, description, and cover image.
 sidebar_position: 2
 ---
 
+import ThemedImage from '@site/src/components/ThemedImage';
+
 # Project Settings
 
 Project settings let you update your project's metadata and cover image. Access them from the project menu.
@@ -56,16 +58,68 @@ See [AI Image Generation](/user-guide/media/ai-generation) for details.
 
 Click the remove button (×) on the cover image to remove it.
 
+## Renaming a Project (Changing the URL)
+
+You can change your project's URL slug (the part that appears in the browser address bar). This is useful if you want to give your project a new, more descriptive URL.
+
+:::warning
+Changing the project URL has important consequences:
+- **Existing bookmarks and links will break** — anyone who saved a link to the old URL will need the new one
+- **Collaborators with offline copies will need to re-sync** — their local data will be migrated to the new project URL
+- The old URL will temporarily redirect to the new one, but this is not permanent
+:::
+
+### To Rename Your Project
+
+1. Open your project and go to **Settings**
+2. Click the **Danger Zone** tab
+3. Find the **Rename Project URL** card and click the **Rename Project** button
+
+<ThemedImage
+  src="/img/features/project-rename-card"
+  alt="Rename project card in the Danger Zone"
+/>
+
+4. Enter the new slug (lowercase letters, numbers, and hyphens only)
+5. Click **Rename Project** to confirm
+
+<ThemedImage
+  src="/img/features/project-rename-form"
+  alt="Rename form with new slug entered"
+/>
+
+After renaming, you'll be automatically redirected to the new project URL. All your documents, worldbuilding elements, and media will be preserved.
+
+### What Gets Migrated
+
+When you rename a project:
+- ✅ All documents and their content
+- ✅ All worldbuilding elements and relationships  
+- ✅ All media files (images, covers)
+- ✅ All publish plans and exported files
+- ✅ All snapshots and version history
+- ✅ MCP keys (re-keyed to new project path)
+- ✅ Collaborator access and permissions
+
 ## Deleting a Project
 
 :::danger
 Deleting a project permanently removes all content. This cannot be undone.
 :::
 
-1. Open the project menu (three-dot button)
-2. Click **Delete Project**
-3. Type the project name to confirm
-4. Click **Delete Permanently**
+The Delete Project option is located in the Danger Zone tab:
+
+<ThemedImage
+  src="/img/features/project-delete-card"
+  alt="Delete Project card in the Danger Zone"
+/>
+
+1. Open your project and go to **Settings**
+2. Click the **Danger Zone** tab
+3. Find the **Delete Project** card
+4. Click **Delete Project**
+5. Type the project name to confirm
+6. Click **Delete Permanently**
 
 ---
 
