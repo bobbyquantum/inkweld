@@ -6,7 +6,7 @@ A self-contained development environment for the Inkweld collaborative writing p
 
 ### Runtimes
 
-- **Bun 1.3.7** - Backend runtime and package manager
+- **Bun 1.3.8** - Backend runtime and package manager
 - **Node.js 22 LTS** - Angular dev server and docs site
 
 ### Build Tools
