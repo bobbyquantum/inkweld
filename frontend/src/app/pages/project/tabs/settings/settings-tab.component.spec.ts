@@ -18,8 +18,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Router } from '@angular/router';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   Collaborator,
   CollaboratorRole,
@@ -64,6 +66,8 @@ describe('SettingsTabComponent', () => {
   let systemConfigService: Partial<SystemConfigService>;
   let mediaSyncService: Partial<MediaSyncService>;
   let dialog: Partial<MatDialog>;
+  let projectsService: Partial<ProjectsService>;
+  let router: Partial<Router>;
 
   const mockProject = {
     username: 'testuser',
@@ -210,6 +214,14 @@ describe('SettingsTabComponent', () => {
 
     dialog = {};
 
+    projectsService = {
+      updateProject: vi.fn().mockReturnValue(of({ slug: 'new-slug' })),
+    };
+
+    router = {
+      navigate: vi.fn().mockResolvedValue(true),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         NoopAnimationsModule,
@@ -236,6 +248,8 @@ describe('SettingsTabComponent', () => {
         { provide: SystemConfigService, useValue: systemConfigService },
         { provide: MediaSyncService, useValue: mediaSyncService },
         { provide: MatDialog, useValue: dialog },
+        { provide: ProjectsService, useValue: projectsService },
+        { provide: Router, useValue: router },
       ],
     })
       .overrideComponent(SettingsTabComponent, {
@@ -456,6 +470,18 @@ describe('SettingsTabComponent', () => {
       expect(component['showCreateKeyForm']()).toBe(false);
     });
 
+    it('should reset create key form', () => {
+      component.newKeyName = 'Test Key';
+      component.togglePermission(McpPermission.ReadProject);
+      component['newlyCreatedKey'].set('some-key');
+
+      component.resetCreateKeyForm();
+
+      expect(component.newKeyName).toBe('');
+      expect(component['selectedPermissions']().size).toBe(0);
+      expect(component['newlyCreatedKey']()).toBeNull();
+    });
+
     it('should format permission for display', () => {
       const formatted = component.formatPermission(McpPermission.ReadProject);
       expect(formatted).toContain('read');
@@ -469,6 +495,68 @@ describe('SettingsTabComponent', () => {
       expect(formatted).not.toBe('Never');
 
       expect(component.formatDate(null)).toBe('Never');
+    });
+
+    it('should handle error when creating key', async () => {
+      (mcpKeysService.createMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
+        throwError(() => new Error('Failed to create'))
+      );
+
+      component.newKeyName = 'Test Key';
+      component.togglePermission(McpPermission.ReadProject);
+      await component.createKey();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to create API key',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should handle error when revoking key', async () => {
+      await component.loadMcpKeys();
+      (mcpKeysService.revokeMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
+        throwError(() => new Error('Failed'))
+      );
+
+      const keyToRevoke = component['mcpKeys']()[0];
+      await component.revokeKey(keyToRevoke);
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to revoke API key',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should handle error when deleting key', async () => {
+      await component.loadMcpKeys();
+      (mcpKeysService.deleteMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
+        throwError(() => new Error('Failed'))
+      );
+
+      const keyToDelete = component['mcpKeys']()[0];
+      await component.deleteKey(keyToDelete);
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to delete API key',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should not revoke key without project', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      const keyToRevoke = { id: 'key-1' } as McpPublicKey;
+      await component.revokeKey(keyToRevoke);
+      expect(mcpKeysService.revokeMcpKey).not.toHaveBeenCalled();
+    });
+
+    it('should not delete key without project', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      const keyToDelete = { id: 'key-1' } as McpPublicKey;
+      await component.deleteKey(keyToDelete);
+      expect(mcpKeysService.deleteMcpKey).not.toHaveBeenCalled();
     });
   });
 
@@ -520,6 +608,46 @@ describe('SettingsTabComponent', () => {
     it('should return null projectKey when no project', () => {
       (projectStateService.project as ReturnType<typeof signal>).set(undefined);
       expect(component['projectKey']()).toBeNull();
+    });
+
+    it('should handle error when downloading media', async () => {
+      (
+        mediaSyncService.downloadAllFromServer as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('Download failed'));
+
+      await component.downloadAllMedia();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to download some media files',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should handle error when uploading media', async () => {
+      (
+        mediaSyncService.uploadAllToServer as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('Upload failed'));
+
+      await component.uploadAllMedia();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to upload some media files',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should not download media without project key', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      await component.downloadAllMedia();
+      expect(mediaSyncService.downloadAllFromServer).not.toHaveBeenCalled();
+    });
+
+    it('should not upload media without project key', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      await component.uploadAllMedia();
+      expect(mediaSyncService.uploadAllToServer).not.toHaveBeenCalled();
     });
   });
 
@@ -784,6 +912,201 @@ describe('SettingsTabComponent', () => {
       await fixture.whenStable();
 
       expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('should handle error when updating collaborator role', async () => {
+      await component.loadCollaborators();
+      (
+        collaborationService.updateCollaborator as ReturnType<typeof vi.fn>
+      ).mockReturnValue(throwError(() => new Error('Update failed')));
+
+      const collaborator = mockCollaborators[0];
+      await component.updateCollaboratorRole(
+        collaborator,
+        CollaboratorRole.Admin
+      );
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to update role',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should handle error when removing collaborator', async () => {
+      await component.loadCollaborators();
+      (
+        collaborationService.removeCollaborator as ReturnType<typeof vi.fn>
+      ).mockReturnValue(throwError(() => new Error('Remove failed')));
+
+      const collaborator = mockCollaborators[0];
+      await component.removeCollaborator(collaborator);
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to remove collaborator',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should not update collaborator without project', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      await component.updateCollaboratorRole(
+        mockCollaborators[0],
+        CollaboratorRole.Admin
+      );
+      expect(collaborationService.updateCollaborator).not.toHaveBeenCalled();
+    });
+
+    it('should not remove collaborator without project', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      await component.removeCollaborator(mockCollaborators[0]);
+      expect(collaborationService.removeCollaborator).not.toHaveBeenCalled();
+    });
+
+    it('should toggle invite form', () => {
+      expect(component['showInviteForm']()).toBe(false);
+
+      component.toggleInviteForm();
+      expect(component['showInviteForm']()).toBe(true);
+
+      component.toggleInviteForm();
+      expect(component['showInviteForm']()).toBe(false);
+    });
+
+    it('should reset invite form', () => {
+      component.inviteUsername = 'someone';
+      component.inviteRole = CollaboratorRole.Admin;
+
+      component.resetInviteForm();
+
+      expect(component.inviteUsername).toBe('');
+      expect(component.inviteRole).toBe(CollaboratorRole.Viewer);
+    });
+
+    it('should not invite collaborator without project', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      component.inviteUsername = 'newuser';
+      await component.inviteCollaborator();
+      expect(collaborationService.inviteCollaborator).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Project Rename', () => {
+    it('should validate slug - empty slug is invalid', () => {
+      component['newProjectSlug'] = '';
+      expect(component.isValidSlug()).toBe(false);
+    });
+
+    it('should validate slug - too short slug is invalid', () => {
+      component['newProjectSlug'] = 'ab';
+      expect(component.isValidSlug()).toBe(false);
+    });
+
+    it('should validate slug - valid slug with 3 chars', () => {
+      component['newProjectSlug'] = 'abc';
+      expect(component.isValidSlug()).toBe(true);
+    });
+
+    it('should validate slug - invalid chars are rejected', () => {
+      component['newProjectSlug'] = 'invalid_slug';
+      expect(component.isValidSlug()).toBe(false);
+
+      component['newProjectSlug'] = 'Invalid';
+      expect(component.isValidSlug()).toBe(false);
+
+      component['newProjectSlug'] = 'has spaces';
+      expect(component.isValidSlug()).toBe(false);
+    });
+
+    it('should validate slug - same as current slug is invalid', () => {
+      component['newProjectSlug'] = 'test-project';
+      expect(component.isValidSlug()).toBe(false);
+    });
+
+    it('should validate slug - different valid slug is valid', () => {
+      component['newProjectSlug'] = 'new-valid-slug';
+      expect(component.isValidSlug()).toBe(true);
+    });
+
+    it('should cancel rename form', () => {
+      component['showRenameForm'].set(true);
+      component['newProjectSlug'] = 'some-slug';
+      component['renameError'].set('Some error');
+
+      component.cancelRename();
+
+      expect(component['showRenameForm']()).toBe(false);
+      expect(component['newProjectSlug']).toBe('');
+      expect(component['renameError']()).toBeNull();
+    });
+
+    it('should not rename if slug is invalid', async () => {
+      component['newProjectSlug'] = '';
+      await component.renameProject();
+      expect(projectsService.updateProject).not.toHaveBeenCalled();
+    });
+
+    it('should not rename if no project', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+      component['newProjectSlug'] = 'new-slug';
+      await component.renameProject();
+      expect(projectsService.updateProject).not.toHaveBeenCalled();
+    });
+
+    it('should call API to rename project with valid slug', async () => {
+      component['newProjectSlug'] = 'new-slug';
+      await component.renameProject();
+
+      expect(projectsService.updateProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        { slug: 'new-slug' }
+      );
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('renamed'),
+        'Close',
+        expect.any(Object)
+      );
+    });
+
+    it('should set isRenaming during rename operation', async () => {
+      component['newProjectSlug'] = 'new-slug';
+
+      expect(component['isRenaming']()).toBe(false);
+
+      const renamePromise = component.renameProject();
+      // isRenaming should be true during the operation
+      expect(component['isRenaming']()).toBe(true);
+
+      await renamePromise;
+      // isRenaming should be false after completion
+      expect(component['isRenaming']()).toBe(false);
+    });
+
+    it('should handle rename error', async () => {
+      (
+        projectsService.updateProject as ReturnType<typeof vi.fn>
+      ).mockReturnValue(throwError(() => new Error('Slug already exists')));
+
+      component['newProjectSlug'] = 'existing-slug';
+      await component.renameProject();
+
+      expect(component['renameError']()).toBe('Slug already exists');
+      expect(component['isRenaming']()).toBe(false);
+    });
+
+    it('should handle rename error without message', async () => {
+      (
+        projectsService.updateProject as ReturnType<typeof vi.fn>
+      ).mockReturnValue(throwError(() => 'Unknown error'));
+
+      component['newProjectSlug'] = 'some-slug';
+      await component.renameProject();
+
+      expect(component['renameError']()).toBe(
+        'A project with this slug may already exist'
+      );
     });
   });
 });

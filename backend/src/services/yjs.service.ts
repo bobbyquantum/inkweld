@@ -323,6 +323,53 @@ export class YjsService {
     this.docs.clear();
     this.persistences.clear();
   }
+
+  /**
+   * Rename a project - updates in-memory maps and persistence paths
+   * Note: The actual directory rename is done by fileStorageService.renameProjectDirectory
+   * This method handles the in-memory Yjs document and persistence references
+   */
+  async renameProject(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    const oldProjectKey = `${username}:${oldSlug}`;
+    const newProjectKey = `${username}:${newSlug}`;
+
+    yjsLog.info(`Renaming project: ${oldProjectKey} -> ${newProjectKey}`);
+
+    // Close any active persistence for the old project
+    const oldPersistence = this.persistences.get(oldProjectKey);
+    if (oldPersistence) {
+      try {
+        await oldPersistence.destroy();
+        this.persistences.delete(oldProjectKey);
+        yjsLog.debug(`Closed old persistence for ${oldProjectKey}`);
+      } catch (error) {
+        yjsLog.error(`Error closing old persistence for ${oldProjectKey}`, error);
+      }
+    }
+
+    // Close any documents from the old project and remove from map
+    const docsToRemove: string[] = [];
+    this.docs.forEach((doc, docId) => {
+      if (this.getProjectKey(docId) === oldProjectKey) {
+        // Close all connections
+        doc.conns.forEach((_, ws) => {
+          try {
+            ws.close(1000, 'Project renamed');
+          } catch (error) {
+            yjsLog.error('Error closing WebSocket during rename', error);
+          }
+        });
+        doc.doc.destroy();
+        docsToRemove.push(docId);
+      }
+    });
+
+    for (const docId of docsToRemove) {
+      this.docs.delete(docId);
+    }
+
+    yjsLog.info(`Project rename complete: ${oldProjectKey} -> ${newProjectKey}`);
+  }
 }
 
 // Create singleton instance

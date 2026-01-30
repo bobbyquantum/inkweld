@@ -87,6 +87,38 @@ export class FileStorageService {
   }
 
   /**
+   * Rename a project directory (when project slug changes)
+   */
+  async renameProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    const oldPath = this.getProjectPath(username, oldSlug);
+    const newPath = this.getProjectPath(username, newSlug);
+
+    // Check if old path exists
+    try {
+      await fs.access(oldPath);
+    } catch {
+      // Old directory doesn't exist, nothing to rename
+      logger.info('FileStorage', `No directory to rename: ${oldPath}`);
+      return;
+    }
+
+    // Check if new path already exists
+    try {
+      await fs.access(newPath);
+      throw new Error(`Target directory already exists: ${newPath}`);
+    } catch (error) {
+      // Expected - new path shouldn't exist
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    // Rename the directory
+    await fs.rename(oldPath, newPath);
+    logger.info('FileStorage', `Renamed project directory: ${oldSlug} -> ${newSlug}`);
+  }
+
+  /**
    * Get user avatar path
    */
   getUserAvatarPath(username: string): string {

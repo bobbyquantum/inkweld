@@ -42,6 +42,17 @@ export interface ProjectSyncState {
 const SYNC_DB_BASE_NAME = 'inkweld-sync';
 
 const STORE_NAME = 'sync-state';
+const TOMBSTONE_STORE_NAME = 'tombstones';
+
+/**
+ * Local tombstone record - tracks deleted projects to prevent re-upload
+ */
+export interface LocalTombstone {
+  /** Project identifier: "username/slug" */
+  projectKey: string;
+  /** When the project was deleted (ISO string) */
+  deletedAt: string;
+}
 
 /**
  * Service for tracking sync state between offline and online storage.
@@ -80,9 +91,10 @@ export class ProjectSyncService {
   private get dbConfig(): StorageConfig {
     return {
       dbName: this.storageContext.prefixDbName(SYNC_DB_BASE_NAME),
-      version: 1,
+      version: 2, // Bumped for tombstones store
       stores: {
         'sync-state': 'projectKey', // Keyed by "username/slug"
+        [TOMBSTONE_STORE_NAME]: 'projectKey', // Keyed by "username/slug"
       },
     };
   }
@@ -430,6 +442,75 @@ export class ProjectSyncService {
     const db = await this.ensureDb();
     await this.storageService.delete(db, STORE_NAME, projectKey);
     this.syncStates.delete(projectKey);
+  }
+
+  // ============================================
+  // TOMBSTONES
+  // ============================================
+
+  /**
+   * Create a tombstone for a deleted project.
+   * Call this when deleting a project to prevent re-upload from offline devices.
+   */
+  async createTombstone(projectKey: string): Promise<void> {
+    try {
+      const db = await this.ensureDb();
+      const tombstone: LocalTombstone = {
+        projectKey,
+        deletedAt: new Date().toISOString(),
+      };
+      await this.storageService.put(db, TOMBSTONE_STORE_NAME, tombstone);
+    } catch (error) {
+      console.error(`Failed to create tombstone for ${projectKey}:`, error);
+    }
+  }
+
+  /**
+   * Check if a project has a local tombstone (was deleted).
+   */
+  async hasTombstone(projectKey: string): Promise<boolean> {
+    try {
+      const db = await this.ensureDb();
+      const tombstone = await this.storageService.get<LocalTombstone>(
+        db,
+        TOMBSTONE_STORE_NAME,
+        projectKey
+      );
+      return !!tombstone;
+    } catch (error) {
+      console.error(`Failed to check tombstone for ${projectKey}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get all local tombstones (for batch checking during sync).
+   */
+  async getAllTombstones(): Promise<LocalTombstone[]> {
+    const db = await this.ensureDb();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(TOMBSTONE_STORE_NAME, 'readonly');
+      const store = transaction.objectStore(TOMBSTONE_STORE_NAME);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result as LocalTombstone[]);
+      request.onerror = () =>
+        reject(
+          new Error(`Failed to get tombstones: ${request.error?.message}`)
+        );
+    });
+  }
+
+  /**
+   * Remove a tombstone (e.g., when intentionally recreating a project).
+   */
+  async removeTombstone(projectKey: string): Promise<void> {
+    try {
+      const db = await this.ensureDb();
+      await this.storageService.delete(db, TOMBSTONE_STORE_NAME, projectKey);
+    } catch (error) {
+      console.error(`Failed to remove tombstone for ${projectKey}:`, error);
+    }
   }
 
   // ============================================

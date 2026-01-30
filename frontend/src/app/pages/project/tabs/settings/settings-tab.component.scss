@@ -771,3 +771,150 @@ mat-card {
     flex: 1;
   }
 }
+
+// =====================
+// Danger Zone Styles
+// =====================
+
+// Danger tab button styling
+.danger-tab {
+  &[aria-selected='true'],
+  &:hover {
+    color: var(--sys-error) !important;
+
+    .tab-icon {
+      color: var(--sys-error) !important;
+    }
+  }
+}
+
+.danger-zone-content {
+  .danger-zone {
+    .danger-title {
+      color: var(--sys-error);
+
+      mat-icon {
+        color: var(--sys-error);
+      }
+    }
+
+    .danger-description {
+      color: var(--sys-on-surface-variant);
+      margin-bottom: 24px;
+    }
+  }
+}
+
+.danger-card {
+  border: 1px solid var(--sys-error);
+  background-color: color-mix(in srgb, var(--sys-error) 5%, var(--sys-surface));
+  margin-bottom: 24px;
+
+  mat-card-header {
+    padding: 16px 16px 0 16px;
+
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--sys-error);
+      font-size: 16px;
+      font-weight: 500;
+
+      mat-icon {
+        color: var(--sys-error);
+      }
+    }
+  }
+
+  mat-card-content {
+    padding: 16px;
+  }
+
+  .warning-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--sys-on-surface);
+    margin-bottom: 16px;
+    line-height: 1.5;
+
+    strong {
+      color: var(--sys-error);
+    }
+  }
+
+  .consequence-list {
+    margin: 0 0 24px 0;
+    padding-left: 24px;
+    color: var(--sys-on-surface-variant);
+
+    li {
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+  }
+
+  .action-buttons {
+    margin-top: 16px;
+  }
+
+  &.delete-card {
+    border-color: var(--sys-error);
+    background-color: color-mix(
+      in srgb,
+      var(--sys-error) 8%,
+      var(--sys-surface)
+    );
+
+    .delete-button {
+      background-color: var(--sys-error);
+      color: var(--sys-on-error);
+
+      &:hover:not([disabled]) {
+        background-color: color-mix(
+          in srgb,
+          var(--sys-error) 90%,
+          var(--sys-on-error)
+        );
+      }
+    }
+  }
+}
+
+.rename-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .inline-error {
+    padding: 8px 16px;
+    background-color: color-mix(
+      in srgb,
+      var(--sys-error) 10%,
+      var(--sys-surface)
+    );
+
+    mat-card-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0;
+      color: var(--sys-error);
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
