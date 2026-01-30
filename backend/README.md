@@ -16,7 +16,7 @@ This is the new Hono-based backend for Inkweld, designed to be easier to deploy 
 
 ### Prerequisites
 
-- Bun 1.3.7 or higher
+- Bun 1.3.8 or higher
 - SQLite (default, automatic) or Cloudflare D1
 
 ### Installation

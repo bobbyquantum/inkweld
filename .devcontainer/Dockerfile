@@ -10,7 +10,7 @@ LABEL maintainer="bobbyquantum"
 LABEL description="Inkweld development environment - Hono/Bun backend, Angular frontend, Docusaurus docs"
 
 # Versions
-ARG BUN_VERSION=1.3.7
+ARG BUN_VERSION=1.3.8
 ARG NODE_VERSION=22
 
 # Install system dependencies for native modules and development
