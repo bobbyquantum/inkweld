@@ -14,13 +14,14 @@
   <a href="#features">Features</a> •
   <a href="#status">Status</a> •
   <a href="#architecture">Architecture</a> •
-  <a href="#development">Development</a>
+  <a href="#development">Development</a> •
+  <a href="#contributing">Contributing</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
   <a href="https://github.com/bobbyquantum/inkweld/actions"><img src="https://img.shields.io/github/actions/workflow/status/bobbyquantum/inkweld/ci.yml?branch=main" alt="Build"></a>
-  <a href="https://github.com/bobbyquantum/inkweld/pkgs/container/inkweld"><img src="https://ghcr-badge.egpl.dev/bobbyquantum/inkweld/latest_by_date?color=%2344cc11&ignore=latest" alt="Docker"></a>
+  <a href="https://github.com/bobbyquantum/inkweld/pkgs/container/inkweld"><img src="https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker" alt="Docker"></a>
 </p>
 
 ---
