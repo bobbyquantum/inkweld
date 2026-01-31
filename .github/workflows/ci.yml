@@ -373,7 +373,7 @@ jobs:
   # Build ARM64 image on native ARM runner
   docker-dev-arm64:
     name: Build Docker (arm64)
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04-arm
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       [
