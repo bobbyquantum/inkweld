@@ -330,7 +330,17 @@ jobs:
     name: Build & Push Dev Docker Image
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [lint, test-frontend, test-backend, e2e-local, e2e-online, e2e-wrangler, e2e-docker, e2e-screenshots]
+    needs:
+      [
+        lint,
+        test-frontend,
+        test-backend,
+        e2e-local,
+        e2e-online,
+        e2e-wrangler,
+        e2e-docker,
+        e2e-screenshots,
+      ]
 
     steps:
       - name: Checkout repository
