@@ -44,7 +44,12 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Developer Guide',
-      items: ['developer/architecture', 'developer/api', 'getting-started'],
+      items: [
+        'developer/architecture',
+        'developer/api',
+        'developer/project-archives',
+        'getting-started',
+      ],
     },
     {
       type: 'category',
