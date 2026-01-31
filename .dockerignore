@@ -4,9 +4,10 @@ node_modules
 .bun
 **/.bun
 
-# Build outputs - built fresh in Docker
+# Build outputs - built fresh in Docker (except frontend/dist for pre-built CI builds)
 dist
 **/dist
+!frontend/dist
 build
 **/build
 .angular
