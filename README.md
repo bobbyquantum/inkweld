@@ -27,7 +27,7 @@
 
 ## Quick Start
 
-Coming soon.
+Coming soon, once first numbered release is added.
 
 📖 **[Full deployment guide →](DEPLOY.md)**
 
@@ -35,88 +35,191 @@ Coming soon.
 
 ## Features
 
-**For Writers**
-- Real-time collaboration — multiple people editing the same document
-- Offline-first — write anywhere, sync when you reconnect
-- Export to PDF, EPUB, and Markdown
+**Write together, or alone.** Jump in on any device with the real time sync server, or collaborate in real-time with other writers, or work entirely locally with no server. 
 
-**For Worldbuilders**
-- Customizable element types (characters, locations, items, etc.)
-- Relationship systems between elements
-- Cross-reference elements directly in your documents
+**Build your world as you write.** Create characters, locations, factions — whatever your story needs. Link them together with relationships, and reference them directly in your prose with @mentions.
 
-**For Self-Hosters**
-- Single Docker image, everything included
-- SQLite database, no external dependencies
-- Your data stays on your machine
+**Own your data.** Many hosting options are supported.  Native sync server binaries (thanks to Bun), self contained Docker images, and support for Cloudflare free tier deployment.
+
+**Export when you're ready.** PDF, EPUB, Markdown, HTML. Configurable publish plans let you publish multiple asset variants from a single project.
+
+📋 **[Full feature roadmap →](#feature-roadmap)**
 
 ---
 
 ## Status
 
-> Unreleased. Core features work, rough edges remain.
+### Unreleased 
 
-| Area | Status | Notes |
-|------|--------|-------|
-| ✅ Core Editing | Ready | ProseMirror + Yjs, real-time sync, offline support |
-| ✅ Worldbuilding | Ready | Custom templates, relationships, element references |
-| ✅ Export | Ready | PDF, EPUB, Markdown, project archives |
-| 🔨 User Experience | In Progress | Quick-open works, search & navigation coming |
-| 🔨 Editor Polish | In Progress | Shortcuts done, images & code blocks coming |
-| 🔨 Auth & Security | In Progress | Basic auth + CSRF done, OAuth & 2FA planned |
-| 🔨 DevOps | In Progress | Docker & CI done, monitoring planned |
-| 📋 Project Structure | Planned | Templates for contributing, security policy |
-| 📋 Admin Tools | Planned | Dashboard, analytics |
+- Can be deployed and used now, however, until numbered releases are started, there are no guarantees that data migration paths will be available.  
+- Not recommended for production use.   If you do use it in this way, always back up your work before upgrading, and be aware, manual fixing of exports might be needed to move to newer versions.  
+- At some point closer to the first numbered release, the drizzle migrations will be squashed into a single V1 migration, meaning existing databases will need to be reset or manually fixed.  
 
-<details>
-<summary><strong>Full checklist</strong></summary>
 
-### Core Functionality ✅
-- ✅ Document editing with ProseMirror + Yjs
-- ✅ Local-first with automatic sync
-- ✅ Browser IndexedDB + server LevelDB storage
-- ✅ Worldbuilding elements with custom templates
-- ✅ Real-time collaboration via WebSocket
-- ✅ Import/export project archives
-- ✅ Project renaming
+---
 
-### Export ✅
-- ✅ EPUB export
-- ✅ PDF export (via Typst)
-- ✅ Markdown export
-- ⬜ Print formatting options
-- ⬜ Typography customization
+## Feature Roadmap
 
-### User Experience 🔨
-- ✅ Quick file open (Ctrl/Cmd + P)
-- ✅ Find in document (Ctrl/Cmd + F)
-- ✅ Mobile-responsive design
-- ⬜ Project-wide search
-- ⬜ Find and replace
-- ⬜ Breadcrumbs, favorites, recent files
+**Status:** ✅ Done | 🔨 In Progress | ⬜ Planned  
+**Priority:** 🔥 High | 🟡 Medium | 🟢 Nice to have
 
-### Editor 🔨
-- ✅ Full keyboard shortcut support
-- ⬜ Image insertion
-- ⬜ Code blocks
+### Project Management
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Home screen with project cards | Browse and manage all projects |
+| ✅ | 🔥 | Drag-and-drop project tree | Organize documents, folders, elements |
+| ✅ | 🔥 | Folder hierarchy | Unlimited nesting depth |
+| ✅ | 🔥 | Project archives (import/export) | Backup and restore entire projects |
+| ✅ | 🟡 | Project renaming | |
+| ✅ | 🟡 | Context menus | Right-click actions on tree items |
+| ✅ | 🟡 | Home screen search | Filter projects by name |
+| ✅ | 🟡 | Project templates | Start new projects from templates |
+| ✅ | 🟢 | Project duplication | Export & re-import with new name |
 
-### Auth & Security 🔨
-- ✅ Password auth with strong requirements
-- ✅ CSRF protection
-- ✅ User approval system
-- ⬜ Password reset via email
-- ⬜ OAuth providers
-- ⬜ Two-factor auth
+### Search & Navigation
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Quick file open (Ctrl/Cmd + P) | |
+| ✅ | 🔥 | Find in document (Ctrl/Cmd + F) | |
+| ✅ | 🔥 | Mobile-responsive design | |
+| ⬜ | 🔥 | Project-wide search | |
+| ⬜ | 🔥 | Find and replace in document | |
+| ⬜ | 🟡 | Tag filtering in search | Filter search results by tags |
+| ⬜ | 🟡 | Tag filtering in project tree | Show/hide elements by tag |
+| ⬜ | 🟡 | Breadcrumbs | Show path to current document |
+| ⬜ | 🟡 | Favorites/Bookmarks | Quick access to key elements |
+| ⬜ | 🟢 | Recent files list | Already have quick-open |
 
-### DevOps 🔨
-- ✅ Docker with multi-stage builds
-- ✅ Docker Compose
-- ✅ CI/CD with automated testing
-- ✅ Auto-publish to GHCR
-- ⬜ Production logging
-- ⬜ Monitoring setup
+### Writing Tools
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Full keyboard shortcut support | |
+| ✅ | 🔥 | Image insertion | |
+| ✅ | 🟡 | Zen mode (distraction-free) | |
+| ✅ | 🟡 | Document snapshots | Version history for documents |
+| ⬜ | 🟡 | Comments/Annotations | Inline feedback for collaborators |
+| ⬜ | 🟢 | Writing statistics | Daily/weekly word counts, session stats, goals |
 
-</details>
+### Worldbuilding
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Custom element templates | |
+| ✅ | 🔥 | Relationships with backlinks | Bidirectional connections |
+| ✅ | 🔥 | Element references (@mentions) | |
+| ✅ | 🟡 | Tags on documents & elements | Categorize and organize content |
+| ⬜ | 🟡 | Tags on images | Extend tagging to media library |
+| ⬜ | 🟡 | Random generators | Names, locations, prompts for inspiration |
+| ⬜ | 🟡 | Custom calendar systems | Fantasy calendars with custom months/years |
+| ⬜ | 🟢 | Language/Conlang tools | Vocabulary lists, alphabets |
+| ⬜ | 🟢 | Secrets/GM notes | Per-element spoiler hiding from some collaborators |
+| ⬜ | 🟢 | Reference images panel | Side-by-side images while writing |
+
+### Media Library
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Local-first image storage | Saved to IndexedDB, syncs to server |
+| ✅ | 🔥 | Inline image embedding | Paste/drop images into documents |
+| ✅ | 🟡 | Cover images | Project and element covers |
+| ✅ | 🟡 | Category filtering | Filter by generated, inline, published, etc. |
+| ✅ | 🟡 | Server sync | Bi-directional sync when connected |
+| ⬜ | 🟡 | Image search/filtering | Search within media library |
+| ⬜ | 🟢 | Bulk image operations | Multi-select, batch delete |
+
+### Collaboration
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Real-time co-editing | Multiple users editing same document |
+| ✅ | 🔥 | CRDT conflict resolution | Yjs-based, no manual merge needed |
+| ✅ | 🔥 | Presence indicators | See who's viewing/editing |
+| ✅ | 🔥 | Collaborative cursors | See other users' cursor positions |
+| ✅ | 🟡 | Project sharing | Invite collaborators with role-based access |
+| ✅ | 🟡 | Local-first architecture | Works offline, syncs when connected |
+| ✅ | 🟡 | Migrate local to server | Start offline, add sync server later |
+| ⬜ | 🟢 | Activity feed | See recent changes by collaborators |
+
+
+### Relationship Charts
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ⬜ | 🔥 | Relationship chart element | New element type for visualizing connections |
+| ⬜ | 🔥 | Graph layout | Force-directed network visualization |
+| ⬜ | 🟡 | Hierarchy layout | Tree-style parent/child visualization |
+| ⬜ | 🟡 | Relationship type filtering | Choose which relationship types to include |
+| ⬜ | 🟡 | Element type filtering | Choose which element types to include |
+| ⬜ | 🟢 | Export chart as image | PNG/SVG export |
+
+### Interactive Maps
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ⬜ | 🔥 | Map element type | New element for infinite canvas with map image |
+| ⬜ | 🔥 | Location pins | Clickable markers on the canvas |
+| ⬜ | 🔥 | Pin-to-element linking | Special relationship type connecting pins to elements |
+| ⬜ | 🟡 | Pan and zoom | Navigate large maps smoothly |
+| ⬜ | 🟡 | Multiple map layers | Overlay different maps (political, terrain, etc.) |
+| ⬜ | 🟢 | Drawing tools | Annotate maps with paths, regions, labels |
+
+### Timelines
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ⬜ | 🔥 | Timeline element type | New element for chronological visualization |
+| ⬜ | 🔥 | Time systems | Define custom calendars and date formats |
+| ⬜ | 🔥 | Timeline fields on elements | Add dates to worldbuilding elements |
+| ⬜ | 🔥 | Auto-build from elements | Generate timeline from element date fields |
+| ⬜ | 🟡 | Events system | Add events directly to timeline with element references |
+| ⬜ | 🟡 | Multiple timelines | Parallel timelines for different storylines/regions |
+| ⬜ | 🟢 | Era/period grouping | Visual spans for ages, reigns, wars |
+
+### Publishing
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | EPUB export | Industry-standard e-book format |
+| ✅ | 🔥 | PDF export (via Typst) | Print-ready documents |
+| ✅ | 🔥 | Markdown export | Plain text with formatting |
+| ✅ | 🔥 | HTML export | Single-file web output |
+| ✅ | 🟡 | Publish plans | Save export configurations for reuse |
+| ⬜ | 🟡 | Typography customization | Print formatting options |
+
+### Auth & Security
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Password auth | Strong requirements |
+| ✅ | 🔥 | CSRF protection | |
+| ✅ | 🟡 | User approval system | |
+| ⬜ | 🔥 | Password reset via email | |
+| ⬜ | 🟡 | OAuth providers | |
+| ⬜ | 🟡 | Two-factor auth | |
+
+### DevOps & Admin
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🔥 | Docker with multi-stage builds | |
+| ✅ | 🔥 | Docker Compose | |
+| ✅ | 🔥 | CI/CD with automated testing | |
+| ✅ | 🟡 | Auto-publish to GHCR | |
+| ✅ | 🟡 | Admin dashboard | User management, AI settings, announcements |
+| ⬜ | 🟡 | Production logging | |
+| ⬜ | 🟢 | Monitoring setup | |
+
+### Documentation
+|  |  | Item | Notes |
+|--|--|------|-------|
+| ⬜ | 🟡 | Features marketing page | `/features` landing page for website |
+| ⬜ | 🟡 | Import/archive docs | User guide for importing projects |
+| ⬜ | 🟢 | Desktop app docs | Electron app installation guide |
+
+### Optional AI Features
+> All AI features require admin configuration and are disabled by default. See [AI Stance](#ai-stance).
+
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ✅ | 🟡 | AI image generation | OpenAI, OpenRouter, Fal.ai, Stable Diffusion |
+| ✅ | 🟡 | Image model profiles | Admin-configured presets per provider/model |
+| ✅ | 🟡 | Worldbuilding context for images | Include element data in generation prompts |
+| ✅ | 🟡 | Reference images | Use existing images as style/composition reference |
+| ✅ | 🟡 | Prompt optimization | AI-powered prompt rewriting for better results |
+| ✅ | 🟡 | MCP image tools | Generate images via Model Context Protocol |
+| ⬜ | 🟡 | AI grammar/lint suggestions | Currently broken — needs fixing |
+| ⬜ | 🟢 | AI writing assistance | Suggestions, continuations, rephrasing |
 
 ---
 
@@ -183,11 +286,19 @@ Frontend runs on `:4200`, backend on `:8333`.
 
 ---
 
-## AI Stance
+## Data Security & AI Stance
 
 Inkweld is self-hosted — the content on your server doesn't leave your server and any browsers you connect with.  
 
-The only exceptions to this are if you use external AI services.  There's an **AI Kill Switch** that disables all AI features, and AI is disabled by default.   If you choose to enable AI features, you can connect to self hosted services, or external services, and uses include image generation based on content, and grammar suggestions.
+The exception to this are if you use external AI services.  There's an **AI Kill Switch** that disables all AI features, and AI is disabled by default.   
+
+If you choose to enable AI features, you can configure both self hosted services and external services, and uses include image generation based on content, and grammar suggestions.  
+
+You should be aware when using external AI services that content could be used to train, and in the case of some providers, even be published or sold as training data sets.
+
+> Always check the provider policies when configuring AI features.
+
+## AI Usage Disclosure
 
 **Disclosure:** GitHub Copilot and Claude Code is used in development (a lot). The desktop background image in the main app is currently AI-generated.  Some of the examples in the docs use generative AI for images and text. 
 
