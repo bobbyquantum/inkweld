@@ -71,9 +71,16 @@ If your instance has AI image generation enabled, a **Generate Image** button ap
 
 When generation is in progress, active jobs appear at the top showing status (queued, generating, saving). Completed images are added to the library automatically.
 
-## Offline Access
+## Local-First Storage
 
-Media is cached locally in IndexedDB. When you view images in a project, they're stored for offline access. When you reconnect, the library syncs with the server.
+Like all Inkweld data, media uses a **local-first architecture**:
+
+- Images are stored in your browser's IndexedDB immediately
+- When connected to a server, images sync automatically
+- You can work offline—images are available without network access
+- Changes sync bi-directionally when you reconnect
+
+This means your images are always accessible, even without an internet connection.
 
 ---
 
