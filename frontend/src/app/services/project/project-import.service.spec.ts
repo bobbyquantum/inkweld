@@ -14,6 +14,7 @@ import {
   ArchiveElement,
   ArchiveManifest,
   ImportPhase,
+  MIN_SUPPORTED_VERSION,
   ProjectArchive,
   ProjectArchiveErrorType,
 } from '../../models/project-archive';
@@ -23,6 +24,7 @@ import { LocalProjectElementsService } from '../local/local-project-elements.ser
 import { LocalSnapshotService } from '../local/local-snapshot.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
+import * as archiveMigrations from './archive-migrations';
 import { DocumentImportService } from './document-import.service';
 import { ProjectImportService } from './project-import.service';
 
@@ -823,6 +825,134 @@ describe('ProjectImportService', () => {
       });
 
       expect(result).toEqual(mockCreatedProject);
+    });
+  });
+
+  describe('archive migrations', () => {
+    it('should import archive at current version without migration', async () => {
+      const file = await createTestArchive(mockArchive);
+
+      const result = await service.importProject(file, {
+        slug: 'imported-project',
+      });
+
+      expect(result).toEqual(mockCreatedProject);
+      // Logger should not report any migration
+      expect(logger.info).not.toHaveBeenCalledWith(
+        'ProjectImport',
+        expect.stringContaining('Migrating archive')
+      );
+    });
+
+    it('should reject archive version below MIN_SUPPORTED_VERSION', async () => {
+      // This test only applies if MIN_SUPPORTED_VERSION > 0
+      if (MIN_SUPPORTED_VERSION <= 0) {
+        return;
+      }
+
+      const oldArchive: ProjectArchive = {
+        ...mockArchive,
+        manifest: { ...mockManifest, version: MIN_SUPPORTED_VERSION - 1 },
+      };
+      const file = await createTestArchive(oldArchive);
+
+      await expect(
+        service.importProject(file, { slug: 'test' })
+      ).rejects.toMatchObject({
+        type: ProjectArchiveErrorType.VersionMismatch,
+      });
+    });
+
+    it('should reject archive version above ARCHIVE_VERSION', async () => {
+      const futureArchive: ProjectArchive = {
+        ...mockArchive,
+        manifest: { ...mockManifest, version: ARCHIVE_VERSION + 1 },
+      };
+      const file = await createTestArchive(futureArchive);
+
+      await expect(
+        service.importProject(file, { slug: 'test' })
+      ).rejects.toMatchObject({
+        type: ProjectArchiveErrorType.UnsupportedVersion,
+      });
+    });
+
+    it('should apply migration when archive version is older', async () => {
+      // Only test if we have room for an older version
+      if (MIN_SUPPORTED_VERSION >= ARCHIVE_VERSION) {
+        return;
+      }
+
+      const olderVersion = ARCHIVE_VERSION - 1;
+
+      // Create a mock migration
+      const mockMigration: archiveMigrations.ArchiveMigration = {
+        fromVersion: olderVersion,
+        toVersion: ARCHIVE_VERSION,
+        description: 'Test migration',
+        migrate: archive => ({
+          ...archive,
+          manifest: { ...archive.manifest, version: ARCHIVE_VERSION },
+        }),
+      };
+
+      // Mock the migration registry
+      const originalMigrations = [...archiveMigrations.ARCHIVE_MIGRATIONS];
+      archiveMigrations.ARCHIVE_MIGRATIONS.length = 0;
+      archiveMigrations.ARCHIVE_MIGRATIONS.push(mockMigration);
+
+      try {
+        const olderArchive: ProjectArchive = {
+          ...mockArchive,
+          manifest: { ...mockManifest, version: olderVersion },
+        };
+        const file = await createTestArchive(olderArchive);
+
+        const result = await service.importProject(file, {
+          slug: 'imported-project',
+        });
+
+        expect(result).toEqual(mockCreatedProject);
+        expect(logger.info).toHaveBeenCalledWith(
+          'ProjectImport',
+          expect.stringContaining('Migrating archive')
+        );
+      } finally {
+        // Restore original migrations
+        archiveMigrations.ARCHIVE_MIGRATIONS.length = 0;
+        archiveMigrations.ARCHIVE_MIGRATIONS.push(...originalMigrations);
+      }
+    });
+
+    it('should fail if no migration path exists', async () => {
+      // Only test if we have room for an older version
+      if (MIN_SUPPORTED_VERSION >= ARCHIVE_VERSION) {
+        return;
+      }
+
+      const olderVersion = ARCHIVE_VERSION - 1;
+
+      // Ensure no migrations are registered
+      const originalMigrations = [...archiveMigrations.ARCHIVE_MIGRATIONS];
+      archiveMigrations.ARCHIVE_MIGRATIONS.length = 0;
+
+      try {
+        const olderArchive: ProjectArchive = {
+          ...mockArchive,
+          manifest: { ...mockManifest, version: olderVersion },
+        };
+        const file = await createTestArchive(olderArchive);
+
+        await expect(
+          service.importProject(file, { slug: 'test' })
+        ).rejects.toMatchObject({
+          type: ProjectArchiveErrorType.VersionMismatch,
+        });
+      } finally {
+        // Restore original migrations
+        archiveMigrations.ARCHIVE_MIGRATIONS.length = 0;
+        archiveMigrations.ARCHIVE_MIGRATIONS.push(...originalMigrations);
+      }
     });
   });
 });
