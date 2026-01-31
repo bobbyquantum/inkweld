@@ -327,9 +327,9 @@ jobs:
   # Build and Push Dev Docker Image (Multi-arch)
   # ===========================================
 
-  # Build AMD64 image on standard runner
-  docker-dev-amd64:
-    name: Build Docker (amd64)
+  # Pre-build frontend on AMD64 (output is platform-agnostic)
+  docker-frontend-build:
+    name: Build Frontend for Docker
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
@@ -347,6 +347,43 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install frontend dependencies
+        run: cd frontend && bun install --frozen-lockfile
+
+      - name: Build frontend
+        run: cd frontend && bun run build
+
+      - name: Compress WASM files
+        run: cd frontend && node scripts/compress-wasm.js
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v6
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # Build AMD64 image
+  docker-dev-amd64:
+    name: Build Docker (amd64)
+    runs-on: ubuntu-latest
+    needs: [docker-frontend-build]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v6
+        with:
+          name: frontend-dist
+          path: frontend/dist
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -366,6 +403,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: ghcr.io/${{ github.repository_owner }}/inkweld:dev-amd64
+          build-args: FRONTEND_PREBUILT=true
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
           provenance: false
@@ -374,22 +412,17 @@ jobs:
   docker-dev-arm64:
     name: Build Docker (arm64)
     runs-on: ubuntu-24.04-arm
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs:
-      [
-        lint,
-        test-frontend,
-        test-backend,
-        e2e-local,
-        e2e-online,
-        e2e-wrangler,
-        e2e-docker,
-        e2e-screenshots,
-      ]
+    needs: [docker-frontend-build]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v6
+        with:
+          name: frontend-dist
+          path: frontend/dist
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -409,6 +442,7 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: ghcr.io/${{ github.repository_owner }}/inkweld:dev-arm64
+          build-args: FRONTEND_PREBUILT=true
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
           provenance: false
@@ -433,7 +467,3 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/inkweld:dev-amd64 \
             ghcr.io/${{ github.repository_owner }}/inkweld:dev-arm64
           docker manifest push ghcr.io/${{ github.repository_owner }}/inkweld:dev
-          tags: ghcr.io/${{ github.repository_owner }}/inkweld:dev
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false

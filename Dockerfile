@@ -7,28 +7,40 @@
 # The key challenge is native module embedding: node-gyp-build dynamically resolves .node
 # files at runtime, but Bun's compiler needs static requires to embed them. We patch
 # classic-level/binding.js to directly require the N-API prebuild before compilation.
+#
+# Multi-arch build strategy:
+# - When FRONTEND_PREBUILT build arg is set, skip frontend build and use pre-built dist
+# - This allows CI to build frontend once on AMD64 and share with ARM64 builds
 
-# Frontend builder stage (Angular)
-# Angular build outputs to dist/browser/ in production mode (default configuration)
+# Frontend builder stage (Angular) - only used when not using pre-built frontend
 FROM oven/bun:1.3.8 AS frontend-builder
 WORKDIR /app/frontend
 
+# Check if we should skip building (pre-built frontend provided)
+ARG FRONTEND_PREBUILT=false
+
 # Install git for dependencies that need to be cloned
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
+  apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*; \
+  fi
 
 COPY frontend/bun.lock frontend/package.json ./
-RUN bun install --frozen-lockfile
+RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
+  bun install --frozen-lockfile; \
+  fi
 
 COPY frontend .
 # Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
 # Then compress WASM files with Brotli (they're served with Content-Encoding: br)
-RUN bun run build \
+RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
+  bun run build \
   && if [ ! -d /app/frontend/dist ]; then \
   echo "ERROR: frontend build did not produce /app/frontend/dist"; \
   ls -la /app/frontend || true; \
   exit 1; \
   fi \
-  && node scripts/compress-wasm.js
+  && node scripts/compress-wasm.js; \
+  fi
 
 # Backend builder stage - produces a single compiled binary
 FROM oven/bun:1.3.8 AS backend-builder
@@ -66,7 +78,9 @@ RUN PATCH_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "linux-arm64-glibc" || 
   bun scripts/patch-native-modules.ts patch $PATCH_TARGET
 
 # Copy frontend dist for binary embedding
-# Angular outputs to dist/browser/ - copy entire dist directory for consistency
+# When FRONTEND_PREBUILT=true, the dist was already in the build context and copied into frontend-builder
+# When FRONTEND_PREBUILT=false, frontend-builder built it fresh
+# Either way, it's in /app/frontend/dist in the frontend-builder stage
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
 # Generate frontend imports file for binary embedding
