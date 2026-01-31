@@ -10,11 +10,37 @@ import { ElementTypeSchema } from './schema-types';
 /**
  * Current archive format version.
  * Increment when making breaking changes to the archive structure.
+ *
+ * When incrementing, you MUST:
+ * 1. Add a migration in `archive-migrations.ts` that upgrades v(N-1) to vN
+ * 2. Document the changes in the version history below
+ *
+ * ## Version History
+ *
+ * ### Version 1 (January 2026) - Initial Format
+ * Initial archive format with full project structure:
+ * - manifest.json: Archive metadata (version, timestamp, appVersion)
+ * - project.json: Project settings (title, description, slug, cover flag)
+ * - elements.json: Element tree structure (folders, documents, worldbuilding)
+ * - documents.json: ProseMirror JSON content for ITEM elements
+ * - worldbuilding.json: Flattened Yjs data for WORLDBUILDING elements
+ * - schemas.json: Worldbuilding schema/template definitions
+ * - relationships.json: Element-to-element connections
+ * - relationship-types.json: Custom relationship type definitions
+ * - tags.json: Tag definitions
+ * - element-tags.json: Element-to-tag assignments
+ * - publish-plans.json: Export configuration plans
+ * - snapshots.json: Document version history (optional)
+ * - media-index.json: Media file manifest
+ * - media/: Cover and inline images
  */
 export const ARCHIVE_VERSION = 1;
 
 /**
  * Minimum supported archive version for import.
+ * Archives older than this version cannot be imported.
+ *
+ * Increase this when dropping support for old migration paths.
  */
 export const MIN_SUPPORTED_VERSION = 1;
 
