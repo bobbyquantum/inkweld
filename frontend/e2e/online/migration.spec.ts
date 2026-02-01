@@ -131,15 +131,12 @@ test.describe('Offline to Server Migration', () => {
       .locator('[data-testid="migrate-projects-button"]')
       .click();
 
-    // Step 10: Wait for migration to complete
-    // The snackbar appears AFTER all migration steps are done (including createProjectsOnServer)
-    const snackbar = offlinePage
-      .locator('.mat-mdc-snack-bar-label')
-      .filter({ hasText: /Successfully migrated \d+ project/i })
-      .first();
+    // Step 10: Wait for migration and sync to complete
+    // The dialog shows sync-success when migration and server sync are done
+    const syncSuccess = offlinePage.locator('[data-testid="sync-success"]');
 
-    // Wait for the success snackbar - this indicates migration is fully complete
-    await expect(snackbar).toBeVisible();
+    // Wait for the success message - this indicates migration and sync are fully complete
+    await expect(syncSuccess).toBeVisible({ timeout: 45000 });
 
     // Wait a moment for any final async operations to settle
     await offlinePage.waitForTimeout(2000);
@@ -305,15 +302,12 @@ test.describe('Offline to Server Migration', () => {
       .locator('[data-testid="migrate-projects-button"]')
       .click();
 
-    // Wait for migration to complete
-    // The snackbar appears AFTER all migration steps are done (including createProjectsOnServer)
-    const snackbarLocator = offlinePage
-      .locator('.mat-mdc-snack-bar-label')
-      .filter({ hasText: /Successfully migrated \d+ project/i })
-      .first();
+    // Wait for migration and sync to complete
+    // The dialog shows sync-success when migration and server sync are done
+    const syncSuccess = offlinePage.locator('[data-testid="sync-success"]');
 
-    // Wait for the success snackbar - this indicates migration is fully complete
-    await expect(snackbarLocator).toBeVisible();
+    // Wait for the success message - this indicates migration and sync are fully complete
+    await expect(syncSuccess).toBeVisible({ timeout: 45000 });
 
     // Wait a moment for any final async operations to settle
     await offlinePage.waitForTimeout(2000);
@@ -367,5 +361,382 @@ test.describe('Offline to Server Migration', () => {
         /test content created in offline mode/i
       );
     }
+  });
+
+  /**
+   * Test that validates the slug conflict rename feature:
+   * 1. Start in local mode, create a project
+   * 2. Migrate to server (so it exists on server)
+   * 3. Switch back to local mode
+   * 4. Create a second project on server (for rename conflict testing)
+   * 5. Create a new local project with unique slug
+   * 6. Delete the server profile, then re-add and login
+   * 7. The local project should NOT conflict (different slug)
+   * 8. But if we tried to rename to a server slug, it should show error
+   *
+   * Actually, simpler approach:
+   * 1. Create local project A
+   * 2. Migrate to server (creates A on server)
+   * 3. Create project B on server
+   * 4. Switch to local, clear local projects, create local project A again
+   * 5. Re-add server (same profile exists), trigger migration
+   * 6. A conflicts, try to rename to B's slug → should fail
+   * 7. Rename to unique slug → should work
+   */
+  test('should validate renamed slugs against existing server projects', async ({
+    offlinePage,
+  }) => {
+    // Increase timeout for this complex multi-step test
+    test.setTimeout(120000);
+
+    const testId = Date.now();
+    const projectASlug = `project-a-${testId}`;
+    const projectBSlug = `project-b-${testId}`;
+    const uniqueSlug = `unique-${testId}`;
+    const testPassword = 'TestPassword123!';
+    const testUsername = `conflictuser-${testId}`;
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 1: Create local project A and migrate to server
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Step 1: Verify we're in offline mode
+    const initialMode = await getAppMode(offlinePage);
+    expect(initialMode).toBe('local');
+
+    // Step 2: Create local project A
+    await createOfflineProject(
+      offlinePage,
+      'Project A',
+      projectASlug,
+      'First project for conflict testing'
+    );
+
+    // Step 3: Open profile manager and add server
+    await offlinePage.goto('/');
+    await openProfileManager(offlinePage);
+
+    await offlinePage.locator('[data-testid="add-server-button"]').click();
+    await expect(
+      offlinePage.locator('[data-testid="new-server-url-input"]')
+    ).toBeVisible();
+
+    await offlinePage
+      .locator('[data-testid="new-server-url-input"]')
+      .fill('http://localhost:9333');
+    await offlinePage.locator('[data-testid="connect-server-button"]').click();
+
+    // Step 4: Register new user
+    await expect(
+      offlinePage.getByRole('heading', { name: /Log In to Server/i })
+    ).toBeVisible();
+
+    await offlinePage
+      .locator('[data-testid="migration-username-input"]')
+      .fill(testUsername);
+    await offlinePage
+      .locator('[data-testid="migration-password-input"]')
+      .fill(testPassword);
+    await offlinePage
+      .locator('[data-testid="migration-confirm-password-input"]')
+      .fill(testPassword);
+
+    await offlinePage
+      .locator('[data-testid="migrate-authenticate-button"]')
+      .click();
+
+    // Step 5: Migrate the project
+    await expect(
+      offlinePage.getByRole('heading', { name: /Select Projects to Migrate/i })
+    ).toBeVisible();
+
+    await offlinePage
+      .locator('[data-testid="migrate-projects-button"]')
+      .click();
+
+    // Wait for migration and sync to complete
+    const syncSuccess = offlinePage.locator('[data-testid="sync-success"]');
+    await expect(syncSuccess).toBeVisible({ timeout: 45000 });
+
+    await offlinePage.waitForTimeout(2000);
+    await offlinePage.goto('/');
+    await offlinePage.waitForLoadState('networkidle');
+
+    // Verify project A exists on server
+    await expect(offlinePage.locator('body')).toContainText('Project A');
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 2: Create project B on server (to test rename conflict)
+    // ════════════════════════════════════════════════════════════════════════
+
+    await offlinePage.goto('/create-project');
+    await offlinePage.waitForLoadState('domcontentloaded');
+
+    await offlinePage.getByRole('button', { name: /next/i }).click();
+    await expect(
+      offlinePage.locator('[data-testid="project-title-input"]')
+    ).toBeVisible();
+
+    await offlinePage
+      .locator('[data-testid="project-title-input"]')
+      .fill('Project B');
+    await offlinePage
+      .locator('[data-testid="project-slug-input"]')
+      .fill(projectBSlug);
+    await offlinePage.locator('[data-testid="create-project-button"]').click();
+
+    await expect(offlinePage).toHaveURL(new RegExp(`.*${projectBSlug}.*`));
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 3: Switch to local mode and create a conflicting project
+    // ════════════════════════════════════════════════════════════════════════
+
+    await offlinePage.goto('/');
+    await openProfileManager(offlinePage);
+
+    // Click on the local profile item to switch to local mode
+    const localProfileButton = offlinePage
+      .locator('button.profile-item')
+      .filter({ hasText: /Local Mode/i })
+      .first();
+    await localProfileButton.click();
+
+    // Wait for switch to local mode and page reload
+    await offlinePage.waitForTimeout(1500);
+    await offlinePage.goto('/');
+
+    // Verify we're in local mode
+    const localMode = await getAppMode(offlinePage);
+    expect(localMode).toBe('local');
+
+    // Clear existing local projects AND server profiles to force fresh migration
+    await offlinePage.evaluate(() => {
+      // Clear existing local projects
+      localStorage.removeItem('local:inkweld-local-projects');
+      localStorage.removeItem('local:inkweld-migrated-projects');
+      // Clear server profiles to force re-adding server
+      localStorage.removeItem('inkweld-profiles');
+    });
+
+    // Reload to pick up the localStorage change
+    await offlinePage.reload();
+    await offlinePage.waitForLoadState('networkidle');
+
+    // After clearing profiles, we should still be in local mode
+    // (the fixture starts in local mode)
+    const afterClearMode = await getAppMode(offlinePage);
+    expect(afterClearMode).toBe('local');
+
+    // Create a new local project with the same slug as Project A on server
+    await createOfflineProject(
+      offlinePage,
+      'Local Project A Copy',
+      projectASlug,
+      'This will conflict with Project A on server'
+    );
+
+    // Verify the local project was created
+    const localProjects = await getOfflineProjects(offlinePage);
+    expect(localProjects.length).toBeGreaterThanOrEqual(1);
+    const createdProject = localProjects.find(
+      (p: { slug: string }) => p.slug === projectASlug
+    );
+    expect(createdProject).toBeTruthy();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 4: Add server fresh and login to trigger migration
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Navigate to home and ensure services are refreshed
+    await offlinePage.goto('/');
+    await offlinePage.waitForLoadState('networkidle');
+    await offlinePage.waitForTimeout(1000); // Allow Angular services to initialize
+
+    await openProfileManager(offlinePage);
+
+    // Add server (profiles were cleared so we must add fresh)
+    await offlinePage.locator('[data-testid="add-server-button"]').click();
+    await expect(
+      offlinePage.locator('[data-testid="new-server-url-input"]')
+    ).toBeVisible();
+
+    await offlinePage
+      .locator('[data-testid="new-server-url-input"]')
+      .fill('http://localhost:9333');
+    await offlinePage.locator('[data-testid="connect-server-button"]').click();
+
+    // Wait for the dialog to update
+    await offlinePage.waitForTimeout(1000);
+
+    // Switch to login mode - click the "Have an account? Log in" button
+    const loginToggle = offlinePage.locator(
+      '[data-testid="toggle-auth-mode-button"]'
+    );
+    await expect(loginToggle).toBeVisible({ timeout: 5000 });
+    await loginToggle.click();
+
+    // Wait for login form to appear
+    await offlinePage.waitForTimeout(500);
+
+    // Login with existing user
+    await offlinePage
+      .locator('[data-testid="migration-username-input"]')
+      .fill(testUsername);
+    await offlinePage
+      .locator('[data-testid="migration-password-input"]')
+      .fill(testPassword);
+
+    await offlinePage
+      .locator('[data-testid="migrate-authenticate-button"]')
+      .click();
+
+    // Wait for migration view to appear with conflict detection
+    // Give it time to check for conflicts
+    await offlinePage.waitForTimeout(2000);
+
+    // Migration heading MUST be visible - this test requires migration flow
+    const migrationHeading = offlinePage.getByRole('heading', {
+      name: /Select Projects to Migrate/i,
+    });
+    await expect(migrationHeading).toBeVisible({ timeout: 10000 });
+
+    // Verify the local project is shown in the migration list
+    const projectCheckbox = offlinePage.getByRole('checkbox', {
+      name: /Local Project A Copy/i,
+    });
+    await expect(projectCheckbox).toBeVisible();
+
+    // The project should show conflict warning icon
+    const conflictIcon = offlinePage.locator('.conflict-icon').first();
+    await expect(conflictIcon).toBeVisible();
+
+    // The rename input should be visible for the conflicting project
+    const renameInput = offlinePage.locator(
+      `[data-testid="rename-slug-${projectASlug}"]`
+    );
+    await expect(renameInput).toBeVisible();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 5: Test that renaming to existing server slug shows error
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Clear and type Project B's slug (which exists on server)
+    await renameInput.clear();
+    await renameInput.fill(projectBSlug);
+
+    // Wait for validation
+    await offlinePage.waitForTimeout(500);
+
+    // The Migrate button should be disabled due to unresolved conflict
+    const migrateButton = offlinePage.locator(
+      '[data-testid="migrate-projects-button"]'
+    );
+    await expect(migrateButton).toBeDisabled();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 6: Rename to a valid unique slug and migrate
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Now rename to a unique slug - use pressSequentially to ensure input events fire
+    await renameInput.click();
+    await renameInput.fill('');
+    await renameInput.pressSequentially(uniqueSlug, { delay: 50 });
+
+    // Wait for validation - should show check icon
+    await offlinePage.waitForTimeout(1000);
+    const validIcon = offlinePage.locator('.valid-icon').first();
+    await expect(validIcon).toBeVisible({ timeout: 5000 });
+
+    // Migrate button should now be enabled
+    await expect(migrateButton).toBeEnabled();
+
+    // Click migrate - the dialog will show progress then sync
+    await migrateButton.click();
+
+    // Wait for sync to complete - the sync success element should appear
+    const renamedSyncSuccess = offlinePage.locator(
+      '[data-testid="sync-success"]'
+    );
+    await expect(renamedSyncSuccess).toBeVisible({ timeout: 30000 });
+
+    // Wait for the dialog to close and page to redirect
+    // The dialog does window.location.href = '/' after sync success
+    await offlinePage.waitForURL('**/', { timeout: 30000 });
+
+    // Wait for page to settle
+    await offlinePage.waitForLoadState('networkidle');
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 7: Verify the project exists ON THE SERVER with the renamed slug
+    // ════════════════════════════════════════════════════════════════════════
+
+    // First verify the renamed project is visible on home page
+    await expect(offlinePage.locator('body')).toContainText(
+      'Local Project A Copy'
+    );
+
+    // Navigate to the project to confirm it has the renamed slug
+    const projectCard = offlinePage.getByRole('button', {
+      name: /Open project Local Project A Copy/i,
+    });
+    await expect(projectCard).toBeVisible();
+    await projectCard.click();
+
+    // URL should contain the renamed slug
+    await expect(offlinePage).toHaveURL(new RegExp(`.*${uniqueSlug}.*`));
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 8: Verify project persists after switching profiles
+    // This confirms it's actually on the server, not just local
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Go home and switch to local mode
+    await offlinePage.goto('/');
+    await openProfileManager(offlinePage);
+
+    // Switch to local mode
+    const localProfileSwitch = offlinePage
+      .locator('button.profile-item')
+      .filter({ hasText: /Local Mode/i })
+      .first();
+    await localProfileSwitch.click();
+    await offlinePage.waitForTimeout(1500);
+    await offlinePage.goto('/');
+
+    // In local mode, we should NOT see the migrated project (it's on server now)
+    const localModeCheck = await getAppMode(offlinePage);
+    expect(localModeCheck).toBe('local');
+
+    // The migrated project should NOT be in local mode anymore
+    await expect(
+      offlinePage.locator('body').getByText('Local Project A Copy')
+    ).not.toBeVisible();
+
+    // Now switch back to server mode
+    await openProfileManager(offlinePage);
+    const serverProfileSwitch = offlinePage
+      .locator('button.profile-item')
+      .filter({ hasText: /localhost/i })
+      .first();
+    await serverProfileSwitch.click();
+    await offlinePage.waitForTimeout(1500);
+    await offlinePage.goto('/');
+    await offlinePage.waitForLoadState('networkidle');
+
+    // The migrated project should be visible on the server
+    await expect(offlinePage.locator('body')).toContainText(
+      'Local Project A Copy'
+    );
+
+    // We should also see both original projects (A and B) plus the migrated one
+    await expect(offlinePage.locator('body')).toContainText('Project A');
+    await expect(offlinePage.locator('body')).toContainText('Project B');
+
+    // Finally, verify we can navigate to the migrated project with the renamed slug
+    const migratedProjectCard = offlinePage.getByRole('button', {
+      name: /Open project Local Project A Copy/i,
+    });
+    await migratedProjectCard.click();
+    await expect(offlinePage).toHaveURL(new RegExp(`.*${uniqueSlug}.*`));
   });
 });

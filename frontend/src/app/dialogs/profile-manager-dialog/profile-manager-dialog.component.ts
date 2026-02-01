@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -14,6 +14,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { RegistrationFormComponent } from '@components/registration-form/registration-form.component';
 import { Project, ProjectsService } from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
@@ -21,6 +22,7 @@ import {
   ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
+import { BackgroundSyncService } from '@services/local/background-sync.service';
 import {
   MigrationService,
   MigrationStatus,
@@ -58,6 +60,7 @@ import {
     MatProgressBarModule,
     MatTooltipModule,
     FormsModule,
+    RegistrationFormComponent,
   ],
   templateUrl: './profile-manager-dialog.component.html',
   styleUrl: './profile-manager-dialog.component.scss',
@@ -68,6 +71,7 @@ export class ProfileManagerDialogComponent {
   private setupService = inject(SetupService);
   private migrationService = inject(MigrationService);
   private projectsService = inject(ProjectsService);
+  private backgroundSyncService = inject(BackgroundSyncService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private dialog = inject(MatDialog);
@@ -100,6 +104,11 @@ export class ProfileManagerDialogComponent {
   protected connectionError = signal<string | null>(null);
   protected connectionSuccess = signal(false);
 
+  // Sync state after migration
+  protected isSyncing = signal(false);
+  protected syncSuccess = signal(false);
+  protected syncError = signal<string | null>(null);
+
   // Migration state (for local -> server transitions)
   protected migrationState = this.migrationService.migrationState;
   protected localProjectsCount = computed(() =>
@@ -112,6 +121,8 @@ export class ProfileManagerDialogComponent {
 
   // Slug conflict tracking - maps original slug to server conflict status
   protected conflictingSlugs = signal<Set<string>>(new Set());
+  // All slugs that exist on the server (for validating renames)
+  protected serverSlugs = signal<Set<string>>(new Set());
   // Maps original slug to new slug (for renaming conflicting projects)
   protected projectRenames = signal<Map<string, string>>(new Map());
   // Computed: check if any selected project has an unresolved conflict
@@ -120,11 +131,12 @@ export class ProfileManagerDialogComponent {
     const conflicts = this.conflictingSlugs();
     const renames = this.projectRenames();
 
+    const serverSlugsSet = this.serverSlugs();
     for (const slug of selected) {
       if (conflicts.has(slug)) {
         const newSlug = renames.get(slug);
-        // Has conflict and either no rename or rename also conflicts
-        if (!newSlug || conflicts.has(newSlug)) {
+        // Has conflict and either no rename or rename also conflicts with server
+        if (!newSlug || serverSlugsSet.has(newSlug)) {
           return true;
         }
       }
@@ -153,17 +165,74 @@ export class ProfileManagerDialogComponent {
   protected authMode = signal<'login' | 'register'>('register');
   protected username = signal('');
   protected password = signal('');
-  protected confirmPassword = signal('');
   protected authError = signal<string | null>(null);
   protected isAuthenticating = signal(false);
   protected isCheckingConflicts = signal(false);
   protected isMigrating = signal(false); // Separate flag for migration phase
 
+  // Track registration form validity for external button control
+  protected registrationFormValid = signal(false);
+
+  // Reference to registration form component for register mode
+  @ViewChild(RegistrationFormComponent)
+  registrationForm?: RegistrationFormComponent;
+
   // Expose enum for template
   protected readonly MigrationStatus = MigrationStatus;
 
-  // Pending server URL for migration
-  private pendingServerUrl = '';
+  // Pending server URL for migration (exposed to template for registration form)
+  protected pendingServerUrl = '';
+
+  /**
+   * Normalize a server URL by ensuring it has a protocol prefix.
+   * If no protocol is specified, defaults to https:// for security.
+   * @param url - The URL to normalize
+   * @returns The normalized URL with protocol
+   */
+  private normalizeServerUrl(url: string): string {
+    const trimmed = url.trim().replace(/\/+$/, ''); // Remove trailing slashes
+    if (!trimmed) return trimmed;
+
+    // If URL already has a protocol, return as-is
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+
+    // For localhost, default to http (common dev scenario)
+    if (
+      trimmed.startsWith('localhost') ||
+      trimmed.startsWith('127.0.0.1') ||
+      trimmed.match(/^localhost:\d+/)
+    ) {
+      return `http://${trimmed}`;
+    }
+
+    // For everything else, default to https
+    return `https://${trimmed}`;
+  }
+
+  /**
+   * Check if registration form is valid (for button disabled state)
+   */
+  protected isRegistrationFormValid(): boolean {
+    return this.registrationFormValid();
+  }
+
+  /**
+   * Handle validity change from registration form
+   */
+  protected onRegistrationValidityChange(valid: boolean): void {
+    this.registrationFormValid.set(valid);
+  }
+
+  /**
+   * Trigger submission on the registration form externally
+   */
+  protected triggerRegistrationSubmit(): void {
+    if (this.registrationForm) {
+      void this.registrationForm.submit();
+    }
+  }
 
   /**
    * Check if a profile has stored auth credentials
@@ -263,12 +332,13 @@ export class ProfileManagerDialogComponent {
    * Test connection to a server
    */
   async testConnection(): Promise<void> {
-    const url = this.newServerUrl().trim();
-    if (!url) {
+    const rawUrl = this.newServerUrl().trim();
+    if (!rawUrl) {
       this.connectionError.set('Please enter a server URL');
       return;
     }
 
+    const url = this.normalizeServerUrl(rawUrl);
     this.isConnecting.set(true);
     this.connectionError.set(null);
     this.connectionSuccess.set(false);
@@ -276,6 +346,8 @@ export class ProfileManagerDialogComponent {
     try {
       const response = await fetch(`${url}/api/v1/health`);
       if (response.ok) {
+        // Update the input with normalized URL so user sees what will be used
+        this.newServerUrl.set(url);
         this.connectionSuccess.set(true);
         this.snackBar.open('Connection successful!', 'Close', {
           duration: 3000,
@@ -285,14 +357,14 @@ export class ProfileManagerDialogComponent {
       }
     } catch (error) {
       console.error('Connection test failed:', error);
-      // Detect CORS errors - they typically show as TypeError with no response
+      // Detect network/CORS errors - they typically show as TypeError with no response
       if (
         error instanceof TypeError &&
         error.message.includes('Failed to fetch')
       ) {
-        // This could be CORS or network error - provide helpful message
+        // This could be server down, CORS, or network error - provide helpful message
         this.connectionError.set(
-          'Connection failed. If the server is running, it may need to add this origin to its CORS allowed list.'
+          'Unable to reach server. Please verify the URL and that the server is running.'
         );
       } else {
         this.connectionError.set('Failed to connect to server');
@@ -304,52 +376,25 @@ export class ProfileManagerDialogComponent {
 
   /**
    * Add a new server profile
+   *
+   * This always shows the auth form so the user can login/register on the new server.
+   * If they have local projects to migrate, those will be shown after authentication.
    */
   addServer(): void {
-    const url = this.newServerUrl().trim();
-    if (!url) {
+    const rawUrl = this.newServerUrl().trim();
+    if (!rawUrl) {
       this.connectionError.set('Please enter a server URL');
       return;
     }
 
-    // Check if we have local projects to migrate
-    const hasLocalProjects = this.migrationService.hasLocalProjects();
-    const isCurrentlyLocal = this.setupService.getMode() === 'local';
+    // Normalize URL to ensure it has a protocol
+    const url = this.normalizeServerUrl(rawUrl);
 
-    if (isCurrentlyLocal && hasLocalProjects) {
-      // Need to migrate - show auth form
-      this.pendingServerUrl = url;
-      this.currentView.set('migrate');
-      this.showAuthForm.set(true);
-      return;
-    }
-
-    // No migration needed - just add the server
-    this.isConnecting.set(true);
-    this.connectionError.set(null);
-
-    try {
-      // Add the new server configuration
-      const displayName = this.newServerName().trim() || undefined;
-      this.storageContext.addServerConfig(url, displayName);
-
-      // Switch to the new server
-      const configs = this.storageContext.getConfigurations();
-      const newConfig = configs.find(
-        c => c.type === 'server' && c.serverUrl === url
-      );
-
-      if (newConfig) {
-        this.storageContext.switchToConfig(newConfig.id);
-        // Navigate to home - the current project URL won't exist in the new profile context
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error('Failed to add server:', error);
-      this.connectionError.set('Failed to add server. Please try again.');
-    } finally {
-      this.isConnecting.set(false);
-    }
+    // Always show the auth form - user needs to authenticate on the new server
+    // The migration view handles both auth and optional project migration
+    this.pendingServerUrl = url;
+    this.currentView.set('migrate');
+    this.showAuthForm.set(true);
   }
 
   /**
@@ -464,6 +509,29 @@ export class ProfileManagerDialogComponent {
   }
 
   /**
+   * Complete the server switch without migration.
+   * Called when user is authenticated but has no local projects to migrate.
+   */
+  completeServerSwitch(): void {
+    // Add the server configuration with the pending URL
+    const displayName = this.newServerName().trim() || undefined;
+    this.storageContext.addServerConfig(this.pendingServerUrl, displayName);
+
+    // Switch to the new server
+    const configs = this.storageContext.getConfigurations();
+    const normalizedUrl = this.pendingServerUrl.replace(/\/+$/, '');
+    const newConfig = configs.find(
+      c => c.type === 'server' && c.serverUrl === normalizedUrl
+    );
+
+    if (newConfig) {
+      this.storageContext.switchToConfig(newConfig.id);
+      // Navigate to home
+      window.location.href = '/';
+    }
+  }
+
+  /**
    * Reset migration form state
    */
   private resetMigrationForm(): void {
@@ -471,7 +539,6 @@ export class ProfileManagerDialogComponent {
     this.isAuthenticated.set(false);
     this.username.set('');
     this.password.set('');
-    this.confirmPassword.set('');
     this.authError.set(null);
     this.isAuthenticating.set(false);
     this.isMigrating.set(false);
@@ -479,7 +546,10 @@ export class ProfileManagerDialogComponent {
     this.pendingServerUrl = '';
     this.selectedProjectSlugs.set(new Set());
     this.conflictingSlugs.set(new Set());
+    this.serverSlugs.set(new Set());
     this.projectRenames.set(new Map());
+    // Reset registration form if present
+    this.registrationForm?.reset();
   }
 
   /**
@@ -525,25 +595,68 @@ export class ProfileManagerDialogComponent {
   }
 
   /**
-   * Handle authentication (step 1 of migration flow)
+   * Handle registration request from the shared registration form.
+   * Called when externalSubmit mode emits submitRequest.
+   */
+  async onRegistrationSubmit(credentials: {
+    username: string;
+    password: string;
+  }): Promise<void> {
+    this.isAuthenticating.set(true);
+    this.registrationForm?.setLoading(true);
+    this.authError.set(null);
+
+    try {
+      // Configure server mode first
+      await this.setupService.configureServerMode(this.pendingServerUrl);
+
+      // Register on server
+      await this.migrationService.registerOnServer(
+        credentials.username,
+        credentials.password
+      );
+
+      // Auth successful - mark as authenticated
+      this.isAuthenticated.set(true);
+      this.showAuthForm.set(false);
+
+      // Now check for slug conflicts with server projects
+      await this.checkSlugConflicts();
+
+      // Select all projects by default (if any)
+      const allSlugs = this.localProjects().map(p => p.slug);
+      this.selectedProjectSlugs.set(new Set(allSlugs));
+
+      const message =
+        allSlugs.length > 0
+          ? 'Registered successfully! Select projects to migrate.'
+          : 'Registered successfully! Click Continue to switch to the server.';
+      this.snackBar.open(message, 'Close', { duration: 3000 });
+    } catch (error) {
+      console.error('Registration failed:', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Registration failed. Please try again.';
+      this.registrationForm?.setError(message);
+      this.authError.set(message);
+    } finally {
+      this.isAuthenticating.set(false);
+      this.registrationForm?.setLoading(false);
+    }
+  }
+
+  /**
+   * Handle login authentication (step 1 of migration flow)
    * After successful auth, fetches server projects and shows migration table
    */
   async authenticate(): Promise<void> {
     const usernameValue = this.username();
     const passwordValue = this.password();
-    const confirmPasswordValue = this.confirmPassword();
 
     // Validation
     if (!usernameValue || !passwordValue) {
       this.authError.set('Please enter username and password');
-      return;
-    }
-
-    if (
-      this.authMode() === 'register' &&
-      passwordValue !== confirmPasswordValue
-    ) {
-      this.authError.set('Passwords do not match');
       return;
     }
 
@@ -554,15 +667,8 @@ export class ProfileManagerDialogComponent {
       // Configure server mode first
       await this.setupService.configureServerMode(this.pendingServerUrl);
 
-      // Register or login
-      if (this.authMode() === 'register') {
-        await this.migrationService.registerOnServer(
-          usernameValue,
-          passwordValue
-        );
-      } else {
-        await this.migrationService.loginToServer(usernameValue, passwordValue);
-      }
+      // Login to server
+      await this.migrationService.loginToServer(usernameValue, passwordValue);
 
       // Auth successful - mark as authenticated
       this.isAuthenticated.set(true);
@@ -571,15 +677,15 @@ export class ProfileManagerDialogComponent {
       // Now check for slug conflicts with server projects
       await this.checkSlugConflicts();
 
-      // Select all projects by default
+      // Select all projects by default (if any)
       const allSlugs = this.localProjects().map(p => p.slug);
       this.selectedProjectSlugs.set(new Set(allSlugs));
 
-      this.snackBar.open(
-        'Authenticated successfully! Select projects to migrate.',
-        'Close',
-        { duration: 3000 }
-      );
+      const message =
+        allSlugs.length > 0
+          ? 'Authenticated successfully! Select projects to migrate.'
+          : 'Authenticated successfully! Click Continue to switch to the server.';
+      this.snackBar.open(message, 'Close', { duration: 3000 });
     } catch (error) {
       console.error('Authentication failed:', error);
       this.authError.set(
@@ -609,6 +715,8 @@ export class ProfileManagerDialogComponent {
 
     this.isMigrating.set(true);
     this.authError.set(null);
+    this.syncSuccess.set(false);
+    this.syncError.set(null);
 
     try {
       if (selectedSlugs.length > 0) {
@@ -620,38 +728,54 @@ export class ProfileManagerDialogComponent {
           renames.size > 0 ? renames : undefined
         );
 
-        // Handle results
+        // Handle migration results
         const state = this.migrationState();
 
         if (state.status === MigrationStatus.Completed) {
-          this.snackBar.open(
-            `Successfully migrated ${state.completedProjects} project(s)!`,
-            'Close',
-            { duration: 5000 }
-          );
+          // Migration copied data to server-mode storage.
+          // Now sync to actually create the projects on the server.
+          this.isMigrating.set(false);
+          this.isSyncing.set(true);
 
-          // Clean up migrated project data only
-          this.migrationService.cleanupLocalData(selectedSlugs);
+          try {
+            const syncSuccess =
+              await this.backgroundSyncService.syncPendingItems();
+
+            if (syncSuccess) {
+              this.syncSuccess.set(true);
+              // Clean up migrated project data only after successful sync
+              this.migrationService.cleanupLocalData(selectedSlugs);
+            } else {
+              this.syncError.set(
+                'Some projects failed to sync. They will be synced automatically later.'
+              );
+            }
+          } catch (syncErr) {
+            console.error('Sync failed:', syncErr);
+            this.syncError.set(
+              syncErr instanceof Error
+                ? syncErr.message
+                : 'Sync failed. Projects will sync automatically when online.'
+            );
+          } finally {
+            this.isSyncing.set(false);
+          }
         } else if (state.status === MigrationStatus.Failed) {
-          this.snackBar.open(
-            `Migration completed with errors. ${state.completedProjects} succeeded, ${state.failedProjects} failed.`,
-            'Close',
-            { duration: 7000 }
+          this.authError.set(
+            `Migration completed with errors. ${state.completedProjects} succeeded, ${state.failedProjects} failed.`
           );
         }
       } else {
         // No projects selected - just connect to server
-        this.snackBar.open(
-          'Connected to server. Local projects remain on this device.',
-          'Close',
-          { duration: 4000 }
-        );
+        this.syncSuccess.set(true);
       }
 
-      // Navigate to home after migration
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
+      // Navigate to home after successful sync or if no projects selected
+      if (this.syncSuccess()) {
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      }
     } catch (error) {
       console.error('Migration failed:', error);
       this.authError.set(
@@ -661,6 +785,7 @@ export class ProfileManagerDialogComponent {
       );
     } finally {
       this.isMigrating.set(false);
+      this.isSyncing.set(false);
     }
   }
 
@@ -705,7 +830,11 @@ export class ProfileManagerDialogComponent {
    * Get the renamed slug for a project (or original if not renamed)
    */
   getProjectSlug(project: Project): string {
-    return this.projectRenames().get(project.slug) ?? project.slug;
+    // Check if we have a rename entry (even if empty string)
+    if (this.projectRenames().has(project.slug)) {
+      return this.projectRenames().get(project.slug) ?? '';
+    }
+    return project.slug;
   }
 
   /**
@@ -713,10 +842,12 @@ export class ProfileManagerDialogComponent {
    */
   updateProjectSlug(project: Project, newSlug: string): void {
     const renames = new Map(this.projectRenames());
-    if (newSlug && newSlug !== project.slug) {
-      renames.set(project.slug, newSlug);
-    } else {
+    // Always set the value - even if empty, to allow clearing the field
+    // Only delete if it's the same as the original slug (user restored it)
+    if (newSlug === project.slug) {
       renames.delete(project.slug);
+    } else {
+      renames.set(project.slug, newSlug);
     }
     this.projectRenames.set(renames);
   }
@@ -743,6 +874,7 @@ export class ProfileManagerDialogComponent {
       }
 
       this.conflictingSlugs.set(conflicts);
+      this.serverSlugs.set(serverSlugs);
 
       // Show warning if there are conflicts
       if (conflicts.size > 0) {
@@ -770,9 +902,9 @@ export class ProfileManagerDialogComponent {
   }
 
   /**
-   * Check if a new slug would also conflict
+   * Check if a new slug would also conflict with server projects
    */
   wouldSlugConflict(newSlug: string): boolean {
-    return this.conflictingSlugs().has(newSlug);
+    return this.serverSlugs().has(newSlug);
   }
 }

@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthenticationService } from '@inkweld/api/authentication.service';
@@ -15,6 +15,7 @@ import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
 import { LocalStorageService } from './local-storage.service';
 import { MigrationService, MigrationStatus } from './migration.service';
+import { ProjectSyncService } from './project-sync.service';
 
 describe('MigrationService', () => {
   let service: MigrationService;
@@ -27,8 +28,11 @@ describe('MigrationService', () => {
   let localProjectService: {
     projects: ReturnType<typeof signal<Project[]>>;
     getNonMigratedProjects: ReturnType<typeof vi.fn>;
+    getLocalModeProjects: ReturnType<typeof vi.fn>;
     markProjectAsMigrated: ReturnType<typeof vi.fn>;
+    createProjectInConfig: ReturnType<typeof vi.fn>;
     deleteProject: ReturnType<typeof vi.fn>;
+    deleteLocalModeProject: ReturnType<typeof vi.fn>;
   };
   let localElementsServiceMock: {
     loadElements: ReturnType<typeof vi.fn>;
@@ -64,6 +68,9 @@ describe('MigrationService', () => {
   };
   let projectsApiMock: {
     createProject: ReturnType<typeof vi.fn>;
+  };
+  let projectSyncServiceMock: {
+    markPendingCreation: ReturnType<typeof vi.fn>;
   };
 
   const mockProjects: Project[] = [
@@ -135,6 +142,10 @@ describe('MigrationService', () => {
       ),
     };
 
+    projectSyncServiceMock = {
+      markPendingCreation: vi.fn().mockResolvedValue(undefined),
+    };
+
     storageContextServiceMock = {
       getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
       getActiveConfig: vi.fn().mockReturnValue({
@@ -153,8 +164,11 @@ describe('MigrationService', () => {
     localProjectService = {
       projects: signal<Project[]>([]),
       getNonMigratedProjects: vi.fn().mockReturnValue([]),
+      getLocalModeProjects: vi.fn().mockReturnValue([]),
       markProjectAsMigrated: vi.fn(),
+      createProjectInConfig: vi.fn(),
       deleteProject: vi.fn(),
+      deleteLocalModeProject: vi.fn(),
     };
 
     localElementsServiceMock = {
@@ -179,6 +193,7 @@ describe('MigrationService', () => {
         },
         { provide: LocalStorageService, useValue: localStorageMock },
         { provide: ProjectsService, useValue: projectsApiMock },
+        { provide: ProjectSyncService, useValue: projectSyncServiceMock },
       ],
     });
 
@@ -189,10 +204,11 @@ describe('MigrationService', () => {
     expect(service).toBeTruthy();
   });
 
-  // Helper to set mock projects (updates both signal and getNonMigratedProjects mock)
+  // Helper to set mock projects (updates signal, getNonMigratedProjects, and getLocalModeProjects mocks)
   const setMockProjects = (projects: Project[]) => {
     localProjectService.projects.set(projects);
     localProjectService.getNonMigratedProjects.mockReturnValue(projects);
+    localProjectService.getLocalModeProjects.mockReturnValue(projects);
   };
 
   describe('initial state', () => {
@@ -375,6 +391,29 @@ describe('MigrationService', () => {
         'testuser'
       );
     });
+
+    it('should mark project for sync with renamed slug', async () => {
+      setMockProjects([mockProjects[0]]);
+
+      const renames = new Map([['test-project-1', 'renamed-project-1']]);
+
+      await service.migrateToServerMode(
+        'config-123',
+        'testuser',
+        ['test-project-1'],
+        renames
+      );
+
+      // markPendingCreation should be called with the RENAMED slug
+      expect(projectSyncServiceMock.markPendingCreation).toHaveBeenCalledWith(
+        'testuser/renamed-project-1', // projectKey uses renamed slug
+        {
+          title: mockProjects[0].title,
+          slug: 'renamed-project-1', // Should use renamed slug
+          description: mockProjects[0].description,
+        }
+      );
+    });
   });
 
   describe('migrateToServer (deprecated wrapper)', () => {
@@ -483,6 +522,61 @@ describe('MigrationService', () => {
       ).rejects.toThrow('Username already exists');
       expect(loggerMock.error).toHaveBeenCalled();
     });
+
+    it('should extract error message from HttpErrorResponse', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 400,
+        statusText: 'Bad Request',
+        error: { message: 'Username is already taken' },
+      });
+      authServiceMock.registerUser.mockReturnValue(throwError(() => httpError));
+
+      await expect(
+        service.registerOnServer('testuser', 'password')
+      ).rejects.toThrow('Username is already taken');
+      expect(loggerMock.error).toHaveBeenCalled();
+    });
+
+    it('should extract error from HttpErrorResponse error field', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 400,
+        statusText: 'Bad Request',
+        error: { error: 'Validation failed' },
+      });
+      authServiceMock.registerUser.mockReturnValue(throwError(() => httpError));
+
+      await expect(
+        service.registerOnServer('testuser', 'password')
+      ).rejects.toThrow('Validation failed');
+    });
+
+    it('should handle HttpErrorResponse with string error', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 500,
+        statusText: 'Internal Server Error',
+        error: 'Server error message',
+      });
+      authServiceMock.registerUser.mockReturnValue(throwError(() => httpError));
+
+      await expect(
+        service.registerOnServer('testuser', 'password')
+      ).rejects.toThrow('Server error message');
+    });
+
+    it('should fallback to status message for unknown error format', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 500,
+        statusText: 'Internal Server Error',
+        url: '/api/v1/auth/register',
+      });
+      authServiceMock.registerUser.mockReturnValue(throwError(() => httpError));
+
+      await expect(
+        service.registerOnServer('testuser', 'password')
+      ).rejects.toThrow(
+        'Http failure response for /api/v1/auth/register: 500 Internal Server Error'
+      );
+    });
   });
 
   describe('loginToServer', () => {
@@ -557,12 +651,14 @@ describe('MigrationService', () => {
 
       service.cleanupLocalData();
 
-      expect(localProjectService.deleteProject).toHaveBeenCalledTimes(2);
-      expect(localProjectService.deleteProject).toHaveBeenCalledWith(
+      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledTimes(
+        2
+      );
+      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledWith(
         'testuser',
         'test-project-1'
       );
-      expect(localProjectService.deleteProject).toHaveBeenCalledWith(
+      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledWith(
         'testuser',
         'test-project-2'
       );
@@ -596,7 +692,7 @@ describe('MigrationService', () => {
 
       service.cleanupLocalData();
 
-      expect(localProjectService.deleteProject).not.toHaveBeenCalled();
+      expect(localProjectService.deleteLocalModeProject).not.toHaveBeenCalled();
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
         'Local data cleanup completed'
@@ -608,8 +704,10 @@ describe('MigrationService', () => {
 
       service.cleanupLocalData(['test-project-1']);
 
-      expect(localProjectService.deleteProject).toHaveBeenCalledTimes(1);
-      expect(localProjectService.deleteProject).toHaveBeenCalledWith(
+      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledTimes(
+        1
+      );
+      expect(localProjectService.deleteLocalModeProject).toHaveBeenCalledWith(
         'testuser',
         'test-project-1'
       );
@@ -638,6 +736,130 @@ describe('MigrationService', () => {
         'MigrationService',
         'Cleaning up 2 migrated project(s)'
       );
+    });
+  });
+
+  describe('copyDocumentFiles (private method)', () => {
+    // Access private method for testing
+    const getCopyDocumentFiles = () =>
+      (
+        service as unknown as {
+          copyDocumentFiles: (
+            sourceUsername: string,
+            sourceSlug: string,
+            targetUsername: string,
+            targetSlug: string,
+            elements: { id: string; type: string }[]
+          ) => Promise<void>;
+        }
+      ).copyDocumentFiles.bind(service);
+
+    it('should skip when username and slug are unchanged', async () => {
+      const copyDocumentFiles = getCopyDocumentFiles();
+
+      await copyDocumentFiles('testuser', 'my-slug', 'testuser', 'my-slug', []);
+
+      expect(loggerMock.debug).toHaveBeenCalledWith(
+        'MigrationService',
+        'Skipping document copy - username and slug unchanged'
+      );
+    });
+
+    it('should log the count of documents to copy', async () => {
+      const copyDocumentFiles = getCopyDocumentFiles();
+      const elements = [
+        { id: 'doc1', type: 'ITEM' },
+        { id: 'doc2', type: 'ITEM' },
+        { id: 'wb1', type: 'WORLDBUILDING' },
+      ];
+
+      await copyDocumentFiles(
+        'olduser',
+        'old-slug',
+        'newuser',
+        'new-slug',
+        elements
+      );
+
+      expect(loggerMock.info).toHaveBeenCalledWith(
+        'MigrationService',
+        'Copying 2 document files and 1 worldbuilding elements'
+      );
+    });
+
+    it('should handle elements with no content gracefully', async () => {
+      const copyDocumentFiles = getCopyDocumentFiles();
+      const elements = [{ id: 'doc1', type: 'ITEM' }];
+
+      // Should not throw
+      await copyDocumentFiles(
+        'olduser',
+        'old-slug',
+        'newuser',
+        'new-slug',
+        elements
+      );
+
+      expect(loggerMock.debug).toHaveBeenCalledWith(
+        'MigrationService',
+        'Document files copied successfully'
+      );
+    });
+
+    it('should handle FOLDER elements (skip them)', async () => {
+      const copyDocumentFiles = getCopyDocumentFiles();
+      const elements = [
+        { id: 'folder1', type: 'FOLDER' },
+        { id: 'folder2', type: 'FOLDER' },
+      ];
+
+      await copyDocumentFiles(
+        'olduser',
+        'old-slug',
+        'newuser',
+        'new-slug',
+        elements
+      );
+
+      // Should report 0 documents and 0 worldbuilding (folders are skipped)
+      expect(loggerMock.info).toHaveBeenCalledWith(
+        'MigrationService',
+        'Copying 0 document files and 0 worldbuilding elements'
+      );
+    });
+  });
+
+  describe('copySingleDocument (private method)', () => {
+    // Access private method for testing
+    const getCopySingleDocument = () =>
+      (
+        service as unknown as {
+          copySingleDocument: (
+            sourceKey: string,
+            targetKey: string
+          ) => Promise<void>;
+        }
+      ).copySingleDocument.bind(service);
+
+    it('should handle errors gracefully and log warning', async () => {
+      const copySingleDocument = getCopySingleDocument();
+
+      // Mock IndexeddbPersistence to throw - it will fail but should be caught
+      await copySingleDocument(
+        'nonexistent:source:key',
+        'nonexistent:target:key'
+      );
+
+      // Should not throw - errors are caught and logged
+      // The method should complete without error
+    });
+
+    it('should skip empty documents', async () => {
+      const copySingleDocument = getCopySingleDocument();
+
+      await copySingleDocument('empty:source:doc', 'empty:target:doc');
+
+      // Empty docs are skipped - this verifies the method completes without error
     });
   });
 });

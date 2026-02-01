@@ -83,6 +83,7 @@ export class ProjectSyncService {
   private storageService = inject(StorageService);
   private storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
+  private currentDbName: string | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
 
   /**
@@ -106,9 +107,22 @@ export class ProjectSyncService {
   >();
 
   /**
-   * Initialize the sync database
+   * Initialize the sync database.
+   * Automatically resets connection if storage context has changed (different config ID).
    */
   private async ensureDb(): Promise<IDBDatabase> {
+    const expectedDbName = this.dbConfig.dbName;
+
+    // Check if storage context changed (different config ID = different database name)
+    if (this.db && this.currentDbName !== expectedDbName) {
+      // Context changed - reset cached connection
+      this.db.close();
+      this.db = null;
+      this.currentDbName = null;
+      this.initPromise = null;
+      this.syncStates.clear();
+    }
+
     if (this.db) {
       return this.db;
     }
@@ -121,6 +135,7 @@ export class ProjectSyncService {
       .initializeDatabase(this.dbConfig)
       .then(db => {
         this.db = db;
+        this.currentDbName = expectedDbName;
         return db;
       });
 

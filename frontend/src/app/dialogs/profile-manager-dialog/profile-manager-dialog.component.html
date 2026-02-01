@@ -17,7 +17,11 @@
         @case ('migrate') {
           <mat-icon>cloud_upload</mat-icon>
           @if (isAuthenticated()) {
-            Select Projects to Migrate
+            @if (localProjectsCount() > 0) {
+              Select Projects to Migrate
+            } @else {
+              Connected to Server
+            }
           } @else {
             Log In to Server
           }
@@ -241,45 +245,55 @@
         @if (!isAuthenticated()) {
           <div class="auth-section">
             <p class="form-description">
-              @if (authMode() === 'register') {
-                Create an account on the server to migrate your projects.
+              @if (localProjectsCount() > 0) {
+                @if (authMode() === 'register') {
+                  Create an account on the server to migrate your projects.
+                } @else {
+                  Log in to your server account to migrate your projects.
+                }
               } @else {
-                Log in to your server account to migrate your projects.
+                @if (authMode() === 'register') {
+                  Create an account to connect to this server.
+                } @else {
+                  Log in to connect to this server.
+                }
               }
             </p>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Username</mat-label>
-              <input
-                matInput
-                [ngModel]="username()"
-                (ngModelChange)="username.set($event)"
-                [disabled]="isAuthenticating()"
-                type="text"
-                data-testid="migration-username-input" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
-              <input
-                matInput
-                [ngModel]="password()"
-                (ngModelChange)="password.set($event)"
-                [disabled]="isAuthenticating()"
-                type="password"
-                data-testid="migration-password-input" />
-            </mat-form-field>
-
             @if (authMode() === 'register') {
+              <!-- Use shared registration form in external submit mode -->
+              <app-registration-form
+                #registrationForm
+                [compact]="true"
+                [externalSubmit]="true"
+                [serverUrl]="pendingServerUrl"
+                [showSubmitButton]="false"
+                testIdPrefix="migration-"
+                (submitRequest)="onRegistrationSubmit($event)"
+                (validityChange)="onRegistrationValidityChange($event)">
+              </app-registration-form>
+            } @else {
+              <!-- Simple login form -->
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Confirm Password</mat-label>
+                <mat-label>Username</mat-label>
                 <input
                   matInput
-                  [ngModel]="confirmPassword()"
-                  (ngModelChange)="confirmPassword.set($event)"
+                  [ngModel]="username()"
+                  (ngModelChange)="username.set($event)"
+                  [disabled]="isAuthenticating()"
+                  type="text"
+                  data-testid="migration-username-input" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Password</mat-label>
+                <input
+                  matInput
+                  [ngModel]="password()"
+                  (ngModelChange)="password.set($event)"
                   [disabled]="isAuthenticating()"
                   type="password"
-                  data-testid="migration-confirm-password-input" />
+                  data-testid="migration-password-input" />
               </mat-form-field>
             }
 
@@ -308,25 +322,75 @@
                     : 'Have an account? Log in'
                 }}
               </button>
+              @if (authMode() === 'login') {
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="authenticate()"
+                  [disabled]="isAuthenticating() || !username() || !password()"
+                  data-testid="migrate-authenticate-button">
+                  @if (isAuthenticating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                    Authenticating...
+                  } @else {
+                    Log In
+                  }
+                </button>
+              } @else {
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="triggerRegistrationSubmit()"
+                  [disabled]="isAuthenticating() || !isRegistrationFormValid()"
+                  data-testid="migrate-authenticate-button">
+                  @if (isAuthenticating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                    Registering...
+                  } @else {
+                    Register
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Step 2a: No projects to migrate - just complete the switch -->
+        @if (isAuthenticated() && localProjectsCount() === 0) {
+          <div class="no-migration-needed">
+            <div class="success-message">
+              <mat-icon color="primary">check_circle</mat-icon>
+              <div>
+                <h4>Connected Successfully!</h4>
+                <p>
+                  You're now authenticated with the server. Click Continue to
+                  switch to your new server profile.
+                </p>
+              </div>
+            </div>
+
+            <div class="migration-actions">
+              <button mat-button (click)="cancelMigration()">Cancel</button>
               <button
                 mat-raised-button
                 color="primary"
-                (click)="authenticate()"
-                [disabled]="isAuthenticating() || !username() || !password()"
-                data-testid="migrate-authenticate-button">
-                @if (isAuthenticating()) {
-                  <mat-spinner diameter="18"></mat-spinner>
-                  Authenticating...
-                } @else {
-                  {{ authMode() === 'login' ? 'Log In' : 'Register' }}
-                }
+                (click)="completeServerSwitch()"
+                data-testid="complete-switch-button">
+                <mat-icon>arrow_forward</mat-icon>
+                Continue
               </button>
             </div>
           </div>
         }
 
-        <!-- Step 2: Project Selection (after authentication) -->
-        @if (isAuthenticated() && localProjectsCount() > 0) {
+        <!-- Step 2b: Project Selection (after authentication, when there are projects) -->
+        @if (
+          isAuthenticated() &&
+          localProjectsCount() > 0 &&
+          !isSyncing() &&
+          !syncSuccess() &&
+          !syncError()
+        ) {
           <div class="project-selection">
             <p class="form-description">
               Select which local projects to migrate to the server.
@@ -378,51 +442,47 @@
                       [attr.data-testid]="'select-project-' + project.slug">
                       <div class="project-info">
                         <span class="project-title">{{ project.title }}</span>
-                        @if (hasSlugConflict(project)) {
-                          <div class="slug-conflict-row">
-                            <mat-icon
-                              class="conflict-icon"
-                              matTooltip="This slug already exists on the server">
-                              warning
-                            </mat-icon>
-                            <input
-                              matInput
-                              class="slug-rename-input"
-                              [value]="getProjectSlug(project)"
-                              (input)="
-                                updateProjectSlug(
-                                  project,
-                                  $any($event.target).value
-                                )
-                              "
-                              placeholder="Enter new slug"
-                              [attr.data-testid]="
-                                'rename-slug-' + project.slug
-                              " />
-                            @if (
-                              projectRenames().get(project.slug);
-                              as newSlug
-                            ) {
-                              @if (wouldSlugConflict(newSlug)) {
-                                <mat-icon
-                                  class="conflict-icon"
-                                  matTooltip="This slug also conflicts">
-                                  error
-                                </mat-icon>
-                              } @else if (isValidSlug(newSlug)) {
-                                <mat-icon class="valid-icon">
-                                  check_circle
-                                </mat-icon>
-                              }
-                            }
-                          </div>
-                        } @else {
+                        @if (!hasSlugConflict(project)) {
                           <span class="project-slug"
                             >{{ project.username }}/{{ project.slug }}</span
                           >
                         }
                       </div>
                     </mat-checkbox>
+                    @if (hasSlugConflict(project)) {
+                      <div class="slug-conflict-row">
+                        <mat-icon
+                          class="conflict-icon"
+                          matTooltip="This slug already exists on the server">
+                          warning
+                        </mat-icon>
+                        <input
+                          matInput
+                          class="slug-rename-input"
+                          [value]="getProjectSlug(project)"
+                          (input)="
+                            updateProjectSlug(
+                              project,
+                              $any($event.target).value
+                            )
+                          "
+                          placeholder="Enter new slug"
+                          [attr.data-testid]="'rename-slug-' + project.slug" />
+                        @if (projectRenames().get(project.slug); as newSlug) {
+                          @if (wouldSlugConflict(newSlug)) {
+                            <mat-icon
+                              class="conflict-icon"
+                              matTooltip="This slug also conflicts">
+                              error
+                            </mat-icon>
+                          } @else if (isValidSlug(newSlug)) {
+                            <mat-icon class="valid-icon">
+                              check_circle
+                            </mat-icon>
+                          }
+                        }
+                      </div>
+                    }
                   </div>
                 }
               </div>
@@ -462,7 +522,9 @@
         }
 
         <!-- Migration Progress -->
-        @if (migrationState().status === MigrationStatus.InProgress) {
+        @if (
+          migrationState().status === MigrationStatus.InProgress && !isSyncing()
+        ) {
           <div class="migration-progress">
             <h4>
               <mat-icon class="spinning">sync</mat-icon>
@@ -520,20 +582,49 @@
           </div>
         }
 
-        <!-- Migration Complete -->
-        @if (migrationState().status === MigrationStatus.Completed) {
-          <div class="migration-complete">
+        <!-- Syncing to Server -->
+        @if (isSyncing()) {
+          <div class="migration-progress" data-testid="sync-progress">
+            <h4>
+              <mat-icon class="spinning">cloud_upload</mat-icon>
+              Syncing to Server...
+            </h4>
+
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+
+            <p class="progress-text">Creating projects on the server...</p>
+          </div>
+        }
+
+        <!-- Sync Complete / Migration Complete -->
+        @if (syncSuccess()) {
+          <div class="migration-complete" data-testid="sync-success">
             <mat-icon class="success-icon">check_circle</mat-icon>
             <h4>Migration Complete!</h4>
             <p>
               Successfully migrated
               {{ migrationState().completedProjects }} project(s) to the server.
             </p>
+            <p class="redirect-notice">Redirecting to home...</p>
+          </div>
+        }
+
+        <!-- Sync Error (partial success) -->
+        @if (syncError()) {
+          <div class="migration-failed" data-testid="sync-error">
+            <mat-icon class="warning-icon">warning</mat-icon>
+            <h4>Sync Partially Complete</h4>
+            <p>{{ syncError() }}</p>
+            <button mat-button (click)="cancelMigration()">Close</button>
           </div>
         }
 
         <!-- Migration Failed -->
-        @if (migrationState().status === MigrationStatus.Failed) {
+        @if (
+          migrationState().status === MigrationStatus.Failed &&
+          !isSyncing() &&
+          !syncSuccess()
+        ) {
           <div class="migration-failed">
             <mat-icon class="error-icon">error</mat-icon>
             <h4>Migration Completed with Errors</h4>
