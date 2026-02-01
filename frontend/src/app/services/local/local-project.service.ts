@@ -74,13 +74,74 @@ export class LocalProjectService {
   }
 
   /**
-   * Get non-migrated projects only (for migration flow)
+   * Get projects from the local-mode storage, regardless of current context.
+   * This is used during migration when the context has already switched to server mode
+   * but we still need to read the original local projects.
+   */
+  getLocalModeProjects(): Project[] {
+    const localPrefix = this.storageContext.getPrefixForConfig('local');
+    const key = `${localPrefix}${LOCAL_PROJECTS_BASE_KEY}`;
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? (JSON.parse(stored) as Project[]) : [];
+    } catch (error) {
+      console.error('Failed to load local mode projects:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get migrated projects info from local-mode storage, regardless of current context.
+   * This is used during migration to check which projects have already been migrated.
+   */
+  getLocalModeMigratedProjects(): MigratedProjectInfo[] {
+    const localPrefix = this.storageContext.getPrefixForConfig('local');
+    const key = `${localPrefix}${MIGRATED_PROJECTS_BASE_KEY}`;
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? (JSON.parse(stored) as MigratedProjectInfo[]) : [];
+    } catch (error) {
+      console.error('Failed to load local mode migrated projects:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get non-migrated projects only (for migration flow).
+   * Uses getLocalModeProjects to ensure we read from local storage
+   * even when the app has switched to server mode.
    */
   getNonMigratedProjects(): Project[] {
-    const migrated = this.migratedProjects();
-    return this.projects().filter(
+    const migrated = this.getLocalModeMigratedProjects();
+    return this.getLocalModeProjects().filter(
       p => !migrated.some(m => m.originalSlug === p.slug)
     );
+  }
+
+  /**
+   * Delete a project from local-mode storage, regardless of current context.
+   * This is used during migration cleanup when we're already in server mode.
+   */
+  deleteLocalModeProject(username: string, slug: string): void {
+    const localPrefix = this.storageContext.getPrefixForConfig('local');
+    const key = `${localPrefix}${LOCAL_PROJECTS_BASE_KEY}`;
+    try {
+      const stored = localStorage.getItem(key);
+      if (!stored) return;
+
+      const projects = JSON.parse(stored) as Project[];
+      const updatedProjects = projects.filter(
+        p => !(p.username === username && p.slug === slug)
+      );
+      localStorage.setItem(key, JSON.stringify(updatedProjects));
+
+      // If we're currently in local mode, update the signal too
+      if (this.storageContext.getActiveConfig()?.id === 'local') {
+        this.projects.set(updatedProjects);
+      }
+    } catch (error) {
+      console.error('Failed to delete local mode project:', error);
+    }
   }
 
   /**
@@ -144,6 +205,64 @@ export class LocalProjectService {
       localStorage.setItem(this.migratedStorageKey, JSON.stringify(migrated));
     } catch (error) {
       console.error('Failed to save migrated projects:', error);
+    }
+  }
+
+  /**
+   * Create a project entry in a specific config's storage.
+   * Used during migration to create the project in server-mode storage
+   * while still being able to read from local-mode storage.
+   *
+   * @param project - The project to create
+   * @param targetConfigId - The config ID to create the project in (e.g., 'local' or server config ID)
+   * @param targetUsername - The username for the project in the target context
+   * @param targetSlug - Optional new slug if different from project.slug
+   */
+  createProjectInConfig(
+    project: Project,
+    targetConfigId: string,
+    targetUsername: string,
+    targetSlug?: string
+  ): void {
+    const prefix = this.storageContext.getPrefixForConfig(targetConfigId);
+    const targetKey = `${prefix}${LOCAL_PROJECTS_BASE_KEY}`;
+
+    // Load existing projects from target storage
+    let existingProjects: Project[] = [];
+    try {
+      const stored = localStorage.getItem(targetKey);
+      existingProjects = stored ? (JSON.parse(stored) as Project[]) : [];
+    } catch (error) {
+      console.error('Failed to load projects from target storage:', error);
+    }
+
+    const now = new Date().toISOString();
+    const newProject: Project = {
+      ...project,
+      slug: targetSlug ?? project.slug,
+      username: targetUsername,
+      updatedDate: now,
+    };
+
+    // Check for duplicates
+    const existingIndex = existingProjects.findIndex(
+      p => p.slug === newProject.slug && p.username === newProject.username
+    );
+
+    if (existingIndex >= 0) {
+      // Update existing
+      existingProjects[existingIndex] = newProject;
+    } else {
+      // Add new
+      existingProjects.push(newProject);
+    }
+
+    // Save to target storage
+    try {
+      localStorage.setItem(targetKey, JSON.stringify(existingProjects));
+    } catch (error) {
+      console.error('Failed to save project to target storage:', error);
+      throw error;
     }
   }
 

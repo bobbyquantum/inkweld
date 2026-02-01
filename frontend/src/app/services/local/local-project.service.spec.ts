@@ -62,6 +62,9 @@ describe('LocalProjectService', () => {
       prefixDbName: vi.fn((name: string) => `local:${name}`),
       prefixDocumentId: vi.fn((id: string) => `local:${id}`),
       getPrefix: vi.fn().mockReturnValue('local:'),
+      getPrefixForConfig: vi.fn((configId: string) =>
+        configId === 'local' ? 'local:' : `srv:${configId}:`
+      ),
     } as any;
 
     // Mock ProjectSyncService
@@ -422,6 +425,66 @@ describe('LocalProjectService', () => {
       });
 
       expect(mockProjectSyncService.createTombstone).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteLocalModeProject', () => {
+    const mockProjects: Project[] = [
+      {
+        id: 'project-1-id',
+        title: 'Project 1',
+        slug: 'project-1',
+        username: 'testuser',
+        description: '',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      },
+      {
+        id: 'project-2-id',
+        title: 'Project 2',
+        slug: 'project-2',
+        username: 'testuser',
+        description: '',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      },
+    ];
+
+    it('should delete project from local-mode storage', () => {
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockProjects));
+
+      service.deleteLocalModeProject('testuser', 'project-1');
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        'local:inkweld-local-projects',
+        expect.any(String)
+      );
+      const savedData = JSON.parse(
+        mockLocalStorage.setItem.mock.calls[0][1] as string
+      ) as Project[];
+      expect(savedData).toHaveLength(1);
+      expect(savedData[0].slug).toBe('project-2');
+    });
+
+    it('should handle non-existent project gracefully', () => {
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockProjects));
+
+      service.deleteLocalModeProject('testuser', 'non-existent');
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+      const savedData = JSON.parse(
+        mockLocalStorage.setItem.mock.calls[0][1] as string
+      ) as Project[];
+      expect(savedData).toHaveLength(2); // No projects deleted
+    });
+
+    it('should handle empty storage gracefully', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
+
+      service.deleteLocalModeProject('testuser', 'project-1');
+
+      // Should not throw, and should not call setItem since there's nothing to update
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
@@ -795,6 +858,113 @@ describe('LocalProjectService', () => {
     it('should return null for non-migrated project migration info', () => {
       const info = service.getMigrationInfo('non-existent');
       expect(info).toBeNull();
+    });
+
+    describe('createProjectInConfig', () => {
+      const mockProject: Project = {
+        id: 'local-123',
+        title: 'Test Project',
+        slug: 'test-project',
+        username: 'olduser',
+        createdDate: '2024-01-01',
+        updatedDate: '2024-01-01',
+      };
+
+      it('should create project in target config storage', () => {
+        const targetConfigId = 'server-config-123';
+        const targetKey = `srv:${targetConfigId}:inkweld-local-projects`;
+
+        // Empty target storage
+        mockLocalStorage.getItem.mockImplementation((key: string) => {
+          if (key === targetKey) {
+            return '[]';
+          }
+          return null;
+        });
+
+        service.createProjectInConfig(
+          mockProject,
+          targetConfigId,
+          'newuser',
+          'new-slug'
+        );
+
+        expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+          targetKey,
+          expect.any(String)
+        );
+
+        const calls = mockLocalStorage.setItem.mock.calls as Array<
+          [string, string]
+        >;
+        const savedData = JSON.parse(
+          calls.find(call => call[0] === targetKey)?.[1] || '[]'
+        );
+
+        expect(savedData).toHaveLength(1);
+        expect(savedData[0].slug).toBe('new-slug');
+        expect(savedData[0].username).toBe('newuser');
+        expect(savedData[0].title).toBe('Test Project');
+      });
+
+      it('should update existing project if it already exists in target', () => {
+        const targetConfigId = 'server-config-123';
+        const targetKey = `srv:${targetConfigId}:inkweld-local-projects`;
+
+        // Target storage with existing project
+        const existingProject = {
+          ...mockProject,
+          slug: 'existing-slug',
+          username: 'newuser',
+          title: 'Old Title',
+        };
+        mockLocalStorage.getItem.mockImplementation((key: string) => {
+          if (key === targetKey) {
+            return JSON.stringify([existingProject]);
+          }
+          return null;
+        });
+
+        const updatedProject = {
+          ...mockProject,
+          title: 'Updated Title',
+        };
+
+        service.createProjectInConfig(
+          updatedProject,
+          targetConfigId,
+          'newuser',
+          'existing-slug'
+        );
+
+        const calls = mockLocalStorage.setItem.mock.calls as Array<
+          [string, string]
+        >;
+        const savedData = JSON.parse(
+          calls.find(call => call[0] === targetKey)?.[1] || '[]'
+        );
+
+        expect(savedData).toHaveLength(1);
+        expect(savedData[0].title).toBe('Updated Title');
+      });
+
+      it('should use local prefix when configId is local', () => {
+        const targetKey = 'local:inkweld-local-projects';
+
+        mockLocalStorage.getItem.mockImplementation((key: string) => {
+          if (key === targetKey) {
+            return '[]';
+          }
+          return null;
+        });
+
+        service.createProjectInConfig(mockProject, 'local', 'newuser');
+
+        expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+          targetKey,
+          expect.any(String)
+        );
+      });
     });
   });
 });

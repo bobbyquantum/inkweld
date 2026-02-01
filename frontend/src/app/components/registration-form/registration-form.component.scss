@@ -1,0 +1,191 @@
+:host {
+  display: block;
+}
+
+.registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &.compact {
+    gap: 4px;
+
+    mat-form-field {
+      margin-bottom: -4px;
+    }
+  }
+}
+
+.submit-button {
+  width: 100%;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.username-suggestions {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+
+  .dark-theme & {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.suggestions-label {
+  display: block;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  color: var(--mat-theme-text-secondary-on-background);
+}
+
+.suggestions-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestion-button {
+  font-size: 0.9em;
+  min-width: auto;
+  padding: 4px 12px;
+  line-height: 1.5;
+  height: auto;
+}
+
+.password-validation-errors {
+  margin-top: -8px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  background-color: color-mix(
+    in srgb,
+    var(--custom-error-color) 5%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--custom-error-color) 20%, transparent);
+}
+
+.validation-error-heading {
+  font-weight: 500;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  color: var(--custom-error-color);
+}
+
+.validation-error-list {
+  margin: 0;
+  padding-left: 0;
+  list-style-type: none;
+}
+
+.validation-error-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  font-size: 0.85em;
+  color: var(--custom-error-color);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.validation-error-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+}
+
+// Password Requirements Tooltip styles
+.password-requirements-tooltip {
+  background: var(--password-tooltip-bg);
+  border-radius: 8px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--password-tooltip-border);
+  padding: 16px;
+  max-width: 280px;
+  min-width: 240px;
+  z-index: 1000;
+  color: var(--mat-theme-on-surface);
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.tooltip-icon {
+  color: var(--mat-theme-primary);
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+}
+
+.tooltip-title {
+  font-weight: 500;
+  font-size: 0.9em;
+  color: var(--mat-theme-on-surface);
+}
+
+.requirements-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.85em;
+  color: var(--mat-theme-on-surface-variant);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &.met {
+    .requirement-icon {
+      color: var(--custom-success-color);
+    }
+
+    .requirement-text {
+      color: var(--custom-success-color);
+    }
+  }
+
+  &:not(.met) {
+    .requirement-icon {
+      color: var(--custom-error-color);
+    }
+
+    .requirement-text {
+      color: var(--mat-theme-on-surface-variant);
+    }
+  }
+}
+
+.requirement-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.requirement-text {
+  line-height: 1.3;
+}

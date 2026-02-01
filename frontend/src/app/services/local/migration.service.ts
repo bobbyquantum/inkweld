@@ -1,6 +1,9 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import {
   AuthenticationService,
+  Element,
+  ElementType,
   Project,
   ProjectsService,
 } from '@inkweld/index';
@@ -14,6 +17,7 @@ import { StorageContextService } from '../core/storage-context.service';
 import { UserService } from '../user/user.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalStorageService } from './local-storage.service';
+import { ProjectSyncService } from './project-sync.service';
 
 /**
  * Status of a migration operation
@@ -30,6 +34,7 @@ export enum MigrationStatus {
  */
 export enum MigrationStage {
   Elements = 'Elements',
+  Documents = 'Documents',
   Media = 'Media',
   ProjectEntry = 'ProjectEntry',
 }
@@ -68,15 +73,16 @@ export interface MigrationState {
  *
  * Migration process:
  * 1. Elements - Copy elements Yjs doc from local: prefix to srv:configId: prefix
- * 2. Media - Copy media files from local: database to srv:configId: database
- * 3. ProjectEntry - Create project entry in server-mode project list
+ * 2. Documents - Copy document files for each element (ITEM, WORLDBUILDING types)
+ * 3. Media - Copy media files from local: database to srv:configId: database
+ * 4. ProjectEntry - Create project entry in server-mode project list
  *
  * After migration, the normal project sync mechanism handles uploading
  * to the server when online (same as creating a project while offline).
  *
- * Data that does NOT need migration (stored without prefix):
- * - Documents (user:project:docId)
- * - Worldbuilding (worldbuilding:user:project:elementId)
+ * Documents are stored WITHOUT prefix (user:slug:elementId) so they need
+ * migration when username or slug changes. Worldbuilding data uses format
+ * worldbuilding:user:slug:elementId and also needs migration.
  */
 @Injectable({
   providedIn: 'root',
@@ -85,6 +91,7 @@ export class MigrationService {
   private storageContextService = inject(StorageContextService);
   private localProjectService = inject(LocalProjectService);
   private localStorage = inject(LocalStorageService);
+  private projectSyncService = inject(ProjectSyncService);
   private logger = inject(LoggerService);
   private authenticationService = inject(AuthenticationService);
   private authTokenService = inject(AuthTokenService);
@@ -151,7 +158,10 @@ export class MigrationService {
     projectSlugs?: string[],
     slugRenames?: Map<string, string>
   ): Promise<void> {
-    let localProjects = this.localProjectService.projects();
+    // IMPORTANT: Read from local-mode storage explicitly, not from the context-dependent signal.
+    // By the time this method is called, the storage context may have already switched to server mode,
+    // which would cause this.localProjectService.projects() to return empty (reading from wrong key).
+    let localProjects = this.localProjectService.getLocalModeProjects();
 
     // Filter to only selected projects if provided (even empty array means "migrate nothing")
     if (projectSlugs !== undefined) {
@@ -185,7 +195,7 @@ export class MigrationService {
       projectStatuses,
     });
 
-    // Migrate each project
+    // Migrate each project (copies data to server-mode storage)
     for (const project of localProjects) {
       const newSlug = slugRenames?.get(project.slug);
       await this.migrateProject(
@@ -216,57 +226,26 @@ export class MigrationService {
       `Local migration completed: ${finalState.completedProjects}/${finalState.totalProjects} successful, ${finalState.failedProjects} failed`
     );
 
-    // Create projects on server if online.
-    // This uploads project metadata to the server after local migration is complete.
-    // Note: This is separate from the local migration which copies data between IndexedDB prefixes.
-    if (navigator.onLine && finalState.completedProjects > 0) {
-      await this.createProjectsOnServer(localProjects, slugRenames);
-    }
+    // NOTE: Projects are NOT created on the server here.
+    // The migration only copies data to server-mode storage and marks projects as pending creation.
+    // The caller (migration dialog) should trigger sync to actually create projects on the server.
   }
 
   /**
-   * Create migrated projects on the server.
-   *
-   * This is called after local migration completes to register the projects
-   * with the server. It only creates the project metadata - document content
-   * will sync via the normal Yjs WebSocket mechanism when the user opens
-   * the project.
+   * Get the list of migrated project keys that need to sync to the server.
+   * These are projects that were successfully migrated and marked as pending creation.
    */
-  private async createProjectsOnServer(
-    projects: Project[],
-    slugRenames?: Map<string, string>
-  ): Promise<void> {
-    this.logger.info(
-      'MigrationService',
-      `Creating ${projects.length} projects on server`
-    );
-
-    for (const project of projects) {
-      const targetSlug = slugRenames?.get(project.slug) ?? project.slug;
-
-      try {
-        await firstValueFrom(
-          this.projectsApi.createProject({
-            title: project.title,
-            slug: targetSlug,
-            description: project.description || undefined,
-          })
-        );
-
-        this.logger.info(
-          'MigrationService',
-          `Created project on server: ${targetSlug}`
-        );
-      } catch (err: unknown) {
-        // Log but don't fail - the project is already migrated locally
-        // User can retry or it will sync later
-        this.logger.warn(
-          'MigrationService',
-          `Failed to create project on server: ${targetSlug}`,
-          err instanceof Error ? err.message : String(err)
-        );
-      }
+  getMigratedProjectKeys(): string[] {
+    const state = this.migrationState();
+    if (state.status !== MigrationStatus.Completed) {
+      return [];
     }
+    return state.projectStatuses
+      .filter(ps => ps.status === MigrationStatus.Completed)
+      .map(
+        ps =>
+          `${this.storageContextService.getActiveConfig()?.userProfile?.username}/${ps.projectSlug}`
+      );
   }
 
   /**
@@ -275,7 +254,7 @@ export class MigrationService {
    * Stages:
    * 1. Elements - Copy elements Yjs doc from local: to srv:configId:
    * 2. Media - Copy all media files from local: to srv:configId: database
-   * 3. ProjectEntry - Mark project as migrated
+   * 3. ProjectEntry - Mark project as migrated and mark pending creation for sync
    *
    * @param project - The project to migrate
    * @param targetConfigId - The server config ID
@@ -317,7 +296,7 @@ export class MigrationService {
         `[${targetSlug}] Stage 1: Copying elements document`
       );
 
-      await this.copyElementsDocument(
+      const elements = await this.copyElementsDocument(
         project.username,
         project.slug,
         targetConfigId,
@@ -334,7 +313,45 @@ export class MigrationService {
       );
 
       // ═══════════════════════════════════════════════════════════════════════
-      // STAGE 2: MEDIA - Copy media files between prefixed databases
+      // STAGE 2: DOCUMENTS - Copy document files for ITEM and WORLDBUILDING elements
+      // Documents are stored WITHOUT prefix (user:slug:elementId) so they need
+      // migration when username or slug changes.
+      // ═══════════════════════════════════════════════════════════════════════
+      this.updateProjectStatus(
+        targetSlug,
+        MigrationStatus.InProgress,
+        undefined,
+        MigrationStage.Documents,
+        { completed: 0, total: 1 }
+      );
+      this.migrationState.update(state => ({
+        ...state,
+        currentStage: MigrationStage.Documents,
+      }));
+
+      this.logger.info(
+        'MigrationService',
+        `[${targetSlug}] Stage 2: Copying document files`
+      );
+
+      await this.copyDocumentFiles(
+        project.username,
+        project.slug,
+        targetUsername,
+        targetSlug,
+        elements
+      );
+
+      this.updateProjectStatus(
+        targetSlug,
+        MigrationStatus.InProgress,
+        undefined,
+        MigrationStage.Documents,
+        { completed: 1, total: 1 }
+      );
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STAGE 3: MEDIA - Copy media files between prefixed databases
       // ═══════════════════════════════════════════════════════════════════════
       this.updateProjectStatus(
         targetSlug,
@@ -350,7 +367,7 @@ export class MigrationService {
 
       this.logger.info(
         'MigrationService',
-        `[${targetSlug}] Stage 2: Copying media files`
+        `[${targetSlug}] Stage 3: Copying media files`
       );
 
       const sourceProjectKey = `${project.username}/${project.slug}`;
@@ -371,7 +388,7 @@ export class MigrationService {
       );
 
       // ═══════════════════════════════════════════════════════════════════════
-      // STAGE 3: PROJECT ENTRY - Mark project as migrated
+      // STAGE 4: PROJECT ENTRY - Mark project as migrated
       // ═══════════════════════════════════════════════════════════════════════
       this.updateProjectStatus(
         targetSlug,
@@ -387,16 +404,27 @@ export class MigrationService {
 
       this.logger.info(
         'MigrationService',
-        `[${targetSlug}] Stage 3: Creating project entry`
+        `[${targetSlug}] Stage 4: Creating project entry`
       );
 
-      // Mark the local project as migrated
+      // Mark the local project as migrated (records migration info in local storage)
       const serverUrl = this.storageContextService.getServerUrl() || 'unknown';
       this.localProjectService.markProjectAsMigrated(
         project.slug,
         targetSlug,
         serverUrl,
         targetUsername
+      );
+
+      // Create the project entry in the TARGET config's storage
+      // This is crucial: the elements and media have been copied to srv:configId: prefix,
+      // but we also need the project metadata to appear in the local projects list
+      // for that config, so when the user views the home page in server mode, they see it.
+      this.localProjectService.createProjectInConfig(
+        project,
+        targetConfigId,
+        targetUsername,
+        targetSlug
       );
 
       this.updateProjectStatus(
@@ -406,6 +434,23 @@ export class MigrationService {
         MigrationStage.ProjectEntry,
         { completed: 1, total: 1 }
       );
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STAGE 5: SYNC - Mark project as pending creation for server sync
+      // ═══════════════════════════════════════════════════════════════════════
+      this.logger.info(
+        'MigrationService',
+        `[${targetSlug}] Stage 5: Marking for server sync`
+      );
+
+      // Mark this project as needing to be created on the server
+      // The background sync service (or manual sync) will pick this up and create the project
+      const projectKey = `${targetUsername}/${targetSlug}`;
+      await this.projectSyncService.markPendingCreation(projectKey, {
+        title: project.title,
+        slug: targetSlug,
+        description: project.description || undefined,
+      });
 
       // ═══════════════════════════════════════════════════════════════════════
       // SUCCESS
@@ -450,6 +495,8 @@ export class MigrationService {
    *
    * This loads the source document from IndexedDB, encodes its state,
    * and writes it to a new IndexedDB database with the target prefix.
+   *
+   * @returns The elements array from the source document, for use in copying document files
    */
   private async copyElementsDocument(
     sourceUsername: string,
@@ -457,7 +504,7 @@ export class MigrationService {
     targetConfigId: string,
     targetUsername: string,
     targetSlug: string
-  ): Promise<void> {
+  ): Promise<Element[]> {
     // Build source and target document IDs
     const sourceDocId = `local:${sourceUsername}:${sourceSlug}:elements`;
     const targetDocId = `srv:${targetConfigId}:${targetUsername}:${targetSlug}:elements`;
@@ -471,6 +518,10 @@ export class MigrationService {
     const sourceDoc = new Y.Doc();
     const sourceProvider = new IndexeddbPersistence(sourceDocId, sourceDoc);
     await sourceProvider.whenSynced;
+
+    // Extract elements array from source document before encoding
+    const elementsArray = sourceDoc.getArray<Element>('elements');
+    const elements = elementsArray.toArray();
 
     // Check if source has any content
     const sourceState = Y.encodeStateAsUpdate(sourceDoc);
@@ -507,8 +558,125 @@ export class MigrationService {
 
     this.logger.debug(
       'MigrationService',
-      `Elements copied successfully (${sourceState.length} bytes)`
+      `Elements copied successfully (${sourceState.length} bytes, ${elements.length} elements)`
     );
+
+    return elements;
+  }
+
+  /**
+   * Copy document files for ITEM elements and worldbuilding data for WORLDBUILDING elements.
+   *
+   * Documents are stored WITHOUT prefix using format: user:slug:elementId
+   * Worldbuilding data uses format: worldbuilding:user:slug:elementId
+   *
+   * These need to be copied when username or slug changes during migration.
+   */
+  private async copyDocumentFiles(
+    sourceUsername: string,
+    sourceSlug: string,
+    targetUsername: string,
+    targetSlug: string,
+    elements: Element[]
+  ): Promise<void> {
+    // Skip if username and slug are the same - no migration needed
+    if (sourceUsername === targetUsername && sourceSlug === targetSlug) {
+      this.logger.debug(
+        'MigrationService',
+        `Skipping document copy - username and slug unchanged`
+      );
+      return;
+    }
+
+    // Filter elements that have document content
+    const itemElements = elements.filter(e => e.type === ElementType.Item);
+    const worldbuildingElements = elements.filter(
+      e => e.type === ElementType.Worldbuilding
+    );
+
+    this.logger.info(
+      'MigrationService',
+      `Copying ${itemElements.length} document files and ${worldbuildingElements.length} worldbuilding elements`
+    );
+
+    // Copy ITEM documents (ProseMirror content)
+    for (const element of itemElements) {
+      await this.copySingleDocument(
+        `${sourceUsername}:${sourceSlug}:${element.id}`,
+        `${targetUsername}:${targetSlug}:${element.id}`
+      );
+    }
+
+    // Copy WORLDBUILDING documents
+    for (const element of worldbuildingElements) {
+      await this.copySingleDocument(
+        `worldbuilding:${sourceUsername}:${sourceSlug}:${element.id}`,
+        `worldbuilding:${targetUsername}:${targetSlug}:${element.id}`
+      );
+    }
+
+    this.logger.debug('MigrationService', `Document files copied successfully`);
+  }
+
+  /**
+   * Copy a single Yjs document from source key to target key.
+   */
+  private async copySingleDocument(
+    sourceKey: string,
+    targetKey: string
+  ): Promise<void> {
+    try {
+      // Load source document from IndexedDB
+      const sourceDoc = new Y.Doc();
+      const sourceProvider = new IndexeddbPersistence(sourceKey, sourceDoc);
+      await sourceProvider.whenSynced;
+
+      // Check if source has any content
+      const sourceState = Y.encodeStateAsUpdate(sourceDoc);
+      if (sourceState.length <= 2) {
+        // Empty doc - skip
+        this.logger.debug(
+          'MigrationService',
+          `Skipping empty document: ${sourceKey}`
+        );
+        await sourceProvider.destroy();
+        sourceDoc.destroy();
+        return;
+      }
+
+      // Create target document and apply source state
+      const targetDoc = new Y.Doc();
+      Y.applyUpdate(targetDoc, sourceState);
+
+      // Save target document to IndexedDB
+      const targetProvider = new IndexeddbPersistence(targetKey, targetDoc);
+      await targetProvider.whenSynced;
+
+      // Force a write to ensure the state is persisted
+      targetDoc.transact(() => {
+        // No-op transaction to trigger persistence
+      });
+
+      // Wait for the debounced write to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Clean up
+      await sourceProvider.destroy();
+      await targetProvider.destroy();
+      sourceDoc.destroy();
+      targetDoc.destroy();
+
+      this.logger.debug(
+        'MigrationService',
+        `Copied document: ${sourceKey} -> ${targetKey} (${sourceState.length} bytes)`
+      );
+    } catch (error) {
+      this.logger.warn(
+        'MigrationService',
+        `Failed to copy document ${sourceKey}: ${error instanceof Error ? error.message : String(error)}`
+      );
+      // Continue with other documents - don't fail the whole migration
+    }
   }
 
   /**
@@ -618,14 +786,21 @@ export class MigrationService {
       localStorage.getItem('inkweld-app-config')
     );
 
-    // Clear local projects (only selected ones if specified)
-    const projects = this.localProjectService.projects();
+    // IMPORTANT: Use getLocalModeProjects() instead of projects() because
+    // at cleanup time we're already in server mode, so projects() would read
+    // from the server-mode storage instead of local-mode storage.
+    const projects = this.localProjectService.getLocalModeProjects();
     const projectsToDelete = projectSlugs
       ? projects.filter(p => projectSlugs.includes(p.slug))
       : projects;
 
     for (const project of projectsToDelete) {
-      this.localProjectService.deleteProject(project.username, project.slug);
+      // Use deleteLocalModeProject instead of deleteProject because
+      // we're deleting from local storage while in server mode.
+      this.localProjectService.deleteLocalModeProject(
+        project.username,
+        project.slug
+      );
     }
 
     // Only clear all elements and user data if cleaning up everything
@@ -743,7 +918,7 @@ export class MigrationService {
         `Successfully registered user: ${username}`
       );
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error(String(err));
+      const error = this.extractError(err);
       this.logger.error(
         'MigrationService',
         `Failed to register user ${username}`,
@@ -805,7 +980,7 @@ export class MigrationService {
         `Successfully logged in user: ${username}`
       );
     } catch (err: unknown) {
-      const error = err instanceof Error ? err : new Error(String(err));
+      const error = this.extractError(err);
       this.logger.error(
         'MigrationService',
         `Failed to login user ${username}`,
@@ -813,5 +988,42 @@ export class MigrationService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Extract a meaningful error message from various error types.
+   * Handles HttpErrorResponse, Error, and unknown errors.
+   */
+  private extractError(err: unknown): Error {
+    if (err instanceof Error) {
+      return err;
+    }
+
+    if (err instanceof HttpErrorResponse) {
+      // Try to extract error message from response body
+      const body: unknown = err.error;
+      if (typeof body === 'string') {
+        return new Error(body);
+      }
+      if (body !== null && typeof body === 'object') {
+        // Common error response formats
+        const bodyObj = body as Record<string, unknown>;
+        if ('message' in bodyObj && typeof bodyObj['message'] === 'string') {
+          return new Error(bodyObj['message']);
+        }
+        if ('error' in bodyObj && typeof bodyObj['error'] === 'string') {
+          return new Error(bodyObj['error']);
+        }
+      }
+      // Fallback to status text
+      return new Error(err.message || `HTTP error ${err.status}`);
+    }
+
+    // Unknown error type
+    if (typeof err === 'string') {
+      return new Error(err);
+    }
+
+    return new Error('An unknown error occurred');
   }
 }

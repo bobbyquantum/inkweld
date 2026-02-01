@@ -1,7 +1,16 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  WritableSignal,
+} from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Project } from '@inkweld/index';
+import {
+  ProjectSyncStatus,
+  SyncQueueService,
+  SyncStage,
+} from '@services/sync/sync-queue.service';
 import { UserService } from '@services/user/user.service';
 import { MockedObject, vi } from 'vitest';
 
@@ -12,6 +21,7 @@ describe('SideNavComponent', () => {
   let fixture: ComponentFixture<SideNavComponent>;
   let routerMock: MockedObject<Router>;
   let userServiceMock: MockedObject<UserService>;
+  let syncQueueServiceMock: MockedObject<SyncQueueService>;
 
   const mockUser = {
     id: '1',
@@ -49,12 +59,18 @@ describe('SideNavComponent', () => {
       currentUser: signal(mockUser),
     } as unknown as MockedObject<UserService>;
 
+    syncQueueServiceMock = {
+      statusVersion: vi.fn().mockReturnValue(1),
+      getProjectStatus: vi.fn().mockReturnValue(null),
+    } as unknown as MockedObject<SyncQueueService>;
+
     await TestBed.configureTestingModule({
       imports: [SideNavComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: Router, useValue: routerMock },
         { provide: UserService, useValue: userServiceMock },
+        { provide: SyncQueueService, useValue: syncQueueServiceMock },
       ],
     }).compileComponents();
 
@@ -253,6 +269,152 @@ describe('SideNavComponent', () => {
       component.selectedProject = selectedProject;
 
       expect(component.selectedProject).toEqual(selectedProject);
+    });
+  });
+
+  describe('sync status methods', () => {
+    const project = {
+      id: '1',
+      title: 'Test Project',
+      slug: 'test-project',
+      username: 'testuser',
+      createdDate: '2024-01-01',
+      updatedDate: '2024-01-01',
+    };
+
+    const createStatusSignal = (
+      stage: SyncStage
+    ): WritableSignal<ProjectSyncStatus> =>
+      signal({
+        projectKey: 'testuser/test-project',
+        projectId: '1',
+        stage,
+        progress: 0,
+      });
+
+    describe('getSyncStatus', () => {
+      it('should return undefined when no status exists', () => {
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(undefined);
+
+        const result = component.getSyncStatus(project);
+
+        expect(result).toBeUndefined();
+        expect(syncQueueServiceMock.statusVersion).toHaveBeenCalled();
+        expect(syncQueueServiceMock.getProjectStatus).toHaveBeenCalledWith(
+          'testuser/test-project'
+        );
+      });
+
+      it('should return status signal when status exists', () => {
+        const statusSignal = createStatusSignal(SyncStage.Completed);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        const result = component.getSyncStatus(project);
+
+        expect(result).toBe(statusSignal);
+      });
+    });
+
+    describe('isSyncing', () => {
+      it('should return false when no status exists', () => {
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(undefined);
+
+        expect(component.isSyncing(project)).toBe(false);
+      });
+
+      it('should return false when status is Queued', () => {
+        const statusSignal = createStatusSignal(SyncStage.Queued);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isSyncing(project)).toBe(false);
+      });
+
+      it('should return false when status is Completed', () => {
+        const statusSignal = createStatusSignal(SyncStage.Completed);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isSyncing(project)).toBe(false);
+      });
+
+      it('should return false when status is Failed', () => {
+        const statusSignal = createStatusSignal(SyncStage.Failed);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isSyncing(project)).toBe(false);
+      });
+
+      it('should return true when status is in progress', () => {
+        const statusSignal = createStatusSignal(SyncStage.Metadata);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isSyncing(project)).toBe(true);
+      });
+    });
+
+    describe('isQueued', () => {
+      it('should return false when no status exists', () => {
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(undefined);
+
+        expect(component.isQueued(project)).toBe(false);
+      });
+
+      it('should return true when status is Queued', () => {
+        const statusSignal = createStatusSignal(SyncStage.Queued);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isQueued(project)).toBe(true);
+      });
+
+      it('should return false when status is not Queued', () => {
+        const statusSignal = createStatusSignal(SyncStage.Completed);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isQueued(project)).toBe(false);
+      });
+    });
+
+    describe('isSynced', () => {
+      it('should return false when no status exists', () => {
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(undefined);
+
+        expect(component.isSynced(project)).toBe(false);
+      });
+
+      it('should return true when status is Completed', () => {
+        const statusSignal = createStatusSignal(SyncStage.Completed);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isSynced(project)).toBe(true);
+      });
+
+      it('should return false when status is not Completed', () => {
+        const statusSignal = createStatusSignal(SyncStage.Metadata);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.isSynced(project)).toBe(false);
+      });
+    });
+
+    describe('hasFailed', () => {
+      it('should return false when no status exists', () => {
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(undefined);
+
+        expect(component.hasFailed(project)).toBe(false);
+      });
+
+      it('should return true when status is Failed', () => {
+        const statusSignal = createStatusSignal(SyncStage.Failed);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.hasFailed(project)).toBe(true);
+      });
+
+      it('should return false when status is not Failed', () => {
+        const statusSignal = createStatusSignal(SyncStage.Completed);
+        syncQueueServiceMock.getProjectStatus.mockReturnValue(statusSignal);
+
+        expect(component.hasFailed(project)).toBe(false);
+      });
     });
   });
 });
