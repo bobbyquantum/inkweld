@@ -340,6 +340,16 @@
   color: var(--sys-error);
 }
 
+.migration-failed .warning-icon {
+  color: var(--sys-warning, #ffc107);
+}
+
+.redirect-notice {
+  color: var(--sys-tertiary);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
 // Project Selection
 .project-selection {
   margin-top: 16px;
@@ -492,5 +502,41 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+// No migration needed success state
+.no-migration-needed {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  .success-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background-color: rgba(var(--sys-primary-rgb), 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(var(--sys-primary-rgb), 0.2);
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    h4 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--mat-theme-on-surface-variant);
+    }
   }
 }

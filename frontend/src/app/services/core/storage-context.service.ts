@@ -373,13 +373,15 @@ export class StorageContextService {
     displayName?: string,
     userProfile?: { name: string; username: string }
   ): ServerConfig {
+    // Normalize server URL: remove trailing slashes
+    const normalizedUrl = serverUrl.replace(/\/+$/, '');
     const now = new Date().toISOString();
-    const id = this.hashServerUrl(serverUrl);
+    const id = this.hashServerUrl(normalizedUrl);
     const config: ServerConfig = {
       id,
       type: 'server',
-      serverUrl,
-      displayName: displayName ?? this.getDefaultDisplayName(serverUrl),
+      serverUrl: normalizedUrl,
+      displayName: displayName ?? this.getDefaultDisplayName(normalizedUrl),
       userProfile: userProfile
         ? { name: userProfile.name, username: userProfile.username }
         : undefined,
@@ -399,7 +401,7 @@ export class StorageContextService {
         updated.configurations = [...updated.configurations];
         updated.configurations[existingIndex] = {
           ...updated.configurations[existingIndex],
-          serverUrl,
+          serverUrl: normalizedUrl,
           displayName: displayName ?? config.displayName,
           userProfile:
             userProfile ?? updated.configurations[existingIndex].userProfile,
