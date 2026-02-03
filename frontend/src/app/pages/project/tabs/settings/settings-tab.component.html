@@ -949,8 +949,10 @@
                           mode="indeterminate">
                         </mat-progress-spinner>
                       } @else {
-                        <mat-icon>check</mat-icon>
-                        Rename Project
+                        <ng-container>
+                          <mat-icon>check</mat-icon>
+                          Rename Project
+                        </ng-container>
                       }
                     </button>
                   </div>
@@ -993,8 +995,10 @@
                     <mat-progress-spinner diameter="20" mode="indeterminate">
                     </mat-progress-spinner>
                   } @else {
-                    <mat-icon>delete_forever</mat-icon>
-                    Delete This Project
+                    <ng-container>
+                      <mat-icon>delete_forever</mat-icon>
+                      Delete This Project
+                    </ng-container>
                   }
                 </button>
               </div>

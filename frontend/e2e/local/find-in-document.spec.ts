@@ -572,6 +572,9 @@ test.describe('Find in Document', () => {
     await page.getByTestId('find-toggle-replace').click();
     await expect(page.getByTestId('replace-bar')).toBeVisible();
 
+    // Focus the find input before pressing Escape (Escape handler is on input)
+    await page.getByTestId('find-input').click();
+
     // Close find bar with Escape
     await page.keyboard.press('Escape');
 

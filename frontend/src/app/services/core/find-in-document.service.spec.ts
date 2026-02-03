@@ -191,6 +191,78 @@ describe('FindInDocumentService', () => {
       expect(state?.query).toBe('test');
     });
   });
+
+  describe('replace mode', () => {
+    it('should toggle replace mode on', () => {
+      expect(service.isReplaceMode()).toBe(false);
+      service.toggleReplaceMode();
+      expect(service.isReplaceMode()).toBe(true);
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'FindInDocumentService',
+        'Replace mode enabled'
+      );
+    });
+
+    it('should toggle replace mode off', () => {
+      service.toggleReplaceMode(); // on
+      service.toggleReplaceMode(); // off
+      expect(service.isReplaceMode()).toBe(false);
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'FindInDocumentService',
+        'Replace mode disabled'
+      );
+    });
+
+    it('should set replacement text', () => {
+      service.setReplacementText('replacement');
+      expect(service.replacementText()).toBe('replacement');
+    });
+
+    it('should reset replace mode on close', () => {
+      const mockView = createMockEditorView();
+      const mockEditor = { view: mockView } as unknown as Editor;
+      service.setEditor(mockEditor);
+
+      service.toggleReplaceMode();
+      service.setReplacementText('replacement');
+      expect(service.isReplaceMode()).toBe(true);
+      expect(service.replacementText()).toBe('replacement');
+
+      service.close();
+      expect(service.isReplaceMode()).toBe(false);
+      expect(service.replacementText()).toBe('');
+    });
+  });
+
+  describe('replace', () => {
+    it('should return false when no editor is set', () => {
+      expect(service.replace()).toBe(false);
+    });
+
+    it('should return false when no matches exist', () => {
+      const mockView = createMockEditorView('hello world');
+      const mockEditor = { view: mockView } as unknown as Editor;
+      service.setEditor(mockEditor);
+      service.search('xyz'); // No matches
+
+      expect(service.replace()).toBe(false);
+    });
+  });
+
+  describe('replaceAll', () => {
+    it('should return 0 when no editor is set', () => {
+      expect(service.replaceAll()).toBe(0);
+    });
+
+    it('should return 0 when no matches exist', () => {
+      const mockView = createMockEditorView('hello world');
+      const mockEditor = { view: mockView } as unknown as Editor;
+      service.setEditor(mockEditor);
+      service.search('xyz'); // No matches
+
+      expect(service.replaceAll()).toBe(0);
+    });
+  });
 });
 
 /**
