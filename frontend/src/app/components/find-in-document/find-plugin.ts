@@ -200,10 +200,31 @@ function applyFindAction(
 
     case 'replace':
     case 'replaceAll': {
-      // Replace actions don't change plugin state directly.
-      // The actual replacement is done via separate transaction in dispatch functions.
-      // After replacement, the plugin automatically re-searches due to docChanged handling.
-      return state;
+      // After replacement, re-search to update matches.
+      // Note: The actual text replacement is done via the transaction before this runs.
+      // We need to re-search the (now modified) doc to find remaining matches.
+      const matches = findMatches(doc, state.query, state.caseSensitive);
+
+      // For 'replace', try to stay at the same index (which now points to next match)
+      // For 'replaceAll', there should be no matches left
+      let currentMatchIndex = -1;
+      if (matches.length > 0) {
+        if (state.currentMatchIndex < matches.length) {
+          currentMatchIndex = state.currentMatchIndex;
+        } else {
+          // Wrap around to beginning if we were at the end
+          currentMatchIndex = 0;
+        }
+      }
+
+      const decorations = createDecorations(doc, matches, currentMatchIndex);
+
+      return {
+        ...state,
+        matches,
+        currentMatchIndex,
+        decorations,
+      };
     }
 
     default:
@@ -381,14 +402,32 @@ function scrollToMatch(
   view: EditorView,
   match: { from: number; to: number }
 ): void {
-  // First, set selection and use ProseMirror's scrollIntoView
-  const selection = TextSelection.create(view.state.doc, match.from, match.to);
-  const tr = view.state.tr.setSelection(selection).scrollIntoView();
-  view.dispatch(tr);
+  // Ensure the view is still valid (not destroyed)
+  // Check both dom and isDestroyed (if available in this ProseMirror version)
+  if (!view.dom || (view as unknown as { isDestroyed?: boolean }).isDestroyed) {
+    return;
+  }
+
+  try {
+    // First, set selection and use ProseMirror's scrollIntoView
+    const selection = TextSelection.create(
+      view.state.doc,
+      match.from,
+      match.to
+    );
+    const tr = view.state.tr.setSelection(selection).scrollIntoView();
+    view.dispatch(tr);
+  } catch {
+    // View may have been destroyed mid-operation, silently ignore
+    return;
+  }
 
   // Also use native scrollIntoView on the DOM element for better container scrolling
   // Use setTimeout to ensure decorations are rendered first
   setTimeout(() => {
+    if (!view.dom) {
+      return;
+    }
     const matchElement = view.dom.querySelector('.find-match-current');
     if (matchElement && typeof matchElement.scrollIntoView === 'function') {
       matchElement.scrollIntoView({
@@ -440,6 +479,10 @@ export function dispatchReplace(
   // After replacement, the plugin will automatically re-search due to docChanged.
   // Scroll to the new current match if there is one.
   setTimeout(() => {
+    // Check if view is still valid (not destroyed)
+    if (!view.dom) {
+      return;
+    }
     const newState = findPluginKey.getState(view.state);
     if (
       newState &&

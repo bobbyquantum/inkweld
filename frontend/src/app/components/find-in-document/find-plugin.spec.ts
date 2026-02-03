@@ -11,6 +11,8 @@ import {
   dispatchClose,
   dispatchNextMatch,
   dispatchPreviousMatch,
+  dispatchReplace,
+  dispatchReplaceAll,
   dispatchSearch,
   dispatchToggleCaseSensitive,
   getFindState,
@@ -309,6 +311,99 @@ describe('FindPlugin', () => {
 
       state = getFindState(view);
       expect(state?.matches.length).toBe(2);
+    });
+  });
+
+  describe('dispatchReplace', () => {
+    it('should replace the current match', () => {
+      const view = createEditorWithText('cat and cat');
+      dispatchSearch(view, 'cat');
+
+      let state = getFindState(view);
+      expect(state?.matches.length).toBe(2);
+
+      const result = dispatchReplace(view, 'dog');
+      expect(result).toBe(true);
+
+      state = getFindState(view);
+      expect(state?.matches.length).toBe(1);
+
+      // Verify the document text was changed
+      const docText = view.state.doc.textContent;
+      expect(docText).toBe('dog and cat');
+    });
+
+    it('should return false when no matches exist', () => {
+      const view = createEditorWithText('Hello world');
+      dispatchSearch(view, 'xyz');
+
+      const result = dispatchReplace(view, 'replacement');
+      expect(result).toBe(false);
+    });
+
+    it('should handle empty replacement text', () => {
+      const view = createEditorWithText('cat and cat');
+      dispatchSearch(view, 'cat');
+
+      const result = dispatchReplace(view, '');
+      expect(result).toBe(true);
+
+      const docText = view.state.doc.textContent;
+      expect(docText).toBe(' and cat');
+    });
+
+    it('should update match index after replacement', () => {
+      const view = createEditorWithText('a a a');
+      dispatchSearch(view, 'a');
+
+      let state = getFindState(view);
+      expect(state?.matches.length).toBe(3);
+      expect(state?.currentMatchIndex).toBe(0);
+
+      dispatchReplace(view, 'b');
+
+      state = getFindState(view);
+      expect(state?.matches.length).toBe(2);
+      // Should stay at index 0 (now pointing to next match)
+      expect(state?.currentMatchIndex).toBe(0);
+    });
+  });
+
+  describe('dispatchReplaceAll', () => {
+    it('should replace all matches', () => {
+      const view = createEditorWithText('foo bar foo baz foo');
+      dispatchSearch(view, 'foo');
+
+      let state = getFindState(view);
+      expect(state?.matches.length).toBe(3);
+
+      const count = dispatchReplaceAll(view, 'qux');
+      expect(count).toBe(3);
+
+      state = getFindState(view);
+      expect(state?.matches.length).toBe(0);
+
+      const docText = view.state.doc.textContent;
+      expect(docText).toBe('qux bar qux baz qux');
+    });
+
+    it('should return 0 when no matches exist', () => {
+      const view = createEditorWithText('Hello world');
+      dispatchSearch(view, 'xyz');
+
+      const count = dispatchReplaceAll(view, 'replacement');
+      expect(count).toBe(0);
+    });
+
+    it('should handle empty replacement text', () => {
+      const view = createEditorWithText('a b a c a');
+      dispatchSearch(view, 'a');
+
+      const count = dispatchReplaceAll(view, '');
+      expect(count).toBe(3);
+
+      const docText = view.state.doc.textContent;
+      expect(docText).toBe(' b  c ');
     });
   });
 });
