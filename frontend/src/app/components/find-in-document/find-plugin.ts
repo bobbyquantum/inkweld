@@ -39,11 +39,15 @@ export interface FindPluginMeta {
     | 'nextMatch'
     | 'previousMatch'
     | 'close'
-    | 'toggleCaseSensitive';
+    | 'toggleCaseSensitive'
+    | 'replace'
+    | 'replaceAll';
   /** Search query (for 'search' action) */
   query?: string;
   /** Case sensitivity (for 'toggleCaseSensitive' action) */
   caseSensitive?: boolean;
+  /** Replacement text (for 'replace' and 'replaceAll' actions) */
+  replacement?: string;
 }
 
 /** Plugin key for accessing find state from editor state */
@@ -192,6 +196,14 @@ function applyFindAction(
 
     case 'close': {
       return createInitialState();
+    }
+
+    case 'replace':
+    case 'replaceAll': {
+      // Replace actions don't change plugin state directly.
+      // The actual replacement is done via separate transaction in dispatch functions.
+      // After replacement, the plugin automatically re-searches due to docChanged handling.
+      return state;
     }
 
     default:
@@ -393,4 +405,92 @@ function scrollToMatch(
  */
 export function getFindState(view: EditorView): FindPluginState | undefined {
   return findPluginKey.getState(view.state);
+}
+
+/**
+ * Replace the current match with the replacement text.
+ * Returns true if a replacement was made, false otherwise.
+ */
+export function dispatchReplace(
+  view: EditorView,
+  replacement: string
+): boolean {
+  const state = findPluginKey.getState(view.state);
+  if (!state || state.matches.length === 0 || state.currentMatchIndex < 0) {
+    return false;
+  }
+
+  const match = state.matches[state.currentMatchIndex];
+
+  // Create a transaction that replaces the text
+  const tr = view.state.tr.replaceWith(
+    match.from,
+    match.to,
+    replacement ? view.state.schema.text(replacement) : []
+  );
+
+  // Mark this transaction with metadata so the plugin knows a replace happened
+  tr.setMeta(findPluginKey, {
+    action: 'replace',
+    replacement,
+  } satisfies FindPluginMeta);
+
+  view.dispatch(tr);
+
+  // After replacement, the plugin will automatically re-search due to docChanged.
+  // Scroll to the new current match if there is one.
+  setTimeout(() => {
+    const newState = findPluginKey.getState(view.state);
+    if (
+      newState &&
+      newState.matches.length > 0 &&
+      newState.currentMatchIndex >= 0
+    ) {
+      scrollToMatch(view, newState.matches[newState.currentMatchIndex]);
+    }
+  }, 0);
+
+  return true;
+}
+
+/**
+ * Replace all matches with the replacement text.
+ * Returns the number of replacements made.
+ */
+export function dispatchReplaceAll(
+  view: EditorView,
+  replacement: string
+): number {
+  const state = findPluginKey.getState(view.state);
+  if (!state || state.matches.length === 0) {
+    return 0;
+  }
+
+  const matches = state.matches;
+  const replaceCount = matches.length;
+
+  // Create a transaction that replaces all matches.
+  // We need to replace from the end to avoid position shifts affecting earlier replacements.
+  let tr = view.state.tr;
+
+  // Sort matches by position descending (from end to start)
+  const sortedMatches = [...matches].sort((a, b) => b.from - a.from);
+
+  for (const match of sortedMatches) {
+    tr = tr.replaceWith(
+      match.from,
+      match.to,
+      replacement ? view.state.schema.text(replacement) : []
+    );
+  }
+
+  // Mark this transaction with metadata
+  tr.setMeta(findPluginKey, {
+    action: 'replaceAll',
+    replacement,
+  } satisfies FindPluginMeta);
+
+  view.dispatch(tr);
+
+  return replaceCount;
 }

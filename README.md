@@ -84,7 +84,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Find in document (Ctrl/Cmd + F) | |
 | ✅ | 🔥 | Mobile-responsive design | |
 | ⬜ | 🔥 | Project-wide search | |
-| ⬜ | 🔥 | Find and replace in document | |
+| ✅ | 🔥 | Find and replace in document | |
 | ⬜ | 🟡 | Tag filtering in search | Filter search results by tags |
 | ⬜ | 🟡 | Tag filtering in project tree | Show/hide elements by tag |
 | ⬜ | 🟡 | Breadcrumbs | Show path to current document |
