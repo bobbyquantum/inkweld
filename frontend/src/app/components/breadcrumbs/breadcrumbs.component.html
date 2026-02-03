@@ -1,20 +1,21 @@
 @if (showBreadcrumbs()) {
-  <nav class="breadcrumbs" aria-label="Breadcrumb navigation">
+  <nav class="breadcrumbs" aria-label="Breadcrumb navigation" data-testid="breadcrumbs">
     <ol class="breadcrumb-list">
       @for (element of breadcrumbPath(); track element.id; let last = $last) {
-        <li class="breadcrumb-item" [class.current]="last">
+        <li class="breadcrumb-item" [class.current]="last" [attr.data-testid]="'breadcrumb-item-' + element.id">
           @if (!last) {
             <button
               type="button"
               class="breadcrumb-link"
               (click)="navigateToElement(element, $event)"
-              [matTooltip]="element.name">
+              [matTooltip]="element.name"
+              [attr.data-testid]="'breadcrumb-link-' + element.id">
               <mat-icon class="breadcrumb-icon">{{ getElementIcon(element) }}</mat-icon>
               <span class="breadcrumb-text">{{ element.name }}</span>
             </button>
             <mat-icon class="breadcrumb-separator">chevron_right</mat-icon>
           } @else {
-            <span class="breadcrumb-current">
+            <span class="breadcrumb-current" data-testid="breadcrumb-current">
               <mat-icon class="breadcrumb-icon">{{ getElementIcon(element) }}</mat-icon>
               <span class="breadcrumb-text">{{ element.name }}</span>
             </span>
