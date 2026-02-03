@@ -1,8 +1,8 @@
 /**
- * Find in Document Feature Tests - Local Mode
+ * Find and Replace Feature Tests - Local Mode
  *
- * Tests that verify the find in document functionality (Cmd/Ctrl + F)
- * works correctly for searching text within documents.
+ * Tests that verify the find and replace functionality (Cmd/Ctrl + F)
+ * works correctly for searching and replacing text within documents.
  */
 import { expect, test } from './fixtures';
 
@@ -288,5 +288,294 @@ test.describe('Find in Document', () => {
     // Click previous button
     await page.getByTestId('find-previous').click();
     await expect(matchCounter).toContainText('1 of 2');
+  });
+
+  test('should toggle replace mode with toggle button', async ({
+    localPageWithProject: page,
+  }) => {
+    // Open a project
+    await page.getByTestId('project-card').first().click();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    // Create a document
+    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    await expect(newDocButton).toBeVisible();
+    await newDocButton.click();
+    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+    const dialogInput = page.getByLabel('Document Name');
+    await dialogInput.waitFor({ state: 'visible' });
+    await dialogInput.fill('Replace Toggle Test');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.locator('ngx-editor')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // Focus the editor
+    const editor = page.locator('ngx-editor .ProseMirror');
+    await editor.click();
+
+    // Open find bar
+    const isMac = process.platform === 'darwin';
+    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await expect(page.getByTestId('find-bar')).toBeVisible();
+
+    // Replace bar should not be visible initially
+    await expect(page.getByTestId('replace-bar')).not.toBeVisible();
+
+    // Click toggle replace button
+    await page.getByTestId('find-toggle-replace').click();
+
+    // Replace bar should now be visible
+    await expect(page.getByTestId('replace-bar')).toBeVisible();
+    await expect(page.getByTestId('replace-input')).toBeVisible();
+
+    // Click toggle again to hide
+    await page.getByTestId('find-toggle-replace').click();
+    await expect(page.getByTestId('replace-bar')).not.toBeVisible();
+  });
+
+  test('should replace single match', async ({
+    localPageWithProject: page,
+  }) => {
+    // Open a project
+    await page.getByTestId('project-card').first().click();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    // Create a document
+    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    await expect(newDocButton).toBeVisible();
+    await newDocButton.click();
+    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+    const dialogInput = page.getByLabel('Document Name');
+    await dialogInput.waitFor({ state: 'visible' });
+    await dialogInput.fill('Replace Single Test');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.locator('ngx-editor')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // Type some text in the editor
+    const editor = page.locator('ngx-editor .ProseMirror');
+    await editor.click();
+    await page.keyboard.type('cat and cat and cat');
+    await page.waitForTimeout(300);
+
+    // Open find bar and search
+    const isMac = process.platform === 'darwin';
+    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    const findInput = page.getByTestId('find-input');
+    await findInput.fill('cat');
+    await page.waitForTimeout(200);
+
+    // Verify we have 3 matches
+    const matchCounter = page.getByTestId('find-match-counter');
+    await expect(matchCounter).toContainText('1 of 3');
+
+    // Open replace mode
+    await page.getByTestId('find-toggle-replace').click();
+    await expect(page.getByTestId('replace-bar')).toBeVisible();
+
+    // Enter replacement text
+    const replaceInput = page.getByTestId('replace-input');
+    await replaceInput.fill('dog');
+
+    // Click replace button
+    await page.getByTestId('replace-single').click();
+    await page.waitForTimeout(200);
+
+    // Should now have 2 matches (one replaced)
+    await expect(matchCounter).toContainText('1 of 2');
+
+    // Verify the text was replaced
+    await expect(editor).toContainText('dog');
+  });
+
+  test('should replace all matches', async ({ localPageWithProject: page }) => {
+    // Open a project
+    await page.getByTestId('project-card').first().click();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    // Create a document
+    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    await expect(newDocButton).toBeVisible();
+    await newDocButton.click();
+    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+    const dialogInput = page.getByLabel('Document Name');
+    await dialogInput.waitFor({ state: 'visible' });
+    await dialogInput.fill('Replace All Test');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.locator('ngx-editor')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // Type some text in the editor
+    const editor = page.locator('ngx-editor .ProseMirror');
+    await editor.click();
+    await page.keyboard.type('foo bar foo baz foo');
+    await page.waitForTimeout(300);
+
+    // Open find bar and search
+    const isMac = process.platform === 'darwin';
+    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    const findInput = page.getByTestId('find-input');
+    await findInput.fill('foo');
+    await page.waitForTimeout(200);
+
+    // Verify we have 3 matches
+    const matchCounter = page.getByTestId('find-match-counter');
+    await expect(matchCounter).toContainText('1 of 3');
+
+    // Open replace mode
+    await page.getByTestId('find-toggle-replace').click();
+
+    // Enter replacement text
+    const replaceInput = page.getByTestId('replace-input');
+    await replaceInput.fill('qux');
+
+    // Click replace all button
+    await page.getByTestId('replace-all').click();
+    await page.waitForTimeout(200);
+
+    // Should have no matches (all replaced)
+    await expect(matchCounter).toContainText('No results');
+
+    // Verify all text was replaced
+    await expect(editor).toContainText('qux bar qux baz qux');
+    await expect(editor).not.toContainText('foo');
+  });
+
+  test('should replace with Enter key in replace input', async ({
+    localPageWithProject: page,
+  }) => {
+    // Open a project
+    await page.getByTestId('project-card').first().click();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    // Create a document
+    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    await expect(newDocButton).toBeVisible();
+    await newDocButton.click();
+    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+    const dialogInput = page.getByLabel('Document Name');
+    await dialogInput.waitFor({ state: 'visible' });
+    await dialogInput.fill('Replace Enter Key Test');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.locator('ngx-editor')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // Type some text in the editor
+    const editor = page.locator('ngx-editor .ProseMirror');
+    await editor.click();
+    await page.keyboard.type('apple banana apple');
+    await page.waitForTimeout(300);
+
+    // Open find bar and search
+    const isMac = process.platform === 'darwin';
+    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    const findInput = page.getByTestId('find-input');
+    await findInput.fill('apple');
+    await page.waitForTimeout(200);
+
+    const matchCounter = page.getByTestId('find-match-counter');
+    await expect(matchCounter).toContainText('1 of 2');
+
+    // Open replace mode
+    await page.getByTestId('find-toggle-replace').click();
+
+    // Enter replacement text and press Enter
+    const replaceInput = page.getByTestId('replace-input');
+    await replaceInput.fill('orange');
+    await replaceInput.press('Enter');
+    await page.waitForTimeout(200);
+
+    // Should now have 1 match (one replaced)
+    await expect(matchCounter).toContainText('1 of 1');
+  });
+
+  test('should replace all with Shift+Enter in replace input', async ({
+    localPageWithProject: page,
+  }) => {
+    // Open a project
+    await page.getByTestId('project-card').first().click();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    // Create a document
+    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    await expect(newDocButton).toBeVisible();
+    await newDocButton.click();
+    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+    const dialogInput = page.getByLabel('Document Name');
+    await dialogInput.waitFor({ state: 'visible' });
+    await dialogInput.fill('Replace Shift Enter Test');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.locator('ngx-editor')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // Type some text in the editor
+    const editor = page.locator('ngx-editor .ProseMirror');
+    await editor.click();
+    await page.keyboard.type('red blue red green red');
+    await page.waitForTimeout(300);
+
+    // Open find bar and search
+    const isMac = process.platform === 'darwin';
+    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    const findInput = page.getByTestId('find-input');
+    await findInput.fill('red');
+    await page.waitForTimeout(200);
+
+    const matchCounter = page.getByTestId('find-match-counter');
+    await expect(matchCounter).toContainText('1 of 3');
+
+    // Open replace mode
+    await page.getByTestId('find-toggle-replace').click();
+
+    // Enter replacement text and press Shift+Enter to replace all
+    const replaceInput = page.getByTestId('replace-input');
+    await replaceInput.fill('yellow');
+    await replaceInput.press('Shift+Enter');
+    await page.waitForTimeout(200);
+
+    // Should have no matches (all replaced)
+    await expect(matchCounter).toContainText('No results');
+
+    // Verify all text was replaced
+    await expect(editor).toContainText('yellow blue yellow green yellow');
+  });
+
+  test('should close replace bar when closing find bar', async ({
+    localPageWithProject: page,
+  }) => {
+    // Open a project
+    await page.getByTestId('project-card').first().click();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    // Create a document
+    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    await expect(newDocButton).toBeVisible();
+    await newDocButton.click();
+    await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+    const dialogInput = page.getByLabel('Document Name');
+    await dialogInput.waitFor({ state: 'visible' });
+    await dialogInput.fill('Close Replace Test');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.locator('ngx-editor')).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // Focus the editor
+    const editor = page.locator('ngx-editor .ProseMirror');
+    await editor.click();
+
+    // Open find bar
+    const isMac = process.platform === 'darwin';
+    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await expect(page.getByTestId('find-bar')).toBeVisible();
+
+    // Open replace mode
+    await page.getByTestId('find-toggle-replace').click();
+    await expect(page.getByTestId('replace-bar')).toBeVisible();
+
+    // Close find bar with Escape
+    await page.keyboard.press('Escape');
+
+    // Both find bar and replace bar should be closed
+    await expect(page.getByTestId('find-bar')).not.toBeVisible();
   });
 });
