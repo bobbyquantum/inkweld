@@ -1,0 +1,148 @@
+:host {
+  display: block;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  background-color: var(--sys-surface-container);
+  border-bottom: 1px solid var(--sys-outline-variant);
+  min-height: 32px;
+  overflow: hidden;
+}
+
+.breadcrumb-list {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sys-outline-variant) transparent;
+
+  // Hide scrollbar on mobile for cleaner look
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--sys-outline-variant);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 160px;
+
+  &.current {
+    max-width: none;
+  }
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sys-on-surface-variant);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  transition: all 0.15s ease;
+  max-width: 100%;
+  overflow: hidden;
+
+  &:hover {
+    background-color: var(--sys-surface-container-high);
+    color: var(--sys-on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: 1px;
+  }
+}
+
+.breadcrumb-current {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--sys-on-surface);
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+}
+
+.breadcrumb-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.breadcrumb-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumb-separator {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--sys-outline);
+  flex-shrink: 0;
+}
+
+// Mobile adjustments
+@media (max-width: 599px) {
+  .breadcrumbs {
+    padding: 2px 8px;
+    min-height: 28px;
+  }
+
+  .breadcrumb-item {
+    max-width: 100px;
+
+    &.current {
+      max-width: 150px;
+    }
+  }
+
+  .breadcrumb-link,
+  .breadcrumb-current {
+    font-size: 0.75rem;
+    padding: 2px 4px;
+    gap: 2px;
+  }
+
+  .breadcrumb-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .breadcrumb-separator {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}

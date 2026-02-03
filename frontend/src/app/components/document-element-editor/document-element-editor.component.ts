@@ -57,6 +57,7 @@ import {
 } from '../element-ref';
 import { FindInDocumentComponent } from '../find-in-document';
 import { createMediaUrl } from '../image-paste';
+import { BreadcrumbsComponent } from '../breadcrumbs';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
@@ -72,6 +73,7 @@ import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
     MatSelectModule,
     MatOptionModule,
     DragDropModule,
+    BreadcrumbsComponent,
     LintFloatingMenuComponent,
     MetaPanelComponent,
     ElementRefPopupComponent,

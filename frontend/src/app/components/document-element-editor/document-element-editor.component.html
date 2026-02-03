@@ -7,6 +7,10 @@
       @if (findService.isOpen()) {
         <app-find-in-document></app-find-in-document>
       }
+      <!-- Breadcrumbs showing path to current document -->
+      @if (!zenMode) {
+        <app-breadcrumbs [elementId]="documentId"></app-breadcrumbs>
+      }
       <!-- Only show toolbar when not in zen mode -->
       @if (!zenMode) {
         <app-editor-toolbar
