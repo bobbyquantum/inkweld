@@ -23,44 +23,62 @@
     </div>
   </div>
 
-  <!-- Category filter -->
-  <div class="category-filter">
-    <button
-      mat-button
-      [class.active]="selectedCategory() === 'all'"
-      (click)="setCategory('all')">
-      All
-    </button>
-    <button
-      mat-button
-      [class.active]="selectedCategory() === 'generated'"
-      (click)="setCategory('generated')">
-      Generated
-    </button>
-    <button
-      mat-button
-      [class.active]="selectedCategory() === 'cover'"
-      (click)="setCategory('cover')">
-      Cover
-    </button>
-    <button
-      mat-button
-      [class.active]="selectedCategory() === 'inline'"
-      (click)="setCategory('inline')">
-      Inline Images
-    </button>
-    <button
-      mat-button
-      [class.active]="selectedCategory() === 'published'"
-      (click)="setCategory('published')">
-      Published
-    </button>
-    <button
-      mat-button
-      [class.active]="selectedCategory() === 'other'"
-      (click)="setCategory('other')">
-      Other
-    </button>
+  <!-- Search and filter bar -->
+  <div class="search-filter-bar">
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        placeholder="Search media by name or prompt..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        data-testid="media-search-input" />
+      @if (searchQuery()) {
+        <button matSuffix mat-icon-button (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <!-- Category filter -->
+    <div class="category-filter">
+      <button
+        mat-button
+        [class.active]="selectedCategory() === 'all'"
+        (click)="setCategory('all')">
+        All
+      </button>
+      <button
+        mat-button
+        [class.active]="selectedCategory() === 'generated'"
+        (click)="setCategory('generated')">
+        Generated
+      </button>
+      <button
+        mat-button
+        [class.active]="selectedCategory() === 'cover'"
+        (click)="setCategory('cover')">
+        Cover
+      </button>
+      <button
+        mat-button
+        [class.active]="selectedCategory() === 'inline'"
+        (click)="setCategory('inline')">
+        Inline Images
+      </button>
+      <button
+        mat-button
+        [class.active]="selectedCategory() === 'published'"
+        (click)="setCategory('published')">
+        Published
+      </button>
+      <button
+        mat-button
+        [class.active]="selectedCategory() === 'other'"
+        (click)="setCategory('other')">
+        Other
+      </button>
+    </div>
   </div>
 
   <!-- Active generation jobs -->
@@ -154,7 +172,12 @@
     <mat-card class="empty-card" data-testid="empty-card">
       <mat-card-content>
         <mat-icon>perm_media</mat-icon>
-        @if (selectedCategory() === 'all') {
+        @if (searchQuery()) {
+          <p>No media matching "{{ searchQuery() }}".</p>
+          <button mat-button color="primary" (click)="clearSearch()">
+            Clear Search
+          </button>
+        } @else if (selectedCategory() === 'all') {
           <p>No media stored locally for this project.</p>
           <p class="hint">
             Media includes cover images, inline images in documents, and

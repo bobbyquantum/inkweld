@@ -1,11 +1,14 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -48,9 +51,12 @@ interface MediaItem extends MediaInfo {
   styleUrls: ['./media-selector-dialog.component.scss'],
   standalone: true,
   imports: [
+    FormsModule,
     MatDialogModule,
     MatButtonModule,
+    MatFormFieldModule,
     MatIconModule,
+    MatInputModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
@@ -72,6 +78,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly mediaItems = signal<MediaItem[]>([]);
   readonly selectedItem = signal<MediaItem | null>(null);
+  readonly searchQuery = signal('');
 
   private objectUrls: string[] = [];
   private projectKey = '';
@@ -237,6 +244,23 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
    */
   needsDownload(item: MediaItem): boolean {
     return item.syncStatus === 'server-only';
+  }
+
+  /**
+   * Get media items filtered by the current search query
+   */
+  filteredItems(): MediaItem[] {
+    const query = this.searchQuery().trim().toLowerCase();
+    if (!query) return this.mediaItems();
+    return this.mediaItems().filter(item => {
+      const filename = (item.filename || '').toLowerCase();
+      const mediaId = item.mediaId.toLowerCase();
+      return filename.includes(query) || mediaId.includes(query);
+    });
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
   }
 
   selectItem(item: MediaItem): void {
