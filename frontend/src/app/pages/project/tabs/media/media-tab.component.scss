@@ -56,10 +56,26 @@
   }
 }
 
+.search-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.search-field {
+  width: 100%;
+  max-width: 400px;
+
+  mat-icon[matPrefix] {
+    margin-right: 8px;
+    color: var(--sys-color-on-surface-variant);
+  }
+}
+
 .category-filter {
   display: flex;
   gap: 4px;
-  margin-bottom: 16px;
   flex-wrap: wrap;
 
   button {
