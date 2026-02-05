@@ -7,9 +7,12 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -49,9 +52,12 @@ export interface MediaItem extends MediaInfo {
   styleUrls: ['./media-tab.component.scss'],
   standalone: true,
   imports: [
+    FormsModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatMenuModule,
@@ -79,6 +85,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
   selectedCategory = signal<string>('all');
+  searchQuery = signal<string>('');
 
   // Stats
   totalSize = signal<number>(0);
@@ -246,14 +253,39 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get filtered media items based on selected category
+   * Get filtered media items based on selected category and search query
    */
   filteredItems(): MediaItem[] {
     const category = this.selectedCategory();
-    if (category === 'all') {
-      return this.mediaItems();
+    const query = this.searchQuery().trim().toLowerCase();
+
+    let items = this.mediaItems();
+
+    if (category !== 'all') {
+      items = items.filter(item => item.category === category);
     }
-    return this.mediaItems().filter(item => item.category === category);
+
+    if (query) {
+      items = items.filter(item => {
+        const filename = (item.filename || '').toLowerCase();
+        const mediaId = item.mediaId.toLowerCase();
+        const prompt = (item.generation?.prompt || '').toLowerCase();
+        return (
+          filename.includes(query) ||
+          mediaId.includes(query) ||
+          prompt.includes(query)
+        );
+      });
+    }
+
+    return items;
+  }
+
+  /**
+   * Clear the search query
+   */
+  clearSearch(): void {
+    this.searchQuery.set('');
   }
 
   /**

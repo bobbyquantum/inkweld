@@ -34,8 +34,28 @@
       <p class="hint">Generate or upload images first, then select one here.</p>
     </div>
   } @else {
+    <mat-form-field appearance="outline" class="dialog-search-field" subscriptSizing="dynamic">
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        placeholder="Search media..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)" />
+      @if (searchQuery()) {
+        <button matSuffix mat-icon-button (click)="clearSearch()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    @if (filteredItems().length === 0) {
+      <div class="empty-container">
+        <mat-icon>search_off</mat-icon>
+        <p>No media matching "{{ searchQuery() }}".</p>
+      </div>
+    } @else {
     <div class="media-grid">
-      @for (item of mediaItems(); track item.mediaId) {
+      @for (item of filteredItems(); track item.mediaId) {
         <div
           class="media-item"
           [class.selected]="isSelected(item)"
@@ -83,6 +103,7 @@
         </div>
       }
     </div>
+    }
   }
 </mat-dialog-content>
 

@@ -35,6 +35,16 @@
   }
 }
 
+.dialog-search-field {
+  width: 100%;
+  margin-bottom: 8px;
+
+  mat-icon[matPrefix] {
+    margin-right: 8px;
+    color: var(--sys-color-on-surface-variant);
+  }
+}
+
 .media-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
