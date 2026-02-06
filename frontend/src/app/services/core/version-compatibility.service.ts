@@ -234,7 +234,9 @@ export class VersionCompatibilityService {
   ): Promise<CompatibilityResult> {
     this.checking.set(true);
     try {
-      const response = await fetch(`${serverUrl}/api/v1/health`);
+      // Strip trailing slashes to prevent double-slash URLs (e.g., "https://example.com//api/v1/...")
+      const normalizedUrl = serverUrl.replace(/\/+$/, '');
+      const response = await fetch(`${normalizedUrl}/api/v1/health`);
       if (!response.ok) {
         console.warn(
           `[VersionCompatibility] Health check failed: status=${response.status}`

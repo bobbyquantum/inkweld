@@ -118,14 +118,17 @@ export class SetupService {
   async configureServerMode(serverUrl: string): Promise<void> {
     this.isLoading.set(true);
     try {
+      // Strip trailing slashes to prevent double-slash URLs
+      const normalizedUrl = serverUrl.replace(/\/+$/, '');
+
       // Validate server connection
-      const response = await fetch(`${serverUrl}/api/v1/health`);
+      const response = await fetch(`${normalizedUrl}/api/v1/health`);
       if (!response.ok) {
         throw new Error('Server is not reachable');
       }
 
       // Add server config and switch to it
-      const serverConfig = this.storageContext.addServerConfig(serverUrl);
+      const serverConfig = this.storageContext.addServerConfig(normalizedUrl);
       this.storageContext.switchToConfig(serverConfig.id);
     } catch (error) {
       console.error('Failed to configure server mode:', error);
