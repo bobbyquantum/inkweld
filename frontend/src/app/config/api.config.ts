@@ -28,7 +28,8 @@ function createDynamicConfiguration(setupService: SetupService): Configuration {
       // Always read dynamically from SetupService on every access
       const serverUrl = setupService.getServerUrl();
       const result = serverUrl || environment.apiUrl;
-      return result;
+      // Strip trailing slashes to prevent double-slash URLs (e.g., "https://example.com//api/v1/...")
+      return result.replace(/\/+$/, '');
     },
     set: function (value: string) {
       // Ignore setter - we always use the getter
