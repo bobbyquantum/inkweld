@@ -34,6 +34,15 @@ export const routes: Routes = [
     title: 'Changelog',
   },
   {
+    path: 'oauth/authorize',
+    loadComponent: () =>
+      import('./pages/oauth-consent/oauth-consent.component').then(
+        m => m.OAuthConsentComponent
+      ),
+    title: 'Authorize Application',
+    canActivate: [authGuard],
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),
@@ -116,6 +125,15 @@ export const routes: Routes = [
         m => m.CreateProjectComponent
       ),
     title: 'Create New Project',
+    canActivate: [authGuard],
+  },
+  {
+    path: 'settings',
+    loadComponent: () =>
+      import('./pages/account-settings/account-settings.component').then(
+        m => m.AccountSettingsComponent
+      ),
+    title: 'Account Settings',
     canActivate: [authGuard],
   },
   {

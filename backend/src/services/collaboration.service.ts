@@ -12,10 +12,13 @@ import {
   type ProjectCollaborator,
   type InsertProjectCollaborator,
   type CollaboratorRole,
+  type CollaboratorType,
   type InvitationStatus,
 } from '../db/schema/project-collaborators';
 import { projects } from '../db/schema/projects';
 import { users } from '../db/schema/users';
+import { mcpOAuthSessions } from '../db/schema/mcp-oauth-sessions';
+import { mcpOAuthClients } from '../db/schema/mcp-oauth-clients';
 import { projectService } from './project.service';
 import { userService } from './user.service';
 import { NotFoundError, BadRequestError } from '../errors';
@@ -28,6 +31,10 @@ export interface CollaboratorWithUser extends ProjectCollaborator {
   name: string | null;
   email: string | null;
   invitedByUsername: string | null;
+  /** 'user' for human collaborators, 'oauth_app' for AI/MCP apps */
+  collaboratorType: CollaboratorType;
+  /** OAuth client name (only set for oauth_app type) */
+  clientName: string | null;
 }
 
 /**
@@ -57,6 +64,8 @@ class CollaborationService {
         invitedBy: projectCollaborators.invitedBy,
         invitedAt: projectCollaborators.invitedAt,
         acceptedAt: projectCollaborators.acceptedAt,
+        collaboratorType: projectCollaborators.collaboratorType,
+        mcpSessionId: projectCollaborators.mcpSessionId,
         username: users.username,
         name: users.name,
         email: users.email,
@@ -65,6 +74,29 @@ class CollaborationService {
       .leftJoin(users, eq(projectCollaborators.userId, users.id))
       .where(eq(projectCollaborators.projectId, projectId))
       .orderBy(desc(projectCollaborators.invitedAt));
+
+    // Get OAuth client names for oauth_app entries
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sessionIds: string[] = (results as any[])
+      .filter((r) => r.mcpSessionId !== null)
+      .map((r) => r.mcpSessionId as string)
+      .filter((id, index, arr) => arr.indexOf(id) === index);
+
+    const clientNameMap = new Map<string, string>();
+    for (const sessionId of sessionIds) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [sessionWithClient] = await (db as any)
+        .select({
+          clientName: mcpOAuthClients.clientName,
+        })
+        .from(mcpOAuthSessions)
+        .innerJoin(mcpOAuthClients, eq(mcpOAuthSessions.clientId, mcpOAuthClients.id))
+        .where(eq(mcpOAuthSessions.id, sessionId))
+        .limit(1);
+      if (sessionWithClient?.clientName) {
+        clientNameMap.set(sessionId, sessionWithClient.clientName);
+      }
+    }
 
     // Get inviter usernames in a second query
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,11 +128,14 @@ class CollaborationService {
       name: r.name as string | null,
       email: r.email as string | null,
       invitedByUsername: r.invitedBy ? (inviterMap.get(r.invitedBy) ?? null) : null,
+      collaboratorType: (r.collaboratorType as CollaboratorType) ?? 'user',
+      clientName: r.mcpSessionId ? (clientNameMap.get(r.mcpSessionId) ?? null) : null,
     }));
   }
 
   /**
-   * Get a specific collaborator
+   * Get a specific human collaborator
+   * Note: This only returns human collaborators (type='user'), not OAuth apps
    */
   async getCollaborator(
     db: DatabaseInstance,
@@ -111,7 +146,11 @@ class CollaborationService {
       .select()
       .from(projectCollaborators)
       .where(
-        and(eq(projectCollaborators.projectId, projectId), eq(projectCollaborators.userId, userId))
+        and(
+          eq(projectCollaborators.projectId, projectId),
+          eq(projectCollaborators.userId, userId),
+          eq(projectCollaborators.collaboratorType, 'user')
+        )
       )
       .limit(1);
 
@@ -150,6 +189,7 @@ class CollaborationService {
     const newCollaborator: InsertProjectCollaborator = {
       projectId,
       userId: targetUser.id,
+      collaboratorType: 'user',
       role,
       status: 'pending',
       invitedBy: invitedByUserId,

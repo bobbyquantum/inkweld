@@ -109,9 +109,12 @@ export function requestLogger(options: RequestLoggerOptions = {}): MiddlewareHan
     const contentLength = c.req.header('Content-Length');
     const requestSize = contentLength ? parseInt(contentLength, 10) : 0;
 
-    // Log request start (debug level for most, skip for static/health)
+    // Log request start
+    // OAuth/MCP routes log at INFO level for easier debugging of external clients
+    const isOAuthRoute = path.startsWith('/oauth') || path.startsWith('/.well-known') || path.startsWith('/register') || path.startsWith('/api/v1/ai/mcp');
     if (!skipLogging) {
-      log.debug(
+      const logFn = isOAuthRoute ? log.info.bind(log) : log.debug.bind(log);
+      logFn(
         `→ ${method} ${path}`,
         {
           method,

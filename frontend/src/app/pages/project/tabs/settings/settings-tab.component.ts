@@ -30,6 +30,7 @@ import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   Collaborator,
+  CollaboratorCollaboratorType,
   CollaboratorRole,
   CreateMcpKeyRequest,
   InvitationStatus,
@@ -149,6 +150,18 @@ export class SettingsTabComponent implements AfterViewInit {
   protected readonly isLoadingCollaborators = signal(true);
   protected readonly collaboratorsError = signal<string | null>(null);
   protected readonly showInviteForm = signal(false);
+
+  // Computed signals for filtering human collaborators vs OAuth apps
+  protected readonly humanCollaborators = computed(() =>
+    this.collaborators().filter(
+      c => c.collaboratorType !== CollaboratorCollaboratorType.OauthApp
+    )
+  );
+  protected readonly oauthAppCollaborators = computed(() =>
+    this.collaborators().filter(
+      c => c.collaboratorType === CollaboratorCollaboratorType.OauthApp
+    )
+  );
   protected readonly isInviting = signal(false);
   inviteUsername = '';
   inviteRole: CollaboratorRole = CollaboratorRole.Viewer;

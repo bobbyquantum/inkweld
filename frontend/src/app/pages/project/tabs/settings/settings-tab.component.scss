@@ -733,6 +733,42 @@ mat-card {
   }
 }
 
+// Connected Apps section
+.connected-apps-card {
+  margin-top: 16px;
+
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.connected-apps-info {
+  font-size: 13px;
+  color: var(--sys-on-surface-variant);
+  margin: 0 0 16px 0;
+}
+
+.oauth-app-item {
+  .app-avatar {
+    background: var(--sys-secondary-container);
+
+    mat-icon {
+      color: var(--sys-on-secondary-container);
+    }
+  }
+}
+
+.app-role-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--sys-secondary-container);
+  color: var(--sys-on-secondary-container);
+  text-transform: capitalize;
+}
+
 // Responsive adjustments
 @media (max-width: 600px) {
   .settings-tab {

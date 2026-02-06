@@ -9,6 +9,11 @@ type D1Database = any;
 type R2Bucket = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DurableObjectNamespace<_T = unknown> = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DurableObjectStub = any;
+
+// Re-export types for use in other modules
+export type { DurableObjectNamespace, DurableObjectStub };
 
 /**
  * Environment bindings for Cloudflare Workers

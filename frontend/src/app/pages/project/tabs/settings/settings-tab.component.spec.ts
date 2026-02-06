@@ -92,6 +92,7 @@ describe('SettingsTabComponent', () => {
       invitedByUsername: 'testuser',
       invitedAt: Date.now() - 86400000,
       acceptedAt: Date.now() - 43200000,
+      clientName: null,
     },
     {
       projectId: '123',
@@ -105,6 +106,7 @@ describe('SettingsTabComponent', () => {
       invitedByUsername: 'testuser',
       invitedAt: Date.now() - 3600000,
       acceptedAt: null,
+      clientName: null,
     },
   ];
 

@@ -12,15 +12,121 @@
  * See tree-helpers.ts for detailed documentation on this model.
  */
 
-import type { McpContext, McpToolResult } from '../mcp.types';
+import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
+import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
+import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
 import { logger } from '../../services/logger.service';
 
 const mcpSearchLog = logger.child('MCP-Search');
+
+/**
+ * Check if running on Cloudflare Workers (has DO bindings)
+ */
+function isCloudflareWorkers(ctx: McpContext): boolean {
+  return !!ctx.env?.YJS_PROJECTS;
+}
+
+/**
+ * Get the appropriate Yjs service based on runtime
+ */
+function getYjsService(ctx: McpContext): YjsWorkerService | typeof yjsService {
+  if (isCloudflareWorkers(ctx) && ctx.authToken && ctx.env?.YJS_PROJECTS) {
+    return new YjsWorkerService({
+      env: { YJS_PROJECTS: ctx.env.YJS_PROJECTS },
+      authToken: ctx.authToken,
+    });
+  }
+  return yjsService;
+}
+
+/**
+ * Property schema for project parameter (reused across all tools)
+ */
+const projectPropertySchema = {
+  type: 'string',
+  description: 'Project identifier in "username/slug" format (e.g., "alice/my-novel").',
+} as const;
+
+/**
+ * Parse and validate the project parameter.
+ * Returns the project context or an error result.
+ */
+function parseProjectParam(
+  ctx: McpContext,
+  projectArg: unknown,
+  permission: string
+): { project: ActiveProjectContext } | { error: McpToolResult } {
+  const projectStr = String(projectArg ?? '').trim();
+
+  if (!projectStr) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: project parameter is required (format: "username/slug")',
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const parts = projectStr.split('/');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: invalid project format "${projectStr}". Expected "username/slug"`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const [username, slug] = parts;
+
+  // Check if this project is in the user's grants
+  const project = getProjectByKey(ctx, username, slug);
+  if (!project) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: project "${projectStr}" not found in authorized projects`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  // Check permission for this project
+  if (!hasProjectPermission(ctx, username, slug, permission)) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: permission "${permission}" not granted for project "${projectStr}"`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  return { project };
+}
 
 interface SearchResult {
   elementId: string;
@@ -32,11 +138,13 @@ interface SearchResult {
 }
 
 /**
- * Get elements from Yjs
+ * Get elements from Yjs (uses appropriate service based on runtime)
  */
-async function getElements(username: string, slug: string): Promise<Element[]> {
+async function getElements(ctx: McpContext, username: string, slug: string): Promise<Element[]> {
   try {
-    return await yjsService.getElements(username, slug);
+    const service = getYjsService(ctx);
+    const elements = await service.getElements(username, slug);
+    return elements;
   } catch (err) {
     mcpSearchLog.error('Error getting elements', err);
     return [];
@@ -47,6 +155,7 @@ async function getElements(username: string, slug: string): Promise<Element[]> {
  * Get worldbuilding data for an element
  */
 async function getWorldbuildingData(
+  ctx: McpContext,
   username: string,
   slug: string,
   elementId: string
@@ -55,17 +164,18 @@ async function getWorldbuildingData(
   const docId = `${username}:${slug}:${elementId}/`;
 
   try {
-    const sharedDoc = await yjsService.getDocument(docId);
+    const service = getYjsService(ctx);
+    const sharedDoc = await service.getDocument(docId);
     const dataMap = sharedDoc.doc.getMap('worldbuilding');
     const identityMap = sharedDoc.doc.getMap('identity');
 
     const result: Record<string, unknown> = {};
 
-    dataMap.forEach((value, key) => {
+    dataMap.forEach((value: unknown, key: string) => {
       result[key] = convertYjsValue(value);
     });
 
-    identityMap.forEach((value, key) => {
+    identityMap.forEach((value: unknown, key: string) => {
       result[`identity.${key}`] = convertYjsValue(value);
     });
 
@@ -190,6 +300,7 @@ determines hierarchy by POSITION, not by parentId.`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         parentId: {
           type: 'string',
           description:
@@ -200,7 +311,7 @@ determines hierarchy by POSITION, not by parentId.`,
           description: 'Maximum depth to traverse (default: unlimited)',
         },
       },
-      required: [],
+      required: ['project'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
@@ -209,11 +320,14 @@ determines hierarchy by POSITION, not by parentId.`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const parentId = args.parentId ? String(args.parentId) : null;
     const maxDepth = args.maxDepth ? Number(args.maxDepth) : Infinity;
 
-    const { username, slug } = ctx;
-    const elements = await getElements(username, slug);
+    const elements = await getElements(ctx, username, slug);
 
     // Build visual tree using positional hierarchy
     const fullTree = buildVisualTree(elements);
@@ -281,6 +395,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         query: {
           type: 'string',
           description: 'Search query to match against element names',
@@ -295,7 +410,7 @@ registerTool({
           description: 'Maximum number of results (default: 20)',
         },
       },
-      required: ['query'],
+      required: ['project', 'query'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
@@ -304,12 +419,15 @@ registerTool({
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const query = String(args.query ?? '');
     const types = (args.types as string[] | undefined) ?? [];
     const limit = Math.min(Number(args.limit) || 20, 100);
 
-    const { username, slug } = ctx;
-    const elements = await getElements(username, slug);
+    const elements = await getElements(ctx, username, slug);
 
     // Filter and score
     const results: SearchResult[] = [];
@@ -362,6 +480,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         query: {
           type: 'string',
           description: 'Search query to match against worldbuilding data',
@@ -381,7 +500,7 @@ registerTool({
           description: 'Maximum number of results (default: 10)',
         },
       },
-      required: ['query'],
+      required: ['project', 'query'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_WORLDBUILDING],
@@ -390,13 +509,16 @@ registerTool({
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const query = String(args.query ?? '');
     const schemaTypes = (args.schemaTypes as string[] | undefined) ?? [];
     const fields = (args.fields as string[] | undefined) ?? [];
     const limit = Math.min(Number(args.limit) || 10, 50);
 
-    const { username, slug } = ctx;
-    const elements = await getElements(username, slug);
+    const elements = await getElements(ctx, username, slug);
 
     // Filter to worldbuilding types
     const wbElements = elements.filter(
@@ -408,7 +530,7 @@ registerTool({
     const results: SearchResult[] = [];
 
     for (const elem of wbElements) {
-      const data = await getWorldbuildingData(username, slug, elem.id);
+      const data = await getWorldbuildingData(ctx, username, slug, elem.id);
       if (!data) continue;
 
       // Search name first
@@ -486,6 +608,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementId: {
           type: 'string',
           description: 'The element ID to find relationships for',
@@ -500,7 +623,7 @@ registerTool({
           description: 'Relationship direction (default: both)',
         },
       },
-      required: ['elementId'],
+      required: ['project', 'elementId'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_WORLDBUILDING],
@@ -509,18 +632,26 @@ registerTool({
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementId = String(args.elementId);
     const relationshipType = args.relationshipType as string | undefined;
     const direction = (args.direction as string) || 'both';
 
-    const { username, slug } = ctx;
-
     // Get relationships
     const docId = `${username}:${slug}:elements/`;
-    const sharedDoc = await yjsService.getDocument(docId);
+    const service = getYjsService(ctx);
+    const sharedDoc = await service.getDocument(docId);
     const relationshipsArray = sharedDoc.doc.getArray('relationships');
     // Use correct property names matching frontend ElementRelationship interface
-    const allRelationships = relationshipsArray.toJSON() as Array<{
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawRelationships = (relationshipsArray as any).toJSON
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (relationshipsArray as any).toJSON()
+      : [];
+    const allRelationships = rawRelationships as Array<{
       id: string;
       sourceElementId: string;
       targetElementId: string;
@@ -549,7 +680,7 @@ registerTool({
     });
 
     // Get element names
-    const elements = await getElements(username, slug);
+    const elements = await getElements(ctx, username, slug);
     const elementMap = new Map(elements.map((e) => [e.id, e]));
 
     const enriched = matching.map((r) => ({

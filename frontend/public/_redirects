@@ -1,3 +1,6 @@
-# Cloudflare Pages SPA routing
-# All routes fallback to index.html for Angular router to handle
+# Cloudflare Pages routing
+
+# Note: /mcp is handled by a Pages Function (functions/mcp.ts) for dynamic routing
+
+# SPA routing - all other routes fallback to index.html for Angular router
 /*    /index.html   200

@@ -2,10 +2,14 @@
  * MCP Tools: Image Generation and Management
  *
  * Tools for generating images via AI and assigning them to worldbuilding elements.
+ *
+ * NOTE: Image tools currently require Bun runtime (use LevelDB-based yjsService).
+ * On Cloudflare Workers, image assignment operations are not yet supported.
  */
 
 import { registerTool } from '../mcp.handler';
-import type { McpContext, McpToolResult } from '../mcp.types';
+import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
+import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { imageGenerationService } from '../../services/image-generation.service';
 import { imageProfileService } from '../../services/image-profile.service';
@@ -26,6 +30,90 @@ const mcpImageLog = logger.child('MCP-Image');
 // ============================================
 // Helper functions
 // ============================================
+
+/**
+ * Property schema for project parameter (reused across all tools)
+ */
+const projectPropertySchema = {
+  type: 'string',
+  description: 'Project identifier in "username/slug" format (e.g., "alice/my-novel").',
+} as const;
+
+/**
+ * Parse and validate the project parameter.
+ * Returns the project context or an error result.
+ */
+function parseProjectParam(
+  ctx: McpContext,
+  projectArg: unknown,
+  permission: string
+): { project: ActiveProjectContext } | { error: McpToolResult } {
+  const projectStr = String(projectArg ?? '').trim();
+
+  if (!projectStr) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: project parameter is required (format: "username/slug")',
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const parts = projectStr.split('/');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: invalid project format "${projectStr}". Expected "username/slug"`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const [username, slug] = parts;
+
+  // Check if this project is in the user's grants
+  const project = getProjectByKey(ctx, username, slug);
+  if (!project) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: project "${projectStr}" not found in authorized projects`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  // Check permission for this project
+  if (!hasProjectPermission(ctx, username, slug, permission)) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: permission "${permission}" not granted for project "${projectStr}"`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  return { project };
+}
 
 /**
  * Get the worldbuilding Yjs document ID for an element
@@ -212,6 +300,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementId: {
           type: 'string',
           description: 'ID of the element to set the image for',
@@ -221,7 +310,7 @@ registerTool({
           description: 'Base64-encoded image data (with or without data: prefix)',
         },
       },
-      required: ['elementId', 'imageData'],
+      required: ['project', 'elementId', 'imageData'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
@@ -230,6 +319,10 @@ registerTool({
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementId = String(args.elementId ?? '');
     const imageData = String(args.imageData ?? '');
 
@@ -246,8 +339,6 @@ registerTool({
         isError: true,
       };
     }
-
-    const { username, slug } = ctx;
 
     try {
       // Extract raw base64 data
@@ -327,6 +418,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementId: {
           type: 'string',
           description: 'ID of the element to set the image for',
@@ -347,7 +439,7 @@ registerTool({
           description: 'Image size. Default is 1024x1024 (square). Use 832x1248 for portrait.',
         },
       },
-      required: ['elementId', 'prompt'],
+      required: ['project', 'elementId', 'prompt'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
@@ -356,6 +448,10 @@ registerTool({
     db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementId = String(args.elementId ?? '');
     const prompt = String(args.prompt ?? '').trim();
     const provider = args.provider as ImageProviderType | undefined;
@@ -374,8 +470,6 @@ registerTool({
         isError: true,
       };
     }
-
-    const { username, slug } = ctx;
 
     try {
       // Step 1: Generate the image
@@ -496,12 +590,13 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         imageData: {
           type: 'string',
           description: 'Base64-encoded image data (with or without data: prefix)',
         },
       },
-      required: ['imageData'],
+      required: ['project', 'imageData'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
@@ -510,6 +605,10 @@ registerTool({
     db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug, projectId } = result.project;
+
     const imageData = String(args.imageData ?? '');
 
     if (!imageData) {
@@ -518,8 +617,6 @@ registerTool({
         isError: true,
       };
     }
-
-    const { username, slug, projectId } = ctx;
 
     try {
       // Extract raw base64 data
@@ -596,6 +693,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         prompt: {
           type: 'string',
           description:
@@ -607,7 +705,7 @@ registerTool({
           description: 'AI provider to use (defaults to the configured default)',
         },
       },
-      required: ['prompt'],
+      required: ['project', 'prompt'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
@@ -616,6 +714,10 @@ registerTool({
     db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug, projectId } = result.project;
+
     const prompt = String(args.prompt ?? '').trim();
     const provider = args.provider as ImageProviderType | undefined;
 
@@ -625,8 +727,6 @@ registerTool({
         isError: true,
       };
     }
-
-    const { username, slug, projectId } = ctx;
 
     try {
       // Check if image generation is available

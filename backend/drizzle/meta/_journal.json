@@ -120,6 +120,20 @@
       "when": 1769807183827,
       "tag": "0017_lean_pet_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1769989084088,
+      "tag": "0018_add-mcp-oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1770374617436,
+      "tag": "0019_fix-collaborators-pk",
+      "breakpoints": true
     }
   ]
 }

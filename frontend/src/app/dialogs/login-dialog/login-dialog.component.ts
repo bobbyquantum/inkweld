@@ -102,7 +102,16 @@ export class LoginDialogComponent {
         duration: 3000,
       });
       this.dialogRef.close(true); // Close with success result
-      void this.router.navigate(['/']);
+
+      // Check for OAuth return URL (set by authGuard when redirecting from protected routes)
+      const oauthReturnUrl = sessionStorage.getItem('oauth_return_url');
+      if (oauthReturnUrl) {
+        sessionStorage.removeItem('oauth_return_url');
+        // Use navigateByUrl to preserve the full URL with query params
+        void this.router.navigateByUrl(oauthReturnUrl);
+      } else {
+        void this.router.navigate(['/']);
+      }
     } catch (error: unknown) {
       if (error instanceof UserServiceError) {
         // Check for pending approval

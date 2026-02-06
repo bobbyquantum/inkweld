@@ -1,0 +1,173 @@
+<div class="account-settings-container">
+  <mat-toolbar color="primary" class="settings-toolbar">
+    <button mat-icon-button routerLink="/">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="toolbar-title">Account Settings</span>
+  </mat-toolbar>
+
+  <div class="settings-content">
+    <section class="settings-section">
+      <h2>
+        <mat-icon>smart_toy</mat-icon>
+        Connected Apps
+      </h2>
+      <p class="section-description">
+        These are third-party applications that have been granted access to your
+        Inkweld projects. You can revoke access or modify permissions at any
+        time.
+      </p>
+
+      @if (loading()) {
+        <div class="loading-state">
+          <mat-spinner diameter="32"></mat-spinner>
+          <span>Loading connected apps...</span>
+        </div>
+      } @else if (error()) {
+        <mat-card class="error-card">
+          <mat-card-content>
+            <mat-icon>error</mat-icon>
+            <span>{{ error() }}</span>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button (click)="loadSessions()">Try Again</button>
+          </mat-card-actions>
+        </mat-card>
+      } @else if (!hasSessions()) {
+        <mat-card class="empty-card">
+          <mat-card-content>
+            <mat-icon>check_circle</mat-icon>
+            <h3>No connected apps</h3>
+            <p>You haven't authorized any third-party applications yet.</p>
+          </mat-card-content>
+        </mat-card>
+      } @else {
+        <mat-accordion>
+          @for (session of sessions(); track session.id) {
+            <mat-expansion-panel (opened)="loadSessionDetails(session.id)">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  @if (session.client.logoUri) {
+                    <img
+                      [src]="session.client.logoUri"
+                      [alt]="session.client.name"
+                      class="app-logo" />
+                  } @else {
+                    <mat-icon class="app-icon">smart_toy</mat-icon>
+                  }
+                  <span class="app-name">{{ session.client.name }}</span>
+                </mat-panel-title>
+                <mat-panel-description>
+                  <span class="auth-date"
+                    >Authorized {{ formatDate(session.createdAt) }}</span
+                  >
+                  <mat-chip>{{ session.projectCount }} project(s)</mat-chip>
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+
+              <div class="session-content">
+                @if (isLoadingDetails(session.id)) {
+                  <div class="loading-details">
+                    <mat-spinner diameter="24"></mat-spinner>
+                    <span>Loading details...</span>
+                  </div>
+                } @else {
+                  @let details = getSessionDetails(session.id);
+                  @if (details) {
+                    <h4>Project Access</h4>
+                    @if (details.grants.length === 0) {
+                      <p class="no-grants">No projects currently accessible</p>
+                    } @else {
+                      <div class="grants-list">
+                        @for (grant of details.grants; track grant.projectId) {
+                          <div class="grant-item">
+                            <div class="grant-info">
+                              <span class="project-title">{{
+                                grant.projectTitle
+                              }}</span>
+                              <mat-chip-set>
+                                <mat-chip [matTooltip]="'Current access level'">
+                                  {{ getRoleLabel(grant.role) }}
+                                </mat-chip>
+                              </mat-chip-set>
+                            </div>
+                            <div class="grant-actions">
+                              <button
+                                mat-icon-button
+                                [matMenuTriggerFor]="roleMenu"
+                                [disabled]="
+                                  isUpdatingGrant(session.id, grant.projectId)
+                                "
+                                matTooltip="Change access level">
+                                @if (
+                                  isUpdatingGrant(session.id, grant.projectId)
+                                ) {
+                                  <mat-spinner diameter="20"></mat-spinner>
+                                } @else {
+                                  <mat-icon>edit</mat-icon>
+                                }
+                              </button>
+                              <mat-menu #roleMenu="matMenu">
+                                @for (role of roleOptions; track role.value) {
+                                  <button
+                                    mat-menu-item
+                                    (click)="
+                                      updateGrantRole(
+                                        session.id,
+                                        grant,
+                                        role.value
+                                      )
+                                    ">
+                                    {{ role.label }}
+                                  </button>
+                                }
+                              </mat-menu>
+                              <button
+                                mat-icon-button
+                                color="warn"
+                                [disabled]="
+                                  isRevokingGrant(session.id, grant.projectId)
+                                "
+                                (click)="revokeGrant(session.id, grant)"
+                                matTooltip="Revoke project access">
+                                @if (
+                                  isRevokingGrant(session.id, grant.projectId)
+                                ) {
+                                  <mat-spinner diameter="20"></mat-spinner>
+                                } @else {
+                                  <mat-icon>remove_circle</mat-icon>
+                                }
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+                  }
+                }
+              </div>
+
+              <mat-action-row>
+                <button
+                  mat-button
+                  color="warn"
+                  [disabled]="isRevokingSession(session.id)"
+                  (click)="revokeSession(session)">
+                  @if (isRevokingSession(session.id)) {
+                    <mat-spinner
+                      diameter="18"
+                      class="button-spinner"></mat-spinner>
+                    Revoking...
+                  } @else {
+                    <mat-icon>block</mat-icon>
+                    Revoke All Access
+                  }
+                </button>
+              </mat-action-row>
+            </mat-expansion-panel>
+          }
+        </mat-accordion>
+      }
+    </section>
+  </div>
+</div>

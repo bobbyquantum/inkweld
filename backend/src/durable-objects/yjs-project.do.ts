@@ -42,9 +42,12 @@ interface ConnectionInfo {
 }
 
 interface SessionData {
-  userId: string;
+  // Standard JWT fields (OAuth format)
+  sub?: string;
+  // Legacy fields
+  userId?: string;
   username: string;
-  email: string;
+  email?: string;
   exp?: number;
 }
 
@@ -70,6 +73,11 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   private getSecret(): string {
     // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
     const secret = this.env.DATABASE_KEY || this.env.SESSION_SECRET;
+    projDOLog.debug('getSecret check', {
+      hasDatabaseKey: !!this.env.DATABASE_KEY,
+      hasSessionSecret: !!this.env.SESSION_SECRET,
+      secretLength: secret?.length ?? 0,
+    });
     if (!secret || secret.length < 32) {
       throw new Error('DATABASE_KEY must be at least 32 characters');
     }
@@ -119,10 +127,18 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         return null;
       }
 
-      // Check required fields
-      if (!payload.userId || !payload.username) {
+      // Check required fields - support both OAuth (sub) and legacy (userId) formats
+      const userId = payload.sub || payload.userId;
+      if (!userId || !payload.username) {
+        projDOLog.error('JWT missing required fields', {
+          hasUserId: !!userId,
+          hasUsername: !!payload.username,
+        });
         return null;
       }
+
+      // Normalize to userId for internal use
+      payload.userId = userId;
 
       // Check expiration
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
@@ -138,14 +154,304 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   }
 
   /**
+   * Handle incoming requests - routes to WebSocket or HTTP API
+   */
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const upgradeHeader = request.headers.get('Upgrade');
+
+    // Route to WebSocket handler if upgrade requested
+    if (upgradeHeader === 'websocket') {
+      return this.handleWebSocketUpgrade(request, url);
+    }
+
+    // Route to HTTP API handlers
+    return this.handleHttpApi(request, url);
+  }
+
+  /**
+   * HTTP API for MCP and other non-WebSocket access to Yjs documents
+   * Endpoints:
+   * - GET /api/elements?documentId=... - Get elements array
+   * - GET /api/document?documentId=... - Get document Y.Map as JSON
+   * - POST /api/document?documentId=... - Apply updates to document
+   */
+  private async handleHttpApi(request: Request, url: URL): Promise<Response> {
+    const path = url.pathname;
+    const method = request.method;
+    console.log(`[DO-HTTP] ${method} ${path}`);
+
+    // Verify auth token from header (same as WebSocket auth but via header)
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[DO-HTTP] Missing Authorization header');
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const token = authHeader.substring(7);
+    console.log('[DO-HTTP] Verifying token...');
+    const session = await this.verifyToken(token);
+    if (!session) {
+      console.log('[DO-HTTP] Invalid token');
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    console.log('[DO-HTTP] Token verified, user:', session.username);
+
+    // Get documentId from query params
+    let documentId = url.searchParams.get('documentId');
+    if (!documentId) {
+      console.log('[DO-HTTP] Missing documentId parameter');
+      return new Response(JSON.stringify({ error: 'Missing documentId parameter' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Normalize documentId
+    documentId = documentId.replace(/\/+$/, '');
+    console.log('[DO-HTTP] documentId:', documentId);
+
+    // Extract projectId
+    const parts = documentId.split(':');
+    if (parts.length < 2) {
+      console.log('[DO-HTTP] Invalid documentId format');
+      return new Response(JSON.stringify({ error: 'Invalid documentId format' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    this.projectId = `${parts[0]}:${parts[1]}`;
+    console.log('[DO-HTTP] projectId:', this.projectId);
+
+    try {
+      // Route based on path and method
+      if (path === '/api/elements' && method === 'GET') {
+        console.log('[DO-HTTP] Routing to handleGetElements');
+        return this.handleGetElements(documentId);
+      } else if (path === '/api/document' && method === 'GET') {
+        return this.handleGetDocument(documentId);
+      } else if (path === '/api/document' && method === 'POST') {
+        return this.handleUpdateDocument(request, documentId);
+      } else {
+        return new Response(JSON.stringify({ error: 'Not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } catch (error) {
+      projDOLog.error('HTTP API error:', error);
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  /**
+   * GET /api/elements - Return elements array as JSON
+   */
+  private async handleGetElements(documentId: string): Promise<Response> {
+    console.log('[DO-HTTP] handleGetElements - getting document...');
+    const sharedDoc = await this.getOrCreateDocument(documentId);
+    console.log('[DO-HTTP] handleGetElements - got document, getting elements array...');
+    // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
+    const elementsArray = sharedDoc.getArray('elements');
+    console.log('[DO-HTTP] handleGetElements - got elements array, length:', elementsArray.length);
+
+    const elements: Record<string, unknown>[] = [];
+    elementsArray.forEach((value) => {
+      if (value && typeof value === 'object') {
+        elements.push(this.yValueToJson(value));
+      }
+    });
+
+    // Sort by order
+    elements.sort((a, b) => ((a.order as number) ?? 0) - ((b.order as number) ?? 0));
+
+    return new Response(JSON.stringify({ elements }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /**
+   * GET /api/document - Return document content as JSON
+   */
+  private async handleGetDocument(documentId: string): Promise<Response> {
+    const sharedDoc = await this.getOrCreateDocument(documentId);
+
+    // Convert all shared types to JSON
+    const data: Record<string, unknown> = {};
+
+    // Get common Y.Maps - worldbuilding uses these
+    // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
+    const rootMap = sharedDoc.getMap('root');
+    if (rootMap.size > 0) {
+      data.root = this.yMapToJson(rootMap);
+    }
+
+    // Also check for identity map (used by worldbuilding)
+    const identityMap = sharedDoc.getMap('identity');
+    if (identityMap.size > 0) {
+      data.identity = this.yMapToJson(identityMap);
+    }
+
+    // Get elements array if present
+    const elementsArray = sharedDoc.getArray('elements');
+    if (elementsArray.length > 0) {
+      const elements: Record<string, unknown>[] = [];
+      elementsArray.forEach((value) => {
+        if (value && typeof value === 'object') {
+          elements.push(this.yValueToJson(value));
+        }
+      });
+      data.elements = elements;
+    }
+
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /**
+   * POST /api/document - Apply updates to document
+   * Body: { updates: { path: string, value: any }[] } or { yUpdate: base64 }
+   */
+  private async handleUpdateDocument(request: Request, documentId: string): Promise<Response> {
+    const sharedDoc = await this.getOrCreateDocument(documentId);
+    const body = (await request.json()) as {
+      updates?: Array<{ path: string; value: unknown }>;
+      yUpdate?: string;
+    };
+
+    if (body.yUpdate) {
+      // Apply raw Yjs update (base64 encoded)
+      const update = Uint8Array.from(atob(body.yUpdate), (c) => c.charCodeAt(0));
+      sharedDoc.update(update);
+    } else if (body.updates && body.updates.length > 0) {
+      // Apply structured updates
+      const updates = body.updates;
+      // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
+      sharedDoc.transact(() => {
+        for (const update of updates) {
+          this.applyUpdate(sharedDoc, update.path, update.value);
+        }
+      });
+    } else {
+      return new Response(JSON.stringify({ error: 'Missing updates or yUpdate in body' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /**
+   * Apply a structured update to a path in the document
+   */
+
+  private applyUpdate(doc: any, path: string, value: unknown): void {
+    const parts = path.split('.');
+    if (parts.length === 0) return;
+
+    // Get or create the root container
+    const rootKey = parts[0];
+    let container = doc.getMap(rootKey);
+
+    // Navigate to the target, creating intermediate maps as needed
+    for (let i = 1; i < parts.length - 1; i++) {
+      const key = parts[i];
+      if (!container.has(key)) {
+        container.set(key, new Map());
+      }
+      container = container.get(key);
+    }
+
+    // Set the final value
+    const finalKey = parts[parts.length - 1];
+    if (parts.length > 1) {
+      container.set(finalKey, value);
+    } else {
+      // Root level - value should be an object to merge
+      if (typeof value === 'object' && value !== null) {
+        for (const [k, v] of Object.entries(value)) {
+          container.set(k, v);
+        }
+      }
+    }
+  }
+
+  /**
+   * Convert Y.Map to plain JSON
+   */
+
+  private yMapToJson(yMap: any): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    yMap.forEach((value: unknown, key: string) => {
+      result[key] = this.yValueToJson(value);
+    });
+    return result;
+  }
+
+  /**
+   * Convert any Y value to plain JSON
+   */
+  private yValueToJson(value: unknown): unknown {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    // Check for Y.Map
+    if (typeof value === 'object' && value !== null && 'forEach' in value && '_map' in value) {
+      return this.yMapToJson(value);
+    }
+
+    // Check for Y.Array
+    if (typeof value === 'object' && value !== null && 'forEach' in value && '_start' in value) {
+      const arr: unknown[] = [];
+      (value as { forEach: (fn: (v: unknown) => void) => void }).forEach((v) => {
+        arr.push(this.yValueToJson(v));
+      });
+      return arr;
+    }
+
+    // Plain object
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      const result: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = this.yValueToJson(v);
+      }
+      return result;
+    }
+
+    // Array
+    if (Array.isArray(value)) {
+      return value.map((v) => this.yValueToJson(v));
+    }
+
+    // Primitive
+    return value;
+  }
+
+  /**
    * Handle WebSocket upgrade requests
    * Query params: ?documentId=username:slug:docId (or :elements)
    *
    * NOTE: No authentication here - auth happens over the WebSocket connection
    * Client must send JWT token as first text message after connecting
    */
-  async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
+  private async handleWebSocketUpgrade(request: Request, url: URL): Promise<Response> {
     let documentId = url.searchParams.get('documentId');
 
     if (!documentId) {
@@ -161,12 +467,6 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       return new Response('Invalid documentId format', { status: 400 });
     }
     this.projectId = `${parts[0]}:${parts[1]}`;
-
-    // Upgrade to WebSocket
-    const upgradeHeader = request.headers.get('Upgrade');
-    if (!upgradeHeader || upgradeHeader !== 'websocket') {
-      return new Response('Expected Upgrade: websocket', { status: 426 });
-    }
 
     const pair = new WebSocketPair();
     const [client, server] = pair;
@@ -198,14 +498,18 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    * Get or create a document with its own storage namespace
    */
   private async getOrCreateDocument(documentId: string): Promise<WSSharedDoc> {
+    console.log('[DO-HTTP] getOrCreateDocument - checking cache for:', documentId);
     let sharedDoc = this.documents.get(documentId);
 
     if (!sharedDoc) {
+      console.log('[DO-HTTP] getOrCreateDocument - not in cache, creating new...');
       // Create new shared doc with persistence
       sharedDoc = new WSSharedDoc();
+      console.log('[DO-HTTP] getOrCreateDocument - loading from storage...');
 
       // Set up storage-backed persistence for this specific document
       await this.loadDocumentFromStorage(documentId, sharedDoc);
+      console.log('[DO-HTTP] getOrCreateDocument - loaded from storage');
 
       // Listen to updates and persist them
       sharedDoc.notify((update: Uint8Array) => {
@@ -442,11 +746,16 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   private async loadDocumentFromStorage(documentId: string, sharedDoc: WSSharedDoc) {
     try {
       const storagePrefix = `doc:${documentId}:`;
+      console.log(
+        '[DO-HTTP] loadDocumentFromStorage - listing storage with prefix:',
+        storagePrefix
+      );
 
       // Use y-durableobjects storage transaction approach
       const updates = await this.state.storage.list<number[]>({
         prefix: `${storagePrefix}update:`,
       });
+      console.log('[DO-HTTP] loadDocumentFromStorage - found', updates.size, 'updates');
 
       if (updates.size > 0) {
         projDOLog.debug(`📦 Loading ${updates.size} persisted updates for ${documentId}`);

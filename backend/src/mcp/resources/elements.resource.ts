@@ -2,23 +2,51 @@
  * MCP Resources: Elements
  *
  * Provides access to project elements (tree structure).
+ * Supports multi-project access for OAuth authentication.
  */
 
 import type { McpContext, McpResource, McpResourceContents } from '../mcp.types';
+import { getAllProjects, hasProjectPermission } from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
+import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { Element } from '../../schemas/element.schemas';
 import { logger } from '../../services/logger.service';
 
 const mcpResourceLog = logger.child('MCP-Resources');
 
 /**
+ * Check if running on Cloudflare Workers (has DO bindings)
+ */
+function isCloudflareWorkers(ctx: McpContext): boolean {
+  return !!ctx.env?.YJS_PROJECTS;
+}
+
+/**
+ * Get the appropriate Yjs service based on runtime
+ */
+function getYjsService(ctx: McpContext): YjsWorkerService | typeof yjsService {
+  if (isCloudflareWorkers(ctx) && ctx.authToken && ctx.env?.YJS_PROJECTS) {
+    return new YjsWorkerService({
+      env: { YJS_PROJECTS: ctx.env.YJS_PROJECTS },
+      authToken: ctx.authToken,
+    });
+  }
+  return yjsService;
+}
+
+/**
  * Read elements from Yjs document
  */
-async function readElementsFromYjs(username: string, slug: string): Promise<Element[]> {
+async function readElementsFromYjs(
+  ctx: McpContext,
+  username: string,
+  slug: string
+): Promise<Element[]> {
   try {
-    return await yjsService.getElements(username, slug);
+    const service = getYjsService(ctx);
+    return await service.getElements(username, slug);
   } catch (err) {
     mcpResourceLog.error('Error reading elements from Yjs', err);
     return [];
@@ -30,37 +58,27 @@ async function readElementsFromYjs(username: string, slug: string): Promise<Elem
  */
 const elementsResourceHandler = {
   async getResources(ctx: McpContext): Promise<McpResource[]> {
-    // Check permission
-    if (!ctx.permissions.includes(MCP_PERMISSIONS.READ_ELEMENTS)) {
-      return [];
-    }
-
     const resources: McpResource[] = [];
-    const { username, slug } = ctx;
+    const projects = getAllProjects(ctx);
 
-    // Add elements listing resource
-    resources.push({
-      uri: `inkweld://project/${username}/${slug}/elements`,
-      name: 'Project Elements',
-      title: 'Project Element Tree',
-      description:
-        'Hierarchical list of all project elements (documents, folders, worldbuilding entries)',
-      mimeType: 'application/json',
-    });
+    // Add resources for each project the user has read:elements permission for
+    for (const project of projects) {
+      if (!project.permissions.includes(MCP_PERMISSIONS.READ_ELEMENTS)) {
+        continue;
+      }
 
-    // Add individual element resources
-    const elements = await readElementsFromYjs(username, slug);
-    for (const element of elements) {
+      const { username, slug } = project;
+
+      // Add elements listing resource
+      // Note: Individual elements are discovered via resources/read on this URI
+      // We don't enumerate them here to avoid loading Yjs documents
       resources.push({
-        uri: `inkweld://project/${username}/${slug}/element/${element.id}`,
-        name: element.name,
-        title: element.name,
-        description: `${element.type} element`,
+        uri: `inkweld://project/${username}/${slug}/elements`,
+        name: `Elements (${username}/${slug})`,
+        title: `Project Element Tree - ${username}/${slug}`,
+        description:
+          'Hierarchical list of all project elements (documents, folders, worldbuilding entries). Read this resource to discover individual elements.',
         mimeType: 'application/json',
-        annotations: {
-          audience: ['assistant'],
-          priority: 0.5,
-        },
       });
     }
 
@@ -72,17 +90,24 @@ const elementsResourceHandler = {
     _db: unknown,
     uri: string
   ): Promise<McpResourceContents | null> {
-    // Check permission
-    if (!ctx.permissions.includes(MCP_PERMISSIONS.READ_ELEMENTS)) {
+    // Parse project from URI: inkweld://project/{username}/{slug}/elements or /element/{id}
+    const projectMatch = uri.match(
+      /^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(elements|element\/.+)$/
+    );
+    if (!projectMatch) {
       return null;
     }
 
-    const { username, slug } = ctx;
-    const baseUri = `inkweld://project/${username}/${slug}`;
+    const [, username, slug, path] = projectMatch;
+
+    // Check permission for this specific project
+    if (!hasProjectPermission(ctx, username, slug, MCP_PERMISSIONS.READ_ELEMENTS)) {
+      return null;
+    }
 
     // Handle elements listing
-    if (uri === `${baseUri}/elements`) {
-      const elements = await readElementsFromYjs(username, slug);
+    if (path === 'elements') {
+      const elements = await readElementsFromYjs(ctx, username, slug);
 
       return {
         uri,
@@ -92,12 +117,10 @@ const elementsResourceHandler = {
     }
 
     // Handle individual element
-    const elementMatch = uri.match(
-      new RegExp(`^${baseUri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/element/(.+)$`)
-    );
+    const elementMatch = path.match(/^element\/(.+)$/);
     if (elementMatch) {
       const elementId = elementMatch[1];
-      const elements = await readElementsFromYjs(username, slug);
+      const elements = await readElementsFromYjs(ctx, username, slug);
       const element = elements.find((e) => e.id === elementId);
 
       if (!element) {

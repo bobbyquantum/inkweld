@@ -23,7 +23,13 @@ export interface Collaborator {
     invitedByUsername: string | null;
     invitedAt: number;
     acceptedAt: number | null;
+    collaboratorType?: CollaboratorCollaboratorType;
+    clientName: string | null;
 }
+export enum CollaboratorCollaboratorType {
+    User = 'user',
+    OauthApp = 'oauth_app'
+};
 
 
 

@@ -6,6 +6,7 @@
  */
 
 import type { McpAccessKey, McpPermission } from '../db/schema/mcp-access-keys';
+import type { DurableObjectNamespace } from '../types/cloudflare';
 
 // ============================================
 // JSON-RPC Types
@@ -218,7 +219,166 @@ export interface McpPromptResult {
 // MCP Context (for handlers)
 // ============================================
 
-export interface McpContext {
+/**
+ * Base context fields shared by all auth types
+ */
+interface McpContextBase {
+  /** Client IP address */
+  clientIp?: string;
+  /** Whether the session is initialized */
+  initialized: boolean;
+  /** Client info from initialization */
+  clientInfo?: McpClientInfo;
+  /** Auth token for passing to Durable Objects */
+  authToken?: string;
+  /** Environment bindings (Cloudflare Workers only) */
+  env?: {
+    YJS_PROJECTS?: DurableObjectNamespace;
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Context for legacy API key authentication (single project)
+ */
+export interface McpLegacyContext extends McpContextBase {
+  /** Auth type discriminator */
+  type: 'legacy';
+  /** Validated API key */
+  key: McpAccessKey;
+  /** Project ID the key grants access to */
+  projectId: string;
+  /** Parsed permissions from the key */
+  permissions: McpPermission[];
+  /** Project owner username */
+  username: string;
+  /** Project slug */
+  slug: string;
+}
+
+/**
+ * OAuth project grant with permissions
+ */
+export interface McpOAuthGrant {
+  /** Project ID */
+  projectId: string;
+  /** Project slug */
+  slug: string;
+  /** Project owner username */
+  username: string;
+  /** Permissions for this project */
+  permissions: string[];
+}
+
+/**
+ * Context for OAuth JWT authentication (multi-project)
+ */
+export interface McpOAuthContext extends McpContextBase {
+  /** Auth type discriminator */
+  type: 'oauth';
+  /** User ID from JWT */
+  userId: string;
+  /** OAuth session ID */
+  sessionId: string;
+  /** Client ID from JWT */
+  clientId: string;
+  /** Username from JWT */
+  username: string;
+  /** Project grants with permissions */
+  grants: McpOAuthGrant[];
+}
+
+/**
+ * Unified MCP context type (discriminated union)
+ */
+export type McpContext = McpLegacyContext | McpOAuthContext;
+
+/**
+ * Active project context - used by handlers that operate on a single project
+ * For legacy auth: uses the single project from the context
+ * For OAuth auth: uses the first grant (handlers that need multi-project should check context.type)
+ */
+export interface ActiveProjectContext {
+  projectId: string;
+  username: string;
+  slug: string;
+  permissions: string[];
+}
+
+/**
+ * Get the active project context from an MCP context
+ * For legacy auth, returns the single project
+ * For OAuth auth, returns the first grant (or null if no grants)
+ *
+ * Note: Handlers that need multi-project access should check context.type === 'oauth'
+ * and iterate through context.grants
+ */
+export function getActiveProject(ctx: McpContext): ActiveProjectContext | null {
+  if (ctx.type === 'legacy') {
+    return {
+      projectId: ctx.projectId,
+      username: ctx.username,
+      slug: ctx.slug,
+      permissions: ctx.permissions,
+    };
+  } else {
+    // OAuth: return first grant or null
+    const firstGrant = ctx.grants[0];
+    if (!firstGrant) return null;
+    return {
+      projectId: firstGrant.projectId,
+      username: firstGrant.username,
+      slug: firstGrant.slug,
+      permissions: firstGrant.permissions,
+    };
+  }
+}
+
+/**
+ * Check if context has a specific permission (for the active project)
+ */
+export function hasPermission(ctx: McpContext, ...permissions: string[]): boolean {
+  if (ctx.type === 'legacy') {
+    return permissions.some((p) => ctx.permissions.includes(p as never));
+  } else {
+    // OAuth: check first grant
+    const firstGrant = ctx.grants[0];
+    if (!firstGrant) return false;
+    return permissions.some((p) => firstGrant.permissions.includes(p));
+  }
+}
+
+/**
+ * Get project-specific context from an MCP context for a specific project ID
+ * For legacy auth: returns context only if projectId matches
+ * For OAuth auth: finds the matching grant
+ */
+export function getProjectById(ctx: McpContext, projectId: string): ActiveProjectContext | null {
+  if (ctx.type === 'legacy') {
+    if (ctx.projectId !== projectId) return null;
+    return {
+      projectId: ctx.projectId,
+      username: ctx.username,
+      slug: ctx.slug,
+      permissions: ctx.permissions,
+    };
+  } else {
+    const grant = ctx.grants.find((g) => g.projectId === projectId);
+    if (!grant) return null;
+    return {
+      projectId: grant.projectId,
+      username: grant.username,
+      slug: grant.slug,
+      permissions: grant.permissions,
+    };
+  }
+}
+
+/**
+ * Legacy context type for backward compatibility
+ * @deprecated Use McpContext with type discriminator instead
+ */
+export interface LegacyMcpContext {
   /** Validated API key */
   key: McpAccessKey;
   /** Project ID the key grants access to */
@@ -240,6 +400,77 @@ export interface McpContext {
 // ============================================
 // Helper Functions
 // ============================================
+
+/**
+ * Get all projects the context has access to
+ * For legacy auth: returns single project as array
+ * For OAuth auth: returns all grants as array
+ */
+export function getAllProjects(ctx: McpContext): ActiveProjectContext[] {
+  if (ctx.type === 'legacy') {
+    return [
+      {
+        projectId: ctx.projectId,
+        username: ctx.username,
+        slug: ctx.slug,
+        permissions: ctx.permissions,
+      },
+    ];
+  } else {
+    return ctx.grants.map((grant) => ({
+      projectId: grant.projectId,
+      username: grant.username,
+      slug: grant.slug,
+      permissions: grant.permissions,
+    }));
+  }
+}
+
+/**
+ * Get project context by username and slug
+ * For legacy auth: returns context only if username/slug matches
+ * For OAuth auth: finds the matching grant
+ */
+export function getProjectByKey(
+  ctx: McpContext,
+  username: string,
+  slug: string
+): ActiveProjectContext | null {
+  if (ctx.type === 'legacy') {
+    if (ctx.username !== username || ctx.slug !== slug) return null;
+    return {
+      projectId: ctx.projectId,
+      username: ctx.username,
+      slug: ctx.slug,
+      permissions: ctx.permissions,
+    };
+  } else {
+    const grant = ctx.grants.find((g) => g.username === username && g.slug === slug);
+    if (!grant) return null;
+    return {
+      projectId: grant.projectId,
+      username: grant.username,
+      slug: grant.slug,
+      permissions: grant.permissions,
+    };
+  }
+}
+
+/**
+ * Check if context has a specific permission for a given project
+ * For legacy auth: checks against the single project
+ * For OAuth auth: checks against the grants for the specified project
+ */
+export function hasProjectPermission(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  ...permissions: string[]
+): boolean {
+  const project = getProjectByKey(ctx, username, slug);
+  if (!project) return false;
+  return permissions.some((p) => project.permissions.includes(p));
+}
 
 /**
  * Create a JSON-RPC error response

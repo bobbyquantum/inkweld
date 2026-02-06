@@ -21,13 +21,12 @@ import {
   createSuccessResponse,
   parseJsonRpcRequest,
   JSON_RPC_ERRORS,
+  hasPermission,
 } from './mcp.types';
-import { requirePermission } from './mcp.auth';
 import { logger } from '../services/logger.service';
 
 const mcpLog = logger.child('MCP');
 import { MCP_PERMISSIONS } from '../db/schema/mcp-access-keys';
-import { projectService } from '../services/project.service';
 
 // Protocol version we support
 const PROTOCOL_VERSION = '2025-06-18';
@@ -142,6 +141,8 @@ async function handleResourcesList(c: Context<AppContext>): Promise<{ resources:
   const mcpContext = c.get('mcpContext');
   const db = c.get('db');
 
+  mcpLog.info('[resources/list] Starting...');
+
   if (!mcpContext) {
     throw new Error('MCP context not available');
   }
@@ -149,25 +150,16 @@ async function handleResourcesList(c: Context<AppContext>): Promise<{ resources:
   const allResources: McpResource[] = [];
 
   // Collect resources from all handlers
+  let handlerIndex = 0;
   for (const handler of resourceHandlers) {
+    mcpLog.info(`[resources/list] Handler ${handlerIndex} starting...`);
     const resources = await handler.getResources(mcpContext, db);
+    mcpLog.info(`[resources/list] Handler ${handlerIndex} returned ${resources.length} resources`);
     allResources.push(...resources);
+    handlerIndex++;
   }
 
-  // Add built-in project resource
-  if (requirePermission(c, MCP_PERMISSIONS.READ_PROJECT)) {
-    const project = await projectService.findById(db, mcpContext.projectId);
-    if (project) {
-      allResources.unshift({
-        uri: `inkweld://project/${mcpContext.username}/${mcpContext.slug}`,
-        name: project.title,
-        title: project.title,
-        description: project.description ?? 'Project metadata',
-        mimeType: 'application/json',
-      });
-    }
-  }
-
+  mcpLog.info(`[resources/list] Done, total ${allResources.length} resources`);
   return { resources: allResources };
 }
 
@@ -186,42 +178,6 @@ async function handleResourcesRead(
   }
 
   const { uri } = params;
-
-  // Handle built-in project resource
-  if (uri === `inkweld://project/${mcpContext.username}/${mcpContext.slug}`) {
-    if (!requirePermission(c, MCP_PERMISSIONS.READ_PROJECT)) {
-      throw {
-        code: JSON_RPC_ERRORS.INVALID_REQUEST,
-        message: 'Permission denied: read:project required',
-      };
-    }
-
-    const project = await projectService.findById(db, mcpContext.projectId);
-    if (!project) {
-      throw { code: JSON_RPC_ERRORS.RESOURCE_NOT_FOUND, message: 'Project not found' };
-    }
-
-    return {
-      contents: [
-        {
-          uri,
-          mimeType: 'application/json',
-          text: JSON.stringify(
-            {
-              id: project.id,
-              title: project.title,
-              slug: project.slug,
-              description: project.description,
-              createdAt: new Date(project.createdDate).toISOString(),
-              updatedAt: new Date(project.updatedDate).toISOString(),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
 
   // Try resource handlers
   for (const handler of resourceHandlers) {
@@ -249,11 +205,9 @@ async function handleToolsList(c: Context<AppContext>): Promise<{ tools: McpTool
 
   for (const handler of toolRegistry.values()) {
     // Check if user has any of the required permissions
-    const hasPermission = handler.requiredPermissions.some((p) =>
-      mcpContext.permissions.includes(p as never)
-    );
+    const hasToolPermission = handler.requiredPermissions.some((p) => hasPermission(mcpContext, p));
 
-    if (hasPermission || handler.requiredPermissions.length === 0) {
+    if (hasToolPermission || handler.requiredPermissions.length === 0) {
       tools.push(handler.tool);
     }
   }
@@ -283,11 +237,9 @@ async function handleToolsCall(
   }
 
   // Check permissions
-  const hasPermission = handler.requiredPermissions.some((p) =>
-    mcpContext.permissions.includes(p as never)
-  );
+  const hasToolPermission = handler.requiredPermissions.some((p) => hasPermission(mcpContext, p));
 
-  if (!hasPermission && handler.requiredPermissions.length > 0) {
+  if (!hasToolPermission && handler.requiredPermissions.length > 0) {
     throw {
       code: JSON_RPC_ERRORS.INVALID_REQUEST,
       message: `Permission denied. Required: ${handler.requiredPermissions.join(' or ')}`,
@@ -333,14 +285,48 @@ async function handlePromptsGet(
 // ============================================
 
 /**
- * Main MCP JSON-RPC handler
+ * Generate a secure session ID for MCP Streamable HTTP transport
+ */
+function generateSessionId(): string {
+  // Use crypto-safe random for session ID
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Main MCP JSON-RPC handler for Streamable HTTP transport
+ *
+ * Implements MCP protocol version 2025-06-18:
+ * - Returns Mcp-Session-Id header on initialize response
+ * - Returns 202 Accepted for notifications
+ * - Validates MCP-Protocol-Version header when present
  */
 export async function handleMcpRequest(c: Context<AppContext>): Promise<Response> {
   let requestId: string | number | undefined = undefined;
+  const startTime = Date.now();
+
+  mcpLog.info('[HANDLER] Request received');
 
   try {
+    // Check MCP-Protocol-Version header if present
+    const clientProtocolVersion = c.req.header('MCP-Protocol-Version');
+    if (clientProtocolVersion && clientProtocolVersion !== PROTOCOL_VERSION) {
+      // Log but don't reject - be lenient for compatibility
+      mcpLog.debug(
+        `Client protocol version ${clientProtocolVersion} differs from ${PROTOCOL_VERSION}`
+      );
+    }
+
+    mcpLog.info('[HANDLER] Parsing body...');
+
     // Parse request body
     const body = await c.req.json().catch(() => null);
+
+    mcpLog.info(`[HANDLER] Body parsed, method: ${(body as Record<string, unknown>)?.method}`);
+
     const request = parseJsonRpcRequest(body);
 
     if (!request) {
@@ -352,22 +338,26 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     requestId = request.id;
     const { method, params = {} } = request;
 
+    mcpLog.info(`[START] ${method} (id: ${requestId})`);
+
     // Check if this is a notification (no id = no response expected)
     const isNotification = requestId === undefined;
 
     // Route to appropriate handler
     let result: unknown;
+    let isInitialize = false;
 
     switch (method) {
       case 'initialize':
         result = await handleInitialize(c, params as unknown as McpInitializeParams);
+        isInitialize = true;
         break;
 
       case 'initialized':
       case 'notifications/initialized':
-        // Client acknowledges initialization - no response needed for notifications
+        // Client acknowledges initialization - return 202 Accepted for notifications
         if (isNotification) {
-          return new Response(null, { status: 204 });
+          return new Response(null, { status: 202 });
         }
         result = {};
         break;
@@ -412,6 +402,7 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
         break;
 
       default:
+        mcpLog.info(`[END] unknown method (${Date.now() - startTime}ms)`);
         return c.json(
           createErrorResponse(
             requestId ?? 0,
@@ -421,8 +412,26 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
         );
     }
 
-    return c.json(createSuccessResponse(requestId ?? 0, result));
+    const elapsed = Date.now() - startTime;
+    mcpLog.info(`[END] ${method} (${elapsed}ms)`);
+
+    // Build response with appropriate headers
+    const responseBody = createSuccessResponse(requestId ?? 0, result);
+
+    // For initialize, return Mcp-Session-Id header
+    if (isInitialize) {
+      const sessionId = generateSessionId();
+      mcpLog.debug(`MCP session initialized: ${sessionId}`);
+      return c.json(responseBody, 200, {
+        'Mcp-Session-Id': sessionId,
+      });
+    }
+
+    return c.json(responseBody);
   } catch (err) {
+    const elapsed = Date.now() - startTime;
+    mcpLog.error('MCP', `[ERROR] (${elapsed}ms)`, { error: err });
+
     // Handle structured errors
     if (err && typeof err === 'object' && 'code' in err && 'message' in err) {
       const error = err as { code: number; message: string };
@@ -430,7 +439,6 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     }
 
     // Handle unexpected errors
-    mcpLog.error('MCP handler error', err);
     return c.json(
       createErrorResponse(
         requestId ?? 0,

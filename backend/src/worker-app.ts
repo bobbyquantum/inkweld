@@ -34,9 +34,37 @@ app.use('*', secureHeaders());
 // Database middleware - attaches D1 database to context
 app.use('*', d1DatabaseMiddleware);
 
+// OAuth/MCP discovery endpoints need permissive CORS since MCP clients (like Claude.ai)
+// need to fetch them from any origin. These endpoints are public metadata.
+app.use('/.well-known/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
+// OAuth endpoints need permissive CORS for MCP clients from any origin
+// Use wildcard to ensure all OAuth paths are covered
+app.use('/oauth/*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'OPTIONS'] }));
+// Also allow /register alias (some MCP clients use this)
+app.use('/register', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'] }));
+app.use(
+  '/api/v1/ai/mcp',
+  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
+);
+app.use(
+  '/api/v1/ai/mcp/*',
+  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
+);
+
 // CORS configuration - reads ALLOWED_ORIGINS from wrangler.toml env bindings
 // In Workers, process.env is not available at runtime, so we read from c.env
 app.use('*', async (c, next) => {
+  // Skip if already handled by permissive CORS above
+  const path = c.req.path;
+  if (
+    path.startsWith('/.well-known/') ||
+    path.startsWith('/oauth/') ||
+    path === '/register' ||
+    path.startsWith('/api/v1/ai/mcp')
+  ) {
+    return next();
+  }
+
   // Get allowed origins from wrangler.toml bindings, fallback to static config
   const envOrigins = c.env?.ALLOWED_ORIGINS;
   const allowedOrigins = envOrigins ? envOrigins.split(',') : config.allowedOrigins;
