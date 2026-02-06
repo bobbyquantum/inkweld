@@ -320,6 +320,33 @@ describe('User Service', () => {
     });
   });
 
+  describe('countUsers', () => {
+    it('should count total users in database', async () => {
+      // Clean up first
+      await db.delete(users).where(eq(users.username, 'counttest'));
+
+      // Get initial count
+      const initialCount = await userService.countUsers(db);
+
+      // Add a user
+      await db.insert(users).values({
+        id: crypto.randomUUID(),
+        username: 'counttest',
+        email: 'counttest@example.com',
+        password: 'hashedpass',
+        approved: true,
+        enabled: true,
+      });
+
+      // Count should have increased by 1
+      const newCount = await userService.countUsers(db);
+      expect(newCount).toBe(initialCount + 1);
+
+      // Clean up
+      await db.delete(users).where(eq(users.username, 'counttest'));
+    });
+  });
+
   describe('canLogin', () => {
     it('should return true for enabled and approved user', () => {
       const user = {

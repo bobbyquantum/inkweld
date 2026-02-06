@@ -134,8 +134,9 @@ export const config = {
   // Set to 'false' to disable frontend serving (API-only mode)
   serveFrontend: process.env.SERVE_FRONTEND !== 'false',
 
-  // User registration
-  userApprovalRequired: process.env.USER_APPROVAL_REQUIRED !== 'false',
+  // User registration - defaults to false (no approval required) for easier setup
+  // Set to 'true' to require admin approval for new users
+  userApprovalRequired: process.env.USER_APPROVAL_REQUIRED === 'true',
 
   // GitHub OAuth
   github: {

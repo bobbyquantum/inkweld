@@ -281,6 +281,14 @@ class UserService {
   }
 
   /**
+   * Count total users in the database
+   * Used to determine if this is the first user (for first-user-is-admin feature)
+   */
+  async countUsers(db: DatabaseInstance): Promise<number> {
+    return db.$count(users);
+  }
+
+  /**
    * Check if user is approved and enabled
    */
   canLogin(user: User): boolean {

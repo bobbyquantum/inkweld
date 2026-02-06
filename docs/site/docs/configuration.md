@@ -204,13 +204,13 @@ DATA_PATH=/var/lib/inkweld/data
 
 ### USER_APPROVAL_REQUIRED
 
-**Default:** `true` | Boolean
+**Default:** `false` | Boolean
 
 When enabled, new user registrations require admin approval before they can access the platform.
 
 ```bash
 USER_APPROVAL_REQUIRED=true     # Recommended for production
-USER_APPROVAL_REQUIRED=false    # Open registration
+USER_APPROVAL_REQUIRED=false    # Open registration (default)
 ```
 
 ### COOKIE_DOMAIN
@@ -467,7 +467,7 @@ wrangler secret put SESSION_SECRET --env production
 | `DB_TYPE` | `sqlite` | Database type (`sqlite` or `d1`) |
 | `DB_PATH` | `./sqlite.db` | SQLite file path |
 | `DATA_PATH` | `./data` | Data storage directory |
-| `USER_APPROVAL_REQUIRED` | `true` | Require admin approval for new users |
+| `USER_APPROVAL_REQUIRED` | `false` | Require admin approval for new users |
 | `GITHUB_ENABLED` | `false` | Enable GitHub OAuth |
 | `GITHUB_CLIENT_ID` | - | GitHub OAuth client ID |
 | `GITHUB_CLIENT_SECRET` | - | GitHub OAuth client secret |
