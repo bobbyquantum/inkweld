@@ -16,3 +16,5 @@ frontend/wrangler.toml
 # TypeScript build info
 *.tsbuildinfo
 .actrc
+.vscode
+.cscode
