@@ -11,6 +11,7 @@
 
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
 import type { AppContext } from '../types/context';
 import { requireAuth } from '../middleware/auth';
 import { mcpOAuthService, OAuthError, type CloudflareEnv } from '../services/mcp-oauth.service';
@@ -408,7 +409,7 @@ const registerClientAliasRoute = createRoute({
 });
 
 // Shared handler for client registration (used by both /oauth/register and /register)
-const registerClientHandler = async (c: any) => {
+const registerClientHandler = async (c: Context<AppContext>) => {
   const db = c.get('db');
   const body = c.req.valid('json');
 
