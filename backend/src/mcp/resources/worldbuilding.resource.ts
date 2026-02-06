@@ -236,7 +236,7 @@ const worldbuildingResourceHandler = {
       return null;
     }
 
-    const baseUri = `inkweld://project/${username}/${slug}`;
+    const _baseUri = `inkweld://project/${username}/${slug}`;
 
     // Handle worldbuilding listing
     if (path === 'worldbuilding') {

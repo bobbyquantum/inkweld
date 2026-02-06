@@ -111,7 +111,11 @@ export function requestLogger(options: RequestLoggerOptions = {}): MiddlewareHan
 
     // Log request start
     // OAuth/MCP routes log at INFO level for easier debugging of external clients
-    const isOAuthRoute = path.startsWith('/oauth') || path.startsWith('/.well-known') || path.startsWith('/register') || path.startsWith('/api/v1/ai/mcp');
+    const isOAuthRoute =
+      path.startsWith('/oauth') ||
+      path.startsWith('/.well-known') ||
+      path.startsWith('/register') ||
+      path.startsWith('/api/v1/ai/mcp');
     if (!skipLogging) {
       const logFn = isOAuthRoute ? log.info.bind(log) : log.debug.bind(log);
       logFn(

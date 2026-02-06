@@ -26,7 +26,6 @@ import {
 import { logger } from '../services/logger.service';
 
 const mcpLog = logger.child('MCP');
-import { MCP_PERMISSIONS } from '../db/schema/mcp-access-keys';
 
 // Protocol version we support
 const PROTOCOL_VERSION = '2025-06-18';
