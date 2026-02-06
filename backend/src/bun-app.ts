@@ -451,7 +451,11 @@ function sanitizeSpaPath(pathname: string): string {
 }
 
 function shouldBypassSpa(pathname: string, prefixes: string[]): boolean {
-  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  // Normalize path by collapsing multiple slashes (e.g., "//api/v1/health" -> "/api/v1/health")
+  const normalizedPath = pathname.replace(/\/+/g, '/');
+  return prefixes.some(
+    (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
+  );
 }
 
 function createEmbeddedSpaHandler(
