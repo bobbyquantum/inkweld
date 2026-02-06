@@ -38,6 +38,8 @@ https://your-domain.com # Production
 
 ## Authentication
 
+### Session Cookies (Browser)
+
 Most endpoints require authentication via session cookies:
 
 ```bash
@@ -51,6 +53,20 @@ curl -X POST http://localhost:8333/api/v1/auth/login \
 curl http://localhost:8333/api/v1/users/me \
   -b cookies.txt
 ```
+
+### OAuth 2.1 Bearer Tokens (MCP / AI Clients)
+
+The MCP endpoint (`/api/v1/ai/mcp`) uses OAuth 2.1 with PKCE for authorization. AI assistants discover the OAuth server via standard metadata endpoints, register dynamically, and obtain JWT access tokens:
+
+```bash
+# Use a bearer token for MCP requests
+curl -X POST http://localhost:8333/api/v1/ai/mcp \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"initialize","id":1,"params":{...}}'
+```
+
+See the [MCP & OAuth Integration](./mcp-oauth.md) guide for the full OAuth flow, scopes, and configuration.
 
 ## Common Response Codes
 
@@ -105,6 +121,7 @@ When the API changes:
 ## Developer Resources
 
 - [Architecture Overview](./architecture.md)
+- [MCP & OAuth Integration](./mcp-oauth.md)
 - [Getting Started](../getting-started.md)
 
 ## Example: Creating a Project

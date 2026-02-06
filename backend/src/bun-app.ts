@@ -128,19 +128,48 @@ app.use('*', secureHeaders());
 // Database middleware - attaches Bun SQLite DB instance to context
 app.use('*', bunSqliteDatabaseMiddleware);
 
-// CORS configuration
-const allowedOrigins = config.allowedOrigins;
+// OAuth/MCP discovery endpoints need permissive CORS since MCP clients (like Claude.ai)
+// need to fetch them from any origin. These endpoints are public metadata.
+app.use('/.well-known/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
+// OAuth endpoints need permissive CORS for MCP clients from any origin
+// Use wildcard to ensure all OAuth paths are covered
+app.use('/oauth/*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'OPTIONS'] }));
+// Also allow /register alias (some MCP clients use this)
+app.use('/register', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'] }));
 app.use(
-  '*',
-  cors({
+  '/api/v1/ai/mcp',
+  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
+);
+app.use(
+  '/api/v1/ai/mcp/*',
+  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
+);
+
+// CORS configuration for other routes
+const allowedOrigins = config.allowedOrigins;
+app.use('*', async (c, next) => {
+  // Skip if already handled by permissive CORS above
+  const path = c.req.path;
+  if (
+    path.startsWith('/.well-known/') ||
+    path.startsWith('/oauth/') ||
+    path === '/register' ||
+    path.startsWith('/api/v1/ai/mcp')
+  ) {
+    return next();
+  }
+
+  const corsMiddleware = cors({
     origin: allowedOrigins,
     credentials: true, // Enable credentials for session-based auth
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
     exposeHeaders: ['Content-Type', 'Authorization'],
     maxAge: 600, // Cache preflight for 10 minutes,
-  })
-);
+  });
+
+  return corsMiddleware(c, next);
+});
 
 // Register common routes
 registerCommonRoutes(app);
@@ -275,11 +304,34 @@ async function bootstrap() {
 // Always initialize database (including in test mode)
 bootstrap();
 
-export default {
+// Build the server config with optional TLS
+const serverConfig: {
+  port: number;
+  fetch: typeof app.fetch;
+  websocket: typeof websocket;
+  tls?: { cert: ReturnType<typeof Bun.file>; key: ReturnType<typeof Bun.file> };
+} = {
   port: config.port,
   fetch: app.fetch,
   websocket, // Required for Bun WebSocket support
 };
+
+// Add TLS if enabled and cert files exist
+if (config.tls.enabled) {
+  const certFile = Bun.file(config.tls.certPath);
+  const keyFile = Bun.file(config.tls.keyPath);
+  if (certFile.size > 0 && keyFile.size > 0) {
+    serverConfig.tls = {
+      cert: certFile,
+      key: keyFile,
+    };
+    logger.info('Server', `TLS enabled with cert: ${config.tls.certPath}`);
+  } else {
+    logger.warn('Server', 'TLS enabled but cert files not found, running without TLS');
+  }
+}
+
+export default serverConfig;
 
 export { app };
 

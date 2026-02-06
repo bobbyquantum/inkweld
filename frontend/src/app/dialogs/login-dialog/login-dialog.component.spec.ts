@@ -183,6 +183,27 @@ describe('LoginDialogComponent', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/']);
     });
 
+    it('should redirect to OAuth return URL if present', async () => {
+      // Set up OAuth return URL in sessionStorage (set by authGuard)
+      const oauthUrl =
+        '/oauth/authorize?client_id=test&redirect_uri=https://example.com';
+      sessionStorage.setItem('oauth_return_url', oauthUrl);
+
+      component.username = 'testuser';
+      component.password = 'password123';
+      component.providersLoaded.set(true);
+      userService.login.mockResolvedValue(undefined);
+      vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+
+      await component.onLogin();
+
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+      expect(router.navigateByUrl).toHaveBeenCalledWith(oauthUrl);
+      expect(router.navigate).not.toHaveBeenCalled();
+      // Verify sessionStorage was cleared
+      expect(sessionStorage.getItem('oauth_return_url')).toBeNull();
+    });
+
     it('should show success snackbar on successful login', async () => {
       component.username = 'testuser';
       component.password = 'password123';

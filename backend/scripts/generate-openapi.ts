@@ -20,6 +20,7 @@ import { spawn, type ChildProcess } from 'child_process';
 /**
  * Convert Express-style path parameters (:param) to OpenAPI-style ({param})
  * Hono uses Express-style paths internally, but OpenAPI spec requires {param} format
+ * Also normalizes paths by removing double slashes
  */
 function convertPathParameters(spec: Record<string, unknown>): Record<string, unknown> {
   if (!spec.paths || typeof spec.paths !== 'object') {
@@ -31,7 +32,9 @@ function convertPathParameters(spec: Record<string, unknown>): Record<string, un
 
   for (const [pathKey, pathValue] of Object.entries(paths)) {
     // Convert :paramName to {paramName}
-    const convertedPath = pathKey.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    let convertedPath = pathKey.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    // Normalize double slashes (e.g., //oauth/authorize -> /oauth/authorize)
+    convertedPath = convertedPath.replace(/\/+/g, '/');
     convertedPaths[convertedPath] = pathValue;
   }
 

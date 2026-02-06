@@ -47,6 +47,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'developer/architecture',
         'developer/api',
+        'developer/mcp-oauth',
         'developer/project-archives',
         'getting-started',
       ],
