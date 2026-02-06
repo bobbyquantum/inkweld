@@ -34,7 +34,10 @@
       <p class="hint">Generate or upload images first, then select one here.</p>
     </div>
   } @else {
-    <mat-form-field appearance="outline" class="dialog-search-field" subscriptSizing="dynamic">
+    <mat-form-field
+      appearance="outline"
+      class="dialog-search-field"
+      subscriptSizing="dynamic">
       <mat-icon matPrefix>search</mat-icon>
       <input
         matInput
@@ -54,55 +57,55 @@
         <p>No media matching "{{ searchQuery() }}".</p>
       </div>
     } @else {
-    <div class="media-grid">
-      @for (item of filteredItems(); track item.mediaId) {
-        <div
-          class="media-item"
-          [class.selected]="isSelected(item)"
-          [class.needs-download]="needsDownload(item)"
-          (click)="selectItem(item)"
-          (keydown.enter)="selectItem(item)"
-          (keydown.space)="selectItem(item); $event.preventDefault()"
-          tabindex="0"
-          role="button"
-          [attr.aria-pressed]="isSelected(item)"
-          [matTooltip]="
-            needsDownload(item) ? 'Click to download from server' : ''
-          ">
-          @if (item.url) {
-            <img
-              [src]="item.url"
-              [alt]="item.filename || item.mediaId"
-              class="thumbnail" />
-          } @else {
-            <mat-icon class="placeholder-icon">
+      <div class="media-grid">
+        @for (item of filteredItems(); track item.mediaId) {
+          <div
+            class="media-item"
+            [class.selected]="isSelected(item)"
+            [class.needs-download]="needsDownload(item)"
+            (click)="selectItem(item)"
+            (keydown.enter)="selectItem(item)"
+            (keydown.space)="selectItem(item); $event.preventDefault()"
+            tabindex="0"
+            role="button"
+            [attr.aria-pressed]="isSelected(item)"
+            [matTooltip]="
+              needsDownload(item) ? 'Click to download from server' : ''
+            ">
+            @if (item.url) {
+              <img
+                [src]="item.url"
+                [alt]="item.filename || item.mediaId"
+                class="thumbnail" />
+            } @else {
+              <mat-icon class="placeholder-icon">
+                @if (needsDownload(item)) {
+                  cloud_download
+                } @else {
+                  image
+                }
+              </mat-icon>
               @if (needsDownload(item)) {
-                cloud_download
-              } @else {
-                image
+                <button
+                  mat-icon-button
+                  class="download-btn"
+                  (click)="downloadItem(item); $event.stopPropagation()"
+                  matTooltip="Download from server">
+                  <mat-icon>download</mat-icon>
+                </button>
               }
-            </mat-icon>
-            @if (needsDownload(item)) {
-              <button
-                mat-icon-button
-                class="download-btn"
-                (click)="downloadItem(item); $event.stopPropagation()"
-                matTooltip="Download from server">
-                <mat-icon>download</mat-icon>
-              </button>
             }
-          }
-          @if (isSelected(item)) {
-            <div class="selected-overlay">
-              <mat-icon>check_circle</mat-icon>
+            @if (isSelected(item)) {
+              <div class="selected-overlay">
+                <mat-icon>check_circle</mat-icon>
+              </div>
+            }
+            <div class="item-info">
+              <span class="item-name">{{ item.filename || item.mediaId }}</span>
             </div>
-          }
-          <div class="item-info">
-            <span class="item-name">{{ item.filename || item.mediaId }}</span>
           </div>
-        </div>
-      }
-    </div>
+        }
+      </div>
     }
   }
 </mat-dialog-content>
