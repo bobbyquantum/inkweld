@@ -236,6 +236,9 @@ export class VersionCompatibilityService {
     try {
       const response = await fetch(`${serverUrl}/api/v1/health`);
       if (!response.ok) {
+        console.warn(
+          `[VersionCompatibility] Health check failed: status=${response.status}`
+        );
         return {
           compatible: false,
           protocolCompatible: false,
@@ -245,9 +248,36 @@ export class VersionCompatibilityService {
       }
 
       const data = (await response.json()) as HealthResponse;
+
+      // Validate protocolVersion is a number - handle cases where server might return unexpected data
+      // Using 'unknown' cast to safely handle cases where the server might return unexpected types
+      const rawProtocolVersion = data.protocolVersion as unknown;
+      let serverProtocolVersion: number;
+      if (typeof rawProtocolVersion === 'number') {
+        serverProtocolVersion = rawProtocolVersion;
+      } else if (
+        typeof rawProtocolVersion === 'string' &&
+        !isNaN(parseInt(rawProtocolVersion, 10))
+      ) {
+        // Handle case where server returns a string like "1" instead of 1
+        serverProtocolVersion = parseInt(rawProtocolVersion, 10);
+        console.warn(
+          `[VersionCompatibility] Server returned protocolVersion as string "${rawProtocolVersion}", parsed as ${serverProtocolVersion}`
+        );
+      } else {
+        // Default to 1 if undefined, null, or invalid
+        serverProtocolVersion = 1;
+        if (rawProtocolVersion !== undefined && rawProtocolVersion !== null) {
+          console.warn(
+            `[VersionCompatibility] Server returned unexpected protocolVersion type: ${typeof rawProtocolVersion}, value:`,
+            rawProtocolVersion
+          );
+        }
+      }
+
       const serverInfo: ServerVersionInfo = {
         serverVersion: data.version || 'unknown',
-        protocolVersion: data.protocolVersion ?? 1,
+        protocolVersion: serverProtocolVersion,
         minClientVersion: data.minClientVersion || '0.0.0',
         lastCheckedAt: new Date().toISOString(),
       };
@@ -265,6 +295,7 @@ export class VersionCompatibilityService {
       let message: string | undefined;
       if (!protocolCompatible) {
         message = `Protocol version mismatch: client=${CLIENT_PROTOCOL_VERSION}, server=${serverInfo.protocolVersion}. You may need to update your client.`;
+        console.warn(`[VersionCompatibility] ${message}. Raw response:`, data);
       } else if (!clientVersionCompatible) {
         message = `Client version ${clientVersion} is too old. Server requires at least ${serverInfo.minClientVersion}.`;
       }
@@ -280,6 +311,7 @@ export class VersionCompatibilityService {
       this.lastResult.set(result);
       return result;
     } catch (error) {
+      console.error('[VersionCompatibility] Health check error:', error);
       const result: CompatibilityResult = {
         compatible: false,
         protocolCompatible: false,

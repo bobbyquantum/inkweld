@@ -99,7 +99,7 @@ The deployment supports the following environment variables:
 - `SERVE_FRONTEND` - Serve embedded frontend (default: `true`). Set to `false` for API-only mode
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
 - `SESSION_SECRET` - Secret used to sign session cookies (must be 32+ characters)
-- `USER_APPROVAL_REQUIRED` - Require admin approval for new registrations (default: `true`)
+- `USER_APPROVAL_REQUIRED` - Require admin approval for new registrations (default: `false`)
 - `GITHUB_ENABLED` - Enable GitHub OAuth (default: `false`)
 - `GITHUB_CLIENT_ID` - GitHub OAuth client ID
 - `GITHUB_CLIENT_SECRET` - GitHub OAuth client secret

@@ -58,7 +58,12 @@ authRoutes.openapi(registerRoute, async (c) => {
   // configService reads database first, then environment, then defaults
   const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
 
-  // Create user with auto-approve based on config
+  // Check if this is the first user - they automatically become admin
+  // This enables testing on ephemeral hosts without pre-configured admin credentials
+  const userCount = await userService.countUsers(db);
+  const isFirstUser = userCount === 0;
+
+  // Create user with auto-approve based on config (or if first user)
   try {
     const newUser = await userService.create(
       db,
@@ -68,23 +73,33 @@ authRoutes.openapi(registerRoute, async (c) => {
         email: email || username + '@local',
         name: name || username,
       },
-      { autoApprove: !userApprovalRequired }
+      { autoApprove: isFirstUser || !userApprovalRequired }
     );
 
-    // Auto-login if approval not required
-    if (!userApprovalRequired) {
-      const token = await authService.createSession(c, newUser);
+    // First user automatically becomes admin
+    let userToReturn = newUser;
+    if (isFirstUser) {
+      await userService.setUserAdmin(db, newUser.id, true);
+      // Refetch to get updated isAdmin status
+      userToReturn = (await userService.findById(db, newUser.id)) ?? newUser;
+    }
+
+    // Auto-login if approval not required OR if this is the first user (first user bypasses approval)
+    if (isFirstUser || !userApprovalRequired) {
+      const token = await authService.createSession(c, userToReturn);
       return c.json(
         {
-          message: 'Registration successful',
+          message: isFirstUser
+            ? 'Registration successful. You are the first user and have been granted admin privileges.'
+            : 'Registration successful',
           user: {
-            id: newUser.id,
-            username: newUser.username || '',
-            name: newUser.name,
-            email: newUser.email || undefined,
-            approved: newUser.approved,
-            enabled: newUser.enabled,
-            hasAvatar: newUser.hasAvatar,
+            id: userToReturn.id,
+            username: userToReturn.username || '',
+            name: userToReturn.name,
+            email: userToReturn.email || undefined,
+            approved: userToReturn.approved,
+            enabled: userToReturn.enabled,
+            hasAvatar: userToReturn.hasAvatar,
           },
           token,
           requiresApproval: false,
@@ -95,17 +110,15 @@ authRoutes.openapi(registerRoute, async (c) => {
 
     return c.json(
       {
-        message: userApprovalRequired
-          ? 'Registration successful. Please wait for admin approval.'
-          : 'Registration successful. You can now log in.',
+        message: 'Registration successful. Please wait for admin approval.',
         user: {
-          id: newUser.id,
-          username: newUser.username || '',
-          name: newUser.name,
-          email: newUser.email || undefined,
-          approved: newUser.approved,
-          enabled: newUser.enabled,
-          hasAvatar: newUser.hasAvatar,
+          id: userToReturn.id,
+          username: userToReturn.username || '',
+          name: userToReturn.name,
+          email: userToReturn.email || undefined,
+          approved: userToReturn.approved,
+          enabled: userToReturn.enabled,
+          hasAvatar: userToReturn.hasAvatar,
         },
         requiresApproval: true,
       },

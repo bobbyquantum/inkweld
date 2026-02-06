@@ -171,6 +171,17 @@ app.use('*', async (c, next) => {
   return corsMiddleware(c, next);
 });
 
+// Simple ping endpoint for debugging routing issues (registered before SPA handler)
+app.get('/api/v1/ping', (c) => {
+  return c.json({
+    pong: true,
+    timestamp: new Date().toISOString(),
+    spaEnabled,
+    hasExternalFrontend,
+    hasEmbeddedFrontend,
+  });
+});
+
 // Register common routes
 registerCommonRoutes(app);
 
