@@ -253,9 +253,10 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get filtered media items based on selected category and search query
+   * Filtered media items based on selected category and search query.
+   * Uses computed() for automatic reactivity and memoization.
    */
-  filteredItems(): MediaItem[] {
+  readonly filteredItems = computed(() => {
     const category = this.selectedCategory();
     const query = this.searchQuery().trim().toLowerCase();
 
@@ -279,7 +280,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     }
 
     return items;
-  }
+  });
 
   /**
    * Clear the search query

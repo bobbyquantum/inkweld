@@ -420,4 +420,193 @@ test.describe('Media Tab', () => {
       await expect(mediaItems).toHaveCount(2);
     });
   });
+
+  test.describe('Search', () => {
+    test('should filter media by search query', async ({
+      localPageWithProject: page,
+    }) => {
+      // Navigate to the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+      await page.waitForLoadState('domcontentloaded');
+
+      const url = page.url();
+      const projectKey = getProjectKeyFromUrl(url);
+
+      // Store media with distinct filenames
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'cover',
+        DEMO_ASSETS.covers.demo1,
+        'cover.png'
+      );
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'img-hero',
+        DEMO_ASSETS.images.demoCharacter,
+        'hero-portrait.png'
+      );
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'img-city',
+        DEMO_ASSETS.images.cyberCityscape,
+        'city-scene.png'
+      );
+
+      // Navigate to media tab
+      await page.goto(`${url}/media`);
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
+
+      // Should show all 3 items initially
+      const mediaItems = page.locator('.media-item');
+      await expect(mediaItems).toHaveCount(3);
+
+      // Search for "hero"
+      const searchInput = page.getByTestId('media-search-input');
+      await searchInput.fill('hero');
+
+      // Should filter to 1 item
+      await expect(mediaItems).toHaveCount(1);
+    });
+
+    test('should show empty state when search has no results', async ({
+      localPageWithProject: page,
+    }) => {
+      // Navigate to the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+      await page.waitForLoadState('domcontentloaded');
+
+      const url = page.url();
+      const projectKey = getProjectKeyFromUrl(url);
+
+      // Store a media item
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'img-test',
+        DEMO_ASSETS.covers.demo1,
+        'test-image.png'
+      );
+
+      // Navigate to media tab
+      await page.goto(`${url}/media`);
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
+
+      // Search for non-existent term
+      const searchInput = page.getByTestId('media-search-input');
+      await searchInput.fill('nonexistent123');
+
+      // Should show empty state with search-specific message
+      await expect(page.getByTestId('empty-card')).toBeVisible();
+      await expect(
+        page.getByText(/No media matching "nonexistent123"/i)
+      ).toBeVisible();
+    });
+
+    test('should clear search and show all items', async ({
+      localPageWithProject: page,
+    }) => {
+      // Navigate to the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+      await page.waitForLoadState('domcontentloaded');
+
+      const url = page.url();
+      const projectKey = getProjectKeyFromUrl(url);
+
+      // Store two media items
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'img-alpha',
+        DEMO_ASSETS.images.demoCharacter,
+        'alpha-image.png'
+      );
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'img-beta',
+        DEMO_ASSETS.images.cyberCityscape,
+        'beta-image.png'
+      );
+
+      // Navigate to media tab
+      await page.goto(`${url}/media`);
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
+
+      const mediaItems = page.locator('.media-item');
+      await expect(mediaItems).toHaveCount(2);
+
+      // Search to filter down
+      const searchInput = page.getByTestId('media-search-input');
+      await searchInput.fill('alpha');
+      await expect(mediaItems).toHaveCount(1);
+
+      // Click clear button to reset search
+      await page.getByTestId('media-search-clear').click();
+
+      // Should show all items again
+      await expect(mediaItems).toHaveCount(2);
+    });
+
+    test('should combine search with category filter', async ({
+      localPageWithProject: page,
+    }) => {
+      // Navigate to the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+      await page.waitForLoadState('domcontentloaded');
+
+      const url = page.url();
+      const projectKey = getProjectKeyFromUrl(url);
+
+      // Store media of different categories with distinct names
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'cover',
+        DEMO_ASSETS.covers.demo1,
+        'cover.png'
+      );
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'img-scene-one',
+        DEMO_ASSETS.images.demoCharacter,
+        'scene-one.png'
+      );
+      await storeRealMediaInIndexedDB(
+        page,
+        projectKey,
+        'img-scene-two',
+        DEMO_ASSETS.images.cyberCityscape,
+        'scene-two.png'
+      );
+
+      // Navigate to media tab
+      await page.goto(`${url}/media`);
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
+
+      const mediaItems = page.locator('.media-item');
+
+      // Filter to inline images first
+      await page.getByRole('button', { name: /Inline Images/i }).click();
+      await expect(mediaItems).toHaveCount(2);
+
+      // Now search within the inline category
+      const searchInput = page.getByTestId('media-search-input');
+      await searchInput.fill('scene-one');
+
+      // Should show only the matching inline image
+      await expect(mediaItems).toHaveCount(1);
+    });
+  });
 });

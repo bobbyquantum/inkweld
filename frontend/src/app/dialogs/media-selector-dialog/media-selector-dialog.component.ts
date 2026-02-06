@@ -1,4 +1,11 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -247,9 +254,10 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get media items filtered by the current search query
+   * Media items filtered by the current search query.
+   * Uses computed() for automatic reactivity and memoization.
    */
-  filteredItems(): MediaItem[] {
+  readonly filteredItems = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
     if (!query) return this.mediaItems();
     return this.mediaItems().filter(item => {
@@ -257,7 +265,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
       const mediaId = item.mediaId.toLowerCase();
       return filename.includes(query) || mediaId.includes(query);
     });
-  }
+  });
 
   clearSearch(): void {
     this.searchQuery.set('');

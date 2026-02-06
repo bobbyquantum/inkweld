@@ -45,6 +45,12 @@ Use the category buttons to filter what's displayed:
 - **Published** — Export files
 - **Other** — Uncategorized items
 
+## Searching
+
+Use the search bar above the media grid to find items by name or AI generation prompt. Type a keyword and the grid updates instantly to show matching items. Click the **×** button or clear the input to reset the search.
+
+Search works alongside category filters — select a category first, then search within it to narrow results further.
+
 ## Managing Media
 
 ### View

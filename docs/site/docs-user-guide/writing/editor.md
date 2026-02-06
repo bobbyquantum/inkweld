@@ -159,6 +159,45 @@ Standard clipboard operations:
 | Paste | `Ctrl/Cmd + V` |
 | Paste without formatting | `Ctrl/Cmd + Shift + V` |
 
+## Find and Replace
+
+Use **Find and Replace** to locate and optionally replace text within the current document.
+
+### Opening Find
+
+Press `Ctrl/Cmd + F` to open the find bar at the top of the editor.
+
+### Searching
+
+1. Type your search query in the find input
+2. Matches are highlighted in the document as you type
+3. The match counter shows your position (e.g., "2 of 5")
+4. The current match is highlighted distinctly from other matches
+
+### Navigating Matches
+
+| Action | Shortcut / Button |
+|--------|-------------------|
+| Next match | `Enter` or click ↓ button |
+| Previous match | `Shift + Enter` or click ↑ button |
+| Close find bar | `Escape` or click × button |
+
+### Case Sensitivity
+
+Click the **Aa** button to toggle case-sensitive matching. When enabled, "Hello" and "hello" are treated as different words.
+
+### Replacing Text
+
+1. Click the **expand** button (▶) on the left to reveal the replace row
+2. Type replacement text in the replace input
+3. Click the **replace** button to replace the current match and advance to the next
+4. Click the **replace all** button to replace every match at once
+
+| Action | Shortcut |
+|--------|----------|
+| Replace current match | `Enter` in replace input |
+| Replace all matches | `Shift + Enter` in replace input |
+
 ## Zen Mode
 
 For distraction-free writing, use Zen Mode:
