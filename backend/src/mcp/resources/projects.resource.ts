@@ -11,7 +11,7 @@ import { getAllProjects } from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
 import { logger } from '../../services/logger.service';
 
-const mcpResourceLog = logger.child('MCP-Resources');
+const _mcpResourceLog = logger.child('MCP-Resources');
 
 /**
  * Projects resource handler
