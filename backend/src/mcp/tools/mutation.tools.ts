@@ -4,6 +4,9 @@
  * Tools for creating, updating, and deleting elements and worldbuilding data.
  * Changes sync in real-time to all connected clients via Yjs.
  *
+ * All tools require a `project` parameter in the format "username/slug" to specify
+ * which project to operate on. This enables multi-project access for OAuth authentication.
+ *
  * IMPORTANT: Inkweld uses a **positional hierarchy** model:
  * - Elements are stored in a flat array
  * - Parent-child relationships are determined by ARRAY POSITION + LEVEL
@@ -11,11 +14,16 @@
  * - A child's level must be exactly parent.level + 1
  *
  * This file uses helper functions from tree-helpers.ts to maintain this structure.
+ *
+ * NOTE: Mutation tools currently require Bun runtime (use LevelDB-based yjsService).
+ * On Cloudflare Workers, mutation operations are not yet supported via HTTP API.
+ * Consider adding a POST /api/mutate endpoint to the DO for Workers support.
  */
 
 import { nanoid } from 'nanoid';
 import { registerTool } from '../mcp.handler';
-import type { McpContext, McpToolResult } from '../mcp.types';
+import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
+import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { Element, ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
@@ -33,6 +41,88 @@ import {
   getSubtree,
   findParentByPosition,
 } from './tree-helpers';
+
+/**
+ * Common project parameter schema for all mutation tools
+ */
+const projectPropertySchema = {
+  type: 'string',
+  description:
+    'Project identifier in "username/slug" format. Use inkweld://projects resource to list available projects.',
+} as const;
+
+/**
+ * Parse project parameter and validate permission
+ * Returns project context or error result
+ */
+function parseProjectParam(
+  ctx: McpContext,
+  projectArg: unknown,
+  permission: string
+): { project: ActiveProjectContext } | { error: McpToolResult } {
+  const projectStr = String(projectArg ?? '').trim();
+  if (!projectStr) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: project parameter is required. Use "username/slug" format.',
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const parts = projectStr.split('/');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: invalid project format "${projectStr}". Use "username/slug" format.`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const [username, slug] = parts;
+  const project = getProjectByKey(ctx, username, slug);
+
+  if (!project) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: No access to project "${projectStr}". Check your authorized projects.`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  if (!hasProjectPermission(ctx, username, slug, permission)) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: `Error: No "${permission}" permission for project "${projectStr}".`,
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  return { project };
+}
 
 // ============================================
 // create_element tool
@@ -52,6 +142,7 @@ Use move_elements or reorder_element to reposition after creation.`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         name: {
           type: 'string',
           description: 'Name of the element',
@@ -66,7 +157,7 @@ Use move_elements or reorder_element to reposition after creation.`,
           description: 'Optional parent element ID. If omitted, creates at root level.',
         },
       },
-      required: ['name', 'type'],
+      required: ['project', 'name', 'type'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -75,6 +166,10 @@ Use move_elements or reorder_element to reposition after creation.`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const name = String(args.name ?? '').trim();
     const type = String(args.type ?? 'ITEM') as ElementType;
     const parentId = args.parentId ? String(args.parentId) : null;
@@ -94,7 +189,6 @@ Use move_elements or reorder_element to reposition after creation.`,
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -178,6 +272,7 @@ WARNING: This will delete all existing elements and replace them.`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elements: {
           type: 'array',
           items: {
@@ -203,7 +298,7 @@ WARNING: This will delete all existing elements and replace them.`,
 - Example: [Folder(L0), Child1(L1), Child2(L1), NextFolder(L0), ...]`,
         },
       },
-      required: ['elements'],
+      required: ['project', 'elements'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -212,6 +307,10 @@ WARNING: This will delete all existing elements and replace them.`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const inputElements = args.elements as Array<{
       id: string;
       name: string;
@@ -227,7 +326,6 @@ WARNING: This will delete all existing elements and replace them.`,
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -293,6 +391,7 @@ This tool only updates name and type without changing position.`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementId: {
           type: 'string',
           description: 'ID of the element to update',
@@ -307,7 +406,7 @@ This tool only updates name and type without changing position.`,
           description: 'New type for the element',
         },
       },
-      required: ['elementId'],
+      required: ['project', 'elementId'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -316,6 +415,10 @@ This tool only updates name and type without changing position.`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementId = String(args.elementId);
     const newName = args.name !== undefined ? String(args.name).trim() : undefined;
     const newType = args.type !== undefined ? (String(args.type) as ElementType) : undefined;
@@ -341,7 +444,6 @@ This tool only updates name and type without changing position.`,
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -418,12 +520,13 @@ this element in the array at deeper levels).`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementId: {
           type: 'string',
           description: 'ID of the element to delete',
         },
       },
-      required: ['elementId'],
+      required: ['project', 'elementId'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -432,6 +535,10 @@ this element in the array at deeper levels).`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementId = String(args.elementId);
 
     if (!elementId) {
@@ -441,7 +548,6 @@ this element in the array at deeper levels).`,
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -510,6 +616,7 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementIds: {
           type: 'array',
           items: { type: 'string' },
@@ -520,7 +627,7 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
           description: 'ID of the new parent folder. Use null or empty string for root level.',
         },
       },
-      required: ['elementIds'],
+      required: ['project', 'elementIds'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -529,6 +636,10 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementIds = args.elementIds as string[] | undefined;
     const newParentId =
       args.newParentId === '' || args.newParentId === null || args.newParentId === undefined
@@ -542,7 +653,6 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -635,6 +745,7 @@ to a new position among its siblings.`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementId: {
           type: 'string',
           description: 'ID of the element to move',
@@ -650,7 +761,7 @@ to a new position among its siblings.`,
             'Alternative to afterElementId: position among siblings (0 = first, -1 = last). Only used if afterElementId not provided.',
         },
       },
-      required: ['elementId'],
+      required: ['project', 'elementId'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -659,6 +770,10 @@ to a new position among its siblings.`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementId = String(args.elementId);
     const afterElementId = args.afterElementId ? String(args.afterElementId) : undefined;
     const position = args.position !== undefined ? Number(args.position) : undefined;
@@ -677,7 +792,6 @@ to a new position among its siblings.`,
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -794,6 +908,7 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         parentId: {
           type: 'string',
           description:
@@ -818,7 +933,7 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
           description: 'Also sort all descendant folders. Default: false',
         },
       },
-      required: [],
+      required: ['project'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
@@ -827,6 +942,10 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const parentId =
       args.parentId === '' || args.parentId === null || args.parentId === undefined
         ? null
@@ -836,7 +955,6 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
     const foldersFirst = args.foldersFirst !== false; // Default true
     const recursive = Boolean(args.recursive);
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -926,6 +1044,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         elementId: {
           type: 'string',
           description: 'ID of the worldbuilding element to update',
@@ -937,7 +1056,7 @@ registerTool({
           additionalProperties: true,
         },
       },
-      required: ['elementId', 'fields'],
+      required: ['project', 'elementId', 'fields'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
@@ -946,6 +1065,10 @@ registerTool({
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const elementId = String(args.elementId);
     const fields = args.fields as Record<string, unknown> | undefined;
 
@@ -963,7 +1086,6 @@ registerTool({
       };
     }
 
-    const { username, slug } = ctx;
     const wbDocId = getWorldbuildingDocId(username, slug, elementId);
 
     try {
@@ -1028,6 +1150,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         sourceId: {
           type: 'string',
           description: 'ID of the source element',
@@ -1045,7 +1168,7 @@ registerTool({
           description: 'Optional details about the relationship',
         },
       },
-      required: ['sourceId', 'targetId', 'type'],
+      required: ['project', 'sourceId', 'targetId', 'type'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
@@ -1054,6 +1177,10 @@ registerTool({
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const sourceId = String(args.sourceId);
     const targetId = String(args.targetId);
     const type = String(args.type);
@@ -1066,7 +1193,6 @@ registerTool({
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {
@@ -1123,12 +1249,13 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
+        project: projectPropertySchema,
         relationshipId: {
           type: 'string',
           description: 'ID of the relationship to delete',
         },
       },
-      required: ['relationshipId'],
+      required: ['project', 'relationshipId'],
     },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_WORLDBUILDING],
@@ -1137,6 +1264,10 @@ registerTool({
     _db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
     const relationshipId = String(args.relationshipId);
 
     if (!relationshipId) {
@@ -1146,7 +1277,6 @@ registerTool({
       };
     }
 
-    const { username, slug } = ctx;
     const docId = getElementsDocId(username, slug);
 
     try {

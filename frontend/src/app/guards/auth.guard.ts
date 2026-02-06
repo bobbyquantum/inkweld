@@ -1,13 +1,30 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  CanActivateFn,
+  Router,
+  RouterStateSnapshot,
+} from '@angular/router';
 
 import { SetupService } from '../services/core/setup.service';
 import { UnifiedUserService } from '../services/user/unified-user.service';
 
-export const authGuard: CanActivateFn = async () => {
+export const authGuard: CanActivateFn = async (
+  route: ActivatedRouteSnapshot,
+  state: RouterStateSnapshot
+) => {
   const router = inject(Router);
   const setupService = inject(SetupService);
   const unifiedUserService = inject(UnifiedUserService);
+
+  // Helper to redirect to home with return URL preserved
+  const redirectToHome = () => {
+    // Store the intended URL so we can redirect back after login
+    if (state.url && state.url !== '/') {
+      sessionStorage.setItem('oauth_return_url', state.url);
+    }
+    return router.createUrlTree(['/']);
+  };
 
   // Check if app is configured first
   const isConfigured = setupService.checkConfiguration();
@@ -36,7 +53,7 @@ export const authGuard: CanActivateFn = async () => {
       const hasCached = await unifiedUserService.hasCachedUser();
       if (!hasCached) {
         // No cached user, redirect to home page (where login dialog can be opened)
-        return router.createUrlTree(['/']);
+        return redirectToHome();
       }
     }
 
@@ -45,7 +62,7 @@ export const authGuard: CanActivateFn = async () => {
       await unifiedUserService.initialize();
     } catch {
       // Any error during load should redirect to home page
-      return router.createUrlTree(['/']);
+      return redirectToHome();
     }
 
     // Allow navigation if authenticated
@@ -54,7 +71,7 @@ export const authGuard: CanActivateFn = async () => {
     }
 
     // Redirect to home page if not authenticated
-    return router.createUrlTree(['/']);
+    return redirectToHome();
   }
 
   // Fallback to setup if no valid mode

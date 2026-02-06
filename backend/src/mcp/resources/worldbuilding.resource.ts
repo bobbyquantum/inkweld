@@ -2,17 +2,40 @@
  * MCP Resources: Worldbuilding
  *
  * Provides access to worldbuilding data (characters, locations, etc.)
+ * Supports multi-project access for OAuth authentication.
  */
 
 import type { McpContext, McpResource, McpResourceContents } from '../mcp.types';
+import { getAllProjects, hasProjectPermission } from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
+import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { Element } from '../../schemas/element.schemas';
 import { getElementsDocId } from '../tools/tree-helpers';
 import { logger } from '../../services/logger.service';
 
 const wbLog = logger.child('MCP-Worldbuilding');
+
+/**
+ * Check if running on Cloudflare Workers (has DO bindings)
+ */
+function isCloudflareWorkers(ctx: McpContext): boolean {
+  return !!ctx.env?.YJS_PROJECTS;
+}
+
+/**
+ * Get the appropriate Yjs service based on runtime
+ */
+function getYjsService(ctx: McpContext): YjsWorkerService | typeof yjsService {
+  if (isCloudflareWorkers(ctx) && ctx.authToken && ctx.env?.YJS_PROJECTS) {
+    return new YjsWorkerService({
+      env: { YJS_PROJECTS: ctx.env.YJS_PROJECTS },
+      authToken: ctx.authToken,
+    });
+  }
+  return yjsService;
+}
 
 /**
  * Check if an element type is a worldbuilding type
@@ -32,9 +55,14 @@ function getWorldbuildingDocId(username: string, slug: string, elementId: string
 /**
  * Read worldbuilding elements from elements document
  */
-async function getWorldbuildingElements(username: string, slug: string): Promise<Element[]> {
+async function getWorldbuildingElements(
+  ctx: McpContext,
+  username: string,
+  slug: string
+): Promise<Element[]> {
   try {
-    const elements = await yjsService.getElements(username, slug);
+    const service = getYjsService(ctx);
+    const elements = await service.getElements(username, slug);
     return elements.filter((e) => isWorldbuildingType(e.type));
   } catch (err) {
     wbLog.error('Error reading worldbuilding elements', err);
@@ -46,6 +74,7 @@ async function getWorldbuildingElements(username: string, slug: string): Promise
  * Read worldbuilding data for an element
  */
 async function readWorldbuildingData(
+  ctx: McpContext,
   username: string,
   slug: string,
   elementId: string
@@ -53,7 +82,8 @@ async function readWorldbuildingData(
   const docId = getWorldbuildingDocId(username, slug, elementId);
 
   try {
-    const sharedDoc = await yjsService.getDocument(docId);
+    const service = getYjsService(ctx);
+    const sharedDoc = await service.getDocument(docId);
     const dataMap = sharedDoc.doc.getMap('worldbuilding');
     const identityMap = sharedDoc.doc.getMap('identity');
 
@@ -61,11 +91,11 @@ async function readWorldbuildingData(
     const data: Record<string, unknown> = {};
     const identity: Record<string, unknown> = {};
 
-    dataMap.forEach((value, key) => {
+    dataMap.forEach((value: unknown, key: string) => {
       data[key] = convertYjsValue(value);
     });
 
-    identityMap.forEach((value, key) => {
+    identityMap.forEach((value: unknown, key: string) => {
       identity[key] = convertYjsValue(value);
     });
 
@@ -115,14 +145,30 @@ function convertYjsValue(value: unknown): unknown {
 /**
  * Read relationships from the project
  */
-async function readRelationships(username: string, slug: string): Promise<unknown[]> {
+async function readRelationships(
+  ctx: McpContext,
+  username: string,
+  slug: string
+): Promise<unknown[]> {
   const docId = getElementsDocId(username, slug);
 
   try {
-    const sharedDoc = await yjsService.getDocument(docId);
+    const service = getYjsService(ctx);
+    const sharedDoc = await service.getDocument(docId);
     const relationshipsArray = sharedDoc.doc.getArray('relationships');
 
-    return relationshipsArray.toJSON() as unknown[];
+    // Handle both Yjs arrays and plain arrays from worker service
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (relationshipsArray as any).toJSON === 'function') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (relationshipsArray as any).toJSON() as unknown[];
+    }
+    // Worker service returns plain array-like wrapper
+    const result: unknown[] = [];
+    relationshipsArray.forEach((value: unknown) => {
+      result.push(value);
+    });
+    return result;
   } catch (err) {
     wbLog.error('Error reading relationships', err);
     return [];
@@ -134,45 +180,36 @@ async function readRelationships(username: string, slug: string): Promise<unknow
  */
 const worldbuildingResourceHandler = {
   async getResources(ctx: McpContext): Promise<McpResource[]> {
-    // Check permission
-    if (!ctx.permissions.includes(MCP_PERMISSIONS.READ_WORLDBUILDING)) {
-      return [];
-    }
-
     const resources: McpResource[] = [];
-    const { username, slug } = ctx;
+    const projects = getAllProjects(ctx);
 
-    // Add worldbuilding listing resource
-    resources.push({
-      uri: `inkweld://project/${username}/${slug}/worldbuilding`,
-      name: 'Worldbuilding Elements',
-      title: 'All Worldbuilding Entries',
-      description: 'List of all worldbuilding elements (characters, locations, items, etc.)',
-      mimeType: 'application/json',
-    });
+    // Add resources for each project the user has read:worldbuilding permission for
+    for (const project of projects) {
+      if (!project.permissions.includes(MCP_PERMISSIONS.READ_WORLDBUILDING)) {
+        continue;
+      }
 
-    // Add relationships resource
-    resources.push({
-      uri: `inkweld://project/${username}/${slug}/relationships`,
-      name: 'Relationships',
-      title: 'Element Relationships',
-      description: 'All relationships between worldbuilding elements',
-      mimeType: 'application/json',
-    });
+      const { username, slug } = project;
 
-    // Add individual worldbuilding element resources
-    const elements = await getWorldbuildingElements(username, slug);
-    for (const element of elements) {
+      // Add worldbuilding listing resource
+      // Note: Individual worldbuilding elements are discovered via resources/read on this URI
+      // We don't enumerate them here to avoid loading Yjs documents
       resources.push({
-        uri: `inkweld://project/${username}/${slug}/worldbuilding/${element.id}`,
-        name: element.name,
-        title: `${element.name} (${element.type})`,
-        description: `${element.type.toLowerCase()} worldbuilding entry`,
+        uri: `inkweld://project/${username}/${slug}/worldbuilding`,
+        name: `Worldbuilding (${username}/${slug})`,
+        title: `All Worldbuilding Entries - ${username}/${slug}`,
+        description:
+          'List of all worldbuilding elements (characters, locations, items, etc.). Read this resource to discover individual entries.',
         mimeType: 'application/json',
-        annotations: {
-          audience: ['assistant'],
-          priority: 0.7,
-        },
+      });
+
+      // Add relationships resource
+      resources.push({
+        uri: `inkweld://project/${username}/${slug}/relationships`,
+        name: `Relationships (${username}/${slug})`,
+        title: `Element Relationships - ${username}/${slug}`,
+        description: 'All relationships between worldbuilding elements',
+        mimeType: 'application/json',
       });
     }
 
@@ -184,22 +221,31 @@ const worldbuildingResourceHandler = {
     _db: unknown,
     uri: string
   ): Promise<McpResourceContents | null> {
-    // Check permission
-    if (!ctx.permissions.includes(MCP_PERMISSIONS.READ_WORLDBUILDING)) {
+    // Parse project from URI: inkweld://project/{username}/{slug}/worldbuilding or /relationships
+    const projectMatch = uri.match(
+      /^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(worldbuilding(?:\/.*)?|relationships)$/
+    );
+    if (!projectMatch) {
       return null;
     }
 
-    const { username, slug } = ctx;
+    const [, username, slug, path] = projectMatch;
+
+    // Check permission for this specific project
+    if (!hasProjectPermission(ctx, username, slug, MCP_PERMISSIONS.READ_WORLDBUILDING)) {
+      return null;
+    }
+
     const baseUri = `inkweld://project/${username}/${slug}`;
 
     // Handle worldbuilding listing
-    if (uri === `${baseUri}/worldbuilding`) {
-      const elements = await getWorldbuildingElements(username, slug);
+    if (path === 'worldbuilding') {
+      const elements = await getWorldbuildingElements(ctx, username, slug);
 
       // Fetch basic data for each element
       const summaries = await Promise.all(
         elements.map(async (elem) => {
-          const data = await readWorldbuildingData(username, slug, elem.id);
+          const data = await readWorldbuildingData(ctx, username, slug, elem.id);
           const identity = data?.identity as { description?: string } | undefined;
           return {
             id: elem.id,
@@ -218,8 +264,8 @@ const worldbuildingResourceHandler = {
     }
 
     // Handle relationships
-    if (uri === `${baseUri}/relationships`) {
-      const relationships = await readRelationships(username, slug);
+    if (path === 'relationships') {
+      const relationships = await readRelationships(ctx, username, slug);
 
       return {
         uri,
@@ -229,12 +275,10 @@ const worldbuildingResourceHandler = {
     }
 
     // Handle individual worldbuilding element
-    const wbMatch = uri.match(
-      new RegExp(`^${baseUri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/worldbuilding/(.+)$`)
-    );
+    const wbMatch = path.match(/^worldbuilding\/(.+)$/);
     if (wbMatch) {
       const elementId = wbMatch[1];
-      const data = await readWorldbuildingData(username, slug, elementId);
+      const data = await readWorldbuildingData(ctx, username, slug, elementId);
 
       if (!data) {
         return null;

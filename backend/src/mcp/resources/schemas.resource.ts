@@ -2,15 +2,38 @@
  * MCP Resources: Schemas
  *
  * Provides access to worldbuilding template schemas.
+ * Supports multi-project access for OAuth authentication.
  */
 
 import type { McpContext, McpResource, McpResourceContents } from '../mcp.types';
+import { getAllProjects, hasProjectPermission } from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
+import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { logger } from '../../services/logger.service';
 
 const schemaLog = logger.child('MCP-Schemas');
+
+/**
+ * Check if running on Cloudflare Workers (has DO bindings)
+ */
+function isCloudflareWorkers(ctx: McpContext): boolean {
+  return !!ctx.env?.YJS_PROJECTS;
+}
+
+/**
+ * Get the appropriate Yjs service based on runtime
+ */
+function getYjsService(ctx: McpContext): YjsWorkerService | typeof yjsService {
+  if (isCloudflareWorkers(ctx) && ctx.authToken && ctx.env?.YJS_PROJECTS) {
+    return new YjsWorkerService({
+      env: { YJS_PROJECTS: ctx.env.YJS_PROJECTS },
+      authToken: ctx.authToken,
+    });
+  }
+  return yjsService;
+}
 
 /**
  * Get the schemas Yjs document ID for a project
@@ -31,15 +54,16 @@ interface SchemaInfo {
 /**
  * Read schemas from the project's schema library
  */
-async function readSchemas(username: string, slug: string): Promise<SchemaInfo[]> {
+async function readSchemas(ctx: McpContext, username: string, slug: string): Promise<SchemaInfo[]> {
   const docId = getSchemaLibraryDocId(username, slug);
 
   try {
-    const sharedDoc = await yjsService.getDocument(docId);
+    const service = getYjsService(ctx);
+    const sharedDoc = await service.getDocument(docId);
     const schemasMap = sharedDoc.doc.getMap('schemas');
 
     const schemas: SchemaInfo[] = [];
-    schemasMap.forEach((value, key) => {
+    schemasMap.forEach((value: unknown, key: string) => {
       if (value && typeof value === 'object') {
         const schema = value as Record<string, unknown>;
         schemas.push({
@@ -63,6 +87,7 @@ async function readSchemas(username: string, slug: string): Promise<SchemaInfo[]
  * Read a specific schema by ID
  */
 async function readSchema(
+  ctx: McpContext,
   username: string,
   slug: string,
   schemaId: string
@@ -70,7 +95,8 @@ async function readSchema(
   const docId = getSchemaLibraryDocId(username, slug);
 
   try {
-    const sharedDoc = await yjsService.getDocument(docId);
+    const service = getYjsService(ctx);
+    const sharedDoc = await service.getDocument(docId);
     const schemasMap = sharedDoc.doc.getMap('schemas');
     const schema = schemasMap.get(schemaId);
 
@@ -93,36 +119,27 @@ async function readSchema(
  */
 const schemasResourceHandler = {
   async getResources(ctx: McpContext): Promise<McpResource[]> {
-    // Check permission
-    if (!ctx.permissions.includes(MCP_PERMISSIONS.READ_SCHEMAS)) {
-      return [];
-    }
-
     const resources: McpResource[] = [];
-    const { username, slug } = ctx;
+    const projects = getAllProjects(ctx);
 
-    // Add schemas listing resource
-    resources.push({
-      uri: `inkweld://project/${username}/${slug}/schemas`,
-      name: 'Template Schemas',
-      title: 'Worldbuilding Template Schemas',
-      description: 'List of all template schemas (built-in and custom)',
-      mimeType: 'application/json',
-    });
+    // Add resources for each project the user has read:schemas permission for
+    for (const project of projects) {
+      if (!project.permissions.includes(MCP_PERMISSIONS.READ_SCHEMAS)) {
+        continue;
+      }
 
-    // Add individual schema resources
-    const schemas = await readSchemas(username, slug);
-    for (const schema of schemas) {
+      const { username, slug } = project;
+
+      // Add schemas listing resource
+      // Note: Individual schemas are discovered via resources/read on this URI
+      // We don't enumerate them here to avoid loading Yjs documents
       resources.push({
-        uri: `inkweld://project/${username}/${slug}/schema/${schema.id}`,
-        name: schema.name,
-        title: `${schema.name} Schema`,
-        description: schema.description || `Template: ${schema.name}`,
+        uri: `inkweld://project/${username}/${slug}/schemas`,
+        name: `Schemas (${username}/${slug})`,
+        title: `Worldbuilding Template Schemas - ${username}/${slug}`,
+        description:
+          'List of all template schemas (built-in and custom). Read this resource to discover individual schemas.',
         mimeType: 'application/json',
-        annotations: {
-          audience: ['assistant'],
-          priority: 0.3,
-        },
       });
     }
 
@@ -134,17 +151,22 @@ const schemasResourceHandler = {
     _db: unknown,
     uri: string
   ): Promise<McpResourceContents | null> {
-    // Check permission
-    if (!ctx.permissions.includes(MCP_PERMISSIONS.READ_SCHEMAS)) {
+    // Parse project from URI: inkweld://project/{username}/{slug}/schemas or /schema/{id}
+    const projectMatch = uri.match(/^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(schemas|schema\/.+)$/);
+    if (!projectMatch) {
       return null;
     }
 
-    const { username, slug } = ctx;
-    const baseUri = `inkweld://project/${username}/${slug}`;
+    const [, username, slug, path] = projectMatch;
+
+    // Check permission for this specific project
+    if (!hasProjectPermission(ctx, username, slug, MCP_PERMISSIONS.READ_SCHEMAS)) {
+      return null;
+    }
 
     // Handle schemas listing
-    if (uri === `${baseUri}/schemas`) {
-      const schemas = await readSchemas(username, slug);
+    if (path === 'schemas') {
+      const schemas = await readSchemas(ctx, username, slug);
 
       return {
         uri,
@@ -154,12 +176,10 @@ const schemasResourceHandler = {
     }
 
     // Handle individual schema
-    const schemaMatch = uri.match(
-      new RegExp(`^${baseUri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/schema/(.+)$`)
-    );
+    const schemaMatch = path.match(/^schema\/(.+)$/);
     if (schemaMatch) {
       const schemaId = schemaMatch[1];
-      const schema = await readSchema(username, slug, schemaId);
+      const schema = await readSchema(ctx, username, slug, schemaId);
 
       if (!schema) {
         return null;

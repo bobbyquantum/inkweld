@@ -34,6 +34,7 @@ import {
   announcementRoutes,
   adminAnnouncementRoutes,
 } from '../routes/announcement.routes';
+import oauthRoutes from '../routes/oauth.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -99,4 +100,8 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/announcements', publicAnnouncementRoutes);
   app.route('/api/v1/announcements', announcementRoutes);
   app.route('/api/v1/admin/announcements', adminAnnouncementRoutes);
+
+  // OAuth 2.1 for MCP authorization
+  // Note: OAuth routes are mounted at root level for standard .well-known paths
+  app.route('', oauthRoutes);
 }

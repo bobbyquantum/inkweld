@@ -1,0 +1,154 @@
+<div class="oauth-consent-container">
+  @if (loading()) {
+    <div class="dialog-wrapper">
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </div>
+  } @else if (error()) {
+    <div class="dialog-wrapper">
+      <mat-card class="error-card">
+        <mat-card-header>
+          <mat-icon matCardAvatar class="error-icon">error</mat-icon>
+          <mat-card-title>Authorization Error</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ error() }}</p>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-button routerLink="/">Return to Home</button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  } @else if (completed()) {
+    <div class="dialog-wrapper">
+      <mat-card class="completion-card">
+        <mat-card-content>
+          <mat-icon class="completion-icon">check_circle</mat-icon>
+          <h2>Authorization Complete</h2>
+          <p>
+            You have granted <strong>{{ clientName() }}</strong> access to your
+            selected projects.
+          </p>
+          <p class="completion-hint">
+            Return to your application. This window can now be closed.
+          </p>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          @if (redirectUri()) {
+            <a mat-flat-button [href]="redirectUri()"> Open Application </a>
+          }
+          <button mat-button routerLink="/">Go to Inkweld</button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  } @else {
+    <div class="dialog-wrapper">
+      <mat-card class="consent-card">
+        <mat-card-header>
+          @if (clientLogo()) {
+            <img
+              matCardAvatar
+              [src]="clientLogo()"
+              [alt]="clientName()"
+              class="client-logo" />
+          } @else {
+            <mat-icon matCardAvatar class="app-icon">smart_toy</mat-icon>
+          }
+          <mat-card-title>{{ clientName() }}</mat-card-title>
+          @if (clientUri()) {
+            <mat-card-subtitle>
+              <a
+                [href]="clientUri()"
+                target="_blank"
+                rel="noopener noreferrer"
+                >{{ clientUri() }}</a
+              >
+            </mat-card-subtitle>
+          }
+        </mat-card-header>
+
+        <mat-card-content>
+          <p class="authorization-message">
+            <strong>{{ clientName() }}</strong> is requesting access to your
+            projects. Select which projects to grant access to:
+          </p>
+
+          <div class="project-selection">
+            <div class="selection-actions">
+              <button mat-button type="button" (click)="selectAll()">
+                <mat-icon>select_all</mat-icon>
+                Select All
+              </button>
+              <button mat-button type="button" (click)="deselectAll()">
+                <mat-icon>deselect</mat-icon>
+                Deselect All
+              </button>
+            </div>
+
+            @if (projectGrants().length === 0) {
+              <p class="no-projects">
+                You don't have any projects to grant access to.
+              </p>
+            } @else {
+              <div class="project-list">
+                @for (grant of projectGrants(); track grant.project.id) {
+                  <div class="project-item" [class.selected]="grant.selected">
+                    <mat-checkbox
+                      [checked]="grant.selected"
+                      (change)="toggleProject(grant)"
+                      class="project-checkbox">
+                      <div class="project-info">
+                        <span class="project-title">{{
+                          grant.project.title
+                        }}</span>
+                        <span class="project-slug">{{
+                          grant.project.slug
+                        }}</span>
+                      </div>
+                    </mat-checkbox>
+
+                    @if (grant.selected) {
+                      <mat-form-field appearance="outline" class="role-select">
+                        <mat-label>Access Level</mat-label>
+                        <mat-select
+                          [value]="grant.role"
+                          (selectionChange)="updateRole(grant, $event.value)">
+                          @for (role of roles; track role.value) {
+                            <mat-option [value]="role.value">{{
+                              role.label
+                            }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions class="consent-actions" align="end">
+          <button
+            mat-button
+            type="button"
+            (click)="deny()"
+            [disabled]="submitting()">
+            Deny
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="approve()"
+            [disabled]="!hasSelection() || submitting()">
+            @if (submitting()) {
+              Authorizing...
+            } @else {
+              Authorize
+            }
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  }
+</div>

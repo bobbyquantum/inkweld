@@ -366,7 +366,7 @@
               </mat-card>
             } @else {
               <!-- Collaborators List -->
-              @if (collaborators().length > 0) {
+              @if (humanCollaborators().length > 0) {
                 <mat-card class="collaborators-card">
                   <mat-card-header>
                     <mat-card-title>
@@ -380,7 +380,10 @@
                   </mat-card-header>
                   <mat-card-content>
                     <div class="collaborators-list">
-                      @for (collab of collaborators(); track collab.userId) {
+                      @for (
+                        collab of humanCollaborators();
+                        track collab.userId
+                      ) {
                         <div
                           class="collaborator-item"
                           [class.pending]="collab.status === 'pending'"
@@ -453,6 +456,71 @@
                               (click)="removeCollaborator(collab)"
                               data-testid="remove-collaborator-button">
                               <mat-icon>person_remove</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <!-- Connected Apps List (OAuth apps with access) -->
+              @if (oauthAppCollaborators().length > 0) {
+                <mat-card class="collaborators-card connected-apps-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>apps</mat-icon>
+                      Connected Apps ({{ oauthAppCollaborators().length }})
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <p class="connected-apps-info">
+                      These applications have been granted access to this
+                      project.
+                    </p>
+                    <div class="collaborators-list">
+                      @for (
+                        app of oauthAppCollaborators();
+                        track app.userId + '-' + (app.clientName ?? 'unknown')
+                      ) {
+                        <div
+                          class="collaborator-item oauth-app-item"
+                          data-testid="connected-app-item">
+                          <div class="collaborator-info">
+                            <div class="collaborator-avatar app-avatar">
+                              <mat-icon>smart_toy</mat-icon>
+                            </div>
+                            <div class="collaborator-details">
+                              <div class="collaborator-header">
+                                <strong>{{
+                                  app.clientName || 'Unknown App'
+                                }}</strong>
+                                <span class="app-role-badge">{{
+                                  app.role
+                                }}</span>
+                              </div>
+                              <div class="collaborator-meta">
+                                <span>Authorized by {{ app.username }}</span>
+                                @if (app.acceptedAt) {
+                                  <span>
+                                    on
+                                    {{
+                                      app.acceptedAt | date: 'mediumDate'
+                                    }}</span
+                                  >
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          <div class="collaborator-actions">
+                            <button
+                              mat-icon-button
+                              color="warn"
+                              matTooltip="Revoke access"
+                              (click)="removeCollaborator(app)"
+                              data-testid="revoke-app-button">
+                              <mat-icon>link_off</mat-icon>
                             </button>
                           </div>
                         </div>

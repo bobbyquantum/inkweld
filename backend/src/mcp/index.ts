@@ -15,6 +15,7 @@ export {
 } from './mcp.handler';
 
 // Register resources (side effects - they self-register)
+import './resources/projects.resource';
 import './resources/elements.resource';
 import './resources/worldbuilding.resource';
 import './resources/schemas.resource';

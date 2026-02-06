@@ -45,6 +45,8 @@ const CollaboratorSchema = z
     invitedByUsername: z.string().nullable(),
     invitedAt: z.number(),
     acceptedAt: z.number().nullable(),
+    collaboratorType: z.enum(['user', 'oauth_app']).default('user'),
+    clientName: z.string().nullable(),
   })
   .openapi('Collaborator');
 

@@ -166,6 +166,13 @@ export const config = {
     password: process.env.DEFAULT_ADMIN_PASSWORD || '',
     enabled: !!(process.env.DEFAULT_ADMIN_USERNAME && process.env.DEFAULT_ADMIN_PASSWORD),
   },
+
+  // TLS configuration for HTTPS (Bun only)
+  tls: {
+    enabled: process.env.TLS_ENABLED === 'true',
+    certPath: process.env.TLS_CERT_PATH || './certs/cert.pem',
+    keyPath: process.env.TLS_KEY_PATH || './certs/key.pem',
+  },
 } as const;
 
 export type Config = typeof config;

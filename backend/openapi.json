@@ -2352,6 +2352,19 @@
           "lastUpdated"
         ]
       },
+      "MCPError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
       "JsonRpcResponse": {
         "type": "object",
         "properties": {
@@ -2398,19 +2411,6 @@
         },
         "required": [
           "jsonrpc"
-        ]
-      },
-      "MCPError": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "example": "An error occurred",
-            "description": "Error message"
-          }
-        },
-        "required": [
-          "error"
         ]
       },
       "JsonRpcRequest": {
@@ -3036,6 +3036,18 @@
           "acceptedAt": {
             "type": "number",
             "nullable": true
+          },
+          "collaboratorType": {
+            "type": "string",
+            "enum": [
+              "user",
+              "oauth_app"
+            ],
+            "default": "user"
+          },
+          "clientName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
@@ -3049,7 +3061,8 @@
           "invitedBy",
           "invitedByUsername",
           "invitedAt",
-          "acceptedAt"
+          "acceptedAt",
+          "clientName"
         ]
       },
       "CollaboratorRole": {
@@ -3445,6 +3458,384 @@
         "required": [
           "shareToken",
           "shareUrl"
+        ]
+      },
+      "ClientRegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "client_secret_expires_at": {
+            "type": "number"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "client_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "logo_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "policy_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "tos_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string",
+            "enum": [
+              "none",
+              "client_secret_basic",
+              "client_secret_post"
+            ]
+          }
+        },
+        "required": [
+          "client_id",
+          "client_secret_expires_at",
+          "client_name",
+          "redirect_uris",
+          "token_endpoint_auth_method"
+        ]
+      },
+      "OAuthError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ClientRegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "client_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "minItems": 1
+          },
+          "client_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "logo_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "policy_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "tos_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string",
+            "enum": [
+              "none",
+              "client_secret_basic",
+              "client_secret_post"
+            ]
+          }
+        },
+        "required": [
+          "client_name",
+          "redirect_uris"
+        ]
+      },
+      "AuthorizationInfo": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "$ref": "#/components/schemas/PublicOAuthClient"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "slug"
+              ]
+            }
+          },
+          "scope": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "client",
+          "projects"
+        ]
+      },
+      "PublicOAuthClient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "clientName": {
+            "type": "string"
+          },
+          "clientUri": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUri": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "clientName",
+          "clientUri",
+          "logoUri"
+        ]
+      },
+      "ConsentResponse": {
+        "type": "object",
+        "properties": {
+          "redirectUri": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirectUri"
+        ]
+      },
+      "ConsentRequest": {
+        "type": "object",
+        "properties": {
+          "grants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "viewer",
+                    "editor",
+                    "admin"
+                  ]
+                }
+              },
+              "required": [
+                "projectId",
+                "role"
+              ]
+            }
+          }
+        },
+        "required": [
+          "grants"
+        ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expires_in": {
+            "type": "number"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in"
+        ]
+      },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "authorization_code",
+              "refresh_token"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          },
+          "code_verifier": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "grant_type",
+          "client_id"
+        ]
+      },
+      "PublicOAuthSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "logoUri": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "logoUri"
+            ]
+          },
+          "createdAt": {
+            "type": "number"
+          },
+          "lastUsedAt": {
+            "type": "number",
+            "nullable": true
+          },
+          "projectCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "client",
+          "createdAt",
+          "lastUsedAt",
+          "projectCount"
+        ]
+      },
+      "OAuthSessionDetails": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/PublicOAuthSession"
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string"
+                },
+                "projectTitle": {
+                  "type": "string"
+                },
+                "projectSlug": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "viewer",
+                    "editor",
+                    "admin"
+                  ]
+                }
+              },
+              "required": [
+                "projectId",
+                "projectTitle",
+                "projectSlug",
+                "role"
+              ]
+            }
+          }
+        },
+        "required": [
+          "session",
+          "grants"
         ]
       }
     },
@@ -7850,12 +8241,43 @@
       }
     },
     "/api/v1/ai/mcp": {
+      "get": {
+        "tags": [
+          "MCP"
+        ],
+        "operationId": "mcpSse",
+        "description": "MCP SSE endpoint for server-initiated messages. Opens a stream that stays alive for server-to-client events.",
+        "responses": {
+          "200": {
+            "description": "SSE stream opened successfully"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MCP"
+        ],
+        "operationId": "mcpDeleteSession",
+        "description": "Terminate an MCP session. Not currently implemented.",
+        "responses": {
+          "405": {
+            "description": "Method Not Allowed - Session termination not supported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MCPError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "MCP"
         ],
         "operationId": "mcpJsonRpc",
-        "description": "MCP (Model Context Protocol) JSON-RPC endpoint. Authenticate with Bearer token or X-API-Key header.",
+        "description": "MCP Streamable HTTP endpoint. Send JSON-RPC messages via POST. Authenticate with Bearer token or X-API-Key header.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7876,8 +8298,11 @@
               }
             }
           },
+          "202": {
+            "description": "Accepted (for notifications and responses)"
+          },
           "401": {
-            "description": "Invalid or missing API key",
+            "description": "Invalid or missing authorization",
             "content": {
               "application/json": {
                 "schema": {
@@ -11591,6 +12016,698 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getProtectedResourceMetadata",
+        "responses": {
+          "200": {
+            "description": "Protected resource metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource/*": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getPathSpecificProtectedResourceMetadata",
+        "responses": {
+          "200": {
+            "description": "Protected resource metadata for specific path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getAuthServerMetadata",
+        "responses": {
+          "200": {
+            "description": "Authorization server metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/openid-configuration": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getOpenIdConfiguration",
+        "responses": {
+          "200": {
+            "description": "OpenID Connect discovery document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "registerOAuthClient",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientRegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid registration request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "registerOAuthClientAlias",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientRegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid registration request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getAuthorizationInfo",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "client_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "redirect_uri",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "response_type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "scope",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "code_challenge",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "code_challenge_method",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorization info for consent page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationInfo"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to frontend consent page (for browser requests)"
+          },
+          "400": {
+            "description": "Invalid authorization request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "submitConsent",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "client_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "redirect_uri",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "response_type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "scope",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "code_challenge",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "code_challenge_method",
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consent submitted, redirect with code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "exchangeToken",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token issued successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/revoke": {
+      "post": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "revokeToken",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "token_type_hint": {
+                    "type": "string",
+                    "enum": [
+                      "access_token",
+                      "refresh_token"
+                    ]
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token revoked (or was already invalid)"
+          }
+        }
+      }
+    },
+    "/oauth/sessions": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "listOAuthSessions",
+        "responses": {
+          "200": {
+            "description": "List of connected apps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicOAuthSession"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/sessions/{sessionId}": {
+      "get": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "getOAuthSessionDetails",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session details with grants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthSessionDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "revokeOAuthSession",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/sessions/{sessionId}/grants/{projectId}": {
+      "patch": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "updateOAuthGrant",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "viewer",
+                      "editor",
+                      "admin"
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grant updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session or project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "OAuth"
+        ],
+        "operationId": "revokeOAuthGrant",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "sessionId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "projectId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grant revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthError"
                 }
               }
             }
