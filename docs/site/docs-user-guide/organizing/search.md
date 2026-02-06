@@ -52,9 +52,13 @@ See [Element References](../worldbuilding/element-references) for details.
 
 Open documents appear as tabs at the top of the editor. Click tabs to switch between open documents. Right-click a tab for options like Close, Close Others, or Rename.
 
-:::tip Coming Soon
-Search and advanced navigation features are high on our roadmap.
-:::
+## Find in Document
+
+Press `Ctrl/Cmd + F` while editing a document to open the find bar. This lets you search for text within the current document, navigate between matches, and optionally replace text. See [The Editor — Find and Replace](../writing/editor#find-and-replace) for full details.
+
+## Media Search
+
+The [Media Library](../media/library) includes a search bar to find images and files by name or AI generation prompt.
 
 ---
 

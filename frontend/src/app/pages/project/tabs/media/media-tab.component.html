@@ -25,7 +25,10 @@
 
   <!-- Search and filter bar -->
   <div class="search-filter-bar">
-    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+    <mat-form-field
+      appearance="outline"
+      class="search-field"
+      subscriptSizing="dynamic">
       <mat-icon matPrefix>search</mat-icon>
       <input
         matInput
@@ -34,7 +37,11 @@
         (ngModelChange)="searchQuery.set($event)"
         data-testid="media-search-input" />
       @if (searchQuery()) {
-        <button matSuffix mat-icon-button (click)="clearSearch()">
+        <button
+          matSuffix
+          mat-icon-button
+          (click)="clearSearch()"
+          data-testid="media-search-clear">
           <mat-icon>close</mat-icon>
         </button>
       }
