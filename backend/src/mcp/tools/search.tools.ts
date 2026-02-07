@@ -476,14 +476,15 @@ registerTool({
   tool: {
     name: 'search_worldbuilding',
     title: 'Search Worldbuilding',
-    description: 'Search across all worldbuilding content (characters, locations, items, etc.)',
+    description:
+      'Search across all worldbuilding content (characters, locations, items, etc.). Set includeFullContent=true to get complete worldbuilding data.',
     inputSchema: {
       type: 'object',
       properties: {
         project: projectPropertySchema,
         query: {
           type: 'string',
-          description: 'Search query to match against worldbuilding data',
+          description: 'Search query to match against worldbuilding data. Use "*" to match all.',
         },
         schemaTypes: {
           type: 'array',
@@ -498,6 +499,10 @@ registerTool({
         limit: {
           type: 'number',
           description: 'Maximum number of results (default: 10)',
+        },
+        includeFullContent: {
+          type: 'boolean',
+          description: 'Include full worldbuilding data for each result (default: false)',
         },
       },
       required: ['project', 'query'],
@@ -517,6 +522,7 @@ registerTool({
     const schemaTypes = (args.schemaTypes as string[] | undefined) ?? [];
     const fields = (args.fields as string[] | undefined) ?? [];
     const limit = Math.min(Number(args.limit) || 10, 50);
+    const includeFullContent = Boolean(args.includeFullContent);
 
     const elements = await getElements(ctx, username, slug);
 
@@ -527,11 +533,22 @@ registerTool({
         (schemaTypes.length === 0 || (e.schemaId && schemaTypes.includes(e.schemaId)))
     );
 
-    const results: SearchResult[] = [];
+    interface EnrichedResult extends SearchResult {
+      worldbuildingData?: Record<string, unknown>;
+      schemaId?: string;
+    }
+
+    const results: EnrichedResult[] = [];
+    const elementDataCache = new Map<string, Record<string, unknown>>();
 
     for (const elem of wbElements) {
       const data = await getWorldbuildingData(ctx, username, slug, elem.id);
       if (!data) continue;
+
+      // Cache data for later use if includeFullContent is true
+      if (includeFullContent) {
+        elementDataCache.set(elem.id, data);
+      }
 
       // Search name first
       const nameScore = matchText(elem.name, query);
@@ -543,6 +560,7 @@ registerTool({
           matchedField: 'name',
           matchedValue: elem.name,
           score: nameScore,
+          schemaId: elem.schemaId,
         });
       }
 
@@ -561,14 +579,15 @@ registerTool({
           elementName: elem.name,
           elementType: elem.type,
           matchedField: match.field,
-          matchedValue: match.value.substring(0, 200),
+          matchedValue: includeFullContent ? match.value : match.value.substring(0, 200),
           score: match.score,
+          schemaId: elem.schemaId,
         });
       }
     }
 
     // Deduplicate by elementId, keeping highest score
-    const deduped = new Map<string, SearchResult>();
+    const deduped = new Map<string, EnrichedResult>();
     for (const r of results) {
       const existing = deduped.get(r.elementId);
       if (!existing || r.score > existing.score) {
@@ -581,11 +600,18 @@ registerTool({
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
 
+    // Add full worldbuilding data if requested
+    if (includeFullContent) {
+      for (const result of sortedResults) {
+        result.worldbuildingData = elementDataCache.get(result.elementId);
+      }
+    }
+
     return {
       content: [
         {
           type: 'text',
-          text: `Found ${deduped.size} worldbuilding entries matching "${query}"`,
+          text: `Found ${deduped.size} worldbuilding entries matching "${query}"${includeFullContent ? ' (with full content)' : ''}`,
         },
       ],
       structuredContent: {
@@ -704,6 +730,619 @@ registerTool({
         relationships: enriched,
       },
     };
+  },
+});
+
+// ============================================
+// get_element_full tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'get_element_full',
+    title: 'Get Element Full',
+    description:
+      'Get complete element data including all worldbuilding content, relationships, and metadata. Use this to retrieve all data about a specific character, location, or other worldbuilding element.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+        elementId: {
+          type: 'string',
+          description: 'The ID of the element to retrieve',
+        },
+      },
+      required: ['project', 'elementId'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
+  async execute(
+    ctx: McpContext,
+    _db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
+    const elementId = String(args.elementId ?? '');
+    if (!elementId) {
+      return {
+        content: [{ type: 'text', text: 'Error: elementId is required' }],
+        isError: true,
+      };
+    }
+
+    const elements = await getElements(ctx, username, slug);
+    const element = elements.find((e) => e.id === elementId);
+
+    if (!element) {
+      return {
+        content: [{ type: 'text', text: `Error: element "${elementId}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Get worldbuilding data if applicable
+    let worldbuildingData: Record<string, unknown> | null = null;
+    if (element.type === 'WORLDBUILDING') {
+      worldbuildingData = await getWorldbuildingData(ctx, username, slug, elementId);
+    }
+
+    // Get relationships for this element
+    const docId = `${username}:${slug}:elements/`;
+    const service = getYjsService(ctx);
+    let relationships: Array<Record<string, unknown>> = [];
+    try {
+      const sharedDoc = await service.getDocument(docId);
+      const relationshipsArray = sharedDoc.doc.getArray('relationships');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allRelationships = (relationshipsArray as any).toJSON?.() ?? [];
+      relationships = allRelationships.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (r: any) => r.sourceElementId === elementId || r.targetElementId === elementId
+      );
+    } catch {
+      // Relationships not available, that's ok
+    }
+
+    // Build parent path
+    const elementMap = new Map(elements.map((e) => [e.id, e]));
+    const path: string[] = [];
+    let current = element;
+    while (current.parentId) {
+      const parent = elementMap.get(current.parentId);
+      if (parent) {
+        path.unshift(parent.name);
+        current = parent;
+      } else {
+        break;
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              element: {
+                id: element.id,
+                name: element.name,
+                type: element.type,
+                schemaId: element.schemaId,
+                level: element.level,
+                path: path.length > 0 ? path.join(' > ') : null,
+                metadata: element.metadata,
+              },
+              worldbuilding: worldbuildingData,
+              relationships: relationships.length > 0 ? relationships : null,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  },
+});
+
+// ============================================
+// get_document_content tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'get_document_content',
+    title: 'Get Document Content',
+    description:
+      'Get the prose content of a document element. Returns the text content from the ProseMirror editor.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+        elementId: {
+          type: 'string',
+          description: 'The ID of the document element',
+        },
+        format: {
+          type: 'string',
+          enum: ['text', 'xml'],
+          description:
+            'Output format: "text" for plain text, "xml" for ProseMirror XML (default: text)',
+        },
+      },
+      required: ['project', 'elementId'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
+  async execute(
+    ctx: McpContext,
+    _db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
+    const elementId = String(args.elementId ?? '');
+    const format = (args.format as string) ?? 'text';
+
+    if (!elementId) {
+      return {
+        content: [{ type: 'text', text: 'Error: elementId is required' }],
+        isError: true,
+      };
+    }
+
+    // Verify element exists and is a document type
+    const elements = await getElements(ctx, username, slug);
+    const element = elements.find((e) => e.id === elementId);
+
+    if (!element) {
+      return {
+        content: [{ type: 'text', text: `Error: element "${elementId}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Get document content from Yjs
+    const docId = `${username}:${slug}:${elementId}/`;
+    try {
+      const service = getYjsService(ctx);
+      const sharedDoc = await service.getDocument(docId);
+
+      // ProseMirror content is stored in an XmlFragment
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const doc = sharedDoc.doc as any;
+      const xmlFragment = doc.getXmlFragment?.('prosemirror');
+
+      if (!xmlFragment) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: '(empty document - no content found)',
+            },
+          ],
+          structuredContent: {
+            elementId,
+            elementName: element.name,
+            format,
+            content: '',
+          },
+        };
+      }
+
+      const xmlString = xmlFragment.toString();
+
+      if (format === 'xml') {
+        // Return XML representation
+        return {
+          content: [
+            {
+              type: 'text',
+              text: xmlString,
+            },
+          ],
+          structuredContent: {
+            elementId,
+            elementName: element.name,
+            format: 'xml',
+            content: xmlString,
+          },
+        };
+      }
+
+      // Extract text content - works with both real XmlFragment and our wrapper
+      // On CF Workers, we get a string wrapper, so we parse the XML to extract text
+      const textContent = isCloudflareWorkers(ctx)
+        ? extractTextFromXmlString(xmlString)
+        : extractTextFromXmlFragment(xmlFragment);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: textContent || '(empty document)',
+          },
+        ],
+        structuredContent: {
+          elementId,
+          elementName: element.name,
+          format: 'text',
+          wordCount: textContent.split(/\s+/).filter((w) => w.length > 0).length,
+          content: textContent,
+        },
+      };
+    } catch (err) {
+      mcpSearchLog.error('Error getting document content', err);
+      return {
+        content: [{ type: 'text', text: 'Error: could not retrieve document content' }],
+        isError: true,
+      };
+    }
+  },
+});
+
+/**
+ * Extract plain text from a Yjs XmlFragment (ProseMirror content)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractTextFromXmlFragment(fragment: any): string {
+  const parts: string[] = [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function traverse(node: any) {
+    if (!node) return;
+
+    // Handle text nodes
+    if (node.nodeType === 3 || typeof node.toString === 'function') {
+      const text = node.toString?.() ?? '';
+      // Yjs text nodes may be wrapped in XML-like syntax
+      if (text && !text.startsWith('<')) {
+        parts.push(text);
+      }
+    }
+
+    // Handle element nodes with children
+    if (node._content || node.content) {
+      const content = node._content || node.content;
+      if (Array.isArray(content)) {
+        for (const child of content) {
+          traverse(child);
+        }
+      }
+    }
+
+    // Handle Y.XmlFragment and Y.XmlElement
+    if (typeof node.toArray === 'function') {
+      const children = node.toArray();
+      for (const child of children) {
+        traverse(child);
+      }
+    }
+  }
+
+  traverse(fragment);
+
+  return parts.join('\n').trim();
+}
+
+/**
+ * Extract plain text from a ProseMirror XML string (for Cloudflare Workers)
+ * Parses simple ProseMirror XML structure to extract text content
+ */
+function extractTextFromXmlString(xmlString: string): string {
+  // Simple text extraction - strip all XML tags and decode entities
+  // ProseMirror uses a simple XML format: <doc><paragraph>text</paragraph></doc>
+  const text = xmlString
+    // Replace paragraph/heading/blockquote boundaries with newlines
+    .replace(/<\/(paragraph|heading|blockquote|listItem)>/gi, '\n')
+    // Remove all other closing tags
+    .replace(/<\/[^>]+>/g, '')
+    // Remove all opening tags
+    .replace(/<[^>]+>/g, '')
+    // Decode common HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Clean up multiple newlines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return text;
+}
+
+// ============================================
+// get_relationships_graph tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'get_relationships_graph',
+    title: 'Get Relationships Graph',
+    description:
+      'Get all relationships for a project as a graph structure, including backlinks. Useful for understanding how elements are connected.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+        includeElementDetails: {
+          type: 'boolean',
+          description: 'Include full element details with each node (default: false)',
+        },
+      },
+      required: ['project'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
+  async execute(
+    ctx: McpContext,
+    _db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
+    const includeDetails = Boolean(args.includeElementDetails);
+
+    // Get all elements
+    const elements = await getElements(ctx, username, slug);
+    const elementMap = new Map(elements.map((e) => [e.id, e]));
+
+    // Get all relationships
+    const docId = `${username}:${slug}:elements/`;
+    const service = getYjsService(ctx);
+    let allRelationships: Array<{
+      id: string;
+      sourceElementId: string;
+      targetElementId: string;
+      relationshipTypeId: string;
+      note?: string;
+    }> = [];
+
+    try {
+      const sharedDoc = await service.getDocument(docId);
+      const relationshipsArray = sharedDoc.doc.getArray('relationships');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      allRelationships = (relationshipsArray as any).toJSON?.() ?? [];
+    } catch {
+      // No relationships
+    }
+
+    // Get relationship types
+    let relationshipTypes: Array<{ id: string; name: string; description?: string }> = [];
+    try {
+      const schemaDocId = `${username}:${slug}:schema-library/`;
+      const schemaDoc = await service.getDocument(schemaDocId);
+      const typesArray = schemaDoc.doc.getArray('relationshipTypes');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      relationshipTypes = (typesArray as any).toJSON?.() ?? [];
+    } catch {
+      // No relationship types defined
+    }
+
+    const typeMap = new Map(relationshipTypes.map((t) => [t.id, t]));
+
+    // Build graph nodes
+    const nodesInGraph = new Set<string>();
+    for (const rel of allRelationships) {
+      nodesInGraph.add(rel.sourceElementId);
+      nodesInGraph.add(rel.targetElementId);
+    }
+
+    const nodes = Array.from(nodesInGraph).map((id) => {
+      const element = elementMap.get(id);
+      if (includeDetails && element) {
+        return {
+          id,
+          name: element.name,
+          type: element.type,
+          schemaId: element.schemaId,
+        };
+      }
+      return {
+        id,
+        name: element?.name ?? 'Unknown',
+        type: element?.type ?? 'Unknown',
+      };
+    });
+
+    // Build edges with type names
+    const edges = allRelationships.map((rel) => ({
+      id: rel.id,
+      source: rel.sourceElementId,
+      target: rel.targetElementId,
+      relationshipType: typeMap.get(rel.relationshipTypeId)?.name ?? rel.relationshipTypeId,
+      note: rel.note,
+    }));
+
+    // Build adjacency list for convenience
+    const adjacency: Record<string, { outgoing: string[]; incoming: string[] }> = {};
+    for (const node of nodes) {
+      adjacency[node.id] = { outgoing: [], incoming: [] };
+    }
+    for (const edge of edges) {
+      if (adjacency[edge.source]) adjacency[edge.source].outgoing.push(edge.target);
+      if (adjacency[edge.target]) adjacency[edge.target].incoming.push(edge.source);
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Relationship graph: ${nodes.length} nodes, ${edges.length} edges`,
+        },
+      ],
+      structuredContent: {
+        nodes,
+        edges,
+        adjacency,
+        relationshipTypes: relationshipTypes.map((t) => ({ id: t.id, name: t.name })),
+      },
+    };
+  },
+});
+
+// ============================================
+// get_project_metadata tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'get_project_metadata',
+    title: 'Get Project Metadata',
+    description:
+      'Get project metadata including title, description, author info, and settings stored in the project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+      },
+      required: ['project'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.READ_PROJECT],
+  async execute(
+    ctx: McpContext,
+    _db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_PROJECT);
+    if ('error' in result) return result.error;
+    const { username, slug, projectId } = result.project;
+
+    // Get project metadata from Yjs
+    const docId = `${username}:${slug}:metadata/`;
+    const service = getYjsService(ctx);
+
+    const metadata: Record<string, unknown> = {};
+    try {
+      const sharedDoc = await service.getDocument(docId);
+      const metadataMap = sharedDoc.doc.getMap('metadata');
+
+      metadataMap.forEach((value, key) => {
+        metadata[key] = convertYjsValue(value);
+      });
+    } catch {
+      // No metadata document, return basic info
+    }
+
+    // Add basic project info
+    const projectInfo = {
+      username,
+      slug,
+      projectId,
+      projectKey: `${username}/${slug}`,
+      ...metadata,
+    };
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(projectInfo, null, 2),
+        },
+      ],
+      structuredContent: projectInfo,
+    };
+  },
+});
+
+// ============================================
+// get_publish_plans tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'get_publish_plans',
+    title: 'Get Publish Plans',
+    description:
+      'Get all saved publish/export plans for a project. Publish plans define how content is organized for export (EPUB, PDF, etc.).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+        planId: {
+          type: 'string',
+          description: 'Optional: get a specific plan by ID',
+        },
+      },
+      required: ['project'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.READ_PROJECT],
+  async execute(
+    ctx: McpContext,
+    _db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.READ_PROJECT);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
+    const planId = args.planId as string | undefined;
+
+    // Get publish plans from Yjs
+    const docId = `${username}:${slug}:publish-plans/`;
+    const service = getYjsService(ctx);
+
+    try {
+      const sharedDoc = await service.getDocument(docId);
+      const plansArray = sharedDoc.doc.getArray('plans');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allPlans = (plansArray as any).toJSON?.() ?? [];
+
+      if (planId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const plan = allPlans.find((p: any) => p.id === planId);
+        if (!plan) {
+          return {
+            content: [{ type: 'text', text: `Error: publish plan "${planId}" not found` }],
+            isError: true,
+          };
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(plan, null, 2),
+            },
+          ],
+          structuredContent: plan,
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Found ${allPlans.length} publish plan(s)`,
+          },
+        ],
+        structuredContent: {
+          total: allPlans.length,
+          plans: allPlans,
+        },
+      };
+    } catch {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'No publish plans found',
+          },
+        ],
+        structuredContent: {
+          total: 0,
+          plans: [],
+        },
+      };
+    }
   },
 });
 

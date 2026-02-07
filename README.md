@@ -218,7 +218,6 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟡 | Worldbuilding context for images | Include element data in generation prompts |
 | ✅ | 🟡 | Reference images | Use existing images as style/composition reference |
 | ✅ | 🟡 | Prompt optimization | AI-powered prompt rewriting for better results |
-| ✅ | 🟡 | MCP image tools | Generate images via Model Context Protocol |
 | ⬜ | 🟡 | AI grammar/lint suggestions | Currently broken — needs fixing |
 | ⬜ | 🟢 | AI writing assistance | Suggestions, continuations, rephrasing |
 
