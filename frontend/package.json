@@ -116,7 +116,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "esbuild": "^0.27.2",
     "esbuild-visualizer": "0.7.0",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.5",
     "eslint-plugin-simple-import-sort": "12.1.1",
