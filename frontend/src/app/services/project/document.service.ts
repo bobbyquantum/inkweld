@@ -989,7 +989,7 @@ export class DocumentService {
     }
 
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
-    let provider: WebsocketProvider | null = null;
+    let provider: WebsocketProvider | null;
 
     try {
       provider = await createAuthenticatedWebsocketProvider(

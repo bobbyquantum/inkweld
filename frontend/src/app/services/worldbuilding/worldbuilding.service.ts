@@ -612,7 +612,7 @@ export class WorldbuildingService {
       await this.saveWorldbuildingData(elementId, data, username, slug);
     } catch (error) {
       console.error('Error importing worldbuilding data:', error);
-      throw new Error('Invalid JSON data');
+      throw new Error('Invalid JSON data', { cause: error });
     }
   }
 
