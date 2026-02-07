@@ -208,7 +208,7 @@ export function setupAiImageHandlers(): void {
       description?: string;
     }
 
-    let models: ImageModelInfo[] = [];
+    let models: ImageModelInfo[];
 
     switch (provider) {
       case 'openai':

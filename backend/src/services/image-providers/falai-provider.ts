@@ -497,7 +497,9 @@ export class FalAiImageProvider extends BaseImageProvider {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
       const err = error as any;
       falLog.error(`Error generating image: ${err.message || 'Unknown error'}`);
-      throw new Error(`Failed to generate image with Fal.ai: ${err.message || 'Unknown error'}`);
+      throw new Error(`Failed to generate image with Fal.ai: ${err.message || 'Unknown error'}`, {
+        cause: error,
+      });
     }
   }
 }

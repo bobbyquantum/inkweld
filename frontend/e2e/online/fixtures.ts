@@ -594,7 +594,8 @@ export async function authenticateUser(
           continue;
         }
         throw new Error(
-          `Registration failed after ${maxRetries} network error attempts: ${String(networkError)}`
+          `Registration failed after ${maxRetries} network error attempts: ${String(networkError)}`,
+          { cause: networkError }
         );
       }
 

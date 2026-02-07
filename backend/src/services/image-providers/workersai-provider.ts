@@ -148,7 +148,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
     } catch (error: unknown) {
       const err = error as Error;
       waiLog.error(`Error generating image: ${err.message}`);
-      throw new Error(`Failed to generate image with Workers AI: ${err.message}`);
+      throw new Error(`Failed to generate image with Workers AI: ${err.message}`, { cause: error });
     }
   }
 
@@ -311,7 +311,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
       clearTimeout(timeoutId);
       const err = error as Error;
       if (err.name === 'AbortError') {
-        throw new Error('Workers AI request timed out');
+        throw new Error('Workers AI request timed out', { cause: error });
       }
       throw error;
     }

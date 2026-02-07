@@ -711,8 +711,8 @@ export class EpubGeneratorService {
     metadata: PublishMetadata,
     order: number
   ): Chapter {
-    let content = '';
-    let title = '';
+    let content: string;
+    let title: string;
 
     switch (item.contentType) {
       case FrontmatterType.TitlePage:
@@ -796,8 +796,8 @@ export class EpubGeneratorService {
       customTitle?: string;
     };
 
-    let content = '';
-    let title = '';
+    let content: string;
+    let title: string;
 
     switch (backmatterItem.contentType) {
       case BackmatterType.AboutAuthor:

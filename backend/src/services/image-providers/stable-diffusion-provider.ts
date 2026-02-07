@@ -209,11 +209,12 @@ export class StableDiffusionProvider extends BaseImageProvider {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
       const err = error as any;
       if (err.name === 'AbortError') {
-        throw new Error('Stable Diffusion image generation timed out');
+        throw new Error('Stable Diffusion image generation timed out', { cause: error });
       }
       sdLog.error(`Error generating image: ${err.message || 'Unknown error'}`);
       throw new Error(
-        `Failed to generate image with Stable Diffusion: ${err.message || 'Unknown error'}`
+        `Failed to generate image with Stable Diffusion: ${err.message || 'Unknown error'}`,
+        { cause: error }
       );
     }
   }

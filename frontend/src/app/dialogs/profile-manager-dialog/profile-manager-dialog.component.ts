@@ -262,7 +262,7 @@ export class ProfileManagerDialogComponent {
     }
 
     // Extract hostname for subtitle
-    let hostname = '';
+    let hostname: string;
     try {
       hostname = new URL(profile.serverUrl!).hostname;
     } catch {

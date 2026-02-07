@@ -6,6 +6,8 @@ import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 import unusedImportsPlugin from 'eslint-plugin-unused-imports';
 import simpleImportSortPlugin from 'eslint-plugin-simple-import-sort';
 import vitest from '@vitest/eslint-plugin';
+// TODO: Remove this wrapper once angular-eslint releases ESLint 10 support
+import * as templateParserCompat from './eslint-template-parser-compat.mjs';
 
 export default tseslint.config(
   {
@@ -108,6 +110,11 @@ export default tseslint.config(
       ...angular.configs.templateRecommended,
       ...angular.configs.templateAccessibility,
     ],
+    // Override parser with ESLint 10 compatible wrapper
+    // TODO: Remove once angular-eslint releases ESLint 10 support
+    languageOptions: {
+      parser: templateParserCompat,
+    },
     rules: {
       '@angular-eslint/template/prefer-control-flow': 'error',
     },

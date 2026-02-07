@@ -329,7 +329,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       }
 
       if (err.name === 'AbortError') {
-        throw new Error('OpenRouter image generation timed out');
+        throw new Error('OpenRouter image generation timed out', { cause: error });
       }
 
       orLog.error(`Error generating image: ${errorMessage}`, undefined, {
@@ -337,7 +337,9 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         rawError: JSON.stringify(err).substring(0, 1000),
       });
 
-      throw new Error(`Failed to generate image with OpenRouter: ${errorMessage}`);
+      throw new Error(`Failed to generate image with OpenRouter: ${errorMessage}`, {
+        cause: error,
+      });
     }
   }
 }
