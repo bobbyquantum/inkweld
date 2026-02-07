@@ -180,6 +180,112 @@ export class YjsWorkerService {
   }
 
   /**
+   * Replace all elements in a project (via DO HTTP API)
+   */
+  async replaceAllElements(username: string, slug: string, elements: unknown[]): Promise<void> {
+    const docId = `${username}:${slug}:elements`;
+    const stub = getDoStub(this.ctx.env, username, slug);
+
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/elements?documentId=${encodeURIComponent(docId)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'replace_all', elements }),
+      })
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to replace elements: ${response.status} ${errorText}`);
+    }
+  }
+
+  /**
+   * Insert an element at a specific position
+   */
+  async insertElement(
+    username: string,
+    slug: string,
+    element: unknown,
+    position?: number
+  ): Promise<void> {
+    const docId = `${username}:${slug}:elements`;
+    const stub = getDoStub(this.ctx.env, username, slug);
+
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/elements?documentId=${encodeURIComponent(docId)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'insert', element, position }),
+      })
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to insert element: ${response.status} ${errorText}`);
+    }
+  }
+
+  /**
+   * Update an element by ID
+   */
+  async updateElement(
+    username: string,
+    slug: string,
+    elementId: string,
+    element: unknown
+  ): Promise<void> {
+    const docId = `${username}:${slug}:elements`;
+    const stub = getDoStub(this.ctx.env, username, slug);
+
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/elements?documentId=${encodeURIComponent(docId)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'update', elementId, element }),
+      })
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update element: ${response.status} ${errorText}`);
+    }
+  }
+
+  /**
+   * Delete an element by ID
+   */
+  async deleteElement(username: string, slug: string, elementId: string): Promise<void> {
+    const docId = `${username}:${slug}:elements`;
+    const stub = getDoStub(this.ctx.env, username, slug);
+
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/elements?documentId=${encodeURIComponent(docId)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'delete', elementId }),
+      })
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to delete element: ${response.status} ${errorText}`);
+    }
+  }
+
+  /**
    * Create a wrapper around JSON data that mimics Y.Doc interface
    */
   private createDocumentWrapper(data: Record<string, unknown>): WorkerYjsDocument {
