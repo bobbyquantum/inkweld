@@ -234,6 +234,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       if (path === '/api/elements' && method === 'GET') {
         console.log('[DO-HTTP] Routing to handleGetElements');
         return this.handleGetElements(documentId);
+      } else if (path === '/api/elements' && method === 'POST') {
+        console.log('[DO-HTTP] Routing to handleMutateElements');
+        return this.handleMutateElements(request, documentId);
       } else if (path === '/api/document' && method === 'GET') {
         return this.handleGetDocument(documentId);
       } else if (path === '/api/document' && method === 'POST') {
@@ -278,6 +281,138 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  /**
+   * POST /api/elements - Mutate elements array
+   * Body: { action: 'replace_all' | 'insert' | 'update' | 'delete', elements?: Element[], element?: Element, elementId?: string, parentId?: string | null }
+   */
+  private async handleMutateElements(request: Request, documentId: string): Promise<Response> {
+    console.log('[DO-HTTP] handleMutateElements - getting document...');
+    const sharedDoc = await this.getOrCreateDocument(documentId);
+    const elementsArray = sharedDoc.getArray('elements');
+
+    const body = (await request.json()) as {
+      action: 'replace_all' | 'insert' | 'update' | 'delete';
+      elements?: Record<string, unknown>[];
+      element?: Record<string, unknown>;
+      elementId?: string;
+      position?: number;
+    };
+
+    console.log('[DO-HTTP] handleMutateElements - action:', body.action);
+
+    try {
+      switch (body.action) {
+        case 'replace_all': {
+          // Replace all elements with new array
+          if (!body.elements || !Array.isArray(body.elements)) {
+            return new Response(
+              JSON.stringify({ error: 'elements array required for replace_all' }),
+              {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            );
+          }
+          const elementsToInsert = body.elements;
+          sharedDoc.transact(() => {
+            elementsArray.delete(0, elementsArray.length);
+            elementsArray.insert(0, elementsToInsert);
+          });
+          break;
+        }
+        case 'insert': {
+          // Insert a single element
+          if (!body.element) {
+            return new Response(JSON.stringify({ error: 'element required for insert' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          const position = body.position ?? elementsArray.length;
+          const elementToInsert = body.element;
+          sharedDoc.transact(() => {
+            elementsArray.insert(position, [elementToInsert]);
+          });
+          break;
+        }
+        case 'update': {
+          // Update a single element by ID
+          if (!body.elementId || !body.element) {
+            return new Response(
+              JSON.stringify({ error: 'elementId and element required for update' }),
+              {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            );
+          }
+          const currentElements: Record<string, unknown>[] = [];
+          elementsArray.forEach((value) => {
+            if (value && typeof value === 'object') {
+              currentElements.push(this.yValueToJson(value) as Record<string, unknown>);
+            }
+          });
+          const index = currentElements.findIndex((e) => e.id === body.elementId);
+          if (index === -1) {
+            return new Response(JSON.stringify({ error: 'Element not found' }), {
+              status: 404,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          const elementToUpdate = body.element;
+          sharedDoc.transact(() => {
+            elementsArray.delete(index, 1);
+            elementsArray.insert(index, [elementToUpdate]);
+          });
+          break;
+        }
+        case 'delete': {
+          // Delete a single element by ID
+          if (!body.elementId) {
+            return new Response(JSON.stringify({ error: 'elementId required for delete' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          const currentElements: Record<string, unknown>[] = [];
+          elementsArray.forEach((value) => {
+            if (value && typeof value === 'object') {
+              currentElements.push(this.yValueToJson(value) as Record<string, unknown>);
+            }
+          });
+          const index = currentElements.findIndex((e) => e.id === body.elementId);
+          if (index === -1) {
+            return new Response(JSON.stringify({ error: 'Element not found' }), {
+              status: 404,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          sharedDoc.transact(() => {
+            elementsArray.delete(index, 1);
+          });
+          break;
+        }
+        default:
+          return new Response(JSON.stringify({ error: `Unknown action: ${body.action}` }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+      }
+
+      console.log('[DO-HTTP] handleMutateElements - success');
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('[DO-HTTP] handleMutateElements - error:', error);
+      return new Response(JSON.stringify({ error: 'Failed to mutate elements' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   /**
