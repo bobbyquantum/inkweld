@@ -117,15 +117,10 @@ const mcpDeleteRoute = createRoute({
   path: '/',
   tags: ['MCP'],
   operationId: 'mcpDeleteSession',
-  description: 'Terminate an MCP session. Not currently implemented.',
+  description: 'Terminate an MCP session. Returns 204 on success.',
   responses: {
-    405: {
-      content: {
-        'application/json': {
-          schema: ErrorSchema,
-        },
-      },
-      description: 'Method Not Allowed - Session termination not supported',
+    204: {
+      description: 'Session terminated successfully',
     },
   },
 });
@@ -175,18 +170,13 @@ mcpRoutes.openapi(mcpSseRoute, async (c) => {
   });
 });
 
-// DELETE - Return 405 (session termination not supported)
-// NOTE: Must be registered BEFORE auth middleware to return 405 without requiring auth
+// DELETE - Session termination (returns 204 No Content)
+// NOTE: Must be registered BEFORE auth middleware to handle independently
+// Since sessions are stateless (JWT tokens), we just acknowledge the termination
 mcpRoutes.openapi(mcpDeleteRoute, (c) => {
-  return c.json(
-    {
-      error: 'Session termination via DELETE not supported.',
-    },
-    405,
-    {
-      Allow: 'POST, OPTIONS',
-    }
-  );
+  // No action needed - JWT sessions are stateless
+  // Client can discard the token on their end
+  return c.body(null, 204);
 });
 
 // Apply MCP auth middleware only to POST requests

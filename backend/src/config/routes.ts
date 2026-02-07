@@ -35,6 +35,7 @@ import {
   adminAnnouncementRoutes,
 } from '../routes/announcement.routes';
 import oauthRoutes from '../routes/oauth.routes';
+import robotsRoutes from '../routes/robots.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -104,4 +105,7 @@ export function registerCommonRoutes(app: any): void {
   // OAuth 2.1 for MCP authorization
   // Note: OAuth routes are mounted at root level for standard .well-known paths
   app.route('', oauthRoutes);
+
+  // Robots.txt - blocks AI training bots, allows search engines
+  app.route('/robots.txt', robotsRoutes);
 }

@@ -1,0 +1,45 @@
+# Inkweld robots.txt
+# Allow search engines, block AI training crawlers
+
+# Allow all legitimate web crawlers
+User-agent: *
+Allow: /
+
+# Block AI training/scraping bots
+# These bots may scrape content for AI model training
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+# Note: Legitimate AI assistants using MCP/OAuth access the API directly
+# via authenticated endpoints, not by crawling the frontend.

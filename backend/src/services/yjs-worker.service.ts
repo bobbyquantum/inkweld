@@ -21,6 +21,7 @@ export interface WorkerYjsDocument {
   doc: {
     getMap: (name: string) => WorkerYMap;
     getArray: (name: string) => WorkerYArray;
+    getXmlFragment: (name: string) => WorkerXmlFragment | undefined;
   };
 }
 
@@ -32,6 +33,11 @@ interface WorkerYMap {
 
 interface WorkerYArray {
   forEach: (fn: (value: unknown, index: number) => void) => void;
+  length: number;
+}
+
+interface WorkerXmlFragment {
+  toString: () => string;
   length: number;
 }
 
@@ -187,6 +193,12 @@ export class YjsWorkerService {
           const arrayData = (data[name] as unknown[]) || [];
           return this.createArrayWrapper(arrayData);
         },
+        getXmlFragment: (name: string): WorkerXmlFragment | undefined => {
+          // prosemirror content is serialized as string by the DO
+          const xmlString = data[name] as string | undefined;
+          if (!xmlString) return undefined;
+          return this.createXmlFragmentWrapper(xmlString);
+        },
       },
     };
   }
@@ -215,6 +227,16 @@ export class YjsWorkerService {
         data.forEach((value, index) => fn(value, index));
       },
       length: data.length,
+    };
+  }
+
+  /**
+   * Create a Y.XmlFragment-like wrapper around XML string
+   */
+  private createXmlFragmentWrapper(xmlString: string): WorkerXmlFragment {
+    return {
+      toString: (): string => xmlString,
+      length: xmlString.length > 0 ? 1 : 0, // Non-zero if has content
     };
   }
 }
