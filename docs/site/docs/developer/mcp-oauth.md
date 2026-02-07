@@ -41,21 +41,56 @@ AI Client (Claude, etc.)
 
 ### Available Tools
 
+#### Read Operations
+
 | Tool | Description |
 |---|---|
+| `get_project_tree` | Get the element tree structure for a project |
 | `search_elements` | Full-text search across project elements |
-| `add_element` | Create new story elements |
+| `search_worldbuilding` | Search worldbuilding content with optional full data |
+| `search_relationships` | Find relationships for a specific element |
+| `get_element_full` | Get complete element data including worldbuilding |
+| `get_document_content` | Get prose content from a document element |
+| `get_relationships_graph` | Get all relationships as a graph structure |
+| `get_project_metadata` | Get project metadata and settings |
+| `get_publish_plans` | Get saved publish/export configurations |
+
+#### Write Operations
+
+| Tool | Description |
+|---|---|
+| `create_element` | Create new story elements |
 | `update_element` | Modify existing elements |
-| `generate_image` | Generate images for elements |
+| `delete_element` | Remove elements from the tree |
+| `move_elements` | Move elements to a new parent |
+| `reorder_element` | Change element position within siblings |
+| `sort_elements` | Sort children alphabetically |
+| `update_worldbuilding` | Update worldbuilding data for an element |
+| `create_relationship` | Create relationships between elements |
+| `delete_relationship` | Remove a relationship |
+| `tag_element` | Add, remove, or set tags on an element |
+| `create_snapshot` | Create a snapshot of a document's current state |
+
+#### Image Operations
+
+| Tool | Description |
+|---|---|
+| `generate_image` | Generate an image using AI |
+| `set_element_image` | Set an element's cover image |
+| `generate_and_set_element_image` | Generate and set an element image |
+| `set_project_cover` | Set the project cover image |
+| `generate_project_cover` | Generate and set a project cover |
 
 ### Available Resources
 
-Resources follow the URI pattern `inkweld://{type}/{username}/{slug}/{path}`:
+Resources list the projects the user has authorized access to:
 
-- **Projects** — `inkweld://projects` and `inkweld://project/{user}/{slug}`
-- **Elements** — `inkweld://elements/{user}/{slug}` and individual element URIs
-- **Worldbuilding** — `inkweld://worldbuilding/{user}/{slug}/{elementId}`
-- **Schemas** — `inkweld://schemas/{user}/{slug}`
+- **Project List** — `inkweld://projects` lists all authorized projects
+- **Individual Projects** — `inkweld://project/{user}/{slug}` provides project details and available permissions
+
+:::tip
+Use tools like `search_elements`, `add_element`, and `update_element` to work with project content. Pass the project key (e.g., `alice/my-novel`) as a parameter to specify which project to operate on.
+:::
 
 ## OAuth 2.1 Flow
 

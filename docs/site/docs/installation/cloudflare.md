@@ -437,6 +437,24 @@ Check that Durable Objects bindings are correctly configured and the worker depl
 
 Ensure `migrations_dir = "drizzle"` is set in all D1 database sections of your `wrangler.toml`.
 
+### MCP/AI assistant connections blocked
+
+If AI assistants like Claude cannot connect to your MCP endpoint, check your Cloudflare **Security > Bots** settings:
+
+1. Go to **Security** → **Bots** in the Cloudflare dashboard
+2. Look for the **Block AI Scrapers and Crawlers** setting
+3. If enabled, this blocks bots categorized as "AI training crawlers" — which may include legitimate AI assistants using MCP
+
+**Solution**: Either disable this setting, or add a **WAF exception** for the `/api/v1/ai/mcp` path:
+
+1. Go to **Security** → **WAF** → **Custom rules**
+2. Create an exception rule for paths starting with `/api/v1/ai/`
+3. Skip the AI bot check for these paths
+
+:::caution
+Disabling AI crawler blocking entirely exposes your site to content scraping for AI training. Using a path-specific exception is recommended.
+:::
+
 ---
 
 ## Next Steps

@@ -15,10 +15,8 @@ export {
 } from './mcp.handler';
 
 // Register resources (side effects - they self-register)
+// Only projects are listed as resources - tools handle the rest
 import './resources/projects.resource';
-import './resources/elements.resource';
-import './resources/worldbuilding.resource';
-import './resources/schemas.resource';
 
 // Register tools (side effects - they self-register)
 import './tools/search.tools';

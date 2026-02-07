@@ -314,6 +314,22 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       data.elements = elements;
     }
 
+    // Get prosemirror XmlFragment if present (for document content)
+    try {
+      const xmlFragment = sharedDoc.getXmlFragment('prosemirror');
+      if (xmlFragment && xmlFragment.length > 0) {
+        data.prosemirror = xmlFragment.toString();
+      }
+    } catch {
+      // XmlFragment doesn't exist yet, that's fine
+    }
+
+    // Also get worldbuilding map directly for completeness
+    const worldbuildingMap = sharedDoc.getMap('worldbuilding');
+    if (worldbuildingMap.size > 0) {
+      data.worldbuilding = this.yMapToJson(worldbuildingMap);
+    }
+
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

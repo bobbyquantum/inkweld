@@ -48,6 +48,9 @@ const ClientRegistrationRequestSchema = z
   })
   .openapi('ClientRegistrationRequest');
 
+// Type alias for client registration request body
+type ClientRegistrationRequest = z.infer<typeof ClientRegistrationRequestSchema>;
+
 const ClientRegistrationResponseSchema = z
   .object({
     client_id: z.string(),
@@ -411,7 +414,10 @@ const registerClientAliasRoute = createRoute({
 // Shared handler for client registration (used by both /oauth/register and /register)
 const registerClientHandler = async (c: Context<AppContext>) => {
   const db = c.get('db');
-  const body = c.req.valid('json');
+  // Use await c.req.json() since this handler is shared between routes
+  // and c.req.valid('json') doesn't have type context for shared handlers.
+  // Validation is handled by the openapi middleware before this runs.
+  const body = (await c.req.json()) as ClientRegistrationRequest;
 
   try {
     const result = await mcpOAuthService.registerClient(db, {
@@ -451,8 +457,10 @@ const registerClientHandler = async (c: Context<AppContext>) => {
   }
 };
 
-oauthRoutes.openapi(registerClientRoute, registerClientHandler);
-oauthRoutes.openapi(registerClientAliasRoute, registerClientHandler);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Shared handler requires type assertion
+oauthRoutes.openapi(registerClientRoute, registerClientHandler as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Shared handler requires type assertion
+oauthRoutes.openapi(registerClientAliasRoute, registerClientHandler as any);
 
 // ============================================
 // Authorization Endpoint

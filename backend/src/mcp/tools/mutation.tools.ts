@@ -1319,4 +1319,325 @@ registerTool({
   },
 });
 
+// ============================================
+// tag_element tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'tag_element',
+    title: 'Tag Element',
+    description:
+      'Add or remove tags on an element. Tags are stored in element metadata and can be used for filtering and organization.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+        elementId: {
+          type: 'string',
+          description: 'The ID of the element to tag',
+        },
+        action: {
+          type: 'string',
+          enum: ['add', 'remove', 'set'],
+          description:
+            'Action to perform: "add" to add tags, "remove" to remove tags, "set" to replace all tags',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags to add, remove, or set',
+        },
+      },
+      required: ['project', 'elementId', 'action', 'tags'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
+  async execute(
+    ctx: McpContext,
+    _db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
+    const elementId = String(args.elementId ?? '');
+    const action = String(args.action ?? 'add') as 'add' | 'remove' | 'set';
+    const tags = (args.tags as string[]) ?? [];
+
+    if (!elementId) {
+      return {
+        content: [{ type: 'text', text: 'Error: elementId is required' }],
+        isError: true,
+      };
+    }
+
+    if (!['add', 'remove', 'set'].includes(action)) {
+      return {
+        content: [{ type: 'text', text: 'Error: action must be "add", "remove", or "set"' }],
+        isError: true,
+      };
+    }
+
+    const docId = getElementsDocId(username, slug);
+
+    try {
+      const sharedDoc = await yjsService.getDocument(docId);
+      const elementsArray = sharedDoc.doc.getArray<Element>('elements');
+      const elements = elementsArray.toJSON() as Element[];
+      const index = elements.findIndex((e) => e.id === elementId);
+
+      if (index === -1) {
+        return {
+          content: [{ type: 'text', text: `Error: element "${elementId}" not found` }],
+          isError: true,
+        };
+      }
+
+      const element = elements[index];
+      // Tags are stored as JSON string in metadata since metadata is Record<string, string>
+      let currentTags: string[] = [];
+      try {
+        currentTags = element.metadata?.tags ? JSON.parse(element.metadata.tags) : [];
+      } catch {
+        currentTags = [];
+      }
+
+      let newTags: string[];
+      switch (action) {
+        case 'add':
+          newTags = [...new Set([...currentTags, ...tags])];
+          break;
+        case 'remove':
+          newTags = currentTags.filter((t) => !tags.includes(t));
+          break;
+        case 'set':
+          newTags = [...new Set(tags)];
+          break;
+      }
+
+      // Update element with new tags (stored as JSON string)
+      sharedDoc.doc.transact(() => {
+        elementsArray.delete(index, 1);
+        elementsArray.insert(index, [
+          {
+            ...element,
+            metadata: {
+              ...element.metadata,
+              tags: JSON.stringify(newTags),
+            },
+          },
+        ]);
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Updated tags for "${element.name}": ${newTags.length > 0 ? newTags.join(', ') : '(no tags)'}`,
+          },
+        ],
+        structuredContent: {
+          success: true,
+          elementId,
+          elementName: element.name,
+          previousTags: currentTags,
+          newTags,
+        },
+      };
+    } catch (err) {
+      mcpMutLog.error('Error updating element tags', err);
+      return {
+        content: [{ type: 'text', text: `Error updating tags: ${err}` }],
+        isError: true,
+      };
+    }
+  },
+});
+
+// ============================================
+// create_snapshot tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'create_snapshot',
+    title: 'Create Snapshot',
+    description:
+      'Create a snapshot of a document to save its current state. Snapshots can be used to restore content or compare versions.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+        elementId: {
+          type: 'string',
+          description: 'The ID of the document element to snapshot',
+        },
+        name: {
+          type: 'string',
+          description: 'Name for the snapshot',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional description of why this snapshot was created',
+        },
+      },
+      required: ['project', 'elementId', 'name'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
+  async execute(
+    ctx: McpContext,
+    db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug, projectId } = result.project;
+
+    const elementId = String(args.elementId ?? '');
+    const name = String(args.name ?? '');
+    const description = args.description ? String(args.description) : undefined;
+
+    if (!elementId) {
+      return {
+        content: [{ type: 'text', text: 'Error: elementId is required' }],
+        isError: true,
+      };
+    }
+
+    if (!name) {
+      return {
+        content: [{ type: 'text', text: 'Error: name is required' }],
+        isError: true,
+      };
+    }
+
+    // Get element to verify it exists
+    const elemDocId = getElementsDocId(username, slug);
+    const sharedDoc = await yjsService.getDocument(elemDocId);
+    const elementsArray = sharedDoc.doc.getArray<Element>('elements');
+    const elements = elementsArray.toJSON() as Element[];
+    const element = elements.find((e) => e.id === elementId);
+
+    if (!element) {
+      return {
+        content: [{ type: 'text', text: `Error: element "${elementId}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Get document content
+    const docContentId = `${username}:${slug}:${elementId}/`;
+    let xmlContent = '';
+    let wordCount = 0;
+    let worldbuildingData: Record<string, unknown> | null = null;
+
+    try {
+      const contentDoc = await yjsService.getDocument(docContentId);
+
+      // Get ProseMirror content
+      const xmlFragment = contentDoc.doc.getXmlFragment('prosemirror');
+      xmlContent = xmlFragment.toString();
+
+      // Count words
+      const textContent = extractTextContent(xmlFragment);
+      wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
+
+      // Get worldbuilding data if applicable
+      if (element.type === 'WORLDBUILDING') {
+        const dataMap = contentDoc.doc.getMap('worldbuilding');
+        const data: Record<string, unknown> = {};
+        dataMap.forEach((value, key) => {
+          data[key] = value;
+        });
+        if (Object.keys(data).length > 0) {
+          worldbuildingData = data;
+        }
+      }
+    } catch (err: unknown) {
+      mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+    }
+
+    // Create snapshot in database
+    // Import dynamically to avoid circular dependency
+    const { documentSnapshotService } = await import('../../services/document-snapshot.service');
+
+    // Get userId from context (only available for OAuth auth)
+    const userId = ctx.type === 'oauth' ? ctx.userId : 'mcp-api-key';
+
+    try {
+      const snapshot = await documentSnapshotService.create(
+        db as Parameters<typeof documentSnapshotService.create>[0],
+        {
+          documentId: elementId,
+          projectId,
+          userId,
+          name,
+          description,
+          xmlContent,
+          worldbuildingData: worldbuildingData ?? undefined,
+          wordCount,
+          metadata: {
+            createdBy: 'mcp',
+            elementName: element.name,
+            elementType: element.type,
+          },
+        }
+      );
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Created snapshot "${name}" for "${element.name}" (${wordCount} words)`,
+          },
+        ],
+        structuredContent: {
+          success: true,
+          snapshotId: snapshot.id,
+          elementId,
+          elementName: element.name,
+          wordCount,
+          createdAt: new Date(snapshot.createdAt).toISOString(),
+        },
+      };
+    } catch (err) {
+      mcpMutLog.error('Error creating snapshot', err);
+      return {
+        content: [{ type: 'text', text: `Error creating snapshot: ${err}` }],
+        isError: true,
+      };
+    }
+  },
+});
+
+/**
+ * Extract plain text from a Yjs XmlFragment
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractTextContent(fragment: any): string {
+  const parts: string[] = [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function traverse(node: any) {
+    if (!node) return;
+    if (typeof node.toString === 'function') {
+      const text = node.toString();
+      if (text && !text.startsWith('<')) {
+        parts.push(text);
+      }
+    }
+    if (typeof node.toArray === 'function') {
+      for (const child of node.toArray()) {
+        traverse(child);
+      }
+    }
+  }
+
+  traverse(fragment);
+  return parts.join(' ').trim();
+}
+
 export {};
