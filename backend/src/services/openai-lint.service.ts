@@ -173,10 +173,10 @@ The JSON must follow this format:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI error structure is complex
       const err = error as any;
       if (err.name === 'AbortError') {
-        throw new Error('Linting service timed out after 15 seconds');
+        throw new Error('Linting service timed out after 15 seconds', { cause: error });
       }
       lintLog.error(`Error calling OpenAI: ${err.message || 'Unknown error'}`);
-      throw new Error('Failed to process text with OpenAI');
+      throw new Error('Failed to process text with OpenAI', { cause: error });
     }
   }
 }

@@ -376,7 +376,6 @@ export class ProjectTreeComponent implements OnDestroy {
 
     // Determine nodes above and below based on the filtered list
     let nodeAbove = null;
-    let nodeBelow = null;
 
     if (currentIndex > 0) {
       nodeAbove =
@@ -385,7 +384,7 @@ export class ProjectTreeComponent implements OnDestroy {
           : null;
     }
 
-    nodeBelow =
+    const nodeBelow =
       currentIndex < filteredNodes.length ? filteredNodes[currentIndex] : null;
 
     this.logger.debug('ProjectTree', 'Valid Levels', {
