@@ -89,7 +89,7 @@ Coming soon, once first numbered release is added.
 | ⬜ | 🟡 | Tag filtering in project tree | Show/hide elements by tag |
 | ⬜ | 🟡 | Breadcrumbs | Show path to current document |
 | ⬜ | 🟡 | Favorites/Bookmarks | Quick access to key elements |
-| ⬜ | 🟢 | Recent files list | Already have quick-open |
+| ✅ | 🟢 | Recent files list | Tracks last 10 files per project |
 
 ### Writing Tools
 |  |  | Feature | Notes |
@@ -183,7 +183,7 @@ Coming soon, once first numbered release is added.
 ### Auth & Security
 |  |  | Feature | Notes |
 |--|--|---------|-------|
-| ✅ | 🔥 | Password auth | Strong requirements |
+| ✅ | 🔥 | Password auth | Strong client-side requirements; backend enforces 6-char minimum only |
 | ✅ | 🔥 | CSRF protection | |
 | ✅ | 🟡 | User approval system | |
 | ⬜ | 🔥 | Password reset via email | |
@@ -206,7 +206,7 @@ Coming soon, once first numbered release is added.
 |--|--|------|-------|
 | ⬜ | 🟡 | Features marketing page | `/features` landing page for website |
 | ⬜ | 🟡 | Import/archive docs | User guide for importing projects |
-| ⬜ | 🟢 | Desktop app docs | Electron app installation guide |
+| ✅ | 🟢 | Desktop app docs | Electron app installation guide |
 
 ### Optional AI Features
 > All AI features require admin configuration and are disabled by default. See [AI Stance](#ai-stance).
@@ -218,7 +218,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟡 | Worldbuilding context for images | Include element data in generation prompts |
 | ✅ | 🟡 | Reference images | Use existing images as style/composition reference |
 | ✅ | 🟡 | Prompt optimization | AI-powered prompt rewriting for better results |
-| ⬜ | 🟡 | AI grammar/lint suggestions | Currently broken — needs fixing |
+| 🔨 | 🟡 | AI grammar/lint suggestions | Implemented but currently broken — needs fixing |
 | ⬜ | 🟢 | AI writing assistance | Suggestions, continuations, rephrasing |
 
 ---
