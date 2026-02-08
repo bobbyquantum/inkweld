@@ -67,9 +67,7 @@ test.describe('About Page', () => {
     await expect(page.getByTestId('links-card')).toContainText('Source Code');
 
     // Should show report issues link
-    await expect(page.getByTestId('links-card')).toContainText(
-      'Report Issues'
-    );
+    await expect(page.getByTestId('links-card')).toContainText('Report Issues');
   });
 
   test('should navigate back to home when back button is clicked', async ({

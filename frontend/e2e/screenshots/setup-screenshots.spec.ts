@@ -98,10 +98,7 @@ test.describe('Setup Flow Screenshots', () => {
 
     // Fill in sample data for the screenshot
     await page.fill('[data-testid="local-username-input"]', 'novelist');
-    await page.fill(
-      '[data-testid="local-displayname-input"]',
-      'Emily Bronte'
-    );
+    await page.fill('[data-testid="local-displayname-input"]', 'Emily Bronte');
 
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'setup-offline-mobile-light.png'),
@@ -131,10 +128,7 @@ test.describe('Setup Flow Screenshots', () => {
 
     // Fill in sample data for the screenshot
     await page.fill('[data-testid="local-username-input"]', 'novelist');
-    await page.fill(
-      '[data-testid="local-displayname-input"]',
-      'Emily Bronte'
-    );
+    await page.fill('[data-testid="local-displayname-input"]', 'Emily Bronte');
 
     await page.screenshot({
       path: join(SCREENSHOTS_DIR, 'setup-offline-mobile-dark.png'),

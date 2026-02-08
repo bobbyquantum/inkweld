@@ -5,7 +5,6 @@
  * operations work correctly in pure local mode without any server connection.
  */
 import { createProjectWithTwoSteps } from '../common/test-helpers';
-
 import { expect, test } from './fixtures';
 
 test.describe('Folder Operations', () => {
@@ -36,7 +35,12 @@ test.describe('Folder Operations', () => {
       '[data-testid="element-type-folder"], mat-dialog-container :text("Folder")'
     );
 
-    if (await folderTypeItem.first().isVisible().catch(() => false)) {
+    if (
+      await folderTypeItem
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await folderTypeItem.first().click();
       await page.waitForTimeout(300);
 

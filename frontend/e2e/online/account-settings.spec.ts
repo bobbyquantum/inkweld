@@ -57,7 +57,12 @@ test.describe('Account Settings Page', () => {
     const backButton = page.locator(
       'button[aria-label*="back" i], button:has(mat-icon:text("arrow_back"))'
     );
-    if (await backButton.first().isVisible().catch(() => false)) {
+    if (
+      await backButton
+        .first()
+        .isVisible()
+        .catch(() => false)
+    ) {
       await backButton.first().click();
 
       // Should navigate away from settings
