@@ -200,6 +200,33 @@ class UserService {
   }
 
   /**
+   * Update user profile (name and/or email)
+   */
+  async updateProfile(
+    db: DatabaseInstance,
+    userId: string,
+    data: { name?: string; email?: string }
+  ): Promise<User> {
+    const updates: Partial<{ name: string | null; email: string }> = {};
+    if (data.name !== undefined) {
+      updates.name = data.name || null;
+    }
+    if (data.email !== undefined) {
+      updates.email = data.email;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(users).set(updates).where(eq(users.id, userId));
+    }
+
+    const updated = await this.findById(db, userId);
+    if (!updated) {
+      throw new Error('User not found after update');
+    }
+    return updated;
+  }
+
+  /**
    * Set user hasAvatar flag
    */
   async setHasAvatar(db: DatabaseInstance, userId: string, hasAvatar: boolean): Promise<void> {

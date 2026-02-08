@@ -47,7 +47,7 @@ export type InsertConfig = typeof config.$inferInsert;
 /**
  * Config categories for the admin UI
  */
-export const CONFIG_CATEGORIES = ['auth', 'ai', 'github', 'general'] as const;
+export const CONFIG_CATEGORIES = ['auth', 'ai', 'github', 'email', 'general'] as const;
 export type ConfigCategory = (typeof CONFIG_CATEGORIES)[number];
 
 /**
@@ -68,6 +68,13 @@ export const CONFIG_KEYS = {
     description: 'Allow local username/password authentication',
     encrypted: false,
     envVar: 'LOCAL_USERS_ENABLED',
+    type: 'boolean' as const,
+  },
+  REQUIRE_EMAIL: {
+    category: 'auth' as ConfigCategory,
+    description: 'Require email address during registration',
+    encrypted: false,
+    envVar: 'REQUIRE_EMAIL',
     type: 'boolean' as const,
   },
 
@@ -359,6 +366,66 @@ export const CONFIG_KEYS = {
     description: 'JSON array of available Anthropic models (leave empty for defaults)',
     encrypted: false,
     envVar: 'AI_TEXT_ANTHROPIC_MODELS',
+    type: 'string' as const,
+  },
+
+  // ============================================================================
+  // Email Settings
+  // ============================================================================
+  EMAIL_ENABLED: {
+    category: 'email' as ConfigCategory,
+    description: 'Enable transactional email sending (welcome emails, password resets)',
+    encrypted: false,
+    envVar: 'EMAIL_ENABLED',
+    type: 'boolean' as const,
+  },
+  EMAIL_HOST: {
+    category: 'email' as ConfigCategory,
+    description: 'SMTP server hostname',
+    encrypted: false,
+    envVar: 'EMAIL_HOST',
+    type: 'string' as const,
+  },
+  EMAIL_PORT: {
+    category: 'email' as ConfigCategory,
+    description: 'SMTP server port (e.g. 587 for STARTTLS, 465 for TLS, 25 for none)',
+    encrypted: false,
+    envVar: 'EMAIL_PORT',
+    type: 'string' as const,
+  },
+  EMAIL_ENCRYPTION: {
+    category: 'email' as ConfigCategory,
+    description: 'SMTP encryption method: starttls, tls, or none',
+    encrypted: false,
+    envVar: 'EMAIL_ENCRYPTION',
+    type: 'string' as const,
+  },
+  EMAIL_USERNAME: {
+    category: 'email' as ConfigCategory,
+    description: 'SMTP authentication username',
+    encrypted: false,
+    envVar: 'EMAIL_USERNAME',
+    type: 'string' as const,
+  },
+  EMAIL_PASSWORD: {
+    category: 'email' as ConfigCategory,
+    description: 'SMTP authentication password',
+    encrypted: true,
+    envVar: 'EMAIL_PASSWORD',
+    type: 'string' as const,
+  },
+  EMAIL_FROM: {
+    category: 'email' as ConfigCategory,
+    description: 'Sender email address (e.g. noreply@example.com)',
+    encrypted: false,
+    envVar: 'EMAIL_FROM',
+    type: 'string' as const,
+  },
+  EMAIL_FROM_NAME: {
+    category: 'email' as ConfigCategory,
+    description: 'Sender display name (e.g. Inkweld)',
+    encrypted: false,
+    envVar: 'EMAIL_FROM_NAME',
     type: 'string' as const,
   },
 } as const;

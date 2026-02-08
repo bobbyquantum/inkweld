@@ -1,0 +1,41 @@
+<div class="account-settings-container" data-testid="account-settings">
+  <h3 class="section-title">Account</h3>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Display Name</mat-label>
+    <input
+      matInput
+      [(ngModel)]="displayName"
+      placeholder="Enter your display name"
+      data-testid="account-display-name-input" />
+    <mat-hint>Shown instead of your username in the UI.</mat-hint>
+  </mat-form-field>
+
+  @if (!isLocalMode()) {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Email Address</mat-label>
+      <input
+        matInput
+        type="email"
+        [(ngModel)]="email"
+        placeholder="Enter your email address"
+        data-testid="account-email-input" />
+      <mat-hint>Used for password resets and notifications.</mat-hint>
+    </mat-form-field>
+  }
+
+  <div class="actions-row">
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="saveProfile()"
+      [disabled]="isSaving()"
+      data-testid="account-save-button">
+      @if (isSaving()) {
+        <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+      } @else {
+        Save
+      }
+    </button>
+  </div>
+</div>

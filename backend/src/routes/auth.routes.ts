@@ -2,6 +2,8 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 import { configService } from '../services/config.service';
+import { emailService } from '../services/email.service';
+import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
 import { config } from '../config/env';
 import { type AppContext } from '../types/context';
 import {
@@ -58,6 +60,12 @@ authRoutes.openapi(registerRoute, async (c) => {
   // configService reads database first, then environment, then defaults
   const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
 
+  // Check if email is required
+  const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
+  if (requireEmail && !email) {
+    return c.json({ error: 'Email address is required' }, 400);
+  }
+
   // Check if this is the first user - they automatically become admin
   // This enables testing on ephemeral hosts without pre-configured admin credentials
   const userCount = await userService.countUsers(db);
@@ -87,6 +95,20 @@ authRoutes.openapi(registerRoute, async (c) => {
     // Auto-login if approval not required OR if this is the first user (first user bypasses approval)
     if (isFirstUser || !userApprovalRequired) {
       const token = await authService.createSession(c, userToReturn);
+
+      // Send welcome email (best-effort, don't block registration)
+      const baseUrl =
+        process.env.DEFAULT_SERVER_NAME?.trim() ||
+        process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() ||
+        'http://localhost:4200';
+      void emailService.sendEmail(db, {
+        ...welcomeEmail({
+          userName: userToReturn.name || userToReturn.username || 'User',
+          loginUrl: baseUrl,
+        }),
+        to: userToReturn.email || '',
+      });
+
       return c.json(
         {
           message: isFirstUser
@@ -107,6 +129,19 @@ authRoutes.openapi(registerRoute, async (c) => {
         200
       );
     }
+
+    // Send awaiting approval email (best-effort)
+    const instanceUrl =
+      process.env.DEFAULT_SERVER_NAME?.trim() ||
+      process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() ||
+      'http://localhost:4200';
+    void emailService.sendEmail(db, {
+      ...awaitingApprovalEmail({
+        userName: userToReturn.name || userToReturn.username || 'User',
+        instanceUrl,
+      }),
+      to: userToReturn.email || '',
+    });
 
     return c.json(
       {

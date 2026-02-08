@@ -212,6 +212,23 @@
           "providers"
         ]
       },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Display name",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address",
+            "example": "john@example.com"
+          }
+        }
+      },
       "PaginatedUsersResponse": {
         "type": "object",
         "properties": {
@@ -976,6 +993,16 @@
             "type": "boolean",
             "example": false,
             "description": "Whether admin approval is required for new users"
+          },
+          "emailEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether transactional email is enabled (affects forgot-password availability)"
+          },
+          "requireEmail": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether email address is required during registration"
           }
         },
         "required": [
@@ -984,7 +1011,9 @@
           "aiLinting",
           "aiImageGeneration",
           "appMode",
-          "userApprovalRequired"
+          "userApprovalRequired",
+          "emailEnabled",
+          "requireEmail"
         ]
       },
       "CSRFTokenResponse": {
@@ -2352,19 +2381,6 @@
           "lastUpdated"
         ]
       },
-      "MCPError": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "example": "An error occurred",
-            "description": "Error message"
-          }
-        },
-        "required": [
-          "error"
-        ]
-      },
       "JsonRpcResponse": {
         "type": "object",
         "properties": {
@@ -2411,6 +2427,19 @@
         },
         "required": [
           "jsonrpc"
+        ]
+      },
+      "MCPError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
         ]
       },
       "JsonRpcRequest": {
@@ -3460,6 +3489,56 @@
           "shareUrl"
         ]
       },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address associated with the account",
+            "example": "user@example.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Password reset token from the emailed link",
+            "example": "abc123..."
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 6,
+            "description": "New password (minimum 6 characters)",
+            "example": "newSecurePassword"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ]
+      },
+      "TestEmailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ]
+      },
       "ClientRegistrationResponse": {
         "type": "object",
         "properties": {
@@ -4007,6 +4086,43 @@
           },
           "403": {
             "description": "Account disabled or pending approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "updateProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
             "content": {
               "application/json": {
                 "schema": {
@@ -4917,6 +5033,7 @@
                           "auth",
                           "ai",
                           "github",
+                          "email",
                           "general"
                         ]
                       },
@@ -5003,6 +5120,7 @@
                           "auth",
                           "ai",
                           "github",
+                          "email",
                           "general"
                         ]
                       },
@@ -5072,6 +5190,7 @@
                 "auth",
                 "ai",
                 "github",
+                "email",
                 "general"
               ]
             },
@@ -5102,6 +5221,7 @@
                           "auth",
                           "ai",
                           "github",
+                          "email",
                           "general"
                         ]
                       },
@@ -5193,6 +5313,7 @@
                         "auth",
                         "ai",
                         "github",
+                        "email",
                         "general"
                       ]
                     },
@@ -5308,6 +5429,7 @@
                         "auth",
                         "ai",
                         "github",
+                        "email",
                         "general"
                       ]
                     },
@@ -5406,6 +5528,7 @@
                         "auth",
                         "ai",
                         "github",
+                        "email",
                         "general"
                       ]
                     },
@@ -8258,17 +8381,10 @@
           "MCP"
         ],
         "operationId": "mcpDeleteSession",
-        "description": "Terminate an MCP session. Not currently implemented.",
+        "description": "Terminate an MCP session. Returns 204 on success.",
         "responses": {
-          "405": {
-            "description": "Method Not Allowed - Session termination not supported",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MCPError"
-                }
-              }
-            }
+          "204": {
+            "description": "Session terminated successfully"
           }
         }
       },
@@ -12012,6 +12128,114 @@
           },
           "404": {
             "description": "Announcement not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "forgotPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "If an account with this email exists, a password reset link has been sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "resetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password has been reset successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired reset token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/email/test": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "adminSendTestEmail",
+        "responses": {
+          "200": {
+            "description": "Test email result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestEmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Email not configured or user has no email",
             "content": {
               "application/json": {
                 "schema": {

@@ -134,6 +134,13 @@
       "when": 1770374617436,
       "tag": "0019_fix-collaborators-pk",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1770768000000,
+      "tag": "0020_add-password-reset-tokens",
+      "breakpoints": true
     }
   ]
 }

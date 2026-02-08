@@ -109,6 +109,14 @@ export const routes: Routes = [
         title: 'Admin - Announcements',
       },
       {
+        path: 'email',
+        loadComponent: () =>
+          import('./pages/admin/email-settings/email-settings.component').then(
+            m => m.AdminEmailSettingsComponent
+          ),
+        title: 'Admin - Email Settings',
+      },
+      {
         path: 'image-audits',
         loadComponent: () =>
           import('./pages/admin/image-audits/image-audits.component').then(
@@ -152,6 +160,22 @@ export const routes: Routes = [
         m => m.ApprovalPendingComponent
       ),
     title: 'Approval Pending',
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password.component').then(
+        m => m.ForgotPasswordComponent
+      ),
+    title: 'Forgot Password',
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password.component').then(
+        m => m.ResetPasswordComponent
+      ),
+    title: 'Reset Password',
   },
   {
     path: 'unavailable',

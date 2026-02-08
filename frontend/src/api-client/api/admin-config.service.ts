@@ -222,10 +222,10 @@ export class AdminConfigService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<{ [key: string]: AdminGetAllConfig200ResponseValue; }>;
-    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
-    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
-    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'email' | 'general', observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<{ [key: string]: AdminGetAllConfig200ResponseValue; }>;
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'email' | 'general', observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'email' | 'general', observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'email' | 'general', observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (category === null || category === undefined) {
             throw new Error('Required parameter category was null or undefined when calling adminGetConfigByCategory.');
         }
@@ -258,7 +258,7 @@ export class AdminConfigService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/admin/config/category/${this.configuration.encodeParam({name: "category", value: category, in: "path", style: "simple", explode: false, dataType: "'auth' | 'ai' | 'github' | 'general'", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/admin/config/category/${this.configuration.encodeParam({name: "category", value: category, in: "path", style: "simple", explode: false, dataType: "'auth' | 'ai' | 'github' | 'email' | 'general'", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<{ [key: string]: AdminGetAllConfig200ResponseValue; }>('get', `${basePath}${localVarPath}`,
             {

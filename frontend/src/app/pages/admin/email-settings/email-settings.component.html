@@ -1,0 +1,171 @@
+<div class="email-settings-container" data-testid="email-settings-page">
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <mat-icon>error</mat-icon>
+        <p>{{ error()?.message }}</p>
+        <button mat-raised-button color="primary" (click)="loadConfig()">
+          Retry
+        </button>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <!-- Email Enabled Toggle -->
+    <mat-card class="setting-card" data-testid="email-enabled-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">
+              <mat-icon class="email-icon">email</mat-icon>
+              Enable Email
+            </span>
+            <span class="setting-description">
+              Enable transactional email sending (welcome emails, password
+              resets). Requires SMTP configuration below.
+            </span>
+          </div>
+          <mat-slide-toggle
+            [checked]="emailEnabled()"
+            (change)="toggleEmailEnabled($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="email-enabled-toggle"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- SMTP Configuration -->
+    <mat-card class="setting-card smtp-card" data-testid="smtp-config-card">
+      <mat-card-content>
+        <h3 class="section-title">SMTP Configuration</h3>
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>SMTP Host</mat-label>
+            <input
+              matInput
+              [ngModel]="host()"
+              (ngModelChange)="host.set($event)"
+              placeholder="smtp.example.com"
+              data-testid="smtp-host-input" />
+          </mat-form-field>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Port</mat-label>
+              <input
+                matInput
+                [ngModel]="port()"
+                (ngModelChange)="port.set($event)"
+                placeholder="587"
+                data-testid="smtp-port-input" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Encryption</mat-label>
+              <mat-select
+                [ngModel]="encryption()"
+                (ngModelChange)="encryption.set($event)"
+                data-testid="smtp-encryption-select">
+                @for (opt of encryptionOptions; track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Username</mat-label>
+            <input
+              matInput
+              [ngModel]="username()"
+              (ngModelChange)="username.set($event)"
+              placeholder="user@example.com"
+              data-testid="smtp-username-input" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              type="password"
+              [ngModel]="password()"
+              (ngModelChange)="password.set($event)"
+              placeholder="Leave blank to keep current"
+              data-testid="smtp-password-input" />
+            <mat-hint>Leave blank to keep the current password</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <h3 class="section-title">Sender Identity</h3>
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>From Address</mat-label>
+            <input
+              matInput
+              [ngModel]="fromAddress()"
+              (ngModelChange)="fromAddress.set($event)"
+              placeholder="noreply@example.com"
+              data-testid="email-from-input" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>From Name</mat-label>
+            <input
+              matInput
+              [ngModel]="fromName()"
+              (ngModelChange)="fromName.set($event)"
+              placeholder="Inkweld"
+              data-testid="email-from-name-input" />
+          </mat-form-field>
+        </div>
+
+        <div class="actions-row">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="saveSmtpConfig()"
+            [disabled]="isSaving()"
+            data-testid="save-smtp-button">
+            @if (isSaving()) {
+              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            } @else {
+              Save SMTP Settings
+            }
+          </button>
+
+          <button
+            mat-stroked-button
+            (click)="sendTestEmail()"
+            [disabled]="isSendingTest() || !emailEnabled()"
+            data-testid="send-test-email-button">
+            @if (isSendingTest()) {
+              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>send</mat-icon>
+              Send Test Email
+            }
+          </button>
+        </div>
+
+        @if (testResult()) {
+          <div
+            class="test-result"
+            [class.success]="testResult()?.success"
+            [class.failure]="!testResult()?.success"
+            data-testid="test-email-result">
+            <mat-icon>{{
+              testResult()?.success ? 'check_circle' : 'error'
+            }}</mat-icon>
+            <span>{{ testResult()?.message }}</span>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

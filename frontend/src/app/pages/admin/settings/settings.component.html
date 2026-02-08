@@ -84,5 +84,26 @@
         </div>
       </mat-card-content>
     </mat-card>
+
+    <!-- Require Email Card -->
+    <mat-card class="setting-card" data-testid="require-email-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Require Email Address</span>
+            <span class="setting-description">
+              Require users to provide an email address during registration.
+              Needed for password resets and notifications.
+            </span>
+          </div>
+          <mat-slide-toggle
+            [checked]="requireEmailEnabled()"
+            (change)="toggleRequireEmail($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-require-email"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
   }
 </div>

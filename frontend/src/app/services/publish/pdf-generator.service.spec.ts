@@ -1,57 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Mock typst - MUST BE BEFORE OTHER IMPORTS
-const { mockTypst } = vi.hoisted(() => ({
-  mockTypst: {
-    setCompilerInitOptions: vi.fn().mockReturnValue(undefined),
-    setRendererInitOptions: vi.fn().mockReturnValue(undefined),
-    pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
-    mapShadow: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
-vi.mock('@myriaddreamin/typst.ts', () => {
-  const mockCompiler = {
-    init: vi.fn().mockResolvedValue(undefined),
-    pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
-    addSource: vi.fn().mockResolvedValue(undefined),
-    mapShadow: vi.fn().mockResolvedValue(undefined),
-  };
-  const mockRenderer = {
-    init: vi.fn().mockResolvedValue(undefined),
-  };
-  return {
-    $typst: mockTypst,
-    createTypstCompiler: vi.fn().mockResolvedValue(mockCompiler),
-    createTypstRenderer: vi.fn().mockReturnValue(mockRenderer),
-  };
-});
-
-vi.mock('@myriaddreamin/typst.ts/contrib/snippet', () => ({
-  $typst: mockTypst,
-}));
-
-// Mock fetch for WASM loading
-vi.stubGlobal(
-  'fetch',
-  vi.fn().mockImplementation((url: string) => {
-    if (url.endsWith('.wasm')) {
-      return Promise.resolve({
-        ok: true,
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-      });
-    }
-    return Promise.resolve({
-      ok: true,
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-    });
-  })
-);
-
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Element, ElementType, Project } from '@inkweld/index';
+// Import $typst from the globally mocked module (see setup-vitest.ts).
+// Do NOT re-mock @myriaddreamin/typst.ts here — with isolate: false the
+// duplicate vi.mock creates a separate object that diverges from the one
+// the service captures, causing $typst.pdf() to return undefined.
 import { $typst } from '@myriaddreamin/typst.ts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ChapterNumbering,
@@ -172,14 +127,28 @@ describe('PdfGeneratorService', () => {
       getProjectCover: vi.fn().mockResolvedValue(null),
     };
 
-    // Reset typst mocks
+    // Reset the globally-mocked $typst methods so each test starts fresh
     vi.mocked($typst.setCompilerInitOptions)
       .mockReset()
-      .mockResolvedValue(undefined);
+      .mockReturnValue(undefined);
+    vi.mocked($typst.setRendererInitOptions)
+      .mockReset()
+      .mockReturnValue(undefined);
     vi.mocked($typst.pdf)
       .mockReset()
       .mockResolvedValue(new Uint8Array([1, 2, 3]));
     vi.mocked($typst.mapShadow).mockReset().mockResolvedValue(undefined);
+
+    // Stub fetch so WASM/data-URL fetches in the service succeed
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+        })
+      )
+    );
 
     // Mock IndexedDB for y-indexeddb
     const mockIndexedDB = {
@@ -235,6 +204,10 @@ describe('PdfGeneratorService', () => {
     });
 
     service = TestBed.inject(PdfGeneratorService);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should be created', () => {

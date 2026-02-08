@@ -54,6 +54,18 @@
           <span>Logging in...</span>
         }
       </button>
+
+      @if (isEmailEnabled()) {
+        <a
+          class="forgot-password-link"
+          tabindex="0"
+          role="link"
+          (click)="goToForgotPassword()"
+          (keydown.enter)="goToForgotPassword()"
+          data-testid="forgot-password-link">
+          Forgot password?
+        </a>
+      }
     </form>
 
     <mat-divider></mat-divider>
