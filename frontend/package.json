@@ -54,6 +54,10 @@
     "e2e:docker:ui": "playwright test --config=playwright.docker.config.ts --ui",
     "e2e:docker:debug": "playwright test --config=playwright.docker.config.ts --debug",
     "e2e:docker:ci": "playwright test --config=playwright.docker.config.ts --reporter=list",
+    "e2e:mcp": "playwright test --config=playwright.mcp.config.ts",
+    "e2e:mcp:ui": "playwright test --config=playwright.mcp.config.ts --ui",
+    "e2e:mcp:debug": "playwright test --config=playwright.mcp.config.ts --debug",
+    "e2e:mcp:ci": "playwright test --config=playwright.mcp.config.ts --reporter=list",
     "wrangler": "wrangler"
   },
   "private": true,

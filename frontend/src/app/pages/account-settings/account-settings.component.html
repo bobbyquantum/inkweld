@@ -160,6 +160,8 @@
                     Revoking...
                   } @else {
                     <mat-icon>block</mat-icon>
+                  }
+                  @if (!isRevokingSession(session.id)) {
                     Revoke All Access
                   }
                 </button>
