@@ -16,7 +16,25 @@ Inkweld uses a ProseMirror-based editor with a focused set of keyboard shortcuts
 | Bold | `Ctrl + B` | `Cmd + B` |
 | Italic | `Ctrl + I` | `Cmd + I` |
 | Underline | `Ctrl + U` | `Cmd + U` |
-| Code (inline) | `Ctrl + \`` | `Cmd + \`` |
+| Strikethrough | `Ctrl + Shift + X` | `Cmd + Shift + X` |
+| Code (inline) | `Ctrl + E` | `Cmd + E` |
+| Clear formatting | `Ctrl + \` | `Cmd + \` |
+
+## Block Formatting
+
+| Action | Windows/Linux | macOS |
+|--------|---------------|-------|
+| Normal paragraph | `Ctrl + 0` | `Cmd + 0` |
+| Heading 1 | `Ctrl + 1` | `Cmd + 1` |
+| Heading 2 | `Ctrl + 2` | `Cmd + 2` |
+| Heading 3 | `Ctrl + 3` | `Cmd + 3` |
+| Heading 4 | `Ctrl + 4` | `Cmd + 4` |
+| Heading 5 | `Ctrl + 5` | `Cmd + 5` |
+| Heading 6 | `Ctrl + 6` | `Cmd + 6` |
+| Bullet list | `Ctrl + Shift + 7` | `Cmd + Shift + 7` |
+| Numbered list | `Ctrl + Shift + 8` | `Cmd + Shift + 8` |
+| Blockquote | `Ctrl + Shift + 9` | `Cmd + Shift + 9` |
+| Horizontal rule | `Ctrl + Shift + H` | `Cmd + Shift + H` |
 
 ## History
 
@@ -35,6 +53,13 @@ When inside a list item:
 | Indent list item | `Ctrl + ]` | `Cmd + ]` |
 | Outdent list item | `Ctrl + [` | `Cmd + [` |
 | Line break (no new item) | `Shift + Enter` | `Shift + Enter` |
+
+## Navigation
+
+| Action | Windows/Linux | macOS |
+|--------|---------------|-------|
+| Quick Open | `Ctrl + P` | `Cmd + P` |
+| Find in document | `Ctrl + F` | `Cmd + F` |
 
 ## Element References
 
@@ -56,18 +81,13 @@ Standard browser/OS shortcuts work as expected:
 | Paste | `Ctrl + V` | `Cmd + V` |
 | Select all | `Ctrl + A` | `Cmd + A` |
 
-## Toolbar Access
+## Toolbar-Only Actions
 
-Other formatting options (headings, alignment, blockquotes, links, horizontal rules) are available through the toolbar. Use the toolbar buttons or dropdown menus for:
+These actions are available through the toolbar but do not have keyboard shortcuts:
 
-- Heading levels (H1-H6)
 - Text alignment (left, center, right, justify)
-- Bullet and numbered lists
-- Blockquotes
 - Links
-- Horizontal rules
-- Strikethrough
-- Clear formatting
+- Tags and snapshots
 
 ---
 

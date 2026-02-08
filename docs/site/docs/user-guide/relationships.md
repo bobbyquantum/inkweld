@@ -221,7 +221,7 @@ Delete the existing relationship and create a new one with the correct type. Rel
 
 ### Missing Relationship Types?
 
-Custom relationship types are coming in a future update. For now, use the closest built-in type or the generic "Related To" type.
+You can create custom relationship types in **Project Settings → Relationship Types**. Define both a primary label and an inverse label (e.g., "Mentor" / "Student of").
 
 ## Related Documentation
 

@@ -37,10 +37,9 @@ The sync indicator in the toolbar shows your current state:
 | Status | Meaning |
 |--------|---------|
 | **Connected** | Full real-time sync active |
-| **Reconnecting** | Temporarily disconnected, retrying |
 | **Offline** | No connection; changes saved locally |
 
-When you reconnect after working offline, local and remote changes merge automatically.
+When the connection is interrupted, Inkweld shows "Offline" and continues working with local data while attempting to reconnect in the background. When you reconnect, local and remote changes merge automatically.
 
 ## Troubleshooting
 

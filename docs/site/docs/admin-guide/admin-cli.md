@@ -40,14 +40,14 @@ All commands accept `--json` if you prefer machine-readable output.
 The bundled Docker image ships with the CLI and the same dependencies as the backend, which means you can administer a running container without copying files out of it:
 
 ```bash
-docker exec -it inkweld-backend \
-  bun run admin-cli.ts users approve <username>
+docker exec -it inkweld \
+  ./inkweld-server admin users approve <username>
 ```
 
 Because the command executes inside the container, it reuses every environment variable you passed to `docker run`/Compose—no need to maintain duplicate `.env` files.
 
 ## Safety checklist
 
-- Never point the CLI at production without confirming `DATABASE_URL`, `DATA_PATH`, and `SESSION_SECRET`.
+- Never point the CLI at production without confirming `DB_PATH`, `DATA_PATH`, and `SESSION_SECRET`.
 - Stick with read-only commands in recovery scenarios; write operations immediately affect the live project store.
 - Rotate credentials after running the CLI on ad-hoc machines, especially when working inside shared containers.

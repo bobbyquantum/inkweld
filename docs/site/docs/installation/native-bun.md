@@ -97,11 +97,11 @@ For development with hot reload:
 
 ```bash
 # From project root
-npm start
+npm run dev
 
 # Or individually:
 cd backend && bun run dev     # Backend on :8333
-cd frontend && npm start      # Frontend on :4200
+cd frontend && bun run start  # Frontend on :4200
 ```
 
 ## Configuration

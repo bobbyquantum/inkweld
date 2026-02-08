@@ -138,7 +138,7 @@ Check your sync status:
 Access settings from the project menu:
 
 - **Project details** - Edit title, description, slug
-- **Collaborators** - Invite team members (coming soon)
+- **Collaborators** - Invite team members and manage access
 - **Publishing** - Configure and run export plans
 - **Delete** - Permanently remove the project
 

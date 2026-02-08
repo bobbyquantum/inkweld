@@ -32,7 +32,7 @@ Clone and run from source:
 git clone https://github.com/bobbyquantum/inkweld.git
 cd inkweld
 bun install
-npm start
+npm run dev
 ```
 
 The frontend runs on port 4200, backend on port 8333.
