@@ -38,6 +38,7 @@ export class AdminSettingsComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly error = signal<Error | null>(null);
   readonly userApprovalRequired = signal(false);
+  readonly requireEmailEnabled = signal(false);
 
   // AI Kill Switch state
   readonly aiKillSwitchEnabled = signal(true); // Default to ON (AI disabled)
@@ -52,12 +53,14 @@ export class AdminSettingsComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const [userApproval, aiKillSwitch] = await Promise.all([
+      const [userApproval, aiKillSwitch, requireEmail] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
+        this.configService.getConfig('REQUIRE_EMAIL'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
+      this.requireEmailEnabled.set(requireEmail?.value === 'true');
 
       // For AI kill switch, also check the system config for lockedByEnv status
       const aiKillSwitchValue = aiKillSwitch?.value !== 'false'; // Default to true
@@ -92,6 +95,26 @@ export class AdminSettingsComponent implements OnInit {
       this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
       // Revert toggle on failure
       this.userApprovalRequired.set(!enabled);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async toggleRequireEmail(enabled: boolean): Promise<void> {
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig(
+        'REQUIRE_EMAIL',
+        enabled ? 'true' : 'false'
+      );
+      this.requireEmailEnabled.set(enabled);
+      this.systemConfigService.refreshSystemFeatures();
+      this.snackBar.open('Setting saved', 'Close', { duration: 2000 });
+    } catch (err) {
+      console.error('Failed to save setting:', err);
+      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+      this.requireEmailEnabled.set(!enabled);
     } finally {
       this.isSaving.set(false);
     }

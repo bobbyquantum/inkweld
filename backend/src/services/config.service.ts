@@ -133,6 +133,10 @@ class ConfigService {
         return 'false';
       case 'AI_IMAGE_FALAI_ENABLED':
         return 'false';
+      case 'EMAIL_ENABLED':
+        return 'false';
+      case 'REQUIRE_EMAIL':
+        return 'false';
       default:
         return undefined;
     }

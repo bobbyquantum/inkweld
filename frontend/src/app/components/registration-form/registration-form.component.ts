@@ -45,6 +45,7 @@ import {
 } from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 
@@ -107,6 +108,9 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   private overlayPositionBuilder = inject(OverlayPositionBuilder);
   private viewContainerRef = inject(ViewContainerRef);
   private changeDetectorRef = inject(ChangeDetectorRef);
+  private systemConfig = inject(SystemConfigService);
+
+  readonly isRequireEmail = this.systemConfig.isRequireEmailEnabled;
 
   /** Whether to show the submit button (can be hidden if parent handles submission) */
   @Input() showSubmitButton = true;
@@ -176,6 +180,10 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       username: this.fb.control('', {
         validators: [Validators.required, Validators.minLength(3)],
       }),
+      displayName: this.fb.control(''),
+      email: this.fb.control('', {
+        validators: [Validators.email],
+      }),
       password: this.fb.control('', {
         validators: [
           Validators.required,
@@ -241,6 +249,10 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     return this.registerForm.get('confirmPassword');
   }
 
+  get emailControl() {
+    return this.registerForm.get('email');
+  }
+
   /** Check if the form is valid */
   get isValid(): boolean {
     return this.registerForm.valid;
@@ -277,6 +289,24 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       .subscribe(() => {
         this.validityChange.emit(this.registerForm.valid);
       });
+
+    // Set email as required if REQUIRE_EMAIL is enabled
+    this.updateEmailRequiredValidator();
+  }
+
+  /**
+   * Update the email field's required validator based on the REQUIRE_EMAIL config.
+   */
+  private updateEmailRequiredValidator(): void {
+    const emailControl = this.emailControl;
+    if (!emailControl) return;
+
+    if (this.isRequireEmail()) {
+      emailControl.setValidators([Validators.required, Validators.email]);
+    } else {
+      emailControl.setValidators([Validators.email]);
+    }
+    emailControl.updateValueAndValidity();
   }
 
   ngOnDestroy(): void {
@@ -494,6 +524,17 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     return '';
   }
 
+  getEmailErrorMessage(): string {
+    const control = this.emailControl;
+    if (control?.hasError('required')) {
+      return 'Email address is required';
+    }
+    if (control?.hasError('email')) {
+      return 'Please enter a valid email address';
+    }
+    return '';
+  }
+
   /**
    * Submit the registration form.
    * Can be called externally by parent components.
@@ -522,12 +563,26 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       username: string;
       password: string;
       confirmPassword: string;
+      displayName: string;
+      email: string;
     };
 
-    const credentials = {
+    const credentials: {
+      username: string;
+      password: string;
+      name?: string;
+      email?: string;
+    } = {
       username: formValues.username,
       password: formValues.password,
     };
+
+    if (formValues.displayName?.trim()) {
+      credentials.name = formValues.displayName.trim();
+    }
+    if (formValues.email?.trim()) {
+      credentials.email = formValues.email.trim();
+    }
 
     // If external submit mode, just emit the values and let parent handle it
     if (this.externalSubmit) {

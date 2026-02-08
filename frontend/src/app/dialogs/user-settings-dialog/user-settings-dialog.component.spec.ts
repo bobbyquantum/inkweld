@@ -10,6 +10,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child components
 @Component({
+  selector: 'app-account-settings',
+  standalone: true,
+  template: '<div>Account Settings</div>',
+})
+class MockAccountSettingsComponent {}
+
+@Component({
   selector: 'app-project-tree-settings',
   standalone: true,
   template: '<div>Project Tree Settings</div>',
@@ -55,12 +62,18 @@ describe('UserSettingsDialogComponent', () => {
       standalone: true,
       imports: [
         MatDialogModule,
+        MockAccountSettingsComponent,
         MockProjectTreeSettingsComponent,
         MockProjectSettingsComponent,
       ],
       template: `
         <div class="settings-dialog">
           <nav class="settings-nav">
+            <button
+              (click)="selectCategory('account')"
+              [attr.aria-selected]="selectedCategory === 'account'">
+              Account
+            </button>
             <button
               (click)="selectCategory('project-tree')"
               [attr.aria-selected]="selectedCategory === 'project-tree'">
@@ -73,7 +86,9 @@ describe('UserSettingsDialogComponent', () => {
             </button>
           </nav>
           <div class="settings-content">
-            @if (selectedCategory === 'project') {
+            @if (selectedCategory === 'account') {
+              <app-account-settings />
+            } @else if (selectedCategory === 'project') {
               <app-project-settings />
             } @else if (selectedCategory === 'project-tree') {
               <app-project-tree-settings />
@@ -104,17 +119,17 @@ describe('UserSettingsDialogComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with project-tree category selected', () => {
-    expect(component.selectedCategory).toBe('project-tree');
+  it('should initialize with account category selected', () => {
+    expect(component.selectedCategory).toBe('account');
   });
 
   it('should change category when selectCategory is called', () => {
     component.selectCategory('project');
     expect(component.selectedCategory).toBe('project');
-    expect(component.previousCategory).toBe('project-tree');
+    expect(component.previousCategory).toBe('account');
   });
 
-  it('should return correct animation state when moving from project-tree to project', () => {
+  it('should return correct animation state when moving from account to project', () => {
     component.selectCategory('project');
     const animationState = component.getAnimationState();
     expect(animationState.value).toBe('project');
@@ -122,11 +137,11 @@ describe('UserSettingsDialogComponent', () => {
     expect(animationState.params.leaveTransform).toBe('-100%');
   });
 
-  it('should return correct animation state when moving from project to project-tree', () => {
+  it('should return correct animation state when moving from project to account', () => {
     component.selectCategory('project');
-    component.selectCategory('project-tree');
+    component.selectCategory('account');
     const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('project-tree');
+    expect(animationState.value).toBe('account');
     expect(animationState.params.enterTransform).toBe('-100%');
     expect(animationState.params.leaveTransform).toBe('100%');
   });
@@ -150,21 +165,21 @@ describe('UserSettingsDialogComponent', () => {
 
   it('should have correct aria-selected attribute for nav items', () => {
     // Test component state instead of DOM to avoid ExpressionChangedAfterItHasBeenCheckedError
-    expect(component.selectedCategory).toBe('project-tree');
+    expect(component.selectedCategory).toBe('account');
 
     component.selectCategory('project');
     expect(component.selectedCategory).toBe('project');
 
-    component.selectCategory('project-tree');
-    expect(component.selectedCategory).toBe('project-tree');
+    component.selectCategory('account');
+    expect(component.selectedCategory).toBe('account');
   });
 
   it('should change category when nav item is clicked', () => {
     const navItems = fixture.debugElement.queryAll(
       By.css('.settings-nav button')
     );
-    // Click on project button (second button)
-    (navItems[1].nativeElement as HTMLElement).click();
+    // Click on project button (third button)
+    (navItems[2].nativeElement as HTMLElement).click();
     expect(component.selectedCategory).toBe('project');
   });
 

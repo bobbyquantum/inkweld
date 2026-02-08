@@ -1,0 +1,154 @@
+.email-settings-container {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-card {
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--mat-sys-error);
+    }
+
+    p {
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+}
+
+.setting-card {
+  mat-card-content {
+    padding: 16px;
+  }
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.setting-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-label {
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .email-icon {
+    color: var(--mat-sys-primary);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.setting-description {
+  font-size: 13px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+  margin: 16px 0 8px 0;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.actions-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.button-spinner {
+  display: inline-block;
+}
+
+.test-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &.success {
+    background: rgba(76, 175, 80, 0.1);
+    border-left: 4px solid #4caf50;
+    color: var(--mat-sys-on-surface);
+
+    mat-icon {
+      color: #4caf50;
+    }
+  }
+
+  &.failure {
+    background: rgba(244, 67, 54, 0.1);
+    border-left: 4px solid #f44336;
+    color: var(--mat-sys-on-surface);
+
+    mat-icon {
+      color: #f44336;
+    }
+  }
+}

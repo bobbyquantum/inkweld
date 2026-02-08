@@ -54,6 +54,34 @@
   }
 
   <mat-form-field appearance="outline">
+    <mat-label>Display Name</mat-label>
+    <input
+      matInput
+      type="text"
+      formControlName="displayName"
+      aria-label="Display Name"
+      [attr.data-testid]="testIdPrefix + 'display-name-input'" />
+    <mat-hint>Optional. Shown instead of username.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Email Address</mat-label>
+    <input
+      matInput
+      type="email"
+      formControlName="email"
+      [required]="isRequireEmail()"
+      aria-label="Email Address"
+      [attr.data-testid]="testIdPrefix + 'email-input'" />
+    @if (isRequireEmail()) {
+      <mat-hint>Required for password resets and notifications.</mat-hint>
+    } @else {
+      <mat-hint>Optional. Used for password resets.</mat-hint>
+    }
+    <mat-error>{{ getEmailErrorMessage() }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
     <mat-label>Password</mat-label>
     <input
       #passwordField

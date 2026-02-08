@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 import { HttpHeaders, HttpParameterCodec } from "@angular/common/http";
 import { Configuration } from "@inkweld/configuration";
-import { User, UsernameAvailability, RegisterRequest } from "@inkweld/index";
+import { UpdateProfileRequest, User, UsernameAvailability, RegisterRequest } from "@inkweld/index";
 import { Observable } from "rxjs";
 
 export const userServiceMock = {
@@ -12,5 +12,6 @@ export const userServiceMock = {
   checkUsernameAvailability: vi.fn<(username: string) => Observable<UsernameAvailability>>(),
   getCurrentUser: vi.fn<() => Observable<User>>(),
   listOAuthProviders: vi.fn<() => Observable<string[]>>(),
-  registerUser: vi.fn<(dto: RegisterRequest) => Observable<User>>()
+  registerUser: vi.fn<(dto: RegisterRequest) => Observable<User>>(),
+  updateProfile: vi.fn<(dto: UpdateProfileRequest) => Observable<User>>()
 };

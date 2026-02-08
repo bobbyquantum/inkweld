@@ -15,11 +15,23 @@
       <a
         mat-list-item
         role="tab"
+        (click)="selectCategory('account')"
+        (keydown.enter)="selectCategory('account')"
+        [attr.aria-selected]="selectedCategory === 'account'"
+        [class.active]="selectedCategory === 'account'"
+        tabindex="0"
+        aria-label="Account settings">
+        <mat-icon matListItemIcon>person</mat-icon>
+        <span matListItemTitle>Account</span>
+      </a>
+      <a
+        mat-list-item
+        role="tab"
         (click)="selectCategory('project-tree')"
         (keydown.enter)="selectCategory('project-tree')"
         [attr.aria-selected]="selectedCategory === 'project-tree'"
         [class.active]="selectedCategory === 'project-tree'"
-        tabindex="0"
+        tabindex="1"
         aria-label="Project Tree settings">
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <span matListItemTitle>Project Tree</span>
@@ -31,7 +43,7 @@
         (keydown.enter)="selectCategory('project')"
         [attr.aria-selected]="selectedCategory === 'project'"
         [class.active]="selectedCategory === 'project'"
-        tabindex="1"
+        tabindex="2"
         aria-label="Project settings">
         <mat-icon matListItemIcon>description</mat-icon>
         <span matListItemTitle>Project</span>
@@ -44,6 +56,9 @@
       role="tabpanel"
       [@slideAnimation]="getAnimationState()">
       @switch (selectedCategory) {
+        @case ('account') {
+          <app-account-settings />
+        }
         @case ('project-tree') {
           <app-project-tree-settings />
         }

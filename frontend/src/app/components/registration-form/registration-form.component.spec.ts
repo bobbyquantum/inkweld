@@ -6,6 +6,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthenticationService, User } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
@@ -19,6 +20,7 @@ describe('RegistrationFormComponent', () => {
   let userService: MockedObject<UserService>;
   let snackBar: MockedObject<MatSnackBar>;
   let setupService: MockedObject<SetupService>;
+  let systemConfigService: { isRequireEmailEnabled: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     authService = {
@@ -37,6 +39,10 @@ describe('RegistrationFormComponent', () => {
       getServerUrl: vi.fn().mockReturnValue(''),
     } as unknown as MockedObject<SetupService>;
 
+    systemConfigService = {
+      isRequireEmailEnabled: vi.fn().mockReturnValue(false),
+    };
+
     await TestBed.configureTestingModule({
       imports: [RegistrationFormComponent],
       providers: [
@@ -47,6 +53,7 @@ describe('RegistrationFormComponent', () => {
         { provide: UserService, useValue: userService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: SetupService, useValue: setupService },
+        { provide: SystemConfigService, useValue: systemConfigService },
       ],
     }).compileComponents();
 
@@ -75,6 +82,30 @@ describe('RegistrationFormComponent', () => {
       expect(usernameControl?.hasError('required')).toBe(true);
       expect(passwordControl?.hasError('required')).toBe(true);
       expect(confirmPasswordControl?.hasError('required')).toBe(true);
+    });
+
+    it('should have optional display name and email controls', () => {
+      expect(component.registerForm.get('displayName')?.value).toBe('');
+      expect(component.registerForm.get('email')?.value).toBe('');
+      // Not required by default
+      expect(component.registerForm.get('displayName')?.valid).toBe(true);
+      expect(component.registerForm.get('email')?.valid).toBe(true);
+    });
+
+    it('should require email when requireEmail is enabled', () => {
+      systemConfigService.isRequireEmailEnabled.mockReturnValue(true);
+      // Trigger the private validator update via ngOnInit re-entry
+      component.ngOnInit();
+      const emailControl = component.registerForm.get('email');
+      expect(emailControl?.hasError('required')).toBe(true);
+    });
+
+    it('should validate email format', () => {
+      const emailControl = component.registerForm.get('email');
+      emailControl?.setValue('not-an-email');
+      expect(emailControl?.hasError('email')).toBe(true);
+      emailControl?.setValue('valid@example.com');
+      expect(emailControl?.valid).toBe(true);
     });
   });
 
@@ -207,6 +238,43 @@ describe('RegistrationFormComponent', () => {
       expect(authService.registerUser).toHaveBeenCalledWith({
         username: 'testuser',
         password: 'ValidPass123!',
+      });
+    });
+
+    it('should include name and email when provided', async () => {
+      component.registerForm.get('username')?.setValue('testuser');
+      component.registerForm.get('password')?.setValue('ValidPass123!');
+      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('displayName')?.setValue('Test User');
+      component.registerForm.get('email')?.setValue('test@example.com');
+
+      const mockUser: User = {
+        id: '1',
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+        enabled: true,
+      };
+
+      const registerUserMock = authService.registerUser as ReturnType<
+        typeof vi.fn
+      >;
+      registerUserMock.mockReturnValue(
+        of({
+          message: 'Registration successful',
+          user: mockUser,
+          token: 'test-token',
+          requiresApproval: false,
+        })
+      );
+
+      await component.submit();
+
+      expect(authService.registerUser).toHaveBeenCalledWith({
+        username: 'testuser',
+        password: 'ValidPass123!',
+        name: 'Test User',
+        email: 'test@example.com',
       });
     });
 

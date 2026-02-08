@@ -8,6 +8,7 @@ import { provideRouter, Router } from '@angular/router';
 import { RegistrationResult } from '@components/registration-form/registration-form.component';
 import { AuthenticationService, User } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
@@ -44,6 +45,10 @@ describe('RegisterDialogComponent', () => {
       getServerUrl: vi.fn().mockReturnValue(''),
     } as unknown as MockedObject<SetupService>;
 
+    const systemConfigService = {
+      isRequireEmailEnabled: vi.fn().mockReturnValue(false),
+    };
+
     await TestBed.configureTestingModule({
       imports: [RegisterDialogComponent],
       providers: [
@@ -56,6 +61,7 @@ describe('RegisterDialogComponent', () => {
         { provide: UserService, useValue: userService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: SetupService, useValue: setupService },
+        { provide: SystemConfigService, useValue: systemConfigService },
       ],
     }).compileComponents();
 

@@ -57,6 +57,14 @@ const SystemFeaturesSchema = z
     userApprovalRequired: z
       .boolean()
       .openapi({ example: false, description: 'Whether admin approval is required for new users' }),
+    emailEnabled: z.boolean().openapi({
+      example: false,
+      description: 'Whether transactional email is enabled (affects forgot-password availability)',
+    }),
+    requireEmail: z.boolean().openapi({
+      example: false,
+      description: 'Whether email address is required during registration',
+    }),
   })
   .openapi('SystemFeatures');
 
@@ -147,6 +155,12 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // Get default server name
   const defaultServerName = process.env.DEFAULT_SERVER_NAME?.trim() || undefined;
 
+  // Check if email is enabled
+  const emailEnabled = await configService.getBoolean(db, 'EMAIL_ENABLED');
+
+  // Check if email is required for registration
+  const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
+
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -155,6 +169,8 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     appMode,
     defaultServerName,
     userApprovalRequired: config.userApprovalRequired,
+    emailEnabled,
+    requireEmail,
   });
 });
 

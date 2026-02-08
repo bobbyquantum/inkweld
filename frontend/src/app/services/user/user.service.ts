@@ -3,7 +3,12 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { AuthenticationService, User, UsersService } from '@inkweld/index';
+import {
+  AuthenticationService,
+  type UpdateProfileRequest,
+  User,
+  UsersService,
+} from '@inkweld/index';
 import {
   catchError,
   firstValueFrom,
@@ -223,6 +228,16 @@ export class UserService {
       }
     }
     this.currentUser.set(user);
+  }
+
+  /**
+   * Update the current user's profile (display name and/or email).
+   * Returns the updated user.
+   */
+  async updateProfile(data: UpdateProfileRequest): Promise<User> {
+    const updatedUser = await firstValueFrom(this.userAPI.updateProfile(data));
+    await this.setCurrentUser(updatedUser);
+    return updatedUser;
   }
 
   async login(username: string, password: string): Promise<void> {

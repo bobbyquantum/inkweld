@@ -36,6 +36,8 @@ import {
 } from '../routes/announcement.routes';
 import oauthRoutes from '../routes/oauth.routes';
 import robotsRoutes from '../routes/robots.routes';
+import passwordResetRoutes from '../routes/password-reset.routes';
+import { adminEmailRoutes } from '../routes/admin-email.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -101,6 +103,12 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/announcements', publicAnnouncementRoutes);
   app.route('/api/v1/announcements', announcementRoutes);
   app.route('/api/v1/admin/announcements', adminAnnouncementRoutes);
+
+  // Password reset (forgot password / reset password, no auth required)
+  app.route('/api/v1/auth', passwordResetRoutes);
+
+  // Admin email settings (test email)
+  app.route('/api/v1/admin/email', adminEmailRoutes);
 
   // OAuth 2.1 for MCP authorization
   // Note: OAuth routes are mounted at root level for standard .well-known paths

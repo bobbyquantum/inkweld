@@ -10,6 +10,7 @@ export interface User {
   id: string;
   username: string | null;
   name: string | null;
+  email: string | null;
   enabled: boolean;
   isAdmin?: boolean;
 }
