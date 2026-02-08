@@ -165,7 +165,8 @@ export async function updateWorldbuilding(
   username: string,
   slug: string,
   elementId: string,
-  updates: Record<string, unknown>
+  updates: Record<string, unknown>,
+  mapName: 'worldbuilding' | 'identity' = 'worldbuilding'
 ): Promise<void> {
   const docId = `${username}:${slug}:${elementId}/`;
 
@@ -178,8 +179,9 @@ export async function updateWorldbuilding(
     const workerService = new YjsWorkerService(workerCtx);
 
     // Convert updates to path-based format
+    const pathPrefix = mapName === 'identity' ? 'identity.' : '';
     const pathUpdates = Object.entries(updates).map(([key, value]) => ({
-      path: `identity.${key}`,
+      path: `${pathPrefix}${key}`,
       value,
     }));
     await workerService.applyUpdates(docId, pathUpdates);
@@ -187,11 +189,11 @@ export async function updateWorldbuilding(
     // Bun: use LevelDB service
     const { yjsService } = await import('../../services/yjs.service');
     const sharedDoc = await yjsService.getDocument(docId);
-    const identityMap = sharedDoc.doc.getMap('identity');
+    const targetMap = sharedDoc.doc.getMap(mapName);
 
     sharedDoc.doc.transact(() => {
       for (const [key, value] of Object.entries(updates)) {
-        identityMap.set(key, value);
+        targetMap.set(key, value);
       }
     });
   }

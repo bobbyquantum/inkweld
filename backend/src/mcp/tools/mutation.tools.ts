@@ -1008,7 +1008,7 @@ registerTool({
         fields: {
           type: 'object',
           description:
-            'Key-value pairs of fields to update. Special fields: "description" and "image" are stored separately. Schema fields depend on element type.',
+            'Key-value pairs of fields to update. Use field names directly without prefixes (e.g., "age", "occupation", not "worldbuilding.age"). Special identity fields: "description" and "image" are stored in a separate identity namespace.',
           additionalProperties: true,
         },
       },
@@ -1063,15 +1063,19 @@ registerTool({
 
       // Apply updates using runtime-aware function
       if (Object.keys(identityUpdates).length > 0) {
-        await updateWorldbuilding(ctx, username, slug, elementId, identityUpdates);
+        await updateWorldbuilding(ctx, username, slug, elementId, identityUpdates, 'identity');
       }
 
-      // For worldbuilding map updates, we need to handle them separately
+      // Apply worldbuilding map updates
       if (Object.keys(worldbuildingUpdates).length > 0) {
-        // Currently, worldbuilding map updates use the same pattern via updateWorldbuilding
-        // but with a different path prefix. For now, use the identity map for all updates.
-        // TODO: Add separate worldbuilding map support in yjs-runtime.ts if needed
-        await updateWorldbuilding(ctx, username, slug, elementId, worldbuildingUpdates);
+        await updateWorldbuilding(
+          ctx,
+          username,
+          slug,
+          elementId,
+          worldbuildingUpdates,
+          'worldbuilding'
+        );
       }
 
       const updatedFields = Object.keys(fields);
