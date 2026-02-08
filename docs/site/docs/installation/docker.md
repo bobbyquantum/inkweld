@@ -112,7 +112,7 @@ docker ps
 docker logs inkweld
 
 # Test health endpoint
-curl http://localhost:8333/health
+curl http://localhost:8333/api/v1/health
 ```
 
 You should see:
@@ -141,7 +141,7 @@ services:
     volumes:
       - inkweld_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8333/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8333/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3

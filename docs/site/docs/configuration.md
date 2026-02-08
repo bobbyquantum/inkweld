@@ -477,10 +477,12 @@ wrangler secret put SESSION_SECRET --env production
 | `SERVE_FRONTEND` | `true` | Serve embedded frontend |
 | `FRONTEND_DIST` | - | External frontend path |
 | `OPENAI_API_KEY` | - | OpenAI API key for AI features |
+| `AI_KILL_SWITCH` | `true` | Disable all AI features when `true` |
 | `WORKERSAI_ACCOUNT_ID` | - | Cloudflare Account ID for Workers AI |
 | `WORKERSAI_API_TOKEN` | - | Cloudflare Workers AI API token |
 | `COOKIE_DOMAIN` | Auto | Cookie domain |
 | `GC` | `true` | Yjs garbage collection |
+| `LOG_LEVEL` | `debug`/`info` | Log verbosity (`debug`, `info`, `warn`, `error`, `none`) |
 
 ---
 
