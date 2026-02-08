@@ -165,10 +165,9 @@ describe('Admin Routes', () => {
     });
 
     it('should delete a user', async () => {
-      const { response, json } = await adminClient.request(
-        `/api/v1/admin/users/${pendingUserId}`,
-        { method: 'DELETE' }
-      );
+      const { response, json } = await adminClient.request(`/api/v1/admin/users/${pendingUserId}`, {
+        method: 'DELETE',
+      });
       expect(response.status).toBe(200);
       const data = await json();
       expect(data.message).toBe('User deleted');
@@ -331,9 +330,7 @@ describe('Announcement Routes', () => {
     });
 
     it('should return 404 for non-existent announcement', async () => {
-      const { response } = await adminClient.request(
-        '/api/v1/admin/announcements/non-existent-id'
-      );
+      const { response } = await adminClient.request('/api/v1/admin/announcements/non-existent-id');
       expect(response.status).toBe(404);
     });
   });
@@ -380,10 +377,9 @@ describe('Announcement Routes', () => {
     });
 
     it('should return 404 for non-existent announcement mark-read', async () => {
-      const { response } = await client.request(
-        '/api/v1/announcements/non-existent-id/read',
-        { method: 'POST' }
-      );
+      const { response } = await client.request('/api/v1/announcements/non-existent-id/read', {
+        method: 'POST',
+      });
       expect(response.status).toBe(404);
     });
   });
@@ -497,9 +493,7 @@ describe('Snapshot Routes', () => {
   });
 
   it('should return 404 for non-existent project', async () => {
-    const { response } = await client.request(
-      '/api/v1/snapshots/routeuser/nonexistent-project'
-    );
+    const { response } = await client.request('/api/v1/snapshots/routeuser/nonexistent-project');
     expect(response.status).toBe(404);
   });
 
@@ -541,16 +535,12 @@ describe('MCP Key Routes', () => {
 
   it('should reject unauthenticated access', async () => {
     const unauthClient = new TestClient(testServer.baseUrl);
-    const { response } = await unauthClient.request(
-      `/api/v1/mcp-keys/routeuser/mcp-key-test/keys`
-    );
+    const { response } = await unauthClient.request(`/api/v1/mcp-keys/routeuser/mcp-key-test/keys`);
     expect(response.status).toBe(401);
   });
 
   it('should list keys (empty)', async () => {
-    const { response, json } = await client.request(
-      `/api/v1/mcp-keys/routeuser/mcp-key-test/keys`
-    );
+    const { response, json } = await client.request(`/api/v1/mcp-keys/routeuser/mcp-key-test/keys`);
     expect(response.status).toBe(200);
     const data = await json();
     expect(Array.isArray(data)).toBe(true);
