@@ -4,6 +4,7 @@ import onlineConfig from './playwright.online.config';
 import localConfig from './playwright.local.config';
 import wranglerConfig from './playwright.wrangler.config';
 import screenshotsConfig from './playwright.screenshots.config';
+import mcpConfig from './playwright.mcp.config';
 
 const configMap = {
   docker: dockerConfig,
@@ -11,6 +12,7 @@ const configMap = {
   local: localConfig,
   wrangler: wranglerConfig,
   screenshots: screenshotsConfig,
+  mcp: mcpConfig,
 };
 
 const configType = process.env.TEST_ENV || 'online';

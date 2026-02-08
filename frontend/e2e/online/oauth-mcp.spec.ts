@@ -16,11 +16,11 @@ test.describe('OAuth Discovery Endpoints', () => {
     expect(response.ok()).toBeTruthy();
 
     const metadata = (await response.json()) as Record<string, unknown>;
-    expect(metadata.resource).toBeDefined();
-    expect(metadata.authorization_servers).toBeDefined();
-    expect(metadata.scopes_supported).toBeDefined();
+    expect(metadata['resource']).toBeDefined();
+    expect(metadata['authorization_servers']).toBeDefined();
+    expect(metadata['scopes_supported']).toBeDefined();
 
-    const scopes = metadata.scopes_supported as string[];
+    const scopes = metadata['scopes_supported'] as string[];
     expect(scopes).toContain('mcp:tools');
     expect(scopes).toContain('mcp:resources');
     expect(scopes).toContain('read:project');
@@ -35,7 +35,7 @@ test.describe('OAuth Discovery Endpoints', () => {
     expect(response.ok()).toBeTruthy();
 
     const metadata = (await response.json()) as Record<string, unknown>;
-    expect(metadata.resource).toContain('/api/v1/ai/mcp');
+    expect(metadata['resource']).toContain('/api/v1/ai/mcp');
   });
 
   test('should serve Authorization Server Metadata', async ({ page }) => {
@@ -45,19 +45,19 @@ test.describe('OAuth Discovery Endpoints', () => {
     expect(response.ok()).toBeTruthy();
 
     const metadata = (await response.json()) as Record<string, unknown>;
-    expect(metadata.issuer).toBeDefined();
-    expect(metadata.authorization_endpoint).toBeDefined();
-    expect(metadata.token_endpoint).toBeDefined();
-    expect(metadata.registration_endpoint).toBeDefined();
-    expect(metadata.revocation_endpoint).toBeDefined();
-    expect(metadata.response_types_supported).toEqual(['code']);
-    expect(metadata.grant_types_supported).toEqual([
+    expect(metadata['issuer']).toBeDefined();
+    expect(metadata['authorization_endpoint']).toBeDefined();
+    expect(metadata['token_endpoint']).toBeDefined();
+    expect(metadata['registration_endpoint']).toBeDefined();
+    expect(metadata['revocation_endpoint']).toBeDefined();
+    expect(metadata['response_types_supported']).toEqual(['code']);
+    expect(metadata['grant_types_supported']).toEqual([
       'authorization_code',
       'refresh_token',
     ]);
-    expect(metadata.code_challenge_methods_supported).toEqual(['S256']);
+    expect(metadata['code_challenge_methods_supported']).toEqual(['S256']);
 
-    const scopes = metadata.scopes_supported as string[];
+    const scopes = metadata['scopes_supported'] as string[];
     expect(scopes).toContain('mcp:tools');
     expect(scopes).toContain('mcp:resources');
   });
@@ -69,9 +69,9 @@ test.describe('OAuth Discovery Endpoints', () => {
     expect(response.ok()).toBeTruthy();
 
     const metadata = (await response.json()) as Record<string, unknown>;
-    expect(metadata.issuer).toBeDefined();
-    expect(metadata.authorization_endpoint).toBeDefined();
-    expect(metadata.token_endpoint).toBeDefined();
+    expect(metadata['issuer']).toBeDefined();
+    expect(metadata['authorization_endpoint']).toBeDefined();
+    expect(metadata['token_endpoint']).toBeDefined();
   });
 });
 
@@ -87,12 +87,12 @@ test.describe('Dynamic Client Registration', () => {
     expect(response.ok()).toBeTruthy();
 
     const client = (await response.json()) as Record<string, unknown>;
-    expect(client.client_id).toBeDefined();
-    expect(client.client_name).toBeDefined();
-    expect(client.redirect_uris).toEqual(['http://localhost:3000/callback']);
-    expect(client.token_endpoint_auth_method).toBe('none');
+    expect(client['client_id']).toBeDefined();
+    expect(client['client_name']).toBeDefined();
+    expect(client['redirect_uris']).toEqual(['http://localhost:3000/callback']);
+    expect(client['token_endpoint_auth_method']).toBe('none');
     // Public clients should not receive a secret
-    expect(client.client_secret).toBeUndefined();
+    expect(client['client_secret']).toBeUndefined();
   });
 
   test('should register a confidential OAuth client', async ({ page }) => {
@@ -106,9 +106,11 @@ test.describe('Dynamic Client Registration', () => {
     expect(response.ok()).toBeTruthy();
 
     const client = (await response.json()) as Record<string, unknown>;
-    expect(client.client_id).toBeDefined();
-    expect(client.client_secret).toBeDefined();
-    expect((client.client_secret as string).startsWith('iw_cs_')).toBeTruthy();
+    expect(client['client_id']).toBeDefined();
+    expect(client['client_secret']).toBeDefined();
+    expect(
+      (client['client_secret'] as string).startsWith('iw_cs_')
+    ).toBeTruthy();
   });
 
   test('should reject registration without client_name', async ({ page }) => {
