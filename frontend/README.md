@@ -65,7 +65,7 @@ graph TD
 
 ### Prerequisites
 
-- Node.js 18 or higher
+- Node.js 22 or higher
 - Package manager (npm, yarn, or bun)
 
 ### Installation
