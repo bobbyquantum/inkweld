@@ -152,14 +152,14 @@ async function getElements(ctx: McpContext, username: string, slug: string): Pro
 }
 
 /**
- * Get worldbuilding data for an element
+ * Get worldbuilding data for an element, returning separate worldbuilding and identity objects
  */
 async function getWorldbuildingData(
   ctx: McpContext,
   username: string,
   slug: string,
   elementId: string
-): Promise<Record<string, unknown> | null> {
+): Promise<{ worldbuilding: Record<string, unknown>; identity: Record<string, unknown> } | null> {
   // Note: The trailing '/' is required because y-websocket appends it to the room URL
   const docId = `${username}:${slug}:${elementId}/`;
 
@@ -169,17 +169,18 @@ async function getWorldbuildingData(
     const dataMap = sharedDoc.doc.getMap('worldbuilding');
     const identityMap = sharedDoc.doc.getMap('identity');
 
-    const result: Record<string, unknown> = {};
+    const worldbuilding: Record<string, unknown> = {};
+    const identity: Record<string, unknown> = {};
 
     dataMap.forEach((value: unknown, key: string) => {
-      result[key] = convertYjsValue(value);
+      worldbuilding[key] = convertYjsValue(value);
     });
 
     identityMap.forEach((value: unknown, key: string) => {
-      result[`identity.${key}`] = convertYjsValue(value);
+      identity[key] = convertYjsValue(value);
     });
 
-    return result;
+    return { worldbuilding, identity };
   } catch {
     return null;
   }
@@ -785,8 +786,13 @@ registerTool({
 
     // Get worldbuilding data if applicable
     let worldbuildingData: Record<string, unknown> | null = null;
+    let identityData: Record<string, unknown> | null = null;
     if (element.type === 'WORLDBUILDING') {
-      worldbuildingData = await getWorldbuildingData(ctx, username, slug, elementId);
+      const data = await getWorldbuildingData(ctx, username, slug, elementId);
+      if (data) {
+        worldbuildingData = data.worldbuilding;
+        identityData = Object.keys(data.identity).length > 0 ? data.identity : null;
+      }
     }
 
     // Get relationships for this element
@@ -836,6 +842,7 @@ registerTool({
                 metadata: element.metadata,
               },
               worldbuilding: worldbuildingData,
+              identity: identityData,
               relationships: relationships.length > 0 ? relationships : null,
             },
             null,
