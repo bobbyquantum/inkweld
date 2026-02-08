@@ -21,6 +21,7 @@ export enum AdminGetAllConfig200ResponseValueCategory {
     Auth = 'auth',
     Ai = 'ai',
     Github = 'github',
+    Email = 'email',
     General = 'general'
 };
 export enum AdminGetAllConfig200ResponseValueSource {

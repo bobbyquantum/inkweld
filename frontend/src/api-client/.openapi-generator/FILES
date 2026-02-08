@@ -88,6 +88,7 @@ model/element-type.ts
 model/element.ts
 model/error-response.ts
 model/falai-model-metadata.ts
+model/forgot-password-request.ts
 model/generated-image.ts
 model/get-mcp-permissions200-response-permissions-inner.ts
 model/get-mcp-permissions200-response.ts
@@ -169,6 +170,7 @@ model/published-file.ts
 model/ready-response.ts
 model/register-request.ts
 model/register-response.ts
+model/reset-password-request.ts
 model/restore-response.ts
 model/set-image-enabled-request.ts
 model/set-provider-account-id-request.ts
@@ -178,6 +180,7 @@ model/share-link-response.ts
 model/snapshot-with-content.ts
 model/style-recommendation.ts
 model/system-features.ts
+model/test-email-response.ts
 model/text-generation-error.ts
 model/text-generation-status.ts
 model/text-model-info.ts
@@ -189,6 +192,7 @@ model/update-collaborator-request.ts
 model/update-custom-image-sizes-request.ts
 model/update-image-model-profile-request.ts
 model/update-o-auth-grant-request.ts
+model/update-profile-request.ts
 model/update-project-request.ts
 model/update-published-file-request.ts
 model/upload-project-media200-response.ts

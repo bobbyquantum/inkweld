@@ -91,6 +91,16 @@ describe('AdminSettingsComponent', () => {
       value: 'true',
       source: 'database',
     });
+
+    const requireEmailReq = httpMock.expectOne(
+      '/api/v1/admin/config/REQUIRE_EMAIL'
+    );
+    expect(requireEmailReq.request.method).toBe('GET');
+    requireEmailReq.flush({
+      key: 'REQUIRE_EMAIL',
+      value: 'false',
+      source: 'database',
+    });
   });
 
   it('should call setConfig when toggle is changed', async () => {
@@ -112,6 +122,12 @@ describe('AdminSettingsComponent', () => {
     getAiKillSwitchReq.flush({
       key: 'AI_KILL_SWITCH',
       value: 'true',
+      source: 'database',
+    });
+
+    httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL').flush({
+      key: 'REQUIRE_EMAIL',
+      value: 'false',
       source: 'database',
     });
 
@@ -152,6 +168,12 @@ describe('AdminSettingsComponent', () => {
       source: 'database',
     });
 
+    httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL').flush({
+      key: 'REQUIRE_EMAIL',
+      value: 'false',
+      source: 'database',
+    });
+
     // Wait for initial config load to complete
     await flushMicrotasks();
 
@@ -189,6 +211,12 @@ describe('AdminSettingsComponent', () => {
         source: 'database',
       });
 
+      httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL').flush({
+        key: 'REQUIRE_EMAIL',
+        value: 'false',
+        source: 'database',
+      });
+
       // Wait for async operations to complete
       await flushMicrotasks();
       fixture.detectChanges();
@@ -207,6 +235,9 @@ describe('AdminSettingsComponent', () => {
       httpMock
         .expectOne('/api/v1/admin/config/AI_KILL_SWITCH')
         .flush({ key: 'AI_KILL_SWITCH', value: 'true', source: 'database' });
+      httpMock
+        .expectOne('/api/v1/admin/config/REQUIRE_EMAIL')
+        .flush({ key: 'REQUIRE_EMAIL', value: 'false', source: 'database' });
 
       await flushMicrotasks();
 
@@ -237,6 +268,9 @@ describe('AdminSettingsComponent', () => {
       httpMock
         .expectOne('/api/v1/admin/config/AI_KILL_SWITCH')
         .flush({ key: 'AI_KILL_SWITCH', value: 'false', source: 'database' });
+      httpMock
+        .expectOne('/api/v1/admin/config/REQUIRE_EMAIL')
+        .flush({ key: 'REQUIRE_EMAIL', value: 'false', source: 'database' });
 
       await flushMicrotasks();
 
@@ -266,6 +300,9 @@ describe('AdminSettingsComponent', () => {
       httpMock
         .expectOne('/api/v1/admin/config/AI_KILL_SWITCH')
         .flush({ key: 'AI_KILL_SWITCH', value: 'true', source: 'database' });
+      httpMock
+        .expectOne('/api/v1/admin/config/REQUIRE_EMAIL')
+        .flush({ key: 'REQUIRE_EMAIL', value: 'false', source: 'database' });
 
       await flushMicrotasks();
       fixture.detectChanges();

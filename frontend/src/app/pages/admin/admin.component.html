@@ -32,6 +32,14 @@
         <mat-icon matListItemIcon>campaign</mat-icon>
         <span matListItemTitle>Announcements</span>
       </a>
+      <a
+        mat-list-item
+        routerLink="email"
+        routerLinkActive="active"
+        data-testid="admin-nav-email">
+        <mat-icon matListItemIcon>email</mat-icon>
+        <span matListItemTitle>Email</span>
+      </a>
       @if (!isAiKillSwitchEnabled()) {
         <a
           mat-list-item

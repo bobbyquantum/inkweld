@@ -38,6 +38,14 @@ export interface SystemFeatures {
      * Whether admin approval is required for new users
      */
     userApprovalRequired: boolean;
+    /**
+     * Whether transactional email is enabled (affects forgot-password availability)
+     */
+    emailEnabled: boolean;
+    /**
+     * Whether email address is required during registration
+     */
+    requireEmail: boolean;
 }
 export enum SystemFeaturesAppMode {
     Online = 'ONLINE',

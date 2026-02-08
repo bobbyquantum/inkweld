@@ -16,6 +16,8 @@ export const RESERVED_USERNAMES = [
   'register',
   'approval-pending',
   'unavailable',
+  'forgot-password',
+  'reset-password',
   'api',
   'assets',
   'static',

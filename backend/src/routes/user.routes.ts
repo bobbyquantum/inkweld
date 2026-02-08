@@ -119,6 +119,93 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// PATCH /me — update current user profile (name, email)
+// ---------------------------------------------------------------------------
+const UpdateProfileRequestSchema = z
+  .object({
+    name: z
+      .string()
+      .max(100)
+      .optional()
+      .openapi({ description: 'Display name', example: 'John Doe' }),
+    email: z
+      .string()
+      .email()
+      .optional()
+      .openapi({ description: 'Email address', example: 'john@example.com' }),
+  })
+  .openapi('UpdateProfileRequest');
+
+const updateProfileRoute = createRoute({
+  method: 'patch',
+  path: '/me',
+  tags: ['Users'],
+  operationId: 'updateProfile',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateProfileRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: UserSchema,
+        },
+      },
+      description: 'Updated user profile',
+    },
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+  },
+});
+
+// PATCH /me requires auth — add middleware
+userRoutes.use('/me', async (c, next) => {
+  // Only intercept PATCH requests for update profile
+  if (c.req.method === 'PATCH') {
+    return requireAuth(c, next);
+  }
+  await next();
+});
+
+userRoutes.openapi(updateProfileRoute, async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+
+  if (!user?.id) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const body = c.req.valid('json');
+  const updated = await userService.updateProfile(db, user.id, body);
+
+  return c.json(
+    {
+      id: updated.id,
+      username: updated.username || '',
+      name: updated.name || null,
+      email: updated.email || undefined,
+      enabled: updated.enabled,
+      approved: updated.approved,
+      isAdmin: updated.isAdmin,
+      hasAvatar: updated.hasAvatar,
+    },
+    200
+  );
+});
+
 // Query parameters for user list
 const ListUsersQuerySchema = z.object({
   search: z.string().optional().openapi({ description: 'Search by username or email' }),

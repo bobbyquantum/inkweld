@@ -29,6 +29,8 @@ const LOCAL_DEFAULTS: SystemFeatures = {
   aiImageGeneration: false,
   userApprovalRequired: false, // No approval needed in local mode
   appMode: SystemFeaturesAppMode.Local,
+  emailEnabled: false,
+  requireEmail: false,
 };
 
 /** Default system features when server is unavailable (degraded mode) */
@@ -39,6 +41,8 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   aiImageGeneration: false,
   userApprovalRequired: true, // Keep strict in server mode
   appMode: SystemFeaturesAppMode.Local, // Treat as local when server is down
+  emailEnabled: false,
+  requireEmail: false,
 };
 
 @Injectable({
@@ -55,6 +59,8 @@ export class SystemConfigService {
     aiImageGeneration: false,
     userApprovalRequired: true,
     appMode: SystemFeaturesAppMode.Both,
+    emailEnabled: false,
+    requireEmail: false,
   });
 
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
@@ -81,6 +87,12 @@ export class SystemConfigService {
   );
   public readonly isUserApprovalRequired = computed(
     () => this.systemFeaturesSignal().userApprovalRequired ?? true
+  );
+  public readonly isEmailEnabled = computed(
+    () => this.systemFeaturesSignal().emailEnabled ?? false
+  );
+  public readonly isRequireEmailEnabled = computed(
+    () => this.systemFeaturesSignal().requireEmail ?? false
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 

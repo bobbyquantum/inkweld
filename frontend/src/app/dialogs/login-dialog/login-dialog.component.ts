@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService, UserServiceError } from '@services/user/user.service';
 
 @Component({
@@ -31,6 +32,9 @@ export class LoginDialogComponent {
   private snackBar = inject(MatSnackBar);
   private userService = inject(UserService);
   private router = inject(Router);
+  private systemConfig = inject(SystemConfigService);
+
+  readonly isEmailEnabled = this.systemConfig.isEmailEnabled;
 
   username = '';
   password = '';
@@ -146,5 +150,10 @@ export class LoginDialogComponent {
 
   onRegisterClick(): void {
     this.dialogRef.close('register'); // Signal to open register dialog
+  }
+
+  goToForgotPassword(): void {
+    this.dialogRef.close(false);
+    void this.router.navigate(['/forgot-password']);
   }
 }

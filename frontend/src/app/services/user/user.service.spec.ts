@@ -230,6 +230,43 @@ describe('UserService', () => {
     });
   });
 
+  describe('updateProfile', () => {
+    it('should update profile and refresh cached user', async () => {
+      const updatedUser: User = {
+        ...TEST_USER,
+        name: 'New Name',
+        email: 'new@example.com',
+      };
+      userServiceMock.updateProfile.mockReturnValue(of(updatedUser));
+
+      await service.setCurrentUser(TEST_USER);
+      const result = await service.updateProfile({
+        name: 'New Name',
+        email: 'new@example.com',
+      });
+
+      expect(result).toEqual(updatedUser);
+      expect(service.currentUser()).toEqual(updatedUser);
+      expect(userServiceMock.updateProfile).toHaveBeenCalledWith({
+        name: 'New Name',
+        email: 'new@example.com',
+      });
+    });
+
+    it('should update only name when email is not provided', async () => {
+      const updatedUser: User = { ...TEST_USER, name: 'Updated Name' };
+      userServiceMock.updateProfile.mockReturnValue(of(updatedUser));
+
+      await service.setCurrentUser(TEST_USER);
+      const result = await service.updateProfile({ name: 'Updated Name' });
+
+      expect(result).toEqual(updatedUser);
+      expect(userServiceMock.updateProfile).toHaveBeenCalledWith({
+        name: 'Updated Name',
+      });
+    });
+  });
+
   describe('login', () => {
     // Skip: flaky due to IndexedDB timing issues
     it.skip('should login successfully', async () => {

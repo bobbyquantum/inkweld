@@ -25,6 +25,8 @@ describe('SystemConfigService', () => {
     aiImageGeneration: true,
     appMode: SystemFeaturesAppMode.Both,
     userApprovalRequired: false,
+    emailEnabled: false,
+    requireEmail: false,
   };
 
   beforeEach(() => {
@@ -120,6 +122,8 @@ describe('SystemConfigService', () => {
         aiImageGeneration: false,
         appMode: 'LOCAL',
         userApprovalRequired: false,
+        emailEnabled: false,
+        requireEmail: false,
       });
 
       expect(offlineService.isConfigLoaded()).toBe(true);
@@ -159,6 +163,8 @@ describe('SystemConfigService', () => {
             aiImageGeneration: false,
             appMode: 'LOCAL', // Changed from BOTH - treat as offline when server down
             userApprovalRequired: true,
+            emailEnabled: false,
+            requireEmail: false,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -193,6 +199,8 @@ describe('SystemConfigService', () => {
         appMode: SystemFeaturesAppMode.Both,
         userApprovalRequired: false,
         aiImageGeneration: true,
+        emailEnabled: false,
+        requireEmail: false,
       };
 
       // Wait for initial load
@@ -550,6 +558,8 @@ describe('SystemConfigService', () => {
             aiImageGeneration: false,
             appMode: 'LOCAL', // Treat as offline when server down
             userApprovalRequired: true,
+            emailEnabled: false,
+            requireEmail: false,
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -584,6 +594,8 @@ describe('SystemConfigService', () => {
               aiImageGeneration: false,
               appMode: 'LOCAL', // Treat as offline when server down
               userApprovalRequired: true,
+              emailEnabled: false,
+              requireEmail: false,
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(

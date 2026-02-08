@@ -1,6 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { userService } from '../services/user.service';
+import { emailService } from '../services/email.service';
+import { welcomeEmail } from '../services/email-templates';
 import type { AppContext } from '../types/context';
 import type { User } from '../db/schema';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
@@ -388,6 +390,21 @@ adminRoutes.openapi(approveUserRoute, async (c) => {
   const updatedUser = await userService.findById(db, userId);
   if (!updatedUser) {
     return c.json({ error: 'User not found' }, 404);
+  }
+
+  // Send welcome email (best-effort, don't block approval)
+  if (updatedUser.email) {
+    const baseUrl =
+      process.env.DEFAULT_SERVER_NAME?.trim() ||
+      process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() ||
+      'http://localhost:4200';
+    void emailService.sendEmail(db, {
+      ...welcomeEmail({
+        userName: updatedUser.name || updatedUser.username || 'User',
+        loginUrl: baseUrl,
+      }),
+      to: updatedUser.email,
+    });
   }
 
   return c.json(formatUserResponse(updatedUser), 200);

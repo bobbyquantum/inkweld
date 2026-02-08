@@ -56,6 +56,20 @@ form {
   margin-top: 8px;
 }
 
+.forgot-password-link {
+  display: block;
+  text-align: center;
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--sys-primary);
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 mat-divider {
   margin: 16px 0;
 }
