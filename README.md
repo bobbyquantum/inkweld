@@ -259,7 +259,7 @@ flowchart TB
 ### Requirements
 
 - [Bun 1.3+](https://bun.sh/)
-- [Node.js 20+](https://nodejs.org/)
+- [Node.js 22+](https://nodejs.org/)
 
 ### Setup
 

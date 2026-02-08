@@ -22,7 +22,7 @@ Choose this method when you:
 ## Prerequisites
 
 - **Bun 1.3+** - [Install Bun](https://bun.sh/)
-- **Node.js 20+** - Required for building the Angular frontend
+- **Node.js 22+** - Required for building the Angular frontend
 - **Git** - For cloning the repository
 
 ## Quick Start
