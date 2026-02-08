@@ -33,8 +33,8 @@ export default defineConfig({
     // Disable file watching in CI
     watch: !isCI,
 
-    // Reporters - use verbose reporter in CI for debugging
-    reporters: isCI ? ['verbose'] : ['default'],
+    // Reporters - use dot reporter in CI for cleaner output
+    reporters: isCI ? ['dot'] : ['default'],
   },
 
   // Vitest 4+ pool options are now top-level
