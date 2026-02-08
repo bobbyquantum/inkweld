@@ -69,10 +69,10 @@ jobs:
         run: bun install
 
       - name: Show Node.js version
-        run: node --version
+        run: node --version && bun --version
 
       - name: Run frontend tests
-        run: cd frontend && npm test -- --reporter=verbose
+        run: cd frontend && npm test
 
   # ===========================================
   # Unit Tests - Backend (Bun)
