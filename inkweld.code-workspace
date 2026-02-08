@@ -31,16 +31,16 @@
     "typescript.tsdk": "🎨 Frontend/frontend/node_modules/typescript/lib",
     "[typescript]": {
       "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-      "editor.formatOnSave": true
+      "editor.formatOnSave": false
     },
     "[javascript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "editor.formatOnSave": true
+      "editor.formatOnSave": false
     },
     "jest.disabledWorkspaceFolders": ["✨ Root", "⚙️ Backend", "🎨 Frontend"],
     "github-actions.workflows.pinned.workflows": [
-      ".github/workflows/ci.yml",
-      "✨ Root/.github/workflows/ci.yml"
+
+      ".github/workflows/ci.yml"
     ],
     "github-actions.workflows.pinned.refresh.enabled": true,
     "powershell.cwd": "✨ Root"
