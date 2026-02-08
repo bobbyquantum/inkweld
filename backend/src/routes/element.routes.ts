@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { yjsService } from '../services/yjs.service';
+import { collaborationService } from '../services/collaboration.service';
 import { requireAuth } from '../middleware/auth';
 import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
@@ -79,11 +80,17 @@ elementRoutes.openapi(listElementsRoute, async (c) => {
     return c.json({ error: 'Project not found' }, 404);
   }
 
-  // Check access
+  // Check access - owner or collaborator (user is guaranteed by requireAuth middleware)
   const user = c.get('user');
-  if (!user || project.userId !== user.id) {
-    // TODO: Check collaborator access when implemented
-    return c.json({ error: 'Unauthorized' }, 403);
+  if (user && project.userId !== user.id) {
+    // Not the owner, check if they're a collaborator
+    const access = await collaborationService.checkAccess(db, project.id, user.id);
+    if (!access.canRead) {
+      elementLog.warn(
+        `User ${user.username} attempted to access elements in project ${username}/${slug}`
+      );
+      return c.json({ error: 'Unauthorized' }, 403);
+    }
   }
 
   // Fetch elements from Yjs document
