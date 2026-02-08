@@ -18,6 +18,12 @@ export async function startTestServer(): Promise<{ port: number; baseUrl: string
     return { port: testPort, baseUrl: `http://localhost:${testPort}` };
   }
 
+  // Ensure tests don't require admin approval for new users
+  // This makes registration + login flow work for integration tests
+  if (process.env.USER_APPROVAL_REQUIRED === undefined) {
+    process.env.USER_APPROVAL_REQUIRED = 'false';
+  }
+
   // Try to find an available port
   testPort = 18333 + Math.floor(Math.random() * 1000);
 
