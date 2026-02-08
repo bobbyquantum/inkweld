@@ -53,9 +53,7 @@ test.describe('About Page - Online', () => {
     await expect(page.locator('h1')).toContainText('Changelog');
 
     // Should show either loading state, versions, or empty message
-    const content = page.locator(
-      'mat-accordion, .loading-state, .error-state'
-    );
+    const content = page.locator('mat-accordion, .loading-state, .error-state');
     await expect(content.first()).toBeVisible();
   });
 

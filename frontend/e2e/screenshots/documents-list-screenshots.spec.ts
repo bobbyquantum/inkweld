@@ -68,11 +68,7 @@ test.describe('Documents List Tab Screenshots', () => {
     await page.goto('/');
     await page.waitForSelector('.empty-state', { state: 'visible' });
 
-    await createProjectWithTwoSteps(
-      page,
-      'Empty Docs Dark',
-      'empty-docs-dark'
-    );
+    await createProjectWithTwoSteps(page, 'Empty Docs Dark', 'empty-docs-dark');
     await page.waitForURL(/\/demouser\/empty-docs-dark/);
     await page.waitForTimeout(500);
 
