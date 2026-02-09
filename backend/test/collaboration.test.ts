@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { getDatabase } from '../src/db/index';
-import { users, projects, projectCollaborators } from '../src/db/schema/index';
+import {
+  users,
+  projects,
+  projectCollaborators,
+  mcpOAuthClients,
+  mcpOAuthSessions,
+} from '../src/db/schema/index';
 import { eq, and } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
@@ -372,6 +378,122 @@ describe('Collaboration', () => {
 
       // Project is private, so non-owner non-collaborator should get 403 or 404
       expect(response.status).toBeOneOf([403, 404]);
+    });
+  });
+
+  describe('GET /api/v1/collaboration/collaborated (OAuth self-collaboration filtering)', () => {
+    let oauthClientId: string;
+    let oauthSessionId: string;
+
+    beforeAll(async () => {
+      const db = getDatabase();
+
+      // Create a mock OAuth client
+      oauthClientId = crypto.randomUUID();
+      await db.insert(mcpOAuthClients).values({
+        id: oauthClientId,
+        clientName: 'Test MCP Agent',
+        redirectUris: JSON.stringify(['http://localhost:3000/callback']),
+        clientType: 'public',
+        isDynamic: true,
+        createdAt: Date.now(),
+      });
+
+      // Create a mock OAuth session for the owner
+      oauthSessionId = crypto.randomUUID();
+      await db.insert(mcpOAuthSessions).values({
+        id: oauthSessionId,
+        userId: ownerUserId,
+        clientId: oauthClientId,
+        refreshTokenHash: 'fake-hash-for-test-' + Date.now(),
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      });
+
+      // Insert oauth_app collaborator entry — owner granting agent access to their own project
+      await db.insert(projectCollaborators).values({
+        projectId: testProject.id,
+        userId: ownerUserId,
+        mcpSessionId: oauthSessionId,
+        collaboratorType: 'oauth_app',
+        role: 'editor',
+        status: 'accepted',
+        invitedBy: ownerUserId,
+        invitedAt: Date.now(),
+        acceptedAt: Date.now(),
+      });
+    });
+
+    afterAll(async () => {
+      const db = getDatabase();
+      // Clean up OAuth entries
+      await db
+        .delete(projectCollaborators)
+        .where(eq(projectCollaborators.mcpSessionId, oauthSessionId));
+      await db.delete(mcpOAuthSessions).where(eq(mcpOAuthSessions.id, oauthSessionId));
+      await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.id, oauthClientId));
+    });
+
+    it('should not return oauth_app entries where user is the project owner', async () => {
+      // The owner granted an MCP agent access to their own project.
+      // This should NOT appear in the collaborated projects list because
+      // the owner already sees the project in their "My Projects".
+      const { response, json } = await ownerClient.request('/api/v1/collaboration/collaborated');
+
+      expect(response.status).toBe(200);
+      const data = (await json()) as { projectId: string }[];
+      expect(data).toBeArray();
+
+      // The test project should NOT appear (it's owner's own project via oauth_app)
+      const selfCollabEntry = data.find((p) => p.projectId === testProject.id);
+      expect(selfCollabEntry).toBeUndefined();
+    });
+
+    it('should still return oauth_app entries where user is NOT the project owner', async () => {
+      const db = getDatabase();
+
+      // Create a second OAuth session for the collaborator user on the owner's project.
+      // This simulates another user's MCP agent being granted access to someone else's project.
+      const collabSessionId = crypto.randomUUID();
+      await db.insert(mcpOAuthSessions).values({
+        id: collabSessionId,
+        userId: collaboratorUserId,
+        clientId: oauthClientId,
+        refreshTokenHash: 'fake-hash-collab-test-' + Date.now(),
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      });
+
+      await db.insert(projectCollaborators).values({
+        projectId: testProject.id,
+        userId: collaboratorUserId,
+        mcpSessionId: collabSessionId,
+        collaboratorType: 'oauth_app',
+        role: 'viewer',
+        status: 'accepted',
+        invitedBy: ownerUserId,
+        invitedAt: Date.now(),
+        acceptedAt: Date.now(),
+      });
+
+      try {
+        const { response, json } = await collaboratorClient.request(
+          '/api/v1/collaboration/collaborated'
+        );
+
+        expect(response.status).toBe(200);
+        const data = (await json()) as { projectId: string }[];
+
+        // The collaborator should see the project — they're NOT the owner
+        const entry = data.find((p) => p.projectId === testProject.id);
+        expect(entry).toBeDefined();
+      } finally {
+        // Clean up
+        await db
+          .delete(projectCollaborators)
+          .where(eq(projectCollaborators.mcpSessionId, collabSessionId));
+        await db.delete(mcpOAuthSessions).where(eq(mcpOAuthSessions.id, collabSessionId));
+      }
     });
   });
 });

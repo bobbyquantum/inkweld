@@ -402,6 +402,7 @@ class CollaborationService {
         projectTitle: projects.title,
         projectSlug: projects.slug,
         ownerId: projects.userId,
+        collaboratorType: projectCollaborators.collaboratorType,
       })
       .from(projectCollaborators)
       .leftJoin(projects, eq(projectCollaborators.projectId, projects.id))
@@ -410,9 +411,18 @@ class CollaborationService {
       )
       .orderBy(desc(projectCollaborators.acceptedAt));
 
-    // Get owner usernames
+    // Filter out oauth_app entries where the user is the project owner.
+    // When a user grants an MCP agent access to their own project, the
+    // collaborator entry has userId = the granting user (i.e. the owner).
+    // Without this filter, the project appears as both owned AND collaborated.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ownerIds: string[] = (results as any[])
+    const filtered = (results as any[]).filter(
+      (r) => r.collaboratorType !== 'oauth_app' || r.ownerId !== userId
+    );
+
+    // Get owner usernames
+
+    const ownerIds: string[] = filtered
       .filter((r) => r.ownerId !== null)
       .map((r) => r.ownerId as string)
       .filter((id, index, arr) => arr.indexOf(id) === index);
@@ -426,7 +436,7 @@ class CollaborationService {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return results.map((r: any) => ({
+    return filtered.map((r: any) => ({
       projectId: r.projectId as string,
       projectTitle: r.projectTitle as string,
       projectSlug: r.projectSlug as string,
