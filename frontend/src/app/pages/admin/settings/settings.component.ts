@@ -1,8 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -16,10 +19,13 @@ import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-swi
   selector: 'app-admin-settings',
   standalone: true,
   imports: [
+    FormsModule,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
+    MatFormFieldModule,
     MatIconModule,
+    MatInputModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
     MatSnackBarModule,
@@ -44,6 +50,16 @@ export class AdminSettingsComponent implements OnInit {
   readonly aiKillSwitchEnabled = signal(true); // Default to ON (AI disabled)
   readonly aiKillSwitchLockedByEnv = signal(false);
 
+  // Password policy state
+  readonly passwordMinLength = signal(8);
+  readonly passwordRequireUppercase = signal(true);
+  readonly passwordRequireLowercase = signal(true);
+  readonly passwordRequireNumber = signal(true);
+  readonly passwordRequireSymbol = signal(true);
+
+  // Site URL state
+  readonly siteUrl = signal('');
+
   ngOnInit(): void {
     void this.loadConfig();
   }
@@ -53,14 +69,46 @@ export class AdminSettingsComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const [userApproval, aiKillSwitch, requireEmail] = await Promise.all([
+      const [
+        userApproval,
+        aiKillSwitch,
+        requireEmail,
+        passwordMinLength,
+        passwordRequireUppercase,
+        passwordRequireLowercase,
+        passwordRequireNumber,
+        passwordRequireSymbol,
+        siteUrl,
+      ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
         this.configService.getConfig('REQUIRE_EMAIL'),
+        this.configService.getConfig('PASSWORD_MIN_LENGTH'),
+        this.configService.getConfig('PASSWORD_REQUIRE_UPPERCASE'),
+        this.configService.getConfig('PASSWORD_REQUIRE_LOWERCASE'),
+        this.configService.getConfig('PASSWORD_REQUIRE_NUMBER'),
+        this.configService.getConfig('PASSWORD_REQUIRE_SYMBOL'),
+        this.configService.getConfig('SITE_URL'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
       this.requireEmailEnabled.set(requireEmail?.value === 'true');
+
+      // Password policy
+      this.passwordMinLength.set(
+        parseInt(passwordMinLength?.value || '8', 10) || 8
+      );
+      this.passwordRequireUppercase.set(
+        passwordRequireUppercase?.value !== 'false'
+      );
+      this.passwordRequireLowercase.set(
+        passwordRequireLowercase?.value !== 'false'
+      );
+      this.passwordRequireNumber.set(passwordRequireNumber?.value !== 'false');
+      this.passwordRequireSymbol.set(passwordRequireSymbol?.value !== 'false');
+
+      // Site URL
+      this.siteUrl.set(siteUrl?.value || '');
 
       // For AI kill switch, also check the system config for lockedByEnv status
       const aiKillSwitchValue = aiKillSwitch?.value !== 'false'; // Default to true
@@ -115,6 +163,69 @@ export class AdminSettingsComponent implements OnInit {
       console.error('Failed to save setting:', err);
       this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
       this.requireEmailEnabled.set(!enabled);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async savePasswordMinLength(value: string): Promise<void> {
+    const num = Math.max(1, parseInt(value, 10) || 8);
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig('PASSWORD_MIN_LENGTH', String(num));
+      this.passwordMinLength.set(num);
+      this.systemConfigService.refreshSystemFeatures();
+      this.snackBar.open('Setting saved', 'Close', { duration: 2000 });
+    } catch (err) {
+      console.error('Failed to save setting:', err);
+      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async togglePasswordPolicy(
+    key:
+      | 'PASSWORD_REQUIRE_UPPERCASE'
+      | 'PASSWORD_REQUIRE_LOWERCASE'
+      | 'PASSWORD_REQUIRE_NUMBER'
+      | 'PASSWORD_REQUIRE_SYMBOL',
+    enabled: boolean
+  ): Promise<void> {
+    this.isSaving.set(true);
+
+    const signalMap = {
+      PASSWORD_REQUIRE_UPPERCASE: this.passwordRequireUppercase,
+      PASSWORD_REQUIRE_LOWERCASE: this.passwordRequireLowercase,
+      PASSWORD_REQUIRE_NUMBER: this.passwordRequireNumber,
+      PASSWORD_REQUIRE_SYMBOL: this.passwordRequireSymbol,
+    } as const;
+
+    try {
+      await this.configService.setConfig(key, enabled ? 'true' : 'false');
+      signalMap[key].set(enabled);
+      this.systemConfigService.refreshSystemFeatures();
+      this.snackBar.open('Setting saved', 'Close', { duration: 2000 });
+    } catch (err) {
+      console.error('Failed to save setting:', err);
+      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+      signalMap[key].set(!enabled);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async saveSiteUrl(value: string): Promise<void> {
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig('SITE_URL', value.trim());
+      this.siteUrl.set(value.trim());
+      this.snackBar.open('Setting saved', 'Close', { duration: 2000 });
+    } catch (err) {
+      console.error('Failed to save setting:', err);
+      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
     } finally {
       this.isSaving.set(false);
     }

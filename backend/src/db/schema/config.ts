@@ -78,6 +78,43 @@ export const CONFIG_KEYS = {
     type: 'boolean' as const,
   },
 
+  // Password policy settings
+  PASSWORD_MIN_LENGTH: {
+    category: 'auth' as ConfigCategory,
+    description: 'Minimum password length (default: 8)',
+    encrypted: false,
+    envVar: 'PASSWORD_MIN_LENGTH',
+    type: 'string' as const,
+  },
+  PASSWORD_REQUIRE_UPPERCASE: {
+    category: 'auth' as ConfigCategory,
+    description: 'Require at least one uppercase letter in passwords',
+    encrypted: false,
+    envVar: 'PASSWORD_REQUIRE_UPPERCASE',
+    type: 'boolean' as const,
+  },
+  PASSWORD_REQUIRE_LOWERCASE: {
+    category: 'auth' as ConfigCategory,
+    description: 'Require at least one lowercase letter in passwords',
+    encrypted: false,
+    envVar: 'PASSWORD_REQUIRE_LOWERCASE',
+    type: 'boolean' as const,
+  },
+  PASSWORD_REQUIRE_NUMBER: {
+    category: 'auth' as ConfigCategory,
+    description: 'Require at least one number in passwords',
+    encrypted: false,
+    envVar: 'PASSWORD_REQUIRE_NUMBER',
+    type: 'boolean' as const,
+  },
+  PASSWORD_REQUIRE_SYMBOL: {
+    category: 'auth' as ConfigCategory,
+    description: 'Require at least one special character (@$!%*?&) in passwords',
+    encrypted: false,
+    envVar: 'PASSWORD_REQUIRE_SYMBOL',
+    type: 'boolean' as const,
+  },
+
   // GitHub OAuth settings
   GITHUB_ENABLED: {
     category: 'github' as ConfigCategory,
@@ -426,6 +463,16 @@ export const CONFIG_KEYS = {
     description: 'Sender display name (e.g. Inkweld)',
     encrypted: false,
     envVar: 'EMAIL_FROM_NAME',
+    type: 'string' as const,
+  },
+
+  // General settings
+  SITE_URL: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Public site URL used in email links and notifications (e.g. https://inkweld.example.com)',
+    encrypted: false,
+    envVar: 'SITE_URL',
     type: 'string' as const,
   },
 } as const;

@@ -5,6 +5,7 @@ import { userService } from './user.service';
 import { emailService } from './email.service';
 import { passwordResetRequestEmail, passwordResetConfirmEmail } from './email-templates';
 import { logger } from './logger.service';
+import { getBaseUrl } from './url.service';
 import type { DatabaseInstance } from '../types/context';
 
 /** Token validity in seconds (1 hour) */
@@ -24,24 +25,6 @@ function hashToken(rawToken: string): string {
 function safeCompareHashes(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
-}
-
-/**
- * Resolve the public base URL for constructing email links.
- * Checks ALLOWED_ORIGINS first, then falls back to localhost.
- */
-async function getBaseUrl(_db: DatabaseInstance): Promise<string> {
-  // Check for a configured default server name
-  const defaultServerName = process.env.DEFAULT_SERVER_NAME?.trim();
-  if (defaultServerName) return defaultServerName;
-
-  // Fall back to first allowed origin
-  const origins = process.env.ALLOWED_ORIGINS?.split(',');
-  if (origins && origins.length > 0 && origins[0].trim()) {
-    return origins[0].trim();
-  }
-
-  return 'http://localhost:4200';
 }
 
 class PasswordResetService {

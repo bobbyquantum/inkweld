@@ -158,6 +158,80 @@ ${footerText(params.resetUrl.split('/reset-password')[0])}`,
 }
 
 // ---------------------------------------------------------------------------
+// Account Approved Email (sent when admin approves a pending user)
+// ---------------------------------------------------------------------------
+export function accountApprovedEmail(params: { userName: string; loginUrl: string }): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const safeName = escapeHtml(params.userName);
+  const safeLoginUrl = escapeHtml(params.loginUrl);
+
+  return {
+    subject: 'Inkweld — Your Account Has Been Approved',
+    html: `
+<div style="${STYLES.container}">
+  <div style="${STYLES.card}">
+    <h1 style="${STYLES.heading}">Account Approved!</h1>
+    <p style="${STYLES.text}">Hi ${safeName},</p>
+    <p style="${STYLES.text}">Great news — your Inkweld account has been approved by an administrator. You can now log in and start writing.</p>
+    <p style="margin: 24px 0; text-align: center;">
+      <a href="${safeLoginUrl}" style="${STYLES.button}">Log In to Inkweld</a>
+    </p>
+    <p style="${STYLES.text}">We're excited to have you on board!</p>
+    ${footerHtml(params.loginUrl)}
+  </div>
+</div>`,
+    text: `Inkweld — Your Account Has Been Approved
+
+Hi ${params.userName},
+
+Great news — your Inkweld account has been approved by an administrator. You can now log in and start writing.
+
+Log in here: ${params.loginUrl}
+
+We're excited to have you on board!
+
+${footerText(params.loginUrl)}`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Account Rejected Email (sent when admin rejects a pending user)
+// ---------------------------------------------------------------------------
+export function accountRejectedEmail(params: { userName: string; instanceUrl: string }): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const safeName = escapeHtml(params.userName);
+
+  return {
+    subject: 'Inkweld — Account Registration Update',
+    html: `
+<div style="${STYLES.container}">
+  <div style="${STYLES.card}">
+    <h1 style="${STYLES.heading}">Registration Update</h1>
+    <p style="${STYLES.text}">Hi ${safeName},</p>
+    <p style="${STYLES.text}">Thank you for your interest in Inkweld. Unfortunately, your account registration was not approved at this time.</p>
+    <p style="${STYLES.text}">If you believe this was a mistake, please contact the site administrator.</p>
+    ${footerHtml(params.instanceUrl)}
+  </div>
+</div>`,
+    text: `Inkweld — Account Registration Update
+
+Hi ${params.userName},
+
+Thank you for your interest in Inkweld. Unfortunately, your account registration was not approved at this time.
+
+If you believe this was a mistake, please contact the site administrator.
+
+${footerText(params.instanceUrl)}`,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Password Reset Confirmation Email
 // ---------------------------------------------------------------------------
 export function passwordResetConfirmEmail(params: { userName: string; loginUrl: string }): {
