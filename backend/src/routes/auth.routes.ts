@@ -4,6 +4,8 @@ import { userService } from '../services/user.service';
 import { configService } from '../services/config.service';
 import { emailService } from '../services/email.service';
 import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
+import { getBaseUrl } from '../services/url.service';
+import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
 import { config } from '../config/env';
 import { type AppContext } from '../types/context';
 import {
@@ -66,6 +68,21 @@ authRoutes.openapi(registerRoute, async (c) => {
     return c.json({ error: 'Email address is required' }, 400);
   }
 
+  // Validate password against configured policy
+  const passwordPolicy = await getPasswordPolicy(db);
+  const passwordErrors = validatePassword(password, passwordPolicy);
+  if (passwordErrors.length > 0) {
+    return c.json({ error: passwordErrors[0] }, 400);
+  }
+
+  // Block duplicate emails (only for real email addresses, not @local fallbacks)
+  if (email) {
+    const existingUser = await userService.findByEmail(db, email);
+    if (existingUser) {
+      return c.json({ error: 'An account with this email address already exists' }, 400);
+    }
+  }
+
   // Check if this is the first user - they automatically become admin
   // This enables testing on ephemeral hosts without pre-configured admin credentials
   const userCount = await userService.countUsers(db);
@@ -96,12 +113,9 @@ authRoutes.openapi(registerRoute, async (c) => {
     if (isFirstUser || !userApprovalRequired) {
       const token = await authService.createSession(c, userToReturn);
 
-      // Send welcome email (best-effort, don't block registration)
-      const baseUrl =
-        process.env.DEFAULT_SERVER_NAME?.trim() ||
-        process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() ||
-        'http://localhost:4200';
-      void emailService.sendEmail(db, {
+      // Send welcome email (best-effort — awaited so it completes on Workers)
+      const baseUrl = await getBaseUrl(db);
+      await emailService.sendEmail(db, {
         ...welcomeEmail({
           userName: userToReturn.name || userToReturn.username || 'User',
           loginUrl: baseUrl,
@@ -130,12 +144,9 @@ authRoutes.openapi(registerRoute, async (c) => {
       );
     }
 
-    // Send awaiting approval email (best-effort)
-    const instanceUrl =
-      process.env.DEFAULT_SERVER_NAME?.trim() ||
-      process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() ||
-      'http://localhost:4200';
-    void emailService.sendEmail(db, {
+    // Send awaiting approval email (best-effort — awaited so it completes on Workers)
+    const instanceUrl = await getBaseUrl(db);
+    await emailService.sendEmail(db, {
       ...awaitingApprovalEmail({
         userName: userToReturn.name || userToReturn.username || 'User',
         instanceUrl,

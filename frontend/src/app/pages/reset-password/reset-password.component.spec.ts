@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
@@ -10,9 +10,21 @@ import {
 } from '@angular/router';
 import { PasswordResetService } from '@services/auth/password-reset.service';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ResetPasswordComponent } from './reset-password.component';
+
+const DEFAULT_POLICY = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true,
+  requireSymbol: true,
+};
+
+// A password meeting all default policy rules
+const VALID_PASSWORD = 'Test123!@';
 
 describe('ResetPasswordComponent', () => {
   let component: ResetPasswordComponent;
@@ -20,7 +32,33 @@ describe('ResetPasswordComponent', () => {
   let mockPasswordResetService: {
     resetPassword: ReturnType<typeof vi.fn>;
   };
-  const mockSetupService = { getServerUrl: () => '' };
+  const mockSetupService = { getServerUrl: () => '', getMode: () => 'online' };
+
+  const mockSystemConfigService = {
+    isRequireEmailEnabled: signal(false),
+    passwordPolicy: signal(DEFAULT_POLICY),
+    isConfigLoaded: signal(true),
+    isAiKillSwitchEnabled: signal(true),
+    isAiKillSwitchLockedByEnv: signal(false),
+    isAiLintingEnabled: signal(false),
+    isAiImageGenerationEnabled: signal(false),
+    isUserApprovalRequired: signal(true),
+    isEmailEnabled: signal(false),
+    isLocalMode: signal(false),
+    systemFeatures: signal({
+      aiKillSwitch: true,
+      aiKillSwitchLockedByEnv: false,
+      aiLinting: false,
+      aiImageGeneration: false,
+      userApprovalRequired: true,
+      appMode: 'BOTH',
+      emailEnabled: false,
+      requireEmail: false,
+      passwordPolicy: DEFAULT_POLICY,
+    }),
+    refreshSystemFeatures: vi.fn(),
+    getAiImageGenerationStatus: vi.fn().mockReturnValue({ status: 'hidden' }),
+  };
 
   function setupWithToken(token: string | null) {
     mockPasswordResetService = {
@@ -37,6 +75,10 @@ describe('ResetPasswordComponent', () => {
         provideRouter([]),
         provideNoopAnimations(),
         { provide: SetupService, useValue: mockSetupService },
+        {
+          provide: SystemConfigService,
+          useValue: mockSystemConfigService,
+        },
         {
           provide: PasswordResetService,
           useValue: mockPasswordResetService,
@@ -72,21 +114,20 @@ describe('ResetPasswordComponent', () => {
     expect(component.noToken()).toBe(false);
   });
 
-  it('should validate passwords are at least 6 characters', () => {
+  it('should validate passwords meet policy requirements', () => {
     setupWithToken('abc123');
     component.newPassword = 'short';
     component.confirmPassword = 'short';
+    component.onPasswordInput();
 
     expect(component.isFormValid()).toBe(false);
-    expect(component.getPasswordError()).toBe(
-      'Password must be at least 6 characters'
-    );
   });
 
   it('should validate passwords match', () => {
     setupWithToken('abc123');
-    component.newPassword = 'password123';
+    component.newPassword = VALID_PASSWORD;
     component.confirmPassword = 'different';
+    component.onPasswordInput();
 
     expect(component.isFormValid()).toBe(false);
     expect(component.getPasswordError()).toBe('Passwords do not match');
@@ -94,8 +135,9 @@ describe('ResetPasswordComponent', () => {
 
   it('should return null error when form is valid', () => {
     setupWithToken('abc123');
-    component.newPassword = 'password123';
-    component.confirmPassword = 'password123';
+    component.newPassword = VALID_PASSWORD;
+    component.confirmPassword = VALID_PASSWORD;
+    component.onPasswordInput();
 
     expect(component.isFormValid()).toBe(true);
     expect(component.getPasswordError()).toBeNull();
@@ -103,14 +145,15 @@ describe('ResetPasswordComponent', () => {
 
   it('should call resetPassword on valid submit', async () => {
     setupWithToken('my-token');
-    component.newPassword = 'newpass123';
-    component.confirmPassword = 'newpass123';
+    component.newPassword = VALID_PASSWORD;
+    component.confirmPassword = VALID_PASSWORD;
+    component.onPasswordInput();
 
     await component.onSubmit();
 
     expect(mockPasswordResetService.resetPassword).toHaveBeenCalledWith(
       'my-token',
-      'newpass123'
+      VALID_PASSWORD
     );
     expect(component.success()).toBe(true);
     expect(component.isSubmitting()).toBe(false);
@@ -120,6 +163,7 @@ describe('ResetPasswordComponent', () => {
     setupWithToken('my-token');
     component.newPassword = 'abc';
     component.confirmPassword = 'abc';
+    component.onPasswordInput();
 
     await component.onSubmit();
 
@@ -132,8 +176,9 @@ describe('ResetPasswordComponent', () => {
       error: { error: 'Token has expired' },
     });
 
-    component.newPassword = 'newpass123';
-    component.confirmPassword = 'newpass123';
+    component.newPassword = VALID_PASSWORD;
+    component.confirmPassword = VALID_PASSWORD;
+    component.onPasswordInput();
     await component.onSubmit();
 
     expect(component.error()).toBe('Token has expired');
@@ -146,10 +191,34 @@ describe('ResetPasswordComponent', () => {
       new Error('Network error')
     );
 
-    component.newPassword = 'newpass123';
-    component.confirmPassword = 'newpass123';
+    component.newPassword = VALID_PASSWORD;
+    component.confirmPassword = VALID_PASSWORD;
+    component.onPasswordInput();
     await component.onSubmit();
 
     expect(component.error()).toBe('Something went wrong. Please try again.');
+  });
+
+  it('should update password requirements on input', () => {
+    setupWithToken('abc123');
+    component.newPassword = 'Aa1!aaaa';
+    component.onPasswordInput();
+
+    expect(component.passwordRequirements['minLength'].met).toBe(true);
+    expect(component.passwordRequirements['uppercase'].met).toBe(true);
+    expect(component.passwordRequirements['lowercase'].met).toBe(true);
+    expect(component.passwordRequirements['number'].met).toBe(true);
+    expect(component.passwordRequirements['special'].met).toBe(true);
+  });
+
+  it('should detect unmet requirements', () => {
+    setupWithToken('abc123');
+    component.newPassword = 'lowercase';
+    component.onPasswordInput();
+
+    expect(component.passwordRequirements['lowercase'].met).toBe(true);
+    expect(component.passwordRequirements['uppercase'].met).toBe(false);
+    expect(component.passwordRequirements['number'].met).toBe(false);
+    expect(component.passwordRequirements['special'].met).toBe(false);
   });
 });

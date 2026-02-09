@@ -2,7 +2,8 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { userService } from '../services/user.service';
 import { emailService } from '../services/email.service';
-import { welcomeEmail } from '../services/email-templates';
+import { accountApprovedEmail, accountRejectedEmail } from '../services/email-templates';
+import { getBaseUrl } from '../services/url.service';
 import type { AppContext } from '../types/context';
 import type { User } from '../db/schema';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
@@ -392,14 +393,11 @@ adminRoutes.openapi(approveUserRoute, async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  // Send welcome email (best-effort, don't block approval)
+  // Send account approved email (best-effort — awaited so it completes on Workers)
   if (updatedUser.email) {
-    const baseUrl =
-      process.env.DEFAULT_SERVER_NAME?.trim() ||
-      process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() ||
-      'http://localhost:4200';
-    void emailService.sendEmail(db, {
-      ...welcomeEmail({
+    const baseUrl = await getBaseUrl(db);
+    await emailService.sendEmail(db, {
+      ...accountApprovedEmail({
         userName: updatedUser.name || updatedUser.username || 'User',
         loginUrl: baseUrl,
       }),
@@ -421,7 +419,24 @@ adminRoutes.openapi(rejectUserRoute, async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
+  // Grab user email before rejection (user may be deleted)
+  const rejectedEmail = user.email;
+  const rejectedName = user.name || user.username || 'User';
+
   await userService.rejectUser(db, userId);
+
+  // Send rejection email (best-effort — awaited so it completes on Workers)
+  if (rejectedEmail) {
+    const baseUrl = await getBaseUrl(db);
+    await emailService.sendEmail(db, {
+      ...accountRejectedEmail({
+        userName: rejectedName,
+        instanceUrl: baseUrl,
+      }),
+      to: rejectedEmail,
+    });
+  }
+
   return c.json({ message: 'User rejected' }, 200);
 });
 

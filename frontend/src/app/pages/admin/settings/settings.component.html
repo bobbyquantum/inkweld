@@ -105,5 +105,131 @@
         </div>
       </mat-card-content>
     </mat-card>
+
+    <!-- Password Policy Card -->
+    <mat-card class="setting-card" data-testid="password-policy-card">
+      <mat-card-content>
+        <div class="setting-section-header">
+          <mat-icon>password</mat-icon>
+          <span class="setting-label">Password Policy</span>
+        </div>
+        <span class="setting-description policy-description">
+          Configure password requirements for user registration and password
+          resets.
+        </span>
+
+        <div class="policy-settings">
+          <div class="policy-row">
+            <div class="policy-info">
+              <span>Minimum Length</span>
+            </div>
+            <mat-form-field appearance="outline" class="min-length-field">
+              <input
+                matInput
+                type="number"
+                min="1"
+                max="128"
+                [ngModel]="passwordMinLength()"
+                (change)="savePasswordMinLength($any($event.target).value)"
+                [disabled]="isSaving()"
+                data-testid="password-min-length-input" />
+            </mat-form-field>
+          </div>
+
+          <div class="policy-row">
+            <div class="policy-info">
+              <span>Require Uppercase Letter</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="passwordRequireUppercase()"
+              (change)="
+                togglePasswordPolicy(
+                  'PASSWORD_REQUIRE_UPPERCASE',
+                  $event.checked
+                )
+              "
+              [disabled]="isSaving()"
+              color="primary"
+              data-testid="setting-toggle-require-uppercase"></mat-slide-toggle>
+          </div>
+
+          <div class="policy-row">
+            <div class="policy-info">
+              <span>Require Lowercase Letter</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="passwordRequireLowercase()"
+              (change)="
+                togglePasswordPolicy(
+                  'PASSWORD_REQUIRE_LOWERCASE',
+                  $event.checked
+                )
+              "
+              [disabled]="isSaving()"
+              color="primary"
+              data-testid="setting-toggle-require-lowercase"></mat-slide-toggle>
+          </div>
+
+          <div class="policy-row">
+            <div class="policy-info">
+              <span>Require Number</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="passwordRequireNumber()"
+              (change)="
+                togglePasswordPolicy('PASSWORD_REQUIRE_NUMBER', $event.checked)
+              "
+              [disabled]="isSaving()"
+              color="primary"
+              data-testid="setting-toggle-require-number"></mat-slide-toggle>
+          </div>
+
+          <div class="policy-row">
+            <div class="policy-info">
+              <span>Require Special Character</span>
+              <span class="policy-hint">(@$!%*?&)</span>
+            </div>
+            <mat-slide-toggle
+              [checked]="passwordRequireSymbol()"
+              (change)="
+                togglePasswordPolicy('PASSWORD_REQUIRE_SYMBOL', $event.checked)
+              "
+              [disabled]="isSaving()"
+              color="primary"
+              data-testid="setting-toggle-require-symbol"></mat-slide-toggle>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Site URL Card -->
+    <mat-card class="setting-card" data-testid="site-url-card">
+      <mat-card-content>
+        <div class="setting-row site-url-row">
+          <div class="setting-info">
+            <span class="setting-label">Site URL</span>
+            <span class="setting-description">
+              Public URL used in email links and notifications (e.g.
+              https://inkweld.example.com). Leave empty to auto-detect from
+              environment.
+            </span>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Site URL</mat-label>
+          <input
+            matInput
+            type="url"
+            placeholder="https://inkweld.example.com"
+            [ngModel]="siteUrl()"
+            (change)="saveSiteUrl($any($event.target).value)"
+            [disabled]="isSaving()"
+            data-testid="site-url-input" />
+          <mat-hint
+            >Used in password reset emails and welcome notifications</mat-hint
+          >
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
   }
 </div>

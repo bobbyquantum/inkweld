@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { passwordResetService } from '../services/password-reset.service';
+import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
 
@@ -82,8 +83,8 @@ const resetPasswordRoute = createRoute({
                 description: 'Password reset token from the emailed link',
                 example: 'abc123...',
               }),
-              newPassword: z.string().min(6).openapi({
-                description: 'New password (minimum 6 characters)',
+              newPassword: z.string().min(1).openapi({
+                description: 'New password (must meet configured password policy)',
                 example: 'newSecurePassword',
               }),
             })
@@ -115,6 +116,13 @@ const resetPasswordRoute = createRoute({
 passwordResetRoutes.openapi(resetPasswordRoute, async (c) => {
   const db = c.get('db');
   const { token, newPassword } = c.req.valid('json');
+
+  // Validate password against configured policy
+  const passwordPolicy = await getPasswordPolicy(db);
+  const passwordErrors = validatePassword(newPassword, passwordPolicy);
+  if (passwordErrors.length > 0) {
+    return c.json({ error: passwordErrors[0] }, 400);
+  }
 
   const result = await passwordResetService.resetPassword(db, token, newPassword);
 

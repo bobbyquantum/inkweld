@@ -15,7 +15,7 @@ export interface ResetPasswordRequest {
      */
     token: string;
     /**
-     * New password (minimum 6 characters)
+     * New password (must meet configured password policy)
      */
     newPassword: string;
 }

@@ -20,6 +20,33 @@ import { AdminSettingsComponent } from './settings.component';
 // Helper to wait for next microtask
 const flushMicrotasks = () => new Promise(resolve => setTimeout(resolve, 0));
 
+/** Flush all initial config GET requests that loadConfig() triggers */
+function flushAllConfigRequests(
+  httpMock: HttpTestingController,
+  overrides: Partial<Record<string, string>> = {}
+): void {
+  const defaults: Record<string, string> = {
+    USER_APPROVAL_REQUIRED: 'true',
+    AI_KILL_SWITCH: 'true',
+    REQUIRE_EMAIL: 'false',
+    PASSWORD_MIN_LENGTH: '8',
+    PASSWORD_REQUIRE_UPPERCASE: 'true',
+    PASSWORD_REQUIRE_LOWERCASE: 'true',
+    PASSWORD_REQUIRE_NUMBER: 'true',
+    PASSWORD_REQUIRE_SYMBOL: 'true',
+    SITE_URL: '',
+  };
+  const values = { ...defaults, ...overrides };
+
+  for (const [key, value] of Object.entries(values)) {
+    httpMock.expectOne(`/api/v1/admin/config/${key}`).flush({
+      key,
+      value,
+      source: 'database',
+    });
+  }
+}
+
 describe('AdminSettingsComponent', () => {
   let component: AdminSettingsComponent;
   let fixture: ComponentFixture<AdminSettingsComponent>;
@@ -71,65 +98,12 @@ describe('AdminSettingsComponent', () => {
 
   it('should load config on init', () => {
     fixture.detectChanges();
-
-    const userApprovalReq = httpMock.expectOne(
-      '/api/v1/admin/config/USER_APPROVAL_REQUIRED'
-    );
-    expect(userApprovalReq.request.method).toBe('GET');
-    userApprovalReq.flush({
-      key: 'USER_APPROVAL_REQUIRED',
-      value: 'true',
-      source: 'database',
-    });
-
-    const aiKillSwitchReq = httpMock.expectOne(
-      '/api/v1/admin/config/AI_KILL_SWITCH'
-    );
-    expect(aiKillSwitchReq.request.method).toBe('GET');
-    aiKillSwitchReq.flush({
-      key: 'AI_KILL_SWITCH',
-      value: 'true',
-      source: 'database',
-    });
-
-    const requireEmailReq = httpMock.expectOne(
-      '/api/v1/admin/config/REQUIRE_EMAIL'
-    );
-    expect(requireEmailReq.request.method).toBe('GET');
-    requireEmailReq.flush({
-      key: 'REQUIRE_EMAIL',
-      value: 'false',
-      source: 'database',
-    });
+    flushAllConfigRequests(httpMock);
   });
 
   it('should call setConfig when toggle is changed', async () => {
     fixture.detectChanges();
-
-    // Respond to initial GET requests
-    const getUserApprovalReq = httpMock.expectOne(
-      '/api/v1/admin/config/USER_APPROVAL_REQUIRED'
-    );
-    getUserApprovalReq.flush({
-      key: 'USER_APPROVAL_REQUIRED',
-      value: 'true',
-      source: 'database',
-    });
-
-    const getAiKillSwitchReq = httpMock.expectOne(
-      '/api/v1/admin/config/AI_KILL_SWITCH'
-    );
-    getAiKillSwitchReq.flush({
-      key: 'AI_KILL_SWITCH',
-      value: 'true',
-      source: 'database',
-    });
-
-    httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL').flush({
-      key: 'REQUIRE_EMAIL',
-      value: 'false',
-      source: 'database',
-    });
+    flushAllConfigRequests(httpMock);
 
     // Trigger toggle
     const togglePromise = component.toggleUserApproval(false);
@@ -148,31 +122,7 @@ describe('AdminSettingsComponent', () => {
 
   it('should update signal value after successful save', async () => {
     fixture.detectChanges();
-
-    // Respond to initial GET requests
-    const getUserApprovalReq = httpMock.expectOne(
-      '/api/v1/admin/config/USER_APPROVAL_REQUIRED'
-    );
-    getUserApprovalReq.flush({
-      key: 'USER_APPROVAL_REQUIRED',
-      value: 'false',
-      source: 'database',
-    });
-
-    const getAiKillSwitchReq = httpMock.expectOne(
-      '/api/v1/admin/config/AI_KILL_SWITCH'
-    );
-    getAiKillSwitchReq.flush({
-      key: 'AI_KILL_SWITCH',
-      value: 'true',
-      source: 'database',
-    });
-
-    httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL').flush({
-      key: 'REQUIRE_EMAIL',
-      value: 'false',
-      source: 'database',
-    });
+    flushAllConfigRequests(httpMock, { USER_APPROVAL_REQUIRED: 'false' });
 
     // Wait for initial config load to complete
     await flushMicrotasks();
@@ -195,27 +145,7 @@ describe('AdminSettingsComponent', () => {
   describe('AI Kill Switch', () => {
     it('should load AI kill switch value on init', async () => {
       fixture.detectChanges();
-
-      httpMock.expectOne('/api/v1/admin/config/USER_APPROVAL_REQUIRED').flush({
-        key: 'USER_APPROVAL_REQUIRED',
-        value: 'true',
-        source: 'database',
-      });
-
-      const aiKillSwitchReq = httpMock.expectOne(
-        '/api/v1/admin/config/AI_KILL_SWITCH'
-      );
-      aiKillSwitchReq.flush({
-        key: 'AI_KILL_SWITCH',
-        value: 'false',
-        source: 'database',
-      });
-
-      httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL').flush({
-        key: 'REQUIRE_EMAIL',
-        value: 'false',
-        source: 'database',
-      });
+      flushAllConfigRequests(httpMock, { AI_KILL_SWITCH: 'false' });
 
       // Wait for async operations to complete
       await flushMicrotasks();
@@ -226,18 +156,7 @@ describe('AdminSettingsComponent', () => {
 
     it('should show confirmation dialog when disabling kill switch', async () => {
       fixture.detectChanges();
-
-      httpMock.expectOne('/api/v1/admin/config/USER_APPROVAL_REQUIRED').flush({
-        key: 'USER_APPROVAL_REQUIRED',
-        value: 'true',
-        source: 'database',
-      });
-      httpMock
-        .expectOne('/api/v1/admin/config/AI_KILL_SWITCH')
-        .flush({ key: 'AI_KILL_SWITCH', value: 'true', source: 'database' });
-      httpMock
-        .expectOne('/api/v1/admin/config/REQUIRE_EMAIL')
-        .flush({ key: 'REQUIRE_EMAIL', value: 'false', source: 'database' });
+      flushAllConfigRequests(httpMock);
 
       await flushMicrotasks();
 
@@ -259,18 +178,7 @@ describe('AdminSettingsComponent', () => {
 
     it('should not show dialog when enabling kill switch', async () => {
       fixture.detectChanges();
-
-      httpMock.expectOne('/api/v1/admin/config/USER_APPROVAL_REQUIRED').flush({
-        key: 'USER_APPROVAL_REQUIRED',
-        value: 'true',
-        source: 'database',
-      });
-      httpMock
-        .expectOne('/api/v1/admin/config/AI_KILL_SWITCH')
-        .flush({ key: 'AI_KILL_SWITCH', value: 'false', source: 'database' });
-      httpMock
-        .expectOne('/api/v1/admin/config/REQUIRE_EMAIL')
-        .flush({ key: 'REQUIRE_EMAIL', value: 'false', source: 'database' });
+      flushAllConfigRequests(httpMock, { AI_KILL_SWITCH: 'false' });
 
       await flushMicrotasks();
 
@@ -291,23 +199,98 @@ describe('AdminSettingsComponent', () => {
       mockSystemConfigService.isAiKillSwitchLockedByEnv.mockReturnValue(true);
 
       fixture.detectChanges();
-
-      httpMock.expectOne('/api/v1/admin/config/USER_APPROVAL_REQUIRED').flush({
-        key: 'USER_APPROVAL_REQUIRED',
-        value: 'true',
-        source: 'database',
-      });
-      httpMock
-        .expectOne('/api/v1/admin/config/AI_KILL_SWITCH')
-        .flush({ key: 'AI_KILL_SWITCH', value: 'true', source: 'database' });
-      httpMock
-        .expectOne('/api/v1/admin/config/REQUIRE_EMAIL')
-        .flush({ key: 'REQUIRE_EMAIL', value: 'false', source: 'database' });
+      flushAllConfigRequests(httpMock);
 
       await flushMicrotasks();
       fixture.detectChanges();
 
       expect(component.aiKillSwitchLockedByEnv()).toBe(true);
+    });
+  });
+
+  describe('Password Policy', () => {
+    it('should load password policy values on init', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSWORD_MIN_LENGTH: '12',
+        PASSWORD_REQUIRE_UPPERCASE: 'false',
+      });
+
+      await flushMicrotasks();
+
+      expect(component.passwordMinLength()).toBe(12);
+      expect(component.passwordRequireUppercase()).toBe(false);
+      expect(component.passwordRequireLowercase()).toBe(true);
+      expect(component.passwordRequireNumber()).toBe(true);
+      expect(component.passwordRequireSymbol()).toBe(true);
+    });
+
+    it('should save password min length', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.savePasswordMinLength('10');
+
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSWORD_MIN_LENGTH'
+      );
+      expect(putReq.request.body).toEqual({ value: '10' });
+      putReq.flush(null);
+
+      await savePromise;
+
+      expect(component.passwordMinLength()).toBe(10);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('should toggle password policy requirement', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const togglePromise = component.togglePasswordPolicy(
+        'PASSWORD_REQUIRE_SYMBOL',
+        false
+      );
+
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSWORD_REQUIRE_SYMBOL'
+      );
+      expect(putReq.request.body).toEqual({ value: 'false' });
+      putReq.flush(null);
+
+      await togglePromise;
+
+      expect(component.passwordRequireSymbol()).toBe(false);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+  });
+
+  describe('Site URL', () => {
+    it('should load site URL on init', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { SITE_URL: 'https://example.com' });
+
+      await flushMicrotasks();
+
+      expect(component.siteUrl()).toBe('https://example.com');
+    });
+
+    it('should save site URL', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.saveSiteUrl('https://mysite.com');
+
+      const putReq = httpMock.expectOne('/api/v1/admin/config/SITE_URL');
+      expect(putReq.request.body).toEqual({ value: 'https://mysite.com' });
+      putReq.flush(null);
+
+      await savePromise;
+
+      expect(component.siteUrl()).toBe('https://mysite.com');
     });
   });
 });
