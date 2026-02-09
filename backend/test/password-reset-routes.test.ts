@@ -100,7 +100,7 @@ describe('Password Reset Routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: 'invalidtoken123',
-          newPassword: 'newpassword123',
+          newPassword: 'NewPass123!',
         }),
       });
 
@@ -113,7 +113,7 @@ describe('Password Reset Routes', () => {
       const { response } = await client.request('/api/v1/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: 'newpassword123' }),
+        body: JSON.stringify({ newPassword: 'NewPass123!' }),
       });
 
       expect(response.status).toBeGreaterThanOrEqual(400);
@@ -128,6 +128,21 @@ describe('Password Reset Routes', () => {
 
       expect(response.status).toBeGreaterThanOrEqual(400);
     });
+
+    it('should reject weak password that does not meet policy', async () => {
+      const { response, json } = await client.request('/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: 'sometoken',
+          newPassword: 'weak',
+        }),
+      });
+
+      expect(response.status).toBe(400);
+      const data = (await json()) as { error: string };
+      expect(data.error).toContain('Password must be at least');
+    });
   });
 
   describe('GET /api/v1/config/features', () => {
@@ -138,6 +153,28 @@ describe('Password Reset Routes', () => {
       const data = (await json()) as { emailEnabled: boolean };
       expect(data).toHaveProperty('emailEnabled');
       expect(typeof data.emailEnabled).toBe('boolean');
+    });
+
+    it('should include passwordPolicy in features response', async () => {
+      const { response, json } = await client.request('/api/v1/config/features');
+
+      expect(response.status).toBe(200);
+      const data = (await json()) as {
+        passwordPolicy: {
+          minLength: number;
+          requireUppercase: boolean;
+          requireLowercase: boolean;
+          requireNumber: boolean;
+          requireSymbol: boolean;
+        };
+      };
+      expect(data).toHaveProperty('passwordPolicy');
+      expect(data.passwordPolicy).toHaveProperty('minLength');
+      expect(data.passwordPolicy).toHaveProperty('requireUppercase');
+      expect(data.passwordPolicy).toHaveProperty('requireLowercase');
+      expect(data.passwordPolicy).toHaveProperty('requireNumber');
+      expect(data.passwordPolicy).toHaveProperty('requireSymbol');
+      expect(typeof data.passwordPolicy.minLength).toBe('number');
     });
   });
 

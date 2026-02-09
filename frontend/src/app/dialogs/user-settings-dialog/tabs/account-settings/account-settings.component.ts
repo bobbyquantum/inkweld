@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -68,7 +69,18 @@ export class AccountSettingsComponent implements OnInit {
       this.snackBar.open('Profile updated', 'Close', { duration: 2000 });
     } catch (err) {
       console.error('Failed to update profile:', err);
-      this.snackBar.open('Failed to update profile', 'Close', {
+      let message = 'Failed to update profile';
+      if (
+        err instanceof HttpErrorResponse &&
+        err.error &&
+        typeof err.error === 'object'
+      ) {
+        const body = err.error as Record<string, unknown>;
+        if ('error' in body && typeof body['error'] === 'string') {
+          message = body['error'];
+        }
+      }
+      this.snackBar.open(message, 'Close', {
         duration: 3000,
       });
     } finally {

@@ -4,6 +4,7 @@ import { config } from '../config/env';
 import { PROTOCOL_VERSION, MIN_CLIENT_VERSION } from '../config/protocol';
 import { imageGenerationService } from '../services/image-generation.service';
 import { configService } from '../services/config.service';
+import { getPasswordPolicy } from '../services/password-validation.service';
 import type { AppContext } from '../types/context';
 
 const configRoutes = new OpenAPIHono<AppContext>();
@@ -65,6 +66,23 @@ const SystemFeaturesSchema = z
       example: false,
       description: 'Whether email address is required during registration',
     }),
+    passwordPolicy: z
+      .object({
+        minLength: z.number().openapi({ example: 8, description: 'Minimum password length' }),
+        requireUppercase: z
+          .boolean()
+          .openapi({ example: true, description: 'Require uppercase letter' }),
+        requireLowercase: z
+          .boolean()
+          .openapi({ example: true, description: 'Require lowercase letter' }),
+        requireNumber: z.boolean().openapi({ example: true, description: 'Require number' }),
+        requireSymbol: z
+          .boolean()
+          .openapi({ example: true, description: 'Require special character' }),
+      })
+      .openapi({
+        description: 'Password policy configuration for registration and password reset',
+      }),
   })
   .openapi('SystemFeatures');
 
@@ -161,6 +179,9 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // Check if email is required for registration
   const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
 
+  // Load password policy
+  const passwordPolicy = await getPasswordPolicy(db);
+
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -171,6 +192,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     userApprovalRequired: config.userApprovalRequired,
     emailEnabled,
     requireEmail,
+    passwordPolicy,
   });
 });
 

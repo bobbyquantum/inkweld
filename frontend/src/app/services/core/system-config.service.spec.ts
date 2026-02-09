@@ -27,6 +27,13 @@ describe('SystemConfigService', () => {
     userApprovalRequired: false,
     emailEnabled: false,
     requireEmail: false,
+    passwordPolicy: {
+      minLength: 8,
+      requireUppercase: true,
+      requireLowercase: true,
+      requireNumber: true,
+      requireSymbol: true,
+    },
   };
 
   beforeEach(() => {
@@ -124,6 +131,13 @@ describe('SystemConfigService', () => {
         userApprovalRequired: false,
         emailEnabled: false,
         requireEmail: false,
+        passwordPolicy: {
+          minLength: 8,
+          requireUppercase: true,
+          requireLowercase: true,
+          requireNumber: true,
+          requireSymbol: true,
+        },
       });
 
       expect(offlineService.isConfigLoaded()).toBe(true);
@@ -165,6 +179,13 @@ describe('SystemConfigService', () => {
             userApprovalRequired: true,
             emailEnabled: false,
             requireEmail: false,
+            passwordPolicy: {
+              minLength: 8,
+              requireUppercase: true,
+              requireLowercase: true,
+              requireNumber: true,
+              requireSymbol: true,
+            },
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -201,6 +222,13 @@ describe('SystemConfigService', () => {
         aiImageGeneration: true,
         emailEnabled: false,
         requireEmail: false,
+        passwordPolicy: {
+          minLength: 8,
+          requireUppercase: true,
+          requireLowercase: true,
+          requireNumber: true,
+          requireSymbol: true,
+        },
       };
 
       // Wait for initial load
@@ -560,6 +588,13 @@ describe('SystemConfigService', () => {
             userApprovalRequired: true,
             emailEnabled: false,
             requireEmail: false,
+            passwordPolicy: {
+              minLength: 8,
+              requireUppercase: true,
+              requireLowercase: true,
+              requireNumber: true,
+              requireSymbol: true,
+            },
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -596,6 +631,13 @@ describe('SystemConfigService', () => {
               userApprovalRequired: true,
               emailEnabled: false,
               requireEmail: false,
+              passwordPolicy: {
+                minLength: 8,
+                requireUppercase: true,
+                requireLowercase: true,
+                requireNumber: true,
+                requireSymbol: true,
+              },
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(

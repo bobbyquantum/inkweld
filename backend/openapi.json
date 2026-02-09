@@ -1003,6 +1003,44 @@
             "type": "boolean",
             "example": false,
             "description": "Whether email address is required during registration"
+          },
+          "passwordPolicy": {
+            "type": "object",
+            "properties": {
+              "minLength": {
+                "type": "number",
+                "example": 8,
+                "description": "Minimum password length"
+              },
+              "requireUppercase": {
+                "type": "boolean",
+                "example": true,
+                "description": "Require uppercase letter"
+              },
+              "requireLowercase": {
+                "type": "boolean",
+                "example": true,
+                "description": "Require lowercase letter"
+              },
+              "requireNumber": {
+                "type": "boolean",
+                "example": true,
+                "description": "Require number"
+              },
+              "requireSymbol": {
+                "type": "boolean",
+                "example": true,
+                "description": "Require special character"
+              }
+            },
+            "required": [
+              "minLength",
+              "requireUppercase",
+              "requireLowercase",
+              "requireNumber",
+              "requireSymbol"
+            ],
+            "description": "Password policy configuration for registration and password reset"
           }
         },
         "required": [
@@ -1013,7 +1051,8 @@
           "appMode",
           "userApprovalRequired",
           "emailEnabled",
-          "requireEmail"
+          "requireEmail",
+          "passwordPolicy"
         ]
       },
       "CSRFTokenResponse": {
@@ -3514,8 +3553,8 @@
           },
           "newPassword": {
             "type": "string",
-            "minLength": 6,
-            "description": "New password (minimum 6 characters)",
+            "minLength": 1,
+            "description": "New password (must meet configured password policy)",
             "example": "newSecurePassword"
           }
         },

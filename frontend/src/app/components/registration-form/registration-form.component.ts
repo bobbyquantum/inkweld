@@ -11,6 +11,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectorRef,
   Component,
+  effect,
   ElementRef,
   EventEmitter,
   inject,
@@ -111,6 +112,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   private systemConfig = inject(SystemConfigService);
 
   readonly isRequireEmail = this.systemConfig.isRequireEmailEnabled;
+  private readonly policy = this.systemConfig.passwordPolicy;
 
   /** Whether to show the submit button (can be hidden if parent handles submission) */
   @Input() showSubmitButton = true;
@@ -185,11 +187,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         validators: [Validators.email],
       }),
       password: this.fb.control('', {
-        validators: [
-          Validators.required,
-          Validators.minLength(8),
-          this.createPasswordValidator(),
-        ],
+        validators: [Validators.required, this.createPasswordValidator()],
       }),
       confirmPassword: this.fb.control('', {
         validators: [
@@ -212,30 +210,58 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   isPasswordFocused = false;
   private overlayRef?: OverlayRef;
 
-  passwordRequirements = {
+  passwordRequirements: Record<
+    string,
+    { met: boolean; message: string; enabled: boolean }
+  > = {
     minLength: {
       met: false,
-      message: 'At least 8 characters long',
+      message: `At least ${this.policy().minLength} characters long`,
+      enabled: true,
     },
     uppercase: {
       met: false,
       message: 'At least one uppercase letter',
+      enabled: this.policy().requireUppercase,
     },
     lowercase: {
       met: false,
       message: 'At least one lowercase letter',
+      enabled: this.policy().requireLowercase,
     },
     number: {
       met: false,
       message: 'At least one number',
+      enabled: this.policy().requireNumber,
     },
     special: {
       met: false,
       message: 'At least one special character (@$!%*?&)',
+      enabled: this.policy().requireSymbol,
     },
   };
 
   private destroy$ = new Subject<void>();
+
+  constructor() {
+    // Sync password requirement enabled flags when policy signal changes
+    effect(() => {
+      const p = this.policy();
+      this.passwordRequirements['minLength'].enabled = true;
+      this.passwordRequirements['minLength'].message =
+        `At least ${p.minLength} characters long`;
+      this.passwordRequirements['uppercase'].enabled = p.requireUppercase;
+      this.passwordRequirements['lowercase'].enabled = p.requireLowercase;
+      this.passwordRequirements['number'].enabled = p.requireNumber;
+      this.passwordRequirements['special'].enabled = p.requireSymbol;
+      // Re-validate if password has a value
+      const password = this.registerForm.get('password')?.value;
+      if (password) {
+        this.updatePasswordRequirements(password);
+        this.registerForm.get('password')?.updateValueAndValidity();
+      }
+    });
+  }
 
   get usernameControl() {
     return this.registerForm.get('username');
@@ -290,6 +316,15 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         this.validityChange.emit(this.registerForm.valid);
       });
 
+    // Clear general server errors when user modifies any field
+    this.registerForm.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.serverValidationErrors['general']) {
+          delete this.serverValidationErrors['general'];
+        }
+      });
+
     // Set email as required if REQUIRE_EMAIL is enabled
     this.updateEmailRequiredValidator();
   }
@@ -326,7 +361,9 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   }
 
   isPasswordValid(): boolean {
-    return Object.values(this.passwordRequirements).every(req => req.met);
+    return Object.values(this.passwordRequirements).every(
+      req => !req.enabled || req.met
+    );
   }
 
   selectSuggestion(suggestion: string): void {
@@ -667,15 +704,25 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       if (
         error.status === 400 &&
         error.error &&
-        typeof error.error === 'object' &&
-        'errors' in error.error
+        typeof error.error === 'object'
       ) {
-        const errorObj = error.error as {
-          errors?: { [key: string]: string[] };
-        };
-        if (errorObj.errors) {
-          this.handleValidationErrors(errorObj.errors);
-          return new Error('Please fix the validation errors');
+        // Structured field-level errors: { errors: { field: string[] } }
+        if ('errors' in error.error) {
+          const errorObj = error.error as {
+            errors?: { [key: string]: string[] };
+          };
+          if (errorObj.errors) {
+            this.handleValidationErrors(errorObj.errors);
+            return new Error('Please fix the validation errors');
+          }
+        }
+        // Simple error message: { error: string }
+        const errorBody = error.error as Record<string, unknown>;
+        if ('error' in errorBody && typeof errorBody['error'] === 'string') {
+          const message = errorBody['error'];
+          this.serverValidationErrors = { general: [message] };
+          this.changeDetectorRef.detectChanges();
+          return new Error(message);
         }
       }
       return new Error(`Registration failed: ${error.message}`);
@@ -692,21 +739,22 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         return null;
       }
 
+      const p = this.policy();
       const errors: ValidationErrors = {};
 
-      if (password.length < 8) {
+      if (password.length < p.minLength) {
         errors['minLength'] = true;
       }
-      if (!/[A-Z]/.test(password)) {
+      if (p.requireUppercase && !/[A-Z]/.test(password)) {
         errors['uppercase'] = true;
       }
-      if (!/[a-z]/.test(password)) {
+      if (p.requireLowercase && !/[a-z]/.test(password)) {
         errors['lowercase'] = true;
       }
-      if (!/\d/.test(password)) {
+      if (p.requireNumber && !/\d/.test(password)) {
         errors['number'] = true;
       }
-      if (!/[@$!%*?&]/.test(password)) {
+      if (p.requireSymbol && !/[@$!%*?&]/.test(password)) {
         errors['special'] = true;
       }
 
@@ -742,11 +790,17 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       ])
     );
 
-    this.passwordRequirements.minLength.met = password.length >= 8;
-    this.passwordRequirements.uppercase.met = /[A-Z]/.test(password);
-    this.passwordRequirements.lowercase.met = /[a-z]/.test(password);
-    this.passwordRequirements.number.met = /\d/.test(password);
-    this.passwordRequirements.special.met = /[@$!%*?&]/.test(password);
+    const p = this.policy();
+    this.passwordRequirements['minLength'].met = password.length >= p.minLength;
+    this.passwordRequirements['uppercase'].met = /[A-Z]/.test(password);
+    this.passwordRequirements['lowercase'].met = /[a-z]/.test(password);
+    this.passwordRequirements['number'].met = /\d/.test(password);
+    this.passwordRequirements['special'].met = /[@$!%*?&]/.test(password);
+    // Sync enabled flags from current policy
+    this.passwordRequirements['uppercase'].enabled = p.requireUppercase;
+    this.passwordRequirements['lowercase'].enabled = p.requireLowercase;
+    this.passwordRequirements['number'].enabled = p.requireNumber;
+    this.passwordRequirements['special'].enabled = p.requireSymbol;
 
     const newState = Object.fromEntries(
       Object.entries(this.passwordRequirements).map(([key, req]) => [

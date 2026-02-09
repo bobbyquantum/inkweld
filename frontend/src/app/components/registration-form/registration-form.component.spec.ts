@@ -13,6 +13,14 @@ import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
 import { RegistrationFormComponent } from './registration-form.component';
 
+const DEFAULT_POLICY = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true,
+  requireSymbol: true,
+};
+
 describe('RegistrationFormComponent', () => {
   let component: RegistrationFormComponent;
   let fixture: ComponentFixture<RegistrationFormComponent>;
@@ -20,7 +28,10 @@ describe('RegistrationFormComponent', () => {
   let userService: MockedObject<UserService>;
   let snackBar: MockedObject<MatSnackBar>;
   let setupService: MockedObject<SetupService>;
-  let systemConfigService: { isRequireEmailEnabled: ReturnType<typeof vi.fn> };
+  let systemConfigService: {
+    isRequireEmailEnabled: ReturnType<typeof vi.fn>;
+    passwordPolicy: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     authService = {
@@ -41,6 +52,7 @@ describe('RegistrationFormComponent', () => {
 
     systemConfigService = {
       isRequireEmailEnabled: vi.fn().mockReturnValue(false),
+      passwordPolicy: vi.fn().mockReturnValue(DEFAULT_POLICY),
     };
 
     await TestBed.configureTestingModule({
@@ -113,25 +125,25 @@ describe('RegistrationFormComponent', () => {
     it('should validate password minimum length', () => {
       component.registerForm.get('password')?.setValue('short');
       expect(
-        component.registerForm.get('password')?.hasError('minlength')
+        component.registerForm.get('password')?.hasError('minLength')
       ).toBe(true);
     });
 
     it('should update password requirements on password change', () => {
       component.registerForm.get('password')?.setValue('Test123!@');
-      expect(component.passwordRequirements.minLength.met).toBe(true);
-      expect(component.passwordRequirements.uppercase.met).toBe(true);
-      expect(component.passwordRequirements.lowercase.met).toBe(true);
-      expect(component.passwordRequirements.number.met).toBe(true);
-      expect(component.passwordRequirements.special.met).toBe(true);
+      expect(component.passwordRequirements['minLength'].met).toBe(true);
+      expect(component.passwordRequirements['uppercase'].met).toBe(true);
+      expect(component.passwordRequirements['lowercase'].met).toBe(true);
+      expect(component.passwordRequirements['number'].met).toBe(true);
+      expect(component.passwordRequirements['special'].met).toBe(true);
     });
 
     it('should not meet requirements for weak password', () => {
       component.registerForm.get('password')?.setValue('weak');
-      expect(component.passwordRequirements.minLength.met).toBe(false);
-      expect(component.passwordRequirements.uppercase.met).toBe(false);
-      expect(component.passwordRequirements.number.met).toBe(false);
-      expect(component.passwordRequirements.special.met).toBe(false);
+      expect(component.passwordRequirements['minLength'].met).toBe(false);
+      expect(component.passwordRequirements['uppercase'].met).toBe(false);
+      expect(component.passwordRequirements['number'].met).toBe(false);
+      expect(component.passwordRequirements['special'].met).toBe(false);
     });
 
     it('should return true for isPasswordValid when all requirements are met', () => {
@@ -641,11 +653,11 @@ describe('RegistrationFormComponent', () => {
       component.registerForm.get('password')?.setValue('Bb2$evenlong');
 
       // The key is that the requirements state didn't change - verify final state
-      expect(component.passwordRequirements.minLength.met).toBe(true);
-      expect(component.passwordRequirements.uppercase.met).toBe(true);
-      expect(component.passwordRequirements.lowercase.met).toBe(true);
-      expect(component.passwordRequirements.number.met).toBe(true);
-      expect(component.passwordRequirements.special.met).toBe(true);
+      expect(component.passwordRequirements['minLength'].met).toBe(true);
+      expect(component.passwordRequirements['uppercase'].met).toBe(true);
+      expect(component.passwordRequirements['lowercase'].met).toBe(true);
+      expect(component.passwordRequirements['number'].met).toBe(true);
+      expect(component.passwordRequirements['special'].met).toBe(true);
 
       // Verify initialCalls was captured (it should be 0 at spy creation)
       expect(initialCalls).toBe(0);

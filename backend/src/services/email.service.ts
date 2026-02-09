@@ -119,6 +119,14 @@ class EmailService {
    */
   async sendEmail(db: DatabaseInstance, options: SendEmailOptions): Promise<SendEmailResult> {
     try {
+      // Skip invalid or placeholder addresses
+      if (!options.to || options.to.endsWith('@local') || !options.to.includes('@')) {
+        logger.info('Email', 'Email sending skipped — no valid recipient address', {
+          to: options.to,
+        });
+        return { success: false, error: 'No valid recipient email address' };
+      }
+
       // Check if email is enabled
       const enabled = await this.isEnabled(db);
       if (!enabled) {

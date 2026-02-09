@@ -137,6 +137,16 @@ class ConfigService {
         return 'false';
       case 'REQUIRE_EMAIL':
         return 'false';
+      case 'PASSWORD_MIN_LENGTH':
+        return '8';
+      case 'PASSWORD_REQUIRE_UPPERCASE':
+        return 'true';
+      case 'PASSWORD_REQUIRE_LOWERCASE':
+        return 'true';
+      case 'PASSWORD_REQUIRE_NUMBER':
+        return 'true';
+      case 'PASSWORD_REQUIRE_SYMBOL':
+        return 'true';
       default:
         return undefined;
     }

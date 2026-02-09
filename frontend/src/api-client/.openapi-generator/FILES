@@ -179,6 +179,7 @@ model/set-provider-key-request.ts
 model/share-link-response.ts
 model/snapshot-with-content.ts
 model/style-recommendation.ts
+model/system-features-password-policy.ts
 model/system-features.ts
 model/test-email-response.ts
 model/text-generation-error.ts

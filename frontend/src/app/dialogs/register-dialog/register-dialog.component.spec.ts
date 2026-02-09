@@ -47,6 +47,13 @@ describe('RegisterDialogComponent', () => {
 
     const systemConfigService = {
       isRequireEmailEnabled: vi.fn().mockReturnValue(false),
+      passwordPolicy: vi.fn().mockReturnValue({
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireNumber: true,
+        requireSymbol: true,
+      }),
     };
 
     await TestBed.configureTestingModule({

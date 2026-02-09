@@ -160,6 +160,14 @@ const updateProfileRoute = createRoute({
       },
       description: 'Updated user profile',
     },
+    400: {
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+      description: 'Duplicate email address',
+    },
     401: {
       content: {
         'application/json': {
@@ -189,6 +197,15 @@ userRoutes.openapi(updateProfileRoute, async (c) => {
   }
 
   const body = c.req.valid('json');
+
+  // Block duplicate emails when updating email
+  if (body.email) {
+    const existingUser = await userService.findByEmail(db, body.email);
+    if (existingUser && existingUser.id !== user.id) {
+      return c.json({ error: 'An account with this email address already exists' }, 400);
+    }
+  }
+
   const updated = await userService.updateProfile(db, user.id, body);
 
   return c.json(

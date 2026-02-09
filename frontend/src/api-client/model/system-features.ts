@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { SystemFeaturesPasswordPolicy } from './system-features-password-policy';
 
 
 export interface SystemFeatures { 
@@ -46,6 +47,7 @@ export interface SystemFeatures {
      * Whether email address is required during registration
      */
     requireEmail: boolean;
+    passwordPolicy: SystemFeaturesPasswordPolicy;
 }
 export enum SystemFeaturesAppMode {
     Online = 'ONLINE',

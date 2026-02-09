@@ -3,6 +3,7 @@ import {
   ConfigurationService,
   SystemFeatures,
   SystemFeaturesAppMode,
+  SystemFeaturesPasswordPolicy,
 } from '@inkweld/index';
 import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
@@ -21,6 +22,15 @@ export interface AiImageGenerationStatus {
   tooltip?: string;
 }
 
+/** Default password policy */
+const DEFAULT_PASSWORD_POLICY: SystemFeaturesPasswordPolicy = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true,
+  requireSymbol: true,
+};
+
 /** Default system features when user explicitly chooses local mode */
 const LOCAL_DEFAULTS: SystemFeatures = {
   aiKillSwitch: true, // Kill switch ON = AI disabled in local mode
@@ -31,6 +41,7 @@ const LOCAL_DEFAULTS: SystemFeatures = {
   appMode: SystemFeaturesAppMode.Local,
   emailEnabled: false,
   requireEmail: false,
+  passwordPolicy: DEFAULT_PASSWORD_POLICY,
 };
 
 /** Default system features when server is unavailable (degraded mode) */
@@ -43,6 +54,7 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   appMode: SystemFeaturesAppMode.Local, // Treat as local when server is down
   emailEnabled: false,
   requireEmail: false,
+  passwordPolicy: DEFAULT_PASSWORD_POLICY,
 };
 
 @Injectable({
@@ -61,6 +73,7 @@ export class SystemConfigService {
     appMode: SystemFeaturesAppMode.Both,
     emailEnabled: false,
     requireEmail: false,
+    passwordPolicy: DEFAULT_PASSWORD_POLICY,
   });
 
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
@@ -93,6 +106,9 @@ export class SystemConfigService {
   );
   public readonly isRequireEmailEnabled = computed(
     () => this.systemFeaturesSignal().requireEmail ?? false
+  );
+  public readonly passwordPolicy = computed(
+    () => this.systemFeaturesSignal().passwordPolicy ?? DEFAULT_PASSWORD_POLICY
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 

@@ -4,6 +4,15 @@
   class="registration-form"
   [class.compact]="compact"
   data-testid="registration-form">
+  @if (
+    serverValidationErrors['general'] &&
+    serverValidationErrors['general'].length > 0
+  ) {
+    <div class="server-error-banner" data-testid="registration-error-banner">
+      <mat-icon class="server-error-icon">error_outline</mat-icon>
+      <span>{{ serverValidationErrors['general'][0] }}</span>
+    </div>
+  }
   <mat-form-field appearance="outline">
     <mat-label>Username</mat-label>
     <input
@@ -157,12 +166,16 @@
         requirement of passwordRequirements | keyvalue;
         track requirement.key
       ) {
-        <li class="requirement-item" [class.met]="requirement.value.met">
-          <mat-icon class="requirement-icon">
-            {{ requirement.value.met ? 'check_circle' : 'cancel' }}
-          </mat-icon>
-          <span class="requirement-text">{{ requirement.value.message }}</span>
-        </li>
+        @if (requirement.value.enabled) {
+          <li class="requirement-item" [class.met]="requirement.value.met">
+            <mat-icon class="requirement-icon">
+              {{ requirement.value.met ? 'check_circle' : 'cancel' }}
+            </mat-icon>
+            <span class="requirement-text">{{
+              requirement.value.message
+            }}</span>
+          </li>
+        }
       }
     </ul>
   </div>

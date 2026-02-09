@@ -142,6 +142,7 @@ export * from './share-link-response';
 export * from './snapshot-with-content';
 export * from './style-recommendation';
 export * from './system-features';
+export * from './system-features-password-policy';
 export * from './test-email-response';
 export * from './text-generation-error';
 export * from './text-generation-status';

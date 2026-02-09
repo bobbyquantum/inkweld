@@ -271,7 +271,9 @@ export class UserService {
   }
 
   async clearCurrentUser(): Promise<void> {
-    // Clear JWT token from localStorage (but keep app config for setup)
+    // Clear JWT token using AuthTokenService (handles prefixed key)
+    this.authTokenService.clearToken();
+    // Also clear legacy unprefixed key for backwards compatibility
     localStorage.removeItem('auth_token');
 
     if (this.storage.isAvailable()) {
