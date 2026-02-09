@@ -11,7 +11,7 @@
  * project collaborators system for permission management.
  */
 
-import { eq, and, isNull, or, lt } from 'drizzle-orm';
+import { eq, and, not, isNull, or, lt } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
 import type { DatabaseInstance } from '../types/context';
 import {
@@ -595,8 +595,26 @@ class McpOAuthService {
 
     await db.insert(mcpOAuthSessions).values(sessionData);
 
+    // Revoke any previous sessions for the same user+client combination.
+    // This ensures that relinking an agent (e.g. after delink/relink) replaces
+    // the old collaborator entries rather than creating duplicates.
+    const existingSessions = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(
+        and(
+          eq(mcpOAuthSessions.userId, data.userId),
+          eq(mcpOAuthSessions.clientId, data.clientId),
+          not(eq(mcpOAuthSessions.id, sessionId)),
+          isNull(mcpOAuthSessions.revokedAt)
+        )
+      );
+
+    for (const existing of existingSessions) {
+      await this.revokeSession(db, existing.id, 'Superseded by new session');
+    }
+
     // Create collaborator entries for each granted project
-    // Each OAuth session gets its own entries - no conflict possible since sessionId is unique
     for (const grant of data.grants) {
       await db.insert(projectCollaborators).values({
         projectId: grant.projectId,
