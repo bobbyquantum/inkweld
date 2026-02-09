@@ -3,10 +3,12 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { TagService } from '@services/tag/tag.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { MockedObject, vi } from 'vitest';
 
@@ -48,6 +50,17 @@ describe('IdentityPanelComponent', () => {
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: DialogGatewayService, useValue: dialogGatewayService },
+        {
+          provide: TagService,
+          useValue: {
+            getResolvedTagsForElement: vi.fn().mockReturnValue([]),
+            getAvailableTagsForElement: vi.fn().mockReturnValue([]),
+            addTag: vi.fn().mockReturnValue(null),
+            removeTag: vi.fn().mockReturnValue(false),
+            createCustomTag: vi.fn().mockReturnValue(null),
+            allTags: signal([]),
+          },
+        },
       ],
     }).compileComponents();
 
