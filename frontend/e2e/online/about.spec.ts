@@ -33,8 +33,8 @@ test.describe('About Page - Online', () => {
     await page.goto('/about');
     await page.waitForLoadState('domcontentloaded');
 
-    // Click the View Changelog button
-    const changelogButton = page.getByRole('link', {
+    // Click the View Changelog button (it's a <button> with routerLink, not an <a>)
+    const changelogButton = page.getByRole('button', {
       name: /view changelog/i,
     });
     await changelogButton.click();
