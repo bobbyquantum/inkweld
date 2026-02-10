@@ -9,7 +9,7 @@ import {
 import { Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/index';
 import { Plugin } from 'prosemirror-state';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import {
   yCursorPlugin,
@@ -112,6 +112,12 @@ export class DocumentService {
   private connections: Map<string, DocumentConnection> = new Map();
 
   private unsyncedChanges = new Map<string, boolean>();
+  /**
+   * Emits the full documentId (username:slug:elementId) whenever a local edit
+   * is applied to a connected document. Used by AutoSnapshotService to track
+   * which documents were modified during a session.
+   */
+  readonly localEdit$ = new Subject<string>();
   /** Reactive sync status signals per document */
   private syncStatusSignals = new Map<
     string,
@@ -282,6 +288,15 @@ export class DocumentService {
     return Array.from(this.connections.values()).filter(
       conn => conn.provider !== null
     );
+  }
+
+  /**
+   * Gets the IDs of all currently connected documents.
+   *
+   * @returns Array of full document IDs (username:slug:elementId)
+   */
+  getConnectedDocumentIds(): string[] {
+    return Array.from(this.connections.keys());
   }
 
   /**
@@ -732,6 +747,15 @@ export class DocumentService {
       // WebSocket connection happens in background (non-blocking)
       connection = { ydoc, provider: null, type, indexeddbProvider };
       this.connections.set(documentId, connection);
+
+      // Track local edits for auto-snapshots (works in both local and connected modes)
+      ydoc.on('update', (_update: Uint8Array, origin: unknown) => {
+        // Only track edits from the local user (origin is null for local edits,
+        // or the WebSocket provider for remote edits)
+        if (origin === null || origin === undefined) {
+          this.localEdit$.next(documentId);
+        }
+      });
 
       // Add Yjs plugins to editor IMMEDIATELY after IndexedDB sync
       // This makes content appear right away without waiting for WebSocket
