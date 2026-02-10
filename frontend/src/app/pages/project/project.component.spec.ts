@@ -17,6 +17,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Element, ElementType, Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
+import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -216,6 +217,12 @@ describe('ProjectComponent', () => {
       getSetting: vi.fn().mockReturnValue(true),
     };
 
+    const autoSnapshotService = {
+      createAutoSnapshots: vi.fn().mockResolvedValue(undefined),
+      clearDirtyState: vi.fn(),
+      isEnabled: vi.fn().mockReturnValue(true),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ProjectComponent],
       providers: [
@@ -236,6 +243,7 @@ describe('ProjectComponent', () => {
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: SettingsService, useValue: settingsService },
+        { provide: AutoSnapshotService, useValue: autoSnapshotService },
         { provide: MatDialog, useValue: { open: vi.fn() } },
       ],
       schemas: [NO_ERRORS_SCHEMA],

@@ -33,6 +33,7 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Element, ElementType, Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
+import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -96,6 +97,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly settingsService = inject(SettingsService);
   private readonly quickOpenService = inject(QuickOpenService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly autoSnapshotService = inject(AutoSnapshotService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -267,6 +269,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    // Fire-and-forget: create auto-snapshots for any edited documents
+    void this.autoSnapshotService.createAutoSnapshots();
+
     this.paramsSubscription?.unsubscribe();
     this.errorEffect.destroy();
     this.destroy$.next();
