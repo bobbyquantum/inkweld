@@ -318,6 +318,9 @@ aiProvidersRoutes.openapi(setKeyRoute, async (c) => {
     apiKey
   );
 
+  // Invalidate cached provider configuration so changes take effect immediately
+  imageGenerationService.invalidateConfiguration();
+
   return c.json({ success: true }, 200);
 });
 
@@ -369,6 +372,9 @@ aiProvidersRoutes.openapi(deleteKeyRoute, async (c) => {
     provider.apiKeyConfigKey as Parameters<typeof configService.set>[1],
     ''
   );
+
+  // Invalidate cached provider configuration so changes take effect immediately
+  imageGenerationService.invalidateConfiguration();
 
   return c.json({ success: true }, 200);
 });
@@ -432,6 +438,9 @@ aiProvidersRoutes.openapi(setEndpointRoute, async (c) => {
     endpoint
   );
 
+  // Invalidate cached provider configuration so changes take effect immediately
+  imageGenerationService.invalidateConfiguration();
+
   return c.json({ success: true }, 200);
 });
 
@@ -493,6 +502,9 @@ aiProvidersRoutes.openapi(setAccountIdRoute, async (c) => {
     provider.accountIdConfigKey as Parameters<typeof configService.set>[1],
     accountId
   );
+
+  // Invalidate cached provider configuration so changes take effect immediately
+  imageGenerationService.invalidateConfiguration();
 
   return c.json({ success: true }, 200);
 });
