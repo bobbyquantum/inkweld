@@ -30,6 +30,13 @@ class MockProjectTreeSettingsComponent {}
 })
 class MockProjectSettingsComponent {}
 
+@Component({
+  selector: 'app-authorized-apps',
+  standalone: true,
+  template: '<div>Authorized Apps</div>',
+})
+class MockAuthorizedAppsComponent {}
+
 import { UserSettingsDialogComponent } from './user-settings-dialog.component';
 
 Object.defineProperty(window, 'matchMedia', {
@@ -63,6 +70,7 @@ describe('UserSettingsDialogComponent', () => {
       imports: [
         MatDialogModule,
         MockAccountSettingsComponent,
+        MockAuthorizedAppsComponent,
         MockProjectTreeSettingsComponent,
         MockProjectSettingsComponent,
       ],
@@ -73,6 +81,11 @@ describe('UserSettingsDialogComponent', () => {
               (click)="selectCategory('account')"
               [attr.aria-selected]="selectedCategory === 'account'">
               Account
+            </button>
+            <button
+              (click)="selectCategory('authorized-apps')"
+              [attr.aria-selected]="selectedCategory === 'authorized-apps'">
+              Authorized Apps
             </button>
             <button
               (click)="selectCategory('project-tree')"
@@ -88,6 +101,8 @@ describe('UserSettingsDialogComponent', () => {
           <div class="settings-content">
             @if (selectedCategory === 'account') {
               <app-account-settings />
+            } @else if (selectedCategory === 'authorized-apps') {
+              <app-authorized-apps />
             } @else if (selectedCategory === 'project') {
               <app-project-settings />
             } @else if (selectedCategory === 'project-tree') {
@@ -178,8 +193,8 @@ describe('UserSettingsDialogComponent', () => {
     const navItems = fixture.debugElement.queryAll(
       By.css('.settings-nav button')
     );
-    // Click on project button (third button)
-    (navItems[2].nativeElement as HTMLElement).click();
+    // Click on project button (fourth button)
+    (navItems[3].nativeElement as HTMLElement).click();
     expect(component.selectedCategory).toBe('project');
   });
 

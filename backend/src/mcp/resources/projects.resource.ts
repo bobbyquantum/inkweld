@@ -67,6 +67,7 @@ const projectsResourceHandler = {
         username: p.username,
         slug: p.slug,
         projectKey: `${p.username}/${p.slug}`,
+        role: p.role,
         permissions: p.permissions,
         permissionSummary: summarizePermissions(p.permissions),
       }));
@@ -108,6 +109,7 @@ const projectsResourceHandler = {
             username: project.username,
             slug: project.slug,
             projectId: project.projectId,
+            role: project.role,
             permissions: project.permissions,
             permissionSummary: summarizePermissions(project.permissions),
             availableResources: getAvailableResources(

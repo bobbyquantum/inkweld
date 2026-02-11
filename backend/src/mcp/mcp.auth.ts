@@ -157,8 +157,19 @@ async function handleOAuthJwt(
     );
   }
 
-  // Look up grants from database (not in token to keep it small)
+  // Check if session has been revoked
   const db = c.get('db');
+  const revoked = await mcpOAuthService.isSessionRevoked(db, payload.session_id);
+  if (revoked) {
+    mcpLog.info(`[AUTH] OAuth session ${payload.session_id} has been revoked`);
+    c.header('WWW-Authenticate', getWwwAuthenticateHeader(c));
+    return c.json(
+      createErrorResponse(0, JSON_RPC_ERRORS.INVALID_REQUEST, 'Session has been revoked'),
+      401
+    );
+  }
+
+  // Look up grants from database (not in token to keep it small)
   const sessionGrants = await mcpOAuthService.getSessionGrants(db, payload.session_id);
 
   // Convert grants to McpOAuthGrant format
@@ -166,6 +177,7 @@ async function handleOAuthJwt(
     projectId: g.projectId,
     slug: g.projectSlug,
     username: g.ownerUsername,
+    role: g.role,
     permissions: g.permissions,
   }));
 

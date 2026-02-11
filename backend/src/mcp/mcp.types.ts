@@ -266,6 +266,8 @@ export interface McpOAuthGrant {
   slug: string;
   /** Project owner username */
   username: string;
+  /** Collaboration role (viewer, editor, admin) */
+  role: string;
   /** Permissions for this project */
   permissions: string[];
 }
@@ -302,6 +304,7 @@ export interface ActiveProjectContext {
   projectId: string;
   username: string;
   slug: string;
+  role: string;
   permissions: string[];
 }
 
@@ -319,6 +322,7 @@ export function getActiveProject(ctx: McpContext): ActiveProjectContext | null {
       projectId: ctx.projectId,
       username: ctx.username,
       slug: ctx.slug,
+      role: 'legacy',
       permissions: ctx.permissions,
     };
   } else {
@@ -329,6 +333,7 @@ export function getActiveProject(ctx: McpContext): ActiveProjectContext | null {
       projectId: firstGrant.projectId,
       username: firstGrant.username,
       slug: firstGrant.slug,
+      role: firstGrant.role,
       permissions: firstGrant.permissions,
     };
   }
@@ -360,6 +365,7 @@ export function getProjectById(ctx: McpContext, projectId: string): ActiveProjec
       projectId: ctx.projectId,
       username: ctx.username,
       slug: ctx.slug,
+      role: 'legacy',
       permissions: ctx.permissions,
     };
   } else {
@@ -369,6 +375,7 @@ export function getProjectById(ctx: McpContext, projectId: string): ActiveProjec
       projectId: grant.projectId,
       username: grant.username,
       slug: grant.slug,
+      role: grant.role,
       permissions: grant.permissions,
     };
   }
@@ -413,6 +420,7 @@ export function getAllProjects(ctx: McpContext): ActiveProjectContext[] {
         projectId: ctx.projectId,
         username: ctx.username,
         slug: ctx.slug,
+        role: 'legacy',
         permissions: ctx.permissions,
       },
     ];
@@ -421,6 +429,7 @@ export function getAllProjects(ctx: McpContext): ActiveProjectContext[] {
       projectId: grant.projectId,
       username: grant.username,
       slug: grant.slug,
+      role: grant.role,
       permissions: grant.permissions,
     }));
   }
@@ -442,6 +451,7 @@ export function getProjectByKey(
       projectId: ctx.projectId,
       username: ctx.username,
       slug: ctx.slug,
+      role: 'legacy',
       permissions: ctx.permissions,
     };
   } else {
@@ -451,6 +461,7 @@ export function getProjectByKey(
       projectId: grant.projectId,
       username: grant.username,
       slug: grant.slug,
+      role: grant.role,
       permissions: grant.permissions,
     };
   }

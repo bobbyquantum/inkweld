@@ -477,7 +477,8 @@
                   <mat-card-content>
                     <p class="connected-apps-info">
                       These applications have been granted access to this
-                      project.
+                      project. Manage permissions and access from your
+                      Authorized Apps settings.
                     </p>
                     <div class="collaborators-list">
                       @for (
@@ -513,18 +514,17 @@
                               </div>
                             </div>
                           </div>
-                          <div class="collaborator-actions">
-                            <button
-                              mat-icon-button
-                              color="warn"
-                              matTooltip="Revoke access"
-                              (click)="removeCollaborator(app)"
-                              data-testid="revoke-app-button">
-                              <mat-icon>link_off</mat-icon>
-                            </button>
-                          </div>
                         </div>
                       }
+                    </div>
+                    <div class="connected-apps-actions">
+                      <button
+                        mat-stroked-button
+                        (click)="openAuthorizedAppsSettings()"
+                        data-testid="manage-apps-button">
+                        <mat-icon>settings</mat-icon>
+                        Manage in Settings
+                      </button>
                     </div>
                   </mat-card-content>
                 </mat-card>

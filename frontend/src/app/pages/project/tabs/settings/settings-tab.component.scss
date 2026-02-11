@@ -769,6 +769,12 @@ mat-card {
   text-transform: capitalize;
 }
 
+.connected-apps-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
 // Responsive adjustments
 @media (max-width: 600px) {
   .settings-tab {

@@ -829,6 +829,21 @@ class McpOAuthService {
   }
 
   /**
+   * Check if an OAuth session has been revoked
+   */
+  async isSessionRevoked(db: DatabaseInstance, sessionId: string): Promise<boolean> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DatabaseInstance type doesn't support partial select
+    const [session] = await (db as any)
+      .select({ revokedAt: mcpOAuthSessions.revokedAt })
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId))
+      .limit(1);
+
+    // Session not found or has been revoked
+    return !session || session.revokedAt !== null;
+  }
+
+  /**
    * Revoke a refresh token
    */
   async revokeRefreshToken(db: DatabaseInstance, refreshToken: string): Promise<void> {

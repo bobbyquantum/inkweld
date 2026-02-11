@@ -1,0 +1,243 @@
+.authorized-apps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.section-title {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.section-description {
+  margin: 0 0 8px;
+  color: var(--sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+// Empty state
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--sys-on-surface-variant);
+
+  .empty-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0 0 4px;
+  }
+
+  .empty-hint {
+    font-size: 0.8rem;
+    max-width: 300px;
+  }
+}
+
+// Sessions list
+.sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-card {
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+
+  &.expanded {
+    border-color: var(--sys-outline);
+  }
+}
+
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.app-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.app-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.app-logo-placeholder {
+  width: 36px;
+  height: 36px;
+  font-size: 36px;
+  color: var(--sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.app-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-meta {
+  font-size: 0.8rem;
+  color: var(--sys-on-surface-variant);
+}
+
+.session-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+// Details panel
+.session-details {
+  border-top: 1px solid var(--sys-outline-variant);
+  padding: 12px 16px;
+  background: var(--sys-surface-container-low);
+}
+
+.grants-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.grants-title {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.add-project-btn {
+  font-size: 0.8rem;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.add-project-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background: var(--sys-surface-container);
+}
+
+.project-select {
+  flex: 1;
+  min-width: 120px;
+}
+
+.no-grants {
+  color: var(--sys-on-surface-variant);
+  font-size: 0.875rem;
+  margin: 8px 0;
+}
+
+.grants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  border-radius: 8px;
+  gap: 8px;
+
+  &:hover {
+    background: var(--sys-surface-container);
+  }
+}
+
+.grant-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.grant-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.grant-project-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grant-project-slug {
+  font-size: 0.8rem;
+  color: var(--sys-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grant-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.role-select {
+  width: 100px;
+}
+
+// Titlecase pipe used in template
+:host {
+  display: block;
+}

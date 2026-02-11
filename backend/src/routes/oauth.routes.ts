@@ -1070,6 +1070,92 @@ oauthRoutes.openapi(updateGrantRoute, async (c) => {
 });
 
 /**
+ * Add a project grant to an existing session
+ */
+const addGrantRoute = createRoute({
+  method: 'post',
+  path: '/oauth/sessions/{sessionId}/grants',
+  tags: ['OAuth'],
+  operationId: 'addOAuthGrant',
+  request: {
+    params: z.object({
+      sessionId: z.string(),
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z
+            .object({
+              projectId: z.string(),
+              role: z.enum(['viewer', 'editor', 'admin']),
+            })
+            .openapi('AddOAuthGrantRequest'),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      content: { 'application/json': { schema: z.object({ message: z.string() }) } },
+      description: 'Grant added',
+    },
+    404: {
+      content: { 'application/json': { schema: OAuthErrorSchema } },
+      description: 'Session not found',
+    },
+    400: {
+      content: { 'application/json': { schema: OAuthErrorSchema } },
+      description: 'Invalid request (project not found or already granted)',
+    },
+  },
+});
+
+oauthRoutes.openapi(addGrantRoute, async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  const { sessionId } = c.req.valid('param') as { sessionId: string };
+  const { projectId, role } = c.req.valid('json');
+
+  if (!user) {
+    throw new OAuthError('invalid_token', 'Not authenticated');
+  }
+
+  // Verify session belongs to user
+  const details = await mcpOAuthService.getSessionDetails(db, sessionId, user.id);
+
+  if (!details) {
+    return c.json({ error: 'not_found', error_description: 'Session not found' }, 404);
+  }
+
+  // Verify the project belongs to the user
+  const userProjects = await projectService.findByUserId(db, user.id);
+  const project = userProjects.find((p) => p.id === projectId);
+
+  if (!project) {
+    return c.json(
+      { error: 'invalid_request', error_description: 'Project not found or not owned by you' },
+      400
+    );
+  }
+
+  // Check if grant already exists
+  const existingGrants = await mcpOAuthService.getSessionGrants(db, sessionId);
+  if (existingGrants.some((g) => g.projectId === projectId)) {
+    return c.json(
+      {
+        error: 'invalid_request',
+        error_description: 'Project already has a grant for this session',
+      },
+      400
+    );
+  }
+
+  await mcpOAuthService.grantProjectAccess(db, sessionId, projectId, role, user.id);
+
+  return c.json({ message: 'Grant added successfully' }, 201);
+});
+
+/**
  * Revoke access to a specific project
  */
 const revokeGrantRoute = createRoute({
