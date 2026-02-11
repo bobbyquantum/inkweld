@@ -48,6 +48,7 @@ describe('AdminAiSettingsComponent', () => {
   let mockSystemConfigService: {
     isAiKillSwitchEnabled: ReturnType<typeof signal<boolean>>;
     isAiKillSwitchLockedByEnv: ReturnType<typeof signal<boolean>>;
+    refreshSystemFeatures: ReturnType<typeof vi.fn>;
   };
 
   const createMockConfig = (
@@ -220,6 +221,7 @@ describe('AdminAiSettingsComponent', () => {
     mockSystemConfigService = {
       isAiKillSwitchEnabled: signal(false),
       isAiKillSwitchLockedByEnv: signal(false),
+      refreshSystemFeatures: vi.fn(),
     };
 
     mockProvidersService = {

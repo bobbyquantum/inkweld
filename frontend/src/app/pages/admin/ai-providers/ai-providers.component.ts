@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { AIProvidersService, ProviderStatus } from 'api-client';
 import { firstValueFrom } from 'rxjs';
 
@@ -45,6 +46,7 @@ interface ProviderUIState extends ProviderStatus {
 export class AdminAiProvidersComponent implements OnInit {
   private readonly providersService = inject(AIProvidersService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly systemConfigService = inject(SystemConfigService);
 
   readonly isLoading = signal(true);
   readonly error = signal<Error | null>(null);
@@ -307,6 +309,7 @@ export class AdminAiProvidersComponent implements OnInit {
         isSaving: false,
       });
 
+      this.systemConfigService.refreshSystemFeatures();
       this.snackBar.open(
         `${provider.name} ${newEnabled ? 'enabled' : 'disabled'}`,
         'Close',

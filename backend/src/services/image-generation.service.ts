@@ -16,6 +16,7 @@ import type {
   ImageGenerateResponse,
   ImageGenerationStatus,
   ImageProviderType,
+  ImageStreamEvent,
 } from '../types/image-generation';
 import type { DatabaseInstance } from '../types/context';
 import { logger } from './logger.service';
@@ -271,6 +272,55 @@ class ImageGenerationService {
     imgLog.info(`Generating image with provider: ${provider.name}`, { model: request.model });
 
     return provider.generate(request);
+  }
+
+  /**
+   * Generate images with streaming partial results.
+   * Falls back to a single completed event if the provider doesn't support streaming.
+   */
+  async *generateStream(
+    db: DatabaseInstance,
+    request: ResolvedImageRequest
+  ): AsyncGenerator<ImageStreamEvent> {
+    if (!this.initialized) {
+      await this.configure(db);
+    }
+
+    const provider = this.providers.get(request.provider);
+    if (!provider || !provider.isAvailable()) {
+      yield {
+        type: 'error',
+        error: `Image provider '${request.provider}' is not available.`,
+      };
+      return;
+    }
+
+    imgLog.info(`Streaming image generation with provider: ${provider.name}`, {
+      model: request.model,
+    });
+
+    // Use streaming if the provider supports it
+    if (provider.generateStream) {
+      yield* provider.generateStream(request);
+    } else {
+      // Fallback: regular generate wrapped as a single completed event
+      try {
+        const result = await provider.generate(request);
+        yield { type: 'completed', result };
+      } catch (error: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
+        const err = error as any;
+        yield { type: 'error', error: err.message || 'Image generation failed' };
+      }
+    }
+  }
+
+  /**
+   * Check if a provider supports streaming.
+   */
+  supportsStreaming(providerType: ImageProviderType): boolean {
+    const provider = this.providers.get(providerType);
+    return !!provider?.generateStream;
   }
 
   /**

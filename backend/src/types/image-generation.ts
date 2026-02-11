@@ -438,6 +438,48 @@ export interface ImageGenerationStatus {
 }
 
 /**
+ * SSE event types for streaming image generation.
+ * Used by providers that support progressive partial image rendering (e.g., OpenAI).
+ */
+
+/**
+ * Partial image event — sent as each intermediate render becomes available.
+ */
+export interface ImageStreamPartialEvent {
+  type: 'partial_image';
+  /** Base64-encoded partial image data (progressively refined) */
+  b64Json: string;
+  /** Index of this partial image within the current generation (0-based) */
+  partialImageIndex: number;
+}
+
+/**
+ * Completed event — sent when the final image is ready.
+ */
+export interface ImageStreamCompletedEvent {
+  type: 'completed';
+  /** The full generation response (same shape as non-streaming) */
+  result: ImageGenerateResponse;
+}
+
+/**
+ * Error event — sent if generation fails mid-stream.
+ */
+export interface ImageStreamErrorEvent {
+  type: 'error';
+  /** Human-readable error message */
+  error: string;
+}
+
+/**
+ * Union type for all streaming image generation events.
+ */
+export type ImageStreamEvent =
+  | ImageStreamPartialEvent
+  | ImageStreamCompletedEvent
+  | ImageStreamErrorEvent;
+
+/**
  * Interface for image generation providers
  */
 export interface IImageProvider {
@@ -460,6 +502,13 @@ export interface IImageProvider {
    * Generate images using this provider
    */
   generate(request: ResolvedImageRequest): Promise<ImageGenerateResponse>;
+
+  /**
+   * Generate images with streaming partial results.
+   * Only some providers support this (e.g., OpenAI with `partial_images`).
+   * Falls back to non-streaming `generate()` if not implemented.
+   */
+  generateStream?(request: ResolvedImageRequest): AsyncGenerator<ImageStreamEvent>;
 
   /**
    * Get provider status

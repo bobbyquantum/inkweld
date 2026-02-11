@@ -7,11 +7,38 @@ import {
   ImageGenerateRequest,
   ImageGenerateResponse,
 } from '../../../api-client/model/models';
+import { environment } from '../../../environments/environment';
+import { AuthTokenService } from '../auth/auth-token.service';
+import { XsrfService } from '../auth/xsrf.service';
 import {
   GenerationMetadata,
   LocalStorageService,
 } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
+
+/**
+ * SSE stream event shapes (matching backend ImageStreamEvent types)
+ */
+interface StreamPartialImageEvent {
+  type: 'partial_image';
+  b64Json: string;
+  partialImageIndex: number;
+}
+
+interface StreamCompletedEvent {
+  type: 'completed';
+  result: ImageGenerateResponse;
+}
+
+interface StreamErrorEvent {
+  type: 'error';
+  error: string;
+}
+
+type StreamEvent =
+  | StreamPartialImageEvent
+  | StreamCompletedEvent
+  | StreamErrorEvent;
 
 /**
  * Status of an image generation job
@@ -49,6 +76,13 @@ export interface GenerationJob {
   savedMediaIds: string[];
   /** Whether this is a cover generation - will auto-set as project cover */
   forCover?: boolean;
+  /**
+   * Base64 data URI of the latest partial image during streaming generation.
+   * Updated progressively as intermediate renders arrive from the provider.
+   */
+  partialImageUrl?: string;
+  /** Whether this job is using streaming generation */
+  isStreaming?: boolean;
 }
 
 /**
@@ -57,6 +91,8 @@ export interface GenerationJob {
 export interface StartGenerationOptions {
   /** Whether this is for a project cover - will auto-upload first image as cover */
   forCover?: boolean;
+  /** Provider type hint — used to choose streaming vs non-streaming path */
+  providerType?: string;
 }
 
 /**
@@ -71,6 +107,8 @@ export class ImageGenerationService {
   private readonly aiImageService = inject(AIImageGenerationService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectService = inject(ProjectService);
+  private readonly authTokenService = inject(AuthTokenService);
+  private readonly xsrfService = inject(XsrfService);
 
   /** All active and recent generation jobs */
   readonly jobs = signal<GenerationJob[]>([]);
@@ -79,12 +117,18 @@ export class ImageGenerationService {
   readonly activeJobs = signal<GenerationJob[]>([]);
 
   /**
+   * Providers that support streaming partial images.
+   */
+  private static readonly STREAMING_PROVIDERS = new Set(['openai']);
+
+  /**
    * Start a new image generation job.
    * The job runs in the background and saves results to the media library.
+   * For OpenAI provider, uses streaming to show partial image previews.
    *
    * @param projectKey - Project key (username/slug)
    * @param request - Generation request parameters
-   * @param options - Additional options (e.g., forCover)
+   * @param options - Additional options (e.g., forCover, provider hint)
    * @returns The job ID
    */
   startGeneration(
@@ -93,6 +137,12 @@ export class ImageGenerationService {
     options?: StartGenerationOptions
   ): string {
     const jobId = `gen-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // Determine if this provider supports streaming
+    const providerType = options?.providerType;
+    const useStreaming =
+      !!providerType &&
+      ImageGenerationService.STREAMING_PROVIDERS.has(providerType);
 
     const job: GenerationJob = {
       id: jobId,
@@ -106,6 +156,7 @@ export class ImageGenerationService {
       createdAt: new Date(),
       savedMediaIds: [],
       forCover: options?.forCover,
+      isStreaming: useStreaming,
     };
 
     // Add to jobs list
@@ -113,7 +164,11 @@ export class ImageGenerationService {
     this.updateActiveJobs();
 
     // Start generation in background (don't await)
-    void this.runGeneration(jobId);
+    if (useStreaming) {
+      void this.runStreamingGeneration(jobId);
+    } else {
+      void this.runGeneration(jobId);
+    }
 
     return jobId;
   }
@@ -270,6 +325,184 @@ export class ImageGenerationService {
         status: 'failed',
         message: isModerationBlock ? 'Content blocked' : 'Generation failed',
         error: errorMessage,
+      });
+    }
+
+    this.updateActiveJobs();
+  }
+
+  /**
+   * Run streaming generation using SSE (Server-Sent Events).
+   * Shows partial images progressively as the provider generates them.
+   */
+  private async runStreamingGeneration(jobId: string): Promise<void> {
+    this.updateJob(jobId, {
+      status: 'generating',
+      message: 'Generating image (streaming)...',
+    });
+
+    try {
+      const job = this.getJob(jobId);
+      if (!job) return;
+
+      // Build request headers matching what the interceptors would add
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      };
+
+      const token = this.authTokenService.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const csrfToken = this.xsrfService.getXsrfToken();
+      if (csrfToken) {
+        headers['X-CSRF-TOKEN'] = csrfToken;
+      }
+
+      const response = await fetch(
+        `${environment.apiUrl}/api/v1/ai/image/generate-stream`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(job.request),
+          credentials: 'include',
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        const errorMsg = errorBody?.error || `Server error: ${response.status}`;
+        this.updateJob(jobId, {
+          status: 'failed',
+          message: 'Generation failed',
+          error: errorMsg,
+        });
+        this.updateActiveJobs();
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Response body is not readable');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events from buffer
+        const events = buffer.split('\n\n');
+        // Keep the last (possibly incomplete) chunk in the buffer
+        buffer = events.pop() || '';
+
+        for (const eventBlock of events) {
+          if (!eventBlock.trim()) continue;
+
+          let eventType = '';
+          let eventData = '';
+
+          for (const line of eventBlock.split('\n')) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              eventData = line.slice(6);
+            }
+          }
+
+          if (!eventType || !eventData) continue;
+
+          try {
+            const parsed = JSON.parse(eventData) as StreamEvent;
+
+            if (
+              parsed.type === 'partial_image' &&
+              eventType === 'partial_image'
+            ) {
+              // Update partial image preview
+              this.updateJob(jobId, {
+                partialImageUrl: `data:image/png;base64,${parsed.b64Json}`,
+                message: `Rendering preview ${parsed.partialImageIndex + 1}...`,
+              });
+            } else if (
+              parsed.type === 'completed' &&
+              eventType === 'completed'
+            ) {
+              // Generation complete — transition to saving
+              const result = parsed.result;
+              this.updateJob(jobId, {
+                status: 'saving',
+                message: 'Saving to media library...',
+                images: result.data,
+                response: result,
+                partialImageUrl: undefined, // Clear partial preview
+              });
+
+              // Save images
+              const currentJob = this.getJob(jobId);
+              if (currentJob) {
+                const savedMediaIds = await this.saveGeneratedImages(
+                  currentJob,
+                  result
+                );
+                this.updateJob(jobId, {
+                  status: 'completed',
+                  message: currentJob.forCover
+                    ? 'Image saved to library. Crop to set as cover.'
+                    : `Generated ${result.data.length} image${result.data.length > 1 ? 's' : ''}`,
+                  savedMediaIds,
+                });
+              }
+
+              this.updateActiveJobs();
+              return;
+            } else if (parsed.type === 'error' && eventType === 'error') {
+              this.updateJob(jobId, {
+                status: 'failed',
+                message: 'Generation failed',
+                error: parsed.error || 'Unknown streaming error',
+                partialImageUrl: undefined,
+              });
+              this.updateActiveJobs();
+              return;
+            }
+          } catch {
+            // Skip malformed JSON events
+          }
+        }
+      }
+
+      // If we reach here without a completed event, something went wrong
+      const currentJob = this.getJob(jobId);
+      if (
+        currentJob &&
+        currentJob.status !== 'completed' &&
+        currentJob.status !== 'failed'
+      ) {
+        this.updateJob(jobId, {
+          status: 'failed',
+          message: 'Generation failed',
+          error: 'Stream ended unexpectedly',
+          partialImageUrl: undefined,
+        });
+      }
+    } catch (err) {
+      console.error('Streaming generation failed:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : 'Streaming generation failed';
+      this.updateJob(jobId, {
+        status: 'failed',
+        message: 'Generation failed',
+        error: errorMessage,
+        partialImageUrl: undefined,
       });
     }
 

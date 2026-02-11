@@ -406,6 +406,7 @@ export class AdminAiSettingsComponent implements OnInit {
         enabled ? 'true' : 'false'
       );
       this.imageGenerationEnabled.set(enabled);
+      this.systemConfigService.refreshSystemFeatures();
       this.snackBar.open('Setting saved', 'Close', { duration: 2000 });
     } catch (err) {
       console.error('Failed to save setting:', err);
@@ -472,6 +473,7 @@ export class AdminAiSettingsComponent implements OnInit {
       await this.configService.setConfig('AI_OPENAI_API_KEY', apiKey);
       this.openaiConfig.update(c => ({ ...c, apiKey: '', hasApiKey: true }));
       this.editingOpenaiKey.set(false);
+      this.systemConfigService.refreshSystemFeatures();
       this.snackBar.open('API key saved', 'Close', { duration: 2000 });
     } catch (err) {
       console.error('Failed to save API key:', err);
@@ -486,6 +488,7 @@ export class AdminAiSettingsComponent implements OnInit {
     try {
       await this.configService.deleteConfig('AI_OPENAI_API_KEY');
       this.openaiConfig.update(c => ({ ...c, apiKey: '', hasApiKey: false }));
+      this.systemConfigService.refreshSystemFeatures();
       this.snackBar.open('API key cleared', 'Close', { duration: 2000 });
     } catch (err) {
       console.error('Failed to clear API key:', err);
@@ -531,6 +534,7 @@ export class AdminAiSettingsComponent implements OnInit {
         hasApiKey: true,
       }));
       this.editingOpenrouterKey.set(false);
+      this.systemConfigService.refreshSystemFeatures();
       this.snackBar.open('API key saved', 'Close', { duration: 2000 });
     } catch (err) {
       console.error('Failed to save API key:', err);

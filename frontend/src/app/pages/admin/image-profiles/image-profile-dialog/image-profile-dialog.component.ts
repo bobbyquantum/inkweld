@@ -416,9 +416,13 @@ export class ImageProfileDialogComponent {
     this.form.patchValue({ modelId: '' });
 
     // For OpenAI, set available models immediately (hardcoded)
+    // All OpenAI image models support image input
     if (this.isOpenAiProvider()) {
       this.availableModels.set(this.openaiModels);
-      this.form.patchValue({ usesAspectRatioOnly: false });
+      this.form.patchValue({
+        usesAspectRatioOnly: false,
+        supportsImageInput: true,
+      });
     } else if (this.isOpenRouterProvider()) {
       // OpenRouter uses aspect ratio only - auto-configure
       this.form.patchValue({

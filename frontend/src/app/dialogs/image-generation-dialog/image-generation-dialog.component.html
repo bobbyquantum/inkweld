@@ -375,8 +375,22 @@
                 currentJob()?.status === 'pending' ||
                 currentJob()?.status === 'generating'
               ) {
-                <mat-spinner diameter="48"></mat-spinner>
-                <p class="status-message">{{ currentJob()?.message }}</p>
+                <!-- Streaming partial image preview -->
+                @if (currentJob()?.partialImageUrl) {
+                  <div class="partial-image-preview">
+                    <img
+                      [src]="currentJob()!.partialImageUrl!"
+                      alt="Generating preview..."
+                      class="partial-image" />
+                    <div class="partial-overlay">
+                      <mat-spinner diameter="28"></mat-spinner>
+                      <span>{{ currentJob()?.message }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <mat-spinner diameter="48"></mat-spinner>
+                  <p class="status-message">{{ currentJob()?.message }}</p>
+                }
                 <p class="status-hint">
                   You can close this dialog - generation will continue in the
                   background.

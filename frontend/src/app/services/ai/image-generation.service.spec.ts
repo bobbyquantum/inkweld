@@ -11,6 +11,8 @@ import {
   ImageGenerateResponse,
   ImageProviderType,
 } from '../../../api-client/model/models';
+import { AuthTokenService } from '../auth/auth-token.service';
+import { XsrfService } from '../auth/xsrf.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
 import { ImageGenerationService } from './image-generation.service';
@@ -24,6 +26,8 @@ describe('ImageGenerationService', () => {
   let mockAiImageService: MockedObject<AIImageGenerationService>;
   let mockOfflineStorage: MockedObject<LocalStorageService>;
   let mockProjectService: MockedObject<ProjectService>;
+  let mockAuthTokenService: MockedObject<AuthTokenService>;
+  let mockXsrfService: MockedObject<XsrfService>;
 
   const createMockRequest = (
     overrides: Partial<ImageGenerateRequest> = {}
@@ -63,6 +67,14 @@ describe('ImageGenerationService', () => {
       uploadProjectCover: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<ProjectService>;
 
+    mockAuthTokenService = {
+      getToken: vi.fn().mockReturnValue('mock-token'),
+    } as unknown as MockedObject<AuthTokenService>;
+
+    mockXsrfService = {
+      getXsrfToken: vi.fn().mockReturnValue('mock-csrf-token'),
+    } as unknown as MockedObject<XsrfService>;
+
     await TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -70,6 +82,8 @@ describe('ImageGenerationService', () => {
         { provide: AIImageGenerationService, useValue: mockAiImageService },
         { provide: LocalStorageService, useValue: mockOfflineStorage },
         { provide: ProjectService, useValue: mockProjectService },
+        { provide: AuthTokenService, useValue: mockAuthTokenService },
+        { provide: XsrfService, useValue: mockXsrfService },
       ],
     }).compileComponents();
 
@@ -489,6 +503,254 @@ describe('ImageGenerationService', () => {
       await flushPromises();
 
       expect(service.activeJobs().length).toBe(0);
+    });
+  });
+
+  describe('Streaming Generation', () => {
+    /**
+     * Helper to create a ReadableStream that yields SSE-formatted text.
+     */
+    function createSSEStream(
+      events: { event: string; data: object }[]
+    ): ReadableStream<Uint8Array> {
+      const encoder = new TextEncoder();
+      let index = 0;
+      return new ReadableStream({
+        pull(controller) {
+          if (index < events.length) {
+            const e = events[index++];
+            const chunk = `event: ${e.event}\ndata: ${JSON.stringify(e.data)}\n\n`;
+            controller.enqueue(encoder.encode(chunk));
+          } else {
+            controller.close();
+          }
+        },
+      });
+    }
+
+    function mockFetchResponse(
+      events: { event: string; data: object }[],
+      status = 200
+    ): void {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: status >= 200 && status < 300,
+        status,
+        body: createSSEStream(events),
+        json: () => Promise.resolve({}),
+      } as unknown as Response);
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('should use streaming path for openai provider', () => {
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      const job = service.getJob(jobId);
+      expect(job?.isStreaming).toBe(true);
+    });
+
+    it('should NOT use streaming path for non-openai providers', () => {
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openrouter' }
+      );
+
+      const job = service.getJob(jobId);
+      expect(job?.isStreaming).toBe(false);
+    });
+
+    it('should update partialImageUrl when partial_image events arrive', async () => {
+      const completedResult = createMockResponse();
+      mockFetchResponse([
+        {
+          event: 'partial_image',
+          data: {
+            type: 'partial_image',
+            b64Json: btoa('partial-1'),
+            partialImageIndex: 0,
+          },
+        },
+        {
+          event: 'partial_image',
+          data: {
+            type: 'partial_image',
+            b64Json: btoa('partial-2'),
+            partialImageIndex: 1,
+          },
+        },
+        {
+          event: 'completed',
+          data: { type: 'completed', result: completedResult },
+        },
+      ]);
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      // Wait for streaming to complete
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('completed');
+      // partialImageUrl should be cleared on completion
+      expect(job?.partialImageUrl).toBeUndefined();
+    });
+
+    it('should transition to completed after completed event', async () => {
+      const completedResult = createMockResponse();
+      mockFetchResponse([
+        {
+          event: 'completed',
+          data: { type: 'completed', result: completedResult },
+        },
+      ]);
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('completed');
+      expect(job?.images.length).toBe(1);
+    });
+
+    it('should handle error events from stream', async () => {
+      mockFetchResponse([
+        {
+          event: 'error',
+          data: { type: 'error', error: 'Provider quota exceeded' },
+        },
+      ]);
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('failed');
+      expect(job?.error).toBe('Provider quota exceeded');
+    });
+
+    it('should handle non-200 fetch response', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 500,
+        body: null,
+        json: () => Promise.resolve({ error: 'Internal error' }),
+      } as unknown as Response);
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('failed');
+      expect(job?.error).toBe('Internal error');
+    });
+
+    it('should handle stream ending without completed event', async () => {
+      // Stream has only a partial event then closes — no completed event
+      mockFetchResponse([
+        {
+          event: 'partial_image',
+          data: {
+            type: 'partial_image',
+            b64Json: btoa('partial'),
+            partialImageIndex: 0,
+          },
+        },
+      ]);
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('failed');
+      expect(job?.error).toBe('Stream ended unexpectedly');
+    });
+
+    it('should handle fetch throwing an error', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+        new Error('Network error')
+      );
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('failed');
+      expect(job?.error).toBe('Network error');
+    });
+
+    it('should include auth and CSRF headers in fetch request', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        body: createSSEStream([
+          {
+            event: 'completed',
+            data: { type: 'completed', result: createMockResponse() },
+          },
+        ]),
+      } as unknown as Response);
+
+      service.startGeneration('user/project', createMockRequest(), {
+        providerType: 'openai',
+      });
+
+      await flushPromises();
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/ai/image/generate-stream'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer mock-token',
+            'X-CSRF-TOKEN': 'mock-csrf-token',
+          }),
+        })
+      );
     });
   });
 });
