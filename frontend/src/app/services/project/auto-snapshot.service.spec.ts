@@ -17,6 +17,7 @@ import {
 } from './auto-snapshot.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
+import { AppTab, TabManagerService } from './tab-manager.service';
 import { UnifiedSnapshotService } from './unified-snapshot.service';
 
 describe('AutoSnapshotService', () => {
@@ -24,6 +25,7 @@ describe('AutoSnapshotService', () => {
   let projectSignal: ReturnType<typeof signal<Project | undefined>>;
   let elementsSignal: ReturnType<typeof signal<ProjectElement[]>>;
   let localEdit$: Subject<string>;
+  let tabClosed$: Subject<AppTab>;
 
   // Mock services
   let settingsService: {
@@ -73,6 +75,7 @@ describe('AutoSnapshotService', () => {
     ]);
 
     localEdit$ = new Subject<string>();
+    tabClosed$ = new Subject<AppTab>();
 
     settingsService = {
       getSetting: vi.fn().mockReturnValue(true),
@@ -104,6 +107,7 @@ describe('AutoSnapshotService', () => {
           useValue: { project: projectSignal, elements: elementsSignal },
         },
         { provide: DocumentService, useValue: { localEdit$ } },
+        { provide: TabManagerService, useValue: { tabClosed$ } },
         { provide: UnifiedSnapshotService, useValue: snapshotService },
         { provide: LocalSnapshotService, useValue: localSnapshots },
         { provide: SettingsService, useValue: settingsService },
@@ -321,6 +325,142 @@ describe('AutoSnapshotService', () => {
       expect(localSnapshots.deleteSnapshotById).not.toHaveBeenCalledWith(
         'manual-1'
       );
+    });
+  });
+
+  describe('createAutoSnapshotForElement', () => {
+    it('should create a snapshot for a single dirty element', async () => {
+      service.markDirty('doc1');
+
+      await service.createAutoSnapshotForElement('doc1');
+
+      expect(snapshotService.createSnapshot).toHaveBeenCalledTimes(1);
+      const [docId, name, description] =
+        snapshotService.createSnapshot.mock.calls[0];
+      expect(docId).toBe('testuser:test-project:doc1');
+      expect(name).toContain(AUTO_SNAPSHOT_NAME_PREFIX);
+      expect(name).toContain('Chapter 1');
+      expect(description).toContain('tab close');
+    });
+
+    it('should remove element from dirty set after snapshot', async () => {
+      service.markDirty('doc1');
+      service.markDirty('doc2');
+
+      await service.createAutoSnapshotForElement('doc1');
+
+      // doc1 removed, doc2 still dirty
+      expect(service.getDirtyCount()).toBe(1);
+    });
+
+    it('should skip when disabled', async () => {
+      settingsService.getSetting.mockReturnValue(false);
+      service.markDirty('doc1');
+
+      await service.createAutoSnapshotForElement('doc1');
+
+      expect(snapshotService.createSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should skip when no project loaded', async () => {
+      projectSignal.set(undefined);
+      service.markDirty('doc1');
+
+      await service.createAutoSnapshotForElement('doc1');
+
+      expect(snapshotService.createSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should skip when element is not dirty', async () => {
+      await service.createAutoSnapshotForElement('doc1');
+
+      expect(snapshotService.createSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should throttle rapid snapshots for the same element', async () => {
+      service.markDirty('doc1');
+      await service.createAutoSnapshotForElement('doc1');
+      expect(snapshotService.createSnapshot).toHaveBeenCalledTimes(1);
+
+      service.markDirty('doc1');
+      await service.createAutoSnapshotForElement('doc1');
+      // Still 1 — throttled
+      expect(snapshotService.createSnapshot).toHaveBeenCalledTimes(1);
+      // Dirty state cleared even when throttled
+      expect(service.getDirtyCount()).toBe(0);
+    });
+
+    it('should handle errors gracefully', async () => {
+      snapshotService.createSnapshot.mockRejectedValueOnce(new Error('fail'));
+      service.markDirty('doc1');
+
+      await service.createAutoSnapshotForElement('doc1');
+
+      expect(logger.warn).toHaveBeenCalled();
+    });
+  });
+
+  describe('tabClosed$ subscription', () => {
+    it('should auto-snapshot dirty document on tab close', async () => {
+      service.markDirty('doc1');
+
+      tabClosed$.next({
+        id: 'tab-1',
+        name: 'Chapter 1',
+        type: 'document',
+        element: { id: 'doc1' } as AppTab['element'],
+      });
+
+      // Allow the fire-and-forget promise to settle
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(snapshotService.createSnapshot).toHaveBeenCalledTimes(1);
+      expect(snapshotService.createSnapshot.mock.calls[0][0]).toBe(
+        'testuser:test-project:doc1'
+      );
+    });
+
+    it('should ignore tab close for non-dirty documents', async () => {
+      tabClosed$.next({
+        id: 'tab-1',
+        name: 'Chapter 1',
+        type: 'document',
+        element: { id: 'doc1' } as AppTab['element'],
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(snapshotService.createSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should ignore system tab closes', async () => {
+      service.markDirty('doc1');
+
+      tabClosed$.next({
+        id: 'tab-sys',
+        name: 'Settings',
+        type: 'system',
+        systemType: 'settings',
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(snapshotService.createSnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should handle worldbuilding tab close', async () => {
+      service.markDirty('wb1');
+
+      tabClosed$.next({
+        id: 'tab-wb',
+        name: 'World Building',
+        type: 'worldbuilding',
+        element: { id: 'wb1' } as AppTab['element'],
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(snapshotService.createSnapshot).toHaveBeenCalledTimes(1);
     });
   });
 
