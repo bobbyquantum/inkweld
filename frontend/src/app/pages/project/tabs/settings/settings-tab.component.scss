@@ -438,6 +438,48 @@ mat-card {
   margin-bottom: 16px;
 }
 
+// MCP endpoint instructions
+.mcp-instructions-card {
+  background: var(--sys-surface-container);
+  border: 1px solid var(--sys-outline-variant);
+
+  .info-content mat-icon {
+    color: var(--sys-tertiary);
+  }
+}
+
+.mcp-instructions-text {
+  margin: 4px 0 12px;
+  font-size: 14px;
+  color: var(--sys-on-surface-variant);
+}
+
+.mcp-url-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sys-surface);
+  padding: 4px 4px 4px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--sys-outline-variant);
+  margin-bottom: 8px;
+}
+
+.mcp-url {
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  word-break: break-all;
+  color: var(--sys-on-surface);
+  user-select: all;
+}
+
+.mcp-instructions-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+}
+
 .full-key {
   flex: 1;
   font-family: monospace;
@@ -453,69 +495,8 @@ mat-card {
   width: 100%;
 }
 
-// Create key form
-.create-key-card {
-  mat-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-}
-
 .full-width {
   width: 100%;
-}
-
-.permissions-section {
-  border: 1px solid var(--sys-outline-variant);
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.permissions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-
-  h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--sys-on-surface);
-  }
-}
-
-.permission-shortcuts {
-  display: flex;
-  gap: 4px;
-
-  button {
-    font-size: 12px;
-    padding: 0 8px;
-    min-width: auto;
-  }
-}
-
-.permission-group {
-  margin-bottom: 16px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
-  h5 {
-    margin: 0 0 8px 0;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--sys-on-surface-variant);
-  }
-}
-
-.permissions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
 }
 
 .form-actions {

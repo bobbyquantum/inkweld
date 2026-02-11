@@ -651,6 +651,37 @@
               </mat-card-content>
             </mat-card>
           } @else if (currentMode === 'server') {
+            <!-- MCP Endpoint Instructions -->
+            <mat-card class="info-card mcp-instructions-card">
+              <mat-card-content>
+                <div class="info-content">
+                  <mat-icon>link</mat-icon>
+                  <div>
+                    <strong>MCP Endpoint URL</strong>
+                    <p class="mcp-instructions-text">
+                      Use this URL to connect AI tools like Claude Desktop,
+                      Cursor, or Windsurf to your project via MCP. Add it as a
+                      Streamable HTTP MCP server in your tool's settings.
+                    </p>
+                    <div class="mcp-url-display" data-testid="mcp-url-display">
+                      <code class="mcp-url">{{ getMcpEndpointUrl() }}</code>
+                      <button
+                        mat-icon-button
+                        matTooltip="Copy URL to clipboard"
+                        (click)="copyMcpUrl()"
+                        data-testid="copy-mcp-url-button">
+                        <mat-icon>content_copy</mat-icon>
+                      </button>
+                    </div>
+                    <p class="mcp-instructions-hint">
+                      You'll also need an API key (created below) for
+                      authentication.
+                    </p>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
             @if (isLoadingKeys()) {
               <div class="loading-state">
                 <mat-progress-spinner diameter="32" mode="indeterminate">
@@ -785,129 +816,16 @@
                 </mat-card>
               }
 
-              <!-- Create New Key Form -->
+              <!-- Create New Key Button -->
               @if (!newlyCreatedKey()) {
-                @if (!showCreateKeyForm()) {
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    (click)="toggleCreateKeyForm()"
-                    data-testid="create-key-button">
-                    <mat-icon>add</mat-icon>
-                    Create New API Key
-                  </button>
-                } @else {
-                  <mat-card class="create-key-card">
-                    <mat-card-header>
-                      <mat-card-title>Create New API Key</mat-card-title>
-                    </mat-card-header>
-                    <mat-card-content>
-                      <mat-form-field class="full-width">
-                        <mat-label>Key Name</mat-label>
-                        <input
-                          matInput
-                          [(ngModel)]="newKeyName"
-                          placeholder="e.g., Claude Desktop, Cursor IDE"
-                          data-testid="key-name-input" />
-                        <mat-hint
-                          >A friendly name to identify this key</mat-hint
-                        >
-                      </mat-form-field>
-
-                      <div class="permissions-section">
-                        <div class="permissions-header">
-                          <h4>Permissions</h4>
-                          <div class="permission-shortcuts">
-                            <button
-                              mat-button
-                              (click)="selectAllReadPermissions()"
-                              data-testid="permissions-all-read-button">
-                              All Read
-                            </button>
-                            <button
-                              mat-button
-                              (click)="selectAllWritePermissions()"
-                              data-testid="permissions-all-write-button">
-                              All Write
-                            </button>
-                            <button
-                              mat-button
-                              (click)="selectAllPermissions()"
-                              data-testid="permissions-all-button">
-                              All
-                            </button>
-                            <button
-                              mat-button
-                              (click)="clearPermissions()"
-                              data-testid="permissions-clear-button">
-                              Clear
-                            </button>
-                          </div>
-                        </div>
-
-                        @for (group of permissionGroups; track group.label) {
-                          <div class="permission-group">
-                            <h5>{{ group.label }}</h5>
-                            <div class="permissions-grid">
-                              @for (
-                                perm of group.permissions;
-                                track perm.permission
-                              ) {
-                                <mat-checkbox
-                                  [checked]="hasPermission(perm.permission)"
-                                  (change)="togglePermission(perm.permission)"
-                                  [matTooltip]="perm.description">
-                                  {{ perm.label }}
-                                </mat-checkbox>
-                              }
-                            </div>
-                          </div>
-                        }
-                      </div>
-
-                      <mat-form-field class="full-width">
-                        <mat-label>Expiration</mat-label>
-                        <mat-select [(ngModel)]="newKeyExpiration">
-                          <mat-option value="never">Never expires</mat-option>
-                          <mat-option value="7days">7 days</mat-option>
-                          <mat-option value="30days">30 days</mat-option>
-                          <mat-option value="90days">90 days</mat-option>
-                        </mat-select>
-                      </mat-form-field>
-
-                      <div class="form-actions">
-                        <button
-                          mat-button
-                          (click)="toggleCreateKeyForm()"
-                          data-testid="cancel-create-key-button">
-                          Cancel
-                        </button>
-                        <button
-                          mat-raised-button
-                          color="primary"
-                          [disabled]="
-                            !newKeyName.trim() ||
-                            selectedPermissions().size === 0 ||
-                            isCreatingKey()
-                          "
-                          (click)="createKey()"
-                          data-testid="submit-create-key-button">
-                          @if (isCreatingKey()) {
-                            <mat-progress-spinner
-                              diameter="20"
-                              mode="indeterminate">
-                            </mat-progress-spinner>
-                          } @else {
-                            <ng-container>
-                              <mat-icon>add</mat-icon>
-                              Create Key
-                            </ng-container>
-                          }
-                        </button>
-                      </div>
-                    </mat-card-content>
-                  </mat-card>
-                }
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="openCreateKeyDialog()"
+                  data-testid="create-key-button">
+                  <mat-icon>add</mat-icon>
+                  Create New API Key
+                </button>
               }
             }
           } @else {
@@ -975,7 +893,7 @@
                 </div>
               } @else {
                 <div class="rename-form">
-                  <mat-form-field class="full-width">
+                  <mat-form-field appearance="outline" class="full-width">
                     <mat-label>New Project Slug</mat-label>
                     <input
                       matInput
