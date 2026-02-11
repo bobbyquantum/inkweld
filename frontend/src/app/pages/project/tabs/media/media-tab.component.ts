@@ -29,6 +29,7 @@ import {
 } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 
@@ -72,6 +73,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(ImageGenerationService);
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly setupService = inject(SetupService);
+  private readonly mediaAutoSync = inject(MediaAutoSyncService);
 
   // AI generation status - considers mode, config, and connection state
   readonly aiGenerationStatus = computed(() =>
@@ -535,6 +537,9 @@ export class MediaTabComponent implements OnInit, OnDestroy {
           blob,
           `ai-generated-${timestamp}.png`
         );
+
+        // Trigger media sync to upload to server
+        void this.mediaAutoSync.triggerSyncAfterUpload();
 
         // Reload media list
         await this.loadMedia();

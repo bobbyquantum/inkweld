@@ -8,6 +8,7 @@ import { collaborationService } from '../services/collaboration.service';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../errors';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
+import { mediaNotificationService } from '../services/media-notification.service';
 
 const mediaRoutes = new OpenAPIHono<AppContext>();
 
@@ -254,6 +255,10 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
 
   // Save to storage
   await storage.saveProjectFile(username, slug, file.name, data, file.type);
+
+  // Notify other connected clients about the new media file
+  const projectKey = `${username}/${slug}`;
+  mediaNotificationService.notifyMediaChanged(projectKey, file.name, 'uploaded');
 
   return c.json({
     message: 'File uploaded successfully',
