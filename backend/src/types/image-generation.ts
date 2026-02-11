@@ -171,7 +171,8 @@ For image editing with references:
   // Cloudflare Workers AI FLUX.2 models - require multipart format
   {
     models: [
-      '@cf/black-forest-labs/flux-2-klein-4b', // Workers AI klein
+      '@cf/black-forest-labs/flux-2-klein-4b', // Workers AI klein 4B
+      '@cf/black-forest-labs/flux-2-klein-9b', // Workers AI klein 9B
       '@cf/black-forest-labs/flux-2-dev', // Workers AI dev
     ],
     maxPromptChars: 3000,
