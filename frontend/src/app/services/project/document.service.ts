@@ -749,10 +749,12 @@ export class DocumentService {
       this.connections.set(documentId, connection);
 
       // Track local edits for auto-snapshots (works in both local and connected modes)
+      const idbProvider = indexeddbProvider;
       ydoc.on('update', (_update: Uint8Array, origin: unknown) => {
-        // Only track edits from the local user (origin is null for local edits,
-        // or the WebSocket provider for remote edits)
-        if (origin === null || origin === undefined) {
+        // Skip updates that come from IndexedDB (loading persisted state)
+        // or from the WebSocket provider (remote edits).
+        // Everything else is a local edit (ProseMirror, programmatic, etc.)
+        if (origin !== idbProvider && origin !== connection?.provider) {
           this.localEdit$.next(documentId);
         }
       });

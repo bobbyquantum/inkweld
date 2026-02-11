@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { SettingsService } from '@services/core/settings.service';
+import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
 @Component({
   selector: 'app-project-settings',
@@ -13,6 +14,7 @@ import { SettingsService } from '@services/core/settings.service';
 })
 export class ProjectSettingsComponent {
   private settingsService = inject(SettingsService);
+  private autoSnapshotService = inject(AutoSnapshotService);
 
   get zenModeFullscreen(): boolean {
     return this.settingsService.getSetting<boolean>('zenModeFullscreen', true);
@@ -35,6 +37,18 @@ export class ProjectSettingsComponent {
       this.settingsService.setSetting<boolean>('useTabsDesktop', value);
     } else {
       this.settingsService.setSetting<boolean>('useTabsDesktop', true);
+    }
+  }
+
+  get autoSnapshots(): boolean {
+    return this.autoSnapshotService.isEnabled();
+  }
+
+  set autoSnapshots(value: boolean) {
+    if (typeof value === 'boolean') {
+      this.autoSnapshotService.setEnabled(value);
+    } else {
+      this.autoSnapshotService.setEnabled(true);
     }
   }
 }

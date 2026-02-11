@@ -9,3 +9,11 @@
     Use tabs (desktop only)
   </mat-checkbox>
 </section>
+
+<section class="settings-section">
+  <mat-checkbox
+    [(ngModel)]="autoSnapshots"
+    data-testid="setting-auto-snapshots">
+    Auto-save snapshots when leaving a project
+  </mat-checkbox>
+</section>

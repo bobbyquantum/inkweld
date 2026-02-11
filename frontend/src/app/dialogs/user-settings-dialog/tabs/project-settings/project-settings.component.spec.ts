@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { SettingsService } from '@services/core/settings.service';
+import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
 import { ProjectSettingsComponent } from './project-settings.component';
 
@@ -41,7 +42,19 @@ describe('ProjectSettingsComponent', () => {
         MatCheckboxModule,
         MatFormFieldModule, // Added
       ],
-      providers: [provideZonelessChangeDetection(), SettingsService],
+      providers: [
+        provideZonelessChangeDetection(),
+        SettingsService,
+        {
+          provide: AutoSnapshotService,
+          useValue: {
+            isEnabled: () =>
+              settingsService.getSetting<boolean>('autoSnapshotsEnabled', true),
+            setEnabled: (val: boolean) =>
+              settingsService.setSetting('autoSnapshotsEnabled', val),
+          },
+        },
+      ],
     }).compileComponents();
 
     settingsService = TestBed.inject(SettingsService);
@@ -120,6 +133,37 @@ describe('ProjectSettingsComponent', () => {
       // @ts-expect-error Testing invalid type
       component.useTabsDesktop = 'invalid';
       expect(settingsService.getSetting('useTabsDesktop', true)).toBe(true);
+    });
+  });
+
+  describe('autoSnapshots', () => {
+    it('should return default value (true) when setting is not set', () => {
+      expect(component.autoSnapshots).toBe(true);
+    });
+
+    it('should return stored value when setting exists', () => {
+      localStorageMock['userSettings'] = JSON.stringify({
+        autoSnapshotsEnabled: false,
+      });
+      fixture = TestBed.createComponent(ProjectSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      expect(component.autoSnapshots).toBe(false);
+    });
+
+    it('should update setting when value is set', () => {
+      component.autoSnapshots = false;
+      expect(settingsService.getSetting('autoSnapshotsEnabled', true)).toBe(
+        false
+      );
+    });
+
+    it('should reset to default (true) when non-boolean value is set', () => {
+      // @ts-expect-error Testing invalid type
+      component.autoSnapshots = 'invalid';
+      expect(settingsService.getSetting('autoSnapshotsEnabled', true)).toBe(
+        true
+      );
     });
   });
 });

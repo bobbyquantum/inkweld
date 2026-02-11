@@ -189,8 +189,13 @@ export class AutoSnapshotService implements OnDestroy {
 
         const name = `${AUTO_SNAPSHOT_NAME_PREFIX} ${elementName} — ${timestamp}`;
 
+        // Use the full formatted document ID (username:slug:elementId) to match
+        // the format used by the document editor when creating manual snapshots.
+        // This ensures auto-snapshots appear in the snapshots dialog alongside manual ones.
+        const fullDocumentId = `${project.username}:${project.slug}:${elementId}`;
+
         await this.snapshotService.createSnapshot(
-          elementId,
+          fullDocumentId,
           name,
           'Automatic snapshot created on session end'
         );

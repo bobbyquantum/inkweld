@@ -203,7 +203,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   async canDeactivate(): Promise<boolean> {
-    console.log('Checking project de-activation guard');
+    // Create auto-snapshots for any edited documents before leaving the project.
+    // This is done here (not in ngOnDestroy) because the CustomRouteReuseStrategy
+    // detaches the component instead of destroying it, so ngOnDestroy is not called.
+    await this.autoSnapshotService.createAutoSnapshots();
+
     if (!this.hasUnsavedChanges) {
       return true;
     }
@@ -269,9 +273,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
-    // Fire-and-forget: create auto-snapshots for any edited documents
-    void this.autoSnapshotService.createAutoSnapshots();
-
     this.paramsSubscription?.unsubscribe();
     this.errorEffect.destroy();
     this.destroy$.next();

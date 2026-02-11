@@ -414,3 +414,67 @@ test.describe('Worldbuilding Snapshots', () => {
     );
   });
 });
+
+test.describe('Auto-Snapshots', () => {
+  test('should auto-create a snapshot when navigating away from a project with edits', async ({
+    localPageWithProject: page,
+  }) => {
+    // Navigate to project
+    await page.getByTestId('project-card').first().click();
+    await expect(page).toHaveURL(/\/.+\/.+/);
+
+    // Create a document element
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-item').click();
+    await page.getByTestId('element-name-input').fill('Auto Snapshot Doc');
+    await page.getByTestId('create-element-button').click();
+
+    // Click on the document to open it
+    await page.getByTestId('element-Auto Snapshot Doc').click();
+
+    // Type some content to make it dirty (use keyboard.type for real input events
+    // that go through ProseMirror's Yjs binding and trigger ydoc updates)
+    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    await expect(editor).toBeVisible();
+    await editor.click();
+    await page.keyboard.type('Content that should trigger an auto-snapshot.');
+
+    // Wait for content to be persisted
+    await expect(page.locator('.sync-status')).toContainText('local');
+
+    // Small delay to ensure the ydoc update event has fired and markDirty was called
+    await page.waitForTimeout(500);
+
+    // Navigate away using the in-app exit button.
+    // The exit button uses Angular router.navigate, which triggers canDeactivate()
+    // where auto-snapshots are created. (ngOnDestroy is NOT called because the
+    // CustomRouteReuseStrategy detaches the component instead of destroying it.)
+    await page.getByTestId('sidebar-exit-button').click();
+    await page.waitForURL('/');
+
+    // Navigate back to the project
+    await page.getByTestId('project-card').first().click();
+    await expect(page).toHaveURL(/\/.+\/.+/);
+
+    // Open the document again
+    await page.getByTestId('element-Auto Snapshot Doc').click();
+
+    // Open the snapshots dialog
+    const snapshotsBtn = page.getByTestId('toolbar-snapshots');
+    await expect(snapshotsBtn).toBeVisible();
+    await snapshotsBtn.click();
+
+    // Wait for the snapshots dialog
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
+
+    // Verify an auto-snapshot was created (name starts with "Auto-save —")
+    const snapshotItem = page.locator('[data-testid^="snapshot-"]').first();
+    await expect(snapshotItem).toBeVisible();
+    await expect(snapshotItem.locator('.snapshot-name')).toContainText(
+      'Auto-save'
+    );
+
+    // Close the dialog
+    await page.getByTestId('close-snapshots-dialog').click();
+  });
+});
