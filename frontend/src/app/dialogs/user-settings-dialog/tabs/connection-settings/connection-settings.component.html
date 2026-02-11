@@ -80,7 +80,7 @@
         <p>Change to a different Inkweld server.</p>
       }
 
-      <mat-form-field class="full-width">
+      <mat-form-field appearance="outline" class="full-width">
         <mat-label>Server URL</mat-label>
         <input
           matInput
@@ -142,7 +142,7 @@
             }}
           </p>
 
-          <mat-form-field class="full-width">
+          <mat-form-field appearance="outline" class="full-width">
             <mat-label>Username</mat-label>
             <input
               matInput
@@ -154,7 +154,7 @@
               data-testid="auth-username-input" />
           </mat-form-field>
 
-          <mat-form-field class="full-width">
+          <mat-form-field appearance="outline" class="full-width">
             <mat-label>Password</mat-label>
             <input
               matInput
@@ -167,7 +167,7 @@
           </mat-form-field>
 
           @if (authMode() === 'register') {
-            <mat-form-field class="full-width">
+            <mat-form-field appearance="outline" class="full-width">
               <mat-label>Confirm Password</mat-label>
               <input
                 matInput
