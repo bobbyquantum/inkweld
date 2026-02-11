@@ -937,9 +937,10 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     // Switch to generating stage
     this.stage.set('generating');
 
-    // Start background generation
+    // Start background generation — pass provider type for streaming detection
     const jobId = this.generationService.startGeneration(projectKey, request, {
       forCover: this.data.forCover,
+      providerType: profile.provider,
     });
     this.currentJobId.set(jobId);
 

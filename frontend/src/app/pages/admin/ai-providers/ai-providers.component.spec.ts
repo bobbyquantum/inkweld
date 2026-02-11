@@ -12,6 +12,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
+import { SystemConfigService } from '@services/core/system-config.service';
 import {
   AIProvidersService,
   ProvidersStatusResponse,
@@ -117,6 +118,10 @@ describe('AdminAiProvidersComponent', () => {
         provideNoopAnimations(),
         provideRouter([]),
         { provide: AIProvidersService, useValue: mockProvidersService },
+        {
+          provide: SystemConfigService,
+          useValue: { refreshSystemFeatures: vi.fn() },
+        },
       ],
     }).compileComponents();
 
