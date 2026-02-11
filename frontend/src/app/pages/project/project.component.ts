@@ -54,6 +54,7 @@ import { DialogGatewayService } from '../../services/core/dialog-gateway.service
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
+import { MediaAutoSyncService } from '../../services/sync/media-auto-sync.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
@@ -98,6 +99,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly quickOpenService = inject(QuickOpenService);
   private readonly storageContext = inject(StorageContextService);
   private readonly autoSnapshotService = inject(AutoSnapshotService);
+  private readonly mediaAutoSync = inject(MediaAutoSyncService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -232,6 +234,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         console.log(`Loading project ${username}/${slug}`);
         void this.projectState.loadProject(username, slug);
 
+        // Start automated media sync for this project
+        void this.mediaAutoSync.startAutoSync(`${username}/${slug}`);
+
         // Ensure we're starting with tab index 0 (home tab)
         this.projectState.selectTab(0);
       }
@@ -277,6 +282,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.errorEffect.destroy();
     this.destroy$.next();
     this.destroy$.complete();
+
+    // Stop media auto-sync
+    this.mediaAutoSync.stopAutoSync();
 
     // Remove fullscreenchange event listener
     if (this.fullscreenListener) {

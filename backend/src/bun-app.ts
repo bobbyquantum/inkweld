@@ -23,6 +23,7 @@ import { setupBunDatabase } from './db/bun-sqlite';
 // Import common route registration + specialized routes
 import { registerCommonRoutes } from './config/routes';
 import yjsRoutes from './routes/yjs.routes';
+import mediaNotificationRoutes from './routes/media-notification.routes';
 
 // Import frontend assets for embedding (only used in compiled mode)
 let getFrontendAssets: (() => Map<string, string>) | undefined;
@@ -190,6 +191,9 @@ registerCommonRoutes(app);
 
 // Bun-specific: WebSocket routes for Yjs collaboration
 app.route('/api/v1/ws', yjsRoutes);
+
+// Bun-specific: WebSocket routes for media change notifications
+app.route('/api/v1/ws', mediaNotificationRoutes);
 
 // Root route only when SPA assets are not bundled
 if (!spaEnabled) {
