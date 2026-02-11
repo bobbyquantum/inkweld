@@ -60,12 +60,17 @@ Deleted snapshots cannot be recovered.
 
 ## Auto-Snapshots
 
-Inkweld can automatically create snapshots when you leave a project, providing a safety net without any manual action.
+Inkweld can automatically create snapshots of your edited documents, providing a safety net without any manual action.
 
 ### How Auto-Snapshots Work
 
-- When you navigate away from a project, Inkweld checks which documents you edited during the session
-- For each edited document, an auto-snapshot is created automatically
+Auto-snapshots are triggered in two situations:
+
+- **Closing a document tab** — when you close a tab for a document you edited, an auto-snapshot is created for that document.
+- **Leaving the project** — when you navigate away from the project, auto-snapshots are created for any remaining edited documents that haven't been snapshotted yet.
+
+Additional details:
+
 - Auto-snapshots are named **"Auto-save — document name — date"** so you can tell them apart from manual snapshots
 - A maximum of **10 auto-snapshots** are kept per document — older ones are pruned automatically
 - To prevent excessive snapshots, each document is auto-snapshotted at most **once every 5 minutes**
@@ -76,13 +81,13 @@ Auto-snapshots are **enabled by default**. To toggle them:
 
 1. Open **Settings** (click your avatar → Settings)
 2. Go to the **Project** tab
-3. Check or uncheck **Auto-save snapshots when leaving a project**
+3. Check or uncheck **Auto-save snapshots**
 
 ### Auto-Snapshots vs. Manual Snapshots
 
 | Feature | Manual Snapshots | Auto-Snapshots |
 |---------|-----------------|----------------|
-| Created by | You, on demand | Automatically on session end |
+| Created by | You, on demand | Automatically on tab close or project exit |
 | Naming | Custom name & description | Auto-generated name with timestamp |
 | Pruning | Never auto-deleted | Oldest pruned beyond 10 per document |
 | Best for | Intentional milestones | Safety net against accidental loss |
