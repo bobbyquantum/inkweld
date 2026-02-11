@@ -21,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AccountSettingsComponent } from './tabs/account-settings/account-settings.component';
+import { AuthorizedAppsComponent } from './tabs/authorized-apps/authorized-apps.component';
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
 
@@ -68,6 +69,7 @@ const slideAnimation = trigger('slideAnimation', [
     MatIconModule,
     MatTooltipModule,
     AccountSettingsComponent,
+    AuthorizedAppsComponent,
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,
   ],
@@ -78,8 +80,13 @@ const slideAnimation = trigger('slideAnimation', [
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   private breakpointObserver = inject(BreakpointObserver);
 
-  @Input() selectedCategory: 'account' | 'project-tree' | 'project' = 'account';
-  previousCategory: 'account' | 'project-tree' | 'project' = 'account';
+  @Input() selectedCategory:
+    | 'account'
+    | 'authorized-apps'
+    | 'project-tree'
+    | 'project' = 'account';
+  previousCategory: 'account' | 'authorized-apps' | 'project-tree' | 'project' =
+    'account';
   isMobile = false;
   private destroyed = new Subject<void>();
 
@@ -97,13 +104,20 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.destroyed.complete();
   }
 
-  selectCategory(category: 'account' | 'project-tree' | 'project') {
+  selectCategory(
+    category: 'account' | 'authorized-apps' | 'project-tree' | 'project'
+  ) {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
 
   getAnimationState() {
-    const categories = ['account', 'project-tree', 'project'];
+    const categories = [
+      'account',
+      'authorized-apps',
+      'project-tree',
+      'project',
+    ];
     const currentIndex = categories.indexOf(this.selectedCategory);
     const previousIndex = categories.indexOf(this.previousCategory);
     const isMovingDown = currentIndex > previousIndex;

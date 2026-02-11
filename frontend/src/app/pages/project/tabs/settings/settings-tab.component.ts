@@ -693,6 +693,12 @@ export class SettingsTabComponent implements AfterViewInit {
     }
   }
 
+  async openAuthorizedAppsSettings(): Promise<void> {
+    await this.dialogGateway.openUserSettingsDialog('authorized-apps');
+    // Reload collaborators after returning from settings, as grants may have changed
+    void this.loadCollaborators();
+  }
+
   async removeCollaborator(collaborator: Collaborator): Promise<void> {
     const project = this.projectState.project();
     if (!project) return;

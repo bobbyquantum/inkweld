@@ -1,3 +1,4 @@
+export * from './add-o-auth-grant-request';
 export * from './admin-create-announcement-request';
 export * from './admin-get-all-config200-response-value';
 export * from './admin-image-model-profile';
