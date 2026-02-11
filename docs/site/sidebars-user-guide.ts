@@ -47,6 +47,7 @@ const sidebars: SidebarsConfig = {
         'writing/editor',
         'writing/keyboard-shortcuts',
         'writing/formatting',
+        'writing/snapshots',
       ],
     },
     {
