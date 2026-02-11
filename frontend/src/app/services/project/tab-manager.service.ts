@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Element, ElementType } from '@inkweld/index';
+import { Subject } from 'rxjs';
 
 import { PublishPlan } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
@@ -65,6 +66,12 @@ export class TabManagerService {
   readonly openTabs = signal<AppTab[]>([]);
   readonly openDocuments = signal<Element[]>([]);
   readonly selectedTabIndex = signal<number>(0);
+
+  /**
+   * Emits the tab that was just closed.
+   * Used by AutoSnapshotService to create snapshots when document tabs are closed.
+   */
+  readonly tabClosed$ = new Subject<AppTab>();
 
   /**
    * Determines the tab type based on the element type.
@@ -341,6 +348,9 @@ export class TabManagerService {
       'TabManager',
       `Closed tab "${closedTab.name}" at index ${index}`
     );
+
+    // Notify subscribers (e.g., AutoSnapshotService) that a tab was closed
+    this.tabClosed$.next(closedTab);
 
     return true;
   }

@@ -245,6 +245,30 @@ describe('TabManagerService', () => {
       // Selected index should remain the same
       expect(service.selectedTabIndex()).toBe(1);
     });
+
+    it('should emit on tabClosed$ when a tab is closed', () => {
+      const closedTabs: import('./tab-manager.service').AppTab[] = [];
+      const sub = service.tabClosed$.subscribe(tab => closedTabs.push(tab));
+
+      service.closeTab(0);
+
+      expect(closedTabs.length).toBe(1);
+      expect(closedTabs[0].name).toBe('Chapter 1');
+      expect(closedTabs[0].type).toBe('document');
+
+      sub.unsubscribe();
+    });
+
+    it('should not emit on tabClosed$ for invalid index', () => {
+      const closedTabs: import('./tab-manager.service').AppTab[] = [];
+      const sub = service.tabClosed$.subscribe(tab => closedTabs.push(tab));
+
+      service.closeTab(99);
+
+      expect(closedTabs.length).toBe(0);
+
+      sub.unsubscribe();
+    });
   });
 
   describe('closeTabByElementId', () => {

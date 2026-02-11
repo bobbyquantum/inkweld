@@ -9,6 +9,7 @@ import {
 } from '../local/local-snapshot.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
+import { TabManagerService } from './tab-manager.service';
 import { UnifiedSnapshotService } from './unified-snapshot.service';
 
 /**
@@ -41,11 +42,12 @@ const AUTO_SNAPSHOT_SETTING_KEY = 'autoSnapshotsEnabled';
  *
  * How it works:
  * 1. When a document receives edits, it's tracked as "dirty" via markDirty()
- * 2. When the user navigates away from the project (ProjectComponent destroys),
- *    createAutoSnapshots() is called for all dirty documents
- * 3. Auto-snapshots are throttled (max once per 5 minutes per document)
- * 4. Old auto-snapshots are pruned (max 10 per document)
- * 5. Auto-snapshots are visually distinct from manual ones in the UI
+ * 2. When the user closes a document tab, a snapshot is created for that document
+ * 3. When the user navigates away from the project (canDeactivate guard),
+ *    createAutoSnapshots() is called for all remaining dirty documents
+ * 4. Auto-snapshots are throttled (max once per 5 minutes per document)
+ * 5. Old auto-snapshots are pruned (max 10 per document)
+ * 6. Auto-snapshots are visually distinct from manual ones in the UI
  *
  * Auto-snapshots are stored locally in IndexedDB and synced to server
  * when online, just like manual snapshots.
@@ -60,6 +62,7 @@ export class AutoSnapshotService implements OnDestroy {
   private readonly documentService = inject(DocumentService);
   private readonly snapshotService = inject(UnifiedSnapshotService);
   private readonly localSnapshots = inject(LocalSnapshotService);
+  private readonly tabManager = inject(TabManagerService);
 
   /**
    * Set of element IDs that have been modified during this session.
@@ -77,6 +80,11 @@ export class AutoSnapshotService implements OnDestroy {
    */
   private editSubscription: Subscription;
 
+  /**
+   * Subscription to TabManagerService's tab close events.
+   */
+  private tabCloseSubscription: Subscription;
+
   constructor() {
     this.editSubscription = this.documentService.localEdit$.subscribe(
       (documentId: string) => {
@@ -87,10 +95,22 @@ export class AutoSnapshotService implements OnDestroy {
         this.markDirty(elementId);
       }
     );
+
+    // Auto-snapshot a dirty document when its tab is closed
+    this.tabCloseSubscription = this.tabManager.tabClosed$.subscribe(tab => {
+      if (
+        tab.element &&
+        (tab.type === 'document' || tab.type === 'worldbuilding') &&
+        this.dirtyDocuments.has(tab.element.id)
+      ) {
+        void this.createAutoSnapshotForElement(tab.element.id);
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.editSubscription.unsubscribe();
+    this.tabCloseSubscription.unsubscribe();
   }
 
   /**
@@ -228,6 +248,82 @@ export class AutoSnapshotService implements OnDestroy {
 
     // Prune old auto-snapshots in the background
     void this.pruneOldAutoSnapshots();
+  }
+
+  /**
+   * Create an auto-snapshot for a single element.
+   *
+   * Called when a document tab is closed (the user finished working on that document).
+   * The element is removed from the dirty set after snapshotting so it won't be
+   * snapshotted again on project exit.
+   */
+  async createAutoSnapshotForElement(elementId: string): Promise<void> {
+    if (!this.isEnabled()) {
+      return;
+    }
+
+    const project = this.projectState.project();
+    if (!project) {
+      return;
+    }
+
+    if (!this.dirtyDocuments.has(elementId)) {
+      return;
+    }
+
+    const now = Date.now();
+
+    // Throttle: skip if we auto-snapshotted this doc recently
+    const lastTime = this.lastAutoSnapshotTime.get(elementId);
+    if (lastTime && now - lastTime < AUTO_SNAPSHOT_THROTTLE_MS) {
+      this.logger.debug(
+        'AutoSnapshot',
+        `Throttled tab-close auto-snapshot for ${elementId}`
+      );
+      this.dirtyDocuments.delete(elementId);
+      return;
+    }
+
+    try {
+      const timestamp = new Date().toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+
+      const element = this.projectState
+        .elements()
+        .find(e => e.id === elementId);
+      const elementName = element?.name ?? elementId;
+
+      const name = `${AUTO_SNAPSHOT_NAME_PREFIX} ${elementName} — ${timestamp}`;
+      const fullDocumentId = `${project.username}:${project.slug}:${elementId}`;
+
+      await this.snapshotService.createSnapshot(
+        fullDocumentId,
+        name,
+        'Automatic snapshot created on tab close'
+      );
+
+      this.lastAutoSnapshotTime.set(elementId, now);
+      this.dirtyDocuments.delete(elementId);
+
+      this.logger.info(
+        'AutoSnapshot',
+        `Created auto-snapshot for "${elementName}" on tab close`
+      );
+
+      // Prune in background
+      void this.pruneOldAutoSnapshots();
+    } catch (err) {
+      this.logger.warn(
+        'AutoSnapshot',
+        `Failed to create auto-snapshot for ${elementId} on tab close`,
+        err
+      );
+    }
   }
 
   /**
