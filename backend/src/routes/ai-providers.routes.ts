@@ -8,6 +8,7 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
+import { imageGenerationService } from '../services/image-generation.service';
 import { logger } from '../services/logger.service';
 import type { AppContext } from '../types/context';
 
@@ -560,6 +561,9 @@ aiProvidersRoutes.openapi(setImageEnabledRoute, async (c) => {
     provider.imageEnabledConfigKey as Parameters<typeof configService.set>[1],
     enabled ? 'true' : 'false'
   );
+
+  // Invalidate cached provider configuration so /config/features returns fresh data
+  imageGenerationService.invalidateConfiguration();
 
   return c.json({ success: true }, 200);
 });

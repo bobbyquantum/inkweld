@@ -284,7 +284,7 @@ describe('ImageGenerationDialogComponent', () => {
           n: 1,
           size: ImageSize._1024x1024,
         }),
-        { forCover: undefined }
+        { forCover: undefined, providerType: 'openrouter' }
       );
       expect(component.stage()).toBe('generating');
       expect(component.currentJobId()).toBe('job-123');
@@ -422,7 +422,7 @@ describe('ImageGenerationDialogComponent', () => {
       expect(generationService.startGeneration).toHaveBeenCalledWith(
         'testuser/test-project',
         expect.any(Object),
-        { forCover: true }
+        { forCover: true, providerType: expect.any(String) }
       );
     });
   });

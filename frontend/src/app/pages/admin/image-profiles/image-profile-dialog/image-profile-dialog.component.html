@@ -163,8 +163,8 @@
         Enabled
       </mat-slide-toggle>
 
-      <!-- Hide for OpenRouter - auto-detected from API -->
-      @if (!isOpenRouterProvider()) {
+      <!-- Hide for OpenRouter (auto-detected from API) and OpenAI (all models support it) -->
+      @if (!isOpenRouterProvider() && !isOpenAiProvider()) {
         <mat-slide-toggle
           formControlName="supportsImageInput"
           data-testid="profile-image-input-toggle">

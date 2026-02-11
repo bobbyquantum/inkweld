@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
+import { imageGenerationService } from '../services/image-generation.service';
 import type { AppContext } from '../types/context';
 import { ErrorResponseSchema } from '../schemas/common.schemas';
 import { CONFIG_KEYS, CONFIG_CATEGORIES } from '../db/schema/config';
@@ -297,6 +298,19 @@ adminConfigRoutes.openapi(setConfigRoute, async (c) => {
   }
 
   await configService.set(db, configKey, value);
+
+  // Invalidate image generation cache when AI-related config changes
+  if (
+    configKey.startsWith('AI_IMAGE_') ||
+    configKey.startsWith('AI_OPENAI_') ||
+    configKey.startsWith('AI_OPENROUTER_') ||
+    configKey.startsWith('AI_SD_') ||
+    configKey.startsWith('AI_FALAI_') ||
+    configKey.startsWith('AI_WORKERSAI_') ||
+    configKey === 'AI_KILL_SWITCH'
+  ) {
+    imageGenerationService.invalidateConfiguration();
+  }
 
   // Return the updated value (masked if encrypted)
   const updated = await configService.get(db, configKey);

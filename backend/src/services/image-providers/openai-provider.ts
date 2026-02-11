@@ -9,6 +9,7 @@ import type {
   ImageGenerateResponse,
   ImageModelInfo,
   ImageProviderType,
+  ImageStreamEvent,
 } from '../../types/image-generation';
 import { BaseImageProvider } from './base-provider';
 import { logger } from '../logger.service';
@@ -184,6 +185,105 @@ export class OpenAIImageProvider extends BaseImageProvider {
       throw new Error(`Failed to generate image with OpenAI: ${err.message || 'Unknown error'}`, {
         cause: error,
       });
+    }
+  }
+
+  /**
+   * Generate images with streaming partial results.
+   * Uses OpenAI's `stream: true` and `partial_images` parameters to
+   * progressively yield intermediate renders before the final image.
+   *
+   * Note: Streaming only supports n=1. If n > 1, only the first image is streamed.
+   */
+  async *generateStream(request: ResolvedImageRequest): AsyncGenerator<ImageStreamEvent> {
+    if (!this.isAvailable() || !this.client) {
+      yield { type: 'error', error: 'OpenAI image generation is not available.' };
+      return;
+    }
+
+    const model = request.model;
+    const size = request.size || '1024x1024';
+    const prompt = this.buildPromptWithContext(request);
+
+    oaiLog.info(`Streaming image generation`, { model, size });
+
+    // Build request parameters — same as non-streaming but with stream + partial_images
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI SDK has complex types
+    const params: any = {
+      prompt,
+      model,
+      n: 1, // Streaming only supports n=1
+      size,
+      output_format: 'png',
+      stream: true,
+      partial_images: 2, // 2 intermediate renders (balanced cost vs UX)
+    };
+
+    if (request.quality) {
+      const qualityMap: Record<string, string> = {
+        standard: 'medium',
+        hd: 'high',
+      };
+      params.quality = qualityMap[request.quality] || request.quality;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes for streaming
+
+      const stream = await this.client.images.generate(params, {
+        signal: controller.signal,
+      });
+
+      // The SDK returns a Stream<ImageGenStreamEvent> when stream: true
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Stream event types
+      for await (const event of stream as any) {
+        if (event.type === 'image_generation.partial_image') {
+          yield {
+            type: 'partial_image',
+            b64Json: event.b64_json,
+            partialImageIndex: event.partial_image_index ?? 0,
+          };
+        } else if (event.type === 'image_generation.completed') {
+          clearTimeout(timeoutId);
+
+          // Build the full response matching ImageGenerateResponse shape
+          const result: ImageGenerateResponse = {
+            created: Math.floor(Date.now() / 1000),
+            data: [
+              {
+                b64Json: event.b64_json,
+                index: 0,
+              },
+            ],
+            provider: this.type,
+            model,
+            request: {
+              prompt: request.prompt,
+              size,
+              quality: request.quality,
+              style: request.style,
+            },
+          };
+
+          yield { type: 'completed', result };
+          return;
+        }
+      }
+
+      clearTimeout(timeoutId);
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
+      const err = error as any;
+      if (err.name === 'AbortError') {
+        yield { type: 'error', error: 'OpenAI streaming image generation timed out' };
+      } else {
+        oaiLog.error(`Streaming error: ${err.message || 'Unknown error'}`);
+        yield {
+          type: 'error',
+          error: `Failed to generate image with OpenAI: ${err.message || 'Unknown error'}`,
+        };
+      }
     }
   }
 }

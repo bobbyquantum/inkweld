@@ -25,6 +25,7 @@ import type {
   ImageSize,
   WorldbuildingContext,
   CustomImageSize,
+  ResolvedImageRequest,
 } from '../types/image-generation';
 
 const aiImageLog = logger.child('AIImage');
@@ -625,6 +626,183 @@ aiImageRoutes.openapi(updateCustomSizesRoute, async (c) => {
     }
 
     return c.json({ error: err.message || 'Failed to update custom sizes' }, 400);
+  }
+});
+
+// ============================================================================
+// Streaming Image Generation (SSE) — not in OpenAPI spec
+// ============================================================================
+
+/**
+ * POST /generate-stream
+ *
+ * Server-Sent Events endpoint for streaming image generation.
+ * Yields partial_image events as intermediate renders become available,
+ * followed by a completed event with the final result, or an error event.
+ *
+ * SSE event format:
+ *   event: partial_image | completed | error
+ *   data: { ... }
+ *
+ * Only OpenAI provider currently supports true streaming partial images.
+ * Other providers fall back to a single completed event.
+ */
+aiImageRoutes.post('/generate-stream', async (c) => {
+  const db = c.get('db');
+  const storage = getStorageService(c.get('storage'));
+  const user = c.get('user');
+
+  try {
+    const body = await c.req.json();
+    const validatedBody = GenerateRequestSchema.parse(body);
+
+    const isAvailable = await imageGenerationService.isAvailable(db);
+    if (!isAvailable) {
+      return c.json({ error: 'No image generation provider is available.' }, 503);
+    }
+
+    const profile = await imageProfileService.getById(db, validatedBody.profileId);
+    if (!profile) {
+      return c.json({ error: 'Image profile not found' }, 400);
+    }
+    if (!profile.enabled) {
+      return c.json({ error: 'Image profile is disabled' }, 400);
+    }
+
+    const provider = profile.provider as ImageProviderType;
+    const model = profile.modelId;
+    const profileConfig = profile.modelConfig;
+
+    let size: ImageSize | undefined = validatedBody.size;
+    if (!size && profile.defaultSize) {
+      size = profile.defaultSize as ImageSize;
+    }
+
+    if (size && profile.supportedSizes && !profile.supportedSizes.includes(size)) {
+      return c.json({ error: `Size '${size}' is not supported by this profile.` }, 400);
+    }
+
+    let quality = validatedBody.quality;
+    let style = validatedBody.style;
+    if (profileConfig) {
+      if (!quality && profileConfig.quality) {
+        quality = profileConfig.quality as 'standard' | 'hd';
+      }
+      if (!style && profileConfig.style) {
+        style = profileConfig.style as 'vivid' | 'natural';
+      }
+    }
+
+    // Load reference images
+    let referenceImages;
+    let referenceImageUrls: string[] = [];
+    const worldbuildingContext = validatedBody.worldbuildingContext as
+      | WorldbuildingContext[]
+      | undefined;
+    if (worldbuildingContext && worldbuildingContext.length > 0 && validatedBody.projectKey) {
+      const [username, slug] = validatedBody.projectKey.split('/');
+      if (username && slug) {
+        referenceImageUrls = await getElementImageUrls(username, slug, worldbuildingContext);
+        referenceImages = await loadReferenceImagesFromContext(
+          storage,
+          username,
+          slug,
+          worldbuildingContext
+        );
+      }
+    }
+
+    const resolvedRequest: ResolvedImageRequest = {
+      prompt: validatedBody.prompt,
+      profileId: validatedBody.profileId,
+      provider,
+      model,
+      n: validatedBody.n,
+      size,
+      quality,
+      style,
+      negativePrompt: validatedBody.negativePrompt,
+      worldbuildingContext,
+      referenceImages,
+      options: profileConfig || undefined,
+      usesAspectRatioOnly: profile.usesAspectRatioOnly,
+    };
+
+    // Return SSE stream
+    return new Response(
+      new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+
+          const send = (event: string, data: unknown) => {
+            controller.enqueue(
+              encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+            );
+          };
+
+          try {
+            for await (const event of imageGenerationService.generateStream(db, resolvedRequest)) {
+              send(event.type, event);
+
+              // On completed, record audit
+              if (event.type === 'completed') {
+                const result = event.result;
+                const isModerated = !!(
+                  result.textContent ||
+                  (result.data.length > 0 &&
+                    result.data.every((d) => d.textContent && !d.b64Json && !d.url))
+                );
+                const outputImageUrls = result.data
+                  .filter((d) => d.url || d.b64Json)
+                  .map((d) => d.url || 'data:image/png;base64,[generated-image]');
+
+                try {
+                  await imageAuditService.create(db, {
+                    userId: user?.id ?? '',
+                    profileId: profile.id,
+                    profileName: profile.name,
+                    prompt: validatedBody.prompt,
+                    referenceImageUrls:
+                      referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
+                    outputImageUrls: outputImageUrls.length > 0 ? outputImageUrls : undefined,
+                    creditCost: profile.creditCost,
+                    status: isModerated ? 'moderated' : 'success',
+                    message: isModerated
+                      ? result.textContent || result.data[0]?.textContent
+                      : undefined,
+                  });
+                } catch (auditError) {
+                  aiImageLog.error('Failed to record streaming audit:', auditError);
+                }
+              }
+            }
+          } catch (err: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
+            const error = err as any;
+            aiImageLog.error('Stream error:', error);
+            send('error', { type: 'error', error: error.message || 'Stream failed' });
+          } finally {
+            controller.close();
+          }
+        },
+      }),
+      {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      }
+    );
+  } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
+    const err = error as any;
+    aiImageLog.error('Error in generate-stream endpoint:', err);
+
+    if (err.name === 'ZodError') {
+      return c.json({ error: 'Invalid request body' }, 400);
+    }
+    return c.json({ error: err.message || 'Failed to start streaming generation' }, 503);
   }
 });
 

@@ -652,6 +652,40 @@ mat-expansion-panel {
   }
 }
 
+// Streaming partial image preview
+.partial-image-preview {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .partial-image {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 8px;
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+  }
+
+  .partial-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+    color: white;
+    font-size: 0.875rem;
+    border-radius: 0 0 8px 8px;
+  }
+}
+
 .auto-saved-notice {
   display: flex;
   align-items: center;
