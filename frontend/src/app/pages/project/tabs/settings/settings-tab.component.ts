@@ -13,7 +13,6 @@ import {
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -25,6 +24,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import {
+  CreateMcpKeyDialogComponent,
+  CreateMcpKeyDialogResult,
+} from '@dialogs/create-mcp-key-dialog/create-mcp-key-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
@@ -32,9 +35,7 @@ import {
   Collaborator,
   CollaboratorCollaboratorType,
   CollaboratorRole,
-  CreateMcpKeyRequest,
   InvitationStatus,
-  McpPermission,
   McpPublicKey,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -51,18 +52,6 @@ import { firstValueFrom } from 'rxjs';
 import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
 import { TagsTabComponent } from '../tags/tags-tab.component';
 import { TemplatesTabComponent } from '../templates/templates-tab.component';
-
-/**
- * Permission group for easier selection in UI
- */
-interface PermissionGroup {
-  label: string;
-  permissions: {
-    permission: McpPermission;
-    label: string;
-    description: string;
-  }[];
-}
 
 /**
  * Project Settings Tab Component
@@ -82,7 +71,6 @@ interface PermissionGroup {
     FormsModule,
     MatButtonModule,
     MatCardModule,
-    MatCheckboxModule,
     MatChipsModule,
     MatFormFieldModule,
     MatIconModule,
@@ -185,65 +173,11 @@ export class SettingsTabComponent implements AfterViewInit {
     },
   ];
 
-  // New key creation state
-  protected readonly isCreatingKey = signal(false);
-  protected readonly showCreateKeyForm = signal(false);
-  newKeyName = '';
-  protected selectedPermissions = signal<Set<McpPermission>>(new Set());
-  protected newKeyExpiration: 'never' | '7days' | '30days' | '90days' = 'never';
-
   // Helper for template date comparisons
   protected readonly currentTime = () => Date.now();
 
   // Newly created key (shown once)
   protected readonly newlyCreatedKey = signal<string | null>(null);
-
-  // Permission groups for easier selection
-  // NOTE: Only include permissions that are actually implemented in the backend
-  // read:documents and read:media are defined but not used by any MCP tools/resources yet
-  // write:schemas and write:media are defined but not used by any MCP tools yet
-  protected readonly permissionGroups: PermissionGroup[] = [
-    {
-      label: 'Read Permissions',
-      permissions: [
-        {
-          permission: McpPermission.ReadProject,
-          label: 'Project',
-          description: 'Read project metadata',
-        },
-        {
-          permission: McpPermission.ReadElements,
-          label: 'Elements',
-          description: 'Read project tree/elements',
-        },
-        {
-          permission: McpPermission.ReadWorldbuilding,
-          label: 'Worldbuilding',
-          description: 'Read worldbuilding data',
-        },
-        {
-          permission: McpPermission.ReadSchemas,
-          label: 'Schemas',
-          description: 'Read custom schemas',
-        },
-      ],
-    },
-    {
-      label: 'Write Permissions',
-      permissions: [
-        {
-          permission: McpPermission.WriteElements,
-          label: 'Elements',
-          description: 'Create/modify elements',
-        },
-        {
-          permission: McpPermission.WriteWorldbuilding,
-          label: 'Worldbuilding',
-          description: 'Modify worldbuilding data',
-        },
-      ],
-    },
-  ];
 
   // Media sync state
   protected readonly projectKey = computed(() => {
@@ -371,129 +305,18 @@ export class SettingsTabComponent implements AfterViewInit {
     }
   }
 
-  toggleCreateKeyForm(): void {
-    this.showCreateKeyForm.update(show => !show);
-    if (!this.showCreateKeyForm()) {
-      this.resetCreateKeyForm();
-    }
-  }
+  openCreateKeyDialog(): void {
+    const dialogRef = this.dialog.open(CreateMcpKeyDialogComponent, {
+      panelClass: 'create-mcp-key-dialog',
+      width: '520px',
+    });
 
-  resetCreateKeyForm(): void {
-    this.newKeyName = '';
-    this.selectedPermissions.set(new Set());
-    this.newKeyExpiration = 'never';
-    this.newlyCreatedKey.set(null);
-  }
-
-  togglePermission(permission: McpPermission): void {
-    this.selectedPermissions.update(perms => {
-      const newPerms = new Set(perms);
-      if (newPerms.has(permission)) {
-        newPerms.delete(permission);
-      } else {
-        newPerms.add(permission);
+    dialogRef.afterClosed().subscribe((result: CreateMcpKeyDialogResult) => {
+      if (result) {
+        this.newlyCreatedKey.set(result.fullKey);
+        this.mcpKeys.update(keys => [...keys, result.key]);
       }
-      return newPerms;
     });
-  }
-
-  hasPermission(permission: McpPermission): boolean {
-    return this.selectedPermissions().has(permission);
-  }
-
-  selectAllReadPermissions(): void {
-    this.selectedPermissions.update(perms => {
-      const newPerms = new Set(perms);
-      this.permissionGroups[0].permissions.forEach(p =>
-        newPerms.add(p.permission)
-      );
-      return newPerms;
-    });
-  }
-
-  selectAllWritePermissions(): void {
-    this.selectedPermissions.update(perms => {
-      const newPerms = new Set(perms);
-      this.permissionGroups[1].permissions.forEach(p =>
-        newPerms.add(p.permission)
-      );
-      return newPerms;
-    });
-  }
-
-  selectAllPermissions(): void {
-    this.selectedPermissions.update(() => {
-      const newPerms = new Set<McpPermission>();
-      this.permissionGroups.forEach(group => {
-        group.permissions.forEach(p => newPerms.add(p.permission));
-      });
-      return newPerms;
-    });
-  }
-
-  clearPermissions(): void {
-    this.selectedPermissions.set(new Set());
-  }
-
-  async createKey(): Promise<void> {
-    const project = this.projectState.project();
-    if (
-      !project ||
-      !this.newKeyName.trim() ||
-      this.selectedPermissions().size === 0
-    ) {
-      return;
-    }
-
-    this.isCreatingKey.set(true);
-
-    try {
-      const request: CreateMcpKeyRequest = {
-        name: this.newKeyName.trim(),
-        permissions: Array.from(this.selectedPermissions()),
-        expiresAt: this.getExpirationTimestamp(),
-      };
-
-      const response = await firstValueFrom(
-        this.mcpKeysService.createMcpKey(
-          project.username,
-          project.slug,
-          request
-        )
-      );
-
-      // Show the full key (only shown once!)
-      this.newlyCreatedKey.set(response.fullKey);
-
-      // Add the new key to the list
-      this.mcpKeys.update(keys => [...keys, response.key]);
-
-      this.snackBar.open('API key created successfully', 'Close', {
-        duration: 3000,
-      });
-
-      // Reset form but keep showing the created key
-      this.newKeyName = '';
-      this.selectedPermissions.set(new Set());
-      this.newKeyExpiration = 'never';
-    } catch (error) {
-      console.error('Failed to create API key:', error);
-      this.snackBar.open('Failed to create API key', 'Close', {
-        duration: 3000,
-      });
-    } finally {
-      this.isCreatingKey.set(false);
-    }
-  }
-
-  private getExpirationTimestamp(): number | undefined {
-    if (this.newKeyExpiration === 'never') {
-      return undefined;
-    }
-
-    const now = Date.now();
-    const days = parseInt(this.newKeyExpiration.replace('days', ''), 10);
-    return now + days * 24 * 60 * 60 * 1000;
   }
 
   async revokeKey(key: McpPublicKey): Promise<void> {
@@ -557,13 +380,29 @@ export class SettingsTabComponent implements AfterViewInit {
     );
   }
 
-  dismissNewKey(): void {
-    this.newlyCreatedKey.set(null);
-    this.showCreateKeyForm.set(false);
+  getMcpEndpointUrl(): string {
+    const serverUrl = this.setupService.getServerUrl() || '';
+    return `${serverUrl}/api/v1/ai/mcp`;
   }
 
-  formatPermission(permission: McpPermission): string {
-    return permission.replace(':', ': ').replace(/([a-z])([A-Z])/g, '$1 $2');
+  copyMcpUrl(): void {
+    const url = this.getMcpEndpointUrl();
+    navigator.clipboard.writeText(url).then(
+      () => {
+        this.snackBar.open('MCP endpoint URL copied to clipboard', 'Close', {
+          duration: 2000,
+        });
+      },
+      () => {
+        this.snackBar.open('Failed to copy to clipboard', 'Close', {
+          duration: 2000,
+        });
+      }
+    );
+  }
+
+  dismissNewKey(): void {
+    this.newlyCreatedKey.set(null);
   }
 
   formatDate(timestamp: number | null): string {

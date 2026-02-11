@@ -1,0 +1,93 @@
+<h2 mat-dialog-title>Create New API Key</h2>
+
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Key Name</mat-label>
+    <input
+      matInput
+      [(ngModel)]="keyName"
+      placeholder="e.g., Claude Desktop, Cursor IDE"
+      data-testid="key-name-input" />
+    <mat-hint>A friendly name to identify this key</mat-hint>
+  </mat-form-field>
+
+  <div class="permissions-section">
+    <div class="permissions-header">
+      <h4>Permissions</h4>
+      <div class="permission-shortcuts">
+        <button
+          mat-button
+          (click)="selectAllReadPermissions()"
+          data-testid="permissions-all-read-button">
+          All Read
+        </button>
+        <button
+          mat-button
+          (click)="selectAllWritePermissions()"
+          data-testid="permissions-all-write-button">
+          All Write
+        </button>
+        <button
+          mat-button
+          (click)="selectAllPermissions()"
+          data-testid="permissions-all-button">
+          All
+        </button>
+        <button
+          mat-button
+          (click)="clearPermissions()"
+          data-testid="permissions-clear-button">
+          Clear
+        </button>
+      </div>
+    </div>
+
+    @for (group of permissionGroups; track group.label) {
+      <div class="permission-group">
+        <h5>{{ group.label }}</h5>
+        <div class="permissions-grid">
+          @for (perm of group.permissions; track perm.permission) {
+            <mat-checkbox
+              [checked]="hasPermission(perm.permission)"
+              (change)="togglePermission(perm.permission)"
+              [matTooltip]="perm.description">
+              {{ perm.label }}
+            </mat-checkbox>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Expiration</mat-label>
+    <mat-select [(ngModel)]="keyExpiration">
+      <mat-option value="never">Never expires</mat-option>
+      <mat-option value="7days">7 days</mat-option>
+      <mat-option value="30days">30 days</mat-option>
+      <mat-option value="90days">90 days</mat-option>
+    </mat-select>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()" data-testid="cancel-create-key-button">
+    Cancel
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="
+      !keyName.trim() || selectedPermissions().size === 0 || isCreating()
+    "
+    (click)="createKey()"
+    data-testid="submit-create-key-button">
+    @if (isCreating()) {
+      <mat-progress-spinner diameter="20" mode="indeterminate">
+      </mat-progress-spinner>
+    } @else {
+      <mat-icon>add</mat-icon>
+      Create Key
+    }
+  </button>
+</mat-dialog-actions>

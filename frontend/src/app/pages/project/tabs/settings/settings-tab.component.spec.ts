@@ -7,7 +7,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,6 +18,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
+import { CreateMcpKeyDialogResult } from '@dialogs/create-mcp-key-dialog/create-mcp-key-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
@@ -214,7 +214,11 @@ describe('SettingsTabComponent', () => {
       uploadAllToServer: vi.fn().mockResolvedValue(undefined),
     };
 
-    dialog = {};
+    dialog = {
+      open: vi.fn().mockReturnValue({
+        afterClosed: () => of(null),
+      }),
+    };
 
     projectsService = {
       updateProject: vi.fn().mockReturnValue(of({ slug: 'new-slug' })),
@@ -230,7 +234,6 @@ describe('SettingsTabComponent', () => {
         FormsModule,
         MatButtonModule,
         MatCardModule,
-        MatCheckboxModule,
         MatFormFieldModule,
         MatIconModule,
         MatInputModule,
@@ -326,89 +329,41 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should toggle permission selection', () => {
-      expect(component.hasPermission(McpPermission.ReadProject)).toBe(false);
-
-      component.togglePermission(McpPermission.ReadProject);
-      expect(component.hasPermission(McpPermission.ReadProject)).toBe(true);
-
-      component.togglePermission(McpPermission.ReadProject);
-      expect(component.hasPermission(McpPermission.ReadProject)).toBe(false);
+      // Permission management is now in the CreateMcpKeyDialogComponent
+      // This test validates the dialog is opened correctly
+      expect(component.openCreateKeyDialog).toBeDefined();
     });
 
-    it('should select all read permissions', () => {
-      component.selectAllReadPermissions();
+    it('should open create key dialog', () => {
+      const dialogSpy = vi.spyOn(component['dialog'], 'open').mockReturnValue({
+        afterClosed: () => of(null),
+      } as ReturnType<MatDialog['open']>);
 
-      expect(component.hasPermission(McpPermission.ReadProject)).toBe(true);
-      expect(component.hasPermission(McpPermission.ReadElements)).toBe(true);
-      expect(component.hasPermission(McpPermission.ReadWorldbuilding)).toBe(
-        true
-      );
-      expect(component.hasPermission(McpPermission.ReadSchemas)).toBe(true);
-      expect(component.hasPermission(McpPermission.WriteElements)).toBe(false);
+      component.openCreateKeyDialog();
+      expect(dialogSpy).toHaveBeenCalled();
     });
 
-    it('should select all write permissions', () => {
-      component.selectAllWritePermissions();
-
-      expect(component.hasPermission(McpPermission.WriteElements)).toBe(true);
-      expect(component.hasPermission(McpPermission.WriteWorldbuilding)).toBe(
-        true
-      );
-      expect(component.hasPermission(McpPermission.ReadProject)).toBe(false);
-    });
-
-    it('should select all permissions', () => {
-      component.selectAllPermissions();
-
-      expect(component.hasPermission(McpPermission.ReadProject)).toBe(true);
-      expect(component.hasPermission(McpPermission.WriteElements)).toBe(true);
-    });
-
-    it('should clear permissions', () => {
-      component.selectAllPermissions();
-      component.clearPermissions();
-
-      expect(component['selectedPermissions']().size).toBe(0);
-    });
-
-    it('should create a new key', async () => {
-      component.newKeyName = 'My New Key';
-      component.togglePermission(McpPermission.ReadProject);
-
-      await component.createKey();
-
-      expect(mcpKeysService.createMcpKey).toHaveBeenCalledWith(
-        'testuser',
-        'test-project',
-        expect.objectContaining({
-          name: 'My New Key',
+    it('should handle dialog result when key is created', () => {
+      const mockResult: CreateMcpKeyDialogResult = {
+        fullKey: 'ink_new_fullkey123456789',
+        key: {
+          id: 'new-key',
+          name: 'Test Key',
+          keyPrefix: 'ink_new_',
           permissions: [McpPermission.ReadProject],
-        })
-      );
+          createdAt: Date.now(),
+          expiresAt: null,
+          lastUsedAt: null,
+          revoked: false,
+        },
+      };
+
+      vi.spyOn(component['dialog'], 'open').mockReturnValue({
+        afterClosed: () => of(mockResult),
+      } as ReturnType<MatDialog['open']>);
+
+      component.openCreateKeyDialog();
       expect(component['newlyCreatedKey']()).toBe('ink_new_fullkey123456789');
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'API key created successfully',
-        'Close',
-        { duration: 3000 }
-      );
-    });
-
-    it('should not create key without name', async () => {
-      component.newKeyName = '';
-      component.togglePermission(McpPermission.ReadProject);
-
-      await component.createKey();
-
-      expect(mcpKeysService.createMcpKey).not.toHaveBeenCalled();
-    });
-
-    it('should not create key without permissions', async () => {
-      component.newKeyName = 'My Key';
-      // No permissions selected
-
-      await component.createKey();
-
-      expect(mcpKeysService.createMcpKey).not.toHaveBeenCalled();
     });
 
     it('should revoke a key', async () => {
@@ -454,40 +409,10 @@ describe('SettingsTabComponent', () => {
 
     it('should dismiss newly created key', () => {
       component['newlyCreatedKey'].set('test-key');
-      component['showCreateKeyForm'].set(true);
 
       component.dismissNewKey();
 
       expect(component['newlyCreatedKey']()).toBeNull();
-      expect(component['showCreateKeyForm']()).toBe(false);
-    });
-
-    it('should toggle create key form', () => {
-      expect(component['showCreateKeyForm']()).toBe(false);
-
-      component.toggleCreateKeyForm();
-      expect(component['showCreateKeyForm']()).toBe(true);
-
-      component.toggleCreateKeyForm();
-      expect(component['showCreateKeyForm']()).toBe(false);
-    });
-
-    it('should reset create key form', () => {
-      component.newKeyName = 'Test Key';
-      component.togglePermission(McpPermission.ReadProject);
-      component['newlyCreatedKey'].set('some-key');
-
-      component.resetCreateKeyForm();
-
-      expect(component.newKeyName).toBe('');
-      expect(component['selectedPermissions']().size).toBe(0);
-      expect(component['newlyCreatedKey']()).toBeNull();
-    });
-
-    it('should format permission for display', () => {
-      const formatted = component.formatPermission(McpPermission.ReadProject);
-      expect(formatted).toContain('read');
-      expect(formatted).toContain('project');
     });
 
     it('should format date', () => {
@@ -497,22 +422,6 @@ describe('SettingsTabComponent', () => {
       expect(formatted).not.toBe('Never');
 
       expect(component.formatDate(null)).toBe('Never');
-    });
-
-    it('should handle error when creating key', async () => {
-      (mcpKeysService.createMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
-        throwError(() => new Error('Failed to create'))
-      );
-
-      component.newKeyName = 'Test Key';
-      component.togglePermission(McpPermission.ReadProject);
-      await component.createKey();
-
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Failed to create API key',
-        'Close',
-        { duration: 3000 }
-      );
     });
 
     it('should handle error when revoking key', async () => {

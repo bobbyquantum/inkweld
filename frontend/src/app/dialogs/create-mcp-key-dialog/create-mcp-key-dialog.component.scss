@@ -1,0 +1,57 @@
+::ng-deep .create-mcp-key-dialog {
+  min-width: 480px;
+  max-width: 560px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.permissions-section {
+  margin: 8px 0 16px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.permissions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  h4 {
+    margin: 0;
+    color: var(--sys-on-surface);
+  }
+}
+
+.permission-shortcuts {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.permission-group {
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  h5 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--sys-on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.permissions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
