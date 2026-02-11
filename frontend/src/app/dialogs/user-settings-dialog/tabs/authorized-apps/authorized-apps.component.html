@@ -1,0 +1,228 @@
+<div class="authorized-apps-container" data-testid="authorized-apps-settings">
+  <h3 class="section-title">Authorized Applications</h3>
+  <p class="section-description">
+    These are third-party applications that have been granted access to your
+    projects. You can review permissions or disconnect them at any time.
+  </p>
+
+  @if (isLoading()) {
+    <div class="loading-container" data-testid="authorized-apps-loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (sessions().length === 0) {
+    <div class="empty-state" data-testid="authorized-apps-empty">
+      <mat-icon class="empty-icon">apps</mat-icon>
+      <p>No authorized applications</p>
+      <p class="empty-hint">
+        When you authorize third-party apps to access your projects, they will
+        appear here.
+      </p>
+    </div>
+  } @else {
+    <div class="sessions-list" data-testid="authorized-apps-list">
+      @for (session of sessions(); track session.id) {
+        <div
+          class="session-card"
+          [class.expanded]="expandedSession()?.session?.id === session.id"
+          data-testid="authorized-app-card">
+          <div class="session-header">
+            <div
+              class="app-info"
+              role="button"
+              tabindex="0"
+              (click)="loadSessionDetails(session.id)"
+              (keydown.enter)="loadSessionDetails(session.id)"
+              (keydown.space)="loadSessionDetails(session.id)">
+              @if (session.client.logoUri) {
+                <img
+                  [src]="session.client.logoUri"
+                  [alt]="session.client.name"
+                  class="app-logo" />
+              } @else {
+                <mat-icon class="app-logo-placeholder">smart_toy</mat-icon>
+              }
+              <div class="app-details">
+                <span class="app-name">{{ session.client.name }}</span>
+                <span class="app-meta">
+                  Connected {{ formatDate(session.createdAt) }} ·
+                  {{ session.projectCount }}
+                  {{ session.projectCount === 1 ? 'project' : 'projects' }}
+                </span>
+              </div>
+            </div>
+            <div class="session-actions">
+              <button
+                mat-icon-button
+                (click)="loadSessionDetails(session.id)"
+                [matTooltip]="
+                  expandedSession()?.session?.id === session.id
+                    ? 'Collapse'
+                    : 'View details'
+                "
+                data-testid="authorized-app-expand">
+                <mat-icon>{{
+                  expandedSession()?.session?.id === session.id
+                    ? 'expand_less'
+                    : 'expand_more'
+                }}</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="revokeSession(session)"
+                [disabled]="revokingSessionId() === session.id"
+                matTooltip="Disconnect app"
+                data-testid="authorized-app-disconnect">
+                @if (revokingSessionId() === session.id) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <mat-icon>link_off</mat-icon>
+                }
+              </button>
+            </div>
+          </div>
+
+          @if (expandedSession()?.session?.id === session.id) {
+            <div class="session-details" data-testid="authorized-app-details">
+              @if (isLoadingDetails()) {
+                <div class="loading-container">
+                  <mat-spinner diameter="24"></mat-spinner>
+                </div>
+              } @else {
+                <div class="grants-header">
+                  <span class="grants-title">Project Permissions</span>
+                  <button
+                    mat-stroked-button
+                    (click)="toggleAddProject()"
+                    [disabled]="addingProject()"
+                    class="add-project-btn"
+                    data-testid="authorized-app-add-project-btn">
+                    <mat-icon>add</mat-icon>
+                    Add Project
+                  </button>
+                </div>
+
+                @if (showAddProject()) {
+                  <div
+                    class="add-project-row"
+                    data-testid="authorized-app-add-project-row">
+                    <mat-select
+                      [value]="selectedProjectId()"
+                      (selectionChange)="selectedProjectId.set($event.value)"
+                      placeholder="Select a project"
+                      class="project-select"
+                      data-testid="authorized-app-project-select">
+                      @for (project of availableProjects(); track project.id) {
+                        <mat-option [value]="project.id">
+                          {{ project.title }}
+                        </mat-option>
+                      }
+                      @if (availableProjects().length === 0) {
+                        <mat-option disabled>No projects available</mat-option>
+                      }
+                    </mat-select>
+                    <mat-select
+                      [value]="selectedRole()"
+                      (selectionChange)="selectedRole.set($event.value)"
+                      class="role-select"
+                      data-testid="authorized-app-add-role-select">
+                      @for (role of addRoles; track role) {
+                        <mat-option [value]="role">
+                          {{ role | titlecase }}
+                        </mat-option>
+                      }
+                    </mat-select>
+                    <button
+                      mat-icon-button
+                      color="primary"
+                      (click)="addProjectGrant(session.id)"
+                      [disabled]="!selectedProjectId() || addingProject()"
+                      matTooltip="Grant access"
+                      data-testid="authorized-app-confirm-add">
+                      @if (addingProject()) {
+                        <mat-spinner diameter="18"></mat-spinner>
+                      } @else {
+                        <mat-icon>check</mat-icon>
+                      }
+                    </button>
+                    <button
+                      mat-icon-button
+                      (click)="cancelAddProject()"
+                      matTooltip="Cancel"
+                      data-testid="authorized-app-cancel-add">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                }
+
+                @if (expandedSession()!.grants.length === 0) {
+                  <p class="no-grants">
+                    No project permissions. This app has no access to any
+                    projects.
+                  </p>
+                } @else {
+                  <div class="grants-list">
+                    @for (
+                      grant of expandedSession()!.grants;
+                      track grant.projectId
+                    ) {
+                      <div class="grant-row" data-testid="authorized-app-grant">
+                        <div class="grant-project">
+                          <mat-icon class="grant-icon">description</mat-icon>
+                          <span class="grant-project-name">
+                            {{ grant.projectTitle }}
+                          </span>
+                          <span class="grant-project-slug">
+                            {{ grant.projectSlug }}
+                          </span>
+                        </div>
+                        <div class="grant-actions">
+                          <mat-select
+                            [value]="grant.role"
+                            (selectionChange)="
+                              updateGrantRole(session.id, grant, $event.value)
+                            "
+                            [disabled]="
+                              updatingGrantKey() ===
+                              grantKey(session.id, grant.projectId)
+                            "
+                            class="role-select"
+                            data-testid="authorized-app-role-select">
+                            @for (role of roles; track role) {
+                              <mat-option [value]="role">
+                                {{ role | titlecase }}
+                              </mat-option>
+                            }
+                          </mat-select>
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            (click)="revokeGrant(session.id, grant)"
+                            [disabled]="
+                              revokingGrantKey() ===
+                              grantKey(session.id, grant.projectId)
+                            "
+                            matTooltip="Revoke project access"
+                            data-testid="authorized-app-revoke-grant">
+                            @if (
+                              revokingGrantKey() ===
+                              grantKey(session.id, grant.projectId)
+                            ) {
+                              <mat-spinner diameter="18"></mat-spinner>
+                            } @else {
+                              <mat-icon>delete</mat-icon>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

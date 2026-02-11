@@ -27,11 +27,23 @@
       <a
         mat-list-item
         role="tab"
+        (click)="selectCategory('authorized-apps')"
+        (keydown.enter)="selectCategory('authorized-apps')"
+        [attr.aria-selected]="selectedCategory === 'authorized-apps'"
+        [class.active]="selectedCategory === 'authorized-apps'"
+        tabindex="1"
+        aria-label="Authorized Apps settings">
+        <mat-icon matListItemIcon>apps</mat-icon>
+        <span matListItemTitle>Authorized Apps</span>
+      </a>
+      <a
+        mat-list-item
+        role="tab"
         (click)="selectCategory('project-tree')"
         (keydown.enter)="selectCategory('project-tree')"
         [attr.aria-selected]="selectedCategory === 'project-tree'"
         [class.active]="selectedCategory === 'project-tree'"
-        tabindex="1"
+        tabindex="2"
         aria-label="Project Tree settings">
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <span matListItemTitle>Project Tree</span>
@@ -43,7 +55,7 @@
         (keydown.enter)="selectCategory('project')"
         [attr.aria-selected]="selectedCategory === 'project'"
         [class.active]="selectedCategory === 'project'"
-        tabindex="2"
+        tabindex="3"
         aria-label="Project settings">
         <mat-icon matListItemIcon>description</mat-icon>
         <span matListItemTitle>Project</span>
@@ -58,6 +70,9 @@
       @switch (selectedCategory) {
         @case ('account') {
           <app-account-settings />
+        }
+        @case ('authorized-apps') {
+          <app-authorized-apps />
         }
         @case ('project-tree') {
           <app-project-tree-settings />

@@ -133,7 +133,10 @@ app.use('*', bunSqliteDatabaseMiddleware);
 app.use('/.well-known/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
 // OAuth endpoints need permissive CORS for MCP clients from any origin
 // Use wildcard to ensure all OAuth paths are covered
-app.use('/oauth/*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'OPTIONS'] }));
+app.use(
+  '/oauth/*',
+  cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] })
+);
 // Also allow /register alias (some MCP clients use this)
 app.use('/register', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'] }));
 app.use(
