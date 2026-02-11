@@ -22,6 +22,7 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RecentFilesService } from '@services/project/recent-files.service';
+import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 import { SplitGutterInteractionEvent } from 'angular-split';
 import { BehaviorSubject, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,7 +37,9 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 // Mock child components to avoid their dependencies
 @Component({ selector: 'app-project-tree', template: '', standalone: true })
-class MockProjectTreeComponent {}
+class MockProjectTreeComponent {
+  @Input() showCollapseButton?: boolean;
+}
 
 @Component({
   selector: 'app-user-menu',
@@ -245,6 +248,16 @@ describe('ProjectComponent', () => {
         { provide: SettingsService, useValue: settingsService },
         { provide: AutoSnapshotService, useValue: autoSnapshotService },
         { provide: MatDialog, useValue: { open: vi.fn() } },
+        {
+          provide: MediaAutoSyncService,
+          useValue: {
+            startAutoSync: vi.fn().mockResolvedValue(undefined),
+            stopAutoSync: vi.fn(),
+            triggerSyncAfterUpload: vi.fn().mockResolvedValue(undefined),
+            isActive: signal(false),
+            lastSyncTime: signal(null),
+          },
+        },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     })

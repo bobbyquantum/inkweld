@@ -13,3 +13,6 @@ export { YjsElementSyncProvider } from './yjs-element-sync.provider';
 
 // Factory
 export { ElementSyncProviderFactory } from './element-sync-provider.factory';
+
+// Media auto-sync
+export { MediaAutoSyncService } from './media-auto-sync.service';
