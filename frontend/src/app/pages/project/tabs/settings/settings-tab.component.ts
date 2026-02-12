@@ -41,10 +41,7 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import {
-  MediaSyncService,
-  MediaSyncState,
-} from '@services/local/media-sync.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
@@ -186,10 +183,18 @@ export class SettingsTabComponent implements AfterViewInit {
     return `${project.username}/${project.slug}`;
   });
 
-  protected readonly mediaSyncState = signal<MediaSyncState | null>(null);
+  /**
+   * Reactive sync state that automatically updates when background syncs
+   * (periodic, WebSocket, initial) modify the MediaSyncService's internal state.
+   */
+  protected readonly mediaSyncState = computed(() => {
+    const key = this.projectKey();
+    if (!key) return null;
+    return this.mediaSyncService.getSyncState(key)();
+  });
 
   constructor() {
-    // Watch for project changes and update media sync state
+    // Watch for project changes and trigger initial sync status check
     effect(() => {
       const key = this.projectKey();
       if (key && this.currentMode === 'server') {
@@ -729,8 +734,9 @@ export class SettingsTabComponent implements AfterViewInit {
     if (!key) return;
 
     try {
-      const state = await this.mediaSyncService.checkSyncStatus(key);
-      this.mediaSyncState.set(state);
+      await this.mediaSyncService.checkSyncStatus(key);
+      // No need to set state — mediaSyncState is a computed that reads
+      // directly from the service's reactive signal
     } catch (error) {
       console.error('Failed to check media sync status:', error);
       this.snackBar.open('Failed to check media sync status', 'Close', {
@@ -748,6 +754,7 @@ export class SettingsTabComponent implements AfterViewInit {
       this.snackBar.open('All media downloaded successfully', 'Close', {
         duration: 3000,
       });
+      // Re-check status to update counts (downloads don't update item list)
       await this.checkMediaSyncStatus();
     } catch (error) {
       console.error('Failed to download media:', error);
@@ -766,6 +773,7 @@ export class SettingsTabComponent implements AfterViewInit {
       this.snackBar.open('All media uploaded successfully', 'Close', {
         duration: 3000,
       });
+      // Re-check status to update counts
       await this.checkMediaSyncStatus();
     } catch (error) {
       console.error('Failed to upload media:', error);
