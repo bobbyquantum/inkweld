@@ -86,6 +86,7 @@ describe('MediaTabComponent', () => {
 
     mediaSyncService = {
       downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
+      mediaSyncVersion: signal(0),
     };
 
     setupService = {
