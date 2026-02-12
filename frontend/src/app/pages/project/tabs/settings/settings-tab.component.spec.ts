@@ -65,6 +65,7 @@ describe('SettingsTabComponent', () => {
   let setupService: Partial<SetupService>;
   let systemConfigService: Partial<SystemConfigService>;
   let mediaSyncService: Partial<MediaSyncService>;
+  let mediaSyncStateSignal: ReturnType<typeof signal<any>>;
   let dialog: Partial<MatDialog>;
   let projectsService: Partial<ProjectsService>;
   let router: Partial<Router>;
@@ -200,6 +201,16 @@ describe('SettingsTabComponent', () => {
       isAiKillSwitchEnabled: signal(false), // AI enabled (kill switch OFF)
     };
 
+    mediaSyncStateSignal = signal({
+      items: [],
+      needsDownload: 0,
+      needsUpload: 0,
+      isSyncing: false,
+      downloadProgress: 0,
+      lastChecked: new Date(),
+      error: null,
+    });
+
     mediaSyncService = {
       checkSyncStatus: vi.fn().mockResolvedValue({
         items: [],
@@ -210,6 +221,7 @@ describe('SettingsTabComponent', () => {
         lastChecked: new Date(),
         error: null,
       }),
+      getSyncState: vi.fn().mockReturnValue(mediaSyncStateSignal),
       downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
       uploadAllToServer: vi.fn().mockResolvedValue(undefined),
     };
@@ -564,7 +576,7 @@ describe('SettingsTabComponent', () => {
 
   describe('Utility methods', () => {
     it('should get server total size', () => {
-      component['mediaSyncState'].set({
+      mediaSyncStateSignal.set({
         items: [
           {
             mediaId: '1',
@@ -590,7 +602,7 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should get local total size', () => {
-      component['mediaSyncState'].set({
+      mediaSyncStateSignal.set({
         items: [
           {
             mediaId: '1',
@@ -626,7 +638,7 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should get server file count', () => {
-      component['mediaSyncState'].set({
+      mediaSyncStateSignal.set({
         items: [
           {
             mediaId: '1',
@@ -663,7 +675,7 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should get local file count', () => {
-      component['mediaSyncState'].set({
+      mediaSyncStateSignal.set({
         items: [
           {
             mediaId: '1',

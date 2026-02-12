@@ -135,6 +135,18 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     }
   });
 
+  // Effect to reload media when a background sync finishes downloading files.
+  // mediaSyncVersion is incremented by MediaSyncService after each download batch.
+  private syncVersionAtLoad = 0;
+  private readonly syncVersionEffect = effect(() => {
+    const version = this.mediaSyncService.mediaSyncVersion();
+    // Skip the initial run — we already load media in ngOnInit/projectEffect
+    if (version > this.syncVersionAtLoad) {
+      this.syncVersionAtLoad = version;
+      void this.loadMedia();
+    }
+  });
+
   ngOnInit(): void {
     void this.loadMedia();
   }
@@ -142,6 +154,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.projectEffect.destroy();
     this.jobEffect.destroy();
+    this.syncVersionEffect.destroy();
     this.stopJobPolling();
     // Cleanup blob URLs
     this.revokeAllUrls();
