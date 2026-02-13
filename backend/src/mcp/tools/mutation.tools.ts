@@ -31,6 +31,7 @@ import {
   replaceAllElements as runtimeReplaceAllElements,
   getWorldbuildingDoc,
   updateWorldbuilding,
+  updateDocumentContent as runtimeUpdateDocumentContent,
   getRelationships as runtimeGetRelationships,
   replaceAllRelationships as runtimeReplaceAllRelationships,
   addRelationship as runtimeAddRelationship,
@@ -1102,6 +1103,189 @@ registerTool({
     }
   },
 });
+
+// ============================================
+// update_document_content tool
+// ============================================
+
+registerTool({
+  tool: {
+    name: 'update_document_content',
+    title: 'Update Document Content',
+    description: `Replace the prose content of a document element. Supports two input formats:
+
+- "xml" (default): ProseMirror XML format. Use tags like <paragraph>, <heading level="1">, <blockquote>, etc.
+  Example: <paragraph>Hello <bold>world</bold></paragraph>
+- "text": Plain text that will be automatically wrapped in <paragraph> tags. Double newlines create paragraph breaks.
+
+The content replaces the entire document. Use get_document_content first to read the current content if you need to make partial edits.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        project: projectPropertySchema,
+        elementId: {
+          type: 'string',
+          description: 'ID of the document element to update',
+        },
+        content: {
+          type: 'string',
+          description:
+            'The new document content. For "xml" format: ProseMirror XML string. For "text" format: plain text (double newlines = paragraph breaks).',
+        },
+        format: {
+          type: 'string',
+          enum: ['xml', 'text'],
+          description:
+            'Input format: "xml" for ProseMirror XML (default), "text" for plain text wrapped in paragraphs',
+        },
+      },
+      required: ['project', 'elementId', 'content'],
+    },
+  },
+  requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
+  async execute(
+    ctx: McpContext,
+    _db: unknown,
+    args: Record<string, unknown>
+  ): Promise<McpToolResult> {
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_ELEMENTS);
+    if ('error' in result) return result.error;
+    const { username, slug } = result.project;
+
+    const elementId = String(args.elementId ?? '').trim();
+    const content = String(args.content ?? '');
+    const format = (args.format as string) ?? 'xml';
+
+    if (!elementId) {
+      return {
+        content: [{ type: 'text', text: 'Error: elementId is required' }],
+        isError: true,
+      };
+    }
+
+    if (!content && content !== '') {
+      return {
+        content: [{ type: 'text', text: 'Error: content is required' }],
+        isError: true,
+      };
+    }
+
+    // Validate format
+    if (format !== 'xml' && format !== 'text') {
+      return {
+        content: [
+          { type: 'text', text: `Error: invalid format "${format}". Use "xml" or "text".` },
+        ],
+        isError: true,
+      };
+    }
+
+    // Verify element exists
+    const elements = await runtimeGetElements(ctx, username, slug);
+    const element = elements.find((e) => e.id === elementId);
+
+    if (!element) {
+      return {
+        content: [{ type: 'text', text: `Error: element "${elementId}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Only allow updating ITEM (document) elements
+    if (element.type !== 'ITEM') {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: element "${elementId}" is type "${element.type}", not a document (ITEM). Only document elements have prose content.`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    try {
+      // Convert text format to XML if needed
+      let xmlContent = content;
+      if (format === 'text') {
+        xmlContent = textToProseMirrorXml(content);
+      }
+
+      // Apply the content update via Yjs
+      await runtimeUpdateDocumentContent(ctx, username, slug, elementId, xmlContent);
+
+      // Calculate word count from the content
+      const textContent = xmlContent
+        .replace(/<\/(?:paragraph|heading|blockquote|listItem)>/gi, '\n')
+        .replace(/<\/[^>]+>/g, '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
+
+      const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Updated content for "${element.name}" (${wordCount} words)`,
+          },
+        ],
+        structuredContent: {
+          success: true,
+          elementId,
+          elementName: element.name,
+          wordCount,
+          format,
+        },
+      };
+    } catch (err) {
+      mcpMutLog.error('Error updating document content', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return {
+        content: [{ type: 'text', text: `Error updating document content: ${errorMessage}` }],
+        isError: true,
+      };
+    }
+  },
+});
+
+/**
+ * Convert plain text to ProseMirror XML format.
+ * Double newlines create paragraph breaks, single newlines are preserved as hard breaks.
+ */
+function textToProseMirrorXml(text: string): string {
+  if (!text.trim()) {
+    return '<paragraph></paragraph>';
+  }
+
+  // Split on double newlines to create paragraphs
+  const paragraphs = text.split(/\n\n+/);
+
+  return paragraphs
+    .map((para) => {
+      const trimmed = para.trim();
+      if (!trimmed) return '<paragraph></paragraph>';
+
+      // Escape XML special characters
+      const escaped = trimmed
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+
+      // Convert single newlines to hard_break elements
+      const withBreaks = escaped.replace(/\n/g, '<hard_break/>');
+
+      return `<paragraph>${withBreaks}</paragraph>`;
+    })
+    .join('');
+}
 
 // ============================================
 // create_relationship tool
