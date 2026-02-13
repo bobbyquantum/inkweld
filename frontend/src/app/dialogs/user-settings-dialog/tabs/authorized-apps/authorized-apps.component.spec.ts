@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -157,7 +157,10 @@ describe('AuthorizedAppsComponent', () => {
     await component.loadSessionDetails('session-1');
 
     expect(oauthServiceMock.getOAuthSessionDetails).toHaveBeenCalledWith(
-      'session-1'
+      'session-1',
+      'body',
+      false,
+      { transferCache: false }
     );
     expect(component.expandedSession()).toEqual(details);
   });
@@ -188,7 +191,10 @@ describe('AuthorizedAppsComponent', () => {
       expect.objectContaining({ title: 'Disconnect Application' })
     );
     expect(oauthServiceMock.revokeOAuthSession).toHaveBeenCalledWith(
-      'session-1'
+      'session-1',
+      'body',
+      false,
+      { transferCache: false }
     );
     expect(component.sessions()).toEqual([]);
   });
@@ -221,6 +227,29 @@ describe('AuthorizedAppsComponent', () => {
 
     // Session should still be there
     expect(component.sessions().length).toBe(1);
+    expect(component.revokingSessionId()).toBeNull();
+  });
+
+  it('should treat 2xx parse error as successful revoke', async () => {
+    const session = createMockSession();
+    oauthServiceMock.listOAuthSessions.mockReturnValue(of([session]));
+    oauthServiceMock.revokeOAuthSession.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 200,
+            statusText: 'OK',
+            error: new SyntaxError('Unexpected end of JSON input'),
+          })
+      )
+    );
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    await component.revokeSession(session);
+
+    expect(component.sessions()).toEqual([]);
     expect(component.revokingSessionId()).toBeNull();
   });
 

@@ -180,6 +180,69 @@ export class YjsWorkerService {
   }
 
   /**
+   * Apply a raw Yjs update (base64-encoded) to a document via the DO HTTP API.
+   * This is used for updating ProseMirror XmlFragment content, which cannot be
+   * expressed as simple path-based updates.
+   */
+  async applyYjsUpdate(docId: string, base64Update: string): Promise<void> {
+    const parts = docId.replace(/\/+$/, '').split(':');
+    if (parts.length < 2) {
+      throw new Error(`Invalid docId format: ${docId}`);
+    }
+
+    const username = parts[0];
+    const slug = parts[1];
+    const stub = getDoStub(this.ctx.env, username, slug);
+
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/document?documentId=${encodeURIComponent(docId)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ yUpdate: base64Update }),
+      })
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to apply Yjs update: ${response.status} ${errorText}`);
+    }
+  }
+
+  /**
+   * Replace ProseMirror content in a document via the DO HTTP API.
+   * Sends the XML string to the DO which handles the Yjs operations directly.
+   */
+  async updateProsemirrorContent(docId: string, xmlContent: string): Promise<void> {
+    const parts = docId.replace(/\/+$/, '').split(':');
+    if (parts.length < 2) {
+      throw new Error(`Invalid docId format: ${docId}`);
+    }
+
+    const username = parts[0];
+    const slug = parts[1];
+    const stub = getDoStub(this.ctx.env, username, slug);
+
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/document?documentId=${encodeURIComponent(docId)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prosemirrorXml: xmlContent }),
+      })
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update ProseMirror content: ${response.status} ${errorText}`);
+    }
+  }
+
+  /**
    * Replace all elements in a project (via DO HTTP API)
    */
   async replaceAllElements(username: string, slug: string, elements: unknown[]): Promise<void> {

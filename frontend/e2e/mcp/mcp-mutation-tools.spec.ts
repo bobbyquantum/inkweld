@@ -851,3 +851,303 @@ test.describe('reorder_element', () => {
     }
   });
 });
+
+test.describe('update_document_content', () => {
+  test('should update document content with XML format', async ({
+    mcpContext,
+    apiRequest,
+  }) => {
+    // 1. Create a document element
+    const createResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'create_element',
+      {
+        project: mcpContext.projectKey,
+        name: 'Content Test Document',
+        type: 'ITEM',
+      }
+    );
+    expect(createResult.error).toBeUndefined();
+
+    const createContent = createResult.result as {
+      structuredContent?: { element?: { id?: string } };
+    };
+    const elementId = createContent.structuredContent?.element?.id;
+    expect(elementId).toBeTruthy();
+
+    // 2. Update its content with ProseMirror XML
+    const xmlContent =
+      '<paragraph>The dawn broke over the mountains.</paragraph><paragraph>A new chapter begins.</paragraph>';
+    const updateResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'update_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        content: xmlContent,
+        format: 'xml',
+      }
+    );
+    expect(updateResult.error).toBeUndefined();
+
+    const updateContent = updateResult.result as {
+      content: Array<{ type: string; text: string }>;
+      structuredContent?: { success?: boolean; wordCount?: number };
+    };
+    expect(updateContent.content[0].text).toContain('Content Test Document');
+    expect(updateContent.structuredContent?.success).toBe(true);
+    expect(updateContent.structuredContent?.wordCount).toBeGreaterThan(0);
+
+    // 3. Verify content was written by reading it back
+    const readResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'get_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        format: 'text',
+      }
+    );
+    expect(readResult.error).toBeUndefined();
+
+    const readContent = readResult.result as {
+      content: Array<{ type: string; text: string }>;
+    };
+    const textOutput = readContent.content.map(c => c.text).join('\n');
+    expect(textOutput).toContain('dawn broke over the mountains');
+    expect(textOutput).toContain('new chapter begins');
+  });
+
+  test('should update document content with text format', async ({
+    mcpContext,
+    apiRequest,
+  }) => {
+    // 1. Create a document element
+    const createResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'create_element',
+      {
+        project: mcpContext.projectKey,
+        name: 'Text Format Document',
+        type: 'ITEM',
+      }
+    );
+    expect(createResult.error).toBeUndefined();
+
+    const createContent = createResult.result as {
+      structuredContent?: { element?: { id?: string } };
+    };
+    const elementId = createContent.structuredContent?.element?.id;
+    expect(elementId).toBeTruthy();
+
+    // 2. Update with plain text format
+    const updateResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'update_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        content: 'First paragraph here.\n\nSecond paragraph here.',
+        format: 'text',
+      }
+    );
+    expect(updateResult.error).toBeUndefined();
+
+    const updateContent = updateResult.result as {
+      structuredContent?: { success?: boolean; format?: string };
+    };
+    expect(updateContent.structuredContent?.success).toBe(true);
+    expect(updateContent.structuredContent?.format).toBe('text');
+
+    // 3. Verify content
+    const readResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'get_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        format: 'text',
+      }
+    );
+    expect(readResult.error).toBeUndefined();
+
+    const readContent = readResult.result as {
+      content: Array<{ type: string; text: string }>;
+    };
+    const textOutput = readContent.content.map(c => c.text).join('\n');
+    expect(textOutput).toContain('First paragraph here');
+    expect(textOutput).toContain('Second paragraph here');
+  });
+
+  test('should reject non-document elements', async ({
+    mcpContext,
+    apiRequest,
+  }) => {
+    // 1. Create a folder (not a document)
+    const createResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'create_element',
+      {
+        project: mcpContext.projectKey,
+        name: 'Not A Document',
+        type: 'FOLDER',
+      }
+    );
+    expect(createResult.error).toBeUndefined();
+
+    const createContent = createResult.result as {
+      structuredContent?: { element?: { id?: string } };
+    };
+    const elementId = createContent.structuredContent?.element?.id;
+    expect(elementId).toBeTruthy();
+
+    // 2. Attempt to update content - should fail
+    const updateResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'update_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        content: '<paragraph>Should not work</paragraph>',
+      }
+    );
+
+    // Should return an error (isError in the result)
+    const resultContent = updateResult.result as {
+      content: Array<{ type: string; text: string }>;
+      isError?: boolean;
+    };
+    expect(resultContent.isError).toBe(true);
+    expect(resultContent.content[0].text).toContain('not a document');
+  });
+
+  test('should handle empty content', async ({ mcpContext, apiRequest }) => {
+    // 1. Create a document element
+    const createResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'create_element',
+      {
+        project: mcpContext.projectKey,
+        name: 'Empty Content Doc',
+        type: 'ITEM',
+      }
+    );
+    expect(createResult.error).toBeUndefined();
+
+    const createContent = createResult.result as {
+      structuredContent?: { element?: { id?: string } };
+    };
+    const elementId = createContent.structuredContent?.element?.id;
+    expect(elementId).toBeTruthy();
+
+    // 2. Set some initial content
+    await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'update_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        content: '<paragraph>Initial content</paragraph>',
+      }
+    );
+
+    // 3. Clear it with empty content
+    const clearResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'update_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        content: '',
+      }
+    );
+    expect(clearResult.error).toBeUndefined();
+
+    const clearContent = clearResult.result as {
+      structuredContent?: { success?: boolean; wordCount?: number };
+    };
+    expect(clearContent.structuredContent?.success).toBe(true);
+    expect(clearContent.structuredContent?.wordCount).toBe(0);
+  });
+
+  test('should replace existing content entirely', async ({
+    mcpContext,
+    apiRequest,
+  }) => {
+    // 1. Create a document element
+    const createResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'create_element',
+      {
+        project: mcpContext.projectKey,
+        name: 'Replace Content Doc',
+        type: 'ITEM',
+      }
+    );
+    expect(createResult.error).toBeUndefined();
+
+    const createContent = createResult.result as {
+      structuredContent?: { element?: { id?: string } };
+    };
+    const elementId = createContent.structuredContent?.element?.id;
+    expect(elementId).toBeTruthy();
+
+    // 2. Set initial content
+    await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'update_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        content:
+          '<paragraph>Original content that should be replaced.</paragraph>',
+      }
+    );
+
+    // 3. Replace with new content
+    const updateResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'update_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        content: '<paragraph>Completely new content.</paragraph>',
+      }
+    );
+    expect(updateResult.error).toBeUndefined();
+
+    // 4. Verify old content is gone and new content is present
+    const readResult = await mcpCallTool(
+      apiRequest,
+      mcpContext.mcpApiKey,
+      'get_document_content',
+      {
+        project: mcpContext.projectKey,
+        elementId,
+        format: 'text',
+      }
+    );
+    expect(readResult.error).toBeUndefined();
+
+    const readContent = readResult.result as {
+      content: Array<{ type: string; text: string }>;
+    };
+    const textOutput = readContent.content.map(c => c.text).join('\n');
+    expect(textOutput).not.toContain('Original content');
+    expect(textOutput).toContain('Completely new content');
+  });
+});

@@ -66,6 +66,7 @@ AI Client (Claude, etc.)
 | `reorder_element` | Change element position within siblings |
 | `sort_elements` | Sort children alphabetically |
 | `update_worldbuilding` | Update worldbuilding data for an element |
+| `update_document_content` | Replace prose content of a document element |
 | `create_relationship` | Create relationships between elements |
 | `delete_relationship` | Remove a relationship |
 | `tag_element` | Add, remove, or set tags on an element |

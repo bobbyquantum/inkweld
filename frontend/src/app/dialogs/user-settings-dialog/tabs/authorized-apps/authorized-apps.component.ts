@@ -1,4 +1,5 @@
 import { TitleCasePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -73,7 +74,9 @@ export class AuthorizedAppsComponent implements OnInit {
     this.isLoading.set(true);
     try {
       const sessions = await firstValueFrom(
-        this.oauthService.listOAuthSessions()
+        this.oauthService.listOAuthSessions('body', false, {
+          transferCache: false,
+        })
       );
       this.sessions.set(sessions);
     } catch {
@@ -96,7 +99,9 @@ export class AuthorizedAppsComponent implements OnInit {
     this.isLoadingDetails.set(true);
     try {
       const details = await firstValueFrom(
-        this.oauthService.getOAuthSessionDetails(sessionId)
+        this.oauthService.getOAuthSessionDetails(sessionId, 'body', false, {
+          transferCache: false,
+        })
       );
       this.expandedSession.set(details);
     } catch {
@@ -119,15 +124,28 @@ export class AuthorizedAppsComponent implements OnInit {
 
     this.revokingSessionId.set(session.id);
     try {
-      await firstValueFrom(this.oauthService.revokeOAuthSession(session.id));
-      this.sessions.update(s => s.filter(x => x.id !== session.id));
-      if (this.expandedSession()?.session.id === session.id) {
-        this.expandedSession.set(null);
-      }
+      await firstValueFrom(
+        this.oauthService.revokeOAuthSession(session.id, 'body', false, {
+          transferCache: false,
+        })
+      );
+      this.removeSessionFromState(session.id);
       this.snackBar.open(`Disconnected ${session.client.name}`, 'Close', {
         duration: 3000,
       });
-    } catch {
+    } catch (error) {
+      if (
+        error instanceof HttpErrorResponse &&
+        error.status >= 200 &&
+        error.status < 300
+      ) {
+        this.removeSessionFromState(session.id);
+        this.snackBar.open(`Disconnected ${session.client.name}`, 'Close', {
+          duration: 3000,
+        });
+        return;
+      }
+
       this.snackBar.open('Failed to disconnect app', 'Close', {
         duration: 3000,
       });
@@ -267,7 +285,9 @@ export class AuthorizedAppsComponent implements OnInit {
 
       // Reload session details to get updated grants
       const details = await firstValueFrom(
-        this.oauthService.getOAuthSessionDetails(sessionId)
+        this.oauthService.getOAuthSessionDetails(sessionId, 'body', false, {
+          transferCache: false,
+        })
       );
       this.expandedSession.set(details);
 
@@ -309,5 +329,12 @@ export class AuthorizedAppsComponent implements OnInit {
 
   grantKey(sessionId: string, projectId: string): string {
     return `${sessionId}:${projectId}`;
+  }
+
+  private removeSessionFromState(sessionId: string): void {
+    this.sessions.update(sessions => sessions.filter(s => s.id !== sessionId));
+    if (this.expandedSession()?.session.id === sessionId) {
+      this.expandedSession.set(null);
+    }
   }
 }
