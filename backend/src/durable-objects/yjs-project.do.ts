@@ -473,16 +473,35 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
   /**
    * POST /api/document - Apply updates to document
-   * Body: { updates: { path: string, value: any }[] } or { yUpdate: base64 }
+   * Body: { updates: { path: string, value: any }[] } or { yUpdate: base64 } or { prosemirrorXml: string }
    */
   private async handleUpdateDocument(request: Request, documentId: string): Promise<Response> {
     const sharedDoc = await this.getOrCreateDocument(documentId);
     const body = (await request.json()) as {
       updates?: Array<{ path: string; value: unknown }>;
       yUpdate?: string;
+      prosemirrorXml?: string;
     };
 
-    if (body.yUpdate) {
+    if (body.prosemirrorXml !== undefined) {
+      // Replace ProseMirror XmlFragment content with parsed XML
+      const xmlFragment = sharedDoc.getXmlFragment('prosemirror');
+      const Y = await import('yjs');
+
+      // Parse the XML string into Yjs nodes using a simple parser
+      const nodes = this.parseXmlToYjsNodes(Y, body.prosemirrorXml);
+
+      sharedDoc.transact(() => {
+        // Clear existing content
+        if (xmlFragment.length > 0) {
+          xmlFragment.delete(0, xmlFragment.length);
+        }
+        // Insert new content
+        if (nodes.length > 0) {
+          xmlFragment.insert(0, nodes);
+        }
+      });
+    } else if (body.yUpdate) {
       // Apply raw Yjs update (base64 encoded)
       const update = Uint8Array.from(atob(body.yUpdate), (c) => c.charCodeAt(0));
       sharedDoc.update(update);
@@ -541,6 +560,161 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         }
       }
     }
+  }
+
+  /**
+   * Parse a ProseMirror XML string into Yjs XmlElement/XmlText nodes.
+   * Handles the simple XML subset used by ProseMirror.
+   */
+
+  private parseXmlToYjsNodes(Y: any, xmlString: string): any[] {
+    if (!xmlString.trim()) return [];
+
+    const nodes: any[] = [];
+    let pos = 0;
+
+    while (pos < xmlString.length) {
+      const result = this.parseXmlNode(Y, xmlString, pos);
+      if (!result) break;
+      if (result.node) nodes.push(result.node);
+      if (result.pos <= pos) break;
+      pos = result.pos;
+    }
+
+    return nodes;
+  }
+
+  /**
+   * Parse a single XML node (element or text) from the string.
+   */
+
+  private parseXmlNode(Y: any, xml: string, pos: number): { node: any | null; pos: number } | null {
+    if (pos >= xml.length) return null;
+
+    if (xml[pos] === '<') {
+      if (xml.startsWith('<!--', pos)) {
+        const end = xml.indexOf('-->', pos + 4);
+        return end === -1 ? null : { node: null, pos: end + 3 };
+      }
+      if (xml[pos + 1] === '/') return null;
+      return this.parseXmlElement(Y, xml, pos);
+    }
+
+    // Text node
+    let end = xml.indexOf('<', pos);
+    if (end === -1) end = xml.length;
+    const text = this.decodeXmlEntities(xml.substring(pos, end));
+    const yText = new Y.XmlText();
+    yText.insert(0, text);
+    return { node: yText, pos: end };
+  }
+
+  /**
+   * Parse an XML element with attributes and children.
+   */
+
+  private parseXmlElement(Y: any, xml: string, pos: number): { node: any; pos: number } {
+    const tagMatch = xml.substring(pos).match(/^<([a-zA-Z_][a-zA-Z0-9_-]*)/);
+    if (!tagMatch) {
+      // Not a valid tag, treat as text
+      let end = xml.indexOf('<', pos + 1);
+      if (end === -1) end = xml.length;
+      const text = this.decodeXmlEntities(xml.substring(pos, end));
+      const yText = new Y.XmlText();
+      yText.insert(0, text);
+      return { node: yText, pos: end };
+    }
+
+    const tagName = tagMatch[1].toLowerCase();
+    let cursor = pos + tagMatch[0].length;
+
+    // Parse attributes
+    const attrs: Record<string, string> = {};
+    while (cursor < xml.length) {
+      while (cursor < xml.length && /\s/.test(xml[cursor])) cursor++;
+      if (xml[cursor] === '>' || (xml[cursor] === '/' && xml[cursor + 1] === '>')) break;
+
+      const attrMatch = xml
+        .substring(cursor)
+        .match(/^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/);
+      if (attrMatch) {
+        attrs[attrMatch[1]] = this.decodeXmlEntities(attrMatch[2] ?? attrMatch[3] ?? '');
+        cursor += attrMatch[0].length;
+      } else {
+        cursor++;
+      }
+    }
+
+    // Self-closing tag
+    if (xml[cursor] === '/' && xml[cursor + 1] === '>') {
+      const yElement = new Y.XmlElement(tagName);
+      for (const [key, value] of Object.entries(attrs)) {
+        yElement.setAttribute(key, this.parseXmlAttrValue(value));
+      }
+      return { node: yElement, pos: cursor + 2 };
+    }
+
+    if (xml[cursor] === '>') cursor++;
+
+    // Parse children
+
+    const children: any[] = [];
+    const closingTag = `</${tagName}>`;
+
+    while (cursor < xml.length) {
+      if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
+        cursor += closingTag.length;
+        break;
+      }
+      const childResult = this.parseXmlNode(Y, xml, cursor);
+      if (!childResult) {
+        const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
+        if (closeMatch) cursor += closeMatch[0].length;
+        break;
+      }
+      if (childResult.node) children.push(childResult.node);
+      if (childResult.pos <= cursor) break;
+      cursor = childResult.pos;
+    }
+
+    const yElement = new Y.XmlElement(tagName);
+    for (const [key, value] of Object.entries(attrs)) {
+      yElement.setAttribute(key, this.parseXmlAttrValue(value));
+    }
+    if (children.length > 0) yElement.insert(0, children);
+    return { node: yElement, pos: cursor };
+  }
+
+  /**
+   * Parse an XML attribute value to the appropriate type.
+   */
+  private parseXmlAttrValue(value: string): unknown {
+    if (value.startsWith('{') || value.startsWith('[')) {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    const num = Number(value);
+    if (!isNaN(num) && value !== '') return num;
+    return value;
+  }
+
+  /**
+   * Decode standard XML entities.
+   */
+  private decodeXmlEntities(text: string): string {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 10)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 16)));
   }
 
   /**
