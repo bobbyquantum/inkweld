@@ -189,7 +189,7 @@ export class ProjectExportService {
           title: project.title,
           description: project.description ?? undefined,
           slug: slug,
-          hasCover: mediaManifest.some(m => m.mediaId === 'cover'),
+          hasCover: mediaManifest.some(m => m.mediaId.startsWith('cover')),
         },
         elements: elements.map(e => this.elementToArchive(e)),
         documents,
@@ -289,8 +289,18 @@ export class ProjectExportService {
   ): Promise<void> {
     this.updateProgress(ExportPhase.DownloadingMedia, 10, 'Checking media...');
 
-    // Check if we have the cover image locally
-    const hasCover = await this.localStorage.hasMedia(projectKey, 'cover');
+    // Determine cover media ID from the project's coverImage field
+    const project = this.projectState.project();
+    const coverFilename = project?.coverImage;
+    const coverMediaId = coverFilename
+      ? coverFilename.replace(/\.[^.]+$/, '')
+      : undefined;
+
+    // Check if we have the cover image locally (try new ID, then legacy 'cover')
+    const hasCover = coverMediaId
+      ? await this.localStorage.hasMedia(projectKey, coverMediaId)
+      : await this.localStorage.hasMedia(projectKey, 'cover');
+
     if (!hasCover) {
       this.updateProgress(
         ExportPhase.DownloadingMedia,
@@ -303,11 +313,13 @@ export class ProjectExportService {
           this.imagesService.getProjectCover(username, slug)
         );
         if (coverBlob) {
+          const saveId = coverMediaId || 'cover';
+          const saveName = coverFilename || 'cover.jpg';
           await this.localStorage.saveMedia(
             projectKey,
-            'cover',
+            saveId,
             coverBlob,
-            'cover.jpg'
+            saveName
           );
           this.logger.debug(
             'ProjectExport',

@@ -32,7 +32,6 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { nanoid } from 'nanoid';
 import {
   ImageCroppedEvent,
   ImageCropperComponent,
@@ -175,8 +174,10 @@ export class EditProjectDialogComponent implements OnInit {
       );
       this.hasCoverImage = true;
 
-      // Save to local storage for offline access
-      const mediaId = `cover-${nanoid(8)}`;
+      // Save to local storage for offline access using the project's coverImage filename stem
+      const mediaId = this.project.coverImage
+        ? this.project.coverImage.replace(/\.[^.]+$/, '')
+        : `cover-${Date.now()}`;
       await this.localStorage.saveMedia(projectKey, mediaId, coverBlob);
       this.currentCoverMediaId = mediaId;
     } catch (error) {
@@ -426,31 +427,24 @@ export class EditProjectDialogComponent implements OnInit {
         throw new Error('Project slug is required');
       }
 
-      const projectKey = `${updatedProject.username}/${updatedProject.slug}`;
-
-      // Handle cover image - save to local storage first (offline-first)
+      // Handle cover image upload
       let newCoverMediaId = this.currentCoverMediaId;
       if (
         this.coverImage instanceof File &&
         updatedProject.username &&
         updatedProject.slug
       ) {
-        // Generate new mediaId and save locally
-        newCoverMediaId = `cover-${nanoid(8)}`;
-        await this.localStorage.saveMedia(
-          projectKey,
-          newCoverMediaId,
-          this.coverImage
-        );
-        this.currentCoverMediaId = newCoverMediaId;
-
-        // Try to upload to server (best effort - don't fail if server unreachable)
+        // Upload to server — returns the unique cover filename (e.g. 'cover-1707900000000.jpg')
+        // The upload method also saves to IndexedDB using the filename stem as mediaId
         try {
-          await this.projectService.uploadProjectCover(
+          const coverFilename = await this.projectService.uploadProjectCover(
             updatedProject.username,
             updatedProject.slug,
             this.coverImage
           );
+          // Use the filename stem (without extension) as the coverMediaId
+          newCoverMediaId = coverFilename.replace(/\.[^.]+$/, '');
+          this.currentCoverMediaId = newCoverMediaId;
         } catch (imageError) {
           // Log but don't fail - local storage is the source of truth
           console.warn(

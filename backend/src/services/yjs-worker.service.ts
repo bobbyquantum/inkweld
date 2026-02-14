@@ -243,6 +243,41 @@ export class YjsWorkerService {
   }
 
   /**
+   * Mutate the relationships Y.Array in a document via the DO HTTP API.
+   * @param action 'replace' clears and sets all relationships, 'add' appends items
+   */
+  async mutateRelationships(
+    docId: string,
+    action: 'replace' | 'add',
+    items: unknown[]
+  ): Promise<void> {
+    const parts = docId.replace(/\/+$/, '').split(':');
+    if (parts.length < 2) {
+      throw new Error(`Invalid docId format: ${docId}`);
+    }
+
+    const username = parts[0];
+    const slug = parts[1];
+    const stub = getDoStub(this.ctx.env, username, slug);
+
+    const response = await stub.fetch(
+      new Request(`https://yjs-do/api/document?documentId=${encodeURIComponent(docId)}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.ctx.authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ relationships: { action, items } }),
+      })
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to mutate relationships: ${response.status} ${errorText}`);
+    }
+  }
+
+  /**
    * Replace all elements in a project (via DO HTTP API)
    */
   async replaceAllElements(username: string, slug: string, elements: unknown[]): Promise<void> {

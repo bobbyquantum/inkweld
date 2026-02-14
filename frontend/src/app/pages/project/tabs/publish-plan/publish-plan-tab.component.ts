@@ -27,6 +27,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ElementType } from '@inkweld/index';
 import { firstValueFrom, Subscription } from 'rxjs';
 
+import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
 import {
   PublishCompleteDialogComponent,
   PublishCompleteDialogData,
@@ -67,13 +68,14 @@ import { WorldbuildingService } from '../../../../services/worldbuilding/worldbu
     MatInputModule,
     MatSelectModule,
     MatTooltipModule,
+    ProjectCoverComponent,
   ],
 })
 export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dialog = inject(MatDialog);
-  private projectState = inject(ProjectStateService);
+  protected projectState = inject(ProjectStateService);
   private publishService = inject(PublishService);
   private snackBar = inject(MatSnackBar);
   private worldbuildingService = inject(WorldbuildingService);

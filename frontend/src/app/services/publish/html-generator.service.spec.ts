@@ -35,9 +35,10 @@ describe('HtmlGeneratorService', () => {
   let projectStateMock: {
     project: ReturnType<typeof signal<Project | null>>;
     elements: ReturnType<typeof signal<Element[]>>;
+    coverMediaId: ReturnType<typeof signal<string | undefined>>;
   };
   let localStorageMock: {
-    getProjectCover: ReturnType<typeof vi.fn>;
+    getMedia: ReturnType<typeof vi.fn>;
   };
 
   const mockProject: Project = {
@@ -108,10 +109,11 @@ describe('HtmlGeneratorService', () => {
     projectStateMock = {
       project: signal(mockProject),
       elements: signal(mockElements),
+      coverMediaId: signal<string | undefined>(undefined),
     };
 
     localStorageMock = {
-      getProjectCover: vi.fn().mockResolvedValue(null),
+      getMedia: vi.fn().mockResolvedValue(null),
     };
 
     // Mock IndexedDB
@@ -551,7 +553,7 @@ describe('HtmlGeneratorService', () => {
 
     it('should include cover when enabled and available', async () => {
       const mockCoverBlob = new Blob(['fake image'], { type: 'image/png' });
-      localStorageMock.getProjectCover.mockResolvedValue(mockCoverBlob);
+      localStorageMock.getMedia.mockResolvedValue(mockCoverBlob);
 
       const planWithCover: PublishPlan = {
         ...mockPlan,
@@ -1024,13 +1026,11 @@ describe('HtmlGeneratorService', () => {
       const result = await service.generateHtml(planWithCover);
 
       expect(result.success).toBe(true);
-      expect(localStorageMock.getProjectCover).not.toHaveBeenCalled();
+      expect(localStorageMock.getMedia).not.toHaveBeenCalled();
     });
 
     it('should handle cover loading error gracefully', async () => {
-      localStorageMock.getProjectCover.mockRejectedValue(
-        new Error('Storage error')
-      );
+      localStorageMock.getMedia.mockRejectedValue(new Error('Storage error'));
 
       const planWithCover: PublishPlan = {
         ...mockPlan,

@@ -245,10 +245,15 @@
                   placeholder="Uses project cover by default" />
                 <mat-hint>Leave blank to use the project cover image</mat-hint>
               </mat-form-field>
-              @if (projectCoverImage(); as coverUrl) {
-                <div class="cover-preview">
-                  <img [src]="coverUrl" alt="Cover preview" />
-                </div>
+              @if (projectState.project(); as proj) {
+                @if (proj.coverImage) {
+                  <div class="cover-preview">
+                    <app-project-cover
+                      [project]="proj"
+                      [coverMediaId]="projectState.coverMediaId()"
+                      [variant]="'card'" />
+                  </div>
+                }
               }
             </div>
           }

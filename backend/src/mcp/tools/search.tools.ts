@@ -18,8 +18,10 @@ import { registerTool } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { YjsWorkerService } from '../../services/yjs-worker.service';
+import { getStorageService } from '../../services/storage.service';
 import { Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
+import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
 import { logger } from '../../services/logger.service';
 
 const mcpSearchLog = logger.child('MCP-Search');
@@ -667,26 +669,8 @@ registerTool({
     const relationshipType = args.relationshipType as string | undefined;
     const direction = (args.direction as string) || 'both';
 
-    // Get relationships
-    const docId = `${username}:${slug}:elements/`;
-    const service = getYjsService(ctx);
-    const sharedDoc = await service.getDocument(docId);
-    const relationshipsArray = sharedDoc.doc.getArray('relationships');
-    // Use correct property names matching frontend ElementRelationship interface
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawRelationships = (relationshipsArray as any).toJSON
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (relationshipsArray as any).toJSON()
-      : [];
-    const allRelationships = rawRelationships as Array<{
-      id: string;
-      sourceElementId: string;
-      targetElementId: string;
-      relationshipTypeId: string;
-      note?: string;
-      createdAt?: string;
-      updatedAt?: string;
-    }>;
+    // Get relationships using the runtime-aware helper (works on both Bun and Cloudflare)
+    const allRelationships = await runtimeGetRelationships(ctx, username, slug);
 
     // Filter relationships
     const matching = allRelationships.filter((r) => {
@@ -793,21 +777,36 @@ registerTool({
         worldbuildingData = data.worldbuilding;
         identityData = Object.keys(data.identity).length > 0 ? data.identity : null;
       }
+
+      // Probe for image file if identity.image is not set
+      if (!identityData?.image) {
+        try {
+          const storageBinding = ctx.env?.STORAGE as
+            | Parameters<typeof getStorageService>[0]
+            | undefined;
+          const storageService = getStorageService(storageBinding);
+          for (const ext of ['png', 'jpg']) {
+            const imageFilename = `element-${elementId}.${ext}`;
+            const exists = await storageService.projectFileExists(username, slug, imageFilename);
+            if (exists) {
+              if (!identityData) identityData = {};
+              identityData.image = `media://${imageFilename}`;
+              break;
+            }
+          }
+        } catch {
+          // Storage probe failed, skip — not critical
+        }
+      }
     }
 
-    // Get relationships for this element
-    const docId = `${username}:${slug}:elements/`;
-    const service = getYjsService(ctx);
+    // Get relationships for this element using the runtime-aware helper
     let relationships: Array<Record<string, unknown>> = [];
     try {
-      const sharedDoc = await service.getDocument(docId);
-      const relationshipsArray = sharedDoc.doc.getArray('relationships');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allRelationships = (relationshipsArray as any).toJSON?.() ?? [];
-      relationships = allRelationships.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (r: any) => r.sourceElementId === elementId || r.targetElementId === elementId
-      );
+      const allRelationships = await runtimeGetRelationships(ctx, username, slug);
+      relationships = allRelationships
+        .filter((r) => r.sourceElementId === elementId || r.targetElementId === elementId)
+        .map((r) => ({ ...r }));
     } catch {
       // Relationships not available, that's ok
     }
@@ -826,6 +825,16 @@ registerTool({
       }
     }
 
+    // Deserialize metadata.tags from JSON string to array for MCP response
+    const presentedMetadata = { ...element.metadata };
+    if (presentedMetadata.tags) {
+      try {
+        presentedMetadata.tags = JSON.parse(presentedMetadata.tags);
+      } catch {
+        // Leave as-is if not valid JSON
+      }
+    }
+
     return {
       content: [
         {
@@ -839,7 +848,7 @@ registerTool({
                 schemaId: element.schemaId,
                 level: element.level,
                 path: path.length > 0 ? path.join(' > ') : null,
-                metadata: element.metadata,
+                metadata: presentedMetadata,
               },
               worldbuilding: worldbuildingData,
               identity: identityData,
@@ -1101,9 +1110,7 @@ registerTool({
     const elements = await getElements(ctx, username, slug);
     const elementMap = new Map(elements.map((e) => [e.id, e]));
 
-    // Get all relationships
-    const docId = `${username}:${slug}:elements/`;
-    const service = getYjsService(ctx);
+    // Get all relationships using the runtime-aware helper
     let allRelationships: Array<{
       id: string;
       sourceElementId: string;
@@ -1113,10 +1120,7 @@ registerTool({
     }> = [];
 
     try {
-      const sharedDoc = await service.getDocument(docId);
-      const relationshipsArray = sharedDoc.doc.getArray('relationships');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      allRelationships = (relationshipsArray as any).toJSON?.() ?? [];
+      allRelationships = await runtimeGetRelationships(ctx, username, slug);
     } catch {
       // No relationships
     }
@@ -1125,10 +1129,17 @@ registerTool({
     let relationshipTypes: Array<{ id: string; name: string; description?: string }> = [];
     try {
       const schemaDocId = `${username}:${slug}:schema-library/`;
+      const service = getYjsService(ctx);
       const schemaDoc = await service.getDocument(schemaDocId);
       const typesArray = schemaDoc.doc.getArray('relationshipTypes');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      relationshipTypes = (typesArray as any).toJSON?.() ?? [];
+      const rawTypes: unknown[] = [];
+      typesArray.forEach((value) => {
+        if (value && typeof value === 'object') {
+          rawTypes.push(value);
+        }
+      });
+      relationshipTypes = rawTypes as typeof relationshipTypes;
     } catch {
       // No relationship types defined
     }
