@@ -719,33 +719,40 @@ export class ProjectService {
     }
   }
 
+  /**
+   * Upload a cover image. Returns the server-assigned cover filename
+   * (e.g. 'cover-1707900000000.jpg') which should be used as the coverMediaId.
+   * In offline mode, generates a local filename and returns it.
+   */
   async uploadProjectCover(
     username: string,
     slug: string,
     coverImage: Blob
-  ): Promise<void> {
+  ): Promise<string> {
     this.isLoading.set(true);
     this.error.set(undefined);
 
     try {
-      // In offline mode, save to IndexedDB and mark for sync
+      const projectKey = `${username}/${slug}`;
+
+      // In offline mode, generate a local filename and save to IndexedDB
       if (this.setupService.getMode() === 'local') {
-        await this.localStorage.saveProjectCover(username, slug, coverImage);
-        await this.projectSync.markPendingUpload(
-          `${username}/${slug}`,
-          'cover'
-        );
-        return;
+        const localFilename = `cover-${Date.now()}.jpg`;
+        const mediaId = localFilename.replace(/\.[^.]+$/, '');
+        await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
+        await this.projectSync.markPendingUpload(projectKey, 'cover');
+        return localFilename;
       }
 
       const formData = new FormData();
       formData.append('cover', coverImage);
 
       const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${username}/${slug}/cover`;
+      let coverFilename: string;
       try {
-        await firstValueFrom(
+        const response = await firstValueFrom(
           this.http
-            .post(url, formData, {
+            .post<{ message: string; coverImage: string }>(url, formData, {
               withCredentials: true,
             })
             .pipe(
@@ -753,27 +760,29 @@ export class ProjectService {
               catchError(err => throwError(() => this.formatError(err)))
             )
         );
+        coverFilename = response.coverImage;
       } catch (e) {
         const formatted = this.formatError(e);
         // For recoverable network/server errors, save locally and queue sync
         if (formatted.canUseCache) {
-          await this.localStorage.saveProjectCover(username, slug, coverImage);
-          await this.projectSync.markPendingUpload(
-            `${username}/${slug}`,
-            'cover'
-          );
-          // Do not rethrow to allow UX to proceed with local cache
-          return;
+          const localFilename = `cover-${Date.now()}.jpg`;
+          const mediaId = localFilename.replace(/\.[^.]+$/, '');
+          await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
+          await this.projectSync.markPendingUpload(projectKey, 'cover');
+          return localFilename;
         }
         // Non-recoverable errors should propagate
         throw formatted;
       }
 
-      // Cache the cover image to IndexedDB for offline access
-      await this.localStorage.saveProjectCover(username, slug, coverImage);
+      // Cache the cover image to IndexedDB using the server filename as mediaId
+      const mediaId = coverFilename.replace(/\.[^.]+$/, '');
+      await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
 
       // Refresh projects to get updated data
       await this.loadAllProjects();
+
+      return coverFilename;
     } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError

@@ -82,7 +82,7 @@ describe('ProjectService', () => {
     setup.getMode.mockReturnValue('server');
 
     // Offline storage baseline
-    localStorage.saveProjectCover.mockResolvedValue(undefined);
+    localStorage.saveMedia.mockResolvedValue(undefined);
 
     // Project sync baseline
     projectSync.markPendingUpload.mockResolvedValue(undefined);
@@ -917,24 +917,31 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks
       setup.getMode.mockReset();
-      localStorage.saveProjectCover.mockReset();
+      localStorage.saveMedia.mockReset();
       projectSync.markPendingUpload.mockReset();
     });
 
     it('saves cover to IndexedDB when in offline mode', async () => {
       // Configure offline mode
       setup.getMode.mockReturnValue('local');
-      localStorage.saveProjectCover.mockResolvedValue(undefined);
+      localStorage.saveMedia.mockResolvedValue(undefined);
       projectSync.markPendingUpload.mockResolvedValue(undefined);
 
       const coverBlob = new Blob(['test cover'], { type: 'image/png' });
 
-      await service.uploadProjectCover('alice', 'project-1', coverBlob);
-
-      // Should save to offline storage
-      expect(localStorage.saveProjectCover).toHaveBeenCalledWith(
+      const result = await service.uploadProjectCover(
         'alice',
         'project-1',
+        coverBlob
+      );
+
+      // Should return a cover filename
+      expect(result).toMatch(/^cover-\d+\.jpg$/);
+
+      // Should save to offline storage using filename stem as mediaId
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        expect.stringMatching(/^cover-\d+$/),
         coverBlob
       );
 
@@ -951,7 +958,7 @@ describe('ProjectService', () => {
     it('does not call API in offline mode', async () => {
       // Configure offline mode
       setup.getMode.mockReturnValue('local');
-      localStorage.saveProjectCover.mockResolvedValue(undefined);
+      localStorage.saveMedia.mockResolvedValue(undefined);
       projectSync.markPendingUpload.mockResolvedValue(undefined);
 
       const coverBlob = new Blob(['test cover'], { type: 'image/png' });
@@ -962,10 +969,10 @@ describe('ProjectService', () => {
       expect(api.listUserProjects).not.toHaveBeenCalled();
     });
 
-    it('does not save to offline storage in server mode', async () => {
+    it('saves to IndexedDB after successful server upload', async () => {
       // Configure server mode (default)
       setup.getMode.mockReturnValue('server');
-      localStorage.saveProjectCover.mockResolvedValue(undefined);
+      localStorage.saveMedia.mockResolvedValue(undefined);
 
       const coverBlob = new Blob(['test cover'], { type: 'image/png' });
 
@@ -976,19 +983,31 @@ describe('ProjectService', () => {
         coverBlob
       );
 
-      // Mock the HTTP response - find the pending request and respond
+      // Mock the HTTP response with coverImage filename
       const req = httpMock.expectOne(
         req =>
           req.url.includes('/api/v1/projects/alice/project-1/cover') &&
           req.method === 'POST'
       );
-      req.flush({ message: 'Cover uploaded' });
+      req.flush({
+        message: 'Cover uploaded',
+        coverImage: 'cover-1234567890.jpg',
+      });
 
       // Now await the upload to complete
-      await uploadPromise;
+      const result = await uploadPromise;
 
-      // In server mode, saveProjectCover IS called (for caching)
-      // but markPendingUpload should NOT be called (that's offline-only)
+      // Should return the server-assigned filename
+      expect(result).toBe('cover-1234567890.jpg');
+
+      // Should save to IndexedDB with filename stem as mediaId
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-1234567890',
+        coverBlob
+      );
+
+      // markPendingUpload should NOT be called (that's offline-only)
       expect(projectSync.markPendingUpload).not.toHaveBeenCalled();
     });
   });

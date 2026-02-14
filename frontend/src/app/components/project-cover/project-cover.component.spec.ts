@@ -23,6 +23,8 @@ describe('ProjectCoverComponent', () => {
   let mockOfflineStorage: {
     getProjectCoverUrl: ReturnType<typeof vi.fn>;
     saveProjectCover: ReturnType<typeof vi.fn>;
+    getMediaUrl: ReturnType<typeof vi.fn>;
+    saveMedia: ReturnType<typeof vi.fn>;
   };
 
   const mockProject: Project = {
@@ -66,6 +68,8 @@ describe('ProjectCoverComponent', () => {
     mockOfflineStorage = {
       getProjectCoverUrl: vi.fn().mockResolvedValue(null),
       saveProjectCover: vi.fn().mockResolvedValue(undefined),
+      getMediaUrl: vi.fn().mockResolvedValue(null),
+      saveMedia: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -142,6 +146,23 @@ describe('ProjectCoverComponent', () => {
     const mockBlobUrl = 'blob:http://localhost/abc123';
 
     it('should load cover from IndexedDB cache if available', async () => {
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl);
+
+      setProjectAndTriggerChanges(mockProject);
+      await fixture.whenStable();
+
+      // Should try getMediaUrl with the coverImage filename stem
+      expect(mockOfflineStorage.getMediaUrl).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'cover'
+      );
+      expect(component.coverUrl).toBe(mockBlobUrl);
+      expect(component.hasCover).toBe(true);
+    });
+
+    it('should fall back to legacy getProjectCoverUrl', async () => {
+      // getMediaUrl returns null, but legacy getProjectCoverUrl has it
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(null);
       mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
 
       setProjectAndTriggerChanges(mockProject);
@@ -156,7 +177,7 @@ describe('ProjectCoverComponent', () => {
     });
 
     it('should not fetch from server if cache hit', async () => {
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl);
 
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
@@ -176,9 +197,11 @@ describe('ProjectCoverComponent', () => {
 
     it('should fetch from server and cache when not in IndexedDB', async () => {
       // First call returns null (cache miss), second call returns URL (after save)
-      mockOfflineStorage.getProjectCoverUrl
+      // getMediaUrl: first call cache miss, second call after save returns URL
+      mockOfflineStorage.getMediaUrl
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(mockBlobUrl);
+      mockOfflineStorage.getProjectCoverUrl.mockResolvedValueOnce(null);
 
       setProjectAndTriggerChanges(mockProject);
 
@@ -198,15 +221,15 @@ describe('ProjectCoverComponent', () => {
       // Wait for promises to settle after flush
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      // Should have saved to IndexedDB
-      expect(mockOfflineStorage.saveProjectCover).toHaveBeenCalledWith(
-        'testuser',
-        'test-project',
+      // Should have saved to IndexedDB with the coverImage filename stem as mediaId
+      expect(mockOfflineStorage.saveMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'cover',
         mockBlob
       );
 
-      // Should have queried for URL again after save
-      expect(mockOfflineStorage.getProjectCoverUrl).toHaveBeenCalledTimes(2);
+      // Should have queried getMediaUrl after save
+      expect(mockOfflineStorage.getMediaUrl).toHaveBeenCalled();
     });
 
     it('should handle server 404 gracefully', async () => {

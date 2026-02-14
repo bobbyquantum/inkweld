@@ -259,7 +259,7 @@ export function moveElement(
   elements: Element[],
   elementId: string,
   newParentId: string | null,
-  afterSiblingId?: string
+  afterSiblingId?: string | null
 ): Element[] {
   const elementIndex = elements.findIndex((e) => e.id === elementId);
   if (elementIndex === -1) {
@@ -319,6 +319,9 @@ export function moveElement(
       } else {
         insertIndex = withoutSubtree.length;
       }
+    } else if (afterSiblingId === null) {
+      // Explicitly null: insert at start (position 0 among roots)
+      insertIndex = 0;
     } else {
       insertIndex = withoutSubtree.length;
     }
@@ -335,6 +338,9 @@ export function moveElement(
       } else {
         insertIndex = getSubtreeEndIndex(withoutSubtree, parentIndex);
       }
+    } else if (afterSiblingId === null) {
+      // Explicitly null: insert as first child of parent
+      insertIndex = parentIndex + 1;
     } else {
       insertIndex = getSubtreeEndIndex(withoutSubtree, parentIndex);
     }

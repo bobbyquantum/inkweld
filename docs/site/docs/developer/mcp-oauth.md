@@ -54,6 +54,9 @@ AI Client (Claude, etc.)
 | `get_relationships_graph` | Get all relationships as a graph structure |
 | `get_project_metadata` | Get project metadata and settings |
 | `get_publish_plans` | Get saved publish/export configurations |
+| `list_project_media` | List project media files and media:// URLs |
+| `list_image_profiles` | List enabled image profiles and profile IDs for generation |
+| `get_media_content` | Read media:// content as image, text, or base64 |
 
 #### Write Operations
 
@@ -72,15 +75,15 @@ AI Client (Claude, etc.)
 | `tag_element` | Add, remove, or set tags on an element |
 | `create_snapshot` | Create a snapshot of a document's current state |
 
+When creating a worldbuilding entry via `create_element`, pass `schemaId` along with `type: "WORLDBUILDING"` so the element is template-bound (for example, `character-v1` or `location-v1`). If `schemaId` is omitted, the element is treated as generic worldbuilding.
+
 #### Image Operations
 
 | Tool | Description |
 |---|---|
-| `generate_image` | Generate an image using AI |
-| `set_element_image` | Set an element's cover image |
-| `generate_and_set_element_image` | Generate and set an element image |
-| `set_project_cover` | Set the project cover image |
-| `generate_project_cover` | Generate and set a project cover |
+| `apply_image` | Unified image tool: generate (AI), upload (base64), or reference existing media — and optionally assign to project cover or element image |
+
+Call `list_image_profiles` first and pass `profileId` when using `source: "generate"`.
 
 ### Available Resources
 
