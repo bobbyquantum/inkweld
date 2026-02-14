@@ -851,8 +851,8 @@ export class ProjectImportService {
         media.filename
       );
 
-      // In server mode, upload cover image
-      if (!isOffline && media.mediaId === 'cover') {
+      // In server mode, upload cover image (matches both legacy 'cover' and new 'cover-*' IDs)
+      if (!isOffline && media.mediaId.startsWith('cover')) {
         try {
           await this.uploadCoverImage(username, slug, blob);
         } catch (err) {
@@ -869,6 +869,7 @@ export class ProjectImportService {
 
   /**
    * Upload cover image to server using FormData.
+   * The server assigns a unique filename (cover-{timestamp}.jpg).
    */
   private async uploadCoverImage(
     username: string,

@@ -465,7 +465,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   private categorizeMedia(
     mediaId: string
   ): 'cover' | 'generated' | 'inline' | 'published' | 'other' {
-    if (mediaId === 'cover') return 'cover';
+    if (mediaId === 'cover' || mediaId.startsWith('cover-')) return 'cover';
     if (mediaId.startsWith('generated-')) return 'generated';
     if (mediaId.startsWith('img-')) return 'inline';
     if (mediaId.startsWith('published-')) return 'published';

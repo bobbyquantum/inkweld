@@ -448,10 +448,7 @@ export class EpubGeneratorService {
     }
 
     try {
-      const coverBlob = await this.localStorage.getProjectCover(
-        project.username,
-        project.slug
-      );
+      const coverBlob = await this.loadCoverBlob(project);
 
       if (coverBlob) {
         this.coverImageData = {
@@ -468,6 +465,35 @@ export class EpubGeneratorService {
     } catch (error) {
       this.logger.warn('EpubGenerator', 'Failed to load cover image', error);
     }
+  }
+
+  /**
+   * Try multiple media IDs to find the cover blob:
+   * 1. coverMediaId from Yjs (new system)
+   * 2. project.coverImage filename stem (DB value)
+   * 3. Legacy 'cover' key (backward compat)
+   */
+  private async loadCoverBlob(project: {
+    username: string;
+    slug: string;
+    coverImage?: string | null;
+  }): Promise<Blob | null> {
+    const projectKey = `${project.username}/${project.slug}`;
+    const idsToTry: string[] = [];
+
+    const coverMediaId = this.projectStateService.coverMediaId();
+    if (coverMediaId) idsToTry.push(coverMediaId);
+
+    const stem = project.coverImage?.replace(/\.[^.]+$/, '');
+    if (stem && !idsToTry.includes(stem)) idsToTry.push(stem);
+
+    if (!idsToTry.includes('cover')) idsToTry.push('cover');
+
+    for (const id of idsToTry) {
+      const blob = await this.localStorage.getMedia(projectKey, id);
+      if (blob) return blob;
+    }
+    return null;
   }
 
   /**

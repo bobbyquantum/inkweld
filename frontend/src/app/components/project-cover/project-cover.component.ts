@@ -65,13 +65,10 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
     // Watch for media sync completions and reload cover if needed
     effect(() => {
       const syncVersion = this.mediaSyncService.mediaSyncVersion();
-      if (
-        syncVersion > this.lastSyncVersion &&
-        this.project &&
-        !this.hasCover
-      ) {
+      if (syncVersion > this.lastSyncVersion && this.project) {
         this.lastSyncVersion = syncVersion;
-        // Reload cover - new media may have been downloaded
+        // Force reload cover — server media may have changed (e.g. MCP updated cover)
+        this.coverBlobUrl.set(null);
         void this.loadCover(this.project);
       } else {
         this.lastSyncVersion = syncVersion;
@@ -139,15 +136,20 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
     try {
       let url: string | null = null;
 
-      // If coverMediaId is provided, use the new offline-first approach
-      if (this.coverMediaId) {
-        url = await this.localStorage.getMediaUrl(
-          projectKey,
-          this.coverMediaId
-        );
+      // Determine the effective media ID: prefer coverMediaId (from Yjs),
+      // then derive from project.coverImage filename, fall back to legacy 'cover'
+      const effectiveMediaId =
+        this.coverMediaId ||
+        (project.coverImage
+          ? project.coverImage.replace(/\.[^.]+$/, '')
+          : undefined);
+
+      // Try loading from IndexedDB using the effective media ID
+      if (effectiveMediaId) {
+        url = await this.localStorage.getMediaUrl(projectKey, effectiveMediaId);
       }
 
-      // Fall back to legacy approach (fixed 'cover' key)
+      // Fall back to legacy approach (fixed 'cover' key) for backward compatibility
       if (!url) {
         url = await this.localStorage.getProjectCoverUrl(
           project.username,
@@ -160,27 +162,11 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
       if (!url && !this.isOffline() && project.coverImage) {
         const blob = await this.fetchCoverFromServer(project);
         if (blob) {
-          // Save to IndexedDB for future use (using coverMediaId if available, else legacy)
-          if (this.coverMediaId) {
-            await this.localStorage.saveMedia(
-              projectKey,
-              this.coverMediaId,
-              blob
-            );
-          } else {
-            await this.localStorage.saveProjectCover(
-              project.username,
-              project.slug,
-              blob
-            );
-          }
-          // Get the blob URL
-          url = this.coverMediaId
-            ? await this.localStorage.getMediaUrl(projectKey, this.coverMediaId)
-            : await this.localStorage.getProjectCoverUrl(
-                project.username,
-                project.slug
-              );
+          // Save to IndexedDB using the effective media ID (or derive from coverImage)
+          const saveMediaId =
+            effectiveMediaId || project.coverImage.replace(/\.[^.]+$/, '');
+          await this.localStorage.saveMedia(projectKey, saveMediaId, blob);
+          url = await this.localStorage.getMediaUrl(projectKey, saveMediaId);
         }
       }
 

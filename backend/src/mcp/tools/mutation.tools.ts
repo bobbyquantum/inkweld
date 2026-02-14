@@ -159,6 +159,11 @@ Use move_elements or reorder_element to reposition after creation.`,
           enum: ELEMENT_TYPES,
           description: 'Type of element: FOLDER, ITEM (document), WORLDBUILDING',
         },
+        schemaId: {
+          type: 'string',
+          description:
+            'Optional template schema ID for WORLDBUILDING elements (e.g., "character-v1", "location-v1"). Use inkweld://project/{username}/{slug}/schemas to discover available IDs.',
+        },
         parentId: {
           type: 'string',
           description: 'Optional parent element ID. If omitted, creates at root level.',
@@ -179,6 +184,7 @@ Use move_elements or reorder_element to reposition after creation.`,
 
     const name = String(args.name ?? '').trim();
     const type = String(args.type ?? 'ITEM') as ElementType;
+    const schemaId = args.schemaId !== undefined ? String(args.schemaId).trim() : undefined;
     const parentId = args.parentId ? String(args.parentId) : null;
 
     // Validate
@@ -196,6 +202,18 @@ Use move_elements or reorder_element to reposition after creation.`,
       };
     }
 
+    if (schemaId && type !== 'WORLDBUILDING') {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: schemaId is only valid for type "WORLDBUILDING"',
+          },
+        ],
+        isError: true,
+      };
+    }
+
     try {
       const currentElements = await runtimeGetElements(ctx, username, slug);
 
@@ -204,6 +222,7 @@ Use move_elements or reorder_element to reposition after creation.`,
         id: nanoid(),
         name,
         type,
+        schemaId: type === 'WORLDBUILDING' ? schemaId : undefined,
         parentId,
         level: 0, // Will be calculated
         expandable: type === 'FOLDER',
@@ -225,6 +244,25 @@ Use move_elements or reorder_element to reposition after creation.`,
 
       // Replace entire array (maintains positional integrity)
       await runtimeReplaceAllElements(ctx, username, slug, updatedElements);
+
+      // Initialize worldbuilding doc with template binding when schemaId is provided
+      if (type === 'WORLDBUILDING' && schemaId) {
+        const now = new Date().toISOString();
+        await updateWorldbuilding(
+          ctx,
+          username,
+          slug,
+          newElement.id,
+          {
+            schemaId,
+            id: newElement.id,
+            name,
+            createdDate: now,
+            lastModified: now,
+          },
+          'worldbuilding'
+        );
+      }
 
       // Find the inserted element to return it
       const insertedElement = updatedElements.find((e) => e.id === newElement.id);
@@ -787,7 +825,7 @@ to a new position among its siblings.`,
       }
 
       // Determine the sibling to insert after
-      let insertAfterSiblingId: string | undefined;
+      let insertAfterSiblingId: string | null | undefined;
 
       if (afterElementId) {
         // Validate that afterElementId is a sibling
@@ -806,8 +844,8 @@ to a new position among its siblings.`,
         insertAfterSiblingId = afterElementId;
       } else if (position !== undefined) {
         if (position === 0) {
-          // Move to first position - no afterSiblingId (insert at start of parent's children)
-          insertAfterSiblingId = undefined;
+          // Move to first position - null signals "insert at start" to moveElement
+          insertAfterSiblingId = null;
         } else if (position === -1 || position >= siblings.length - 1) {
           // Move to last position
           const lastSibling = siblings[siblings.length - 1];

@@ -459,6 +459,18 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       // XmlFragment doesn't exist yet, that's fine
     }
 
+    // Get relationships array if present
+    const relationshipsArray = sharedDoc.getArray('relationships');
+    if (relationshipsArray.length > 0) {
+      const relationships: Record<string, unknown>[] = [];
+      relationshipsArray.forEach((value) => {
+        if (value && typeof value === 'object') {
+          relationships.push(this.yValueToJson(value));
+        }
+      });
+      data.relationships = relationships;
+    }
+
     // Also get worldbuilding map directly for completeness
     const worldbuildingMap = sharedDoc.getMap('worldbuilding');
     if (worldbuildingMap.size > 0) {
@@ -474,6 +486,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   /**
    * POST /api/document - Apply updates to document
    * Body: { updates: { path: string, value: any }[] } or { yUpdate: base64 } or { prosemirrorXml: string }
+   *        or { relationships: { action: 'replace' | 'add', items: any[] } }
    */
   private async handleUpdateDocument(request: Request, documentId: string): Promise<Response> {
     const sharedDoc = await this.getOrCreateDocument(documentId);
@@ -481,6 +494,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       updates?: Array<{ path: string; value: unknown }>;
       yUpdate?: string;
       prosemirrorXml?: string;
+      relationships?: { action: 'replace' | 'add'; items: unknown[] };
     };
 
     if (body.prosemirrorXml !== undefined) {
@@ -505,6 +519,31 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       // Apply raw Yjs update (base64 encoded)
       const update = Uint8Array.from(atob(body.yUpdate), (c) => c.charCodeAt(0));
       sharedDoc.update(update);
+    } else if (body.relationships) {
+      // Apply relationship array mutations
+      const { action, items } = body.relationships;
+      const relationshipsArray = sharedDoc.getArray('relationships');
+      if (action === 'replace') {
+        sharedDoc.transact(() => {
+          if (relationshipsArray.length > 0) {
+            relationshipsArray.delete(0, relationshipsArray.length);
+          }
+          if (items.length > 0) {
+            relationshipsArray.insert(0, items);
+          }
+        });
+      } else if (action === 'add') {
+        sharedDoc.transact(() => {
+          relationshipsArray.push(items);
+        });
+      } else {
+        return new Response(
+          JSON.stringify({
+            error: `Invalid relationships action: ${String(action)}`,
+          }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     } else if (body.updates && body.updates.length > 0) {
       // Apply structured updates
       const updates = body.updates;
@@ -564,8 +603,36 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
   /**
    * Parse a ProseMirror XML string into Yjs XmlElement/XmlText nodes.
-   * Handles the simple XML subset used by ProseMirror.
+   * Handles the simple XML subset used by ProseMirror, including:
+   * - Block elements (paragraph, heading, lists, etc.)
+   * - Self-closing tags (hard_break, image, etc.)
+   * - Inline marks (bold/strong, italic/em, etc.) as formatted Y.XmlText
+   * - Node tag aliases (numbered_list → ordered_list)
    */
+
+  /** Mark tags that become formatting attributes on Y.XmlText, not Y.XmlElement */
+  private static readonly MARK_TAGS: Record<string, string> = {
+    strong: 'strong',
+    bold: 'strong',
+    b: 'strong',
+    em: 'em',
+    italic: 'em',
+    i: 'em',
+    u: 'u',
+    underline: 'u',
+    s: 's',
+    strike: 's',
+    strikethrough: 's',
+    del: 's',
+    code: 'code',
+  };
+
+  /** Alternative tag names mapped to their correct ProseMirror node names */
+  private static readonly NODE_TAG_ALIASES: Record<string, string> = {
+    numbered_list: 'ordered_list',
+    ol: 'ordered_list',
+    ul: 'bullet_list',
+  };
 
   private parseXmlToYjsNodes(Y: any, xmlString: string): any[] {
     if (!xmlString.trim()) return [];
@@ -574,9 +641,20 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     let pos = 0;
 
     while (pos < xmlString.length) {
+      // Skip whitespace between top-level block elements (newlines, indentation)
+      // y-prosemirror crashes (toArray not a function) if XmlText nodes appear at fragment level
+      if (/\s/.test(xmlString[pos]) && xmlString[pos] !== '<') {
+        const wsEnd = xmlString.indexOf('<', pos);
+        const ws = xmlString.substring(pos, wsEnd === -1 ? xmlString.length : wsEnd);
+        if (!ws.trim()) {
+          pos = wsEnd === -1 ? xmlString.length : wsEnd;
+          continue;
+        }
+      }
+
       const result = this.parseXmlNode(Y, xmlString, pos);
       if (!result) break;
-      if (result.node) nodes.push(result.node);
+      for (const node of result.nodes) nodes.push(node);
       if (result.pos <= pos) break;
       pos = result.pos;
     }
@@ -586,34 +664,55 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
   /**
    * Parse a single XML node (element or text) from the string.
+   * @param marks - Accumulated inline marks from parent mark tags
    */
 
-  private parseXmlNode(Y: any, xml: string, pos: number): { node: any | null; pos: number } | null {
+  private parseXmlNode(
+    Y: any,
+    xml: string,
+    pos: number,
+    marks: Record<string, unknown> = {}
+  ): { nodes: any[]; pos: number } | null {
     if (pos >= xml.length) return null;
 
     if (xml[pos] === '<') {
       if (xml.startsWith('<!--', pos)) {
         const end = xml.indexOf('-->', pos + 4);
-        return end === -1 ? null : { node: null, pos: end + 3 };
+        return end === -1 ? null : { nodes: [], pos: end + 3 };
       }
       if (xml[pos + 1] === '/') return null;
-      return this.parseXmlElement(Y, xml, pos);
+      return this.parseXmlElement(Y, xml, pos, marks);
     }
 
     // Text node
     let end = xml.indexOf('<', pos);
     if (end === -1) end = xml.length;
     const text = this.decodeXmlEntities(xml.substring(pos, end));
+
+    // Skip whitespace-only text containing newlines (insignificant whitespace between block elements)
+    if (!text.trim() && /\n/.test(text)) {
+      return { nodes: [], pos: end };
+    }
+
     const yText = new Y.XmlText();
-    yText.insert(0, text);
-    return { node: yText, pos: end };
+    const hasMarks = Object.keys(marks).length > 0;
+    yText.insert(0, text, hasMarks ? { ...marks } : undefined);
+    return { nodes: [yText], pos: end };
   }
 
   /**
    * Parse an XML element with attributes and children.
+   * Handles inline mark tags (bold, italic, etc.) by converting them
+   * to formatted Y.XmlText nodes instead of Y.XmlElement.
+   * @param marks - Accumulated inline marks from parent mark tags
    */
 
-  private parseXmlElement(Y: any, xml: string, pos: number): { node: any; pos: number } {
+  private parseXmlElement(
+    Y: any,
+    xml: string,
+    pos: number,
+    marks: Record<string, unknown> = {}
+  ): { nodes: any[]; pos: number } {
     const tagMatch = xml.substring(pos).match(/^<([a-zA-Z_][a-zA-Z0-9_-]*)/);
     if (!tagMatch) {
       // Not a valid tag, treat as text
@@ -621,11 +720,12 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       if (end === -1) end = xml.length;
       const text = this.decodeXmlEntities(xml.substring(pos, end));
       const yText = new Y.XmlText();
-      yText.insert(0, text);
-      return { node: yText, pos: end };
+      const hasMarks = Object.keys(marks).length > 0;
+      yText.insert(0, text, hasMarks ? { ...marks } : undefined);
+      return { nodes: [yText], pos: end };
     }
 
-    const tagName = tagMatch[1].toLowerCase();
+    const rawTagName = tagMatch[1].toLowerCase();
     let cursor = pos + tagMatch[0].length;
 
     // Parse attributes
@@ -645,21 +745,59 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       }
     }
 
+    // Check if this is an inline mark tag
+    const markName = YjsProject.MARK_TAGS[rawTagName];
+    if (markName) {
+      const markValue =
+        rawTagName === 'a' || markName === 'link'
+          ? { href: attrs.href || '', ...(attrs.title ? { title: attrs.title } : {}) }
+          : {};
+      const newMarks = { ...marks, [markName]: markValue };
+
+      // Self-closing mark (unusual)
+      if (xml[cursor] === '/' && xml[cursor + 1] === '>') {
+        return { nodes: [], pos: cursor + 2 };
+      }
+      if (xml[cursor] === '>') cursor++;
+
+      // Parse children with accumulated marks
+      const children: any[] = [];
+      const closingTag = `</${rawTagName}>`;
+      while (cursor < xml.length) {
+        if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
+          cursor += closingTag.length;
+          break;
+        }
+        const childResult = this.parseXmlNode(Y, xml, cursor, newMarks);
+        if (!childResult) {
+          const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
+          if (closeMatch) cursor += closeMatch[0].length;
+          break;
+        }
+        for (const node of childResult.nodes) children.push(node);
+        if (childResult.pos <= cursor) break;
+        cursor = childResult.pos;
+      }
+      return { nodes: children, pos: cursor };
+    }
+
+    // Regular element — apply node tag aliases
+    const tagName = YjsProject.NODE_TAG_ALIASES[rawTagName] ?? rawTagName;
+
     // Self-closing tag
     if (xml[cursor] === '/' && xml[cursor + 1] === '>') {
       const yElement = new Y.XmlElement(tagName);
       for (const [key, value] of Object.entries(attrs)) {
         yElement.setAttribute(key, this.parseXmlAttrValue(value));
       }
-      return { node: yElement, pos: cursor + 2 };
+      return { nodes: [yElement], pos: cursor + 2 };
     }
 
     if (xml[cursor] === '>') cursor++;
 
     // Parse children
-
     const children: any[] = [];
-    const closingTag = `</${tagName}>`;
+    const closingTag = `</${rawTagName}>`;
 
     while (cursor < xml.length) {
       if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
@@ -672,7 +810,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         if (closeMatch) cursor += closeMatch[0].length;
         break;
       }
-      if (childResult.node) children.push(childResult.node);
+      for (const node of childResult.nodes) children.push(node);
       if (childResult.pos <= cursor) break;
       cursor = childResult.pos;
     }
@@ -682,7 +820,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       yElement.setAttribute(key, this.parseXmlAttrValue(value));
     }
     if (children.length > 0) yElement.insert(0, children);
-    return { node: yElement, pos: cursor };
+    return { nodes: [yElement], pos: cursor };
   }
 
   /**

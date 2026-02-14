@@ -131,13 +131,25 @@ imageRoutes.openapi(uploadCoverRoute, async (c) => {
   // Process image
   const processedImage = await imageService.processCoverImage(buffer);
 
+  // Generate unique cover filename
+  const coverFilename = `cover-${Date.now()}.jpg`;
+
+  // Delete old cover file if it exists (different filename)
+  if (project.coverImage && project.coverImage !== coverFilename) {
+    try {
+      await storage.deleteProjectFile(username, slug, project.coverImage);
+    } catch {
+      // Old file may not exist, that's fine
+    }
+  }
+
   // Save image to storage (R2 or filesystem)
-  await storage.saveProjectFile(username, slug, 'cover.jpg', processedImage, 'image/jpeg');
+  await storage.saveProjectFile(username, slug, coverFilename, processedImage, 'image/jpeg');
 
   // Update project to set coverImage field
-  await projectService.update(db, project.id, { coverImage: 'cover.jpg' });
+  await projectService.update(db, project.id, { coverImage: coverFilename });
 
-  return c.json({ message: 'Cover image uploaded successfully' });
+  return c.json({ message: 'Cover image uploaded successfully', coverImage: coverFilename });
 });
 
 // Get project cover image route
@@ -173,17 +185,26 @@ const getCoverRoute = createRoute({
 });
 
 imageRoutes.openapi(getCoverRoute, async (c) => {
+  const db = c.get('db');
   const storage = getStorageService(c.get('storage'));
   const username = c.req.param('username');
   const slug = c.req.param('slug');
 
-  const exists = await storage.projectFileExists(username, slug, 'cover.jpg');
+  // Look up the actual cover filename from the project record
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  const coverFilename = project?.coverImage;
+
+  if (!coverFilename) {
+    throw new NotFoundError('Cover image not found');
+  }
+
+  const exists = await storage.projectFileExists(username, slug, coverFilename);
 
   if (!exists) {
     throw new NotFoundError('Cover image not found');
   }
 
-  const data = await storage.readProjectFile(username, slug, 'cover.jpg');
+  const data = await storage.readProjectFile(username, slug, coverFilename);
   if (!data) {
     throw new NotFoundError('Cover image not found');
   }
@@ -193,6 +214,7 @@ imageRoutes.openapi(getCoverRoute, async (c) => {
   return c.body(uint8Array, 200, {
     'Content-Type': 'image/jpeg',
     'Content-Length': uint8Array.length.toString(),
+    'Cache-Control': 'public, max-age=31536000, immutable',
   });
 });
 
@@ -263,13 +285,16 @@ imageRoutes.openapi(deleteCoverRoute, async (c) => {
     throw new ForbiddenError('Access denied');
   }
 
-  const exists = await storage.projectFileExists(username, slug, 'cover.jpg');
-
-  if (!exists) {
+  const coverFilename = project.coverImage;
+  if (!coverFilename) {
     throw new NotFoundError('Cover image not found');
   }
 
-  await storage.deleteProjectFile(username, slug, 'cover.jpg');
+  const exists = await storage.projectFileExists(username, slug, coverFilename);
+
+  if (exists) {
+    await storage.deleteProjectFile(username, slug, coverFilename);
+  }
 
   // Update project to clear coverImage field
   await projectService.update(db, project.id, { coverImage: null });
