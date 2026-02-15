@@ -49,11 +49,12 @@
   gap: 16px;
   width: 100%;
 
-  // Mobile: horizontal layout
+  // Mobile: stack image and name horizontally, description/tags below
   @media (max-width: 759px) {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-start;
+    gap: 12px;
 
     .image-section {
       flex: 0 0 auto;
@@ -61,11 +62,17 @@
 
     .name-section {
       flex: 1;
-      min-width: 150px;
+      min-width: 0; // Allow text to truncate instead of overflow
     }
 
     .description-section {
       flex: 1 1 100%;
+      min-width: 0;
+    }
+
+    .tags-section {
+      flex: 1 1 100%;
+      min-width: 0;
     }
   }
 }
@@ -91,7 +98,7 @@
 
 .image-placeholder {
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 1 / 1;
   // Safari fix: use grid with place-items for better aspect-ratio calculation
   display: grid;
   place-items: center;
@@ -163,6 +170,7 @@
     left: 0;
     width: 100%;
     height: 100%;
+    aspect-ratio: 1 / 1;
     object-fit: cover;
   }
 
@@ -193,20 +201,21 @@
 
   // Mobile: smaller image
   @media (max-width: 759px) {
-    width: 80px;
-    height: 80px;
-    aspect-ratio: auto;
+    width: 64px;
+    height: 64px;
+    aspect-ratio: 1 / 1;
     border-radius: 8px;
 
     &.no-image {
-      width: 80px;
-      height: 80px;
+      width: 64px;
+      height: 64px;
+      aspect-ratio: auto;
     }
 
     .placeholder-icon {
-      font-size: 32px;
-      width: 32px;
-      height: 32px;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
     }
 
     .placeholder-text {
@@ -215,8 +224,43 @@
   }
 }
 
-// View image button - positioned over the image
+// View image button - positioned over the image (shown for all users)
 .view-image-button {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  width: 36px;
+  height: 36px;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  // Mobile: smaller button
+  @media (max-width: 759px) {
+    width: 28px;
+    height: 28px;
+    bottom: 4px;
+    left: 4px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+// Change image button - positioned over the image (only shown for writers)
+.change-image-button {
   position: absolute;
   bottom: 8px;
   right: 8px;
@@ -272,6 +316,12 @@
   font-weight: 500;
   color: var(--sys-on-surface);
   word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+
+  @media (max-width: 759px) {
+    font-size: 16px;
+  }
 }
 
 .rename-button {
@@ -286,6 +336,7 @@
 // Description section
 .description-section {
   width: 100%;
+  min-width: 0;
 }
 
 .description-field {
@@ -294,6 +345,10 @@
   textarea {
     resize: none;
     min-height: 80px;
+
+    @media (max-width: 759px) {
+      min-height: 60px;
+    }
   }
 }
 
@@ -305,6 +360,7 @@
   @media (max-width: 759px) {
     flex: 1 1 100%;
     margin-top: 0;
+    min-width: 0;
   }
 }
 

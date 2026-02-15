@@ -140,6 +140,14 @@ describe('SettingsTabComponent', () => {
       canWrite: signal(true),
       isOwner: signal(true),
       accessLoaded: signal(true),
+      selectedTabIndex: signal(0),
+      openTabs: signal([]),
+      getPublishPlans: vi.fn().mockReturnValue([]),
+      createPublishPlan: vi.fn(),
+      openPublishPlan: vi.fn(),
+      openSystemTab: vi.fn().mockReturnValue({ index: 1 }),
+      selectTab: vi.fn(),
+      elements: signal([]),
     };
 
     mcpKeysService = {
@@ -1030,6 +1038,127 @@ describe('SettingsTabComponent', () => {
       expect(component['renameError']()).toBe(
         'A project with this slug may already exist'
       );
+    });
+  });
+
+  describe('Project Actions', () => {
+    it('should export project successfully', async () => {
+      // Access the injected service and spy on it
+      const realExportService = component['exportService'];
+      vi.spyOn(realExportService, 'exportProject').mockResolvedValue(undefined);
+
+      await component.exportProject();
+
+      expect(realExportService.exportProject).toHaveBeenCalled();
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Project exported successfully',
+        'Close',
+        expect.any(Object)
+      );
+    });
+
+    it('should handle export error', async () => {
+      const realExportService = component['exportService'];
+      vi.spyOn(realExportService, 'exportProject').mockRejectedValue(
+        new Error('Export failed')
+      );
+
+      await component.exportProject();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to export project',
+        'Close',
+        expect.any(Object)
+      );
+    });
+
+    it('should open import dialog', () => {
+      const realDialogGateway = component['dialogGateway'];
+      vi.spyOn(realDialogGateway, 'openImportProjectDialog').mockResolvedValue(
+        undefined
+      );
+
+      component.importProject();
+
+      expect(realDialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
+        'testuser'
+      );
+    });
+
+    it('should open publish plan when plans exist', () => {
+      const mockPlan = {
+        id: 'plan-1',
+        title: 'Default',
+        author: 'testuser',
+      };
+      (
+        projectStateService.getPublishPlans as ReturnType<typeof vi.fn>
+      ).mockReturnValue([mockPlan]);
+
+      component.openPublishPlan();
+
+      expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(
+        mockPlan
+      );
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'publish-plan',
+        'plan-1',
+      ]);
+    });
+
+    it('should show document list', () => {
+      (
+        projectStateService.openSystemTab as ReturnType<typeof vi.fn>
+      ).mockReturnValue({
+        index: 2,
+      });
+
+      component.showDocumentList();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'documents-list'
+      );
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(2);
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'test-project',
+        'documents-list',
+      ]);
+    });
+
+    it('should report zen mode cannot be enabled when no document tab is selected', () => {
+      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
+        0
+      );
+      (projectStateService.openTabs as ReturnType<typeof signal>).set([]);
+
+      expect(component.canEnableZenMode()).toBe(false);
+    });
+
+    it('should report zen mode can be enabled when a document tab is selected', () => {
+      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
+        1
+      );
+      (projectStateService.openTabs as ReturnType<typeof signal>).set([
+        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
+      ]);
+
+      expect(component.canEnableZenMode()).toBe(true);
+    });
+
+    it('should not toggle zen mode when it cannot be enabled', () => {
+      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
+        0
+      );
+      (projectStateService.openTabs as ReturnType<typeof signal>).set([]);
+
+      component.toggleZenMode();
+
+      expect(component['isZenMode']()).toBe(false);
     });
   });
 });

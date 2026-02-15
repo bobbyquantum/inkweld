@@ -1,5 +1,95 @@
-<div class="worldbuilding-editor-container" data-testid="worldbuilding-editor">
-  <!-- Identity panel (left side on desktop, top on mobile) -->
+<div
+  class="worldbuilding-editor-container"
+  [class.mobile-mode]="isMobile()"
+  [class.mobile-overview]="isMobile() && !mobileDrillInSection()"
+  [class.mobile-drilled-identity]="mobileDrillInSection() === 'identity'"
+  [class.mobile-drilled-tab]="isDrilledIntoTab()"
+  [class.mobile-drilled-relationships]="
+    mobileDrillInSection() === 'relationships'
+  "
+  data-testid="worldbuilding-editor">
+  <!-- Mobile: Detail header with back button (drilled-in mode) -->
+  @if (isMobile() && mobileDrillInSection()) {
+    <div class="mobile-detail-header" data-testid="mobile-detail-header">
+      <button
+        mat-icon-button
+        (click)="drillBack()"
+        data-testid="mobile-back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <span class="mobile-detail-title">{{ getActiveSectionLabel() }}</span>
+      @if (isDrilledIntoTab()) {
+        <button
+          mat-icon-button
+          class="snapshots-btn"
+          (click)="openSnapshotsDialog()"
+          matTooltip="Document snapshots"
+          data-testid="toolbar-snapshots-mobile">
+          <mat-icon>history</mat-icon>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Mobile: Hero card with image & element info (overview mode) -->
+  @if (isMobile() && !mobileDrillInSection()) {
+    <div class="mobile-hero-card" data-testid="mobile-hero-card">
+      <div class="mobile-hero-image-col">
+        @if (identityPanel()?.resolvedImageUrl(); as imageUrl) {
+          <img
+            class="mobile-hero-image"
+            [src]="imageUrl"
+            [alt]="elementName()"
+            data-testid="mobile-overview-image" />
+        } @else {
+          <div class="mobile-hero-image-placeholder">
+            <mat-icon>person</mat-icon>
+          </div>
+        }
+      </div>
+      <div class="mobile-hero-info-col">
+        <div class="mobile-hero-name-row">
+          <span class="mobile-hero-name">{{ elementName() }}</span>
+          <div class="mobile-hero-actions">
+            @if (projectState.canWrite()) {
+              <button
+                mat-icon-button
+                class="mobile-hero-action-btn"
+                (click)="onRenameRequested()"
+                matTooltip="Rename">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
+            <button
+              mat-icon-button
+              class="mobile-hero-action-btn"
+              (click)="openSnapshotsDialog()"
+              matTooltip="Document snapshots"
+              data-testid="toolbar-snapshots">
+              <mat-icon>history</mat-icon>
+            </button>
+          </div>
+        </div>
+        @if (identityPanel()?.description(); as desc) {
+          <p class="mobile-hero-description">{{ desc }}</p>
+        } @else {
+          <p class="mobile-hero-description mobile-hero-description--empty">
+            No description yet
+          </p>
+        }
+        @if (schema(); as s) {
+          <span class="mobile-hero-type">
+            <mat-icon class="mobile-hero-type-icon">{{
+              s.icon || 'category'
+            }}</mat-icon>
+            {{ s.name }}
+          </span>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Identity panel (left side on desktop, visibility on mobile managed by CSS) -->
   <app-identity-panel
     [elementId]="elementId()"
     [elementName]="elementName()"
@@ -8,6 +98,61 @@
     [canWrite]="projectState.canWrite()"
     (renameRequested)="onRenameRequested()">
   </app-identity-panel>
+
+  <!-- Mobile: Section cards for drill-in navigation (overview mode) -->
+  @if (isMobile() && !mobileDrillInSection()) {
+    @if (schema()) {
+      <div class="mobile-section-list" data-testid="mobile-section-list">
+        <button
+          class="mobile-section-card"
+          (click)="drillInto('identity')"
+          data-testid="drill-identity">
+          <mat-icon class="section-icon">badge</mat-icon>
+          <div class="section-text">
+            <span class="section-label">Identity & Details</span>
+            <span class="section-hint">Image, description, tags</span>
+          </div>
+          <mat-icon class="section-chevron">chevron_right</mat-icon>
+        </button>
+
+        @for (tab of getTabs(); track tab.key) {
+          <button
+            class="mobile-section-card"
+            (click)="drillInto(tab.key)"
+            [attr.data-testid]="'drill-' + tab.key">
+            <mat-icon class="section-icon">{{ getTabIcon(tab) }}</mat-icon>
+            <div class="section-text">
+              <span class="section-label">{{ tab.label }}</span>
+              <span class="section-hint"
+                >{{ getFilledFieldCountForTab(tab.key) }}/{{
+                  getFieldsForTab(tab.key).length
+                }}
+                fields</span
+              >
+            </div>
+            <mat-icon class="section-chevron">chevron_right</mat-icon>
+          </button>
+        }
+
+        <button
+          class="mobile-section-card"
+          (click)="drillInto('relationships')"
+          data-testid="drill-relationships">
+          <mat-icon class="section-icon">link</mat-icon>
+          <div class="section-text">
+            <span class="section-label">Relationships</span>
+            <span class="section-hint">Connections to other elements</span>
+          </div>
+          <mat-icon class="section-chevron">chevron_right</mat-icon>
+        </button>
+      </div>
+    } @else {
+      <div class="loading-state">
+        <mat-icon>hourglass_empty</mat-icon>
+        <p>Loading schema...</p>
+      </div>
+    }
+  }
 
   <div class="editor-section">
     <div class="dynamic-worldbuilding-editor">

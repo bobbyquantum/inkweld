@@ -15,6 +15,16 @@ import { expect, test } from './fixtures';
 const tmpDir = os.tmpdir();
 
 /**
+ * Navigate to the project settings Actions tab.
+ * Replaces the old kebab menu flow.
+ */
+async function openActionsTab(page: import('@playwright/test').Page) {
+  await page.getByTestId('sidebar-settings-button').click();
+  await expect(page.getByTestId('settings-tab-content')).toBeVisible();
+  await page.getByTestId('settings-tab-actions').click();
+}
+
+/**
  * Helper to verify a ZIP file is valid and extract manifest.
  * Uses JSZip for cross-platform compatibility.
  */
@@ -51,8 +61,8 @@ test.describe('Local Project Export', () => {
     // Wait for project to load
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Open the more menu
-    await page.getByTestId('project-more-menu-button').click();
+    // Navigate to settings Actions tab
+    await openActionsTab(page);
 
     // Start listening for downloads before triggering the export
     const downloadPromise = page.waitForEvent('download');
@@ -95,8 +105,8 @@ test.describe('Local Project Export', () => {
     // Wait for project to load
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Open the more menu
-    await page.getByTestId('project-more-menu-button').click();
+    // Navigate to settings Actions tab
+    await openActionsTab(page);
 
     // Start listening for downloads
     const downloadPromise = page.waitForEvent('download');
@@ -131,8 +141,8 @@ test.describe('Local Project Import', () => {
     // Wait for project to load
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Open the more menu
-    await page.getByTestId('project-more-menu-button').click();
+    // Navigate to settings Actions tab
+    await openActionsTab(page);
 
     // Click import button
     await page.getByTestId('import-project-button').click();
@@ -153,8 +163,8 @@ test.describe('Local Project Import', () => {
     // Wait for project to load
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Open the more menu and click import
-    await page.getByTestId('project-more-menu-button').click();
+    // Navigate to settings Actions tab and click import
+    await openActionsTab(page);
     await page.getByTestId('import-project-button').click();
 
     // Verify dialog is open
@@ -176,7 +186,7 @@ test.describe('Local Project Import', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Export the project
-    await page.getByTestId('project-more-menu-button').click();
+    await openActionsTab(page);
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('export-project-button').click();
     const download = await downloadPromise;
@@ -186,7 +196,7 @@ test.describe('Local Project Import', () => {
     await download.saveAs(exportedFile);
 
     // Now import the same archive with a new slug
-    await page.getByTestId('project-more-menu-button').click();
+    await openActionsTab(page);
     await page.getByTestId('import-project-button').click();
 
     // Wait for dialog
@@ -239,8 +249,8 @@ test.describe('Local Project Import', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    // Open import dialog
-    await page.getByTestId('project-more-menu-button').click();
+    // Navigate to settings Actions tab
+    await openActionsTab(page);
     await page.getByTestId('import-project-button').click();
     await expect(page.getByTestId('import-drop-zone')).toBeVisible();
 
@@ -267,15 +277,15 @@ test.describe('Local Project Import', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Export
-    await page.getByTestId('project-more-menu-button').click();
+    await openActionsTab(page);
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('export-project-button').click();
     const download = await downloadPromise;
     const exportedFile = path.join(tmpDir, `slug-test-${Date.now()}.zip`);
     await download.saveAs(exportedFile);
 
-    // Open import dialog
-    await page.getByTestId('project-more-menu-button').click();
+    // Navigate to settings Actions tab
+    await openActionsTab(page);
     await page.getByTestId('import-project-button').click();
     await expect(page.getByTestId('import-drop-zone')).toBeVisible();
 
@@ -306,15 +316,15 @@ test.describe('Local Project Import', () => {
     await page.getByTestId('project-card').first().click();
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    await page.getByTestId('project-more-menu-button').click();
+    await openActionsTab(page);
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('export-project-button').click();
     const download = await downloadPromise;
     const exportedFile = path.join(tmpDir, `collision-${Date.now()}.zip`);
     await download.saveAs(exportedFile);
 
-    // Open import dialog
-    await page.getByTestId('project-more-menu-button').click();
+    // Navigate to settings Actions tab
+    await openActionsTab(page);
     await page.getByTestId('import-project-button').click();
     await expect(page.getByTestId('import-drop-zone')).toBeVisible();
 
@@ -348,7 +358,7 @@ test.describe('Export/Import Round-Trip', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Export the project
-    await page.getByTestId('project-more-menu-button').click();
+    await openActionsTab(page);
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('export-project-button').click();
     const download = await downloadPromise;
@@ -365,7 +375,7 @@ test.describe('Export/Import Round-Trip', () => {
       typeof projectTitle === 'string' ? projectTitle : 'Test Project';
 
     // Import with new slug
-    await page.getByTestId('project-more-menu-button').click();
+    await openActionsTab(page);
     await page.getByTestId('import-project-button').click();
     await page.getByTestId('import-file-input').setInputFiles(exportedFile);
     await expect(page.getByTestId('import-slug-input')).toBeVisible();

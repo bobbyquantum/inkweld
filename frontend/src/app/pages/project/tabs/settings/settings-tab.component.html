@@ -33,6 +33,17 @@
             <mat-icon class="tab-icon">sync</mat-icon>
             <span class="tab-name">Sync</span>
           </button>
+          <button
+            ngTab
+            value="actions"
+            type="button"
+            role="tab"
+            (click)="onTabChange('actions')"
+            class="tab-button"
+            data-testid="settings-tab-actions">
+            <mat-icon class="tab-icon">build</mat-icon>
+            <span class="tab-name">Actions</span>
+          </button>
           @if (projectState.accessLoaded() && projectState.canWrite()) {
             <button
               ngTab
@@ -306,6 +317,127 @@
               Reset Local Data
             </button>
           </div>
+        </section>
+      </div>
+    }
+
+    <!-- Actions Tab -->
+    @if (selectedTab() === 'actions') {
+      <div class="tab-content">
+        <section class="settings-section" data-testid="actions-section">
+          <h3>
+            <mat-icon>build</mat-icon>
+            Project Actions
+          </h3>
+          <p class="section-description">
+            Common project operations like exporting, importing, and publishing.
+          </p>
+
+          <!-- Export / Import -->
+          <mat-card class="action-card" data-testid="export-import-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>swap_vert</mat-icon>
+                Export &amp; Import
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p>
+                Export this project as an <code>.inkweld.zip</code> archive, or
+                import a project from an archive file.
+              </p>
+              <div class="action-buttons">
+                <button
+                  mat-raised-button
+                  (click)="exportProject()"
+                  data-testid="export-project-button">
+                  <mat-icon>download</mat-icon>
+                  Export Project
+                </button>
+                <button
+                  mat-stroked-button
+                  (click)="importProject()"
+                  data-testid="import-project-button">
+                  <mat-icon>upload</mat-icon>
+                  Import Project
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Publish -->
+          <mat-card class="action-card" data-testid="publish-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>publish</mat-icon>
+                Publishing
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p>
+                Create or open a publish plan to prepare your project for
+                publication.
+              </p>
+              <div class="action-buttons">
+                <button
+                  mat-raised-button
+                  (click)="openPublishPlan()"
+                  data-testid="publish-project-button">
+                  <mat-icon>publish</mat-icon>
+                  Publish Project
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Document List -->
+          <mat-card class="action-card" data-testid="document-list-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>list</mat-icon>
+                Document List
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p>Open a flat list of all documents in this project.</p>
+              <div class="action-buttons">
+                <button
+                  mat-stroked-button
+                  (click)="showDocumentList()"
+                  data-testid="show-document-list-button">
+                  <mat-icon>list</mat-icon>
+                  Show Document List
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Zen Mode -->
+          @if (canEnableZenMode() || isZenMode()) {
+            <mat-card class="action-card" data-testid="zen-mode-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>self_improvement</mat-icon>
+                  Zen Mode
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <p>
+                  Enter a distraction-free editing mode for the current
+                  document.
+                </p>
+                <div class="action-buttons">
+                  <button
+                    mat-stroked-button
+                    (click)="toggleZenMode()"
+                    data-testid="zen-mode-button">
+                    <mat-icon>self_improvement</mat-icon>
+                    {{ isZenMode() ? 'Exit Zen Mode' : 'Enter Zen Mode' }}
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
         </section>
       </div>
     }

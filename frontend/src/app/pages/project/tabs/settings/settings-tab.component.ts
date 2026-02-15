@@ -39,13 +39,19 @@ import {
   McpPublicKey,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SettingsService } from '@services/core/settings.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
+import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 
+import {
+  createDefaultPublishPlan,
+  PublishPlan,
+} from '../../../../models/publish-plan';
 import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
 import { TagsTabComponent } from '../tags/tags-tab.component';
 import { TemplatesTabComponent } from '../templates/templates-tab.component';
@@ -104,6 +110,8 @@ export class SettingsTabComponent implements AfterViewInit {
   private readonly setupService = inject(SetupService);
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly systemConfigService = inject(SystemConfigService);
+  private readonly exportService = inject(ProjectExportService);
+  private readonly settingsService = inject(SettingsService);
 
   // MCP Keys should only be visible when AI kill switch is OFF
   protected readonly isAiKillSwitchEnabled =
@@ -929,4 +937,145 @@ export class SettingsTabComponent implements AfterViewInit {
       this.isDeleting.set(false);
     }
   }
+
+  // =====================
+  // Project Actions
+  // =====================
+
+  /**
+   * Export the current project as an .inkweld.zip archive.
+   */
+  async exportProject(): Promise<void> {
+    try {
+      await this.exportService.exportProject();
+      this.snackBar.open('Project exported successfully', 'Close', {
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      this.snackBar.open('Failed to export project', 'Close', {
+        duration: 5000,
+      });
+    }
+  }
+
+  /**
+   * Open the import project dialog.
+   */
+  importProject(): void {
+    const project = this.projectState.project();
+    void this.dialogGateway
+      .openImportProjectDialog(project?.username)
+      .then(result => {
+        if (result?.success && result.slug) {
+          this.snackBar
+            .open('Project imported successfully!', 'View', {
+              duration: 5000,
+            })
+            .onAction()
+            .subscribe(() => {
+              const username = project?.username ?? 'offline';
+              void this.router.navigate(['/', username, result.slug]);
+            });
+        }
+      });
+  }
+
+  /**
+   * Open or create a publish plan and navigate to it.
+   */
+  openPublishPlan(): void {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    const plans = this.projectState.getPublishPlans();
+    let plan: PublishPlan;
+
+    if (plans.length > 0) {
+      plan = plans[0];
+    } else {
+      plan = createDefaultPublishPlan(project.title, project.username);
+      this.projectState.createPublishPlan(plan);
+    }
+
+    this.projectState.openPublishPlan(plan);
+
+    void this.router.navigate([
+      '/',
+      project.username,
+      project.slug,
+      'publish-plan',
+      plan.id,
+    ]);
+  }
+
+  /**
+   * Navigate to the document list view.
+   */
+  showDocumentList(): void {
+    const result = this.projectState.openSystemTab('documents-list');
+    this.projectState.selectTab(result.index);
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'documents-list',
+      ]);
+    }
+  }
+
+  /**
+   * Toggle zen mode. Requires a document tab to be selected.
+   */
+  toggleZenMode(): void {
+    if (!this.canEnableZenMode() && !this.isZenMode()) {
+      return;
+    }
+
+    this.isZenMode.update(current => {
+      const newValue = !current;
+
+      const fullscreenEnabled = this.settingsService.getSetting<boolean>(
+        'zenModeFullscreen',
+        true
+      );
+
+      if (newValue && fullscreenEnabled) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Error attempting to enable fullscreen:', err);
+        });
+      } else if (!newValue && document.fullscreenElement) {
+        document.exitFullscreen().catch(err => {
+          console.warn('Error attempting to exit fullscreen:', err);
+        });
+      }
+
+      return newValue;
+    });
+  }
+
+  /**
+   * Check if zen mode can be enabled (requires a document tab to be selected).
+   */
+  canEnableZenMode(): boolean {
+    const currentTabIndex = this.projectState.selectedTabIndex();
+    const tabs = this.projectState.openTabs();
+
+    if (currentTabIndex === 0 || tabs.length === 0) {
+      return false;
+    }
+
+    const currentTab = tabs[currentTabIndex - 1];
+
+    return (
+      currentTab && currentTab.type === 'document' && currentTab.element != null
+    );
+  }
+
+  /**
+   * Whether zen mode is currently active.
+   */
+  protected readonly isZenMode = signal(false);
 }

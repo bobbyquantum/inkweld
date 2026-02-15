@@ -33,17 +33,17 @@
           [class.no-image]="!resolvedImageUrl() && !isLoadingImage()"
           [class.readonly]="!canWrite() && !resolvedImageUrl()"
           (click)="
-            canWrite()
-              ? onImageClick()
-              : resolvedImageUrl()
-                ? viewImage()
+            resolvedImageUrl()
+              ? viewImage()
+              : canWrite()
+                ? onImageClick()
                 : null
           "
           [matTooltip]="
-            canWrite()
-              ? 'Click to set image'
-              : resolvedImageUrl()
-                ? 'Click to view image'
+            resolvedImageUrl()
+              ? 'View full size'
+              : canWrite()
+                ? 'Click to set image'
                 : 'No image available'
           ">
           @if (isLoadingImage()) {
@@ -67,6 +67,15 @@
             (click)="viewImage(); $event.stopPropagation()"
             matTooltip="View full size">
             <mat-icon>visibility</mat-icon>
+          </button>
+        }
+        @if (resolvedImageUrl() && canWrite()) {
+          <button
+            mat-icon-button
+            class="change-image-button"
+            (click)="onImageClick(); $event.stopPropagation()"
+            matTooltip="Change image">
+            <mat-icon>edit</mat-icon>
           </button>
         }
       </div>

@@ -16,6 +16,13 @@
 
   &.collapsed {
     width: 48px;
+
+    // Mobile: horizontal collapsed bar instead of thin vertical strip
+    @media (max-width: 759px) {
+      width: 100%;
+      height: auto;
+      flex-direction: row;
+    }
   }
 
   &.expanded {
@@ -35,6 +42,19 @@
   .expand-toggle {
     margin-bottom: 8px;
   }
+
+  // Mobile: horizontal layout
+  @media (max-width: 759px) {
+    flex-direction: row;
+    height: auto;
+    padding: 4px 8px;
+    gap: 8px;
+
+    .expand-toggle {
+      margin-bottom: 0;
+      margin-right: 4px;
+    }
+  }
 }
 
 .collapsed-icons {
@@ -42,6 +62,12 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+
+  // Mobile: horizontal icon layout
+  @media (max-width: 759px) {
+    flex-direction: row;
+    gap: 4px;
+  }
 }
 
 .collapsed-icon-button {
@@ -64,6 +90,16 @@
     margin-top: 8px;
     border-top: 1px solid var(--sys-outline-variant);
     padding-top: 8px;
+
+    // Mobile: use left border instead of top for horizontal layout
+    @media (max-width: 759px) {
+      margin-top: 0;
+      border-top: none;
+      padding-top: 0;
+      margin-left: 8px;
+      border-left: 1px solid var(--sys-outline-variant);
+      padding-left: 8px;
+    }
   }
 }
 
