@@ -10,90 +10,29 @@
  * for cleaner documentation images.
  */
 
-import { Locator, Page } from '@playwright/test';
-import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import { Page } from '@playwright/test';
 import { join } from 'path';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
-/**
- * Helper to capture a cropped screenshot around specific elements with padding
- * @param page - Playwright page
- * @param elements - Array of locators to include in the screenshot
- * @param path - Output path for the screenshot
- * @param padding - Padding around the combined bounding box (default 24px)
- */
-async function captureElementScreenshot(
-  page: Page,
-  elements: Locator[],
-  path: string,
-  padding = 24
-): Promise<void> {
-  // Get bounding boxes for all visible elements
-  const boxes: { x: number; y: number; width: number; height: number }[] = [];
-
-  for (const element of elements) {
-    if (await element.isVisible().catch(() => false)) {
-      const box = await element.boundingBox();
-      if (box) {
-        boxes.push(box);
-      }
-    }
-  }
-
-  if (boxes.length === 0) {
-    // Fallback to full page screenshot if no elements found
-    await page.screenshot({ path, fullPage: false });
-    return;
-  }
-
-  // Calculate combined bounding box
-  const minX = Math.max(0, Math.min(...boxes.map(b => b.x)) - padding);
-  const minY = Math.max(0, Math.min(...boxes.map(b => b.y)) - padding);
-  const maxX = Math.max(...boxes.map(b => b.x + b.width)) + padding;
-  const maxY = Math.max(...boxes.map(b => b.y + b.height)) + padding;
-
-  // Get viewport size to clamp values
-  const viewport = page.viewportSize();
-  const clipWidth = Math.min(maxX - minX, (viewport?.width || 1280) - minX);
-  const clipHeight = Math.min(maxY - minY, (viewport?.height || 800) - minY);
-
-  await page.screenshot({
-    path,
-    clip: {
-      x: minX,
-      y: minY,
-      width: clipWidth,
-      height: clipHeight,
-    },
-  });
-}
+import {
+  captureElementScreenshot,
+  ensureDirectory,
+  getScreenshotsDir,
+} from './screenshot-helpers';
 
 test.describe('Element Reference Screenshots', () => {
-  const screenshotsDir = join(
-    process.cwd(),
-    '..',
-    'docs',
-    'site',
-    'static',
-    'img',
-    'features'
-  );
+  const screenshotsDir = getScreenshotsDir();
 
   test.beforeAll(async () => {
-    // Ensure screenshots directory exists
-    if (!existsSync(screenshotsDir)) {
-      await mkdir(screenshotsDir, { recursive: true });
-    }
+    await ensureDirectory(screenshotsDir);
   });
 
   /**
    * Helper to create a project and navigate to editor
    */
   async function setupProjectAndEditor(
-    page: import('@playwright/test').Page,
+    page: Page,
     projectSlug: string,
     projectTitle: string
   ) {
@@ -118,7 +57,6 @@ test.describe('Element Reference Screenshots', () => {
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
     });
-    await page.waitForTimeout(500);
 
     // Expand the "Chronicles" folder (from worldbuilding-demo template)
     const expandButton = page
@@ -126,14 +64,15 @@ test.describe('Element Reference Screenshots', () => {
       .first();
     if (await expandButton.isVisible().catch(() => false)) {
       await expandButton.click();
-      await page.waitForTimeout(400);
+      await page.locator('text="The Moonveil Accord"').first().waitFor({
+        state: 'visible',
+      });
     }
 
     // Click on "The Moonveil Accord" to open it
     await page.click('text="The Moonveil Accord"').catch(() => {
       return page.locator('.tree-node-item').first().click();
     });
-    await page.waitForTimeout(400);
 
     // Wait for editor to load and click into it
     const editor = page.locator('.ProseMirror').first();
@@ -173,14 +112,17 @@ test.describe('Element Reference Screenshots', () => {
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
     });
-    await page.waitForTimeout(500);
 
     // Create a character element at the root level
     await page.getByTestId('create-new-element').click();
     await page.getByTestId('element-type-character-v1').click();
     await page.getByTestId('element-name-input').fill(characterName);
     await page.getByTestId('create-element-button').click();
-    await page.waitForTimeout(300);
+    await page.locator('mat-dialog-container').waitFor({ state: 'hidden' });
+    await page
+      .locator(`[data-testid="element-${characterName}"]`)
+      .first()
+      .waitFor({ state: 'visible' });
 
     // Expand the "Chronicles" folder to access The Moonveil Accord
     const expandButton = page
@@ -188,14 +130,15 @@ test.describe('Element Reference Screenshots', () => {
       .first();
     if (await expandButton.isVisible().catch(() => false)) {
       await expandButton.click();
-      await page.waitForTimeout(400);
+      await page.locator('text="The Moonveil Accord"').first().waitFor({
+        state: 'visible',
+      });
     }
 
     // Click on "The Moonveil Accord" to open it
     await page.click('text="The Moonveil Accord"').catch(() => {
       return page.locator('.tree-node-item').first().click();
     });
-    await page.waitForTimeout(400);
 
     // Wait for editor to load and click into it
     const editor = page.locator('.ProseMirror').first();
@@ -217,14 +160,18 @@ test.describe('Element Reference Screenshots', () => {
 
     if (await themeToggle.isVisible().catch(() => false)) {
       await themeToggle.click();
-      await page.waitForTimeout(300);
+      await page.waitForFunction(() => {
+        return (
+          document.body.classList.contains('dark-theme') ||
+          document.documentElement.classList.contains('dark-theme')
+        );
+      });
     } else {
       // Fallback: add dark-theme class directly to body
       await page.evaluate(() => {
         document.body.classList.add('dark-theme');
         document.documentElement.classList.add('dark-theme');
       });
-      await page.waitForTimeout(200);
     }
   }
 
@@ -268,7 +215,10 @@ test.describe('Element Reference Screenshots', () => {
 
       // Step 3: Type search query
       await page.keyboard.type('chap');
-      await page.waitForTimeout(300);
+      await page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first()
+        .waitFor({ state: 'visible' });
 
       // Screenshot 2: Search in progress
       await captureElementScreenshot(
@@ -288,11 +238,13 @@ test.describe('Element Reference Screenshots', () => {
         // Press Enter to select first result
         await page.keyboard.press('Enter');
       }
-      await page.waitForTimeout(300);
+      await page
+        .locator('[data-testid="element-ref-popup"]')
+        .waitFor({ state: 'hidden' })
+        .catch(() => {});
 
       // Continue typing after the reference
       await editor.pressSequentially(' at the crossroads.', { delay: 20 });
-      await page.waitForTimeout(300);
 
       // Screenshot 3: Link in document
       await captureElementScreenshot(
@@ -306,8 +258,9 @@ test.describe('Element Reference Screenshots', () => {
       const elementRef = page.locator('.element-ref').first();
       if (await elementRef.isVisible().catch(() => false)) {
         await elementRef.hover();
-        // Wait for native tooltip to show (takes a moment)
-        await page.waitForTimeout(800);
+        await page
+          .locator('.element-ref-tooltip')
+          .waitFor({ state: 'visible' });
 
         // Screenshot 4: Tooltip visible
         await captureElementScreenshot(
@@ -349,7 +302,10 @@ test.describe('Element Reference Screenshots', () => {
 
       // Type to search for the character
       await page.keyboard.type('aria');
-      await page.waitForTimeout(300);
+      await page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first()
+        .waitFor({ state: 'visible' });
 
       // Select the character result
       const resultItem = page
@@ -360,14 +316,16 @@ test.describe('Element Reference Screenshots', () => {
       } else {
         await page.keyboard.press('Enter');
       }
-      await page.waitForTimeout(200);
+      await page
+        .locator('[data-testid="element-ref-popup"]')
+        .waitFor({ state: 'hidden' })
+        .catch(() => {});
 
       // Continue typing
       await editor.pressSequentially(
         ' appeared, the world knew that destiny had arrived.',
         { delay: 15 }
       );
-      await page.waitForTimeout(300);
 
       // Try to capture just the editor container
       const editorContainer = page.locator('.document-editor').first();
@@ -412,7 +370,10 @@ test.describe('Element Reference Screenshots', () => {
 
       // Search for Elena
       await page.keyboard.type('elena');
-      await page.waitForTimeout(400);
+      await page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first()
+        .waitFor({ state: 'visible' });
 
       // Screenshot: Searching for a character
       await captureElementScreenshot(
@@ -431,14 +392,16 @@ test.describe('Element Reference Screenshots', () => {
       } else {
         await page.keyboard.press('Enter');
       }
-      await page.waitForTimeout(300);
+      await page
+        .locator('[data-testid="element-ref-popup"]')
+        .waitFor({ state: 'hidden' })
+        .catch(() => {});
 
       // Continue typing
       await editor.pressSequentially(
         ' stepped out of the ancient tower, her silver cloak billowing in the wind.',
         { delay: 15 }
       );
-      await page.waitForTimeout(300);
 
       // Screenshot: Character reference in text
       await captureElementScreenshot(
@@ -452,7 +415,9 @@ test.describe('Element Reference Screenshots', () => {
       const characterRef = page.locator('.element-ref').first();
       if (await characterRef.isVisible().catch(() => false)) {
         await characterRef.hover();
-        await page.waitForTimeout(800);
+        await page
+          .locator('.element-ref-tooltip')
+          .waitFor({ state: 'visible' });
 
         // Screenshot: Character tooltip with character icon
         await captureElementScreenshot(
@@ -479,7 +444,6 @@ test.describe('Element Reference Screenshots', () => {
 
       // Enable dark mode
       await enableDarkMode(page);
-      await page.waitForTimeout(300);
 
       // Step 1: Type some content before the @ mention
       await editor.pressSequentially('The shadows whispered of ', {

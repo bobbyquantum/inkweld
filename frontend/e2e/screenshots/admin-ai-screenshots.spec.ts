@@ -58,7 +58,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     await navigateToAdminAiViaMenu(adminPage);
 
     // Wait for the page to load - either settings card or loading
-    await adminPage.waitForSelector('.settings-card, .loading-container', {});
+    await adminPage.waitForSelector('.settings-card, .loading-container');
 
     // Wait for loading to complete
     const loadingContainer = adminPage.locator('.loading-container');
@@ -112,7 +112,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     });
 
     // Wait for settings cards to appear
-    await adminPage.waitForSelector('.settings-card', {});
+    await adminPage.waitForSelector('.settings-card');
 
     // Get all provider cards
     const providerCards = adminPage.locator('.provider-card');
@@ -160,7 +160,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     });
 
     // Wait for provider cards to load
-    await adminPage.waitForSelector('.provider-card', {});
+    await adminPage.waitForSelector('.provider-card');
 
     // Find the OpenAI card
     const openaiCard = adminPage.locator('.provider-card').first();
@@ -192,7 +192,7 @@ test.describe('Admin AI Settings Screenshots', () => {
     });
 
     // Wait for provider cards to load
-    await adminPage.waitForSelector('.provider-card', {});
+    await adminPage.waitForSelector('.provider-card');
 
     // Find the OpenRouter card (second provider card)
     const providerCards = adminPage.locator('.provider-card');
@@ -233,7 +233,7 @@ test.describe('Image Model Profiles Screenshots', () => {
     await navigateToAdminAiViaMenu(adminPage);
 
     // Wait for the page to load
-    await adminPage.waitForSelector('.settings-card, .loading-container', {});
+    await adminPage.waitForSelector('.settings-card, .loading-container');
 
     // Wait for loading to complete
     const loadingContainer = adminPage.locator('.loading-container');
@@ -259,7 +259,7 @@ test.describe('Image Model Profiles Screenshots', () => {
       await adminPage.waitForTimeout(300);
 
       // Wait for profiles grid to appear
-      await adminPage.waitForSelector('.profiles-grid, .empty-state', {});
+      await adminPage.waitForSelector('.profiles-grid, .empty-state');
 
       // Take screenshot of the profiles section
       await profilesSection.screenshot({
@@ -285,7 +285,7 @@ test.describe('Image Model Profiles Screenshots', () => {
       await adminPage.waitForTimeout(300);
 
       // Wait for profiles grid to appear
-      await adminPage.waitForSelector('.profiles-grid, .empty-state', {});
+      await adminPage.waitForSelector('.profiles-grid, .empty-state');
 
       // Take screenshot of the profiles section
       await profilesSection.screenshot({
@@ -309,7 +309,7 @@ test.describe('Image Model Profiles Screenshots', () => {
       await createButton.click();
 
       // Wait for dialog to appear
-      await adminPage.waitForSelector('mat-dialog-container', {});
+      await adminPage.waitForSelector('mat-dialog-container');
 
       // Wait for dialog to fully render
       await adminPage.waitForTimeout(500);
@@ -349,7 +349,7 @@ test.describe('Image Model Profiles Screenshots', () => {
       await createButton.click();
 
       // Wait for dialog to appear
-      await adminPage.waitForSelector('mat-dialog-container', {});
+      await adminPage.waitForSelector('mat-dialog-container');
 
       // Wait for dialog to fully render
       await adminPage.waitForTimeout(500);
@@ -393,7 +393,7 @@ test.describe('Image Generation Dialog Screenshots', () => {
       await generateButton.click();
 
       // Wait for dialog to appear
-      await authenticatedPage.waitForSelector('mat-dialog-container', {});
+      await authenticatedPage.waitForSelector('mat-dialog-container');
 
       // Wait a moment for the dialog to fully render
       await authenticatedPage.waitForTimeout(500);
@@ -430,7 +430,7 @@ test.describe('Image Generation Dialog Screenshots', () => {
       await generateButton.click();
 
       // Wait for dialog to appear
-      await authenticatedPage.waitForSelector('mat-dialog-container', {});
+      await authenticatedPage.waitForSelector('mat-dialog-container');
 
       // Wait a moment for the dialog to fully render
       await authenticatedPage.waitForTimeout(500);

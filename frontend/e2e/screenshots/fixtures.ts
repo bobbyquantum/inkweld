@@ -27,6 +27,51 @@ function initializeMockApi(): void {
   setupAiImageHandlers();
 }
 
+async function initializeServerFixturePage(
+  page: Page,
+  includeDemoProjects = false
+): Promise<void> {
+  page.on('console', () => {});
+
+  initializeMockApi();
+
+  if (includeDemoProjects) {
+    mockProjects.resetProjects();
+    demoProjects.forEach(project => {
+      mockProjects.addProject(project);
+    });
+  }
+
+  await mockApi.setupPageInterception(page);
+
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  await page.addInitScript(() => {
+    const now = Date.now();
+    localStorage.setItem(
+      'inkweld-app-config',
+      JSON.stringify({
+        version: 2,
+        activeConfigId: 'screenshot-server',
+        configurations: [
+          {
+            id: 'screenshot-server',
+            type: 'server',
+            displayName: 'Screenshot Test Server',
+            serverUrl: 'http://localhost:8333',
+            addedAt: new Date(now).toISOString(),
+            lastUsedAt: new Date(now).toISOString(),
+          },
+        ],
+      })
+    );
+    localStorage.setItem(
+      'srv:screenshot-server:auth_token',
+      'mock-token-testuser'
+    );
+  });
+}
+
 // Initialize handlers before each test
 // Note: initializeMockApi is called per-fixture to ensure clean state
 
@@ -89,51 +134,7 @@ export type ScreenshotFixtures = {
 export const test = base.extend<ScreenshotFixtures>({
   // Authenticated user with demo projects
   authenticatedPage: async ({ page }, use) => {
-    // Suppress console logs for cleaner test output
-    page.on('console', () => {});
-
-    // Initialize mock API handlers for this test
-    initializeMockApi();
-
-    // Reset and add demo projects
-    mockProjects.resetProjects();
-    demoProjects.forEach(project => {
-      mockProjects.addProject(project);
-    });
-
-    // Set up mock API interception
-    await mockApi.setupPageInterception(page);
-
-    // Small delay to ensure handlers are fully registered
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Set up app configuration and auth token in localStorage
-    // Use v2 config format with unique config ID for auth token prefixing
-    await page.addInitScript(() => {
-      const now = Date.now();
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          version: 2,
-          activeConfigId: 'screenshot-server',
-          configurations: [
-            {
-              id: 'screenshot-server',
-              type: 'server',
-              displayName: 'Screenshot Test Server',
-              serverUrl: 'http://localhost:8333',
-              addedAt: new Date(now).toISOString(),
-              lastUsedAt: new Date(now).toISOString(),
-            },
-          ],
-        })
-      );
-      // Set mock auth token with server-specific prefix (matches AuthTokenService)
-      localStorage.setItem(
-        'srv:screenshot-server:auth_token',
-        'mock-token-testuser'
-      );
-    });
+    await initializeServerFixturePage(page, true);
 
     // First, do a blank navigation to establish the page context with localStorage
     await page.goto('about:blank');
@@ -172,45 +173,7 @@ export const test = base.extend<ScreenshotFixtures>({
 
   // Admin page fixture - ensures user is loaded before navigating to admin routes
   adminPage: async ({ page }, use) => {
-    // Suppress console logs for cleaner test output
-    page.on('console', () => {});
-
-    // Initialize mock API handlers for this test
-    initializeMockApi();
-
-    // Set up mock API interception
-    await mockApi.setupPageInterception(page);
-
-    // Small delay to ensure handlers are fully registered
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Set up app configuration and auth token in localStorage
-    // Use v2 config format with unique config ID for auth token prefixing
-    await page.addInitScript(() => {
-      const now = Date.now();
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          version: 2,
-          activeConfigId: 'screenshot-server',
-          configurations: [
-            {
-              id: 'screenshot-server',
-              type: 'server',
-              displayName: 'Screenshot Test Server',
-              serverUrl: 'http://localhost:8333',
-              addedAt: new Date(now).toISOString(),
-              lastUsedAt: new Date(now).toISOString(),
-            },
-          ],
-        })
-      );
-      // Set mock auth token with server-specific prefix (matches AuthTokenService)
-      localStorage.setItem(
-        'srv:screenshot-server:auth_token',
-        'mock-token-testuser'
-      );
-    });
+    await initializeServerFixturePage(page);
 
     // First, navigate to home to establish user session
     await page.goto('about:blank');
@@ -244,8 +207,7 @@ export const test = base.extend<ScreenshotFixtures>({
     // Wait for the user menu to appear (indicates user is authenticated)
     try {
       await page.waitForSelector(
-        '[data-testid="user-menu-button"], .user-menu',
-        {}
+        '[data-testid="user-menu-button"], .user-menu'
       );
     } catch {
       await page.waitForTimeout(2000);

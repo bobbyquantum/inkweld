@@ -9,63 +9,16 @@
  * Screenshots are stored in docs/site/static/img/features/
  */
 
-import { Locator, Page } from '@playwright/test';
-import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
+import { Page } from '@playwright/test';
 import { join } from 'path';
 
+import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { test } from './fixtures';
-
-/**
- * Helper to capture a cropped screenshot around specific elements with padding
- */
-async function captureElementScreenshot(
-  page: Page,
-  elements: Locator[],
-  path: string,
-  padding = 24
-): Promise<void> {
-  const boxes: { x: number; y: number; width: number; height: number }[] = [];
-
-  for (const element of elements) {
-    if (await element.isVisible().catch(() => false)) {
-      const box = await element.boundingBox();
-      if (box) {
-        boxes.push(box);
-      }
-    }
-  }
-
-  if (boxes.length === 0) {
-    await page.screenshot({ path, fullPage: false });
-    return;
-  }
-
-  const minX = Math.max(0, Math.min(...boxes.map(b => b.x)) - padding);
-  const minY = Math.max(0, Math.min(...boxes.map(b => b.y)) - padding);
-  const maxX = Math.max(...boxes.map(b => b.x + b.width)) + padding;
-  const maxY = Math.max(...boxes.map(b => b.y + b.height)) + padding;
-
-  const viewport = page.viewportSize();
-  const clipWidth = Math.min(maxX - minX, (viewport?.width || 1280) - minX);
-  const clipHeight = Math.min(maxY - minY, (viewport?.height || 800) - minY);
-
-  // Safeguard against invalid clip dimensions
-  if (clipWidth <= 0 || clipHeight <= 0) {
-    await page.screenshot({ path, fullPage: false });
-    return;
-  }
-
-  await page.screenshot({
-    path,
-    clip: {
-      x: minX,
-      y: minY,
-      width: clipWidth,
-      height: clipHeight,
-    },
-  });
-}
+import {
+  captureElementScreenshot,
+  ensureDirectory,
+  getScreenshotsDir,
+} from './screenshot-helpers';
 
 /**
  * Helper to create a project with some documents for Quick Open testing
@@ -82,26 +35,8 @@ async function setupProjectWithDocuments(
     state: 'visible',
   });
 
-  // Click create project button
-  await page.click('button:has-text("Create Project")');
-
-  // Step 1: Template selection - click Next to proceed
-  const nextButton = page.getByRole('button', { name: /next/i });
-  await nextButton.waitFor({ state: 'visible' });
-  await nextButton.click();
-
-  // Step 2: Fill in project details
-  await page.waitForSelector('input[data-testid="project-title-input"]', {
-    state: 'visible',
-  });
-
-  await page.fill('input[data-testid="project-title-input"]', projectTitle);
-  await page.fill('input[data-testid="project-slug-input"]', projectSlug);
-
-  await page.click('button[data-testid="create-project-button"]');
-
-  // Wait for project to load
-  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {});
+  await createProjectWithTwoSteps(page, projectTitle, projectSlug);
+  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
 
   await page.waitForSelector('[data-testid="project-tree"]', {
     state: 'visible',
@@ -127,26 +62,15 @@ async function setupProjectWithDocuments(
     await dialogInput.waitFor({ state: 'visible' });
     await dialogInput.fill(name);
     await page.getByTestId('create-element-button').click();
-    await page.waitForTimeout(300);
+    await page.locator('mat-dialog-container').waitFor({ state: 'hidden' });
   }
 }
 
 test.describe('Quick Open Screenshots', () => {
-  const screenshotsDir = join(
-    process.cwd(),
-    '..',
-    'docs',
-    'site',
-    'static',
-    'img',
-    'features'
-  );
+  const screenshotsDir = getScreenshotsDir();
 
   test.beforeAll(async () => {
-    // Ensure screenshots directory exists
-    if (!existsSync(screenshotsDir)) {
-      await mkdir(screenshotsDir, { recursive: true });
-    }
+    await ensureDirectory(screenshotsDir);
   });
 
   test.describe('Light Mode', () => {
