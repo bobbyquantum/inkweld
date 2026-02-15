@@ -125,95 +125,12 @@
         <span class="project-title">{{ projectState.project()?.title }}</span>
         <span class="toolbar-spacer"></span>
         <div class="toolbar-actions">
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="moreMenuMobile"
-            class="action-button"
-            data-testid="project-more-menu-button">
-            <mat-icon>more_vert</mat-icon>
-          </button>
           <app-user-menu
             [miniMode]="true"
             class="action-button"></app-user-menu>
         </div>
-        <mat-menu #moreMenuMobile="matMenu">
-          @if (canEnableZenMode() || isZenMode()) {
-            <button mat-menu-item (click)="toggleZenMode()">
-              <mat-icon>self_improvement</mat-icon>
-              <span>Toggle Zen Mode</span>
-            </button>
-          }
-          <button
-            mat-menu-item
-            (click)="onExportClicked()"
-            data-testid="export-project-button">
-            <mat-icon>download</mat-icon>
-            <span>Export project</span>
-          </button>
-          <button
-            mat-menu-item
-            (click)="onImportClicked()"
-            data-testid="import-project-button">
-            <mat-icon>upload</mat-icon>
-            <span>Import project</span>
-          </button>
-          <button
-            mat-menu-item
-            (click)="onDeleteProjectClick()"
-            data-testid="delete-project-button">
-            <mat-icon>delete</mat-icon>
-            <span>Delete project</span>
-          </button>
-          <button mat-menu-item (click)="onPublishClick()">
-            <mat-icon>publish</mat-icon>
-            <span>Publish project</span>
-          </button>
-          <button mat-menu-item (click)="onShowDocumentList()">
-            <mat-icon>list</mat-icon>
-            <span>Show Document List</span>
-          </button>
-        </mat-menu>
       </mat-toolbar>
     }
-
-    <!-- Desktop menu (used when projected into tab bar - defined outside @if to be accessible) -->
-    <mat-menu #moreMenuDesktop="matMenu">
-      @if (canEnableZenMode() || isZenMode()) {
-        <button mat-menu-item (click)="toggleZenMode()">
-          <mat-icon>self_improvement</mat-icon>
-          <span>Toggle Zen Mode</span>
-        </button>
-      }
-      <button
-        mat-menu-item
-        (click)="onExportClicked()"
-        data-testid="export-project-button">
-        <mat-icon>download</mat-icon>
-        <span>Export project</span>
-      </button>
-      <button
-        mat-menu-item
-        (click)="onImportClicked()"
-        data-testid="import-project-button">
-        <mat-icon>upload</mat-icon>
-        <span>Import project</span>
-      </button>
-      <button
-        mat-menu-item
-        (click)="onDeleteProjectClick()"
-        data-testid="delete-project-button">
-        <mat-icon>delete</mat-icon>
-        <span>Delete project</span>
-      </button>
-      <button mat-menu-item (click)="onPublishClick()">
-        <mat-icon>publish</mat-icon>
-        <span>Publish project</span>
-      </button>
-      <button mat-menu-item (click)="onShowDocumentList()">
-        <mat-icon>list</mat-icon>
-        <span>Show Document List</span>
-      </button>
-    </mat-menu>
 
     @if (isMobile()) {
       <div class="mobile-content-wrapper">
@@ -319,14 +236,6 @@
                   <app-tab-interface (importRequested)="onImportClicked()">
                     <!-- Projected into tab-bar-actions -->
                     <app-presence-indicator></app-presence-indicator>
-                    <button
-                      mat-icon-button
-                      [matMenuTriggerFor]="moreMenuDesktop"
-                      class="action-button"
-                      data-testid="project-more-menu-button"
-                      aria-label="More actions">
-                      <mat-icon>more_vert</mat-icon>
-                    </button>
                     <app-user-menu
                       [miniMode]="true"
                       class="action-button"></app-user-menu>
@@ -428,14 +337,6 @@
                     <app-tab-interface (importRequested)="onImportClicked()">
                       <!-- Projected into tab-bar-actions -->
                       <app-presence-indicator></app-presence-indicator>
-                      <button
-                        mat-icon-button
-                        [matMenuTriggerFor]="moreMenuDesktop"
-                        class="action-button"
-                        data-testid="project-more-menu-button"
-                        aria-label="More actions">
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
                       <app-user-menu
                         [miniMode]="true"
                         class="action-button"></app-user-menu>
@@ -457,14 +358,6 @@
               <app-tab-interface (importRequested)="onImportClicked()">
                 <!-- Projected into tab-bar-actions -->
                 <app-presence-indicator></app-presence-indicator>
-                <button
-                  mat-icon-button
-                  [matMenuTriggerFor]="moreMenuDesktop"
-                  class="action-button"
-                  data-testid="project-more-menu-button"
-                  aria-label="More actions">
-                  <mat-icon>more_vert</mat-icon>
-                </button>
                 <app-user-menu
                   [miniMode]="true"
                   class="action-button"></app-user-menu>

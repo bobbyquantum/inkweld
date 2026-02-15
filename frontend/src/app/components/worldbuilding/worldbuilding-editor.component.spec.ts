@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { Element, ElementType } from '../../../api-client';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { ElementTypeSchema, TabSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
@@ -177,6 +177,77 @@ describe('WorldbuildingEditorComponent', () => {
       component['schema'].set(null);
       const fields = component.getFieldsForTab('basic');
       expect(fields).toEqual([]);
+    });
+  });
+
+  describe('getFilledFieldCountForTab', () => {
+    beforeEach(() => {
+      component['schema'].set(mockCharacterSchema);
+      component['buildFormFromSchema'](mockCharacterSchema);
+    });
+
+    it('should return 0 when no fields are filled', () => {
+      expect(component.getFilledFieldCountForTab('basic')).toBe(0);
+    });
+
+    it('should count text fields as filled when non-empty', () => {
+      component.form.patchValue({ name: 'Alice' });
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
+    });
+
+    it('should not count whitespace-only text as filled', () => {
+      component.form.patchValue({ name: '   ' });
+      expect(component.getFilledFieldCountForTab('basic')).toBe(0);
+    });
+
+    it('should count number fields as filled', () => {
+      component.form.patchValue({ age: 25 });
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
+    });
+
+    it('should count textarea fields as filled when non-empty', () => {
+      component.form.patchValue({ bio: 'A brave warrior' });
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
+    });
+
+    it('should count checkbox as filled when true', () => {
+      component.form.patchValue({ isAlive: true });
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
+    });
+
+    it('should not count checkbox as filled when false', () => {
+      component.form.patchValue({ isAlive: false });
+      expect(component.getFilledFieldCountForTab('basic')).toBe(0);
+    });
+
+    it('should count array fields as filled when non-empty', () => {
+      component.addArrayItem('aliases');
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
+    });
+
+    it('should not count empty arrays as filled', () => {
+      expect(component.getFilledFieldCountForTab('basic')).toBe(0);
+    });
+
+    it('should count multiple filled fields', () => {
+      component.form.patchValue({
+        name: 'Alice',
+        age: 30,
+        bio: 'A mage',
+        isAlive: true,
+      });
+      component.addArrayItem('aliases');
+      // 5 of 7 fields filled (name, age, bio, isAlive, aliases)
+      expect(component.getFilledFieldCountForTab('basic')).toBe(5);
+    });
+
+    it('should count nested fields in appearance tab', () => {
+      component.form.patchValue({ appearance: { height: '180cm' } });
+      expect(component.getFilledFieldCountForTab('appearance')).toBe(1);
+    });
+
+    it('should return 0 for non-existent tab', () => {
+      expect(component.getFilledFieldCountForTab('nonexistent')).toBe(0);
     });
   });
 
@@ -387,6 +458,224 @@ describe('WorldbuildingEditorComponent', () => {
         'testuser',
         'test-project'
       );
+    });
+  });
+
+  describe('mobile drill-in navigation', () => {
+    beforeEach(() => {
+      component['schema'].set(mockCharacterSchema);
+    });
+
+    describe('drillInto', () => {
+      it('should set mobileDrillInSection to the given section', () => {
+        component.drillInto('identity');
+        expect(component.mobileDrillInSection()).toBe('identity');
+      });
+
+      it('should set selectedTabIndex when drilling into a tab', () => {
+        component.drillInto('appearance');
+        expect(component.mobileDrillInSection()).toBe('appearance');
+        expect(component.selectedTabIndex()).toBe(1);
+      });
+
+      it('should not change selectedTabIndex for non-tab sections', () => {
+        component.selectedTabIndex.set(0);
+        component.drillInto('identity');
+        expect(component.selectedTabIndex()).toBe(0);
+      });
+
+      it('should set selectedTabIndex to 0 for first tab', () => {
+        component.drillInto('basic');
+        expect(component.selectedTabIndex()).toBe(0);
+      });
+
+      it('should auto-expand meta panel when drilling into relationships', () => {
+        const metaPanel = component.metaPanel();
+        if (metaPanel) {
+          metaPanel.isExpanded.set(false);
+          component.drillInto('relationships');
+          expect(metaPanel.isExpanded()).toBe(true);
+        }
+      });
+
+      it('should not expand meta panel when drilling into non-relationships section', () => {
+        const metaPanel = component.metaPanel();
+        if (metaPanel) {
+          metaPanel.isExpanded.set(false);
+          component.drillInto('identity');
+          expect(metaPanel.isExpanded()).toBe(false);
+        }
+      });
+    });
+
+    describe('drillBack', () => {
+      it('should reset mobileDrillInSection to null', () => {
+        component.drillInto('identity');
+        component.drillBack();
+        expect(component.mobileDrillInSection()).toBeNull();
+      });
+
+      it('should collapse meta panel when drilling back from relationships', () => {
+        const metaPanel = component.metaPanel();
+        if (metaPanel) {
+          component.drillInto('relationships');
+          expect(metaPanel.isExpanded()).toBe(true);
+          component.drillBack();
+          expect(metaPanel.isExpanded()).toBe(false);
+        }
+      });
+
+      it('should not affect meta panel when drilling back from non-relationships section', () => {
+        const metaPanel = component.metaPanel();
+        if (metaPanel) {
+          metaPanel.isExpanded.set(true);
+          component.drillInto('identity');
+          component.drillBack();
+          expect(metaPanel.isExpanded()).toBe(true);
+        }
+      });
+
+      it('should do nothing when not drilled in', () => {
+        component.mobileDrillInSection.set(null);
+        component.drillBack();
+        expect(component.mobileDrillInSection()).toBeNull();
+      });
+    });
+
+    describe('device back button (history state)', () => {
+      it('should push history state when drilling in', () => {
+        const pushStateSpy = vi.spyOn(history, 'pushState');
+        component.drillInto('identity');
+        expect(pushStateSpy).toHaveBeenCalledWith(
+          { wbDrillIn: 'identity' },
+          ''
+        );
+        pushStateSpy.mockRestore();
+      });
+
+      it('should drill back when popstate fires (device back)', () => {
+        component.drillInto('identity');
+        expect(component.mobileDrillInSection()).toBe('identity');
+
+        // Simulate device back button
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        expect(component.mobileDrillInSection()).toBeNull();
+      });
+
+      it('should call history.back when using in-app back button', () => {
+        component.drillInto('identity');
+        const backSpy = vi.spyOn(history, 'back');
+        component.drillBack();
+        expect(backSpy).toHaveBeenCalled();
+        backSpy.mockRestore();
+      });
+
+      it('should not call history.back when popstate already popped', () => {
+        component.drillInto('identity');
+        // Simulate device back button (popstate already popped the entry)
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        const backSpy = vi.spyOn(history, 'back');
+        // drillBack was already called by popstate, so calling again should be a no-op
+        component.drillBack();
+        expect(backSpy).not.toHaveBeenCalled();
+        backSpy.mockRestore();
+      });
+
+      it('should clean up popstate listener on destroy', () => {
+        const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
+        component.drillInto('identity');
+        component.ngOnDestroy();
+        expect(
+          removeListenerSpy.mock.calls.some(([event]) => event === 'popstate')
+        ).toBe(true);
+        removeListenerSpy.mockRestore();
+      });
+    });
+
+    describe('getActiveSectionLabel', () => {
+      it('should return empty string when not drilled in', () => {
+        expect(component.getActiveSectionLabel()).toBe('');
+      });
+
+      it('should return "Identity & Details" for identity section', () => {
+        component.mobileDrillInSection.set('identity');
+        expect(component.getActiveSectionLabel()).toBe('Identity & Details');
+      });
+
+      it('should return "Relationships" for relationships section', () => {
+        component.mobileDrillInSection.set('relationships');
+        expect(component.getActiveSectionLabel()).toBe('Relationships');
+      });
+
+      it('should return tab label for a tab section', () => {
+        component.mobileDrillInSection.set('basic');
+        expect(component.getActiveSectionLabel()).toBe('Basic Info');
+      });
+
+      it('should return section key as fallback for unknown tab', () => {
+        component.mobileDrillInSection.set('unknown');
+        expect(component.getActiveSectionLabel()).toBe('unknown');
+      });
+    });
+
+    describe('isDrilledIntoTab', () => {
+      it('should return false when not drilled in', () => {
+        expect(component.isDrilledIntoTab()).toBe(false);
+      });
+
+      it('should return false for identity section', () => {
+        component.mobileDrillInSection.set('identity');
+        expect(component.isDrilledIntoTab()).toBe(false);
+      });
+
+      it('should return false for relationships section', () => {
+        component.mobileDrillInSection.set('relationships');
+        expect(component.isDrilledIntoTab()).toBe(false);
+      });
+
+      it('should return true for a tab section', () => {
+        component.mobileDrillInSection.set('basic');
+        expect(component.isDrilledIntoTab()).toBe(true);
+      });
+    });
+
+    describe('getTabIcon', () => {
+      it('should return tab icon when defined', () => {
+        const tab: TabSchema = {
+          key: 'test',
+          label: 'Test',
+          icon: 'star',
+          order: 1,
+          fields: [],
+        };
+        expect(component.getTabIcon(tab)).toBe('star');
+      });
+
+      it('should return "article" fallback when no icon', () => {
+        const tab: TabSchema = {
+          key: 'test',
+          label: 'Test',
+          order: 1,
+          fields: [],
+        };
+        expect(component.getTabIcon(tab)).toBe('article');
+      });
+    });
+
+    describe('resize cleanup', () => {
+      it('should clean up resize listener on destroy', () => {
+        const mockResizeCleanup = vi.fn();
+        component['resizeCleanup'] = mockResizeCleanup;
+
+        component.ngOnDestroy();
+
+        expect(mockResizeCleanup).toHaveBeenCalled();
+      });
+
+      it('should handle destroy when no resize cleanup exists', () => {
+        component['resizeCleanup'] = null;
+        expect(() => component.ngOnDestroy()).not.toThrow();
+      });
     });
   });
 });

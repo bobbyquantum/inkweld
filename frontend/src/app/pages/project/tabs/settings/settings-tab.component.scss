@@ -559,6 +559,38 @@ mat-card {
   gap: 8px;
 }
 
+// Action tab cards
+.action-card {
+  margin-bottom: 16px;
+
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+    }
+  }
+
+  mat-card-content {
+    padding: 16px;
+
+    p {
+      margin: 0 0 16px 0;
+      color: var(--sys-on-surface-variant);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    code {
+      background: var(--sys-surface-container-high);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+  }
+}
+
 // Collaboration styles
 .collaborators-card {
   mat-card-content {

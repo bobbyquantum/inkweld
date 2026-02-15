@@ -12,7 +12,6 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -68,7 +67,6 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     MatIconModule,
     MatProgressSpinnerModule,
     MatToolbarModule,
-    MatMenuModule,
     MatTooltipModule,
     ConnectionStatusComponent,
     PresenceIndicatorComponent,
