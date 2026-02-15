@@ -20,12 +20,15 @@
  */
 
 import { Page } from '@playwright/test';
-import { existsSync } from 'fs';
-import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
-import { DEMO_ASSETS, getDemoAssetPath } from '../common/test-helpers';
+import {
+  createProjectWithTwoSteps,
+  DEMO_ASSETS,
+  getDemoAssetPath,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
+import { ensureDirectory, getScreenshotsDir } from './screenshot-helpers';
 
 const DESKTOP_VIEWPORT = { width: 1280, height: 800 };
 
@@ -57,25 +60,8 @@ async function setupWorldbuildingAtMobile(
     state: 'visible',
   });
 
-  // Create a project
-  await page.click('button:has-text("Create Project")');
-
-  // Step 1: Template selection - click Next
-  const nextButton = page.getByRole('button', { name: /next/i });
-  await nextButton.waitFor({ state: 'visible' });
-  await nextButton.click();
-
-  // Step 2: Fill in project details
-  await page.waitForSelector('input[data-testid="project-title-input"]', {
-    state: 'visible',
-  });
-  await page.fill(
-    'input[data-testid="project-title-input"]',
-    'Mobile Test Project'
-  );
-  await page.fill('input[data-testid="project-slug-input"]', projectSlug);
-  await page.click('button[data-testid="create-project-button"]');
-  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {});
+  await createProjectWithTwoSteps(page, 'Mobile Test Project', projectSlug);
+  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
 
   // Create a worldbuilding element (sidebar is visible at desktop viewport)
   await page.getByTestId('create-new-element').click();
@@ -97,8 +83,7 @@ async function setupWorldbuildingAtMobile(
 
   // Now resize to mobile viewport — this triggers drill-in overview mode
   await page.setViewportSize(mobileViewport);
-  // Wait for layout to settle after resize
-  await page.waitForTimeout(500);
+  await expect(page.getByTestId('mobile-section-list')).toBeVisible();
 }
 
 /**
@@ -166,21 +151,10 @@ async function uploadRealImage(page: Page): Promise<void> {
 }
 
 test.describe('Worldbuilding Mobile Screenshots', () => {
-  const screenshotsDir = join(
-    process.cwd(),
-    '..',
-    'docs',
-    'site',
-    'static',
-    'img',
-    'features',
-    'mobile'
-  );
+  const screenshotsDir = getScreenshotsDir('mobile');
 
   test.beforeAll(async () => {
-    if (!existsSync(screenshotsDir)) {
-      await mkdir(screenshotsDir, { recursive: true });
-    }
+    await ensureDirectory(screenshotsDir);
   });
 
   for (const [viewportName, viewport] of Object.entries(MOBILE_VIEWPORTS)) {
@@ -227,7 +201,6 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
 
         // Drill into identity section
         await page.getByTestId('drill-identity').click();
-        await page.waitForTimeout(300);
 
         // Verify detail header with back button
         await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
@@ -247,7 +220,6 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
 
         // Verify back button returns to overview
         await page.getByTestId('mobile-back-button').click();
-        await page.waitForTimeout(300);
         await expect(page.getByTestId('mobile-section-list')).toBeVisible();
       });
 
@@ -265,7 +237,6 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           '.mobile-section-card:not([data-testid="drill-identity"]):not([data-testid="drill-relationships"])'
         );
         await firstTabCard.first().click();
-        await page.waitForTimeout(300);
 
         // Verify detail header is visible
         await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
@@ -302,7 +273,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           '.mobile-section-card:not([data-testid="drill-identity"]):not([data-testid="drill-relationships"])'
         );
         await firstTabCard.first().click();
-        await page.waitForTimeout(300);
+        await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
 
         // Verify no horizontal overflow
         const hasHorizontalOverflow = await page.evaluate(() => {
@@ -376,7 +347,6 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
 
       // Drill into identity
       await page.getByTestId('drill-identity').click();
-      await page.waitForTimeout(300);
 
       await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
       await expect(page.locator('app-identity-panel')).toBeVisible();
@@ -404,7 +374,6 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
         '.mobile-section-card:not([data-testid="drill-identity"]):not([data-testid="drill-relationships"])'
       );
       await firstTabCard.first().click();
-      await page.waitForTimeout(300);
 
       await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
       await expect(page.locator('.editor-section')).toBeVisible();

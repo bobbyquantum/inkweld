@@ -48,8 +48,7 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Brief pause for images and animations to settle
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('networkidle');
 
     // Take screenshot
     await page.screenshot({
@@ -72,10 +71,6 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Wait a bit for project cards and images to load
-    await page.waitForTimeout(500);
-
-    // No carousel clicking needed - grid shows all projects
     const projectCards = page.locator('[data-testid="project-card"]');
     await projectCards.first().waitFor({ state: 'visible' });
 
@@ -100,10 +95,6 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Wait for project cards to load
-    await page.waitForTimeout(500);
-
-    // No carousel clicking needed - grid shows all projects
     const projectCards = page.locator('[data-testid="project-card"]');
     await projectCards.first().waitFor({ state: 'visible' });
 
@@ -131,10 +122,6 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Wait for project cards to load
-    await page.waitForTimeout(500);
-
-    // No carousel clicking needed - grid shows all projects
     const projectCards = page.locator('[data-testid="project-card"]');
     await projectCards.first().waitFor({ state: 'visible' });
 
@@ -173,7 +160,6 @@ test.describe('PWA Screenshots', () => {
     await page.waitForSelector('.home-tab-content', {
       state: 'visible',
     });
-    await page.waitForTimeout(500);
 
     // Take screenshot of project home page
     await page.screenshot({
@@ -212,11 +198,9 @@ test.describe('PWA Screenshots', () => {
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
     });
-    await page.waitForTimeout(500);
 
     // Click the "Create" button at the bottom of the tree
     await page.click('[data-testid="create-new-element"]');
-    await page.waitForTimeout(300);
 
     // Wait for the dialog to appear
     await page.waitForSelector('mat-dialog-container', {
@@ -263,11 +247,9 @@ test.describe('PWA Screenshots', () => {
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
     });
-    await page.waitForTimeout(500);
 
     // Click the "Create" button at the bottom of the tree
     await page.click('[data-testid="create-new-element"]');
-    await page.waitForTimeout(300);
 
     // Wait for the dialog to appear
     await page.waitForSelector('mat-dialog-container', {
@@ -311,12 +293,10 @@ test.describe('PWA Screenshots', () => {
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
     });
-    await page.waitForTimeout(500);
 
     // Right-click on the "Chronicles" folder to open context menu
     const folder = page.locator('[data-testid="element-Chronicles"]');
     await folder.click({ button: 'right' });
-    await page.waitForTimeout(300);
 
     // Wait for context menu to appear
     await page.waitForSelector('.context-menu', {
@@ -384,12 +364,10 @@ test.describe('PWA Screenshots', () => {
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
     });
-    await page.waitForTimeout(500);
 
     // Right-click on the "Chronicles" folder to open context menu
     const folder = page.locator('[data-testid="element-Chronicles"]');
     await folder.click({ button: 'right' });
-    await page.waitForTimeout(300);
 
     // Wait for context menu to appear
     await page.waitForSelector('.context-menu', {
