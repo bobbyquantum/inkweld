@@ -154,9 +154,10 @@ export class MarkdownGeneratorService {
         item,
         elements,
         plan.options,
-        chapterNumber
+        chapterNumber,
+        plan
       );
-      sections.push(content);
+      if (content.trim()) sections.push(content);
 
       if (item.type === PublishPlanItemType.Element && item.isChapter) {
         chapterNumber++;
@@ -187,7 +188,8 @@ export class MarkdownGeneratorService {
     item: PublishPlanItem,
     elements: Element[],
     options: PublishOptions,
-    chapterNumber: number
+    chapterNumber: number,
+    plan: PublishPlan
   ): Promise<string> {
     switch (item.type) {
       case PublishPlanItemType.Element:
@@ -200,7 +202,7 @@ export class MarkdownGeneratorService {
         return this.processFrontmatter(item);
 
       case PublishPlanItemType.TableOfContents:
-        return '## Table of Contents\n\n[TOC]';
+        return this.buildTOC(plan, elements);
 
       default:
         return '';
@@ -312,6 +314,7 @@ export class MarkdownGeneratorService {
     if (Array.isArray(data)) {
       return data
         .map(node => this.nodeToMarkdown(node as ProseMirrorNode))
+        .filter(s => s.trim())
         .join('\n\n');
     }
     if (typeof data === 'object') {
@@ -324,7 +327,10 @@ export class MarkdownGeneratorService {
     if (!node) return '';
     if (typeof node === 'string') return node;
     if (Array.isArray(node)) {
-      return node.map(n => this.nodeToMarkdown(n)).join('\n\n');
+      return node
+        .map(n => this.nodeToMarkdown(n))
+        .filter(s => s.trim())
+        .join('\n\n');
     }
 
     const nodeName = this.getNodeName(node);
@@ -332,6 +338,12 @@ export class MarkdownGeneratorService {
     const childText = children.map(c => this.extractText(c)).join('');
 
     switch (nodeName) {
+      case 'doc':
+        return children
+          .map(c => this.nodeToMarkdown(c))
+          .filter(s => s.trim())
+          .join('\n\n');
+
       case 'paragraph':
         return childText;
 
@@ -341,22 +353,44 @@ export class MarkdownGeneratorService {
         return `${hashes} ${childText}`;
       }
 
-      case 'blockquote':
-        return childText
+      case 'blockquote': {
+        // Recursively render block children, then prefix each line with '> '
+        const inner = children
+          .map(c => this.nodeToMarkdown(c))
+          .filter(s => s.trim())
+          .join('\n\n');
+        return inner
           .split('\n')
           .map(line => `> ${line}`)
           .join('\n');
+      }
 
       case 'bullet_list':
-        return children.map(c => `- ${this.extractText(c)}`).join('\n');
+        return children.map(c => this.renderListItem(c, '-', 0)).join('\n');
 
       case 'ordered_list':
         return children
-          .map((c, i) => `${i + 1}. ${this.extractText(c)}`)
+          .map((c, i) => this.renderListItem(c, `${i + 1}.`, 0))
           .join('\n');
 
-      case 'code_block':
-        return '```\n' + childText + '\n```';
+      case 'image': {
+        const attrs = (node as Record<string, unknown>)['attrs'] as
+          | Record<string, unknown>
+          | undefined;
+        const src = this.safeStringAttr(attrs, 'src');
+        const alt = this.safeStringAttr(attrs, 'alt');
+        const title = this.safeStringAttr(attrs, 'title');
+        if (!src) return '';
+        return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
+      }
+
+      case 'code_block': {
+        const langAttr = (node as Record<string, unknown>)['attrs'] as
+          | Record<string, unknown>
+          | undefined;
+        const lang = this.safeStringAttr(langAttr, 'lang');
+        return '```' + lang + '\n' + childText + '\n```';
+      }
 
       case 'horizontal_rule':
         return '---';
@@ -369,6 +403,33 @@ export class MarkdownGeneratorService {
     }
   }
 
+  /**
+   * Render a list_item node with a given bullet prefix, indenting nested lists.
+   */
+  private renderListItem(
+    node: ProseMirrorNode,
+    bullet: string,
+    _depth: number
+  ): string {
+    if (!node) return '';
+    const children = this.getChildren(node);
+    const [first, ...rest] = children;
+    const itemText = first ? this.extractText(first) : '';
+    const line = `${bullet} ${itemText}`;
+    if (rest.length === 0) return line;
+    const nested = rest
+      .map(c => this.nodeToMarkdown(c))
+      .join('\n')
+      .split('\n')
+      .map(l => `  ${l}`)
+      .join('\n');
+    return `${line}\n${nested}`;
+  }
+
+  /**
+   * Extract inline text from a node, preserving inline formatting as Markdown.
+   * Images within inline contexts are rendered as Markdown image syntax.
+   */
   private extractText(node: ProseMirrorNode): string {
     if (!node) return '';
     if (typeof node === 'string') return node;
@@ -376,9 +437,9 @@ export class MarkdownGeneratorService {
       return node.map(n => this.extractText(n)).join('');
     }
 
-    // Handle elementRef nodes - render display text as plain text
-    // These are design-time references, no special rendering in published output
     const nodeName = this.getNodeName(node);
+
+    // Inline element reference - render display text
     if (nodeName === 'elementRef') {
       const attrs = (node as Record<string, unknown>)['attrs'] as
         | Record<string, unknown>
@@ -387,27 +448,136 @@ export class MarkdownGeneratorService {
       return typeof displayText === 'string' ? displayText : '';
     }
 
+    // Inline image
+    if (nodeName === 'image') {
+      const attrs = (node as Record<string, unknown>)['attrs'] as
+        | Record<string, unknown>
+        | undefined;
+      const src = this.safeStringAttr(attrs, 'src');
+      const alt = this.safeStringAttr(attrs, 'alt');
+      const title = this.safeStringAttr(attrs, 'title');
+      if (!src) return '';
+      return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
+    }
+
+    // Hard break
+    if (nodeName === 'hard_break') return '  \n';
+
     const text = (node as Record<string, unknown>)['text'];
     if (typeof text === 'string') {
-      const marks = this.getMarks(node);
-      let result = text;
-      if (marks.includes('bold') || marks.includes('strong')) {
-        result = `**${result}**`;
-      }
-      if (marks.includes('italic') || marks.includes('em')) {
-        result = `*${result}*`;
-      }
-      if (marks.includes('code')) {
-        result = `\`${result}\``;
-      }
-      if (marks.includes('strike')) {
-        result = `~~${result}~~`;
-      }
-      return result;
+      const rawMarks = this.getRawMarks(node);
+      return this.applyMarks(text, rawMarks);
     }
 
     const children = this.getChildren(node);
     return children.map(c => this.extractText(c)).join('');
+  }
+
+  /**
+   * Apply ProseMirror marks to a text string, producing Markdown/HTML syntax.
+   * Link marks are applied last so they wrap the fully-formatted text.
+   */
+  private applyMarks(
+    text: string,
+    marks: Array<{ type: string; attrs?: Record<string, unknown> }>
+  ): string {
+    let result = text;
+    let linkHref: string | undefined;
+    let linkTitle: string | undefined;
+
+    for (const mark of marks) {
+      switch (mark.type) {
+        case 'bold':
+        case 'strong':
+          result = `**${result}**`;
+          break;
+        case 'italic':
+        case 'em':
+          result = `*${result}*`;
+          break;
+        case 'code':
+          result = `\`${result}\``;
+          break;
+        case 'strike':
+        case 's':
+          result = `~~${result}~~`;
+          break;
+        case 'u':
+          // Underline has no native Markdown syntax; use inline HTML
+          result = `<u>${result}</u>`;
+          break;
+        case 'sup':
+          result = `<sup>${result}</sup>`;
+          break;
+        case 'sub':
+          result = `<sub>${result}</sub>`;
+          break;
+        case 'link':
+          linkHref = this.safeStringAttr(mark.attrs, 'href');
+          linkTitle = mark.attrs?.['title']
+            ? this.safeStringAttr(mark.attrs, 'title')
+            : undefined;
+          break;
+        // text_color and text_background_color have no Markdown equivalent;
+        // we intentionally drop them to keep the output clean.
+        default:
+          break;
+      }
+    }
+
+    // Apply link last so it wraps the fully-formatted inline content
+    if (linkHref) {
+      result = linkTitle
+        ? `[${result}](${linkHref} "${linkTitle}")`
+        : `[${result}](${linkHref})`;
+    }
+
+    return result;
+  }
+
+  /**
+   * Return raw mark objects (type + attrs) from a ProseMirror node.
+   * Unlike the old getMarks(), this preserves attrs so link hrefs etc. are available.
+   */
+  private getRawMarks(
+    node: ProseMirrorNode
+  ): Array<{ type: string; attrs?: Record<string, unknown> }> {
+    if (typeof node !== 'object' || !node) return [];
+    const marks = (node as Record<string, unknown>)['marks'];
+    if (!Array.isArray(marks)) return [];
+    return marks
+      .map(m => {
+        if (typeof m === 'string') return { type: m };
+        if (typeof m === 'object' && m !== null) {
+          const markObj = m as Record<string, unknown>;
+          const typeVal = markObj['type'];
+          // ProseMirror serialises mark type as a string; ngx-editor may also
+          // produce objects with a `name` field depending on the version.
+          const type =
+            typeof typeVal === 'object' && typeVal !== null && 'name' in typeVal
+              ? String((typeVal as Record<string, unknown>)['name'])
+              : typeof typeVal === 'string'
+                ? typeVal
+                : '';
+          const attrs = markObj['attrs'] as Record<string, unknown> | undefined;
+          return { type, attrs };
+        }
+        return { type: '' };
+      })
+      .filter(m => Boolean(m.type));
+  }
+
+  /**
+   * Safely extract a string attribute from a ProseMirror attrs object.
+   * Returns an empty string if the value is absent or not a string,
+   * avoiding the no-base-to-string lint error.
+   */
+  private safeStringAttr(
+    attrs: Record<string, unknown> | undefined,
+    key: string
+  ): string {
+    const value = attrs?.[key];
+    return typeof value === 'string' ? value : '';
   }
 
   private getNodeName(node: ProseMirrorNode): string {
@@ -424,20 +594,6 @@ export class MarkdownGeneratorService {
     if ('children' in node && Array.isArray(node['children']))
       return node['children'] as ProseMirrorNode[];
     return [];
-  }
-
-  private getMarks(node: ProseMirrorNode): string[] {
-    if (typeof node !== 'object' || !node) return [];
-    const marks = (node as Record<string, unknown>)['marks'];
-    if (!Array.isArray(marks)) return [];
-    return marks
-      .map(m => {
-        if (typeof m === 'string') return m;
-        if (typeof m === 'object' && m && 'type' in m)
-          return String((m as Record<string, unknown>)['type']);
-        return '';
-      })
-      .filter(Boolean);
   }
 
   private getAttr(
@@ -536,5 +692,58 @@ export class MarkdownGeneratorService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
     return `${safeName || 'document'}.md`;
+  }
+
+  /**
+   * Build a real Markdown Table of Contents from the plan's element items.
+   *
+   * Each top-level element gets a TOC entry linked to a heading anchor that
+   * matches the # heading emitted by processElement(). GitHub-Flavored Markdown
+   * anchor rules are used (lowercase, hyphens for spaces/non-alphanum).
+   */
+  private buildTOC(plan: PublishPlan, elements: Element[]): string {
+    const lines: string[] = ['## Table of Contents', ''];
+    let chapterNumber = 0;
+
+    for (const item of plan.items) {
+      if (item.type !== PublishPlanItemType.Element) continue;
+
+      const element = elements.find(e => e.id === item.elementId);
+      if (!element) continue;
+
+      const title = item.titleOverride || element.name;
+      const formattedTitle = this.formatChapterTitle(
+        title,
+        chapterNumber,
+        item.isChapter ?? false,
+        plan.options
+      );
+
+      const anchor = this.headingToAnchor(formattedTitle);
+
+      if (element.type === ElementType.Folder && item.includeChildren) {
+        // Folder: list as a section header (no link, no anchor)
+        lines.push(`- **${formattedTitle}**`);
+      } else {
+        lines.push(`- [${formattedTitle}](#${anchor})`);
+      }
+
+      if (item.isChapter) chapterNumber++;
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Convert a heading string to a GitHub-Flavored Markdown anchor slug.
+   * Rules: lowercase, spaces -> hyphens, strip non-alphanumeric/hyphen chars.
+   */
+  private headingToAnchor(heading: string): string {
+    return heading
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 }
