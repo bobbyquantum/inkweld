@@ -13,6 +13,8 @@ The InkWeld frontend is a modern, modular Angular 21 application designed to pro
 - Theming and customization support
 - API client abstraction for backend communication
 - Strict linting and formatting rules for code quality
+- Live word count and reading time estimate in the document editor status bar
+- Markdown export with full inline formatting (links, images, underline, sup/sub, nested lists, real GFM table of contents)
 
 ## Architecture
 
