@@ -85,6 +85,7 @@ describe('DocumentElementEditorComponent', () => {
   let documentServiceMock: Partial<DocumentService>;
   let projectStateServiceMock: Partial<ProjectStateService>;
   let settingsServiceMock: Partial<SettingsService>;
+  let wordCountSignal: ReturnType<typeof signal<number>>;
 
   const mockProject: Project = {
     id: '1',
@@ -98,7 +99,7 @@ describe('DocumentElementEditorComponent', () => {
 
   beforeEach(async () => {
     const syncStatusSignal = signal(DocumentSyncState.Synced);
-    const wordCountSignal = signal(0);
+    wordCountSignal = signal(0);
     const isLoadingSignal = signal(false);
     const projectSignal = signal<Project | undefined>(mockProject);
     const elementsSignal = signal<Element[]>([]);
@@ -192,6 +193,41 @@ describe('DocumentElementEditorComponent', () => {
 
       expect(component.wordCount()).toBe(0);
       expect(documentServiceMock.getWordCountSignal).toHaveBeenCalled();
+    });
+  });
+
+  describe('wordCountFormatted', () => {
+    it('should format 0 words as "0"', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+
+      expect(component.wordCountFormatted()).toBe('0');
+    });
+  });
+
+  describe('readingTime', () => {
+    it('should return empty string when word count is 0', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+
+      expect(component.readingTime()).toBe('');
+    });
+
+    it('should return estimated reading time for non-zero word count', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      wordCountSignal.set(400);
+      fixture.detectChanges();
+
+      // 400 words / 200 wpm = 2 min
+      expect(component.readingTime()).toBe('~2 min read');
+    });
+
+    it('should round up to at least 1 minute for small word counts', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      wordCountSignal.set(50);
+      fixture.detectChanges();
+
+      expect(component.readingTime()).toBe('~1 min read');
     });
   });
 
