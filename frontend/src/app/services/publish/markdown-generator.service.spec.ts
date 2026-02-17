@@ -317,7 +317,82 @@ describe('MarkdownGeneratorService', () => {
 
       expect(result.success).toBe(true);
       const text = await result.file!.text();
-      expect(text).toContain('[TOC]');
+      // Real TOC is generated — check for the heading
+      expect(text).toContain('## Table of Contents');
+    });
+
+    it('should generate real TOC with element links', async () => {
+      const planWithTocAndElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'toc-1',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithTocAndElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('## Table of Contents');
+      // The element item 'Chapter 1' should appear as a TOC link
+      expect(text).toContain('[Chapter 1]');
+    });
+
+    it('should render folder elements as bold section headers in TOC', async () => {
+      const folderElement: Element = {
+        id: 'folder-1',
+        name: 'Part One',
+        type: ElementType.Folder,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: true,
+        version: 1,
+        metadata: {},
+      } as Element;
+
+      projectStateMock.elements = signal([folderElement]);
+
+      const planWithFolderToc: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'toc-1',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'folder-1',
+            includeChildren: true,
+            isChapter: false,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithFolderToc);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('## Table of Contents');
+      // Folder entries should show as bold section headers, not links
+      expect(text).toContain('**Part One**');
     });
 
     it('should handle chapter break separator', async () => {
@@ -958,6 +1033,273 @@ describe('MarkdownGeneratorService', () => {
       expect(result.success).toBe(true);
       const text = await result.file!.text();
       expect(text).toContain('*Emphasized text*');
+    });
+
+    it('should handle link marks with href', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              text: 'Visit us',
+              marks: [{ type: 'link', attrs: { href: 'https://example.com' } }],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('[Visit us](https://example.com)');
+    });
+
+    it('should handle link marks with href and title', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              text: 'Hover me',
+              marks: [
+                {
+                  type: 'link',
+                  attrs: { href: 'https://example.com', title: 'Example' },
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('[Hover me](https://example.com "Example")');
+    });
+
+    it('should handle underline marks as HTML', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [{ text: 'underlined', marks: [{ type: 'u' }] }],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('<u>underlined</u>');
+    });
+
+    it('should handle superscript marks as HTML', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [{ text: '2', marks: [{ type: 'sup' }] }],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('<sup>2</sup>');
+    });
+
+    it('should handle subscript marks as HTML', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [{ text: '2', marks: [{ type: 'sub' }] }],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('<sub>2</sub>');
+    });
+
+    it('should render image nodes as Markdown image syntax', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'image',
+          attrs: { src: 'https://example.com/photo.jpg', alt: 'A sunset' },
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('![A sunset](https://example.com/photo.jpg)');
+    });
+
+    it('should render image nodes with title', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'image',
+          attrs: {
+            src: 'https://example.com/photo.jpg',
+            alt: 'A sunset',
+            title: 'Caption',
+          },
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain(
+        '![A sunset](https://example.com/photo.jpg "Caption")'
+      );
+    });
+
+    it('should handle nested list with sub-items', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'bullet_list',
+          content: [
+            {
+              type: 'list_item',
+              content: [
+                { type: 'paragraph', content: [{ text: 'Parent item' }] },
+                {
+                  type: 'bullet_list',
+                  content: [
+                    {
+                      type: 'list_item',
+                      content: [
+                        {
+                          type: 'paragraph',
+                          content: [{ text: 'Child item' }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('- Parent item');
+      expect(text).toContain('  - Child item');
     });
 
     it('should handle string marks in marks array', async () => {
