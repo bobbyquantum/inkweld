@@ -166,6 +166,22 @@ export class DocumentElementEditorComponent
     return this.documentService.getWordCountSignal(this.documentIdSignal())();
   });
 
+  /** Word count formatted with locale separators (e.g. 1,234) */
+  readonly wordCountFormatted = computed(() =>
+    this.wordCount().toLocaleString()
+  );
+
+  /**
+   * Estimated reading time at 200 words per minute.
+   * Returns an empty string when the document has no words.
+   */
+  readonly readingTime = computed(() => {
+    const wc = this.wordCount();
+    if (wc === 0) return '';
+    const minutes = Math.max(1, Math.ceil(wc / 200));
+    return `~${minutes} min read`;
+  });
+
   /** Element name for the current document */
   readonly elementName = computed(() => {
     const docId = this.documentIdSignal();

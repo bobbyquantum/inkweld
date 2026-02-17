@@ -42,10 +42,15 @@
           </div>
         </div>
       </div>
-      <!-- Status bar showing word count and sync status -->
+      <!-- Status bar showing word count, reading time and sync status -->
       @if (!zenMode) {
         <div class="editor-status-bar">
-          <span>Words: {{ wordCount() }}</span>
+          <span class="status-stats">
+            <span>{{ wordCountFormatted() }} words</span>
+            @if (readingTime()) {
+              <span class="reading-time">· {{ readingTime() }}</span>
+            }
+          </span>
           <span class="sync-status">
             <span class="sync-dot {{ syncState() }}"></span>
             {{ syncState() }}
