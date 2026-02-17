@@ -135,7 +135,7 @@
     "playwright-ng-schematics": "21.0.3",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.7.4",
-    "rimraf": "6.1.2",
+    "rimraf": "6.1.3",
     "sharp": "^0.34.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.51.0",
