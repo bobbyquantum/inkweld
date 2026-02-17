@@ -277,6 +277,16 @@
   font-size: 0.875rem;
   color: var(--sys-on-surface);
 
+  .status-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .reading-time {
+      opacity: 0.7;
+    }
+  }
+
   .sync-status {
     display: flex;
     align-items: center;
