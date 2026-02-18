@@ -180,14 +180,22 @@ import { ElementRefService } from '../element-ref.service';
         display: flex;
         align-items: center;
         padding: 8px 12px;
+        padding-left: 9px;
         cursor: pointer;
         gap: 8px;
-        transition: background-color 0.1s ease;
+        transition:
+          background-color 0.1s ease,
+          border-left-color 0.1s ease;
+        border-left: 3px solid transparent;
       }
 
-      .result-item:hover,
-      .result-item.selected {
+      .result-item:hover {
         background-color: var(--sys-surface-container-high, #f0f0f0);
+      }
+
+      .result-item.selected {
+        background-color: var(--sys-secondary-container, #e8def8);
+        border-left-color: var(--sys-primary, #6750a4);
       }
 
       .result-icon {

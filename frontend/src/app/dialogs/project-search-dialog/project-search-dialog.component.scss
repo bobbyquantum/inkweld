@@ -84,9 +84,13 @@
   display: flex;
   align-items: flex-start;
   padding: 10px 16px;
+  padding-left: 13px; // 3px left border eats the 3px so visual stays aligned
   cursor: pointer;
   gap: 12px;
-  transition: background-color 0.1s ease;
+  transition:
+    background-color 0.1s ease,
+    border-left-color 0.1s ease;
+  border-left: 3px solid transparent;
 
   &:hover {
     background-color: var(--mat-sys-surface-container-highest);
@@ -94,6 +98,7 @@
 
   &.selected {
     background-color: var(--mat-sys-secondary-container);
+    border-left-color: var(--mat-sys-primary);
   }
 
   .result-icon {

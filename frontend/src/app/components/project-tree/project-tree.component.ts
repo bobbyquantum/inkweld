@@ -30,7 +30,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
 import { ProjectSearchService } from '@services/core/project-search.service';
-import { QuickOpenService } from '@services/core/quick-open.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
@@ -66,7 +65,6 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
 export class ProjectTreeComponent implements OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
   private logger = inject(LoggerService);
-  private quickOpenService = inject(QuickOpenService);
   private projectSearchService = inject(ProjectSearchService);
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
@@ -670,13 +668,6 @@ export class ProjectTreeComponent implements OnDestroy {
       this.projectStateService.openSystemTab('home');
       void this.router.navigate(['/', project.username, project.slug]);
     }
-  }
-
-  /**
-   * Opens the quick open dialog.
-   */
-  public openQuickOpen(): void {
-    this.quickOpenService.open();
   }
 
   /**

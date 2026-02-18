@@ -2,7 +2,7 @@
 .aria-tree {
   flex: 1;
   overflow-y: auto;
-  background-color: var(--sys-surface-container);
+  background-color: var(--sys-surface-container-lowest);
   padding: 0;
   margin: 0;
   list-style: none;
@@ -196,7 +196,7 @@
   align-items: center;
   gap: 4px;
   padding: 8px;
-  background-color: var(--sys-surface-container);
+  background-color: var(--sys-surface-container-lowest);
   border-bottom: 1px solid var(--sys-outline-variant);
   flex-shrink: 0;
 

@@ -168,11 +168,11 @@
                 </button>
                 <button
                   mat-icon-button
-                  (click)="openQuickOpen()"
-                  matTooltip="Quick Open (Ctrl+P)"
-                  data-testid="collapsed-quick-open-button"
-                  aria-label="Quick Open">
-                  <mat-icon>search</mat-icon>
+                  (click)="openProjectSearch()"
+                  matTooltip="Search in Project (Ctrl+Shift+F)"
+                  data-testid="collapsed-project-search-button"
+                  aria-label="Search in Project">
+                  <mat-icon>manage_search</mat-icon>
                 </button>
                 @if (projectState.canWrite()) {
                   <button
