@@ -65,3 +65,4 @@ Quick Open is the fastest way to navigate large projects. Build muscle memory wi
 
 ---
 
+**Related:** [Project Search](./project-search) — search inside documents across your whole project with `Ctrl/Cmd + Shift + F`.

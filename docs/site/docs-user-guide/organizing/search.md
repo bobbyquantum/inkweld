@@ -52,6 +52,12 @@ See [Element References](../worldbuilding/element-references) for details.
 
 Open documents appear as tabs at the top of the editor. Click tabs to switch between open documents. Right-click a tab for options like Close, Close Others, or Rename.
 
+## Project-wide Search
+
+Press `Ctrl/Cmd + Shift + F` (or click the search icon in the sidebar toolbar) to search across **all documents** in your project at once. Results show matching snippets with the search term highlighted, and clicking a result opens that document directly.
+
+See [Project Search](./project-search) for full details.
+
 ## Find in Document
 
 Press `Ctrl/Cmd + F` while editing a document to open the find bar. This lets you search for text within the current document, navigate between matches, and optionally replace text. See [The Editor — Find and Replace](../writing/editor#find-and-replace) for full details.
