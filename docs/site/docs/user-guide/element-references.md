@@ -81,6 +81,15 @@ The popup shows icons based on the element's template. Common examples:
 
 ## Editing References
 
+### Context Menu
+
+Right-clicking an element reference opens a context menu with options:
+
+<ThemedImage
+  src="/img/features/element-ref-context-menu"
+  alt="Context menu on a right-clicked element reference"
+/>
+
 ### Change Display Text
 
 By default, the element's name is shown. To use custom text:
@@ -89,6 +98,11 @@ By default, the element's name is shown. To use custom text:
 2. Select **"Edit Display Text"**
 3. Enter your preferred text
 4. Click **Save** or press Enter
+
+<ThemedImage
+  src="/img/features/element-ref-edit-mode"
+  alt="Inline edit mode for changing the display text of an element reference"
+/>
 
 Example: Change `@Elena Blackwood` to display as just `Elena` or `the sorceress`.
 
@@ -107,6 +121,11 @@ Or:
 ## The Relationships Panel
 
 The side panel shows all relationships for the current document:
+
+<ThemedImage
+  src="/img/features/element-ref-backlinks-panel"
+  alt="Relationships panel showing references and backlinks for a worldbuilding element"
+/>
 
 ### References (Outgoing)
 
@@ -165,6 +184,6 @@ Use backlinks to ensure consistency:
 
 ### Reference Not Clickable
 
-- Ensure you're in read mode (not editing)
-- Check that the target element still exists
-- Try re-creating the reference if the element was moved
+- Click the reference directly (not the surrounding text)
+- Check that the target element still exists in your project tree
+- Try re-creating the reference if the element was renamed or moved

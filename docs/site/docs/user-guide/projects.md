@@ -5,6 +5,10 @@ description: Learn how to create and manage writing projects in Inkweld.
 sidebar_position: 1
 ---
 
+import ThemedImage from '@site/src/components/ThemedImage';
+
+# Working with Projects
+
 ## Creating a Project
 
 1. Click the **"New Project"** button on your dashboard
@@ -16,6 +20,11 @@ Your project is created with a default folder structure:
 
 - **Chapters** folder for your story content
 - **Chapter 1** document to get you started
+
+<ThemedImage
+  src="/img/features/character-relationships-overview"
+  alt="Project view showing the sidebar tree and editor"
+/>
 
 ## Project Structure
 
@@ -47,6 +56,11 @@ The editor supports:
 - **Block quotes**: For emphasis or citations
 - **Markdown shortcuts**: Type `#` for headings, `*` for bullets
 
+<ThemedImage
+  src="/img/features/element-ref-editor"
+  alt="Rich text editor showing prose with an element reference link"
+/>
+
 ### Keyboard Shortcuts
 
 **Text Formatting**
@@ -66,9 +80,12 @@ The editor supports:
 - `Ctrl/Cmd + Shift + H` - Horizontal rule
 
 **General**
-- `Ctrl/Cmd + S` - Save (automatic in real-time)
 - `Ctrl/Cmd + Z` - Undo
 - `Ctrl/Cmd + Shift + Z` - Redo
+
+:::note
+Changes are saved automatically in real-time. There is no manual save required.
+:::
 
 ### Real-Time Collaboration
 
@@ -127,11 +144,11 @@ Inkweld works without internet:
 
 ### Sync Status
 
-Check your sync status:
+Check the sync indicator in the toolbar:
 
-- **Green indicator**: All changes synced
-- **Yellow indicator**: Syncing in progress
-- **Red indicator**: Connection issue - working offline
+- **Green indicator**: All changes synced to the server
+- **Yellow indicator**: Sync in progress
+- **Red indicator**: Connection issue — changes are saved locally and will sync when you reconnect
 
 ## Project Settings
 
@@ -227,6 +244,6 @@ For simple exports without creating a plan:
 
 ## Next Steps
 
-- Explore [all features](/features) in depth
-- Learn about [deployment](../installation/docker) for production
-- Check the [developer guide](../developer/architecture) for customization
+- Learn to link elements inline with [Element References](./element-references)
+- Define structured connections with [Relationships](./relationships)
+- Categorize your content with [Tags](./tags)

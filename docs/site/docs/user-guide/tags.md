@@ -18,14 +18,15 @@ Tags help you organize and categorize your story elements with visual labels. Us
 
 ## Quick Start
 
-1. Open your project and navigate to the **Tags** tab in the project menu
-2. Click **"Create Tag"** to add a new tag
-3. Enter a name, choose an icon, and select a color
-4. Click **Create** to save your tag
+1. Open your project and click the **Settings** button in the sidebar
+2. Click the **Tags** tab inside Project Settings
+3. Click **"New Tag"** to add a new tag
+4. Enter a name, choose an icon, and select a color
+5. Click **Create** to save your tag
 
 ## Creating Tags
 
-Tags are created at the project level and can be applied to any element within that project.
+Tags are created at the project level (via **Settings → Tags**) and can be applied to any element within that project.
 
 ### Tag Properties
 
@@ -57,10 +58,11 @@ The create/edit dialog shows:
 
 To edit an existing tag:
 
-1. Find the tag in the Tags tab
-2. Click the **Edit** (pencil) button
-3. Modify the name, icon, color, or description
-4. Click **Save**
+1. Find the tag in the **Settings → Tags** tab
+2. Click the **menu** (⋮) button on the tag card
+3. Select **Edit**
+4. Modify the name, icon, color, or description
+5. Click **Save**
 
 <ThemedImage
   src="/img/features/tags-edit-dialog"
@@ -71,8 +73,9 @@ To edit an existing tag:
 
 To delete a tag:
 
-1. Click the **Delete** (trash) button on the tag card
-2. Confirm the deletion
+1. Click the **menu** (⋮) button on the tag card
+2. Select **Delete**
+3. Confirm the deletion
 
 :::warning
 Deleting a tag removes it from all elements that have it applied. This action cannot be undone.
@@ -80,7 +83,7 @@ Deleting a tag removes it from all elements that have it applied. This action ca
 
 ## Using Tags on Elements
 
-Tags can be applied to characters, locations, items, and other worldbuilding elements.
+Tags can be applied to characters, locations, items, and other worldbuilding elements. Open any worldbuilding element to find the **Tags** field in its properties panel.
 
 ### Adding Tags to Elements
 
@@ -172,7 +175,7 @@ Tags are designed to look great in both light and dark modes:
 
 <ThemedImage
   src="/img/features/tags-list"
-  alt="Tags in dark mode showing proper contrast"
+  alt="Tags list showing proper contrast in both light and dark modes"
 />
 
 The color palette was specifically chosen to maintain readability and visual distinction regardless of your theme preference.
