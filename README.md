@@ -83,7 +83,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Quick file open (Ctrl/Cmd + P) | |
 | ✅ | 🔥 | Find in document (Ctrl/Cmd + F) | |
 | ✅ | 🔥 | Mobile-responsive design | |
-| ⬜ | 🔥 | Project-wide search | |
+| ✅ | 🔥 | Project-wide search (Ctrl/Cmd + Shift + F) | Full-text search across all documents |
 | ✅ | 🔥 | Find and replace in document | |
 | ⬜ | 🟡 | Tag filtering in search | Filter search results by tags |
 | ⬜ | 🟡 | Tag filtering in project tree | Show/hide elements by tag |
