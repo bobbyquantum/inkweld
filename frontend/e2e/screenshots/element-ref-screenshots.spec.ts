@@ -196,10 +196,9 @@ test.describe('Element Reference Screenshots', () => {
       await page.keyboard.type('@');
 
       // Wait for the popup to appear and initial results to populate
-      await page
-        .waitForSelector('[data-testid="element-ref-popup"]', {
-          state: 'visible',
-        });
+      await page.waitForSelector('[data-testid="element-ref-popup"]', {
+        state: 'visible',
+      });
       await page
         .locator('[data-testid="element-ref-result-item"]')
         .first()
@@ -455,10 +454,9 @@ test.describe('Element Reference Screenshots', () => {
       await page.keyboard.type('@');
 
       // Wait for the popup to appear and initial results to populate
-      await page
-        .waitForSelector('[data-testid="element-ref-popup"]', {
-          state: 'visible',
-        });
+      await page.waitForSelector('[data-testid="element-ref-popup"]', {
+        state: 'visible',
+      });
       await page
         .locator('[data-testid="element-ref-result-item"]')
         .first()
