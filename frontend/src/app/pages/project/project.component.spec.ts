@@ -540,9 +540,9 @@ describe('ProjectComponent', () => {
       expect(component.getGutterSize()).toBe(0);
     });
 
-    it('should return 8 for desktop', () => {
+    it('should return 4 for desktop', () => {
       component['isMobile'].set(false);
-      expect(component.getGutterSize()).toBe(8);
+      expect(component.getGutterSize()).toBe(4);
     });
   });
 

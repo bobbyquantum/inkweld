@@ -92,7 +92,7 @@ as-split {
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--sys-outline-variant);
-  background-color: var(--sys-surface-container);
+  background-color: var(--sys-surface-container-lowest);
   flex-shrink: 0;
 
   .sidebar-nav-item {

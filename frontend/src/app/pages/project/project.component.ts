@@ -419,9 +419,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     void this.router.navigate(['/']);
   }
 
-  /** Open the quick open dialog */
-  openQuickOpen(): void {
-    this.quickOpenService.open();
+  /** Open the project-wide search dialog */
+  openProjectSearch(): void {
+    this.projectSearchService.open();
   }
 
   onRecentDocumentClick(documentId: string): void {
@@ -579,7 +579,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   getGutterSize(): number {
-    return this.isMobile() ? 0 : 8;
+    return this.isMobile() ? 0 : 4;
   }
 
   public useTabsDesktop(): boolean {
