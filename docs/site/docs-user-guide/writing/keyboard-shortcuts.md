@@ -59,6 +59,7 @@ When inside a list item:
 | Action | Windows/Linux | macOS |
 |--------|---------------|-------|
 | Quick Open | `Ctrl + P` | `Cmd + P` |
+| Project-wide search | `Ctrl + Shift + F` | `Cmd + Shift + F` |
 | Find in document | `Ctrl + F` | `Cmd + F` |
 
 ## Element References
