@@ -105,10 +105,10 @@ Click **"Add Relationship"** to open the creation dialog:
 
 ### Relationship Types
 
-Inkweld includes built-in relationship types organized by category:
+Inkweld includes built-in relationship types organized by category. You can also create custom types in **Project Settings → Relationship Types**.
 
 <ThemedImage
-  src="/img/features/relationships-builtin-types"
+  src="/img/features/relationships-types"
   alt="Built-in relationship types organized by category"
 />
 
@@ -163,17 +163,39 @@ The dialog can filter relationship types based on the element's template. All el
 Elements often have many relationships. The panel groups them by type for easy scanning:
 
 <ThemedImage
-  src="/img/features/character-parent-overview"
-  alt="Element with multiple relationship types"
+  src="/img/features/character-multiple-relationships-overview"
+  alt="Element with multiple relationship types shown as expandable panels"
 />
 
-_An element with relationship types shown as expandable panels_
+_An element with Mentor, Rival, and Friend relationships grouped by type_
 
 ### Managing Relationships
 
 - **Expand/Collapse**: Click any panel header to show or hide relationships of that type
 - **Navigate**: Click a relationship card to open that element
 - **Delete**: Click the trash icon on any card to remove the relationship
+
+## Custom Relationship Types
+
+If the built-in types don't fit your story, create your own:
+
+1. Go to **Project Settings** → click the **Settings** button in the sidebar
+2. Click the **Relationship Types** tab
+3. Click **New Type**
+4. Enter a primary label (e.g., "Nemesis of")
+5. Enter an inverse label (e.g., "Nemesis of") — can be the same if the relationship is symmetric
+6. Click **Create**
+
+<ThemedImage
+  src="/img/features/relationships-tab-overview"
+  alt="Project Settings showing the Relationship Types management tab"
+/>
+
+Custom types appear alongside built-in types when creating relationships.
+
+:::tip
+Custom types follow the same bidirectional rules as built-in types. Think about how the relationship reads from each direction before naming it.
+:::
 
 ## Tips & Best Practices
 
@@ -221,7 +243,7 @@ Delete the existing relationship and create a new one with the correct type. Rel
 
 ### Missing Relationship Types?
 
-You can create custom relationship types in **Project Settings → Relationship Types**. Define both a primary label and an inverse label (e.g., "Mentor" / "Student of").
+See [Custom Relationship Types](#custom-relationship-types) above for how to create additional types in Project Settings.
 
 ## Related Documentation
 
