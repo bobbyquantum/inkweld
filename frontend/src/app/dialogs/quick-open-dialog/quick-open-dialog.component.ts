@@ -5,8 +5,8 @@ import {
   Component,
   computed,
   ElementRef,
+  HostListener,
   inject,
-  OnDestroy,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -50,7 +50,7 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
   templateUrl: './quick-open-dialog.component.html',
   styleUrls: ['./quick-open-dialog.component.scss'],
 })
-export class QuickOpenDialogComponent implements AfterViewInit, OnDestroy {
+export class QuickOpenDialogComponent implements AfterViewInit {
   private readonly dialogRef = inject(MatDialogRef<QuickOpenDialogComponent>);
   private readonly quickOpenService = inject(QuickOpenService);
   private readonly projectState = inject(ProjectStateService);
@@ -75,25 +75,16 @@ export class QuickOpenDialogComponent implements AfterViewInit, OnDestroy {
   });
 
   /** Keyboard event listener reference */
-  private keydownListener: ((e: KeyboardEvent) => void) | null = null;
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent): void {
+    this.handleKeydown(event);
+  }
 
   ngAfterViewInit(): void {
     // Focus the search input
     setTimeout(() => {
       this.searchInput?.nativeElement?.focus();
     });
-
-    // Set up keyboard navigation
-    this.keydownListener = (event: KeyboardEvent) => {
-      this.handleKeydown(event);
-    };
-    document.addEventListener('keydown', this.keydownListener, true);
-  }
-
-  ngOnDestroy(): void {
-    if (this.keydownListener) {
-      document.removeEventListener('keydown', this.keydownListener, true);
-    }
   }
 
   /**
