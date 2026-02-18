@@ -29,6 +29,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
+import { ProjectSearchService } from '@services/core/project-search.service';
 import { QuickOpenService } from '@services/core/quick-open.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -66,6 +67,7 @@ export class ProjectTreeComponent implements OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
   private logger = inject(LoggerService);
   private quickOpenService = inject(QuickOpenService);
+  private projectSearchService = inject(ProjectSearchService);
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
@@ -675,5 +677,12 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   public openQuickOpen(): void {
     this.quickOpenService.open();
+  }
+
+  /**
+   * Opens the project-wide search dialog.
+   */
+  public openProjectSearch(): void {
+    this.projectSearchService.open();
   }
 }

@@ -1,0 +1,119 @@
+<div class="project-search-container" data-testid="project-search-dialog">
+  <!-- Search Input Row -->
+  <div class="search-wrapper">
+    <mat-icon class="search-icon">manage_search</mat-icon>
+    <input
+      #searchInput
+      type="text"
+      class="search-input"
+      [value]="searchQuery()"
+      (input)="onSearchChange($any($event.target).value)"
+      placeholder="Search in project…"
+      autocomplete="off"
+      spellcheck="false"
+      data-testid="project-search-input" />
+    @if (searchQuery()) {
+      <button
+        mat-icon-button
+        class="clear-button"
+        (click)="onSearchChange('')"
+        aria-label="Clear search">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </div>
+
+  <!-- Scan progress bar (shown while scanning) -->
+  @if (!isDone) {
+    <div class="progress-row" data-testid="project-search-progress">
+      <mat-progress-bar
+        mode="determinate"
+        [value]="progressValue"
+        class="scan-bar">
+      </mat-progress-bar>
+      <span class="progress-label">
+        Scanning {{ progress().scanned }}&nbsp;/&nbsp;{{ progress().total }}…
+      </span>
+    </div>
+  }
+
+  <!-- Results -->
+  <div class="results-container" data-testid="project-search-results">
+    @if (hasQuery) {
+      @for (
+        result of results;
+        track trackByResultId($index, result);
+        let i = $index
+      ) {
+        <div
+          class="search-result-item"
+          [class.selected]="i === selectedIndex()"
+          (click)="onResultClick(result, i)"
+          (keydown.enter)="onResultClick(result, i)"
+          (mouseenter)="onResultMouseEnter(i)"
+          role="option"
+          tabindex="0"
+          [attr.aria-selected]="i === selectedIndex()"
+          [attr.data-testid]="'project-search-result-' + i">
+          <!-- Element icon -->
+          <mat-icon class="result-icon">{{ getIcon(result) }}</mat-icon>
+
+          <!-- Element name + path + snippets -->
+          <div class="result-content">
+            <div class="result-header">
+              <span class="result-name">{{ result.element.name }}</span>
+              @if (result.path) {
+                <span class="result-path">{{ result.path }}</span>
+              }
+              <span
+                class="match-count"
+                [matTooltip]="
+                  result.matchCount +
+                  ' match' +
+                  (result.matchCount === 1 ? '' : 'es')
+                ">
+                {{ result.matchCount }}
+              </span>
+            </div>
+
+            @for (snippet of result.snippets; track $index) {
+              <p
+                class="result-snippet"
+                [innerHTML]="getSnippetHtml(snippet)"></p>
+            }
+          </div>
+        </div>
+      } @empty {
+        <!-- Empty state — only show when scan is done -->
+        @if (isDone) {
+          <div class="empty-state" data-testid="project-search-empty">
+            <mat-icon>search_off</mat-icon>
+            <p>No results for "{{ searchQuery() }}"</p>
+          </div>
+        }
+      }
+    } @else {
+      <div class="empty-state hint-state">
+        <mat-icon>manage_search</mat-icon>
+        <p>Type at least 2 characters to search</p>
+      </div>
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="dialog-footer">
+    <div class="keyboard-hints">
+      <span class="hint"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+      <span class="hint"><kbd>Enter</kbd> Open</span>
+      <span class="hint"><kbd>Esc</kbd> Close</span>
+    </div>
+    @if (isDone && results.length > 0) {
+      <span class="result-summary"
+        >{{ results.length }} document{{
+          results.length === 1 ? '' : 's'
+        }}
+        matched</span
+      >
+    }
+  </div>
+</div>
