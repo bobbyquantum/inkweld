@@ -50,6 +50,7 @@ import {
   PublishPlan,
 } from '../../models/publish-plan';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { ProjectSearchService } from '../../services/core/project-search.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
@@ -95,6 +96,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly settingsService = inject(SettingsService);
   private readonly quickOpenService = inject(QuickOpenService);
+  private readonly projectSearchService = inject(ProjectSearchService);
   private readonly storageContext = inject(StorageContextService);
   private readonly autoSnapshotService = inject(AutoSnapshotService);
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
@@ -251,6 +253,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Initialize quick file open (Cmd/Ctrl + P)
     this.quickOpenService.initialize();
+
+    // Initialize project-wide search (Cmd/Ctrl + Shift + F)
+    this.projectSearchService.initialize();
   }
 
   ngAfterViewInit() {
@@ -291,6 +296,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Clean up quick open service
     this.quickOpenService.destroy();
+
+    // Clean up project search service
+    this.projectSearchService.destroy();
   }
 
   isLoading = () => this.projectState.isLoading();
