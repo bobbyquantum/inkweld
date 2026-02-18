@@ -195,14 +195,15 @@ test.describe('Element Reference Screenshots', () => {
       // Step 2: Type @ to trigger the popup
       await page.keyboard.type('@');
 
-      // Wait for the popup to appear
+      // Wait for the popup to appear and initial results to populate
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-        })
-        .catch(() => {});
-
-      await page.waitForTimeout(400);
+        });
+      await page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first()
+        .waitFor({ state: 'visible' });
 
       // Screenshot 1: Popup just opened (showing all elements)
       // Crop to show editor area with popup
@@ -213,8 +214,8 @@ test.describe('Element Reference Screenshots', () => {
         32
       );
 
-      // Step 3: Type search query
-      await page.keyboard.type('chap');
+      // Step 3: Type search query - 'el' matches Elara Nightwhisper, Silverhollow
+      await page.keyboard.type('el');
       await page
         .locator('[data-testid="element-ref-result-item"]')
         .first()
@@ -453,14 +454,15 @@ test.describe('Element Reference Screenshots', () => {
       // Step 2: Type @ to trigger the popup
       await page.keyboard.type('@');
 
-      // Wait for the popup to appear
+      // Wait for the popup to appear and initial results to populate
       await page
         .waitForSelector('[data-testid="element-ref-popup"]', {
           state: 'visible',
-        })
-        .catch(() => {});
-
-      await page.waitForTimeout(400);
+        });
+      await page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first()
+        .waitFor({ state: 'visible' });
 
       // Screenshot 1: Popup just opened (dark mode)
       await captureElementScreenshot(
@@ -470,9 +472,12 @@ test.describe('Element Reference Screenshots', () => {
         32
       );
 
-      // Step 3: Type search query
-      await page.keyboard.type('chap');
-      await page.waitForTimeout(300);
+      // Step 3: Type search query - 'el' matches Elara Nightwhisper, Silverhollow
+      await page.keyboard.type('el');
+      await page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first()
+        .waitFor({ state: 'visible' });
 
       // Screenshot 2: Search in progress (dark mode)
       await captureElementScreenshot(
