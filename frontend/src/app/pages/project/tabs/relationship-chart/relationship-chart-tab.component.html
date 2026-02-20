@@ -1,0 +1,216 @@
+<div class="chart-container" data-testid="chart-container">
+  <div class="chart-body">
+    <!-- Collapsed sidebar strip -->
+    @if (!sidebarOpen()) {
+      <div class="collapsed-sidebar" data-testid="chart-collapsed-sidebar">
+        <button
+          mat-icon-button
+          matTooltip="Expand sidebar"
+          (click)="toggleSidebar()">
+          <mat-icon fontSet="material-symbols-outlined"
+            >left_panel_open</mat-icon
+          >
+        </button>
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="exportMenu"
+          matTooltip="Export chart">
+          <mat-icon>download</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- Expanded sidebar -->
+    @if (sidebarOpen()) {
+      <aside class="chart-sidebar" data-testid="chart-sidebar">
+        <!-- Header -->
+        <div class="sidebar-header">
+          <mat-icon class="header-icon">hub</mat-icon>
+          <span class="header-title">{{ elementName() }}</span>
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="exportMenu"
+            matTooltip="Export chart"
+            class="header-action">
+            <mat-icon>download</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            matTooltip="Collapse sidebar"
+            (click)="toggleSidebar()"
+            class="header-action">
+            <mat-icon fontSet="material-symbols-outlined"
+              >left_panel_close</mat-icon
+            >
+          </button>
+        </div>
+
+        <!-- Layout -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Layout</span>
+          </div>
+          <mat-button-toggle-group
+            class="layout-toggle"
+            [value]="layout()"
+            (change)="onLayoutChange($event.value)"
+            hideSingleSelectionIndicator>
+            <mat-button-toggle value="force" matTooltip="Force-directed layout">
+              <mat-icon>blur_on</mat-icon>
+              <span class="toggle-label">Force</span>
+            </mat-button-toggle>
+            <mat-button-toggle value="circular" matTooltip="Circular layout">
+              <mat-icon>donut_large</mat-icon>
+              <span class="toggle-label">Circular</span>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Mode</span>
+          </div>
+          <mat-button-toggle-group
+            class="mode-toggle"
+            [value]="mode()"
+            (change)="onModeChange($event.value)"
+            hideSingleSelectionIndicator>
+            <mat-button-toggle
+              value="curated"
+              matTooltip="Manually pick elements">
+              Curated
+            </mat-button-toggle>
+            <mat-button-toggle value="all" matTooltip="Show all elements">
+              All
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        <!-- Elements (curated mode only) -->
+        @if (mode() === 'curated') {
+          <div class="sidebar-section elements-section">
+            <div class="section-header">
+              <span class="section-title">
+                Elements
+                @if (includedElements().length > 0) {
+                  <span class="count-badge">{{
+                    includedElements().length
+                  }}</span>
+                }
+              </span>
+              <button
+                mat-icon-button
+                class="section-action"
+                matTooltip="Add elements"
+                (click)="openAddElements()">
+                <mat-icon>add</mat-icon>
+              </button>
+            </div>
+            <div class="element-list">
+              @for (el of includedElements(); track el.id) {
+                <div class="element-chip">
+                  <mat-icon class="chip-icon">{{
+                    getElementIcon(el)
+                  }}</mat-icon>
+                  <span class="chip-label">{{ el.name }}</span>
+                  <button
+                    mat-icon-button
+                    class="chip-remove"
+                    matTooltip="Remove from chart"
+                    (click)="removeElement(el.id)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              } @empty {
+                <p class="empty-hint">No elements added yet.</p>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Relationship Types -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Relationship Types</span>
+            @if (activeRelTypeIds().size > 0) {
+              <button
+                mat-icon-button
+                class="section-action"
+                matTooltip="Show all types"
+                (click)="showAllRelTypes()">
+                <mat-icon>filter_alt_off</mat-icon>
+              </button>
+            }
+          </div>
+          <div class="rel-type-list">
+            @for (type of allRelationshipTypes(); track type.id) {
+              <button
+                class="rel-type-chip"
+                [class.active]="isRelTypeActive(type.id)"
+                [style.--chip-color]="type.color || '#999'"
+                matTooltip="Toggle {{ type.name }}"
+                (click)="toggleRelType(type.id)">
+                <span
+                  class="rel-color-dot"
+                  [style.background-color]="type.color || '#999'"></span>
+                <span class="chip-label">{{ type.name }}</span>
+              </button>
+            } @empty {
+              <p class="empty-hint">No relationship types defined.</p>
+            }
+          </div>
+        </div>
+      </aside>
+    }
+
+    <!-- Chart Area -->
+    @if (hasData()) {
+      <div
+        class="chart-area"
+        data-testid="chart-area"
+        echarts
+        [options]="chartOptions()"
+        [merge]="chartMergeOptions()"
+        [initOpts]="initOpts"
+        (chartInit)="onChartInit($event)"></div>
+    } @else {
+      <div class="empty-state" data-testid="chart-empty-state">
+        <mat-icon class="empty-icon">hub</mat-icon>
+        @if (mode() === 'curated' && includedElements().length === 0) {
+          <h3>Add elements to get started</h3>
+          <p>
+            Click <strong>Add Elements</strong> in the sidebar to choose which
+            elements appear in this chart. Build focused graphs like family
+            trees or faction maps.
+          </p>
+          @if (!sidebarOpen()) {
+            <button mat-stroked-button (click)="toggleSidebar()">
+              <mat-icon>side_navigation</mat-icon>
+              Open Sidebar
+            </button>
+          }
+        } @else {
+          <h3>No relationships to display</h3>
+          <p>
+            Add relationships between your elements to see them visualized here.
+            You can create relationships from the element sidebar panel or by
+            using &#64; references in documents.
+          </p>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Export menu (shared between expanded/collapsed states) -->
+  <mat-menu #exportMenu="matMenu">
+    <button mat-menu-item (click)="exportAsPng()">
+      <mat-icon>image</mat-icon>
+      <span>Export as PNG</span>
+    </button>
+    <button mat-menu-item (click)="exportAsSvg()">
+      <mat-icon>code</mat-icon>
+      <span>Export as SVG</span>
+    </button>
+  </mat-menu>
+</div>

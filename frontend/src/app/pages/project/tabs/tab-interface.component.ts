@@ -184,7 +184,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       // Check if the URL contains a document/folder path that needs elements
       const urlParts = currentUrl.split('/').filter(p => p);
       const tabType = urlParts[2]; // 'document', 'folder', etc.
-      const needsElements = tabType === 'document' || tabType === 'folder';
+      const needsElements =
+        tabType === 'document' ||
+        tabType === 'folder' ||
+        tabType === 'relationship-chart';
 
       // Wait for elements if we need them for this URL
       if (needsElements && elements.length === 0) {
@@ -686,6 +689,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (tab.type === 'folder') {
       return 'folder';
+    }
+
+    if (tab.type === 'relationship-chart') {
+      return 'hub';
     }
 
     if (tab.type === 'worldbuilding') {

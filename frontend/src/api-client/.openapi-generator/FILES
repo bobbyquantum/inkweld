@@ -91,6 +91,8 @@ model/error-response.ts
 model/falai-model-metadata.ts
 model/forgot-password-request.ts
 model/generated-image.ts
+model/get-element-images-request.ts
+model/get-element-images200-response.ts
 model/get-mcp-permissions200-response-permissions-inner.ts
 model/get-mcp-permissions200-response.ts
 model/get-provider-models200-response.ts
