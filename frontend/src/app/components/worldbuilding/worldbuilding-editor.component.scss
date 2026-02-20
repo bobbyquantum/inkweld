@@ -131,6 +131,84 @@ app-identity-panel {
   .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; }
 }
 
+// Status bar at the bottom of the editor section
+.editor-status-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  height: 24px;
+  background-color: var(--sys-surface-container);
+  border-top: 1px solid var(--sys-outline-variant);
+  font-size: 0.875rem;
+  color: var(--sys-on-surface);
+
+  .status-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tag-icons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0 2px;
+    transition: background-color 120ms ease;
+    background: none;
+    border: none;
+    color: inherit;
+
+    &:hover {
+      background-color: var(--sys-surface-container-high);
+    }
+  }
+
+  .tag-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    flex-shrink: 0;
+    opacity: 0.9;
+    cursor: pointer;
+
+    &.tag-icon-add {
+      opacity: 0.35;
+      font-variation-settings: 'FILL' 0;
+    }
+  }
+
+  .sync-status {
+    display: flex;
+    align-items: center;
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+    .sync-dot.unavailable { background-color: var(--sync-dot-unavailable-color); }
+    .sync-dot.offline { background-color: var(--sync-dot-offline-color); }
+    .sync-dot.syncing {
+      background-color: var(--sync-dot-syncing-color);
+      animation: wb-pulse 1.5s infinite;
+    }
+    .sync-dot.synced { background-color: var(--sync-dot-synced-color); }
+  }
+}
+
+@keyframes wb-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 // Meta panel container (right side) - panel manages its own collapsed/expanded state
 .meta-panel-container {
   flex-shrink: 0;

@@ -426,6 +426,33 @@
         </div>
       }
     </div>
+
+    <!-- Status bar: tags + sync status -->
+    <div class="editor-status-bar">
+      <span class="status-stats">
+        <button
+          class="tag-icons"
+          (click)="openTagsDialog()"
+          matTooltip="Manage tags"
+          matTooltipShowDelay="800"
+          type="button">
+          @for (tag of elementTags(); track tag.assignment.id) {
+            <mat-icon
+              class="tag-icon"
+              [style.color]="tag.definition.color"
+              [matTooltip]="tag.definition.name"
+              matTooltipShowDelay="600">
+              label
+            </mat-icon>
+          }
+          <mat-icon class="tag-icon tag-icon-add"> label </mat-icon>
+        </button>
+      </span>
+      <span class="sync-status">
+        <span class="sync-dot {{ syncState() }}"></span>
+        {{ syncState() }}
+      </span>
+    </div>
   </div>
 
   <!-- Meta Panel (Relationships) - always visible, manages its own collapsed/expanded state -->
