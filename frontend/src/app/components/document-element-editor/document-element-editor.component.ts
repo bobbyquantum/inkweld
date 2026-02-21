@@ -188,7 +188,7 @@ export class DocumentElementEditorComponent
   /** Resolved tags assigned to the current element */
   readonly elementTags = computed((): ResolvedTag[] => {
     const docId = this.documentIdSignal();
-    if (!docId) return [];
+    if (!docId || docId === 'invalid') return [];
     return this.tagService.getResolvedTagsForElement(docId);
   });
 
