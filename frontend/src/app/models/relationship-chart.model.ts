@@ -15,9 +15,20 @@ import { ElementType } from '../../api-client';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Available layout algorithms for the relationship chart
+ * Available layout algorithms for the relationship chart.
+ *
+ * - 'force': Force-directed layout using fCoSE (fast compound spring embedder).
+ * - 'hierarchical': Top-down DAG layout using dagre — great for family trees.
+ * - 'circular': Nodes placed on a circle — good for showing the full network.
+ * - 'grid': Nodes placed on a grid — compact, orderly.
+ * - 'concentric': Nodes placed on concentric circles by degree — hubs at center.
  */
-export type ChartLayout = 'force' | 'circular';
+export type ChartLayout =
+  | 'force'
+  | 'hierarchical'
+  | 'circular'
+  | 'grid'
+  | 'concentric';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart Filters

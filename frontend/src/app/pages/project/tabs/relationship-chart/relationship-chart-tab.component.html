@@ -59,9 +59,25 @@
               <mat-icon>blur_on</mat-icon>
               <span class="toggle-label">Force</span>
             </mat-button-toggle>
+            <mat-button-toggle
+              value="hierarchical"
+              matTooltip="Hierarchical (tree) layout">
+              <mat-icon>account_tree</mat-icon>
+              <span class="toggle-label">Tree</span>
+            </mat-button-toggle>
             <mat-button-toggle value="circular" matTooltip="Circular layout">
               <mat-icon>donut_large</mat-icon>
               <span class="toggle-label">Circular</span>
+            </mat-button-toggle>
+            <mat-button-toggle value="grid" matTooltip="Grid layout">
+              <mat-icon>grid_view</mat-icon>
+              <span class="toggle-label">Grid</span>
+            </mat-button-toggle>
+            <mat-button-toggle
+              value="concentric"
+              matTooltip="Concentric layout (most connected at center)">
+              <mat-icon>target</mat-icon>
+              <span class="toggle-label">Rings</span>
             </mat-button-toggle>
           </mat-button-toggle-group>
         </div>
@@ -129,6 +145,116 @@
           </div>
         }
 
+        <!-- All-mode options: orphans + schema filters -->
+        @if (mode() === 'all') {
+          <div class="sidebar-section">
+            <div class="section-header">
+              <span class="section-title">Options</span>
+            </div>
+            <button
+              class="toggle-row"
+              [class.active]="showOrphans()"
+              (click)="toggleOrphans()"
+              matTooltip="Show elements that have no relationships">
+              <mat-icon class="toggle-icon">lan</mat-icon>
+              <span class="toggle-label-text">Show isolated elements</span>
+              <mat-icon class="toggle-check">{{
+                showOrphans() ? 'check_box' : 'check_box_outline_blank'
+              }}</mat-icon>
+            </button>
+          </div>
+
+          @if (availableSchemas().length > 0) {
+            <div class="sidebar-section">
+              <div class="section-header">
+                <span class="section-title">
+                  Schemas
+                  @if (activeSchemaIds().size > 0) {
+                    <span class="count-badge">{{
+                      activeSchemaIds().size
+                    }}</span>
+                  }
+                </span>
+                @if (activeSchemaIds().size > 0) {
+                  <button
+                    mat-icon-button
+                    class="section-action"
+                    matTooltip="Show all schemas"
+                    (click)="clearSchemaFilters()">
+                    <mat-icon>filter_alt_off</mat-icon>
+                  </button>
+                }
+              </div>
+              <div class="rel-type-list">
+                @for (schema of availableSchemas(); track schema) {
+                  <button
+                    class="rel-type-chip"
+                    [class.active]="isSchemaActive(schema)"
+                    matTooltip="Toggle {{ getSchemaLabel(schema) }}"
+                    (click)="toggleSchema(schema)">
+                    <span class="chip-label">{{ getSchemaLabel(schema) }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        <!-- Focus Mode -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Focus</span>
+            @if (focusElementId()) {
+              <button
+                mat-icon-button
+                class="section-action"
+                matTooltip="Clear focus"
+                (click)="clearFocus()">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+          @if (focusElementId()) {
+            <p class="focus-hint">
+              Showing <strong>{{ maxDepth() }}</strong> hop{{
+                maxDepth() !== 1 ? 's' : ''
+              }}
+              from <strong>{{ focusElementName() }}</strong>
+            </p>
+            <div class="depth-control">
+              <span class="depth-label">Depth: {{ maxDepth() }}</span>
+              <input
+                type="range"
+                class="depth-slider"
+                min="1"
+                max="6"
+                step="1"
+                [value]="maxDepth()"
+                (input)="onMaxDepthChange($event)"
+                aria-label="Focus depth" />
+            </div>
+          } @else {
+            <p class="empty-hint">
+              Click a node to focus on its neighbourhood.
+            </p>
+          }
+        </div>
+
+        <!-- Display -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Display</span>
+          </div>
+          <button
+            class="toggle-row"
+            [class.active]="effectiveShowLabels()"
+            (click)="toggleLabels()"
+            matTooltip="Cycle label visibility: auto → on → off">
+            <mat-icon class="toggle-icon">label</mat-icon>
+            <span class="toggle-label-text">{{ labelsButtonLabel }}</span>
+          </button>
+        </div>
+
         <!-- Relationship Types -->
         <div class="sidebar-section">
           <div class="section-header">
@@ -169,11 +295,7 @@
       <div
         class="chart-area"
         data-testid="chart-area"
-        echarts
-        [options]="chartOptions()"
-        [merge]="chartMergeOptions()"
-        [initOpts]="initOpts"
-        (chartInit)="onChartInit($event)"></div>
+        #chartContainer></div>
     } @else {
       <div class="empty-state" data-testid="chart-empty-state">
         <mat-icon class="empty-icon">hub</mat-icon>

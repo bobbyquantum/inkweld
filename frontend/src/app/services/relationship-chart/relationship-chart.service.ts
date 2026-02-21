@@ -37,9 +37,11 @@ interface ChartLocalState {
   viewport?: { x: number; y: number; zoom: number };
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+/**
+ * NOT provided at root — each RelationshipChartTabComponent provides its own
+ * instance so multiple chart tabs never share config state.
+ */
+@Injectable()
 export class RelationshipChartService {
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
@@ -210,6 +212,20 @@ export class RelationshipChartService {
       mode,
       // In 'all' mode, show orphans so everything appears
       ...(mode === 'all' ? { showOrphans: true } : {}),
+    });
+  }
+
+  /**
+   * Set or clear the focus element (BFS depth-limited view).
+   * Pass null to disable focus mode.
+   */
+  setFocusElement(elementId: string | null, maxDepth = 3): void {
+    const config = this.activeConfigSignal();
+    if (!config) return;
+    this.setFilters({
+      ...config.filters,
+      focusElementId: elementId ?? undefined,
+      maxDepth: elementId != null ? maxDepth : undefined,
     });
   }
 

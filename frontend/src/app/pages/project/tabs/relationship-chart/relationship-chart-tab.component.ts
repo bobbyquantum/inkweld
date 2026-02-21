@@ -1,16 +1,18 @@
 import { HttpClient } from '@angular/common/http';
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
   effect,
+  ElementRef,
   inject,
   OnDestroy,
   OnInit,
   signal,
+  viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatChipsModule } from '@angular/material/chips';
@@ -20,17 +22,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import type { EChartsOption, GraphSeriesOption } from 'echarts';
-import { GraphChart } from 'echarts/charts';
-import {
-  LegendComponent,
-  ToolboxComponent,
-  TooltipComponent,
-} from 'echarts/components';
-import * as echarts from 'echarts/core';
-import { CanvasRenderer } from 'echarts/renderers';
-import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
-import { firstValueFrom, Subscription } from 'rxjs';
+import cytoscape from 'cytoscape';
+import dagre from 'cytoscape-dagre';
+import fcose from 'cytoscape-fcose';
+import { firstValueFrom } from 'rxjs';
+
+// Register Cytoscape layout extensions once
+cytoscape.use(fcose as cytoscape.Ext);
+cytoscape.use(dagre as cytoscape.Ext);
 
 import {
   Element,
@@ -52,20 +51,10 @@ import { ProjectStateService } from '../../../../services/project/project-state.
 import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
 
-// Register ECharts components (tree-shakeable)
-echarts.use([
-  GraphChart,
-  LegendComponent,
-  TooltipComponent,
-  ToolboxComponent,
-  CanvasRenderer,
-]);
-
 /** Color palette for node categories */
 const CATEGORY_COLORS: Record<string, string> = {
   Character: '#5B8FF9',
   Location: '#5AD8A6',
-  Item: '#F6BD16',
   Document: '#E8684A',
   Faction: '#6DC8EC',
   Event: '#9270CA',
@@ -73,6 +62,11 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DEFAULT_NODE_COLOR = '#B0BEC5';
+
+/** Auto-hide node labels when graph is larger than this */
+const AUTO_LABEL_NODE_THRESHOLD = 50;
+/** Auto-hide edge labels when graph is larger than this */
+const AUTO_LABEL_EDGE_THRESHOLD = 30;
 
 @Component({
   selector: 'app-relationship-chart-tab',
@@ -89,13 +83,14 @@ const DEFAULT_NODE_COLOR = '#B0BEC5';
     MatMenuModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    NgxEchartsDirective,
   ],
-  providers: [provideEchartsCore({ echarts })],
+  providers: [
+    // Each chart tab gets its own service instance so config never bleeds
+    // between multiple open charts.
+    RelationshipChartService,
+  ],
 })
-export class RelationshipChartTabComponent
-  implements OnInit, OnDestroy, AfterViewInit
-{
+export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
   private readonly chartService = inject(RelationshipChartService);
@@ -105,16 +100,12 @@ export class RelationshipChartTabComponent
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
 
-  private paramSubscription: Subscription | null = null;
+  /** Reference to the chart container <div> */
+  private readonly chartContainer =
+    viewChild<ElementRef<HTMLDivElement>>('chartContainer');
 
   protected readonly elementId = signal<string>('');
   protected readonly elementName = signal<string>('Relationship Chart');
-
-  /** ECharts options (reactive) */
-  protected readonly chartOptions = signal<EChartsOption>({});
-
-  /** Merge options for dynamic updates without full re-render */
-  protected readonly chartMergeOptions = signal<EChartsOption>({});
 
   /** Current layout mode */
   protected readonly layout = signal<ChartLayout>('force');
@@ -124,6 +115,9 @@ export class RelationshipChartTabComponent
 
   /** Blob URLs that need revoking on destroy */
   private readonly blobUrls: string[] = [];
+
+  /** Incremented on each loadNodeImages call; stale async results are discarded */
+  private imageLoadGeneration = 0;
 
   /** Whether the chart has any data to show */
   protected readonly hasData = computed(() => {
@@ -141,6 +135,53 @@ export class RelationshipChartTabComponent
     const config = this.chartService.activeConfig();
     return config?.filters.mode ?? 'curated';
   });
+
+  /** Currently focused element ID (drives BFS depth filter) */
+  protected readonly focusElementId = signal<string | null>(null);
+
+  /** Max BFS depth when focus mode is active */
+  protected readonly maxDepth = signal<number>(3);
+
+  /** Display name of the focused element */
+  protected readonly focusElementName = computed<string>(() => {
+    const id = this.focusElementId();
+    if (!id) return '';
+    return this.projectState.elements().find(e => e.id === id)?.name ?? id;
+  });
+
+  /** User label-visibility override; null = auto-decide from graph size */
+  protected readonly showLabelsOverride = signal<boolean | null>(null);
+
+  /** Effective show-labels value (user override or auto threshold) */
+  protected readonly effectiveShowLabels = computed<boolean>(() => {
+    const override = this.showLabelsOverride();
+    if (override !== null) return override;
+    return (
+      (this.chartService.graphData()?.nodes.length ?? 0) <=
+      AUTO_LABEL_NODE_THRESHOLD
+    );
+  });
+
+  /** Whether orphans are currently shown */
+  protected readonly showOrphans = computed<boolean>(
+    () => this.chartService.activeConfig()?.filters.showOrphans ?? false
+  );
+
+  /** Worldbuilding schema IDs available in the project (for 'all' mode filter) */
+  protected readonly availableSchemas = computed<string[]>(() => {
+    const schemas = new Set<string>();
+    for (const el of this.projectState.elements()) {
+      if (el.type === ElementType.Worldbuilding && el.schemaId) {
+        schemas.add(el.schemaId);
+      }
+    }
+    return Array.from(schemas).sort();
+  });
+
+  /** Currently active schema filter IDs (empty = all schemas shown) */
+  protected readonly activeSchemaIds = computed<Set<string>>(
+    () => new Set(this.chartService.activeConfig()?.filters.schemaIds ?? [])
+  );
 
   /** Elements currently included in curated mode */
   protected readonly includedElements = computed<Element[]>(() => {
@@ -208,13 +249,10 @@ export class RelationshipChartTabComponent
     return ids.size === 0 || ids.has(typeId);
   }
 
-  /** ECharts init options */
-  protected readonly initOpts = { renderer: 'canvas' as const };
+  /** The Cytoscape core instance */
+  private cy: cytoscape.Core | null = null;
 
-  /** The ECharts instance (set via onChartInit callback) */
-  private echartsInstance: echarts.ECharts | null = null;
-
-  /** Track if chart options have been set at least once */
+  /** Track if chart has been initialized at least once */
   private initialized = false;
 
   /**
@@ -245,27 +283,35 @@ export class RelationshipChartTabComponent
       if (element.metadata?.['chartConfig']) {
         const config = this.chartService.loadConfig(id);
         this.layout.set(config.layout);
+        // Sync focus state from restored config
+        if (config.filters.focusElementId) {
+          this.focusElementId.set(config.filters.focusElementId);
+          this.maxDepth.set(config.filters.maxDepth ?? 3);
+        }
         this.configLoadedFromMetadata = true;
       }
     });
 
-    // React to graph data changes and rebuild chart options
+    // React to graph data changes and rebuild the Cytoscape graph.
+    // Reading chartContainer() ensures this effect re-runs when the DOM
+    // element appears (e.g. when hasData flips from false to true).
     effect(() => {
       const graphData = this.chartService.graphData();
+      const container = this.chartContainer();
       const currentLayout = this.layout();
       const images = this.nodeImages();
-      if (graphData) {
-        const options = this.buildChartOptions(
+      const showLabels = this.effectiveShowLabels();
+
+      if (graphData && container) {
+        const id = this.elementId();
+        const saved = id ? this.chartService.loadLocalState(id) : null;
+        this.renderGraph(
           graphData,
           currentLayout,
-          images
+          images,
+          showLabels,
+          saved?.nodePositions ?? {}
         );
-        if (this.initialized) {
-          this.chartMergeOptions.set(options);
-        } else {
-          this.chartOptions.set(options);
-          this.initialized = true;
-        }
       }
     });
 
@@ -287,72 +333,64 @@ export class RelationshipChartTabComponent
   }
 
   ngOnInit(): void {
-    this.paramSubscription = this.route.paramMap.subscribe(params => {
-      const tabId = params.get('tabId') || '';
-      this.elementId.set(tabId);
-      this.initialized = false;
-      this.configLoadedFromMetadata = false;
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const tabId = params.get('tabId') || '';
+        this.elementId.set(tabId);
+        this.initialized = false;
+        this.configLoadedFromMetadata = false;
 
-      // Find element name
-      const element = this.projectState.elements().find(e => e.id === tabId);
-      if (element) {
-        this.elementName.set(element.name);
-      }
+        // Reset per-chart UI state
+        this.focusElementId.set(null);
+        this.maxDepth.set(3);
+        this.showLabelsOverride.set(null);
 
-      // Load chart config
-      const config = this.chartService.loadConfig(tabId);
-      this.layout.set(config.layout);
+        // Destroy previous Cytoscape instance
+        this.destroyCytoscape();
 
-      // Track whether we loaded from saved metadata (vs. getting defaults)
-      if (element?.metadata?.['chartConfig']) {
-        this.configLoadedFromMetadata = true;
-      }
-    });
-  }
+        // Find element name
+        const element = this.projectState.elements().find(e => e.id === tabId);
+        if (element) {
+          this.elementName.set(element.name);
+        }
 
-  ngAfterViewInit(): void {
-    // Restore saved local state (viewport/positions)
-    const id = this.elementId();
-    if (id) {
-      const localState = this.chartService.loadLocalState(id);
-      if (localState?.viewport && this.echartsInstance) {
-        // Viewport will be restored after chart renders
-      }
-    }
+        // Load chart config
+        const config = this.chartService.loadConfig(tabId);
+        this.layout.set(config.layout);
+
+        // Sync focus state from persisted config
+        if (config.filters.focusElementId) {
+          this.focusElementId.set(config.filters.focusElementId);
+          this.maxDepth.set(config.filters.maxDepth ?? 3);
+        }
+
+        // Track whether we loaded from saved metadata (vs. getting defaults)
+        if (element?.metadata?.['chartConfig']) {
+          this.configLoadedFromMetadata = true;
+        }
+      });
   }
 
   ngOnDestroy(): void {
-    // Save local state
+    // Save node positions before the Cytoscape instance is torn down
     this.saveLocalState();
 
-    // Clear active config
+    // Release active config so a future chart tab starts clean
     this.chartService.clearActiveConfig();
 
-    if (this.paramSubscription) {
-      this.paramSubscription.unsubscribe();
-      this.paramSubscription = null;
-    }
-  }
-
-  /** Called by ngx-echarts when the ECharts instance is ready */
-  protected onChartInit(ec: echarts.ECharts): void {
-    this.echartsInstance = ec;
-
-    // Listen for node drag end to save positions
-    ec.on('mouseup', (params: Record<string, unknown>) => {
-      if (
-        params['componentType'] === 'series' &&
-        params['seriesType'] === 'graph'
-      ) {
-        this.saveLocalState();
-      }
-    });
+    // Destroy the Cytoscape instance
+    this.destroyCytoscape();
   }
 
   /** Switch layout mode */
   protected onLayoutChange(layout: ChartLayout): void {
     this.layout.set(layout);
     this.chartService.setLayout(layout);
+    // Clear saved positions — they're layout-specific and would misplace nodes
+    // if, say, force-layout coords were applied to a circular layout.
+    const id = this.elementId();
+    if (id) this.chartService.saveLocalState(id, { nodePositions: {} });
   }
 
   /** Toggle orphan visibility */
@@ -376,13 +414,112 @@ export class RelationshipChartTabComponent
       localStorage.setItem('chartSidebarOpen', String(next));
       return next;
     });
-    // Let ECharts know the container resized
-    setTimeout(() => this.echartsInstance?.resize(), 250);
+    // Let Cytoscape know the container resized
+    setTimeout(() => this.cy?.resize(), 250);
   }
 
   /** Switch between curated and all mode */
   protected onModeChange(mode: ChartMode): void {
     this.chartService.setMode(mode);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Focus Mode
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Set the focus element for BFS depth-limited display.
+   * Clicking the same node a second time clears focus.
+   */
+  protected setFocusElement(elementId: string): void {
+    if (this.focusElementId() === elementId) {
+      this.clearFocus();
+      return;
+    }
+    this.focusElementId.set(elementId);
+    this.chartService.setFocusElement(elementId, this.maxDepth());
+  }
+
+  /** Clear focus mode and show all elements again */
+  protected clearFocus(): void {
+    this.focusElementId.set(null);
+    this.chartService.setFocusElement(null);
+  }
+
+  /** Update the BFS traversal depth while in focus mode */
+  protected onMaxDepthChange(event: Event): void {
+    const depth = parseInt((event.target as HTMLInputElement).value, 10);
+    this.maxDepth.set(depth);
+    const focusId = this.focusElementId();
+    if (focusId) {
+      this.chartService.setFocusElement(focusId, depth);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Label Visibility
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Toggle label visibility between on, off, and auto (default).
+   * Auto shows labels when the graph has ≤ AUTO_LABEL_NODE_THRESHOLD nodes.
+   */
+  protected toggleLabels(): void {
+    const current = this.showLabelsOverride();
+    // Cycle: auto → on → off → auto
+    if (current === null) {
+      this.showLabelsOverride.set(true);
+    } else if (current === true) {
+      this.showLabelsOverride.set(false);
+    } else {
+      this.showLabelsOverride.set(null);
+    }
+  }
+
+  /** Human-readable label for the current label-display state */
+  protected get labelsButtonLabel(): string {
+    const override = this.showLabelsOverride();
+    if (override === null) return 'Labels: Auto';
+    return override ? 'Labels: On' : 'Labels: Off';
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Schema Filters ('all' mode)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Convert a schema ID like 'character-v1' to 'Character' */
+  protected getSchemaLabel(schemaId: string): string {
+    return schemaId
+      .replace(/-v\d+$/, '')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  /** Whether a schema is included (empty filter = all schemas shown) */
+  protected isSchemaActive(schemaId: string): boolean {
+    const ids = this.activeSchemaIds();
+    return ids.size === 0 || ids.has(schemaId);
+  }
+
+  /** Toggle a worldbuilding schema filter */
+  protected toggleSchema(schemaId: string): void {
+    const config = this.chartService.activeConfig();
+    if (!config) return;
+    const current = config.filters.schemaIds ?? [];
+    const included = current.includes(schemaId);
+    this.chartService.setFilters({
+      ...config.filters,
+      schemaIds: included
+        ? current.filter(id => id !== schemaId)
+        : [...current, schemaId],
+    });
+  }
+
+  /** Clear all schema filters (show all schemas) */
+  protected clearSchemaFilters(): void {
+    const config = this.chartService.activeConfig();
+    if (!config) return;
+    this.chartService.setFilters({ ...config.filters, schemaIds: [] });
   }
 
   /** Open the element picker dialog to add elements */
@@ -458,184 +595,291 @@ export class RelationshipChartTabComponent
 
   /** Export chart as PNG */
   protected exportAsPng(): void {
-    if (!this.echartsInstance) return;
-    const url = this.echartsInstance.getDataURL({
-      type: 'png',
-      pixelRatio: 2,
-      backgroundColor: '#fff',
+    if (!this.cy) return;
+    const dataUrl = this.cy.png({
+      full: true,
+      scale: 2,
+      bg: '#fff',
     });
     const link = document.createElement('a');
     link.download = `${this.elementName()}.png`;
-    link.href = url;
+    link.href = dataUrl;
     link.click();
   }
 
-  /** Export chart as SVG */
+  /** Export chart as SVG (uses PNG fallback — Cytoscape has no built-in SVG) */
   protected exportAsSvg(): void {
-    if (!this.echartsInstance) return;
-    const url = this.echartsInstance.getDataURL({
-      type: 'svg',
+    if (!this.cy) return;
+    // Cytoscape doesn't have built-in SVG export; export high-res PNG instead
+    const dataUrl = this.cy.png({
+      full: true,
+      scale: 3,
+      bg: '#fff',
     });
     const link = document.createElement('a');
-    link.download = `${this.elementName()}.svg`;
-    link.href = url;
+    link.download = `${this.elementName()}.png`;
+    link.href = dataUrl;
     link.click();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Chart Options Builder
+  // Cytoscape Graph Rendering
   // ─────────────────────────────────────────────────────────────────────────
 
-  private buildChartOptions(
+  /**
+   * Render the Cytoscape graph. Destroys the old instance and creates fresh.
+   */
+  private renderGraph(
     data: ChartGraphData,
     layout: ChartLayout,
-    images: Map<string, string> = new Map()
-  ): EChartsOption {
-    // Collect unique categories
-    const categorySet = new Set(data.nodes.map(n => n.category));
-    const categories = Array.from(categorySet).sort();
+    images: Map<string, string>,
+    showLabels: boolean,
+    savedPositions: Record<string, { x: number; y: number }>
+  ): void {
+    const container = this.chartContainer()?.nativeElement;
+    if (!container) return;
 
-    // Build ECharts category list
-    const echartsCategories = categories.map(name => ({
-      name,
-      itemStyle: {
-        color: CATEGORY_COLORS[name] || DEFAULT_NODE_COLOR,
-      },
-    }));
+    const hasSavedPositions = Object.keys(savedPositions).length > 0;
+    const showEdgeLabels =
+      showLabels && data.edges.length <= AUTO_LABEL_EDGE_THRESHOLD;
 
-    // Build ECharts nodes
+    // Build Cytoscape elements
     const maxRelCount = Math.max(
       1,
       ...data.nodes.map(n => n.relationshipCount)
     );
-    const nodes: GraphSeriesOption['data'] = data.nodes.map(node => {
+
+    const cyNodes: cytoscape.ElementDefinition[] = data.nodes.map(node => {
+      const savedPos = savedPositions[node.id];
+      const color = CATEGORY_COLORS[node.category] || DEFAULT_NODE_COLOR;
       const imageUrl = images.get(node.id);
+      const size = this.getNodeSize(node.relationshipCount, maxRelCount);
+
       return {
-        id: node.id,
-        name: node.name,
-        category: categories.indexOf(node.category),
-        symbolSize: this.getNodeSize(node.relationshipCount, maxRelCount),
-        value: node.relationshipCount,
-        draggable: true,
-        ...(imageUrl ? { symbol: `image://${imageUrl}` } : {}),
-        label: {
-          show: data.nodes.length <= 50, // Auto-hide labels on large graphs
+        group: 'nodes' as const,
+        data: {
+          id: node.id,
+          label: node.name,
+          category: node.category,
+          color,
+          ...(imageUrl ? { imageUrl } : {}),
+          size,
+          relationshipCount: node.relationshipCount,
+          type: node.type,
         },
-        tooltip: {
-          formatter: `<strong>${this.escapeHtml(node.name)}</strong><br/>Type: ${node.category}<br/>Connections: ${node.relationshipCount}`,
-        },
+        position: savedPos ? { x: savedPos.x, y: savedPos.y } : undefined,
       };
     });
 
-    // Build ECharts edges
-    const edges: GraphSeriesOption['edges'] = data.edges.map(edge => ({
-      source: edge.source,
-      target: edge.target,
-      label: {
-        show: data.edges.length <= 30,
-        formatter: edge.label,
-        fontSize: 10,
-      },
-      lineStyle: {
+    const cyEdges: cytoscape.ElementDefinition[] = data.edges.map(edge => ({
+      group: 'edges' as const,
+      data: {
+        id: `${edge.source}-${edge.target}-${edge.relationshipId}`,
+        source: edge.source,
+        target: edge.target,
+        label: edge.label,
         color: edge.color || '#999',
-        width: 1.5,
-      },
-      tooltip: {
-        formatter: () => {
-          let tip = `<strong>${this.escapeHtml(edge.label)}</strong>`;
-          if (edge.note) tip += `<br/>${this.escapeHtml(edge.note)}`;
-          return tip;
-        },
+        note: edge.note || '',
       },
     }));
 
-    // Layout config
-    const layoutConfig = this.getLayoutConfig(layout, data.nodes.length);
+    // Stylesheet
+    const style: cytoscape.StylesheetStyle[] = [
+      {
+        selector: 'node',
+        style: {
+          'background-color': 'data(color)',
+          width: 'data(size)',
+          height: 'data(size)',
+          label: showLabels ? 'data(label)' : '',
+          'font-size': '11px',
+          'text-valign': 'bottom',
+          'text-halign': 'center',
+          'text-margin-y': 6,
+          color: '#333',
+          'text-outline-color': '#fff',
+          'text-outline-width': 2,
+          'text-max-width': '100px',
+          'text-wrap': 'ellipsis',
+          'border-width': 0,
+          'overlay-padding': '4px',
+        },
+      },
+      {
+        selector: 'node[imageUrl]',
+        style: {
+          'background-image': 'data(imageUrl)',
+          'background-fit': 'cover',
+          'background-clip': 'node',
+          'border-width': 2,
+          'border-color': 'data(color)',
+        },
+      },
+      {
+        selector: 'edge',
+        style: {
+          width: 1.5,
+          'line-color': 'data(color)',
+          'target-arrow-color': 'data(color)',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'arrow-scale': 0.8,
+          label: showEdgeLabels ? 'data(label)' : '',
+          'font-size': '10px',
+          'text-rotation': 'autorotate',
+          color: '#666',
+          'text-outline-color': '#fff',
+          'text-outline-width': 2,
+          opacity: 0.7,
+        },
+      },
+      {
+        selector: 'node:active, node:selected',
+        style: {
+          'border-width': 3,
+          'border-color': '#333',
+          'overlay-opacity': 0.1,
+        },
+      },
+      {
+        selector: '.dimmed',
+        style: {
+          opacity: 0.15,
+        },
+      },
+      {
+        selector: '.highlighted',
+        style: {
+          opacity: 1,
+          'z-index': 10,
+        },
+      },
+    ];
 
-    return {
-      tooltip: {
-        trigger: 'item',
-        backgroundColor: 'var(--mat-sys-surface-container, #fff)',
-        borderColor: 'var(--mat-sys-outline-variant, #ccc)',
-        textStyle: {
-          color: 'var(--mat-sys-on-surface, #333)',
-        },
-      },
-      legend: {
-        data: categories,
-        orient: 'vertical',
-        right: 16,
-        top: 16,
-        textStyle: {
-          color: 'var(--mat-sys-on-surface, #333)',
-        },
-      },
-      animationDuration: 500,
-      animationEasingUpdate: 'quinticInOut',
-      series: [
-        {
-          type: 'graph',
-          ...layoutConfig,
-          roam: true,
-          categories: echartsCategories,
-          data: nodes,
-          edges,
-          label: {
-            position: 'bottom',
-            fontSize: 11,
-            color: 'var(--mat-sys-on-surface, #333)',
-          },
-          edgeLabel: {
-            show: false,
-          },
-          edgeSymbol: ['none', 'arrow'],
-          edgeSymbolSize: [0, 8],
-          emphasis: {
-            focus: 'adjacency',
-            lineStyle: {
-              width: 3,
-            },
-            label: {
-              show: true,
-              fontSize: 13,
-              fontWeight: 'bold',
-            },
-          },
-          lineStyle: {
-            opacity: 0.6,
-            curveness: 0.15,
-          },
-        },
-      ],
-    };
+    // Destroy old instance and create fresh
+    this.destroyCytoscape();
+
+    try {
+      this.cy = cytoscape({
+        container,
+        elements: [...cyNodes, ...cyEdges],
+        style,
+        layout: { name: 'preset' },
+        minZoom: 0.1,
+        maxZoom: 5,
+      });
+    } catch {
+      // Cytoscape requires a real canvas renderer; degrade gracefully in
+      // environments where canvas is unavailable (e.g. jsdom/unit tests).
+      return;
+    }
+
+    // Run layout (unless restoring saved positions)
+    if (hasSavedPositions) {
+      this.cy.fit(undefined, 40);
+    } else {
+      const layoutOpts = this.getLayoutOptions(layout, data.nodes.length);
+      this.cy.layout(layoutOpts).run();
+    }
+
+    // ── Interactivity ──────────────────────────────────────────────────
+
+    // Click node → focus mode
+    this.cy.on('tap', 'node', event => {
+      const node = event.target as cytoscape.NodeSingular;
+      this.setFocusElement(node.id());
+    });
+
+    // Hover → highlight adjacency
+    this.cy.on('mouseover', 'node', event => {
+      const node = event.target as cytoscape.NodeSingular;
+      const neighbourhood = node.closedNeighborhood();
+      this.cy?.elements().addClass('dimmed');
+      neighbourhood.removeClass('dimmed').addClass('highlighted');
+    });
+
+    this.cy.on('mouseout', 'node', () => {
+      this.cy?.elements().removeClass('dimmed').removeClass('highlighted');
+    });
+
+    // Drag end → save positions
+    this.cy.on('dragfree', 'node', () => {
+      this.saveLocalState();
+    });
+
+    this.initialized = true;
   }
 
   /**
-   * Get layout-specific configuration for the graph series.
+   * Get layout options for the requested layout algorithm.
    */
-  private getLayoutConfig(
+  private getLayoutOptions(
     layout: ChartLayout,
     nodeCount: number
-  ): Partial<GraphSeriesOption> {
-    if (layout === 'circular') {
-      return {
-        layout: 'circular',
-        circular: {
-          rotateLabel: true,
-        },
-      };
-    }
+  ): cytoscape.LayoutOptions {
+    switch (layout) {
+      case 'force':
+        return {
+          name: 'fcose',
+          animate: true,
+          animationDuration: 500,
+          nodeSeparation: 80,
+          idealEdgeLength: Math.max(80, 200 - nodeCount * 2),
+          nodeRepulsion: () => Math.max(4500, nodeCount * 200),
+          gravity: 0.25,
+          gravityRange: 1.5,
+          quality: 'default',
+          randomize: true,
+        } as cytoscape.LayoutOptions;
 
-    // Force-directed layout
-    return {
-      layout: 'force',
-      force: {
-        repulsion: Math.max(200, nodeCount * 15),
-        gravity: 0.1,
-        edgeLength: Math.max(80, 200 - nodeCount * 2),
-        friction: 0.6,
-      },
-    };
+      case 'hierarchical':
+        return {
+          name: 'dagre',
+          rankDir: 'TB',
+          spacingFactor: 1.5,
+          animate: true,
+          animationDuration: 500,
+          nodeSep: 50,
+          rankSep: 80,
+        } as cytoscape.LayoutOptions;
+
+      case 'circular':
+        return {
+          name: 'circle',
+          animate: true,
+          animationDuration: 500,
+          padding: 40,
+          spacingFactor: 1.2,
+        } as cytoscape.LayoutOptions;
+
+      case 'grid':
+        return {
+          name: 'grid',
+          animate: true,
+          animationDuration: 500,
+          padding: 30,
+          avoidOverlap: true,
+          condense: true,
+          spacingFactor: 1.2,
+        } as cytoscape.LayoutOptions;
+
+      case 'concentric':
+        return {
+          name: 'concentric',
+          animate: true,
+          animationDuration: 500,
+          padding: 40,
+          minNodeSpacing: 40,
+          concentric: (node: cytoscape.NodeSingular) => node.degree(false),
+          levelWidth: () => 2,
+        } as cytoscape.LayoutOptions;
+
+      default:
+        return {
+          name: 'fcose',
+          animate: false,
+        } as cytoscape.LayoutOptions;
+    }
   }
 
   /**
@@ -649,14 +893,25 @@ export class RelationshipChartTabComponent
     return min + ratio * (max - min);
   }
 
+  /** Clean up the Cytoscape instance */
+  private destroyCytoscape(): void {
+    if (this.cy) {
+      this.cy.destroy();
+      this.cy = null;
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Node Image Loading
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
    * Load identity images for worldbuilding nodes via the batch endpoint.
+   * Uses a generation counter so a stale async result never overwrites
+   * a newer one when the graph changes while images are still loading.
    */
   private async loadNodeImages(data: ChartGraphData): Promise<void> {
+    const generation = ++this.imageLoadGeneration;
     const project = this.projectState.project();
     if (!project) return;
 
@@ -673,6 +928,9 @@ export class RelationshipChartTabComponent
         })
       );
 
+      // Bail if a newer graph render has already started loading its own images
+      if (generation !== this.imageLoadGeneration) return;
+
       const resolved = new Map<string, string>();
 
       await Promise.all(
@@ -688,6 +946,9 @@ export class RelationshipChartTabComponent
           }
         })
       );
+
+      // One final staleness check after the parallel image fetches
+      if (generation !== this.imageLoadGeneration) return;
 
       this.nodeImages.set(resolved);
     } catch (err) {
@@ -728,21 +989,24 @@ export class RelationshipChartTabComponent
     return imageUrl;
   }
 
-  /** Save viewport and node positions to localStorage */
+  /** Save node positions and persist to localStorage via the service */
   private saveLocalState(): void {
     const id = this.elementId();
-    if (!id || !this.echartsInstance) return;
-
-    // TODO: Extract node positions from ECharts if needed
-    this.chartService.saveLocalState(id, {});
+    if (!id || !this.cy) return;
+    const nodePositions = this.extractNodePositions();
+    this.chartService.saveLocalState(id, { nodePositions });
   }
 
-  /** Simple HTML escaping for tooltip strings */
-  private escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+  /**
+   * Extract pixel-space node positions from the Cytoscape instance.
+   */
+  private extractNodePositions(): Record<string, { x: number; y: number }> {
+    if (!this.cy) return {};
+    const positions: Record<string, { x: number; y: number }> = {};
+    this.cy.nodes().forEach(node => {
+      const pos = node.position();
+      positions[node.id()] = { x: pos.x, y: pos.y };
+    });
+    return positions;
   }
 }

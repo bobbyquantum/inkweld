@@ -230,6 +230,81 @@
   font-style: italic;
 }
 
+.focus-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  line-height: 1.4;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toggle row (used for orphan & label controls)
+// ─────────────────────────────────────────────────────────────────────────────
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+  color: var(--sys-on-surface-variant);
+
+  &:hover {
+    background: var(--sys-surface-container);
+  }
+
+  &.active {
+    color: var(--sys-primary);
+  }
+
+  .toggle-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .toggle-label-text {
+    flex: 1;
+    font-size: 13px;
+  }
+
+  .toggle-check {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Depth slider (focus mode)
+// ─────────────────────────────────────────────────────────────────────────────
+
+.depth-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.depth-label {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+}
+
+.depth-slider {
+  width: 100%;
+  accent-color: var(--sys-primary);
+  cursor: pointer;
+}
+
 // Relationship type chips
 .rel-type-list {
   display: flex;

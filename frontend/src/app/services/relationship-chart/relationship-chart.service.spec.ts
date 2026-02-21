@@ -703,6 +703,41 @@ describe('RelationshipChartService', () => {
     });
   });
 
+  describe('setFocusElement', () => {
+    it('should set focus element and max depth in filters', () => {
+      service.loadConfig('chart-1');
+      service.setFocusElement('el-focus', 2);
+
+      const config = service.activeConfig();
+      expect(config?.filters.focusElementId).toBe('el-focus');
+      expect(config?.filters.maxDepth).toBe(2);
+    });
+
+    it('should use default depth of 3 when not specified', () => {
+      service.loadConfig('chart-1');
+      service.setFocusElement('el-focus');
+
+      const config = service.activeConfig();
+      expect(config?.filters.maxDepth).toBe(3);
+    });
+
+    it('should clear focus when called with null', () => {
+      service.loadConfig('chart-1');
+      service.setFocusElement('el-focus');
+      service.setFocusElement(null);
+
+      const config = service.activeConfig();
+      expect(config?.filters.focusElementId).toBeUndefined();
+      expect(config?.filters.maxDepth).toBeUndefined();
+    });
+
+    it('should be a no-op when no active config', () => {
+      // No loadConfig called, so activeConfig is null
+      expect(() => service.setFocusElement('el-1')).not.toThrow();
+      expect(service.activeConfig()).toBeNull();
+    });
+  });
+
   describe('setMode', () => {
     it('should set mode to all and enable showOrphans', () => {
       service.loadConfig('chart-1');

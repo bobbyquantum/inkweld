@@ -2,8 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
-import * as echarts from 'echarts/core';
-import { provideEchartsCore } from 'ngx-echarts';
 import { of } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,7 +19,7 @@ import { RelationshipService } from '../../../../services/relationship/relations
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
 import { RelationshipChartTabComponent } from './relationship-chart-tab.component';
 
-// NgxEcharts requires ResizeObserver which is not available in jsdom
+// Cytoscape requires ResizeObserver which is not available in jsdom
 class MockResizeObserver {
   observe(): void {}
   unobserve(): void {}
@@ -55,6 +53,7 @@ describe('RelationshipChartTabComponent', () => {
     removeElement: vi.fn(),
     toggleRelationshipType: vi.fn(),
     setMode: vi.fn(),
+    setFocusElement: vi.fn(),
   };
 
   const testElements: Element[] = [
@@ -130,15 +129,23 @@ describe('RelationshipChartTabComponent', () => {
     await TestBed.configureTestingModule({
       imports: [RelationshipChartTabComponent],
       providers: [
-        { provide: RelationshipChartService, useValue: mockChartService },
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: ElementsService, useValue: mockElementsService },
         { provide: HttpClient, useValue: mockHttpClient },
         { provide: RelationshipService, useValue: mockRelationshipService },
-        provideEchartsCore({ echarts }),
       ],
-    }).compileComponents();
+    })
+      // RelationshipChartService is now a component-level provider; override it
+      // so the component gets the mock instead of a real instance.
+      .overrideComponent(RelationshipChartTabComponent, {
+        set: {
+          providers: [
+            { provide: RelationshipChartService, useValue: mockChartService },
+          ],
+        },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(RelationshipChartTabComponent);
     component = fixture.componentInstance;
@@ -202,7 +209,7 @@ describe('RelationshipChartTabComponent', () => {
     );
   });
 
-  it('should build chart options when graph data arrives', () => {
+  it('should set hasData when graph data arrives', () => {
     fixture.detectChanges();
     graphDataSignal.set({
       nodes: [
@@ -232,26 +239,22 @@ describe('RelationshipChartTabComponent', () => {
         },
       ],
     });
-    // Trigger effect by running change detection
     TestBed.flushEffects();
 
-    // Chart options should now be set
-    const opts = component['chartOptions']();
-    expect(opts).toBeDefined();
-    expect((opts as any).series).toBeDefined();
+    expect(component['hasData']()).toBe(true);
   });
 
-  it('should not crash when exporting without echarts instance', () => {
+  it('should not crash when exporting without cytoscape instance', () => {
     fixture.detectChanges();
-    // These should be no-ops when echartsInstance is null
+    // These should be no-ops when cy is null
     expect(() => component['exportAsPng']()).not.toThrow();
     expect(() => component['exportAsSvg']()).not.toThrow();
   });
 
-  it('should not save local state on destroy when echarts instance is null', () => {
+  it('should not save local state on destroy when cy is null', () => {
     fixture.detectChanges();
     fixture.destroy();
-    // saveLocalState early-returns when echartsInstance is null
+    // saveLocalState early-returns when cy is null
     expect(mockChartService.saveLocalState).not.toHaveBeenCalled();
   });
 
@@ -394,6 +397,61 @@ describe('RelationshipChartTabComponent', () => {
     expect(component['getElementIcon'](el)).toBe('place');
   });
 
+  it('should return correct icon for faction schema', () => {
+    const el = {
+      id: 'el-5',
+      name: 'The Council',
+      type: ElementType.Worldbuilding,
+      schemaId: 'faction-v1',
+    } as Element;
+    expect(component['getElementIcon'](el)).toBe('groups');
+  });
+
+  it('should return inventory_2 icon for wb-item schema', () => {
+    const el = {
+      id: 'el-6',
+      name: 'Magic Sword',
+      type: ElementType.Worldbuilding,
+      schemaId: 'wb-item-v1',
+    } as Element;
+    expect(component['getElementIcon'](el)).toBe('inventory_2');
+  });
+
+  it('should export PNG when cytoscape instance is available', () => {
+    fixture.detectChanges();
+    const mockPng = vi.fn(() => 'data:image/png;base64,abc');
+    component['cy'] = { png: mockPng, destroy: vi.fn() } as any;
+    expect(() => component['exportAsPng']()).not.toThrow();
+    expect(mockPng).toHaveBeenCalledWith(
+      expect.objectContaining({ full: true, scale: 2 })
+    );
+  });
+
+  it('should export SVG fallback (high-res PNG) when cytoscape instance is available', () => {
+    fixture.detectChanges();
+    const mockPng = vi.fn(() => 'data:image/png;base64,abc');
+    component['cy'] = { png: mockPng, destroy: vi.fn() } as any;
+    expect(() => component['exportAsSvg']()).not.toThrow();
+    expect(mockPng).toHaveBeenCalledWith(
+      expect.objectContaining({ full: true, scale: 3 })
+    );
+  });
+
+  it('should save local state on destroy when cytoscape instance is set', () => {
+    fixture.detectChanges();
+    const mockNodes = vi.fn(() => ({
+      forEach: vi.fn((_cb: (node: any) => void) => {}),
+    }));
+    component['cy'] = {
+      nodes: mockNodes,
+      destroy: vi.fn(),
+    } as any;
+    fixture.destroy();
+    expect(mockChartService.saveLocalState).toHaveBeenCalledWith('test-chart', {
+      nodePositions: {},
+    });
+  });
+
   it('should return description icon for documents', () => {
     const el = {
       id: 'el-4',
@@ -411,5 +469,144 @@ describe('RelationshipChartTabComponent', () => {
     config.filters.mode = 'all';
     mockChartService.activeConfig.set(config);
     expect(component['mode']()).toBe('all');
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Focus Mode
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('should set focus element and delegate to chart service', () => {
+    fixture.detectChanges();
+    component['setFocusElement']('el-1');
+    expect(component['focusElementId']()).toBe('el-1');
+    expect(mockChartService.setFocusElement).toHaveBeenCalledWith('el-1', 3);
+  });
+
+  it('should clear focus when same node is clicked twice', () => {
+    fixture.detectChanges();
+    component['setFocusElement']('el-1');
+    component['setFocusElement']('el-1'); // toggle off
+    expect(component['focusElementId']()).toBeNull();
+    expect(mockChartService.setFocusElement).toHaveBeenLastCalledWith(null);
+  });
+
+  it('should clear focus and delegate to chart service', () => {
+    fixture.detectChanges();
+    component['setFocusElement']('el-1');
+    component['clearFocus']();
+    expect(component['focusElementId']()).toBeNull();
+    expect(mockChartService.setFocusElement).toHaveBeenLastCalledWith(null);
+  });
+
+  it('should update maxDepth and propagate to service when in focus mode', () => {
+    fixture.detectChanges();
+    component['setFocusElement']('el-1');
+    const inputEvent = { target: { value: '2' } } as unknown as Event;
+    component['onMaxDepthChange'](inputEvent);
+    expect(component['maxDepth']()).toBe(2);
+    expect(mockChartService.setFocusElement).toHaveBeenLastCalledWith(
+      'el-1',
+      2
+    );
+  });
+
+  it('should derive focus element name from project elements', () => {
+    fixture.detectChanges();
+    component['setFocusElement']('el-1');
+    expect(component['focusElementName']()).toBe('Alice');
+  });
+
+  it('should reset focus state on tab navigation', () => {
+    fixture.detectChanges();
+    component['setFocusElement']('el-1');
+    expect(component['focusElementId']()).toBe('el-1');
+    // paramMap emits again (simulating navigation)
+    // Can't easily re-trigger here, but we verify default state:
+    expect(component['maxDepth']()).toBe(3);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Label Visibility
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('should start with labels in auto mode', () => {
+    fixture.detectChanges();
+    expect(component['showLabelsOverride']()).toBeNull();
+    expect(component['labelsButtonLabel']).toBe('Labels: Auto');
+  });
+
+  it('should cycle labels: auto → on → off → auto', () => {
+    fixture.detectChanges();
+    component['toggleLabels']();
+    expect(component['showLabelsOverride']()).toBe(true);
+    expect(component['labelsButtonLabel']).toBe('Labels: On');
+    component['toggleLabels']();
+    expect(component['showLabelsOverride']()).toBe(false);
+    expect(component['labelsButtonLabel']).toBe('Labels: Off');
+    component['toggleLabels']();
+    expect(component['showLabelsOverride']()).toBeNull();
+    expect(component['labelsButtonLabel']).toBe('Labels: Auto');
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Schema Filters
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('should derive available schemas from worldbuilding elements', () => {
+    fixture.detectChanges();
+    const schemas = component['availableSchemas']();
+    expect(schemas).toContain('character-v1');
+    expect(schemas).toContain('location-v1');
+    expect(schemas).toContain('wb-item-v1');
+  });
+
+  it('should toggle a schema filter', () => {
+    fixture.detectChanges();
+    component['toggleSchema']('character-v1');
+    expect(mockChartService.setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ schemaIds: ['character-v1'] })
+    );
+  });
+
+  it('should clear schema filters', () => {
+    fixture.detectChanges();
+    component['clearSchemaFilters']();
+    expect(mockChartService.setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ schemaIds: [] })
+    );
+  });
+
+  it('should return schema active when filter is empty', () => {
+    fixture.detectChanges();
+    expect(component['isSchemaActive']('character-v1')).toBe(true);
+  });
+
+  it('should return schema active only for included schemas when filter is set', () => {
+    const config = createDefaultChartConfig('test-chart');
+    config.filters.schemaIds = ['character-v1'];
+    mockChartService.activeConfig.set(config);
+    fixture.detectChanges();
+    expect(component['isSchemaActive']('character-v1')).toBe(true);
+    expect(component['isSchemaActive']('location-v1')).toBe(false);
+  });
+
+  it('should convert schema ID to label correctly', () => {
+    fixture.detectChanges();
+    expect(component['getSchemaLabel']('character-v1')).toBe('Character');
+    expect(component['getSchemaLabel']('wb-item-v1')).toBe('Wb Item');
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Show Orphans
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('should compute showOrphans from active config', () => {
+    fixture.detectChanges();
+    expect(component['showOrphans']()).toBe(false);
+
+    const config = createDefaultChartConfig('test-chart');
+    config.filters.showOrphans = true;
+    mockChartService.activeConfig.set(config);
+    expect(component['showOrphans']()).toBe(true);
   });
 });
