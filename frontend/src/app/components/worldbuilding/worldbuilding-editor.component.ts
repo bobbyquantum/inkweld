@@ -37,9 +37,6 @@ import {
   TagEditorDialogComponent,
   TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
-import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
-import { TagService } from '../../services/tag/tag.service';
-import { ResolvedTag } from '../tags/tag.model';
 import {
   ElementTypeSchema,
   FieldSchema,
@@ -47,6 +44,8 @@ import {
 } from '../../models/schema-types';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
+import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
+import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
   AriaTabConfig,
@@ -54,6 +53,7 @@ import {
   AriaTabsComponent,
 } from '../aria-tabs';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { ResolvedTag } from '../tags/tag.model';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 
 /**

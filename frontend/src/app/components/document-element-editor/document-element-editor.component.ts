@@ -40,7 +40,6 @@ import {
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import { TagService } from '../../services/tag/tag.service';
-import { ResolvedTag } from '../tags/tag.model';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -62,6 +61,7 @@ import { createMediaUrl } from '../image-paste';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { ResolvedTag } from '../tags/tag.model';
 
 @Component({
   selector: 'app-document-element-editor',
