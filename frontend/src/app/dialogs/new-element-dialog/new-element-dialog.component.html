@@ -71,6 +71,31 @@
       </div>
     }
 
+    <!-- Visualization Types Section -->
+    @if (visualizationOptions().length > 0) {
+      <div class="category-section">
+        <h3 class="category-title">
+          <mat-icon>insights</mat-icon>
+          Visualization
+        </h3>
+        <div class="type-grid">
+          @for (option of visualizationOptions(); track option.type) {
+            <mat-card
+              class="type-card"
+              [class.selected]="selectedType() === option.type"
+              [attr.data-testid]="'element-type-' + option.type.toLowerCase()"
+              (click)="selectType(option)">
+              <mat-icon class="type-icon" [style.color]="'#FF9800'">
+                {{ option.icon }}
+              </mat-icon>
+              <h4 class="type-label">{{ option.label }}</h4>
+              <p class="type-description">{{ option.description }}</p>
+            </mat-card>
+          }
+        </div>
+      </div>
+    }
+
     <!-- No Results Message -->
     @if (filteredOptions().length === 0) {
       <div class="no-results">
@@ -104,9 +129,11 @@
           [style.color]="
             getSelectedOption()?.category === 'document'
               ? '#4CAF50'
-              : getSelectedOption()?.category === 'worldbuilding'
-                ? '#9C27B0'
-                : '#2196F3'
+              : getSelectedOption()?.category === 'visualization'
+                ? '#FF9800'
+                : getSelectedOption()?.category === 'worldbuilding'
+                  ? '#9C27B0'
+                  : '#2196F3'
           ">
           {{ getSelectedOption()?.icon }}
         </mat-icon>

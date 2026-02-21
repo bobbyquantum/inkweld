@@ -836,6 +836,33 @@ export class ProjectStateService implements OnDestroy {
     }
   }
 
+  /**
+   * Update metadata on a specific element by ID.
+   * Merges the provided metadata keys into the element's existing metadata.
+   */
+  updateElementMetadata(
+    elementId: string,
+    metadata: Record<string, string>
+  ): void {
+    const elements = this.elements();
+    const index = elements.findIndex(e => e.id === elementId);
+    if (index === -1) {
+      this.logger.warn(
+        'ProjectState',
+        `updateElementMetadata: element ${elementId} not found (${elements.length} elements loaded)`
+      );
+      return;
+    }
+
+    const newElements = [...elements];
+    newElements[index] = {
+      ...newElements[index],
+      metadata: { ...newElements[index].metadata, ...metadata },
+    };
+    this.elements.set(newElements);
+    this.updateElements(newElements);
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Publish Plan Operations
   // ─────────────────────────────────────────────────────────────────────────────

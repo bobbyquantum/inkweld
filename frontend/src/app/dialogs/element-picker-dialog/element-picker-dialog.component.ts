@@ -37,6 +37,8 @@ export interface ElementPickerDialogData {
   excludeIds?: string[];
   /** Filter to specific element types (e.g., ElementType.Worldbuilding) */
   filterType?: ElementType;
+  /** Element types to exclude from the list */
+  excludeTypes?: ElementType[];
 }
 
 /**
@@ -88,6 +90,12 @@ export class ElementPickerDialogComponent {
 
     if (filterType) {
       filtered = filtered.filter(el => el.type === filterType);
+    }
+
+    const excludeTypes = this.data.excludeTypes;
+    if (excludeTypes?.length) {
+      const excludeSet = new Set(excludeTypes);
+      filtered = filtered.filter(el => !excludeSet.has(el.type));
     }
 
     return filtered;

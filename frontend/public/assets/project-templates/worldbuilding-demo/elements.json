@@ -125,5 +125,18 @@
     "expandable": false,
     "version": 0,
     "metadata": {}
+  },
+  {
+    "id": "chart-character-web",
+    "name": "Character Web",
+    "type": "RELATIONSHIP_CHART",
+    "order": 4,
+    "level": 0,
+    "parentId": null,
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "chartConfig": "{\"elementId\":\"chart-character-web\",\"layout\":\"force\",\"filters\":{\"mode\":\"curated\",\"includedElementIds\":[\"char-elara\",\"char-theron\",\"char-mira\",\"loc-silverhollow\",\"loc-thornwood\",\"loc-cloudspire\"],\"relationshipTypeIds\":[],\"schemaIds\":[],\"elementTypes\":[],\"showOrphans\":false}}"
+    }
   }
 ]

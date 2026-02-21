@@ -1,0 +1,390 @@
+:host {
+  display: block;
+  height: var(--app-height-offset-50);
+  overflow: hidden;
+
+  @media (max-width: 759px) {
+    height: var(--app-height-offset-82);
+  }
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chart Body (sidebar + chart)
+// ─────────────────────────────────────────────────────────────────────────────
+
+.chart-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collapsed Sidebar Strip
+// ─────────────────────────────────────────────────────────────────────────────
+
+.collapsed-sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border-right: 1px solid var(--sys-outline-variant);
+  background: var(--sys-surface);
+  gap: 4px;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chart Area
+// ─────────────────────────────────────────────────────────────────────────────
+
+.chart-area {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar
+// ─────────────────────────────────────────────────────────────────────────────
+
+.chart-sidebar {
+  width: 260px;
+  min-width: 260px;
+  border-right: 1px solid var(--sys-outline-variant);
+  background: var(--sys-surface);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  @media (max-width: 759px) {
+    width: 220px;
+    min-width: 220px;
+  }
+}
+
+// Sidebar header with title + action buttons
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 16px;
+  border-bottom: 1px solid var(--sys-outline-variant);
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.header-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-action {
+  --mdc-icon-button-state-layer-size: 32px;
+  --mdc-icon-button-icon-size: 20px;
+
+  flex-shrink: 0;
+}
+
+.sidebar-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--sys-outline-variant);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--sys-on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-badge {
+  background: var(--sys-primary);
+  color: var(--sys-on-primary);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 6px;
+  line-height: 1.4;
+}
+
+.section-action {
+  --mdc-icon-button-state-layer-size: 28px;
+  --mdc-icon-button-icon-size: 18px;
+}
+
+.layout-toggle,
+.mode-toggle {
+  width: 100%;
+
+  mat-button-toggle {
+    flex: 1;
+  }
+}
+
+.layout-toggle mat-button-toggle {
+  .toggle-label {
+    margin-left: 4px;
+    font-size: 12px;
+  }
+}
+
+// Elements list
+.elements-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.element-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.element-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--sys-surface-container);
+  }
+
+  .chip-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--sys-on-surface-variant);
+    flex-shrink: 0;
+  }
+
+  .chip-label {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--sys-on-surface);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chip-remove {
+    --mdc-icon-button-state-layer-size: 24px;
+    --mdc-icon-button-icon-size: 16px;
+
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  &:hover .chip-remove {
+    opacity: 1;
+  }
+}
+
+.empty-hint {
+  margin: 4px 0;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  font-style: italic;
+}
+
+.focus-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  line-height: 1.4;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toggle row (used for orphan & label controls)
+// ─────────────────────────────────────────────────────────────────────────────
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+  color: var(--sys-on-surface-variant);
+
+  &:hover {
+    background: var(--sys-surface-container);
+  }
+
+  &.active {
+    color: var(--sys-primary);
+  }
+
+  .toggle-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .toggle-label-text {
+    flex: 1;
+    font-size: 13px;
+  }
+
+  .toggle-check {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Depth slider (focus mode)
+// ─────────────────────────────────────────────────────────────────────────────
+
+.depth-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.depth-label {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+}
+
+.depth-slider {
+  width: 100%;
+  accent-color: var(--sys-primary);
+  cursor: pointer;
+}
+
+// Relationship type chips
+.rel-type-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rel-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--sys-outline-variant);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+
+  &:hover {
+    background: var(--sys-surface-container);
+  }
+
+  &.active {
+    background: color-mix(in srgb, var(--chip-color, #999) 15%, transparent);
+    border-color: var(--chip-color, #999);
+    color: var(--sys-on-surface);
+  }
+
+  .rel-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .chip-label {
+    white-space: nowrap;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty State
+// ─────────────────────────────────────────────────────────────────────────────
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 2rem;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant, #49454f);
+
+  .empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    opacity: 0.3;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface, #1c1b1f);
+  }
+
+  p {
+    margin: 0;
+    max-width: 400px;
+    line-height: 1.5;
+    font-size: 14px;
+  }
+}
