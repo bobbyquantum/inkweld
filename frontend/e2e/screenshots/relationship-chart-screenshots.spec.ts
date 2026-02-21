@@ -63,13 +63,13 @@ test.describe('Relationship Chart Screenshots', () => {
       timeout: 10_000,
     });
 
-    // Wait for the ECharts canvas to initialize (chart-area contains the canvas)
+    // Wait for the Cytoscape canvas to initialize (chart-area contains the canvas)
     await page.waitForSelector('[data-testid="chart-area"] canvas', {
       state: 'visible',
       timeout: 15_000,
     });
 
-    // Give ECharts time to finish the force-directed layout animation
+    // Give Cytoscape time to finish the layout animation
     await page.waitForTimeout(2000);
   }
 

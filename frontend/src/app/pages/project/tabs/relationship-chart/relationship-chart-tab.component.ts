@@ -27,9 +27,9 @@ import dagre from 'cytoscape-dagre';
 import fcose from 'cytoscape-fcose';
 import { firstValueFrom } from 'rxjs';
 
-// Register Cytoscape layout extensions once
-cytoscape.use(fcose as cytoscape.Ext);
-cytoscape.use(dagre as cytoscape.Ext);
+// Register Cytoscape layout extensions
+cytoscape.use(fcose);
+cytoscape.use(dagre);
 
 import {
   Element,
@@ -67,6 +67,8 @@ const DEFAULT_NODE_COLOR = '#B0BEC5';
 const AUTO_LABEL_NODE_THRESHOLD = 50;
 /** Auto-hide edge labels when graph is larger than this */
 const AUTO_LABEL_EDGE_THRESHOLD = 30;
+/** Delay (ms) after sidebar toggle before telling Cytoscape to resize */
+const SIDEBAR_RESIZE_DELAY_MS = 250;
 
 @Component({
   selector: 'app-relationship-chart-tab',
@@ -415,7 +417,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       return next;
     });
     // Let Cytoscape know the container resized
-    setTimeout(() => this.cy?.resize(), 250);
+    setTimeout(() => this.cy?.resize(), SIDEBAR_RESIZE_DELAY_MS);
   }
 
   /** Switch between curated and all mode */
@@ -607,17 +609,16 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     link.click();
   }
 
-  /** Export chart as SVG (uses PNG fallback — Cytoscape has no built-in SVG) */
-  protected exportAsSvg(): void {
+  /** Export chart as high-resolution PNG (3x scale) */
+  protected exportAsHighResPng(): void {
     if (!this.cy) return;
-    // Cytoscape doesn't have built-in SVG export; export high-res PNG instead
     const dataUrl = this.cy.png({
       full: true,
       scale: 3,
       bg: '#fff',
     });
     const link = document.createElement('a');
-    link.download = `${this.elementName()}.png`;
+    link.download = `${this.elementName()}-highres.png`;
     link.href = dataUrl;
     link.click();
   }
@@ -768,9 +769,10 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         minZoom: 0.1,
         maxZoom: 5,
       });
-    } catch {
+    } catch (e) {
       // Cytoscape requires a real canvas renderer; degrade gracefully in
       // environments where canvas is unavailable (e.g. jsdom/unit tests).
+      console.warn('Cytoscape initialization failed:', e);
       return;
     }
 

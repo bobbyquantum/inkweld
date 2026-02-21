@@ -49,15 +49,18 @@ export class ElementsService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getElementImages(username: string, slug: string, getElementImagesRequest?: GetElementImagesRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetElementImages200Response>;
-    public getElementImages(username: string, slug: string, getElementImagesRequest?: GetElementImagesRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetElementImages200Response>>;
-    public getElementImages(username: string, slug: string, getElementImagesRequest?: GetElementImagesRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetElementImages200Response>>;
-    public getElementImages(username: string, slug: string, getElementImagesRequest?: GetElementImagesRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getElementImages(username: string, slug: string, getElementImagesRequest: GetElementImagesRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetElementImages200Response>;
+    public getElementImages(username: string, slug: string, getElementImagesRequest: GetElementImagesRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetElementImages200Response>>;
+    public getElementImages(username: string, slug: string, getElementImagesRequest: GetElementImagesRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetElementImages200Response>>;
+    public getElementImages(username: string, slug: string, getElementImagesRequest: GetElementImagesRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling getElementImages.');
         }
         if (slug === null || slug === undefined) {
             throw new Error('Required parameter slug was null or undefined when calling getElementImages.');
+        }
+        if (getElementImagesRequest === null || getElementImagesRequest === undefined) {
+            throw new Error('Required parameter getElementImagesRequest was null or undefined when calling getElementImages.');
         }
 
         let localVarHeaders = this.defaultHeaders;

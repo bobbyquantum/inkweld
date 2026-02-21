@@ -205,7 +205,7 @@ describe('RelationshipChartTabComponent', () => {
     fixture.detectChanges();
     component['toggleOrphans']();
     expect(mockChartService.setFilters).toHaveBeenCalledWith(
-      expect.objectContaining({ showOrphans: true })
+      expect.objectContaining({ showOrphans: false })
     );
   });
 
@@ -248,7 +248,7 @@ describe('RelationshipChartTabComponent', () => {
     fixture.detectChanges();
     // These should be no-ops when cy is null
     expect(() => component['exportAsPng']()).not.toThrow();
-    expect(() => component['exportAsSvg']()).not.toThrow();
+    expect(() => component['exportAsHighResPng']()).not.toThrow();
   });
 
   it('should not save local state on destroy when cy is null', () => {
@@ -427,11 +427,11 @@ describe('RelationshipChartTabComponent', () => {
     );
   });
 
-  it('should export SVG fallback (high-res PNG) when cytoscape instance is available', () => {
+  it('should export high-res PNG when cytoscape instance is available', () => {
     fixture.detectChanges();
     const mockPng = vi.fn(() => 'data:image/png;base64,abc');
     component['cy'] = { png: mockPng, destroy: vi.fn() } as any;
-    expect(() => component['exportAsSvg']()).not.toThrow();
+    expect(() => component['exportAsHighResPng']()).not.toThrow();
     expect(mockPng).toHaveBeenCalledWith(
       expect.objectContaining({ full: true, scale: 3 })
     );
@@ -602,11 +602,11 @@ describe('RelationshipChartTabComponent', () => {
 
   it('should compute showOrphans from active config', () => {
     fixture.detectChanges();
-    expect(component['showOrphans']()).toBe(false);
+    expect(component['showOrphans']()).toBe(true);
 
     const config = createDefaultChartConfig('test-chart');
-    config.filters.showOrphans = true;
+    config.filters.showOrphans = false;
     mockChartService.activeConfig.set(config);
-    expect(component['showOrphans']()).toBe(true);
+    expect(component['showOrphans']()).toBe(false);
   });
 });

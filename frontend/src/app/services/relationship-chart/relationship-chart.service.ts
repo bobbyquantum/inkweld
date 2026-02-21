@@ -300,7 +300,7 @@ export class RelationshipChartService {
 
     // 3. Filter elements
     const isCurated =
-      filters.mode === 'curated' && filters.includedElementIds?.length > 0;
+      filters.mode === 'curated' && !!filters.includedElementIds?.length;
     const includedIdSet = isCurated
       ? new Set(filters.includedElementIds)
       : null;
@@ -355,6 +355,19 @@ export class RelationshipChartService {
     // 5. Build element ID set for edge filtering
     const elementIdSet = new Set(filteredElements.map(e => e.id));
 
+    // 5b. Pre-compute relationship counts per element (avoids O(n²))
+    const relationshipCountMap = new Map<string, number>();
+    for (const r of filteredRelationships) {
+      relationshipCountMap.set(
+        r.sourceElementId,
+        (relationshipCountMap.get(r.sourceElementId) ?? 0) + 1
+      );
+      relationshipCountMap.set(
+        r.targetElementId,
+        (relationshipCountMap.get(r.targetElementId) ?? 0) + 1
+      );
+    }
+
     // 6. Build nodes
     const nodes: ChartNode[] = filteredElements.map(e => ({
       id: e.id,
@@ -362,9 +375,7 @@ export class RelationshipChartService {
       type: e.type,
       schemaId: e.schemaId,
       icon: e.metadata?.['icon'],
-      relationshipCount: filteredRelationships.filter(
-        r => r.sourceElementId === e.id || r.targetElementId === e.id
-      ).length,
+      relationshipCount: relationshipCountMap.get(e.id) ?? 0,
       category: this.getCategoryLabel(e),
     }));
 

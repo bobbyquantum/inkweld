@@ -104,6 +104,7 @@
 .header-action {
   --mdc-icon-button-state-layer-size: 32px;
   --mdc-icon-button-icon-size: 20px;
+
   flex-shrink: 0;
 }
 
@@ -214,6 +215,7 @@
   .chip-remove {
     --mdc-icon-button-state-layer-size: 24px;
     --mdc-icon-button-icon-size: 16px;
+
     opacity: 0;
     transition: opacity 0.15s;
   }

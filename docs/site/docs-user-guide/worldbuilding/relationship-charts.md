@@ -53,7 +53,10 @@ Choose how nodes are arranged:
 | Layout | Icon | Best For |
 |--------|------|----------|
 | **Force** | Scatter | Organic graphs where clusters form naturally |
+| **Tree** | Account Tree | Hierarchical relationships (org charts, family trees) |
 | **Circular** | Ring | Evenly-spaced arrangements, good for small groups |
+| **Grid** | Grid View | Dense graphs, comparing many elements |
+| **Rings** | Target | Centrality-based, most connected nodes at center |
 
 ### Mode
 
@@ -109,7 +112,7 @@ Lines between nodes represent relationships:
 Export your chart as an image for use outside Inkweld:
 
 1. Click the **download** button (in the sidebar header or collapsed strip)
-2. Choose **Export as PNG** for a raster image or **Export as SVG** for a scalable vector
+2. Choose **Export as PNG** for a standard image or **Export as High-Res PNG** for a 3× resolution version
 
 ## Tips
 

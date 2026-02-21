@@ -81,6 +81,7 @@ export interface ChartFilters {
   /**
    * Whether to include elements that have no relationships (orphans).
    * In 'curated' mode this is always true (you picked them explicitly).
+   * In 'all' mode defaults to false.
    * @default false
    */
   showOrphans: boolean;
@@ -204,7 +205,7 @@ export function createDefaultChartConfig(elementId: string): ChartConfig {
       relationshipTypeIds: [],
       schemaIds: [],
       elementTypes: [],
-      showOrphans: false,
+      showOrphans: true,
     },
   };
 }

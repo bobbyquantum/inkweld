@@ -115,6 +115,7 @@ const elementImagesRoute = createRoute({
   request: {
     params: ProjectPathParamsSchema,
     body: {
+      required: true,
       content: {
         'application/json': {
           schema: z.object({
@@ -134,6 +135,10 @@ const elementImagesRoute = createRoute({
         },
       },
       description: 'Map of element ID to image URL (or null)',
+    },
+    400: {
+      content: { 'application/json': { schema: ElementErrorSchema } },
+      description: 'Validation error / Bad request',
     },
     401: {
       content: { 'application/json': { schema: ElementErrorSchema } },
@@ -165,7 +170,10 @@ elementRoutes.openapi(elementImagesRoute, async (c) => {
   }
 
   const user = c.get('user');
-  if (user && project.userId !== user.id) {
+  if (!user) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  if (project.userId !== user.id) {
     const access = await collaborationService.checkAccess(db, project.id, user.id);
     if (!access.canRead) {
       return c.json({ error: 'Unauthorized' }, 403);

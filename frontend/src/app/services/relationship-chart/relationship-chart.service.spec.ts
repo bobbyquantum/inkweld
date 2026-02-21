@@ -389,7 +389,7 @@ describe('RelationshipChartService', () => {
       expect(config.layout).toBe('force');
       expect(config.filters.mode).toBe('curated');
       expect(config.filters.includedElementIds).toEqual([]);
-      expect(config.filters.showOrphans).toBe(false);
+      expect(config.filters.showOrphans).toBe(true);
       expect(config.filters.relationshipTypeIds).toEqual([]);
     });
 

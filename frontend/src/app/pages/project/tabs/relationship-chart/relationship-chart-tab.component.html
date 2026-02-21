@@ -292,10 +292,7 @@
 
     <!-- Chart Area -->
     @if (hasData()) {
-      <div
-        class="chart-area"
-        data-testid="chart-area"
-        #chartContainer></div>
+      <div class="chart-area" data-testid="chart-area" #chartContainer></div>
     } @else {
       <div class="empty-state" data-testid="chart-empty-state">
         <mat-icon class="empty-icon">hub</mat-icon>
@@ -330,9 +327,9 @@
       <mat-icon>image</mat-icon>
       <span>Export as PNG</span>
     </button>
-    <button mat-menu-item (click)="exportAsSvg()">
-      <mat-icon>code</mat-icon>
-      <span>Export as SVG</span>
+    <button mat-menu-item (click)="exportAsHighResPng()">
+      <mat-icon>high_quality</mat-icon>
+      <span>Export as High-Res PNG</span>
     </button>
   </mat-menu>
 </div>
