@@ -183,6 +183,7 @@ elementRoutes.openapi(elementImagesRoute, async (c) => {
   try {
     const { elementIds } = c.req.valid('json');
     const images: Record<string, string | null> = {};
+    const failedIds: string[] = [];
 
     await Promise.all(
       elementIds.map(async (elementId) => {
@@ -195,9 +196,17 @@ elementRoutes.openapi(elementImagesRoute, async (c) => {
         } catch (error) {
           elementLog.error('Failed to fetch element image', error, { elementId });
           images[elementId] = null;
+          failedIds.push(elementId);
         }
       })
     );
+
+    if (failedIds.length > 0) {
+      elementLog.warn(
+        `Partial failure: ${failedIds.length} element image(s) could not be fetched`,
+        { failedIds }
+      );
+    }
 
     return c.json({ images }, 200);
   } catch (error) {

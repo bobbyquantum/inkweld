@@ -360,17 +360,22 @@ export class RelationshipChartService {
     // 5. Build element ID set for edge filtering
     const elementIdSet = new Set(filteredElements.map(e => e.id));
 
-    // 5b. Pre-compute relationship counts per element (avoids O(n²))
+    // 5b. Pre-compute relationship counts from visible edges only (both endpoints in set)
     const relationshipCountMap = new Map<string, number>();
     for (const r of filteredRelationships) {
-      relationshipCountMap.set(
-        r.sourceElementId,
-        (relationshipCountMap.get(r.sourceElementId) ?? 0) + 1
-      );
-      relationshipCountMap.set(
-        r.targetElementId,
-        (relationshipCountMap.get(r.targetElementId) ?? 0) + 1
-      );
+      if (
+        elementIdSet.has(r.sourceElementId) &&
+        elementIdSet.has(r.targetElementId)
+      ) {
+        relationshipCountMap.set(
+          r.sourceElementId,
+          (relationshipCountMap.get(r.sourceElementId) ?? 0) + 1
+        );
+        relationshipCountMap.set(
+          r.targetElementId,
+          (relationshipCountMap.get(r.targetElementId) ?? 0) + 1
+        );
+      }
     }
 
     // 6. Build nodes

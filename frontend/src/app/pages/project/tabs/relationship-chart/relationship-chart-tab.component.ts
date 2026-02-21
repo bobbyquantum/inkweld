@@ -129,7 +129,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
   /** Whether the sidebar panel is open (persisted in localStorage) */
   protected readonly sidebarOpen = signal(
-    localStorage.getItem('chartSidebarOpen') !== 'false'
+    this.readLocalStorage('chartSidebarOpen') !== 'false'
   );
 
   /** Current chart mode */
@@ -413,7 +413,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   protected toggleSidebar(): void {
     this.sidebarOpen.update(v => {
       const next = !v;
-      localStorage.setItem('chartSidebarOpen', String(next));
+      this.writeLocalStorage('chartSidebarOpen', String(next));
       return next;
     });
     // Let Cytoscape know the container resized
@@ -448,9 +448,16 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     this.chartService.setFocusElement(null);
   }
 
+  /** Maximum allowed focus depth */
+  private static readonly MAX_FOCUS_DEPTH = 5;
+
   /** Update the BFS traversal depth while in focus mode */
   protected onMaxDepthChange(event: Event): void {
-    const depth = parseInt((event.target as HTMLInputElement).value, 10);
+    const raw = parseInt((event.target as HTMLInputElement).value, 10);
+    const depth = Math.min(
+      Math.max(1, isNaN(raw) ? 3 : raw),
+      RelationshipChartTabComponent.MAX_FOCUS_DEPTH
+    );
     this.maxDepth.set(depth);
     const focusId = this.focusElementId();
     if (focusId) {
@@ -1027,5 +1034,27 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       positions[node.id()] = { x: pos.x, y: pos.y };
     });
     return positions;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Storage Helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Safe localStorage read — returns null when storage is unavailable. */
+  private readLocalStorage(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Safe localStorage write — silently ignores when storage is unavailable. */
+  private writeLocalStorage(key: string, value: string): void {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* Storage unavailable (e.g. private browsing quota exceeded) */
+    }
   }
 }
