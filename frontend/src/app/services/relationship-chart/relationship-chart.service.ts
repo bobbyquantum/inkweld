@@ -84,9 +84,14 @@ export class RelationshipChartService {
         const parsed = JSON.parse(
           element.metadata[CHART_CONFIG_META_KEY]
         ) as Partial<ChartConfig>;
+        const defaults = createDefaultChartConfig(elementId);
         const config: ChartConfig = {
-          ...createDefaultChartConfig(elementId),
+          ...defaults,
           ...parsed,
+          filters: {
+            ...defaults.filters,
+            ...(parsed.filters ?? {}),
+          },
           elementId, // Ensure elementId is always correct
         };
         this.logger.debug(

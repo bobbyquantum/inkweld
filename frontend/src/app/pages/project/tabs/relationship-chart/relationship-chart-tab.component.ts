@@ -924,11 +924,28 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     if (worldbuildingIds.length === 0) return;
 
     try {
-      const response = await firstValueFrom(
-        this.elementsService.getElementImages(project.username, project.slug, {
-          elementIds: worldbuildingIds,
-        })
+      // Chunk requests to respect the backend 200-ID limit
+      const BATCH_SIZE = 200;
+      const batches: string[][] = [];
+      for (let i = 0; i < worldbuildingIds.length; i += BATCH_SIZE) {
+        batches.push(worldbuildingIds.slice(i, i + BATCH_SIZE));
+      }
+      const responses = await Promise.all(
+        batches.map(ids =>
+          firstValueFrom(
+            this.elementsService.getElementImages(
+              project.username,
+              project.slug,
+              { elementIds: ids }
+            )
+          )
+        )
       );
+      const images: Record<string, string | null> = {};
+      for (const r of responses) {
+        Object.assign(images, r.images);
+      }
+      const response = { images };
 
       // Bail if a newer graph render has already started loading its own images
       if (generation !== this.imageLoadGeneration) return;

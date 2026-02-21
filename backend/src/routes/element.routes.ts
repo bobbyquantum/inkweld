@@ -192,7 +192,8 @@ elementRoutes.openapi(elementImagesRoute, async (c) => {
           const identityMap = sharedDoc.doc.getMap('identity');
           const image = identityMap.get('image') as string | undefined;
           images[elementId] = image ?? null;
-        } catch {
+        } catch (error) {
+          elementLog.error('Failed to fetch element image', error, { elementId });
           images[elementId] = null;
         }
       })
