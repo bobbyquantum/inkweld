@@ -286,6 +286,16 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'relationship-chart/:tabId',
+        loadComponent: () =>
+          import('./pages/project/tabs/relationship-chart/relationship-chart-tab.component').then(
+            m => m.RelationshipChartTabComponent
+          ),
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
         path: 'publish-plan/:tabId',
         loadComponent: () =>
           import('./pages/project/tabs/publish-plan/publish-plan-tab.component').then(

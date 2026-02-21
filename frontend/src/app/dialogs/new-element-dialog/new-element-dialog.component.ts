@@ -50,7 +50,7 @@ interface ElementTypeOption {
   label: string;
   icon: string;
   description: string;
-  category: 'document' | 'worldbuilding';
+  category: 'document' | 'worldbuilding' | 'visualization';
 }
 
 interface NewElementForm {
@@ -109,6 +109,14 @@ export class NewElementDialogComponent {
       description: 'Create a narrative document or chapter',
       category: 'document',
     },
+    {
+      type: ElementType.RelationshipChart,
+      label: 'Relationship Chart',
+      icon: 'hub',
+      description:
+        'Visualize connections between your elements as an interactive graph',
+      category: 'visualization',
+    },
   ];
 
   // Element type options (document types + dynamically loaded worldbuilding types)
@@ -137,6 +145,12 @@ export class NewElementDialogComponent {
   worldbuildingOptions = computed(() =>
     this.filteredOptions().filter(
       (o: ElementTypeOption) => o.category === 'worldbuilding'
+    )
+  );
+
+  visualizationOptions = computed(() =>
+    this.filteredOptions().filter(
+      (o: ElementTypeOption) => o.category === 'visualization'
     )
   );
 

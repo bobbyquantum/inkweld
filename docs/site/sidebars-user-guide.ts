@@ -63,6 +63,7 @@ const sidebars: SidebarsConfig = {
         'worldbuilding/elements',
         'worldbuilding/element-references',
         'worldbuilding/relationships',
+        'worldbuilding/relationship-charts',
       ],
     },
     {

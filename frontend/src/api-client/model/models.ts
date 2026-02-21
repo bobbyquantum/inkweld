@@ -54,6 +54,8 @@ export * from './error-response';
 export * from './falai-model-metadata';
 export * from './forgot-password-request';
 export * from './generated-image';
+export * from './get-element-images200-response';
+export * from './get-element-images-request';
 export * from './get-mcp-permissions200-response';
 export * from './get-mcp-permissions200-response-permissions-inner';
 export * from './get-provider-models200-response';

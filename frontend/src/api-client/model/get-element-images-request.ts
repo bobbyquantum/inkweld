@@ -9,14 +9,7 @@
  */
 
 
-export enum ElementType {
-
-    Folder = 'FOLDER',
-
-    Item = 'ITEM',
-
-    Worldbuilding = 'WORLDBUILDING',
-
-    RelationshipChart = 'RELATIONSHIP_CHART'
+export interface GetElementImagesRequest { 
+    elementIds: Array<string>;
 }
 

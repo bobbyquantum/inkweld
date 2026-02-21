@@ -4,7 +4,7 @@ import { z } from '@hono/zod-openapi';
  * Element type enum
  * @component ElementType
  */
-export const ELEMENT_TYPES = ['FOLDER', 'ITEM', 'WORLDBUILDING'] as const;
+export const ELEMENT_TYPES = ['FOLDER', 'ITEM', 'WORLDBUILDING', 'RELATIONSHIP_CHART'] as const;
 
 export const ElementTypeSchema = z.enum(ELEMENT_TYPES).openapi('ElementType');
 
