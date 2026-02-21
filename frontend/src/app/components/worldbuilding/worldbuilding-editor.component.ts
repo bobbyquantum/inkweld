@@ -11,6 +11,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -33,12 +34,18 @@ import {
   SnapshotsDialogData,
 } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import {
+  TagEditorDialogComponent,
+  TagEditorDialogData,
+} from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import {
   ElementTypeSchema,
   FieldSchema,
   TabSchema,
 } from '../../models/schema-types';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
+import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
+import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
   AriaTabConfig,
@@ -46,6 +53,7 @@ import {
   AriaTabsComponent,
 } from '../aria-tabs';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { ResolvedTag } from '../tags/tag.model';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 
 /**
@@ -86,6 +94,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
+  private tagService = inject(TagService);
+  private syncProviderFactory = inject(ElementSyncProviderFactory);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -97,6 +107,30 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     const element = elements.find(e => e.id === this.elementId());
     return element?.name || 'Untitled';
   });
+
+  /** Sync state from the project elements provider */
+  readonly syncState = toSignal(
+    this.syncProviderFactory.getProvider().syncState$,
+    { initialValue: this.syncProviderFactory.getProvider().getSyncState() }
+  );
+
+  /** Resolved tags for this element (raw elementId used for worldbuilding) */
+  readonly elementTags = computed((): ResolvedTag[] =>
+    this.tagService.getResolvedTagsForElement(this.elementId())
+  );
+
+  /** Open the tag editor dialog */
+  openTagsDialog(): void {
+    const data: TagEditorDialogData = {
+      elementId: this.elementId(),
+      elementName: this.elementName(),
+    };
+    this.dialog.open(TagEditorDialogComponent, {
+      data,
+      width: '450px',
+      autoFocus: false,
+    });
+  }
 
   /** Reference to the identity panel for accessing its resolved image URL */
   identityPanel = viewChild(IdentityPanelComponent);

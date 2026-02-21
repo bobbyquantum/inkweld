@@ -39,6 +39,7 @@ import {
   TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
+import { TagService } from '../../services/tag/tag.service';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -60,6 +61,7 @@ import { createMediaUrl } from '../image-paste';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { ResolvedTag } from '../tags/tag.model';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -100,6 +102,7 @@ export class DocumentElementEditorComponent
   private insertImageService = inject(InsertImageService);
   protected elementRefService = inject(ElementRefService);
   protected findService = inject(FindInDocumentService);
+  private tagService = inject(TagService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';
@@ -180,6 +183,13 @@ export class DocumentElementEditorComponent
     if (wc === 0) return '';
     const minutes = Math.max(1, Math.ceil(wc / 200));
     return `~${minutes} min read`;
+  });
+
+  /** Resolved tags assigned to the current element */
+  readonly elementTags = computed((): ResolvedTag[] => {
+    const docId = this.documentIdSignal();
+    if (!docId || docId === 'invalid') return [];
+    return this.tagService.getResolvedTagsForElement(docId);
   });
 
   /** Element name for the current document */
