@@ -50,6 +50,23 @@
             @if (readingTime()) {
               <span class="reading-time">· {{ readingTime() }}</span>
             }
+            <button
+              class="tag-icons"
+              (click)="openTagsDialog()"
+              matTooltip="Manage tags"
+              matTooltipShowDelay="800"
+              type="button">
+              @for (tag of elementTags(); track tag.assignment.id) {
+                <mat-icon
+                  class="tag-icon"
+                  [style.color]="tag.definition.color"
+                  [matTooltip]="tag.definition.name"
+                  matTooltipShowDelay="600">
+                  label
+                </mat-icon>
+              }
+              <mat-icon class="tag-icon tag-icon-add"> label </mat-icon>
+            </button>
           </span>
           <span class="sync-status">
             <span class="sync-dot {{ syncState() }}"></span>
