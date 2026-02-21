@@ -142,12 +142,12 @@ Coming soon, once first numbered release is added.
 ### Relationship Charts
 |  |  | Feature | Notes |
 |--|--|---------|-------|
-| ⬜ | 🔥 | Relationship chart element | New element type for visualizing connections |
-| ⬜ | 🔥 | Graph layout | Force-directed network visualization |
+| ✅ | 🔥 | Relationship chart element | New element type for visualizing connections |
+| ✅ | 🔥 | Graph layout | Force-directed network visualization |
 | ⬜ | 🟡 | Hierarchy layout | Tree-style parent/child visualization |
-| ⬜ | 🟡 | Relationship type filtering | Choose which relationship types to include |
-| ⬜ | 🟡 | Element type filtering | Choose which element types to include |
-| ⬜ | 🟢 | Export chart as image | PNG/SVG export |
+| ✅ | 🟡 | Relationship type filtering | Choose which relationship types to include |
+| ✅ | 🟡 | Element type filtering | Choose which element types to include |
+| ✅ | 🟢 | Export chart as image | PNG/SVG export |
 
 ### Interactive Maps
 |  |  | Feature | Notes |

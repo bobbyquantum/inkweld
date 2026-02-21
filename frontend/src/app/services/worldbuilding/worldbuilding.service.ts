@@ -792,6 +792,7 @@ export class WorldbuildingService {
       SYSTEMS: 'settings',
       [ElementType.Item]: 'description',
       [ElementType.Folder]: 'folder',
+      [ElementType.RelationshipChart]: 'hub',
     };
 
     // Check if it's a built-in type

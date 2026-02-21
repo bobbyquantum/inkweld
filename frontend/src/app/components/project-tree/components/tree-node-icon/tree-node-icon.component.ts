@@ -50,6 +50,11 @@ export class TreeNodeIconComponent {
       return 'description';
     }
 
+    // Relationship charts use hub icon
+    if (this.type === (ElementType.RelationshipChart as string)) {
+      return 'hub';
+    }
+
     // For custom types, check metadata cache
     if (this.metadata?.['icon']) {
       return this.metadata['icon'] as string;

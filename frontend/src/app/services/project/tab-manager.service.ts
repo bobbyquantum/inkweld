@@ -14,7 +14,13 @@ export interface AppTab {
   /** Display name for the tab */
   name: string;
   /** Type of tab content */
-  type: 'document' | 'folder' | 'system' | 'worldbuilding' | 'publishPlan';
+  type:
+    | 'document'
+    | 'folder'
+    | 'system'
+    | 'worldbuilding'
+    | 'relationship-chart'
+    | 'publishPlan';
   /** For system tabs, specifies the system view type */
   systemType?:
     | 'documents-list'
@@ -81,13 +87,15 @@ export class TabManagerService {
    */
   getTabTypeForElement(
     elementType: ElementType | string
-  ): 'document' | 'folder' | 'worldbuilding' {
+  ): 'document' | 'folder' | 'worldbuilding' | 'relationship-chart' {
     const typeStr = String(elementType);
 
     if (typeStr === String(ElementType.Folder)) {
       return 'folder';
     } else if (typeStr === String(ElementType.Item)) {
       return 'document';
+    } else if (typeStr === String(ElementType.RelationshipChart)) {
+      return 'relationship-chart';
     } else {
       // All other types (built-in worldbuilding or custom templates) are worldbuilding
       return 'worldbuilding';
