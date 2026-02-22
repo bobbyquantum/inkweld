@@ -2341,7 +2341,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
     const obj = config.objects.find(o => o.id === id);
     if (obj) {
-      this.clipboard.set({ ...obj });
+      // Strip relationship ownership so copies don't share IDs
+      const copy =
+        obj.type === 'pin' ? { ...obj, relationshipId: undefined } : { ...obj };
+      this.clipboard.set(copy as CanvasObject);
       this.clipboardIsCut = false;
     }
   }
@@ -2356,7 +2359,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     if (obj) {
       // Clean up relationship if cutting a linked pin
       if (obj.type === 'pin') this.removePinRelationship(obj);
-      this.clipboard.set({ ...obj });
+      // Strip stale relationship ID from clipboard
+      const copy =
+        obj.type === 'pin' ? { ...obj, relationshipId: undefined } : { ...obj };
+      this.clipboard.set(copy as CanvasObject);
       this.clipboardIsCut = true;
       this.canvasService.removeObject(id);
       this.selectedObjectId.set(null);
@@ -2384,6 +2390,13 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       x: pastePos.x + PASTE_OFFSET,
       y: pastePos.y + PASTE_OFFSET,
     } as CanvasObject;
+
+    // Create a fresh relationship for pasted linked pins
+    if (newObj.type === 'pin' && newObj.linkedElementId) {
+      newObj.relationshipId = this.createPinRelationship(
+        newObj.linkedElementId
+      );
+    }
 
     this.canvasService.addObject(newObj);
 
