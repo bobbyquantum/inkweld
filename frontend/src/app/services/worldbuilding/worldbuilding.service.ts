@@ -100,6 +100,14 @@ export class WorldbuildingService {
   }
 
   /**
+   * Return all schemas currently loaded for the active project.
+   * Useful for populating filter dropdowns, schema pickers, etc.
+   */
+  getSchemas(): ElementTypeSchema[] {
+    return this.schemasCache;
+  }
+
+  /**
    * Quick lookup for a schema by ID from the current cache.
    * This is a lightweight method for synchronous icon resolution.
    * @param schemaId - The schema ID to look up

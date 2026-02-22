@@ -37,6 +37,7 @@
       data-testid="toolbar-home-button">
       <mat-icon>home</mat-icon>
     </button>
+    <span class="toolbar-spacer"></span>
     <button
       mat-icon-button
       class="search-button"
@@ -45,23 +46,6 @@
       data-testid="toolbar-project-search-button">
       <mat-icon>manage_search</mat-icon>
     </button>
-    <span class="toolbar-spacer"></span>
-    @if (projectStateService.canWrite()) {
-      <button
-        mat-icon-button
-        (click)="onCreateNewDocument()"
-        matTooltip="New Document"
-        data-testid="toolbar-new-document-button">
-        <mat-icon>note_add</mat-icon>
-      </button>
-      <button
-        mat-icon-button
-        (click)="onCreateNewFolder()"
-        matTooltip="New Folder"
-        data-testid="toolbar-new-folder-button">
-        <mat-icon>create_new_folder</mat-icon>
-      </button>
-    }
   </div>
 
   <!-- Project Tree with ARIA attributes for accessibility -->
