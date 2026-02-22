@@ -45,6 +45,165 @@
       height: 18px;
     }
   }
+
+  .filter-toggle-button {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    position: relative;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.active {
+      color: var(--mat-sys-primary);
+    }
+
+    .filter-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 8px;
+      background-color: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      line-height: 1;
+    }
+  }
+}
+
+// ─── Filter panel ────────────────────────────────────────────────────────────
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface-container-low);
+}
+
+.filter-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  .filter-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--mat-sys-on-surface-variant);
+    min-width: 62px;
+    padding-top: 5px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px 3px 6px;
+  border-radius: 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: transparent;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+
+  .chip-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-highest);
+    border-color: var(--mat-sys-outline);
+  }
+
+  &.selected {
+    background-color: var(--mat-sys-secondary-container);
+    border-color: var(--mat-sys-secondary);
+    color: var(--mat-sys-on-secondary-container);
+  }
+
+  &.tag-chip.selected {
+    background-color: color-mix(in srgb, var(--tag-color, var(--mat-sys-secondary)) 20%, transparent);
+    border-color: var(--tag-color, var(--mat-sys-secondary));
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.relationship-select {
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  font-size: 12px;
+  font-family: inherit;
+  min-width: 160px;
+  max-width: 300px;
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: var(--mat-sys-primary);
+  }
+
+  option {
+    background-color: var(--mat-sys-surface);
+    color: var(--mat-sys-on-surface);
+  }
+}
+
+.clear-filters-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: none;
+  background: transparent;
+  color: var(--mat-sys-error);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: inherit;
+  align-self: flex-start;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background-color: var(--mat-sys-error-container);
+  }
 }
 
 // ─── Progress row ────────────────────────────────────────────────────────────
@@ -171,6 +330,33 @@
       border-radius: 2px;
       font-weight: 600;
     }
+  }
+}
+
+// ─── Load more / infinite scroll ─────────────────────────────────────────────
+
+.load-more-sentinel {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px 12px;
+}
+
+.load-more-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: transparent;
+  color: var(--mat-sys-primary);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--mat-sys-primary-container);
   }
 }
 

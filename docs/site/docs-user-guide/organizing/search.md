@@ -33,9 +33,11 @@ The project tree shows all your documents, folders, and worldbuilding elements i
 
 At the top of the project tree:
 
-- **New Document** — Create a new element (opens type chooser)
-- **New Folder** — Create a folder directly
+- **Home** — Return to the project home tab
+- **Search** — Open [Project Search](./project-search) to find or browse elements
 - **Collapse All** — Collapse all expanded folders
+
+New elements can be created using the **+ New** button at the bottom of the project tree.
 
 ## Element References
 
