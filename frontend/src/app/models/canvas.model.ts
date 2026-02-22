@@ -157,6 +157,12 @@ export interface CanvasShape extends CanvasObjectBase {
 
 // ─── Pin Object ──────────────────────────────────────────────────────────────
 
+/**
+ * Well-known relationship type ID for canvas-pin → element links.
+ * This type is auto-created in the project's relationship types if not present.
+ */
+export const CANVAS_PIN_RELATIONSHIP_TYPE = 'canvas-pin';
+
 /** Pin marker linked to a project element */
 export interface CanvasPin extends CanvasObjectBase {
   type: 'pin';
@@ -168,6 +174,8 @@ export interface CanvasPin extends CanvasObjectBase {
   color: string;
   /** Linked project element ID (creates a relationship) */
   linkedElementId?: string;
+  /** ID of the ElementRelationship backing this link (for cleanup) */
+  relationshipId?: string;
   /** Optional note / description */
   note?: string;
 }

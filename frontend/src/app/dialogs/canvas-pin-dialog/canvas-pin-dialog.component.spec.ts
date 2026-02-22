@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MAT_DIALOG_DATA,
@@ -7,6 +7,8 @@ import {
 } from '@angular/material/dialog';
 import { MockedObject, vi } from 'vitest';
 
+import { Element } from '../../../api-client/model/element';
+import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   CanvasPinDialogComponent,
   CanvasPinDialogData,
@@ -23,6 +25,10 @@ describe('CanvasPinDialogComponent', () => {
     color: '#E53935',
   };
 
+  const mockProjectState = {
+    elements: signal<Element[]>([]),
+  };
+
   beforeEach(async () => {
     mockDialogRef = {
       close: vi.fn(),
@@ -36,6 +42,7 @@ describe('CanvasPinDialogComponent', () => {
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockData },
+        { provide: ProjectStateService, useValue: mockProjectState },
       ],
     }).compileComponents();
 
@@ -68,6 +75,7 @@ describe('CanvasPinDialogComponent', () => {
     expect(mockDialogRef.close).toHaveBeenCalledWith({
       label: 'My Pin',
       color: '#1E88E5',
+      linkedElementId: undefined,
     });
   });
 
@@ -81,5 +89,37 @@ describe('CanvasPinDialogComponent', () => {
   it('should update color on colorChange', () => {
     component['onColorChange']('#43A047');
     expect(component['selectedColor']).toBe('#43A047');
+  });
+
+  it('should initialize with linked element when provided', () => {
+    component['linkedElementId'].set('el-123');
+    component['linkedElementName'].set('Castle Town');
+
+    expect(component['linkedElementId']()).toBe('el-123');
+    expect(component['linkedElementName']()).toBe('Castle Town');
+  });
+
+  it('should clear linked element on clearLink', () => {
+    component['linkedElementId'].set('el-123');
+    component['linkedElementName'].set('Castle Town');
+
+    component['clearLink']();
+
+    expect(component['linkedElementId']()).toBeUndefined();
+    expect(component['linkedElementName']()).toBeUndefined();
+  });
+
+  it('should include linkedElementId in confirm result', () => {
+    component['labelControl'].setValue('Map Pin');
+    component['selectedColor'] = '#E53935';
+    component['linkedElementId'].set('el-456');
+
+    component['onConfirm']();
+
+    expect(mockDialogRef.close).toHaveBeenCalledWith({
+      label: 'Map Pin',
+      color: '#E53935',
+      linkedElementId: 'el-456',
+    });
   });
 });

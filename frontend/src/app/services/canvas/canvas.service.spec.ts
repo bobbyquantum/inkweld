@@ -536,6 +536,47 @@ describe('CanvasService', () => {
       expect((pin as CanvasPin).color).toBe('#00FF00');
       expect((pin as CanvasPin).icon).toBe('star');
     });
+
+    it('should accept linkedElementId', () => {
+      const pin = service.createPin(
+        'l1',
+        5,
+        10,
+        'Linked Pin',
+        '#E53935',
+        'place',
+        'element-abc'
+      );
+
+      expect((pin as CanvasPin).linkedElementId).toBe('element-abc');
+    });
+
+    it('should leave linkedElementId undefined when not provided', () => {
+      const pin = service.createPin('l1', 0, 0, 'No Link');
+
+      expect((pin as CanvasPin).linkedElementId).toBeUndefined();
+    });
+
+    it('should accept relationshipId', () => {
+      const pin = service.createPin(
+        'l1',
+        5,
+        10,
+        'Linked Pin',
+        '#E53935',
+        'place',
+        'element-abc',
+        'rel-123'
+      );
+
+      expect((pin as CanvasPin).relationshipId).toBe('rel-123');
+    });
+
+    it('should leave relationshipId undefined when not provided', () => {
+      const pin = service.createPin('l1', 0, 0, 'No Relationship');
+
+      expect((pin as CanvasPin).relationshipId).toBeUndefined();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────

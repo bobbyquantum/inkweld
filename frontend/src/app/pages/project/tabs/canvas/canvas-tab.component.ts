@@ -20,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
+import { RelationshipCategory } from '@components/element-ref/element-ref.model';
 import {
   createMediaUrl,
   extractMediaId,
@@ -48,6 +49,7 @@ import {
   RenameDialogData,
 } from '@dialogs/rename-dialog/rename-dialog.component';
 import {
+  CANVAS_PIN_RELATIONSHIP_TYPE,
   CanvasImage,
   CanvasLayer,
   CanvasObject,
@@ -65,6 +67,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
 import { nanoid } from 'nanoid';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -107,6 +110,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly localStorageService = inject(LocalStorageService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly logger = inject(LoggerService);
+  private readonly relationshipService = inject(RelationshipService);
 
   /** Reference to the canvas container <div> */
   private readonly canvasContainer =
@@ -816,6 +820,30 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     });
     group.add(marker);
 
+    // Link indicator (small chain icon rendered as a circle with "🔗" feel)
+    if (obj.linkedElementId) {
+      const linkBadge = new Konva.Circle({
+        name: 'linkBadge',
+        x: pinSize / 2 + 2,
+        y: -(pinSize / 2) + 2,
+        radius: 6,
+        fill: '#1976D2',
+        stroke: '#fff',
+        strokeWidth: 1.5,
+      });
+      group.add(linkBadge);
+
+      const linkIcon = new Konva.Text({
+        name: 'linkIcon',
+        x: pinSize / 2 + 2 - 4,
+        y: -(pinSize / 2) + 2 - 5,
+        text: '🔗',
+        fontSize: 8,
+        listening: false,
+      });
+      group.add(linkIcon);
+    }
+
     // Pin label
     const label = new Konva.Text({
       text: obj.label,
@@ -834,7 +862,126 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       this.openPinEditDialog(obj, label, marker, group);
     });
 
+    // Single-click navigates to linked element (if link exists)
+    if (obj.linkedElementId) {
+      group.on(
+        'click tap',
+        (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+          // Only navigate on single-click in select mode, not during a drag
+          if (this.activeTool() !== 'select') return;
+          // Ignore if user is dragging
+          if (group.isDragging()) return;
+          // Need Ctrl/Cmd + click to navigate (avoid accidental navigation)
+          const evt = e.evt as MouseEvent;
+          if (!evt.ctrlKey && !evt.metaKey) return;
+
+          const linkedEl = this.projectState
+            .elements()
+            .find(el => el.id === obj.linkedElementId);
+          if (linkedEl) {
+            this.projectState.openDocument(linkedEl);
+          }
+        }
+      );
+    }
+
     return group;
+  }
+
+  /** Add or remove the link badge indicator on a pin group */
+  private updatePinLinkIndicator(group: Konva.Group, hasLink: boolean): void {
+    const existingBadge = group.findOne('.linkBadge');
+    const existingIcon = group.findOne('.linkIcon');
+
+    if (hasLink && !existingBadge) {
+      const pinSize = 24;
+      const linkBadge = new Konva.Circle({
+        name: 'linkBadge',
+        x: pinSize / 2 + 2,
+        y: -(pinSize / 2) + 2,
+        radius: 6,
+        fill: '#1976D2',
+        stroke: '#fff',
+        strokeWidth: 1.5,
+      });
+      group.add(linkBadge);
+
+      const linkIcon = new Konva.Text({
+        name: 'linkIcon',
+        x: pinSize / 2 + 2 - 4,
+        y: -(pinSize / 2) + 2 - 5,
+        text: '🔗',
+        fontSize: 8,
+        listening: false,
+      });
+      group.add(linkIcon);
+    } else if (!hasLink) {
+      existingBadge?.destroy();
+      existingIcon?.destroy();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Pin–Element Relationship Helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Create a formal ElementRelationship linking this canvas element to the
+   * target element. Returns the relationship ID for storage on the pin.
+   * The canvas element (source) → linked element (target).
+   */
+  private createPinRelationship(targetElementId: string): string {
+    this.ensureCanvasPinRelationshipType();
+    const rel = this.relationshipService.addRelationship(
+      this.elementId(),
+      targetElementId,
+      CANVAS_PIN_RELATIONSHIP_TYPE
+    );
+    return rel.id;
+  }
+
+  /** Remove the ElementRelationship backing a pin link, if it exists. */
+  private removePinRelationship(pin: CanvasPin): void {
+    if (pin.relationshipId) {
+      this.relationshipService.removeRelationship(pin.relationshipId);
+    }
+  }
+
+  /**
+   * Ensure the "canvas-pin" relationship type exists in the project.
+   * If it's missing (e.g. older project created before this feature),
+   * add it as a custom type.
+   */
+  private ensureCanvasPinRelationshipType(): void {
+    const existing = this.relationshipService.getTypeById(
+      CANVAS_PIN_RELATIONSHIP_TYPE
+    );
+    if (!existing) {
+      this.relationshipService.addRawType({
+        id: CANVAS_PIN_RELATIONSHIP_TYPE,
+        name: 'Pinned on canvas',
+        inverseLabel: 'Has pin',
+        showInverse: true,
+        // Use capitalized string to match existing template conventions
+        category: 'Spatial' as RelationshipCategory,
+        icon: 'push_pin',
+        isBuiltIn: false,
+        sourceEndpoint: { allowedSchemas: [] },
+        targetEndpoint: { allowedSchemas: [] },
+      });
+    }
+  }
+
+  /**
+   * Clean up relationships for all linked pins in a set of objects.
+   * Used when deleting a layer or bulk-removing objects.
+   */
+  private cleanupPinRelationships(objects: CanvasObject[]): void {
+    for (const obj of objects) {
+      if (obj.type === 'pin') {
+        this.removePinRelationship(obj);
+      }
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1281,12 +1428,22 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         if (!result) return;
         const layerId = this.ensureActiveLayer();
         if (!layerId) return;
+
+        // Create formal relationship if linking to an element
+        let relationshipId: string | undefined;
+        if (result.linkedElementId) {
+          relationshipId = this.createPinRelationship(result.linkedElementId);
+        }
+
         const pin = this.canvasService.createPin(
           layerId,
           pos.x,
           pos.y,
           result.label,
-          result.color
+          result.color,
+          'place',
+          result.linkedElementId,
+          relationshipId
         );
         this.canvasService.addObject(pin);
       });
@@ -1404,11 +1561,18 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     marker: Konva.Circle,
     group: Konva.Group
   ): void {
+    // Resolve linked element name for display
+    const linkedElement = obj.linkedElementId
+      ? this.projectState.elements().find(e => e.id === obj.linkedElementId)
+      : undefined;
+
     const data: CanvasPinDialogData = {
       title: 'Edit Pin',
       label: obj.label,
       color: obj.color,
       confirmLabel: 'Save',
+      linkedElementId: obj.linkedElementId,
+      linkedElementName: linkedElement?.name,
     };
     const dialogRef = this.dialog.open(CanvasPinDialogComponent, {
       data,
@@ -1421,11 +1585,34 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         label.text(result.label);
         label.x(-label.width() / 2);
         marker.fill(result.color);
+
+        // Update or remove link indicator
+        this.updatePinLinkIndicator(group, !!result.linkedElementId);
+
+        // Manage relationships when link changes
+        const oldLink = obj.linkedElementId;
+        const newLink = result.linkedElementId;
+        let relationshipId = obj.relationshipId;
+
+        if (oldLink !== newLink) {
+          // Remove old relationship if it existed
+          if (oldLink && relationshipId) {
+            this.removePinRelationship(obj);
+            relationshipId = undefined;
+          }
+          // Create new relationship if linking to an element
+          if (newLink) {
+            relationshipId = this.createPinRelationship(newLink);
+          }
+        }
+
         group.getLayer()?.batchDraw();
         this.canvasService.updateObject(obj.id, {
           label: result.label,
           color: result.color,
           name: result.label,
+          linkedElementId: result.linkedElementId,
+          relationshipId,
         } as Partial<CanvasPin>);
       });
   }
@@ -2009,6 +2196,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         .afterClosed() as Observable<boolean | undefined>
     );
     if (confirmed) {
+      // Clean up relationships for any linked pins on this layer
+      this.cleanupPinRelationships(
+        this.canvasService.getObjectsForLayer(layerId)
+      );
       this.canvasService.removeLayer(layerId);
       // Switch to first remaining layer
       const remaining = this.sortedLayers();
@@ -2034,6 +2225,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   protected onDeleteObject(objectId: string, event: Event): void {
     event.stopPropagation();
+    // Clean up relationship if this is a linked pin
+    const obj = this.canvasService
+      .activeConfig()
+      ?.objects.find(o => o.id === objectId);
+    if (obj?.type === 'pin') this.removePinRelationship(obj);
     this.canvasService.removeObject(objectId);
     if (this.selectedObjectId() === objectId) {
       this.selectedObjectId.set(null);
@@ -2045,6 +2241,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private deleteSelectedObject(): void {
     const id = this.selectedObjectId();
     if (id) {
+      // Clean up relationship if this is a linked pin
+      const obj = this.canvasService
+        .activeConfig()
+        ?.objects.find(o => o.id === id);
+      if (obj?.type === 'pin') this.removePinRelationship(obj);
       this.canvasService.removeObject(id);
       this.selectedObjectId.set(null);
       this.transformer?.nodes([]);
@@ -2149,6 +2350,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
     const obj = config.objects.find(o => o.id === id);
     if (obj) {
+      // Clean up relationship if cutting a linked pin
+      if (obj.type === 'pin') this.removePinRelationship(obj);
       this.clipboard.set({ ...obj });
       this.clipboardIsCut = true;
       this.canvasService.removeObject(id);

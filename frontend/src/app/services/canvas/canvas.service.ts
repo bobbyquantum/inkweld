@@ -285,7 +285,9 @@ export class CanvasService {
     y: number,
     label: string,
     color = '#E53935',
-    icon = 'place'
+    icon = 'place',
+    linkedElementId?: string,
+    relationshipId?: string
   ): CanvasObject {
     return {
       id: nanoid(),
@@ -302,6 +304,8 @@ export class CanvasService {
       icon,
       color,
       name: label,
+      linkedElementId,
+      relationshipId,
     };
   }
 
