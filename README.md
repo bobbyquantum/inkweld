@@ -150,6 +150,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟢 | Export chart as image | PNG/SVG export |
 
 ### Canvas
+
 |  |  | Feature | Notes |
 |--|--|---------|-------|
 | ✅ | 🔥 | Canvas element type | Infinite freeform canvas with layers |
@@ -162,6 +163,7 @@ Coming soon, once first numbered release is added.
 | ⬜ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
 
 ### Interactive Maps
+
 |  |  | Feature | Notes |
 |--|--|---------|-------|
 | ⬜ | 🔥 | Map background images | Load a map image as a non-editable canvas background |

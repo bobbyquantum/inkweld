@@ -9,8 +9,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-
-import { ColorSwatchesComponent } from '../../components/color-swatches/color-swatches.component';
+import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
 
 export interface CanvasTextDialogData {
   /** Dialog title */

@@ -1,9 +1,11 @@
 import {
   Component,
+  ElementRef,
   EventEmitter,
   HostBinding,
   Input,
   Output,
+  ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -37,6 +39,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       <div class="hex-input-group">
         <span class="hash">#</span>
         <input
+          #hexInputEl
           id="hexInput"
           type="text"
           class="hex-input"
@@ -149,6 +152,9 @@ export class ColorSwatchesComponent {
   @HostBinding('attr.data-testid')
   readonly testId = 'color-swatches';
 
+  @ViewChild('hexInputEl')
+  private hexInputRef!: ElementRef<HTMLInputElement>;
+
   /** Curated palette — Material Design inspired */
   readonly colors: string[] = [
     // Grays
@@ -209,7 +215,7 @@ export class ColorSwatchesComponent {
 
   onHexBlur(): void {
     // Read raw value from the input
-    const el = document.getElementById('hexInput') as HTMLInputElement | null;
+    const el = this.hexInputRef?.nativeElement;
     if (!el) return;
     const hex = el.value.replace(/[^0-9a-fA-F]/g, '');
     if (hex.length === 3 || hex.length === 6) {

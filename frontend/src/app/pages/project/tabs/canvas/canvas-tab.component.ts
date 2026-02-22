@@ -66,6 +66,7 @@ import {
 } from '../../../../models/canvas.model';
 import { CanvasService } from '../../../../services/canvas/canvas.service';
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
+import { LoggerService } from '../../../../services/core/logger.service';
 import { LocalStorageService } from '../../../../services/local/local-storage.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 
@@ -106,6 +107,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly logger = inject(LoggerService);
 
   /** Reference to the canvas container <div> */
   private readonly canvasContainer =
@@ -673,8 +675,9 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           group.getLayer()?.batchDraw();
         };
         imageObj.onerror = () => {
-          console.warn(
-            `[Canvas] Failed to load image: ${obj.id} src=${obj.src} resolved=${resolvedSrc}`
+          this.logger.warn(
+            '[Canvas]',
+            `Failed to load image: ${obj.id} src=${obj.src} resolved=${resolvedSrc}`
           );
           placeholder.fill('#ffcdd2');
           group.getLayer()?.batchDraw();
@@ -682,7 +685,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         imageObj.src = resolvedSrc;
       },
       err => {
-        console.warn('[Canvas] Failed to resolve image src:', obj.src, err);
+        this.logger.warn(
+          '[Canvas]',
+          'Failed to resolve image src:',
+          obj.src,
+          err
+        );
         placeholder.fill('#ffcdd2');
         group.getLayer()?.batchDraw();
       }
@@ -1165,7 +1173,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           shapeType: settings.shapeType,
           width: len,
           height: 0,
-          points: [...points],
+          points: [0, 0, dx, dy],
           stroke: settings.stroke,
           strokeWidth: settings.strokeWidth,
           fill: settings.stroke,
@@ -2259,12 +2267,38 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       for (const obj of config.objects.filter(
         o => o.layerId === layer.id && o.visible
       )) {
-        const w = ('width' in obj ? obj.width : 100) * (obj.scaleX || 1);
-        const h = ('height' in obj ? obj.height : 100) * (obj.scaleY || 1);
-        minX = Math.min(minX, obj.x);
-        minY = Math.min(minY, obj.y);
-        maxX = Math.max(maxX, obj.x + w);
-        maxY = Math.max(maxY, obj.y + h);
+        if (obj.type === 'path') {
+          // Paths store absolute canvas coordinates in points (x=0, y=0 for paths)
+          const pts = obj.points;
+          for (let i = 0; i < pts.length - 1; i += 2) {
+            minX = Math.min(minX, obj.x + (pts[i] ?? 0));
+            minY = Math.min(minY, obj.y + (pts[i + 1] ?? 0));
+            maxX = Math.max(maxX, obj.x + (pts[i] ?? 0));
+            maxY = Math.max(maxY, obj.y + (pts[i + 1] ?? 0));
+          }
+        } else if (
+          obj.type === 'shape' &&
+          (obj.shapeType === 'line' || obj.shapeType === 'arrow') &&
+          obj.points?.length
+        ) {
+          // Line/arrow: x,y = start; points are local coords [0, 0, dx, dy]
+          const pts = obj.points;
+          for (let i = 0; i < pts.length - 1; i += 2) {
+            const px = obj.x + (pts[i] ?? 0) * (obj.scaleX || 1);
+            const py = obj.y + (pts[i + 1] ?? 0) * (obj.scaleY || 1);
+            minX = Math.min(minX, px);
+            minY = Math.min(minY, py);
+            maxX = Math.max(maxX, px);
+            maxY = Math.max(maxY, py);
+          }
+        } else {
+          const w = ('width' in obj ? obj.width : 30) * (obj.scaleX || 1);
+          const h = ('height' in obj ? obj.height : 30) * (obj.scaleY || 1);
+          minX = Math.min(minX, obj.x);
+          minY = Math.min(minY, obj.y);
+          maxX = Math.max(maxX, obj.x + w);
+          maxY = Math.max(maxY, obj.y + h);
+        }
       }
     }
 
@@ -2434,6 +2468,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   private destroyStage(): void {
+    // Disconnect ResizeObserver before tearing down the stage
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+
     // Clean up any in-progress drawing
     this.drawingLine?.destroy();
     this.drawingLine = null;
@@ -2469,15 +2507,19 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
     const project = this.projectState.project();
     if (!project) {
-      console.warn('[Canvas] Cannot resolve media URL — no project loaded');
+      this.logger.warn(
+        '[Canvas]',
+        'Cannot resolve media URL — no project loaded'
+      );
       return '';
     }
 
     const projectKey = `${project.username}/${project.slug}`;
     const url = await this.localStorageService.getMediaUrl(projectKey, mediaId);
     if (!url) {
-      console.warn(
-        `[Canvas] Media not found in IndexedDB: ${mediaId} (project: ${projectKey})`
+      this.logger.warn(
+        '[Canvas]',
+        `Media not found in IndexedDB: ${mediaId} (project: ${projectKey})`
       );
       return '';
     }

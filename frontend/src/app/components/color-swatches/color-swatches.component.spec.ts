@@ -59,11 +59,10 @@ describe('ColorSwatchesComponent', () => {
     // Set the hex input value via the DOM
     const nativeEl = fixture.nativeElement as HTMLElement;
     const hexInput = nativeEl.querySelector<HTMLInputElement>('#hexInput');
-    if (hexInput) {
-      hexInput.value = 'FF5722';
-      component.onHexBlur();
-      expect(spy).toHaveBeenCalledWith('#FF5722');
-    }
+    expect(hexInput).not.toBeNull();
+    hexInput!.value = 'FF5722';
+    component.onHexBlur();
+    expect(spy).toHaveBeenCalledWith('#FF5722');
   });
 
   it('should emit on valid 3-char hex via onHexBlur', () => {
@@ -72,11 +71,10 @@ describe('ColorSwatchesComponent', () => {
 
     const nativeEl = fixture.nativeElement as HTMLElement;
     const hexInput = nativeEl.querySelector<HTMLInputElement>('#hexInput');
-    if (hexInput) {
-      hexInput.value = 'F00';
-      component.onHexBlur();
-      expect(spy).toHaveBeenCalledWith('#F00');
-    }
+    expect(hexInput).not.toBeNull();
+    hexInput!.value = 'F00';
+    component.onHexBlur();
+    expect(spy).toHaveBeenCalledWith('#F00');
   });
 
   it('should not emit on invalid hex via onHexBlur', () => {
@@ -85,11 +83,10 @@ describe('ColorSwatchesComponent', () => {
 
     const nativeEl = fixture.nativeElement as HTMLElement;
     const hexInput = nativeEl.querySelector<HTMLInputElement>('#hexInput');
-    if (hexInput) {
-      hexInput.value = 'GG';
-      component.onHexBlur();
-      // Only non-hex chars stripped → empty → invalid length
-      expect(spy).not.toHaveBeenCalled();
-    }
+    expect(hexInput).not.toBeNull();
+    hexInput!.value = 'GG';
+    component.onHexBlur();
+    // Only non-hex chars stripped → empty → invalid length
+    expect(spy).not.toHaveBeenCalled();
   });
 });

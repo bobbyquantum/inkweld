@@ -178,12 +178,21 @@ export class CanvasService {
     if (!config) return;
 
     const layerMap = new Map(config.layers.map(l => [l.id, l]));
+    const orderedSet = new Set(orderedLayerIds);
     const reordered = orderedLayerIds
       .map((id, idx) => {
         const layer = layerMap.get(id);
         return layer ? { ...layer, order: idx } : null;
       })
       .filter((l): l is CanvasLayer => l !== null);
+
+    // Preserve any layers that were not included in orderedLayerIds
+    if (reordered.length !== config.layers.length) {
+      const missing = config.layers.filter(l => !orderedSet.has(l.id));
+      reordered.push(
+        ...missing.map((l, i) => ({ ...l, order: reordered.length + i }))
+      );
+    }
 
     this.saveConfig({
       ...config,

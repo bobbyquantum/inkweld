@@ -6,8 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-
-import { ColorSwatchesComponent } from '../../components/color-swatches/color-swatches.component';
+import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
 
 export interface CanvasColorDialogData {
   /** Dialog title */
