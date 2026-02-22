@@ -87,6 +87,7 @@
     "date-fns": "4.1.0",
     "echarts": "^6.0.0",
     "fracticons": "^1.0.0",
+    "konva": "^10.2.0",
     "lodash-es": "4.17.23",
     "marked": "^17.0.1",
     "nanoid": "5.1.6",

@@ -326,6 +326,27 @@ export class LocalStorageService {
   }
 
   /**
+   * Pre-cache a blob URL for a media item so that subsequent calls
+   * to getMediaUrl() return it instantly without hitting IndexedDB.
+   *
+   * @param projectKey - "username/slug" format
+   * @param mediaId - Identifier like "img-{uuid}"
+   * @param blob - The blob to create a URL for
+   * @returns The created blob URL
+   */
+  preCacheMediaUrl(projectKey: string, mediaId: string, blob: Blob): string {
+    const key = this.makeKey(projectKey, mediaId);
+    // Revoke any existing URL first
+    const existing = this.activeUrls.get(key);
+    if (existing) {
+      URL.revokeObjectURL(existing);
+    }
+    const url = URL.createObjectURL(blob);
+    this.activeUrls.set(key, url);
+    return url;
+  }
+
+  /**
    * Revoke all blob URLs for a project.
    * Call this when closing a project to prevent memory leaks.
    *

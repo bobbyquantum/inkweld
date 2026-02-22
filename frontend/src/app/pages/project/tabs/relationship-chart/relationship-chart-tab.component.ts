@@ -213,13 +213,14 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     if (config.filters.mode === 'curated') {
       elementIdSet = new Set(config.filters.includedElementIds ?? []);
     } else {
-      // 'all' mode: every non-folder, non-chart element
+      // 'all' mode: every non-folder, non-chart, non-canvas element
       elementIdSet = new Set(
         elements
           .filter(
             e =>
               e.type !== ElementType.Folder &&
-              e.type !== ElementType.RelationshipChart
+              e.type !== ElementType.RelationshipChart &&
+              e.type !== ElementType.Canvas
           )
           .map(e => e.id)
       );
@@ -544,7 +545,11 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         subtitle: 'Select elements to include in this relationship chart.',
         maxSelections: 100,
         excludeIds: existingIds,
-        excludeTypes: [ElementType.Folder, ElementType.RelationshipChart],
+        excludeTypes: [
+          ElementType.Folder,
+          ElementType.RelationshipChart,
+          ElementType.Canvas,
+        ],
       },
     });
 

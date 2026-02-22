@@ -187,7 +187,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       const needsElements =
         tabType === 'document' ||
         tabType === 'folder' ||
-        tabType === 'relationship-chart';
+        tabType === 'relationship-chart' ||
+        tabType === 'canvas';
 
       // Wait for elements if we need them for this URL
       if (needsElements && elements.length === 0) {
@@ -693,6 +694,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
     if (tab.type === 'relationship-chart') {
       return 'hub';
+    }
+
+    if (tab.type === 'canvas') {
+      return 'dashboard';
     }
 
     if (tab.type === 'worldbuilding') {

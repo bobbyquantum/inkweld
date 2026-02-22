@@ -435,3 +435,19 @@ export async function createProjectWithTwoSteps(
   // Submit the form
   await page.click('button[data-testid="create-project-button"]');
 }
+
+/**
+ * Dismiss the Material snackbar toast if one is present.
+ * Silently no-ops if no toast is visible.
+ */
+export async function dismissToastIfPresent(page: Page): Promise<void> {
+  try {
+    const toast = page.locator('mat-snack-bar-container');
+    const isVisible = await toast.isVisible({ timeout: 2_000 });
+    if (isVisible) {
+      await toast.getByRole('button').click({ timeout: 2_000 });
+    }
+  } catch {
+    // No toast present — that's fine
+  }
+}

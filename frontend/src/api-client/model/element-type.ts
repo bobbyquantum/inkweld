@@ -17,6 +17,8 @@ export enum ElementType {
 
     Worldbuilding = 'WORLDBUILDING',
 
-    RelationshipChart = 'RELATIONSHIP_CHART'
+    RelationshipChart = 'RELATIONSHIP_CHART',
+
+    Canvas = 'CANVAS'
 }
 

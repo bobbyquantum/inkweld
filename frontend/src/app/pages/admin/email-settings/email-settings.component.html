@@ -144,12 +144,12 @@
             (click)="sendTestEmail()"
             [disabled]="isSendingTest() || !emailEnabled()"
             data-testid="send-test-email-button">
-            @if (isSendingTest()) {
-              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
-            } @else {
-              <mat-icon>send</mat-icon>
-              Send Test Email
-            }
+            <mat-spinner
+              [hidden]="!isSendingTest()"
+              diameter="18"
+              class="button-spinner"></mat-spinner>
+            <mat-icon [hidden]="isSendingTest()">send</mat-icon>
+            <span [hidden]="isSendingTest()">Send Test Email</span>
           </button>
         </div>
 

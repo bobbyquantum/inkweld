@@ -437,6 +437,48 @@ describe('RelationshipService', () => {
       const removed = service.removeCustomType('fake-type');
       expect(removed).toBe(false);
     });
+
+    it('should add a raw type with a specific ID', () => {
+      const rawType: RelationshipTypeDefinition = {
+        id: 'canvas-pin',
+        category: 'Spatial' as RelationshipCategory,
+        name: 'Pinned on Canvas',
+        inverseLabel: 'Has Canvas Pin',
+        showInverse: true,
+        icon: 'push_pin',
+        isBuiltIn: false,
+        sourceEndpoint: { allowedSchemas: [] },
+        targetEndpoint: { allowedSchemas: [] },
+      };
+
+      service.addRawType(rawType);
+
+      const found = service.getTypeById('canvas-pin');
+      expect(found).toBeDefined();
+      expect(found?.name).toBe('Pinned on Canvas');
+    });
+
+    it('should not overwrite existing type in addRawType', () => {
+      const rawType: RelationshipTypeDefinition = {
+        id: 'canvas-pin',
+        category: 'Spatial' as RelationshipCategory,
+        name: 'Pinned on Canvas',
+        inverseLabel: 'Has Canvas Pin',
+        showInverse: true,
+        icon: 'push_pin',
+        isBuiltIn: false,
+        sourceEndpoint: { allowedSchemas: [] },
+        targetEndpoint: { allowedSchemas: [] },
+      };
+
+      service.addRawType(rawType);
+      const countBefore = customTypesStore.length;
+
+      // Call again — should be a no-op
+      service.addRawType({ ...rawType, name: 'Overwritten?' });
+      expect(customTypesStore.length).toBe(countBefore);
+      expect(service.getTypeById('canvas-pin')?.name).toBe('Pinned on Canvas');
+    });
   });
 
   describe('resolveRelationship', () => {

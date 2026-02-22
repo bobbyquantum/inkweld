@@ -55,6 +55,11 @@ export class TreeNodeIconComponent {
       return 'hub';
     }
 
+    // Canvas elements use dashboard icon
+    if (this.type === (ElementType.Canvas as string)) {
+      return 'dashboard';
+    }
+
     // For custom types, check metadata cache
     if (this.metadata?.['icon']) {
       return this.metadata['icon'] as string;

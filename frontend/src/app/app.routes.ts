@@ -296,6 +296,16 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'canvas/:tabId',
+        loadComponent: () =>
+          import('./pages/project/tabs/canvas/canvas-tab.component').then(
+            m => m.CanvasTabComponent
+          ),
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
         path: 'publish-plan/:tabId',
         loadComponent: () =>
           import('./pages/project/tabs/publish-plan/publish-plan-tab.component').then(

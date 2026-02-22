@@ -314,8 +314,9 @@ export class RelationshipChartService {
       // Skip folders — they're structural, not content
       if (e.type === ElementType.Folder) return false;
 
-      // Skip other chart elements
+      // Skip other chart/canvas elements
       if (e.type === ElementType.RelationshipChart) return false;
+      if (e.type === ElementType.Canvas) return false;
 
       // In curated mode, only include explicitly selected elements
       if (includedIdSet) {

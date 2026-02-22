@@ -13,7 +13,10 @@
 import { Page } from '@playwright/test';
 import { join } from 'path';
 
-import { createProjectWithTwoSteps } from '../common/test-helpers';
+import {
+  createProjectWithTwoSteps,
+  dismissToastIfPresent,
+} from '../common/test-helpers';
 import { test } from './fixtures';
 import {
   captureElementScreenshot,
@@ -51,6 +54,9 @@ test.describe('Relationship Chart Screenshots', () => {
 
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', { state: 'visible' });
+
+    // Dismiss the "Project created successfully!" toast if present
+    await dismissToastIfPresent(page);
 
     // Click on "Character Web" in the project tree (root-level element)
     await page

@@ -1,0 +1,394 @@
+:host {
+  display: block;
+  height: var(--app-height-offset-50);
+  overflow: hidden;
+
+  @media (max-width: 759px) {
+    height: var(--app-height-offset-82);
+  }
+}
+
+.canvas-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas Body (sidebar + canvas)
+// ─────────────────────────────────────────────────────────────────────────────
+
+.canvas-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collapsed Sidebar Strip
+// ─────────────────────────────────────────────────────────────────────────────
+
+.collapsed-sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  border-right: 1px solid var(--sys-outline-variant);
+  background: var(--sys-surface);
+  gap: 4px;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar
+// ─────────────────────────────────────────────────────────────────────────────
+
+.canvas-sidebar {
+  width: 260px;
+  min-width: 260px;
+  border-right: 1px solid var(--sys-outline-variant);
+  background: var(--sys-surface);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  @media (max-width: 759px) {
+    width: 220px;
+    min-width: 220px;
+  }
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 16px;
+  border-bottom: 1px solid var(--sys-outline-variant);
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.header-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--sys-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-action {
+  flex-shrink: 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar Sections
+// ─────────────────────────────────────────────────────────────────────────────
+
+.sidebar-section {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sys-outline-variant);
+
+  &:last-child {
+    border-bottom: none;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 16px;
+  min-height: 32px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--sys-on-surface-variant);
+}
+
+.section-action {
+  width: 28px !important;
+  height: 28px !important;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.object-count {
+  font-size: 11px;
+  color: var(--sys-on-surface-variant);
+  padding: 0 8px;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer Items
+// ─────────────────────────────────────────────────────────────────────────────
+
+.layers-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  padding: 2px 4px 2px 4px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  min-height: 36px;
+
+  &:hover {
+    background: var(--sys-surface-container);
+  }
+
+  &.active {
+    background: var(--sys-secondary-container);
+  }
+}
+
+.layer-visibility,
+.layer-lock {
+  width: 28px !important;
+  height: 28px !important;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--sys-on-surface-variant);
+  }
+}
+
+.layer-name {
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-action {
+  width: 28px !important;
+  height: 28px !important;
+  flex-shrink: 0;
+  opacity: 0;
+
+  .layer-item:hover & {
+    opacity: 1;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Object Items
+// ─────────────────────────────────────────────────────────────────────────────
+
+.objects-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.object-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 4px 4px 16px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+  min-height: 32px;
+
+  &:hover {
+    background: var(--sys-surface-container);
+  }
+
+  &.selected {
+    background: var(--sys-secondary-container);
+  }
+}
+
+.object-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--sys-on-surface-variant);
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.object-name {
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.object-action {
+  width: 28px !important;
+  height: 28px !important;
+  flex-shrink: 0;
+  opacity: 0;
+
+  .object-item:hover & {
+    opacity: 1;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.empty-state {
+  padding: 16px;
+  text-align: center;
+  color: var(--sys-on-surface-variant);
+
+  p {
+    font-size: 13px;
+    margin: 0 0 4px;
+  }
+
+  .hint {
+    font-size: 11px;
+    opacity: 0.7;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Canvas Area
+// ─────────────────────────────────────────────────────────────────────────────
+
+.canvas-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Toolbar
+// ─────────────────────────────────────────────────────────────────────────────
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--sys-outline-variant);
+  background: var(--sys-surface);
+  gap: 4px;
+  flex-shrink: 0;
+  min-height: 44px;
+  overflow-x: auto;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--sys-outline-variant);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.zoom-label {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  min-width: 40px;
+  text-align: center;
+}
+
+.canvas-toolbar button {
+  &.active {
+    background: var(--sys-secondary-container);
+    color: var(--sys-on-secondary-container);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas Stage
+// ─────────────────────────────────────────────────────────────────────────────
+
+.canvas-area {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--sys-surface-container-lowest);
+  background-image: radial-gradient(
+    circle,
+    var(--sys-outline-variant) 0.5px,
+    transparent 0.5px
+  );
+  background-size: 20px 20px;
+  cursor: default;
+
+  // Konva creates a <div> with canvas elements inside
+  :host-context(.tool-pan) & {
+    cursor: grab;
+  }
+
+  :host-context(.tool-pin) & {
+    cursor: crosshair;
+  }
+
+  :host-context(.tool-draw) &,
+  :host-context(.tool-line) &,
+  :host-context(.tool-shape) &,
+  :host-context(.tool-text) & {
+    cursor: crosshair;
+  }
+
+  :host-context(.tool-rectSelect) & {
+    cursor: crosshair;
+  }
+}
+
+// Hidden trigger for the canvas context menu
+.context-menu-trigger {
+  position: fixed;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+}

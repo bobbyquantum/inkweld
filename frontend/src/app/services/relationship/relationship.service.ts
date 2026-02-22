@@ -387,6 +387,23 @@ export class RelationshipService {
   }
 
   /**
+   * Add a relationship type with a specific ID (e.g. well-known types like
+   * "canvas-pin"). If a type with the same ID already exists, this is a no-op.
+   */
+  addRawType(type: RelationshipTypeDefinition): void {
+    const existing = this.getTypeById(type.id);
+    if (existing) return;
+
+    const types = [...this.syncProvider.getCustomRelationshipTypes(), type];
+    this.syncProvider.updateCustomRelationshipTypes(types);
+
+    this.logger.debug(
+      'RelationshipService',
+      `Added raw relationship type: ${type.id} (${type.name})`
+    );
+  }
+
+  /**
    * Update a relationship type (built-in or custom)
    * All types are now editable since they're stored per-project
    */
