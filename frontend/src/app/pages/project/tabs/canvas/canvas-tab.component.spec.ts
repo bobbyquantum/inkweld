@@ -13,7 +13,7 @@ import {
   vi,
 } from 'vitest';
 
-import { Element, ElementType } from '../../../../../api-client';
+import { type Element, ElementType } from '../../../../../api-client';
 import {
   CanvasConfig,
   CanvasImage,

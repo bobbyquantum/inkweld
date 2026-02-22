@@ -20,37 +20,33 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import Konva from 'konva';
-import { nanoid } from 'nanoid';
-import { firstValueFrom, Observable } from 'rxjs';
-
 import {
   createMediaUrl,
   extractMediaId,
   isMediaUrl,
-} from '../../../../components/image-paste/image-paste-plugin';
+} from '@components/image-paste/image-paste-plugin';
 import {
   CanvasColorDialogComponent,
   CanvasColorDialogData,
-} from '../../../../dialogs/canvas-color-dialog/canvas-color-dialog.component';
+} from '@dialogs/canvas-color-dialog/canvas-color-dialog.component';
 import {
   CanvasPinDialogComponent,
   CanvasPinDialogData,
   CanvasPinDialogResult,
-} from '../../../../dialogs/canvas-pin-dialog/canvas-pin-dialog.component';
+} from '@dialogs/canvas-pin-dialog/canvas-pin-dialog.component';
 import {
   CanvasTextDialogComponent,
   CanvasTextDialogData,
   CanvasTextDialogResult,
-} from '../../../../dialogs/canvas-text-dialog/canvas-text-dialog.component';
+} from '@dialogs/canvas-text-dialog/canvas-text-dialog.component';
 import {
   ConfirmationDialogComponent,
   ConfirmationDialogData,
-} from '../../../../dialogs/confirmation-dialog/confirmation-dialog.component';
+} from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import {
   RenameDialogComponent,
   RenameDialogData,
-} from '../../../../dialogs/rename-dialog/rename-dialog.component';
+} from '@dialogs/rename-dialog/rename-dialog.component';
 import {
   CanvasImage,
   CanvasLayer,
@@ -63,12 +59,15 @@ import {
   CanvasTool,
   CanvasToolSettings,
   createDefaultToolSettings,
-} from '../../../../models/canvas.model';
-import { CanvasService } from '../../../../services/canvas/canvas.service';
-import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
-import { LoggerService } from '../../../../services/core/logger.service';
-import { LocalStorageService } from '../../../../services/local/local-storage.service';
-import { ProjectStateService } from '../../../../services/project/project-state.service';
+} from '@models/canvas.model';
+import { CanvasService } from '@services/canvas/canvas.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LoggerService } from '@services/core/logger.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import Konva from 'konva';
+import { nanoid } from 'nanoid';
+import { firstValueFrom, Observable } from 'rxjs';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
 const SIDEBAR_RESIZE_DELAY_MS = 250;
@@ -260,6 +259,9 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** ResizeObserver for canvas container */
   private resizeObserver: ResizeObserver | null = null;
 
+  /** Guard to ensure keyboard shortcuts are only registered once per component lifetime */
+  private keyboardShortcutsInitialized = false;
+
   constructor() {
     // Re-load canvas config when elements become available (handles cold-start)
     effect(() => {
@@ -444,8 +446,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       this.handleDrawEnd();
     });
 
-    // Keyboard shortcuts
-    this.setupKeyboardShortcuts();
+    // Keyboard shortcuts (register only once per component lifetime)
+    if (!this.keyboardShortcutsInitialized) {
+      this.setupKeyboardShortcuts();
+      this.keyboardShortcutsInitialized = true;
+    }
 
     // Resize observer
     this.resizeObserver = new ResizeObserver(() => {

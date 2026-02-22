@@ -9,6 +9,7 @@
       "@inkweld/*": ["api-client/*"],
       "@components/*": ["app/components/*"],
       "@dialogs/*": ["app/dialogs/*"],
+      "@models/*": ["app/models/*"],
       "@services/*": ["app/services/*"],
       "@themes/*": ["themes/*"],
       "@package": ["../package.json"]

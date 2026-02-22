@@ -9,8 +9,6 @@
  */
 
 import { inject, Injectable, signal } from '@angular/core';
-import { nanoid } from 'nanoid';
-
 import {
   CanvasConfig,
   CanvasLayer,
@@ -18,9 +16,10 @@ import {
   CanvasViewport,
   createDefaultCanvasConfig,
   createDefaultLayer,
-} from '../../models/canvas.model';
-import { LoggerService } from '../core/logger.service';
-import { ProjectStateService } from '../project/project-state.service';
+} from '@models/canvas.model';
+import { LoggerService } from '@services/core/logger.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { nanoid } from 'nanoid';
 
 /** Key used to store serialized canvas config in element metadata */
 const CANVAS_CONFIG_META_KEY = 'canvasConfig';
