@@ -149,15 +149,27 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟡 | Element type filtering | Choose which element types to include |
 | ✅ | 🟢 | Export chart as image | PNG/SVG export |
 
-### Interactive Maps
+### Canvas
+
 |  |  | Feature | Notes |
 |--|--|---------|-------|
-| ⬜ | 🔥 | Map element type | New element for infinite canvas with map image |
-| ⬜ | 🔥 | Location pins | Clickable markers on the canvas |
+| ✅ | 🔥 | Canvas element type | Infinite freeform canvas with layers |
+| ✅ | 🔥 | Drawing tools | Freehand draw, line, shapes (rect, ellipse, arrow), text, pin |
+| ✅ | 🔥 | Image placement | Add and position images on the canvas |
+| ✅ | 🟡 | Layers | Add, rename, duplicate, delete; visibility & lock toggles |
+| ✅ | 🟡 | Pan and zoom | Navigate large canvases smoothly |
+| ✅ | 🟡 | Export as PNG | Standard and high-resolution export |
+| ⬜ | 🟡 | Shape fills & stroke palette | Per-object color editing |
+| ⬜ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
+
+### Interactive Maps
+
+|  |  | Feature | Notes |
+|--|--|---------|-------|
+| ⬜ | 🔥 | Map background images | Load a map image as a non-editable canvas background |
+| ⬜ | 🔥 | Location pins | Clickable markers linked to worldbuilding elements |
 | ⬜ | 🔥 | Pin-to-element linking | Special relationship type connecting pins to elements |
-| ⬜ | 🟡 | Pan and zoom | Navigate large maps smoothly |
 | ⬜ | 🟡 | Multiple map layers | Overlay different maps (political, terrain, etc.) |
-| ⬜ | 🟢 | Drawing tools | Annotate maps with paths, regions, labels |
 
 ### Timelines
 |  |  | Feature | Notes |

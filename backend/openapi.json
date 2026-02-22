@@ -664,7 +664,8 @@
           "FOLDER",
           "ITEM",
           "WORLDBUILDING",
-          "RELATIONSHIP_CHART"
+          "RELATIONSHIP_CHART",
+          "CANVAS"
         ]
       },
       "ElementError": {

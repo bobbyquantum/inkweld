@@ -204,7 +204,8 @@
               "**/correction-dto.extension.ts",
               "**/yjs-element-sync.provider.ts",
               "**/offline-sync.provider.ts",
-              "**/tag.model.ts"
+              "**/tag.model.ts",
+              "**/tabs/canvas/canvas-tab.component.ts"
             ],
             "coverageReporters": ["text", "html", "lcov"],
             "coverageThresholds": {

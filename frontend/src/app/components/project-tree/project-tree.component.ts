@@ -571,6 +571,8 @@ export class ProjectTreeComponent implements OnDestroy {
         typeRoute = 'folder';
       } else if (dto.type === ElementType.RelationshipChart) {
         typeRoute = 'relationship-chart';
+      } else if (dto.type === ElementType.Canvas) {
+        typeRoute = 'canvas';
       } else if (isWorldbuildingType(dto.type)) {
         typeRoute = 'worldbuilding';
       } else {
