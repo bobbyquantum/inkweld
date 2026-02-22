@@ -145,7 +145,7 @@
           <!-- Desktop collapsed sidebar -->
           <div class="collapsed-sidebar-container">
             <div class="collapsed-sidebar">
-              <!-- Top section: Expand toggle, Home, New Document -->
+              <!-- Top section: Expand toggle, Home, Search -->
               <div class="collapsed-sidebar-top">
                 <button
                   mat-icon-button
@@ -174,16 +174,6 @@
                   aria-label="Search in Project">
                   <mat-icon>manage_search</mat-icon>
                 </button>
-                @if (projectState.canWrite()) {
-                  <button
-                    mat-icon-button
-                    (click)="onCreateNewDocument()"
-                    matTooltip="New Document"
-                    data-testid="collapsed-new-document-button"
-                    aria-label="New Document">
-                    <mat-icon>note_add</mat-icon>
-                  </button>
-                }
               </div>
 
               <!-- Bottom section: Sync, Media, Settings, Exit -->

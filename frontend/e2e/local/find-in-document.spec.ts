@@ -15,7 +15,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document first
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
 
@@ -55,7 +55,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -90,7 +90,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -134,7 +134,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -182,7 +182,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -219,7 +219,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -254,7 +254,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -298,7 +298,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -341,7 +341,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -394,7 +394,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -449,7 +449,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -497,7 +497,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();
@@ -548,7 +548,7 @@ test.describe('Find in Document', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
     await page.getByRole('heading', { name: 'Document', level: 4 }).click();

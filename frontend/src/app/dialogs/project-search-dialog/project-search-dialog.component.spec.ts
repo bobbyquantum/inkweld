@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { Element, ElementType } from '@inkweld/index';
@@ -11,6 +11,9 @@ import {
   ProjectSearchService,
 } from '../../services/core/project-search.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
+import { RelationshipService } from '../../services/relationship/relationship.service';
+import { TagService } from '../../services/tag/tag.service';
+import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { ProjectSearchDialogComponent } from './project-search-dialog.component';
 
 const makeElement = (
@@ -44,6 +47,9 @@ describe('ProjectSearchDialogComponent', () => {
   let mockProjectSearchService: MockedObject<ProjectSearchService>;
   let mockProjectState: MockedObject<ProjectStateService>;
   let mockFindInDocument: MockedObject<FindInDocumentService>;
+  let mockTagService: Partial<TagService>;
+  let mockRelationshipService: Partial<RelationshipService>;
+  let mockWorldbuildingService: Partial<WorldbuildingService>;
 
   beforeEach(async () => {
     mockDialogRef = {
@@ -64,6 +70,8 @@ describe('ProjectSearchDialogComponent', () => {
 
     mockProjectState = {
       openDocument: vi.fn(),
+      elements: signal<Element[]>([]),
+      project: signal(undefined),
     } as Partial<
       MockedObject<ProjectStateService>
     > as MockedObject<ProjectStateService>;
@@ -75,6 +83,25 @@ describe('ProjectSearchDialogComponent', () => {
       MockedObject<FindInDocumentService>
     > as MockedObject<FindInDocumentService>;
 
+    mockTagService = {
+      allTags: signal([]),
+      elementTags: signal([]),
+      getElementsWithTag: vi.fn().mockReturnValue([]),
+    } as Partial<TagService>;
+
+    mockRelationshipService = {
+      hasRelationships: vi.fn().mockReturnValue(false),
+      getRelationshipView: vi
+        .fn()
+        .mockReturnValue({ outgoing: [], incoming: [] }),
+      relationships: signal([]),
+    } as Partial<RelationshipService>;
+
+    mockWorldbuildingService = {
+      getSchemas: vi.fn().mockReturnValue([]),
+      getSchemaById: vi.fn().mockReturnValue(null),
+    } as Partial<WorldbuildingService>;
+
     await TestBed.configureTestingModule({
       imports: [ProjectSearchDialogComponent, MatDialogModule],
       providers: [
@@ -83,6 +110,9 @@ describe('ProjectSearchDialogComponent', () => {
         { provide: ProjectSearchService, useValue: mockProjectSearchService },
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: FindInDocumentService, useValue: mockFindInDocument },
+        { provide: TagService, useValue: mockTagService },
+        { provide: RelationshipService, useValue: mockRelationshipService },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
     }).compileComponents();
 
@@ -119,15 +149,20 @@ describe('ProjectSearchDialogComponent', () => {
       expect(component.searchQuery()).toBe('hello world');
     });
 
-    it('should clear results and abort search when query is too short', () => {
+    it('should reset displayedCount on change', () => {
+      component.loadMore(); // increase it first
       component.onSearchChange('x');
-      expect(component.isSearching()).toBe(false);
-      expect(component.results).toHaveLength(0);
+      expect(component.displayedCount()).toBe(50); // PAGE_SIZE
     });
 
     it('should mark hasQuery true for query >= 2 chars', () => {
       component.onSearchChange('ab');
       expect(component.hasQuery).toBe(true);
+    });
+
+    it('hasQuery should be false for single char query', () => {
+      component.onSearchChange('x');
+      expect(component.hasQuery).toBe(false);
     });
 
     it('hasQuery should be false for whitespace-only query', () => {
@@ -233,26 +268,6 @@ describe('ProjectSearchDialogComponent', () => {
     });
   });
 
-  describe('getIcon', () => {
-    it('returns folder icon for Folder type', () => {
-      const result = makeResult('f', 'Folder');
-      result.element = makeElement('f', 'Folder', ElementType.Folder);
-      expect(component.getIcon(result)).toBe('folder');
-    });
-
-    it('returns category icon for Worldbuilding type', () => {
-      const result = makeResult('w', 'WB');
-      result.element = makeElement('w', 'WB', ElementType.Worldbuilding);
-      expect(component.getIcon(result)).toBe('category');
-    });
-
-    it('returns description icon for Item type', () => {
-      const result = makeResult('i', 'Item');
-      result.element = makeElement('i', 'Item', ElementType.Item);
-      expect(component.getIcon(result)).toBe('description');
-    });
-  });
-
   describe('getSnippetHtml', () => {
     it('escapes HTML in before/after/match and wraps match in <mark>', () => {
       const html = component.getSnippetHtml({
@@ -293,6 +308,225 @@ describe('ProjectSearchDialogComponent', () => {
         done: true,
       });
       expect(component.progressValue).toBe(100);
+    });
+  });
+
+  describe('filters', () => {
+    describe('toggleFilters', () => {
+      it('should toggle showFilters signal', () => {
+        expect(component.showFilters()).toBe(false);
+        component.toggleFilters();
+        expect(component.showFilters()).toBe(true);
+        component.toggleFilters();
+        expect(component.showFilters()).toBe(false);
+      });
+    });
+
+    describe('toggleTag', () => {
+      it('should add tag ID when not selected', () => {
+        component.toggleTag('tag-1');
+        expect(component.selectedTagIds()).toEqual(['tag-1']);
+      });
+
+      it('should remove tag ID when already selected', () => {
+        component.toggleTag('tag-1');
+        component.toggleTag('tag-1');
+        expect(component.selectedTagIds()).toEqual([]);
+      });
+
+      it('should support multiple tags', () => {
+        component.toggleTag('tag-1');
+        component.toggleTag('tag-2');
+        expect(component.selectedTagIds()).toEqual(['tag-1', 'tag-2']);
+      });
+    });
+
+    describe('toggleElementType', () => {
+      it('should add element type when not selected', () => {
+        component.toggleElementType(ElementType.Item);
+        expect(component.selectedElementTypes()).toEqual([ElementType.Item]);
+      });
+
+      it('should remove element type when already selected', () => {
+        component.toggleElementType(ElementType.Item);
+        component.toggleElementType(ElementType.Item);
+        expect(component.selectedElementTypes()).toEqual([]);
+      });
+    });
+
+    describe('setRelatedToElement', () => {
+      it('should set related element ID', () => {
+        component.setRelatedToElement('el-1');
+        expect(component.relatedToElementId()).toBe('el-1');
+      });
+
+      it('should clear with empty string', () => {
+        component.setRelatedToElement('el-1');
+        component.setRelatedToElement('');
+        expect(component.relatedToElementId()).toBe('');
+      });
+    });
+
+    describe('clearFilters', () => {
+      it('should reset all filters', () => {
+        component.toggleTag('tag-1');
+        component.toggleElementType(ElementType.Worldbuilding);
+        component.setRelatedToElement('el-1');
+        expect(component.activeFilterCount()).toBe(3);
+
+        component.clearFilters();
+        expect(component.selectedTagIds()).toEqual([]);
+        expect(component.selectedElementTypes()).toEqual([]);
+        expect(component.relatedToElementId()).toBe('');
+        expect(component.activeFilterCount()).toBe(0);
+      });
+    });
+
+    describe('activeFilterCount', () => {
+      it('should be 0 with no filters', () => {
+        expect(component.activeFilterCount()).toBe(0);
+      });
+
+      it('should count tags as one filter', () => {
+        component.toggleTag('tag-1');
+        component.toggleTag('tag-2');
+        expect(component.activeFilterCount()).toBe(1);
+      });
+
+      it('should count element types as one filter', () => {
+        component.toggleElementType(ElementType.Item);
+        expect(component.activeFilterCount()).toBe(1);
+      });
+
+      it('should count related-to as one filter', () => {
+        component.setRelatedToElement('el-1');
+        expect(component.activeFilterCount()).toBe(1);
+      });
+
+      it('should count all filter types independently', () => {
+        component.toggleTag('tag-1');
+        component.toggleElementType(ElementType.Item);
+        component.setRelatedToElement('el-1');
+        expect(component.activeFilterCount()).toBe(3);
+      });
+    });
+
+    describe('isTagSelected', () => {
+      it('should return false when tag is not selected', () => {
+        expect(component.isTagSelected('tag-1')).toBe(false);
+      });
+
+      it('should return true when tag is selected', () => {
+        component.toggleTag('tag-1');
+        expect(component.isTagSelected('tag-1')).toBe(true);
+      });
+    });
+
+    describe('isElementTypeSelected', () => {
+      it('should return false when type is not selected', () => {
+        expect(component.isElementTypeSelected(ElementType.Item)).toBe(false);
+      });
+
+      it('should return true when type is selected', () => {
+        component.toggleElementType(ElementType.Item);
+        expect(component.isElementTypeSelected(ElementType.Item)).toBe(true);
+      });
+    });
+
+    describe('toggleSchema', () => {
+      it('should add schema ID when not selected', () => {
+        component.toggleSchema('schema-1');
+        expect(component.selectedSchemaIds()).toEqual(['schema-1']);
+      });
+
+      it('should remove schema ID when already selected', () => {
+        component.toggleSchema('schema-1');
+        component.toggleSchema('schema-1');
+        expect(component.selectedSchemaIds()).toEqual([]);
+      });
+
+      it('isSchemaSelected should return correct state', () => {
+        expect(component.isSchemaSelected('schema-1')).toBe(false);
+        component.toggleSchema('schema-1');
+        expect(component.isSchemaSelected('schema-1')).toBe(true);
+      });
+
+      it('should count in activeFilterCount', () => {
+        component.toggleSchema('schema-1');
+        expect(component.activeFilterCount()).toBe(1);
+      });
+
+      it('clearFilters should reset schema selection', () => {
+        component.toggleSchema('schema-1');
+        component.clearFilters();
+        expect(component.selectedSchemaIds()).toEqual([]);
+      });
+    });
+  });
+
+  describe('pagination', () => {
+    it('loadMore should increase displayedCount', () => {
+      const initial = component.displayedCount();
+      component.loadMore();
+      expect(component.displayedCount()).toBeGreaterThan(initial);
+    });
+
+    it('visibleResults should limit results to displayedCount', () => {
+      const manyResults: ProjectSearchResult[] = Array.from(
+        { length: 80 },
+        (_, i) => makeResult(`el-${i}`, `Element ${i}`)
+      );
+      component.progress.set({
+        scanned: 80,
+        total: 80,
+        results: manyResults,
+        done: true,
+      });
+      // Default page size is 50
+      expect(component.results.length).toBe(50);
+      expect(component.hasMoreResults()).toBe(true);
+      expect(component.totalResults).toBe(80);
+
+      component.loadMore();
+      expect(component.results.length).toBe(80);
+      expect(component.hasMoreResults()).toBe(false);
+    });
+  });
+
+  describe('getIcon', () => {
+    it('returns folder icon for Folder type', () => {
+      const result = makeResult('f', 'Folder');
+      result.element = makeElement('f', 'Folder', ElementType.Folder);
+      expect(component.getIcon(result)).toBe('folder');
+    });
+
+    it('returns description icon for Item type', () => {
+      const result = makeResult('i', 'Item');
+      result.element = makeElement('i', 'Item', ElementType.Item);
+      expect(component.getIcon(result)).toBe('description');
+    });
+
+    it('returns schema icon for worldbuilding element with schema', () => {
+      const el = makeElement('w', 'WB', ElementType.Worldbuilding);
+      el.schemaId = 'char-schema';
+      const result = makeResult('w', 'WB');
+      result.element = el;
+      vi.mocked(mockWorldbuildingService.getSchemaById!).mockReturnValue({
+        id: 'char-schema',
+        name: 'Character',
+        icon: 'person',
+        description: '',
+        version: 1,
+        isBuiltIn: false,
+        tabs: [],
+      });
+      expect(component.getIcon(result)).toBe('person');
+    });
+
+    it('returns category icon for Worldbuilding type without schema', () => {
+      const result = makeResult('w2', 'WB2');
+      result.element = makeElement('w2', 'WB2', ElementType.Worldbuilding);
+      expect(component.getIcon(result)).toBe('category');
     });
   });
 });

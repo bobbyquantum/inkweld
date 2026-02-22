@@ -42,7 +42,7 @@ async function createDocumentAndFocus(
   await expect(page.getByTestId('project-tree')).toBeVisible();
 
   // Create a document
-  const newDocButton = page.getByTestId('toolbar-new-document-button');
+  const newDocButton = page.getByTestId('create-new-element');
   await expect(newDocButton).toBeVisible();
   await newDocButton.click();
 

@@ -223,16 +223,19 @@ describe('ProjectSearchService', () => {
       return updates;
     };
 
-    it('emits done immediately when query is shorter than 2 chars', async () => {
+    it('performs text search even for single-character query', async () => {
       const updates = await collectProgress('a');
-      expect(updates).toHaveLength(1);
-      expect(updates[0]).toMatchObject({ done: true, results: [], total: 0 });
+      // Single-char query now runs a normal text search rather than early-exit
+      expect(updates.length).toBeGreaterThan(0);
+      const last = updates[updates.length - 1];
+      expect(last.done).toBe(true);
     });
 
-    it('emits done immediately for empty query', async () => {
+    it('returns all non-folder elements in browse mode for empty query', async () => {
       const updates = await collectProgress('');
       expect(updates).toHaveLength(1);
       expect(updates[0].done).toBe(true);
+      expect(updates[0].results.length).toBeGreaterThan(0);
     });
 
     it('emits done immediately when no project is loaded', async () => {

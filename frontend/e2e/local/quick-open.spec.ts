@@ -84,7 +84,7 @@ test.describe('Quick Open', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document first so we have something to search
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
 
@@ -122,7 +122,7 @@ test.describe('Quick Open', () => {
 
     // Create multiple documents
     for (const name of ['Alpha Doc', 'Beta Doc']) {
-      const newDocButton = page.getByTestId('toolbar-new-document-button');
+      const newDocButton = page.getByTestId('create-new-element');
       await expect(newDocButton).toBeVisible();
       await newDocButton.click();
 
@@ -167,7 +167,7 @@ test.describe('Quick Open', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
 
@@ -212,7 +212,7 @@ test.describe('Quick Open', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
 

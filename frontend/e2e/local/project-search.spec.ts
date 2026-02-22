@@ -79,7 +79,7 @@ test.describe('Project Search', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
 
@@ -122,7 +122,7 @@ test.describe('Project Search', () => {
 
     // Create two documents with searchable content
     for (const name of ['Alpha Document', 'Beta Document']) {
-      const newDocButton = page.getByTestId('toolbar-new-document-button');
+      const newDocButton = page.getByTestId('create-new-element');
       await expect(newDocButton).toBeVisible();
       await newDocButton.click();
 
@@ -179,7 +179,7 @@ test.describe('Project Search', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Create a document with searchable content
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await expect(newDocButton).toBeVisible();
     await newDocButton.click();
 

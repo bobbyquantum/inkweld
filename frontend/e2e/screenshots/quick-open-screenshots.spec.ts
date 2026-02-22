@@ -51,7 +51,7 @@ async function setupProjectWithDocuments(
   ];
 
   for (const name of documentNames) {
-    const newDocButton = page.getByTestId('toolbar-new-document-button');
+    const newDocButton = page.getByTestId('create-new-element');
     await newDocButton.click();
 
     // Select "Document" from type chooser

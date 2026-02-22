@@ -21,7 +21,111 @@
         <mat-icon>close</mat-icon>
       </button>
     }
+    <button
+      mat-icon-button
+      class="filter-toggle-button"
+      [class.active]="showFilters() || activeFilterCount() > 0"
+      (click)="toggleFilters()"
+      [matTooltip]="showFilters() ? 'Hide filters' : 'Show filters'"
+      aria-label="Toggle search filters"
+      data-testid="project-search-filter-toggle">
+      <mat-icon>tune</mat-icon>
+      @if (activeFilterCount() > 0) {
+        <span class="filter-badge">{{ activeFilterCount() }}</span>
+      }
+    </button>
   </div>
+
+  <!-- Filter Panel -->
+  @if (showFilters()) {
+    <div class="filter-panel" data-testid="project-search-filters">
+      <!-- Element Type Filter -->
+      <div class="filter-section">
+        <span class="filter-label">Type</span>
+        <div class="filter-chips">
+          @for (opt of elementTypeOptions; track opt.type) {
+            <button
+              class="filter-chip"
+              [class.selected]="isElementTypeSelected(opt.type)"
+              (click)="toggleElementType(opt.type)"
+              [attr.data-testid]="'filter-type-' + opt.type">
+              <mat-icon class="chip-icon">{{ opt.icon }}</mat-icon>
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Worldbuilding Schema Filter -->
+      @if (hasSchemas()) {
+        <div class="filter-section">
+          <span class="filter-label">Schema</span>
+          <div class="filter-chips">
+            @for (schema of availableSchemas(); track schema.id) {
+              <button
+                class="filter-chip schema-chip"
+                [class.selected]="isSchemaSelected(schema.id)"
+                (click)="toggleSchema(schema.id)"
+                [attr.data-testid]="'filter-schema-' + schema.id">
+                <mat-icon class="chip-icon">{{ schema.icon }}</mat-icon>
+                {{ schema.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Tag Filter -->
+      @if (hasTags()) {
+        <div class="filter-section">
+          <span class="filter-label">Tags</span>
+          <div class="filter-chips">
+            @for (tag of availableTags(); track tag.id) {
+              <button
+                class="filter-chip tag-chip"
+                [class.selected]="isTagSelected(tag.id)"
+                [style.--tag-color]="tag.color"
+                (click)="toggleTag(tag.id)"
+                [attr.data-testid]="'filter-tag-' + tag.id">
+                <mat-icon class="chip-icon">{{ tag.icon }}</mat-icon>
+                {{ tag.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Relationship Filter -->
+      @if (hasRelationships()) {
+        <div class="filter-section">
+          <span class="filter-label">Related to</span>
+          <div class="filter-chips">
+            <select
+              class="relationship-select"
+              [value]="relatedToElementId()"
+              (change)="setRelatedToElement($any($event.target).value)"
+              data-testid="filter-related-to">
+              <option value="">Any element</option>
+              @for (el of relatedElements(); track el.id) {
+                <option [value]="el.id">{{ el.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      }
+
+      <!-- Clear filters -->
+      @if (activeFilterCount() > 0) {
+        <button
+          class="clear-filters-button"
+          (click)="clearFilters()"
+          data-testid="clear-filters">
+          <mat-icon>filter_list_off</mat-icon>
+          Clear all filters
+        </button>
+      }
+    </div>
+  }
 
   <!-- Scan progress bar (shown while scanning) -->
   @if (!isDone) {
@@ -38,33 +142,36 @@
   }
 
   <!-- Results -->
-  <div class="results-container" data-testid="project-search-results">
-    @if (hasQuery) {
-      @for (
-        result of results;
-        track trackByResultId($index, result);
-        let i = $index
-      ) {
-        <div
-          class="search-result-item"
-          [class.selected]="i === selectedIndex()"
-          (click)="onResultClick(result, i)"
-          (keydown.enter)="onResultClick(result, i)"
-          (mouseenter)="onResultMouseEnter(i)"
-          role="option"
-          tabindex="0"
-          [attr.aria-selected]="i === selectedIndex()"
-          [attr.data-testid]="'project-search-result-' + i">
-          <!-- Element icon -->
-          <mat-icon class="result-icon">{{ getIcon(result) }}</mat-icon>
+  <div
+    class="results-container"
+    data-testid="project-search-results"
+    (scroll)="onResultsScroll($event)">
+    @for (
+      result of results;
+      track trackByResultId($index, result);
+      let i = $index
+    ) {
+      <div
+        class="search-result-item"
+        [class.selected]="i === selectedIndex()"
+        (click)="onResultClick(result, i)"
+        (keydown.enter)="onResultClick(result, i)"
+        (mouseenter)="onResultMouseEnter(i)"
+        role="option"
+        tabindex="0"
+        [attr.aria-selected]="i === selectedIndex()"
+        [attr.data-testid]="'project-search-result-' + i">
+        <!-- Element icon -->
+        <mat-icon class="result-icon">{{ getIcon(result) }}</mat-icon>
 
-          <!-- Element name + path + snippets -->
-          <div class="result-content">
-            <div class="result-header">
-              <span class="result-name">{{ result.element.name }}</span>
-              @if (result.path) {
-                <span class="result-path">{{ result.path }}</span>
-              }
+        <!-- Element name + path + snippets -->
+        <div class="result-content">
+          <div class="result-header">
+            <span class="result-name">{{ result.element.name }}</span>
+            @if (result.path) {
+              <span class="result-path">{{ result.path }}</span>
+            }
+            @if (result.matchCount > 0) {
               <span
                 class="match-count"
                 [matTooltip]="
@@ -74,28 +181,32 @@
                 ">
                 {{ result.matchCount }}
               </span>
-            </div>
-
-            @for (snippet of result.snippets; track $index) {
-              <p
-                class="result-snippet"
-                [innerHTML]="getSnippetHtml(snippet)"></p>
             }
           </div>
+
+          @for (snippet of result.snippets; track $index) {
+            <p class="result-snippet" [innerHTML]="getSnippetHtml(snippet)"></p>
+          }
         </div>
-      } @empty {
-        <!-- Empty state — only show when scan is done -->
-        @if (isDone) {
-          <div class="empty-state" data-testid="project-search-empty">
-            <mat-icon>search_off</mat-icon>
+      </div>
+    } @empty {
+      <!-- Empty state — only show when scan is done -->
+      @if (isDone) {
+        <div class="empty-state" data-testid="project-search-empty">
+          <mat-icon>search_off</mat-icon>
+          @if (hasQuery) {
             <p>No results for "{{ searchQuery() }}"</p>
-          </div>
-        }
+          } @else {
+            <p>No elements match the current filters</p>
+          }
+        </div>
       }
-    } @else {
-      <div class="empty-state hint-state">
-        <mat-icon>manage_search</mat-icon>
-        <p>Type at least 2 characters to search</p>
+    }
+    @if (hasMoreResults()) {
+      <div class="load-more-sentinel" data-testid="load-more">
+        <button class="load-more-button" (click)="loadMore()">
+          Show more ({{ totalResults - results.length }} remaining)
+        </button>
       </div>
     }
   </div>
@@ -107,13 +218,13 @@
       <span class="hint"><kbd>Enter</kbd> Open</span>
       <span class="hint"><kbd>Esc</kbd> Close</span>
     </div>
-    @if (isDone && results.length > 0) {
+    @if (isDone && totalResults > 0) {
       <span class="result-summary"
-        >{{ results.length }} document{{
-          results.length === 1 ? '' : 's'
-        }}
-        matched</span
-      >
+        >{{ totalResults }} element{{ totalResults === 1 ? '' : 's' }}
+        @if (hasQuery) {
+          matched
+        }
+      </span>
     }
   </div>
 </div>
