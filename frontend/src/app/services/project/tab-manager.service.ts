@@ -20,6 +20,7 @@ export interface AppTab {
     | 'system'
     | 'worldbuilding'
     | 'relationship-chart'
+    | 'canvas'
     | 'publishPlan';
   /** For system tabs, specifies the system view type */
   systemType?:
@@ -87,7 +88,7 @@ export class TabManagerService {
    */
   getTabTypeForElement(
     elementType: ElementType | string
-  ): 'document' | 'folder' | 'worldbuilding' | 'relationship-chart' {
+  ): 'document' | 'folder' | 'worldbuilding' | 'relationship-chart' | 'canvas' {
     const typeStr = String(elementType);
 
     if (typeStr === String(ElementType.Folder)) {
@@ -96,6 +97,8 @@ export class TabManagerService {
       return 'document';
     } else if (typeStr === String(ElementType.RelationshipChart)) {
       return 'relationship-chart';
+    } else if (typeStr === String(ElementType.Canvas)) {
+      return 'canvas';
     } else {
       // All other types (built-in worldbuilding or custom templates) are worldbuilding
       return 'worldbuilding';

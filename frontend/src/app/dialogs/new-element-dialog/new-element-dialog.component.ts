@@ -117,6 +117,14 @@ export class NewElementDialogComponent {
         'Visualize connections between your elements as an interactive graph',
       category: 'visualization',
     },
+    {
+      type: ElementType.Canvas,
+      label: 'Canvas',
+      icon: 'dashboard',
+      description:
+        'Infinite canvas for maps, mood boards, storyboards, and visual layouts with layers',
+      category: 'visualization',
+    },
   ];
 
   // Element type options (document types + dynamically loaded worldbuilding types)

@@ -1,0 +1,408 @@
+<div class="canvas-container" data-testid="canvas-container">
+  <div class="canvas-body">
+    <!-- Collapsed sidebar strip -->
+    @if (!sidebarOpen()) {
+      <div class="collapsed-sidebar" data-testid="canvas-collapsed-sidebar">
+        <button
+          mat-icon-button
+          matTooltip="Expand sidebar"
+          aria-label="Expand sidebar"
+          (click)="toggleSidebar()">
+          <mat-icon fontSet="material-symbols-outlined"
+            >left_panel_open</mat-icon
+          >
+        </button>
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="exportMenu"
+          matTooltip="Export canvas"
+          aria-label="Export canvas">
+          <mat-icon>download</mat-icon>
+        </button>
+      </div>
+    }
+
+    <!-- Expanded sidebar -->
+    @if (sidebarOpen()) {
+      <aside class="canvas-sidebar" data-testid="canvas-sidebar">
+        <!-- Header -->
+        <div class="sidebar-header">
+          <mat-icon class="header-icon">dashboard</mat-icon>
+          <span class="header-title">{{ elementName() }}</span>
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="exportMenu"
+            matTooltip="Export canvas"
+            aria-label="Export canvas"
+            class="header-action">
+            <mat-icon>download</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            matTooltip="Collapse sidebar"
+            aria-label="Collapse sidebar"
+            (click)="toggleSidebar()"
+            class="header-action">
+            <mat-icon fontSet="material-symbols-outlined"
+              >left_panel_close</mat-icon
+            >
+          </button>
+        </div>
+
+        <!-- Layers section -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Layers</span>
+            <button
+              mat-icon-button
+              matTooltip="Add layer"
+              aria-label="Add layer"
+              (click)="onAddLayer()"
+              class="section-action">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+          <div class="layers-list">
+            @for (layer of sortedLayers(); track layer.id) {
+              <div
+                class="layer-item"
+                [class.active]="layer.id === activeLayerId()"
+                tabindex="0"
+                role="button"
+                (click)="onSelectLayer(layer.id)"
+                (keydown.enter)="onSelectLayer(layer.id)">
+                <button
+                  mat-icon-button
+                  class="layer-visibility"
+                  (click)="onToggleLayerVisibility(layer.id, $event)"
+                  [matTooltip]="layer.visible ? 'Hide layer' : 'Show layer'">
+                  <mat-icon>{{
+                    layer.visible ? 'visibility' : 'visibility_off'
+                  }}</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  class="layer-lock"
+                  (click)="onToggleLayerLock(layer.id, $event)"
+                  [matTooltip]="layer.locked ? 'Unlock layer' : 'Lock layer'">
+                  <mat-icon>{{ layer.locked ? 'lock' : 'lock_open' }}</mat-icon>
+                </button>
+                <span class="layer-name">{{ layer.name }}</span>
+                <button
+                  mat-icon-button
+                  class="layer-action"
+                  aria-label="More options"
+                  [matMenuTriggerFor]="layerMenu"
+                  [matMenuTriggerData]="{ layerId: layer.id }"
+                  (click)="$event.stopPropagation()">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Objects section -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Objects</span>
+            <span class="object-count">{{ activeLayerObjects().length }}</span>
+          </div>
+          <div class="objects-list">
+            @for (obj of activeLayerObjects(); track obj.id) {
+              <div
+                class="object-item"
+                [class.selected]="obj.id === selectedObjectId()"
+                tabindex="0"
+                role="button"
+                (click)="onSelectObject(obj.id)"
+                (keydown.enter)="onSelectObject(obj.id)">
+                <mat-icon class="object-icon">{{
+                  getObjectIcon(obj)
+                }}</mat-icon>
+                <span class="object-name">{{
+                  obj.name || getObjectLabel(obj)
+                }}</span>
+                <button
+                  mat-icon-button
+                  class="object-action"
+                  matTooltip="Delete"
+                  (click)="onDeleteObject(obj.id, $event)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            } @empty {
+              <div class="empty-state">
+                <p>No objects on this layer.</p>
+                <p class="hint">
+                  Use the toolbar to add images, text, pins, or drawings.
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+      </aside>
+    }
+
+    <!-- Main canvas area -->
+    <div class="canvas-main">
+      <!-- Toolbar -->
+      <div class="canvas-toolbar" data-testid="canvas-toolbar">
+        <div class="toolbar-group">
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'select'"
+            matTooltip="Select (V)"
+            aria-label="Select (V)"
+            (click)="onToolChange('select')">
+            <mat-icon>near_me</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'rectSelect'"
+            matTooltip="Rectangle select (R)"
+            aria-label="Rectangle select (R)"
+            (click)="onToolChange('rectSelect')">
+            <mat-icon>select_all</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'pan'"
+            matTooltip="Pan (H)"
+            aria-label="Pan (H)"
+            (click)="onToolChange('pan')">
+            <mat-icon>pan_tool</mat-icon>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-group">
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'pin'"
+            [disabled]="!hasActiveLayer()"
+            matTooltip="Place pin (P)"
+            aria-label="Place pin (P)"
+            (click)="onToolChange('pin')">
+            <mat-icon>place</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            matTooltip="Add image"
+            aria-label="Add image"
+            [disabled]="!hasActiveLayer()"
+            (click)="onAddImage()">
+            <mat-icon>image</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'text'"
+            [disabled]="!hasActiveLayer()"
+            matTooltip="Add text (T)"
+            aria-label="Add text (T)"
+            (click)="onToolChange('text')">
+            <mat-icon>title</mat-icon>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-group">
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'draw'"
+            [disabled]="!hasActiveLayer()"
+            matTooltip="Freehand draw (D)"
+            aria-label="Freehand draw (D)"
+            (click)="onToolChange('draw')">
+            <mat-icon>draw</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'line'"
+            [disabled]="!hasActiveLayer()"
+            matTooltip="Line (L)"
+            aria-label="Line (L)"
+            (click)="onToolChange('line')">
+            <mat-icon>horizontal_rule</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            [class.active]="activeTool() === 'shape'"
+            [disabled]="!hasActiveLayer()"
+            matTooltip="Shape (S)"
+            aria-label="Shape (S)"
+            (click)="onToolChange('shape')"
+            [matMenuTriggerFor]="shapeMenu">
+            <mat-icon>{{ shapeIcon() }}</mat-icon>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-group">
+          <button
+            mat-icon-button
+            matTooltip="Edit object colors"
+            aria-label="Edit object colors"
+            [disabled]="!selectedObjectId()"
+            (click)="onEditObjectColors()">
+            <mat-icon>palette</mat-icon>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-group">
+          <button
+            mat-icon-button
+            matTooltip="Zoom in (⌘+)"
+            aria-label="Zoom in"
+            (click)="onZoomIn()">
+            <mat-icon>add</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            matTooltip="Zoom out (⌘-)"
+            aria-label="Zoom out"
+            (click)="onZoomOut()">
+            <mat-icon>remove</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            matTooltip="Fit all (⌘0)"
+            (click)="onFitAll()">
+            <mat-icon>fit_screen</mat-icon>
+          </button>
+          <span class="zoom-label">{{ zoomPercent() }}%</span>
+        </div>
+      </div>
+
+      <!-- Konva canvas container -->
+      <div
+        class="canvas-area"
+        #canvasContainer
+        data-testid="canvas-stage"
+        (contextmenu)="onContextMenu($event)"></div>
+
+      <!-- Hidden trigger for the canvas context menu -->
+      <div
+        class="context-menu-trigger"
+        [style.left.px]="contextMenuPosition.x"
+        [style.top.px]="contextMenuPosition.y"
+        [matMenuTriggerFor]="canvasContextMenu"
+        #contextMenuTrigger="matMenuTrigger"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Canvas context menu -->
+<mat-menu #canvasContextMenu="matMenu">
+  <button mat-menu-item [disabled]="!selectedObjectId()" (click)="onCut()">
+    <mat-icon>content_cut</mat-icon>
+    <span>Cut</span>
+  </button>
+  <button mat-menu-item [disabled]="!selectedObjectId()" (click)="onCopy()">
+    <mat-icon>content_copy</mat-icon>
+    <span>Copy</span>
+  </button>
+  <button mat-menu-item [disabled]="!clipboard()" (click)="onPaste()">
+    <mat-icon>content_paste</mat-icon>
+    <span>Paste</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button
+    mat-menu-item
+    [disabled]="!selectedObjectId()"
+    (click)="onDuplicateObject()">
+    <mat-icon>copy_all</mat-icon>
+    <span>Duplicate</span>
+  </button>
+  <button
+    mat-menu-item
+    [disabled]="!selectedObjectId()"
+    (click)="onContextDelete()">
+    <mat-icon>delete</mat-icon>
+    <span>Delete</span>
+  </button>
+  @if (selectedObjectId() && sortedLayers().length > 1) {
+    <mat-divider></mat-divider>
+    <button mat-menu-item [matMenuTriggerFor]="sendToLayerMenu">
+      <mat-icon>swap_horiz</mat-icon>
+      <span>Send to Layer</span>
+    </button>
+  }
+</mat-menu>
+
+<!-- Send-to-layer submenu -->
+<mat-menu #sendToLayerMenu="matMenu">
+  @for (layer of sortedLayers(); track layer.id) {
+    <button
+      mat-menu-item
+      [disabled]="layer.id === getSelectedObjectLayerId()"
+      (click)="onSendToLayer(layer.id)">
+      <mat-icon>{{
+        layer.id === getSelectedObjectLayerId() ? 'check' : 'layers'
+      }}</mat-icon>
+      <span>{{ layer.name }}</span>
+    </button>
+  }
+</mat-menu>
+
+<!-- Export menu -->
+<mat-menu #exportMenu="matMenu">
+  <button mat-menu-item (click)="exportAsPng()">
+    <mat-icon>image</mat-icon>
+    <span>Export as PNG</span>
+  </button>
+  <button mat-menu-item (click)="exportAsHighResPng()">
+    <mat-icon>high_quality</mat-icon>
+    <span>Export as PNG (High-res)</span>
+  </button>
+  <button mat-menu-item (click)="exportAsSvg()">
+    <mat-icon>polyline</mat-icon>
+    <span>Export as SVG</span>
+  </button>
+</mat-menu>
+
+<!-- Layer context menu -->
+<mat-menu #layerMenu="matMenu">
+  <ng-template matMenuContent let-layerId="layerId">
+    <button mat-menu-item (click)="onRenameLayer(layerId)">
+      <mat-icon>edit</mat-icon>
+      <span>Rename</span>
+    </button>
+    <button mat-menu-item (click)="onDuplicateLayer(layerId)">
+      <mat-icon>content_copy</mat-icon>
+      <span>Duplicate</span>
+    </button>
+    <button
+      mat-menu-item
+      (click)="onDeleteLayer(layerId)"
+      [disabled]="sortedLayers().length <= 1">
+      <mat-icon>delete</mat-icon>
+      <span>Delete</span>
+    </button>
+  </ng-template>
+</mat-menu>
+
+<!-- Shape submenu -->
+<mat-menu #shapeMenu="matMenu">
+  <button mat-menu-item (click)="onShapeTypeChange('rect')">
+    <mat-icon>crop_square</mat-icon>
+    <span>Rectangle</span>
+  </button>
+  <button mat-menu-item (click)="onShapeTypeChange('ellipse')">
+    <mat-icon>circle</mat-icon>
+    <span>Ellipse</span>
+  </button>
+  <button mat-menu-item (click)="onShapeTypeChange('arrow')">
+    <mat-icon>arrow_right_alt</mat-icon>
+    <span>Arrow</span>
+  </button>
+  <button mat-menu-item (click)="onShapeTypeChange('line')">
+    <mat-icon>horizontal_rule</mat-icon>
+    <span>Line</span>
+  </button>
+</mat-menu>

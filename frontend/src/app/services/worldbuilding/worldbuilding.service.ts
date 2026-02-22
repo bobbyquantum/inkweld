@@ -793,6 +793,7 @@ export class WorldbuildingService {
       [ElementType.Item]: 'description',
       [ElementType.Folder]: 'folder',
       [ElementType.RelationshipChart]: 'hub',
+      [ElementType.Canvas]: 'dashboard',
     };
 
     // Check if it's a built-in type

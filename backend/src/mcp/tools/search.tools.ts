@@ -1132,7 +1132,6 @@ registerTool({
       const service = getYjsService(ctx);
       const schemaDoc = await service.getDocument(schemaDocId);
       const typesArray = schemaDoc.doc.getArray('relationshipTypes');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawTypes: unknown[] = [];
       typesArray.forEach((value) => {
         if (value && typeof value === 'object') {
