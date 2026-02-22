@@ -51,7 +51,7 @@
 
         <!-- Layers section -->
         <div class="sidebar-section">
-          <div class="section-header">
+          <div class="section-header" data-testid="layers-header">
             <span class="section-title">Layers</span>
             <button
               mat-icon-button
@@ -66,6 +66,7 @@
             @for (layer of sortedLayers(); track layer.id) {
               <div
                 class="layer-item"
+                data-testid="layer-item"
                 [class.active]="layer.id === activeLayerId()"
                 tabindex="0"
                 role="button"
@@ -74,6 +75,7 @@
                 <button
                   mat-icon-button
                   class="layer-visibility"
+                  data-testid="layer-visibility"
                   (click)="onToggleLayerVisibility(layer.id, $event)"
                   [matTooltip]="layer.visible ? 'Hide layer' : 'Show layer'">
                   <mat-icon>{{
@@ -83,11 +85,14 @@
                 <button
                   mat-icon-button
                   class="layer-lock"
+                  data-testid="layer-lock"
                   (click)="onToggleLayerLock(layer.id, $event)"
                   [matTooltip]="layer.locked ? 'Unlock layer' : 'Lock layer'">
                   <mat-icon>{{ layer.locked ? 'lock' : 'lock_open' }}</mat-icon>
                 </button>
-                <span class="layer-name">{{ layer.name }}</span>
+                <span class="layer-name" data-testid="layer-name">{{
+                  layer.name
+                }}</span>
                 <button
                   mat-icon-button
                   class="layer-action"
@@ -104,7 +109,7 @@
 
         <!-- Objects section -->
         <div class="sidebar-section">
-          <div class="section-header">
+          <div class="section-header" data-testid="objects-header">
             <span class="section-title">Objects</span>
             <span class="object-count">{{ activeLayerObjects().length }}</span>
           </div>
@@ -132,7 +137,7 @@
                 </button>
               </div>
             } @empty {
-              <div class="empty-state">
+              <div class="empty-state" data-testid="objects-empty">
                 <p>No objects on this layer.</p>
                 <p class="hint">
                   Use the toolbar to add images, text, pins, or drawings.
@@ -275,7 +280,9 @@
             (click)="onFitAll()">
             <mat-icon>fit_screen</mat-icon>
           </button>
-          <span class="zoom-label">{{ zoomPercent() }}%</span>
+          <span class="zoom-label" data-testid="zoom-label">
+            {{ zoomPercent() }}%
+          </span>
         </div>
       </div>
 

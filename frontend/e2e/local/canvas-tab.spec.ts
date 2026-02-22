@@ -81,8 +81,8 @@ test.describe('Canvas Tab', () => {
     await expect(sidebar).toBeVisible();
 
     // Default layer and objects sections should be present
-    await expect(sidebar.getByText('Layers', { exact: true })).toBeVisible();
-    await expect(sidebar.getByText('Objects', { exact: true })).toBeVisible();
+    await expect(sidebar.getByTestId('layers-header')).toBeVisible();
+    await expect(sidebar.getByTestId('objects-header')).toBeVisible();
   });
 
   test('should show a default Layer 1 in the sidebar', async ({
@@ -91,9 +91,10 @@ test.describe('Canvas Tab', () => {
     await createCanvasAndOpen(page);
 
     await expect(
-      page.getByTestId('canvas-sidebar').locator('.layer-name', {
-        hasText: 'Layer 1',
-      })
+      page
+        .getByTestId('canvas-sidebar')
+        .getByTestId('layer-name')
+        .filter({ hasText: 'Layer 1' })
     ).toBeVisible();
   });
 
@@ -104,7 +105,7 @@ test.describe('Canvas Tab', () => {
 
     // Objects section empty state
     await expect(
-      page.getByTestId('canvas-sidebar').getByText('No objects on this layer.')
+      page.getByTestId('canvas-sidebar').getByTestId('objects-empty')
     ).toBeVisible();
   });
 
@@ -114,7 +115,7 @@ test.describe('Canvas Tab', () => {
     await createCanvasAndOpen(page);
 
     await expect(
-      page.getByTestId('canvas-toolbar').locator('.zoom-label')
+      page.getByTestId('canvas-toolbar').getByTestId('zoom-label')
     ).toHaveText('100%');
   });
 
@@ -162,7 +163,7 @@ test.describe('Canvas Tab', () => {
 
     // There should now be two layer items
     await expect(
-      page.getByTestId('canvas-sidebar').locator('.layer-item')
+      page.getByTestId('canvas-sidebar').getByTestId('layer-item')
     ).toHaveCount(2);
   });
 
@@ -179,7 +180,7 @@ test.describe('Canvas Tab', () => {
     // The most recently added layer item should have the 'active' class
     const lastLayer = page
       .getByTestId('canvas-sidebar')
-      .locator('.layer-item')
+      .getByTestId('layer-item')
       .last();
     await expect(lastLayer).toHaveClass(/active/);
   });
@@ -192,7 +193,7 @@ test.describe('Canvas Tab', () => {
     // Open the layer's context menu (more_vert button)
     await page
       .getByTestId('canvas-sidebar')
-      .locator('.layer-item')
+      .getByTestId('layer-item')
       .first()
       .getByRole('button', { name: /more/i })
       .click();
@@ -217,9 +218,10 @@ test.describe('Canvas Tab', () => {
 
     // The layer should now have the new name
     await expect(
-      page.getByTestId('canvas-sidebar').locator('.layer-name', {
-        hasText: 'Background',
-      })
+      page
+        .getByTestId('canvas-sidebar')
+        .getByTestId('layer-name')
+        .filter({ hasText: 'Background' })
     ).toBeVisible();
   });
 
@@ -231,7 +233,7 @@ test.describe('Canvas Tab', () => {
     // Open layer menu
     await page
       .getByTestId('canvas-sidebar')
-      .locator('.layer-item')
+      .getByTestId('layer-item')
       .first()
       .getByRole('button', { name: /more/i })
       .click();
@@ -240,12 +242,12 @@ test.describe('Canvas Tab', () => {
 
     // Now two layers should exist
     await expect(
-      page.getByTestId('canvas-sidebar').locator('.layer-item')
+      page.getByTestId('canvas-sidebar').getByTestId('layer-item')
     ).toHaveCount(2);
 
     // The duplicate keeps the layer name prefix
     await expect(
-      page.getByTestId('canvas-sidebar').locator('.layer-name').nth(1)
+      page.getByTestId('canvas-sidebar').getByTestId('layer-name').nth(1)
     ).toContainText('Layer 1');
   });
 
@@ -260,7 +262,7 @@ test.describe('Canvas Tab', () => {
       .getByRole('button', { name: /add layer/i })
       .click();
     await expect(
-      page.getByTestId('canvas-sidebar').locator('.layer-item')
+      page.getByTestId('canvas-sidebar').getByTestId('layer-item')
     ).toHaveCount(2);
     // Move the mouse away to dismiss any tooltip overlays before clicking "More options"
     await page.mouse.move(0, 0);
@@ -268,7 +270,7 @@ test.describe('Canvas Tab', () => {
     // Open the first layer's menu and click Delete
     await page
       .getByTestId('canvas-sidebar')
-      .locator('.layer-item')
+      .getByTestId('layer-item')
       .first()
       .getByRole('button', { name: /more/i })
       .click();
@@ -283,7 +285,7 @@ test.describe('Canvas Tab', () => {
 
     // Back to one layer
     await expect(
-      page.getByTestId('canvas-sidebar').locator('.layer-item')
+      page.getByTestId('canvas-sidebar').getByTestId('layer-item')
     ).toHaveCount(1);
   });
 
@@ -296,9 +298,9 @@ test.describe('Canvas Tab', () => {
 
     const visibilityButton = page
       .getByTestId('canvas-sidebar')
-      .locator('.layer-item')
+      .getByTestId('layer-item')
       .first()
-      .locator('.layer-visibility');
+      .getByTestId('layer-visibility');
 
     // Initially visible — icon says 'visibility'
     await expect(visibilityButton.locator('mat-icon')).toContainText(
@@ -324,9 +326,9 @@ test.describe('Canvas Tab', () => {
 
     const lockButton = page
       .getByTestId('canvas-sidebar')
-      .locator('.layer-item')
+      .getByTestId('layer-item')
       .first()
-      .locator('.layer-lock');
+      .getByTestId('layer-lock');
 
     // Initially unlocked
     await expect(lockButton.locator('mat-icon')).toContainText('lock_open');
@@ -415,7 +417,7 @@ test.describe('Canvas Tab', () => {
     await createCanvasAndOpen(page);
 
     const toolbar = page.getByTestId('canvas-toolbar');
-    const zoomLabel = toolbar.locator('.zoom-label');
+    const zoomLabel = toolbar.getByTestId('zoom-label');
 
     await expect(zoomLabel).toHaveText('100%');
 
@@ -434,7 +436,7 @@ test.describe('Canvas Tab', () => {
     await createCanvasAndOpen(page);
 
     const toolbar = page.getByTestId('canvas-toolbar');
-    const zoomLabel = toolbar.locator('.zoom-label');
+    const zoomLabel = toolbar.getByTestId('zoom-label');
 
     await expect(zoomLabel).toHaveText('100%');
 
@@ -518,7 +520,7 @@ test.describe('Canvas Tab', () => {
       .click();
 
     // The new layer (last) should be active
-    const layers = page.getByTestId('canvas-sidebar').locator('.layer-item');
+    const layers = page.getByTestId('canvas-sidebar').getByTestId('layer-item');
     await expect(layers.last()).toHaveClass(/active/);
 
     // Click the first layer to switch to it

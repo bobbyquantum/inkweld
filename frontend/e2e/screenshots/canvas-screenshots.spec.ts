@@ -38,25 +38,25 @@ test.describe('Canvas Tab Screenshots', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Create a project
-    const createButton = page.getByRole('button', { name: /create project/i });
+    // Create a project (empty state — no prior projects in offline mode)
+    const createButton = page.getByTestId('create-first-project-button');
     await createButton.waitFor({ timeout: 15_000 });
     await createButton.click();
 
     // Step 1: Template selection — accept default (empty)
-    const nextButton = page.getByRole('button', { name: /next/i });
+    const nextButton = page.getByTestId('next-step-button');
     await nextButton.waitFor({ timeout: 10_000 });
     await nextButton.click();
 
     // Step 2: Project details
-    const titleInput = page.getByLabel(/project title/i);
+    const titleInput = page.getByTestId('project-title-input');
     await titleInput.waitFor({ timeout: 10_000 });
     await titleInput.fill('World Atlas');
 
-    const slugInput = page.getByLabel(/project slug/i);
+    const slugInput = page.getByTestId('project-slug-input');
     await slugInput.fill('world-atlas');
 
-    const submitButton = page.getByRole('button', { name: /create project/i });
+    const submitButton = page.getByTestId('create-project-button');
     await submitButton.waitFor();
     await submitButton.click();
 

@@ -2178,6 +2178,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         ...obj,
         id: nanoid(),
         layerId: newLayerId,
+        // Clear relationship ownership so duplicates don't share the original's relationship
+        ...(obj.type === 'pin'
+          ? { relationshipId: undefined, linkedElementId: undefined }
+          : {}),
       } as CanvasObject;
       this.canvasService.addObject(copy);
     }
