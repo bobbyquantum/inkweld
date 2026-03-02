@@ -98,7 +98,11 @@ const tokenRoute = createRoute({
 csrfRoutes.openapi(tokenRoute, async (c) => {
   try {
     // Get the secret from config
-    const secret = config.databaseKey || 'inkweld-csrf-secret';
+    const secret = config.databaseKey;
+    if (!secret) {
+      csrfLog.error('DATABASE_KEY is not configured — cannot generate CSRF tokens');
+      return c.json({ error: 'Server configuration error' }, 500);
+    }
 
     // Generate a token using our cross-platform function
     const token = await generateCSRFToken(secret);

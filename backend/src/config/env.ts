@@ -112,10 +112,11 @@ export const config = {
 
   // Database encryption key (used for encrypting sensitive config values)
   // Also used for session cookie signing
+  // In production, DATABASE_KEY or SESSION_SECRET MUST be set — no fallback is provided.
   databaseKey:
     process.env.DATABASE_KEY ||
     process.env.SESSION_SECRET ||
-    'fallback-secret-change-in-production',
+    (process.env.NODE_ENV === 'production' ? '' : 'fallback-secret-for-development-only'),
 
   // Session (uses databaseKey for signing)
   session: {
