@@ -69,7 +69,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: electron-build-windows
           path: frontend/release/
@@ -120,7 +120,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: electron-build-macos
           path: frontend/release/
@@ -168,7 +168,7 @@ jobs:
         run: cd frontend && npx electron-builder --linux --dir
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: electron-build-linux
           path: frontend/release/
