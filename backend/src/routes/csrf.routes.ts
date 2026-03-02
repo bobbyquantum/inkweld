@@ -101,7 +101,7 @@ csrfRoutes.openapi(tokenRoute, async (c) => {
     const secret = config.databaseKey;
     if (!secret) {
       csrfLog.error('DATABASE_KEY is not configured — cannot generate CSRF tokens');
-      return c.json({ error: 'Server configuration error' }, 500);
+      return c.json({ message: 'Server configuration error' }, 500);
     }
 
     // Generate a token using our cross-platform function
