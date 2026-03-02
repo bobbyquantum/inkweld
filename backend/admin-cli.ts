@@ -233,9 +233,7 @@ class D1AdminCLI {
   async findUser(identifier: string): Promise<User | null> {
     const escaped = this.escapeSql(identifier);
     // Try by ID first
-    let result = await this.executeWrangler(
-      `SELECT * FROM users WHERE id = '${escaped}' LIMIT 1`
-    );
+    let result = await this.executeWrangler(`SELECT * FROM users WHERE id = '${escaped}' LIMIT 1`);
     let users = this.parseWranglerResult(result) as User[];
 
     if (users.length === 0) {
@@ -255,7 +253,9 @@ class D1AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    await this.executeWrangler(`UPDATE users SET approved = 1 WHERE id = '${this.escapeSql(user.id)}'`);
+    await this.executeWrangler(
+      `UPDATE users SET approved = 1 WHERE id = '${this.escapeSql(user.id)}'`
+    );
 
     return { ...user, approved: true };
   }
@@ -266,7 +266,9 @@ class D1AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    await this.executeWrangler(`UPDATE users SET enabled = 1 WHERE id = '${this.escapeSql(user.id)}'`);
+    await this.executeWrangler(
+      `UPDATE users SET enabled = 1 WHERE id = '${this.escapeSql(user.id)}'`
+    );
 
     return { ...user, enabled: true };
   }
@@ -277,7 +279,9 @@ class D1AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    await this.executeWrangler(`UPDATE users SET enabled = 0 WHERE id = '${this.escapeSql(user.id)}'`);
+    await this.executeWrangler(
+      `UPDATE users SET enabled = 0 WHERE id = '${this.escapeSql(user.id)}'`
+    );
 
     return { ...user, enabled: false };
   }
