@@ -141,6 +141,15 @@ class D1AdminCLI {
     });
   }
 
+  /**
+   * Escape a value for safe inclusion in a SQL string literal.
+   * Doubles single quotes to prevent SQL injection since wrangler d1 execute
+   * does not support parameterized queries.
+   */
+  private escapeSql(value: string): string {
+    return value.replace(/'/g, "''");
+  }
+
   async connect() {
     if (this.verbose) {
       console.log('📡 Testing D1 connection...');
@@ -222,16 +231,15 @@ class D1AdminCLI {
   }
 
   async findUser(identifier: string): Promise<User | null> {
+    const escaped = this.escapeSql(identifier);
     // Try by ID first
-    let result = await this.executeWrangler(
-      `SELECT * FROM users WHERE id = '${identifier}' LIMIT 1`
-    );
+    let result = await this.executeWrangler(`SELECT * FROM users WHERE id = '${escaped}' LIMIT 1`);
     let users = this.parseWranglerResult(result) as User[];
 
     if (users.length === 0) {
       // Try by username
       result = await this.executeWrangler(
-        `SELECT * FROM users WHERE username = '${identifier}' LIMIT 1`
+        `SELECT * FROM users WHERE username = '${escaped}' LIMIT 1`
       );
       users = this.parseWranglerResult(result) as User[];
     }
@@ -245,7 +253,9 @@ class D1AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    await this.executeWrangler(`UPDATE users SET approved = 1 WHERE id = '${user.id}'`);
+    await this.executeWrangler(
+      `UPDATE users SET approved = 1 WHERE id = '${this.escapeSql(user.id)}'`
+    );
 
     return { ...user, approved: true };
   }
@@ -256,7 +266,9 @@ class D1AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    await this.executeWrangler(`UPDATE users SET enabled = 1 WHERE id = '${user.id}'`);
+    await this.executeWrangler(
+      `UPDATE users SET enabled = 1 WHERE id = '${this.escapeSql(user.id)}'`
+    );
 
     return { ...user, enabled: true };
   }
@@ -267,7 +279,9 @@ class D1AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    await this.executeWrangler(`UPDATE users SET enabled = 0 WHERE id = '${user.id}'`);
+    await this.executeWrangler(
+      `UPDATE users SET enabled = 0 WHERE id = '${this.escapeSql(user.id)}'`
+    );
 
     return { ...user, enabled: false };
   }
@@ -279,7 +293,7 @@ class D1AdminCLI {
     }
 
     await this.executeWrangler(
-      `UPDATE users SET isAdmin = ${isAdmin ? 1 : 0} WHERE id = '${user.id}'`
+      `UPDATE users SET isAdmin = ${isAdmin ? 1 : 0} WHERE id = '${this.escapeSql(user.id)}'`
     );
 
     return { ...user, isAdmin };
@@ -292,7 +306,7 @@ class D1AdminCLI {
     }
 
     // D1 should have cascade delete configured
-    await this.executeWrangler(`DELETE FROM users WHERE id = '${user.id}'`);
+    await this.executeWrangler(`DELETE FROM users WHERE id = '${this.escapeSql(user.id)}'`);
   }
 
   async rejectUser(identifier: string): Promise<void> {
@@ -306,8 +320,9 @@ class D1AdminCLI {
   }
 
   async deleteProject(identifier: string): Promise<void> {
+    const escaped = this.escapeSql(identifier);
     const result = await this.executeWrangler(
-      `SELECT * FROM projects WHERE id = '${identifier}' OR slug = '${identifier}' LIMIT 1`
+      `SELECT * FROM projects WHERE id = '${escaped}' OR slug = '${escaped}' LIMIT 1`
     );
     const projects = this.parseWranglerResult(result) as Project[];
     const project = projects[0];
@@ -316,12 +331,12 @@ class D1AdminCLI {
       throw new Error(`Project not found: ${identifier}`);
     }
 
-    await this.executeWrangler(`DELETE FROM projects WHERE id = '${project.id}'`);
+    await this.executeWrangler(`DELETE FROM projects WHERE id = '${this.escapeSql(project.id)}'`);
   }
 
   async formatProjectInfo(projectId: string): Promise<string> {
     const projectResult = await this.executeWrangler(
-      `SELECT * FROM projects WHERE id = '${projectId}' LIMIT 1`
+      `SELECT * FROM projects WHERE id = '${this.escapeSql(projectId)}' LIMIT 1`
     );
     const projects = this.parseWranglerResult(projectResult) as Project[];
     const project = projects[0];
@@ -329,7 +344,7 @@ class D1AdminCLI {
     if (!project) return 'Project not found';
 
     const userResult = await this.executeWrangler(
-      `SELECT * FROM users WHERE id = '${project.userId}' LIMIT 1`
+      `SELECT * FROM users WHERE id = '${this.escapeSql(project.userId)}' LIMIT 1`
     );
     const users = this.parseWranglerResult(userResult) as User[];
     const user = users[0];
