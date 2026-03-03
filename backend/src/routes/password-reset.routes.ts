@@ -3,8 +3,13 @@ import { passwordResetService } from '../services/password-reset.service';
 import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
+import { passwordResetRateLimit } from '../middleware/rate-limit';
 
 const passwordResetRoutes = new OpenAPIHono<AppContext>();
+
+// Apply rate limiting to password reset endpoints
+passwordResetRoutes.post('/forgot-password', passwordResetRateLimit);
+passwordResetRoutes.post('/reset-password', passwordResetRateLimit);
 
 // ---------------------------------------------------------------------------
 // POST /forgot-password — request a password reset

@@ -10,6 +10,7 @@ import type {
 } from '../../types/image-generation';
 import { BaseImageProvider } from './base-provider';
 import { logger } from '../logger.service';
+import { validateFetchUrl } from '../../utils/url-validation';
 
 const sdLog = logger.child('StableDiffusion');
 
@@ -72,6 +73,17 @@ export class StableDiffusionProvider extends BaseImageProvider {
     return true;
   }
 
+  /**
+   * Validate the configured endpoint URL against SSRF protections.
+   * Throws if the URL targets a private/internal network.
+   */
+  private validateEndpoint(url: string): void {
+    const result = validateFetchUrl(url);
+    if (!result.valid) {
+      throw new Error(`Stable Diffusion endpoint blocked (SSRF protection): ${result.error}`);
+    }
+  }
+
   isAvailable(): boolean {
     return this.enabled && !!this.endpoint;
   }
@@ -98,6 +110,9 @@ export class StableDiffusionProvider extends BaseImageProvider {
     }
 
     try {
+      const fetchUrl = `${this.endpoint}/sdapi/v1/sd-models`;
+      this.validateEndpoint(fetchUrl);
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -106,7 +121,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
         headers['Authorization'] = `Bearer ${this.apiKey}`;
       }
 
-      const response = await fetch(`${this.endpoint}/sdapi/v1/sd-models`, {
+      const response = await fetch(fetchUrl, {
         method: 'GET',
         headers,
       });
@@ -162,6 +177,9 @@ export class StableDiffusionProvider extends BaseImageProvider {
     };
 
     try {
+      const fetchUrl = `${this.endpoint}/sdapi/v1/txt2img`;
+      this.validateEndpoint(fetchUrl);
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -173,7 +191,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes for SD
 
-      const response = await fetch(`${this.endpoint}/sdapi/v1/txt2img`, {
+      const response = await fetch(fetchUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(sdRequest),

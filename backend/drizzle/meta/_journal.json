@@ -141,6 +141,13 @@
       "when": 1770768000000,
       "tag": "0020_add-password-reset-tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1772668800000,
+      "tag": "0021_add-revoked-tokens",
+      "breakpoints": true
     }
   ]
 }

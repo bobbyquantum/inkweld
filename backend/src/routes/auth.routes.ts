@@ -16,8 +16,13 @@ import {
   RegisterResponseSchema,
 } from '../schemas/auth.schemas';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
+import { authRateLimit, registrationRateLimit } from '../middleware/rate-limit';
 
 const authRoutes = new OpenAPIHono<AppContext>();
+
+// Apply rate limiting to auth endpoints
+authRoutes.post('/login', authRateLimit);
+authRoutes.post('/register', registrationRateLimit);
 
 // Registration endpoint
 const registerRoute = createRoute({
@@ -283,7 +288,7 @@ const logoutRoute = createRoute({
 });
 
 authRoutes.openapi(logoutRoute, async (c) => {
-  authService.destroySession(c);
+  await authService.destroySession(c);
   return c.json({ message: 'Logged out successfully' });
 });
 

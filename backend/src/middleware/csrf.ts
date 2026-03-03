@@ -6,7 +6,9 @@ import { config } from '../config/env';
 const csrfTokens = new Map<string, string>();
 
 export function generateCSRFToken(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function setupCSRF(): MiddlewareHandler {

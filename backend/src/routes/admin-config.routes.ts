@@ -5,6 +5,7 @@ import { imageGenerationService } from '../services/image-generation.service';
 import type { AppContext } from '../types/context';
 import { ErrorResponseSchema } from '../schemas/common.schemas';
 import { CONFIG_KEYS, CONFIG_CATEGORIES } from '../db/schema/config';
+import { validateFetchUrl } from '../utils/url-validation';
 
 // Schema for config value response
 const ConfigValueSchema = z.object({
@@ -295,6 +296,14 @@ adminConfigRoutes.openapi(setConfigRoute, async (c) => {
   // Validate boolean values
   if (keyConfig.type === 'boolean' && !['true', 'false', '1', '0'].includes(value)) {
     return c.json({ error: `Invalid boolean value for ${key}: ${value}` }, 400);
+  }
+
+  // SSRF protection: validate endpoint URLs before saving
+  if (configKey.endsWith('_ENDPOINT') && value) {
+    const urlCheck = validateFetchUrl(value);
+    if (!urlCheck.valid) {
+      return c.json({ error: `Invalid endpoint URL: ${urlCheck.error}` }, 400);
+    }
   }
 
   await configService.set(db, configKey, value);

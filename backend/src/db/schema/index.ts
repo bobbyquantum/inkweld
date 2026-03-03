@@ -16,3 +16,4 @@ export * from './image-generation-audits';
 export * from './announcements';
 export * from './announcement-reads';
 export * from './password-reset-tokens';
+export * from './revoked-tokens';

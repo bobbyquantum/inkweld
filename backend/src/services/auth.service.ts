@@ -5,6 +5,7 @@ import { userService } from './user.service';
 import type { User } from '../db/schema/users';
 import type { DatabaseInstance } from '../types/context';
 import { logger } from './logger.service';
+import { tokenRevocationService } from './token-revocation.service';
 
 const authLog = logger.child('Auth');
 
@@ -76,18 +77,22 @@ class AuthService {
   }
 
   /**
+   * Extract the raw Bearer token from the Authorization header.
+   */
+  private extractToken(c: Context): string | null {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+    return authHeader.substring(7) || null;
+  }
+
+  /**
    * Get session data from Authorization header (Bearer token)
    */
   async getSession(c: Context): Promise<SessionData | null> {
     try {
-      const authHeader = c.req.header('Authorization');
-
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return null;
-      }
-
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
+      const token = this.extractToken(c);
       if (!token) {
         return null;
       }
@@ -112,6 +117,12 @@ class AuthService {
         return null;
       }
 
+      // Check server-side revocation list
+      const db = c.get('db') as DatabaseInstance | undefined;
+      if (db && (await tokenRevocationService.isTokenRevoked(db, token))) {
+        return null;
+      }
+
       return data;
     } catch (err) {
       authLog.error('Failed to get session', err);
@@ -126,14 +137,7 @@ class AuthService {
    */
   async getSessionWithReason(c: Context): Promise<SessionResult> {
     try {
-      const authHeader = c.req.header('Authorization');
-
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return { status: 'no-auth' };
-      }
-
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
+      const token = this.extractToken(c);
       if (!token) {
         return { status: 'no-auth' };
       }
@@ -164,6 +168,12 @@ class AuthService {
         return { status: 'expired-token' };
       }
 
+      // Check server-side revocation list
+      const db = c.get('db') as DatabaseInstance | undefined;
+      if (db && (await tokenRevocationService.isTokenRevoked(db, token))) {
+        return { status: 'invalid-token' };
+      }
+
       return { status: 'valid', session: data };
     } catch (err) {
       authLog.error('Failed to get session', err);
@@ -172,11 +182,37 @@ class AuthService {
   }
 
   /**
-   * Destroy session (no-op for JWT tokens - client removes token)
+   * Destroy session by revoking the JWT token server-side.
+   * The token is added to the revocation list so it can no longer be used.
    */
-  destroySession(_c: Context): void {
-    // With JWT tokens, logout is handled client-side by removing the token
-    // No server-side state to clean up
+  async destroySession(c: Context): Promise<void> {
+    const token = this.extractToken(c);
+    if (!token) {
+      return;
+    }
+
+    const db = c.get('db') as DatabaseInstance | undefined;
+    if (!db) {
+      return;
+    }
+
+    // Decode to get userId and expiry for the revocation record
+    try {
+      const secret = this.getSecret(c);
+      const payload = await verify(token, secret, 'HS256');
+      if (payload) {
+        const data = payload as SessionData;
+        await tokenRevocationService.revokeToken(
+          db,
+          token,
+          data.userId,
+          data.exp || Math.floor(Date.now() / 1000) + TOKEN_EXPIRY,
+          'logout'
+        );
+      }
+    } catch {
+      // Token may already be invalid/expired — nothing to revoke
+    }
   }
 
   /**
@@ -252,6 +288,12 @@ class AuthService {
 
       // Check expiration
       if (data.exp && data.exp < Math.floor(Date.now() / 1000)) {
+        return null;
+      }
+
+      // Check server-side revocation list
+      const db = c.get('db') as DatabaseInstance | undefined;
+      if (db && (await tokenRevocationService.isTokenRevoked(db, token))) {
         return null;
       }
 
