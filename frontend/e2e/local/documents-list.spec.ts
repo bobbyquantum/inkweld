@@ -72,10 +72,11 @@ test.describe('Documents List Tab', () => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Create project button
-    const createButton = page.getByRole('button', { name: /create project/i });
+    // Create project button - click Create menu, then "New Project"
+    const createButton = page.getByTestId('create-new-project-button');
     await createButton.waitFor();
     await createButton.click();
+    await page.getByTestId('create-new-project-menu-item').click();
 
     // Select worldbuilding-demo template
     const demoTemplate = page.locator(

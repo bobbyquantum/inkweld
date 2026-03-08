@@ -1617,8 +1617,9 @@ test.describe('PWA Screenshots', () => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    // Click the Create button to go to create project page
+    // Click the Create menu, then "New Project" to go to create project page
     await page.click('.create-btn');
+    await page.getByTestId('create-new-project-menu-item').click();
 
     // Wait for the template selection page to load
     await page.waitForURL(/\/create-project/);
@@ -1645,8 +1646,9 @@ test.describe('PWA Screenshots', () => {
     // Set dark mode
     await page.emulateMedia({ colorScheme: 'dark' });
 
-    // Click the Create button to go to create project page
+    // Click the Create menu, then "New Project" to go to create project page
     await page.click('.create-btn');
+    await page.getByTestId('create-new-project-menu-item').click();
 
     // Wait for the template selection page to load
     await page.waitForURL(/\/create-project/);
@@ -1670,8 +1672,9 @@ test.describe('PWA Screenshots', () => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1280, height: 800 });
 
-    // Click the Create button to go to create project page
+    // Click the Create menu, then "New Project" to go to create project page
     await page.click('.create-btn');
+    await page.getByTestId('create-new-project-menu-item').click();
 
     // Wait for the template selection page to load
     await page.waitForURL(/\/create-project/);
@@ -1708,8 +1711,9 @@ test.describe('PWA Screenshots', () => {
     // Set dark mode
     await page.emulateMedia({ colorScheme: 'dark' });
 
-    // Click the Create button to go to create project page
+    // Click the Create menu, then "New Project" to go to create project page
     await page.click('.create-btn');
+    await page.getByTestId('create-new-project-menu-item').click();
 
     // Wait for the template selection page to load
     await page.waitForURL(/\/create-project/);

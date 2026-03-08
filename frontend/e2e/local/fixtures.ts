@@ -178,10 +178,11 @@ export const test = base.extend<LocalTestFixtures>({
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Create a test project
-    const createButton = page.getByRole('button', { name: /create project/i });
+    // Create a test project - click Create menu, then "New Project"
+    const createButton = page.getByTestId('create-new-project-button');
     await createButton.waitFor();
     await createButton.click();
+    await page.getByTestId('create-new-project-menu-item').click();
 
     // Step 1: Template Selection
     // Wait for template to be selected (defaults to 'empty')
