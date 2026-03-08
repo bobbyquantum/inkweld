@@ -403,8 +403,9 @@ export async function createProjectWithTwoSteps(
   description?: string,
   templateId?: string
 ): Promise<void> {
-  // Click create project button to navigate to create page
-  await page.click('button:has-text("Create Project")');
+  // Click Create menu, then "New Project" to navigate to create page
+  await page.getByTestId('create-new-project-button').click();
+  await page.getByTestId('create-new-project-menu-item').click();
 
   // Step 1: Template selection - if a specific template is requested, click it
   if (templateId) {

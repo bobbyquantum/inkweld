@@ -113,6 +113,12 @@
 
 .empty-state {
   height: calc(var(--app-height) - 200px);
+
+  .empty-state-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
 }
 
 // Main layout

@@ -147,13 +147,29 @@
               @if (isAuthenticated()) {
                 <button
                   mat-button
-                  (click)="openNewProjectDialog()"
-                  aria-label="Create new project"
+                  [matMenuTriggerFor]="createMenu"
+                  aria-label="Create or import project"
                   data-testid="create-new-project-button"
                   class="create-btn">
                   <mat-icon>add</mat-icon>
                   <span>Create</span>
                 </button>
+                <mat-menu #createMenu="matMenu">
+                  <button
+                    mat-menu-item
+                    (click)="openNewProjectDialog()"
+                    data-testid="create-new-project-menu-item">
+                    <mat-icon>edit_note</mat-icon>
+                    <span>New Project</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="importProject()"
+                    data-testid="import-project-menu-item">
+                    <mat-icon>upload_file</mat-icon>
+                    <span>Import Project</span>
+                  </button>
+                </mat-menu>
               }
 
               <!-- Show user menu if authenticated -->
@@ -318,13 +334,22 @@
               <div class="empty-state" data-testid="empty-state">
                 <mat-icon class="empty-icon">add_circle_outline</mat-icon>
                 <h2>Create Your First Project</h2>
-                <p>Get started by creating a new project</p>
-                <button
-                  mat-button
-                  data-testid="create-first-project-button"
-                  (click)="openNewProjectDialog()">
-                  Create Project
-                </button>
+                <p>Get started by creating a new project or importing one</p>
+                <div class="empty-state-actions">
+                  <button
+                    mat-button
+                    data-testid="create-first-project-button"
+                    (click)="openNewProjectDialog()">
+                    Create Project
+                  </button>
+                  <button
+                    mat-button
+                    data-testid="import-first-project-button"
+                    (click)="importProject()">
+                    <mat-icon>upload_file</mat-icon>
+                    Import Project
+                  </button>
+                </div>
               </div>
             } @else if (allProjects().length === 0 && searchControl.value) {
               <div class="empty-search-results">

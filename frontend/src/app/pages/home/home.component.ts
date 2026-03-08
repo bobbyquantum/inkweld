@@ -14,6 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -30,6 +31,7 @@ import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialo
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { Project } from '@inkweld/index';
 import { CollaboratedProject, PendingInvitation } from '@inkweld/model/models';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
@@ -47,6 +49,7 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
     MatIconModule,
     MatInputModule,
     MatFormFieldModule,
+    MatMenuModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
@@ -70,6 +73,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected breakpointObserver = inject(BreakpointObserver);
   private readonly collaborationApiService = inject(CollaborationApiService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialogGateway = inject(DialogGatewayService);
   private readonly setupService = inject(SetupService);
   readonly syncQueueService = inject(SyncQueueService);
 
@@ -337,6 +341,27 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   openNewProjectDialog(): void {
     void this.router.navigate(['/create-project']);
+  }
+
+  importProject(): void {
+    const user = this.userService.currentUser();
+    void this.dialogGateway
+      .openImportProjectDialog(user?.username)
+      .then(result => {
+        if (result?.success && result.slug) {
+          this.snackBar
+            .open('Project imported successfully!', 'View', {
+              duration: 5000,
+            })
+            .onAction()
+            .subscribe(() => {
+              const username = user?.username ?? 'offline';
+              void this.router.navigate(['/', username, result.slug]);
+            });
+          // Reload project list
+          void this.loadProjects();
+        }
+      });
   }
 
   openLoginDialog(): void {
