@@ -17,7 +17,7 @@
         "@angular/platform-browser-dynamic": "^21.1.0",
         "@angular/router": "^21.1.0",
         "@angular/service-worker": "^21.1.0",
-        "@bobbyquantum/ngx-editor": "^21.0.0-beta.1",
+        "@bobbyquantum/ngx-editor": "^21.0.0",
         "@myriaddreamin/typst-ts-renderer": "^0.7.0-rc2",
         "@myriaddreamin/typst-ts-web-compiler": "^0.7.0-rc2",
         "@myriaddreamin/typst.angular": "^0.7.0-rc2",
@@ -237,7 +237,7 @@
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@1.0.2", "", {}, "sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA=="],
 
-    "@bobbyquantum/ngx-editor": ["@bobbyquantum/ngx-editor@21.0.0-beta.1", "", { "dependencies": { "@floating-ui/core": "^1.6.9", "@floating-ui/dom": "^1.6.13", "@types/trusted-types": "~2.0.7", "prosemirror-commands": "^1.7.1", "prosemirror-history": "^1.4.1", "prosemirror-inputrules": "^1.5.0", "prosemirror-keymap": "^1.2.2", "prosemirror-model": "^1.25.0", "prosemirror-schema-list": "^1.5.1", "prosemirror-state": "^1.4.3", "prosemirror-view": "^1.39.1", "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=21.0.0", "@angular/core": ">=21.0.0", "@angular/forms": ">=21.0.0", "@angular/platform-browser": ">=21.0.0", "rxjs": ">=7.8.0" } }, "sha512-kzgtOjuDvo/hbjiMZky7IHToXMgltdrd0H70kJmmJN0GtTnM3lXQK2QxeqJ4Lb0q8zoiPBoFTvoY13FcIUEs6w=="],
+    "@bobbyquantum/ngx-editor": ["@bobbyquantum/ngx-editor@21.0.0", "", { "dependencies": { "@floating-ui/core": "^1.6.9", "@floating-ui/dom": "^1.6.13", "@types/trusted-types": "~2.0.7", "prosemirror-commands": "^1.7.1", "prosemirror-history": "^1.4.1", "prosemirror-inputrules": "^1.5.0", "prosemirror-keymap": "^1.2.2", "prosemirror-model": "^1.25.0", "prosemirror-schema-list": "^1.5.1", "prosemirror-state": "^1.4.3", "prosemirror-view": "^1.39.1", "tslib": "^2.3.0" }, "peerDependencies": { "@angular/common": ">=21.0.0", "@angular/core": ">=21.0.0", "@angular/forms": ">=21.0.0", "@angular/platform-browser": ">=21.0.0", "rxjs": ">=7.8.0" } }, "sha512-yHM58uko00VZgJaLMLnn+XoRvyK98+kUBQIeXXREFNPpGxyrMZ2+KFonDR1+jvzykOgpwroOL05vbQZQOO/6Cg=="],
 
     "@bramus/specificity": ["@bramus/specificity@2.4.2", "", { "dependencies": { "css-tree": "^3.0.0" }, "bin": { "specificity": "bin/cli.js" } }, "sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw=="],
 
