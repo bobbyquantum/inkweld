@@ -1,0 +1,4 @@
+# Generated .inkweld.zip archives
+# These are regenerated on demand, no need to commit
+*.inkweld.zip
+.tmp-*
