@@ -20,6 +20,7 @@ import {
   CollaboratorRole,
   PendingInvitation,
 } from '@inkweld/model/models';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -54,6 +55,7 @@ describe('HomeComponent', () => {
   let localStorageService: Partial<LocalStorageService>;
   let collaborationApiService: Partial<CollaborationApiService>;
   let setupService: Partial<SetupService>;
+  let dialogGateway: Partial<DialogGatewayService>;
   let breakpointObserver: MockedObject<BreakpointObserver>;
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
@@ -146,7 +148,9 @@ describe('HomeComponent', () => {
     } as unknown as MockedObject<MatDialog>;
 
     snackBar = {
-      open: vi.fn(),
+      open: vi.fn().mockReturnValue({
+        onAction: vi.fn().mockReturnValue({ subscribe: vi.fn() }),
+      }),
     } as unknown as MockedObject<MatSnackBar>;
 
     const mockUser: User = {
@@ -206,6 +210,11 @@ describe('HomeComponent', () => {
       getMode: vi.fn().mockReturnValue('server'),
     };
 
+    // Setup mock dialog gateway service
+    dialogGateway = {
+      openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
@@ -220,6 +229,7 @@ describe('HomeComponent', () => {
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: CollaborationApiService, useValue: collaborationApiService },
         { provide: SetupService, useValue: setupService },
+        { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: UserService, useValue: avatarUserService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
@@ -308,6 +318,26 @@ describe('HomeComponent', () => {
 
     // Verify that router.navigate was called with the correct route
     expect(router.navigate).toHaveBeenCalledWith(['/create-project']);
+  });
+
+  it('should open import project dialog when importProject is called', () => {
+    component.importProject();
+    expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
+      'testuser'
+    );
+  });
+
+  it('should reload projects after successful import', async () => {
+    (
+      dialogGateway.openImportProjectDialog as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce({ success: true, slug: 'imported-project' });
+
+    component.importProject();
+
+    // Wait for the promise to resolve
+    await vi.waitFor(() => {
+      expect(projectService.loadProjects).toHaveBeenCalled();
+    });
   });
 
   describe('loadProjects', () => {
