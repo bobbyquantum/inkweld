@@ -79,7 +79,7 @@ authRoutes.openapi(registerRoute, async (c) => {
   if (email) {
     const existingUser = await userService.findByEmail(db, email);
     if (existingUser) {
-      return c.json({ error: 'An account with this email address already exists' }, 400);
+      return c.json({ error: 'Registration failed. Please try a different username or email.' }, 400);
     }
   }
 
@@ -172,7 +172,7 @@ authRoutes.openapi(registerRoute, async (c) => {
     );
   } catch (error) {
     if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-      return c.json({ error: 'Username already exists' }, 400);
+      return c.json({ error: 'Registration failed. Please try a different username or email.' }, 400);
     }
     throw error;
   }

@@ -9,10 +9,27 @@ export class R2StorageService {
   constructor(private bucket: R2Bucket) {}
 
   /**
+   * Validate that a path component does not contain traversal sequences
+   * that could escape the intended key namespace.
+   */
+  private validateKeyComponent(component: string, label: string): void {
+    if (
+      !component ||
+      component.includes('..') ||
+      component.includes('\0')
+    ) {
+      throw new Error(`Invalid ${label}: path traversal detected`);
+    }
+  }
+
+  /**
    * Generate a storage key for a project file
    * Format: {username}/{projectSlug}/{filename}
    */
   private getProjectFileKey(username: string, projectSlug: string, filename: string): string {
+    this.validateKeyComponent(username, 'username');
+    this.validateKeyComponent(projectSlug, 'project slug');
+    this.validateKeyComponent(filename, 'filename');
     return `${username}/${projectSlug}/${filename}`;
   }
 
@@ -21,6 +38,7 @@ export class R2StorageService {
    * Format: avatars/{username}.png
    */
   private getUserAvatarKey(username: string): string {
+    this.validateKeyComponent(username, 'username');
     return `avatars/${username}.png`;
   }
 

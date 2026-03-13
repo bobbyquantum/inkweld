@@ -81,10 +81,15 @@ shareRoutes.openapi(getSharedFileRoute, async (c) => {
     return c.json({ error: 'File content not found' }, 404);
   }
 
+  // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
+  const safeFilename = file.filename
+    .replace(/["\\\r\n]/g, '')
+    .replace(/[^\x20-\x7E]/g, '_');
+
   return new Response(content, {
     headers: {
       'Content-Type': file.mimeType,
-      'Content-Disposition': `attachment; filename="${file.filename}"`,
+      'Content-Disposition': `attachment; filename="${safeFilename}"`,
       'Content-Length': String(file.size),
     },
   });

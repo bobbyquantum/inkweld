@@ -26,7 +26,7 @@ export async function getPasswordPolicy(db: DatabaseInstance): Promise<PasswordP
     ]);
 
   return {
-    minLength: Math.max(1, parseInt(minLength.value, 10) || 8),
+    minLength: Math.max(8, parseInt(minLength.value, 10) || 8),
     requireUppercase,
     requireLowercase,
     requireNumber,
@@ -38,9 +38,14 @@ export async function getPasswordPolicy(db: DatabaseInstance): Promise<PasswordP
  * Validate a password against the given policy.
  * Returns an array of error messages, or an empty array if valid.
  */
+const MAX_PASSWORD_LENGTH = 256;
+
 export function validatePassword(password: string, policy: PasswordPolicy): string[] {
   const errors: string[] = [];
 
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    errors.push(`Password must be no more than ${MAX_PASSWORD_LENGTH} characters`);
+  }
   if (password.length < policy.minLength) {
     errors.push(`Password must be at least ${policy.minLength} characters`);
   }
