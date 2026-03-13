@@ -65,7 +65,7 @@ class AuthService {
     const sessionData: SessionData = {
       userId: user.id,
       username: user.username || '',
-      email: user.email || '',
+      email: '', // Omit actual email from JWT to avoid PII leakage in tokens
       exp: now + TOKEN_EXPIRY, // JWT expiration (30 days)
     };
 

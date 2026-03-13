@@ -170,12 +170,19 @@ documentRoutes.openapi(getDocRoute, async (c) => {
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const docId = c.req.param('docId');
+  const userId = c.get('user')?.id;
 
   // Verify project exists
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
     return c.json({ error: 'Project not found' }, 404);
+  }
+
+  // Check access - owner or collaborator with read access
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+  if (!access.canRead) {
+    return c.json({ error: 'Access denied' }, 403);
   }
 
   // Return placeholder - full implementation would query the element from Yjs
@@ -235,6 +242,7 @@ documentRoutes.openapi(renderHtmlRoute, async (c) => {
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const docId = c.req.param('docId');
+  const userId = c.get('user')?.id;
 
   // Verify project exists
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
@@ -242,6 +250,20 @@ documentRoutes.openapi(renderHtmlRoute, async (c) => {
   if (!project) {
     return c.json({ error: 'Project not found' }, 404);
   }
+
+  // Check access - owner or collaborator with read access
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+  if (!access.canRead) {
+    return c.json({ error: 'Access denied' }, 403);
+  }
+
+  // Escape user-controlled values to prevent reflected XSS
+  const escapeHtml = (str: string) =>
+    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const safeDocId = escapeHtml(docId);
+  const safeUsername = escapeHtml(username);
+  const safeSlug = escapeHtml(slug);
 
   // Placeholder HTML rendering
   // Full implementation would load from LevelDB and render ProseMirror content
@@ -257,9 +279,9 @@ documentRoutes.openapi(renderHtmlRoute, async (c) => {
   </style>
 </head>
 <body>
-  <h1>Document: ${docId}</h1>
+  <h1>Document: ${safeDocId}</h1>
   <p>HTML rendering not yet implemented in Hono backend.</p>
-  <p>Project: ${username}/${slug}</p>
+  <p>Project: ${safeUsername}/${safeSlug}</p>
 </body>
 </html>
 `;

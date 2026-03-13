@@ -1,4 +1,5 @@
 import { MiddlewareHandler } from 'hono';
+import { randomBytes } from 'crypto';
 import { ForbiddenError } from '../errors';
 import { config } from '../config/env';
 
@@ -6,7 +7,7 @@ import { config } from '../config/env';
 const csrfTokens = new Map<string, string>();
 
 export function generateCSRFToken(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  return randomBytes(32).toString('hex');
 }
 
 export function setupCSRF(): MiddlewareHandler {

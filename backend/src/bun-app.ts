@@ -180,9 +180,6 @@ app.get('/api/v1/ping', (c) => {
   return c.json({
     pong: true,
     timestamp: new Date().toISOString(),
-    spaEnabled,
-    hasExternalFrontend,
-    hasEmbeddedFrontend,
   });
 });
 

@@ -347,10 +347,18 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
 
   const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
 
+  // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
+  const safeFilename = filename.replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
+
+  // Serve potentially dangerous content types as attachment instead of inline
+  const dangerousTypes = ['image/svg+xml', 'text/html', 'application/xhtml+xml', 'text/xml'];
+  const disposition = dangerousTypes.includes(contentType) ? 'attachment' : 'inline';
+
   return c.body(uint8Array, 200, {
     'Content-Type': contentType,
     'Content-Length': uint8Array.length.toString(),
-    'Content-Disposition': `inline; filename="${filename}"`,
+    'Content-Disposition': `${disposition}; filename="${safeFilename}"`,
+    'X-Content-Type-Options': 'nosniff',
   });
 });
 

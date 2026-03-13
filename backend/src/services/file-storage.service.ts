@@ -12,9 +12,41 @@ export class FileStorageService {
   }
 
   /**
+   * Validate that a path component does not contain traversal sequences.
+   * Throws if the component would escape the intended directory.
+   */
+  private validatePathComponent(component: string, label: string): void {
+    if (
+      !component ||
+      component.includes('..') ||
+      component.includes('/') ||
+      component.includes('\\') ||
+      component.includes('\0')
+    ) {
+      throw new Error(`Invalid ${label}: path traversal detected`);
+    }
+  }
+
+  /**
+   * Validate that a resolved path is within the expected base directory.
+   */
+  private ensureWithinBase(resolvedPath: string, basePath: string): void {
+    const normalizedResolved = path.resolve(resolvedPath);
+    const normalizedBase = path.resolve(basePath);
+    if (
+      !normalizedResolved.startsWith(normalizedBase + path.sep) &&
+      normalizedResolved !== normalizedBase
+    ) {
+      throw new Error('Path traversal detected: resolved path escapes base directory');
+    }
+  }
+
+  /**
    * Get the path for a user's project directory
    */
   getProjectPath(username: string, projectSlug: string): string {
+    this.validatePathComponent(username, 'username');
+    this.validatePathComponent(projectSlug, 'project slug');
     return path.join(this.basePath, username, projectSlug);
   }
 
@@ -36,7 +68,9 @@ export class FileStorageService {
     data: Buffer | string
   ): Promise<string> {
     await this.ensureProjectDirectory(username, projectSlug);
-    const filePath = path.join(this.getProjectPath(username, projectSlug), filename);
+    const projectPath = this.getProjectPath(username, projectSlug);
+    const filePath = path.join(projectPath, filename);
+    this.ensureWithinBase(filePath, projectPath);
     await fs.writeFile(filePath, data);
     return filePath;
   }
@@ -45,7 +79,9 @@ export class FileStorageService {
    * Read a file from a project directory
    */
   async readProjectFile(username: string, projectSlug: string, filename: string): Promise<Buffer> {
-    const filePath = path.join(this.getProjectPath(username, projectSlug), filename);
+    const projectPath = this.getProjectPath(username, projectSlug);
+    const filePath = path.join(projectPath, filename);
+    this.ensureWithinBase(filePath, projectPath);
     return await fs.readFile(filePath);
   }
 
@@ -57,7 +93,9 @@ export class FileStorageService {
     projectSlug: string,
     filename: string
   ): Promise<boolean> {
-    const filePath = path.join(this.getProjectPath(username, projectSlug), filename);
+    const projectPath = this.getProjectPath(username, projectSlug);
+    const filePath = path.join(projectPath, filename);
+    this.ensureWithinBase(filePath, projectPath);
     try {
       await fs.access(filePath);
       return true;
@@ -70,7 +108,9 @@ export class FileStorageService {
    * Delete a file from a project directory
    */
   async deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void> {
-    const filePath = path.join(this.getProjectPath(username, projectSlug), filename);
+    const projectPath = this.getProjectPath(username, projectSlug);
+    const filePath = path.join(projectPath, filename);
+    this.ensureWithinBase(filePath, projectPath);
     await fs.unlink(filePath);
   }
 
