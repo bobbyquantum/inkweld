@@ -335,11 +335,15 @@ publishedFileRoutes.openapi(getPublishedFileRoute, async (c) => {
     throw new NotFoundError('File content not found');
   }
 
+  // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
+  const safeFilename = file.filename.replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
+
   return new Response(content, {
     headers: {
       'Content-Type': file.mimeType,
-      'Content-Disposition': `attachment; filename="${file.filename}"`,
+      'Content-Disposition': `attachment; filename="${safeFilename}"`,
       'Content-Length': String(file.size),
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 });
@@ -609,8 +613,9 @@ publishedFileRoutes.openapi(getShareLinkRoute, async (c) => {
     throw new BadRequestError('Sharing is not enabled for this file');
   }
 
-  // Build share URL (base URL would come from config in production)
-  const baseUrl = c.req.header('origin') || 'https://inkweld.app';
+  // Build share URL using server-configured base URL, not client Origin header
+  const { getBaseUrl } = await import('../services/url.service');
+  const baseUrl = await getBaseUrl(db);
   const shareUrl = `${baseUrl}/share/${file.shareToken}`;
 
   return c.json(
