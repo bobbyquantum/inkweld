@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { lookup } from 'mime-types';
 import { config } from '../config/env';
+import { BadRequestError } from '../errors';
 import { logger } from './logger.service';
 
 export class FileStorageService {
@@ -23,7 +24,7 @@ export class FileStorageService {
       component.includes('\\') ||
       component.includes('\0')
     ) {
-      throw new Error(`Invalid ${label}: path traversal detected`);
+      throw new BadRequestError(`Invalid ${label}: path traversal detected`);
     }
   }
 
@@ -162,6 +163,7 @@ export class FileStorageService {
    * Get user avatar path
    */
   getUserAvatarPath(username: string): string {
+    this.validatePathComponent(username, 'username');
     return path.join(this.basePath, 'avatars', `${username}.png`);
   }
 

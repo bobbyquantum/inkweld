@@ -1,5 +1,5 @@
 import { type MiddlewareHandler } from 'hono';
-import { randomBytes } from 'crypto';
+import { randomBytes, timingSafeEqual } from 'crypto';
 import { ForbiddenError } from '../errors';
 import { config } from '../config/env';
 
@@ -47,9 +47,15 @@ export function setupCSRF(): MiddlewareHandler {
       throw new ForbiddenError('CSRF token missing');
     }
 
-    // Verify token
+    // Verify token using constant-time comparison to prevent timing attacks
     const storedToken = session.csrfToken;
-    if (!storedToken || token !== storedToken) {
+    const tokenBuf = Buffer.from(token);
+    const storedBuf = Buffer.from(storedToken ?? '');
+    if (
+      !storedToken ||
+      tokenBuf.length !== storedBuf.length ||
+      !timingSafeEqual(tokenBuf, storedBuf)
+    ) {
       throw new ForbiddenError('CSRF token invalid');
     }
 
