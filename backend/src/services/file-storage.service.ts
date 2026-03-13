@@ -33,7 +33,10 @@ export class FileStorageService {
   private ensureWithinBase(resolvedPath: string, basePath: string): void {
     const normalizedResolved = path.resolve(resolvedPath);
     const normalizedBase = path.resolve(basePath);
-    if (!normalizedResolved.startsWith(normalizedBase + path.sep) && normalizedResolved !== normalizedBase) {
+    if (
+      !normalizedResolved.startsWith(normalizedBase + path.sep) &&
+      normalizedResolved !== normalizedBase
+    ) {
       throw new Error('Path traversal detected: resolved path escapes base directory');
     }
   }

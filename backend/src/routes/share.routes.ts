@@ -82,9 +82,7 @@ shareRoutes.openapi(getSharedFileRoute, async (c) => {
   }
 
   // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
-  const safeFilename = file.filename
-    .replace(/["\\\r\n]/g, '')
-    .replace(/[^\x20-\x7E]/g, '_');
+  const safeFilename = file.filename.replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
 
   return new Response(content, {
     headers: {

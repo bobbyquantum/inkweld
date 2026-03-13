@@ -13,11 +13,7 @@ export class R2StorageService {
    * that could escape the intended key namespace.
    */
   private validateKeyComponent(component: string, label: string): void {
-    if (
-      !component ||
-      component.includes('..') ||
-      component.includes('\0')
-    ) {
+    if (!component || component.includes('..') || component.includes('\0')) {
       throw new Error(`Invalid ${label}: path traversal detected`);
     }
   }
