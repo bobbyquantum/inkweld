@@ -3,8 +3,14 @@ import { z } from '@hono/zod-openapi';
 import { config } from '../config/env';
 import { logger } from '../services/logger.service';
 
+// Bindings type for Workers environment (secrets set via `wrangler secret put`)
+type CSRFBindings = {
+  DATABASE_KEY?: string;
+  SESSION_SECRET?: string;
+};
+
 const csrfLog = logger.child('CSRF');
-const csrfRoutes = new OpenAPIHono();
+const csrfRoutes = new OpenAPIHono<{ Bindings: CSRFBindings }>();
 
 // Schema definitions
 const CSRFTokenResponseSchema = z
@@ -97,10 +103,12 @@ const tokenRoute = createRoute({
 
 csrfRoutes.openapi(tokenRoute, async (c) => {
   try {
-    // Get the secret from config
-    const secret = config.databaseKey;
+    // Get the secret from Worker bindings (c.env) first, then fall back to config.
+    // In Cloudflare Workers, secrets set via `wrangler secret put` are only
+    // available through c.env, NOT process.env.
+    const secret = c.env?.DATABASE_KEY || c.env?.SESSION_SECRET || config.databaseKey;
     if (!secret) {
-      csrfLog.error('DATABASE_KEY is not configured — cannot generate CSRF tokens');
+      csrfLog.error('DATABASE_KEY/SESSION_SECRET is not configured — cannot generate CSRF tokens');
       return c.json({ message: 'Server configuration error' }, 500);
     }
 

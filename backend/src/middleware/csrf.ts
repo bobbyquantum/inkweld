@@ -1,5 +1,4 @@
 import { MiddlewareHandler } from 'hono';
-import { randomBytes } from 'crypto';
 import { ForbiddenError } from '../errors';
 import { config } from '../config/env';
 
@@ -7,7 +6,12 @@ import { config } from '../config/env';
 const csrfTokens = new Map<string, string>();
 
 export function generateCSRFToken(): string {
-  return randomBytes(32).toString('hex');
+  // Use Web Crypto API (works in both Bun/Node.js and Cloudflare Workers)
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export function setupCSRF(): MiddlewareHandler {

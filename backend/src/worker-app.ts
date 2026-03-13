@@ -16,10 +16,13 @@ import { d1DatabaseMiddleware, type D1AppContext } from './middleware/database.d
 import { registerCommonRoutes } from './config/routes';
 import yjsWorkerRoutes from './routes/yjs-worker.routes';
 
-// Extend D1AppContext bindings to include env vars from wrangler.toml
+// Extend D1AppContext bindings to include env vars and secrets from wrangler.toml
 type WorkerAppContext = {
   Bindings: D1AppContext['Bindings'] & {
     ALLOWED_ORIGINS?: string;
+    // Secrets set via `wrangler secret put` — only available through c.env, not process.env
+    DATABASE_KEY?: string;
+    SESSION_SECRET?: string;
   };
   Variables: D1AppContext['Variables'];
 };

@@ -168,9 +168,12 @@ script_name = "inkweld-backend-prod"
 # SECRETS (set via wrangler secret put)
 # ========================================
 # Required for each environment:
-#   SESSION_SECRET - Session encryption key (32+ characters)
+#   SESSION_SECRET - Session/CSRF signing key (32+ characters)
+#                    Used for JWT signing, CSRF token HMAC, and session cookies.
+#                    Alternatively, set DATABASE_KEY (takes priority over SESSION_SECRET).
 #
 # Optional (if features enabled):
+#   DATABASE_KEY - Override for SESSION_SECRET (same purpose, higher priority)
 #   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
 #
 # Set with:
