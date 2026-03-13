@@ -129,17 +129,14 @@ describe('PdfGeneratorService', () => {
       getMedia: vi.fn().mockResolvedValue(null),
     };
 
-    // Reset the globally-mocked $typst methods so each test starts fresh
-    vi.mocked($typst.setCompilerInitOptions)
-      .mockReset()
-      .mockReturnValue(undefined);
-    vi.mocked($typst.setRendererInitOptions)
-      .mockReset()
-      .mockReturnValue(undefined);
-    vi.mocked($typst.pdf)
-      .mockReset()
-      .mockResolvedValue(new Uint8Array([1, 2, 3]));
-    vi.mocked($typst.mapShadow).mockReset().mockResolvedValue(undefined);
+    // Replace $typst methods with fresh mocks each test.
+    // With isolate: false the global vi.mock from setup-vitest.ts may not
+    // have applied, so vi.mocked() could return the real (non-mock) function.
+    // Assigning vi.fn() directly is resilient regardless.
+    ($typst as any).setCompilerInitOptions = vi.fn().mockReturnValue(undefined);
+    ($typst as any).setRendererInitOptions = vi.fn().mockReturnValue(undefined);
+    ($typst as any).pdf = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
+    ($typst as any).mapShadow = vi.fn().mockResolvedValue(undefined);
 
     // Stub fetch so WASM/data-URL fetches in the service succeed
     vi.stubGlobal(
