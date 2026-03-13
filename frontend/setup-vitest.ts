@@ -154,7 +154,7 @@ vi.mock('y-websocket', () => {
       }
 
       connect(): void {
-        this.ws = { onmessage: null, send: () => {} };
+        this.ws = { onmessage: null, send: () => ({}) };
       }
 
       disconnect(): void {

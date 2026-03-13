@@ -93,6 +93,16 @@ describe('RelationshipChartService', () => {
   };
 
   beforeEach(() => {
+    // Restore any spies on globals (e.g. localStorage) left by other test
+    // files — with isolate: false, vi.clearAllMocks() clears spy behaviour
+    // without restoring originals, which breaks real localStorage access.
+    if (typeof (localStorage.getItem as any).mockRestore === 'function') {
+      (localStorage.getItem as any).mockRestore();
+    }
+    if (typeof (localStorage.setItem as any).mockRestore === 'function') {
+      (localStorage.setItem as any).mockRestore();
+    }
+
     TestBed.configureTestingModule({
       providers: [
         RelationshipChartService,
