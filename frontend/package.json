@@ -139,7 +139,7 @@
     "jszip": "^3.10.1",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.4.530",
-    "playwright-ng-schematics": "21.0.3",
+    "playwright-ng-schematics": "21.0.5",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.7.4",
     "rimraf": "6.1.3",
