@@ -10,6 +10,7 @@
  *   potentially causing navigation to the wrong project.
  */
 import { generateUniqueUsername } from '../common';
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import { createProject, expect, registerUser, test } from './fixtures';
 
 test.describe('Project Switching Bug Prevention', () => {
@@ -17,7 +18,7 @@ test.describe('Project Switching Bug Prevention', () => {
     anonymousPage: page,
   }) => {
     const username = generateUniqueUsername('switch');
-    await registerUser(page, username, 'ValidPass123!');
+    await registerUser(page, username, TEST_PASSWORDS.VALID);
 
     // Create first project
     await createProject(page, 'Test Project One', 'test-one');
@@ -52,7 +53,7 @@ test.describe('Project Switching Bug Prevention', () => {
     anonymousPage: page,
   }) => {
     const username = generateUniqueUsername('multi');
-    await registerUser(page, username, 'ValidPass123!');
+    await registerUser(page, username, TEST_PASSWORDS.VALID);
 
     // Create three projects
     for (let i = 1; i <= 3; i++) {
@@ -82,7 +83,7 @@ test.describe('Project Switching Bug Prevention', () => {
     anonymousPage: page,
   }) => {
     const username = generateUniqueUsername('backforth');
-    await registerUser(page, username, 'ValidPass123!');
+    await registerUser(page, username, TEST_PASSWORDS.VALID);
 
     await createProject(page, 'Alpha Project', 'alpha');
     await page.goto('/');

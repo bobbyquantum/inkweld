@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { TEST_PASSWORDS } from '../common/test-credentials';
+
 const API_BASE = 'http://localhost:9333';
 
 /**
@@ -229,7 +231,7 @@ test.describe('MCP Endpoint Authentication', () => {
     const regResponse = await request.post(`${API_BASE}/api/v1/auth/register`, {
       data: {
         username: `revoke-test-${Date.now()}`,
-        password: 'TestPassword123!',
+        password: TEST_PASSWORDS.USER,
       },
     });
     const { token: _authToken } = (await regResponse.json()) as {
@@ -243,7 +245,7 @@ test.describe('MCP Endpoint Authentication', () => {
       {
         data: {
           username: `revoketest${Date.now()}`,
-          password: 'TestPassword123!',
+          password: TEST_PASSWORDS.USER,
         },
       }
     );

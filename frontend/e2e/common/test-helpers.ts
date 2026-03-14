@@ -156,9 +156,6 @@ export async function storeRealEpubInIndexedDB(
  * Common test constants used across offline and online tests
  */
 export const TEST_CONSTANTS = {
-  // Valid password that meets all requirements
-  VALID_PASSWORD: 'ValidPass123!',
-
   // Default test users
   TEST_USER: 'testuser',
   ADMIN_USER: 'adminuser',

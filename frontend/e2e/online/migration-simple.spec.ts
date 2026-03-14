@@ -1,3 +1,4 @@
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import { expect, getAppMode, test } from './fixtures';
 
 /**
@@ -62,7 +63,7 @@ test.describe('Migration Service', () => {
 
     // Step 6: Verify we can access the server by making an auth request
     const testUsername = `migration-test-${Date.now()}`;
-    const testPassword = 'TestPassword123!';
+    const testPassword = TEST_PASSWORDS.USER;
 
     const registerResponse = await offlinePage.request.post(
       'http://localhost:9333/api/v1/auth/register',

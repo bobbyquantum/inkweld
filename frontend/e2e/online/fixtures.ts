@@ -1,4 +1,7 @@
 import { expect, type Page, test as base } from '@playwright/test';
+
+import { TEST_PASSWORDS } from '../common/test-credentials';
+
 export type { Page };
 
 /**
@@ -59,7 +62,7 @@ function getApiBaseUrl(): string {
  */
 export const DEFAULT_ADMIN = {
   username: 'e2e-admin',
-  password: 'E2eAdminPassword123!',
+  password: TEST_PASSWORDS.ADMIN,
 };
 
 export type OnlineTestFixtures = {
@@ -157,7 +160,7 @@ export const test = base.extend<OnlineTestFixtures>({
 
     const testId = generateTestId();
     const username = `testuser-${testId}`;
-    const password = 'TestPassword123!';
+    const password = TEST_PASSWORDS.USER;
 
     // Register and authenticate user via API (before any navigation)
     const token = await authenticateUser(page, username, password, true);
@@ -432,7 +435,7 @@ export const test = base.extend<OnlineTestFixtures>({
 
     const testId = generateTestId();
     const username = `server-unavail-${testId}`;
-    const password = 'TestPassword123!';
+    const password = TEST_PASSWORDS.USER;
 
     const apiUrl = getApiBaseUrl();
 

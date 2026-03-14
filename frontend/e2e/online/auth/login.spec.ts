@@ -1,3 +1,4 @@
+import { TEST_PASSWORDS } from '../../common/test-credentials';
 import { expect, test } from '../fixtures';
 
 test.describe('User Login', () => {
@@ -6,7 +7,7 @@ test.describe('User Login', () => {
   }) => {
     // Create a user first via API (similar to authenticatedPage fixture)
     const testUsername = `login-test-${Date.now()}`;
-    const testPassword = 'TestPassword123!';
+    const testPassword = TEST_PASSWORDS.USER;
 
     const registerResponse = await page.request.post(
       'http://localhost:9333/api/v1/auth/register',
@@ -65,7 +66,7 @@ test.describe('User Login', () => {
     await page.getByTestId('username-input').click();
     await page.getByTestId('username-input').fill(testUsername);
     await page.getByTestId('password-input').click();
-    await page.getByTestId('password-input').fill('wrong-password');
+    await page.getByTestId('password-input').fill(TEST_PASSWORDS.WRONG);
 
     // Wait for button to be enabled (OAuth providers loaded)
     await expect(page.getByTestId('login-button')).toBeEnabled();

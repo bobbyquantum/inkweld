@@ -1,5 +1,7 @@
 import { type APIRequestContext, expect, test as base } from '@playwright/test';
 
+import { TEST_PASSWORDS } from '../common/test-credentials';
+
 export const API_BASE = 'http://localhost:9333';
 export const INSPECTOR_URL = 'http://localhost:6274';
 
@@ -320,7 +322,7 @@ export const test = base.extend<McpFixtures>({
   mcpContext: async ({ request }, use) => {
     const testId = `mcp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const username = `mcpuser-${testId}`;
-    const password = 'McpTestPassword123!';
+    const password = TEST_PASSWORDS.MCP_USER;
     const projectSlug = `mcp-project-${testId}`;
 
     // Register user

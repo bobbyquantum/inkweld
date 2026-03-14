@@ -13,6 +13,7 @@ import { $ } from 'bun';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 import { hash } from 'bcryptjs';
+import { TEST_PASSWORDS } from '../test/test-credentials';
 
 const args = process.argv.slice(2);
 const persistPathArg = args.find((arg) => arg.startsWith('--persist-path='));
@@ -21,7 +22,7 @@ const persistPath = persistPathArg?.split('=')[1] || '.wrangler/state/v3/d1';
 // Default admin credentials for e2e testing (must match fixtures.ts)
 const E2E_ADMIN = {
   username: 'e2e-admin',
-  password: 'E2eAdminPassword123!',
+  password: TEST_PASSWORDS.E2E_ADMIN,
   email: 'e2e-admin@localhost',
   name: 'E2E Admin',
 };

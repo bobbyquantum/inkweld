@@ -1,3 +1,4 @@
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import {
   API_BASE,
   expect,
@@ -204,7 +205,7 @@ test.describe('Read-Only API Key Permissions', () => {
     // Register user and create project
     const testId = `readonly-${Date.now()}`;
     const regResp = await apiRequest.post(`${API_BASE}/api/v1/auth/register`, {
-      data: { username: testId, password: 'TestPassword123!' },
+      data: { username: testId, password: TEST_PASSWORDS.USER },
     });
     const { token } = (await regResp.json()) as { token: string };
 
