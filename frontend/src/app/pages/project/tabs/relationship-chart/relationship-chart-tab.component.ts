@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -36,7 +35,6 @@ import {
   ElementsService,
   ElementType,
 } from '../../../../../api-client';
-import { environment } from '../../../../../environments/environment';
 import { type RelationshipTypeDefinition } from '../../../../components/element-ref/element-ref.model';
 import {
   ElementPickerDialogComponent,
@@ -47,6 +45,9 @@ import {
   type ChartLayout,
   type ChartMode,
 } from '../../../../models/relationship-chart.model';
+import { SetupService } from '../../../../services/core/setup.service';
+import { LocalStorageService } from '../../../../services/local/local-storage.service';
+import { MediaSyncService } from '../../../../services/local/media-sync.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
@@ -98,9 +99,11 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   private readonly chartService = inject(RelationshipChartService);
   private readonly relationshipService = inject(RelationshipService);
   private readonly elementsService = inject(ElementsService);
-  private readonly http = inject(HttpClient);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly localStorageService = inject(LocalStorageService);
+  private readonly mediaSyncService = inject(MediaSyncService);
+  private readonly setupService = inject(SetupService);
 
   /** Reference to the chart container <div> */
   private readonly chartContainer =
@@ -990,7 +993,8 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
   /**
    * Resolve a raw image URL to a displayable URL.
-   * Handles data: URLs (pass-through), media:// URLs (fetch blob), and HTTP URLs.
+   * Handles data: URLs (pass-through), media:// URLs (local IndexedDB), and HTTP URLs.
+   * On local miss, triggers a media sync and retries once.
    */
   private async resolveImageUrl(
     imageUrl: string,
@@ -1003,17 +1007,38 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
     if (imageUrl.startsWith('media://')) {
       const filename = imageUrl.substring('media://'.length);
-      try {
-        const apiUrl = `${environment.apiUrl}/api/v1/media/${username}/${slug}/${filename}`;
-        const blob = await firstValueFrom(
-          this.http.get(apiUrl, { responseType: 'blob' })
-        );
-        const blobUrl = URL.createObjectURL(blob);
-        this.blobUrls.push(blobUrl);
-        return blobUrl;
-      } catch {
-        return null;
+      const lastDot = filename.lastIndexOf('.');
+      const mediaId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+      const projectKey = `${username}/${slug}`;
+
+      // Try local IndexedDB first
+      const localUrl = await this.localStorageService.getMediaUrl(
+        projectKey,
+        mediaId
+      );
+      if (localUrl) {
+        this.blobUrls.push(localUrl);
+        return localUrl;
       }
+
+      // Not found locally — trigger a sync and retry once
+      if (this.setupService.getMode() !== 'local') {
+        try {
+          await this.mediaSyncService.downloadAllFromServer(projectKey);
+          const retryUrl = await this.localStorageService.getMediaUrl(
+            projectKey,
+            mediaId
+          );
+          if (retryUrl) {
+            this.blobUrls.push(retryUrl);
+            return retryUrl;
+          }
+        } catch {
+          // Sync failed — fall through
+        }
+      }
+
+      return null;
     }
 
     // Regular HTTP URL

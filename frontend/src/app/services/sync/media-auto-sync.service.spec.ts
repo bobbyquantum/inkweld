@@ -9,7 +9,6 @@ import {
   vi,
 } from 'vitest';
 
-import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { MediaSyncService } from '../local/media-sync.service';
@@ -23,8 +22,7 @@ describe('MediaAutoSyncService', () => {
     downloadAllFromServer: Mock;
     uploadAllToServer: Mock;
   };
-  let mockSetupService: { getMode: Mock; getWebSocketUrl: Mock };
-  let mockAuthTokenService: { getToken: Mock };
+  let mockSetupService: { getMode: Mock };
   let mockLogger: { info: Mock; warn: Mock; error: Mock; debug: Mock };
 
   beforeEach(() => {
@@ -44,11 +42,6 @@ describe('MediaAutoSyncService', () => {
 
     mockSetupService = {
       getMode: vi.fn().mockReturnValue('server'),
-      getWebSocketUrl: vi.fn().mockReturnValue(null), // Disable WS in tests by default
-    };
-
-    mockAuthTokenService = {
-      getToken: vi.fn().mockReturnValue('mock-token'),
     };
 
     mockLogger = {
@@ -63,7 +56,6 @@ describe('MediaAutoSyncService', () => {
         MediaAutoSyncService,
         { provide: MediaSyncService, useValue: mockMediaSyncService },
         { provide: SetupService, useValue: mockSetupService },
-        { provide: AuthTokenService, useValue: mockAuthTokenService },
         { provide: LoggerService, useValue: mockLogger },
       ],
     });
@@ -235,39 +227,16 @@ describe('MediaAutoSyncService', () => {
     });
   });
 
-  describe('WebSocket notifications', () => {
-    it('should not create WebSocket in local mode', async () => {
+  describe('local mode', () => {
+    it('should not start sync in local mode', async () => {
       mockSetupService.getMode.mockReturnValue('local');
 
       await service.startAutoSync('alice/novel');
 
-      // In local mode, startAutoSync returns early — no sync or WS
+      // In local mode, startAutoSync returns early — no sync
       expect(mockLogger.debug).toHaveBeenCalledWith(
         'MediaAutoSync',
         'Skipping auto-sync — local mode'
-      );
-    });
-
-    it('should not create WebSocket when no URL configured', async () => {
-      mockSetupService.getWebSocketUrl.mockReturnValue(null);
-
-      await service.startAutoSync('alice/novel');
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'MediaAutoSync',
-        'Skipping WebSocket — no WebSocket URL configured'
-      );
-    });
-
-    it('should not create WebSocket when no auth token', async () => {
-      mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
-      mockAuthTokenService.getToken.mockReturnValue(null);
-
-      await service.startAutoSync('alice/novel');
-
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        'MediaAutoSync',
-        'Skipping WebSocket — no auth token'
       );
     });
   });
