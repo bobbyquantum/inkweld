@@ -9,12 +9,14 @@
 
 import { request } from '@playwright/test';
 
+import { TEST_PASSWORDS } from '../common/test-credentials';
+
 const API_BASE = 'http://localhost:9333';
 const INSPECTOR_BASE = 'http://localhost:6274';
 
 const DEFAULT_ADMIN = {
   username: 'mcp-admin',
-  password: 'McpAdminPassword123!',
+  password: TEST_PASSWORDS.MCP_ADMIN,
 };
 
 export default async function globalSetup(): Promise<void> {

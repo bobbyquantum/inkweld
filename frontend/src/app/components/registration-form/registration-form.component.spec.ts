@@ -18,6 +18,7 @@ import {
   vi,
 } from 'vitest';
 
+import { TEST_PASSWORDS } from '../../../../../e2e/common/test-credentials';
 import { RegistrationFormComponent } from './registration-form.component';
 
 const DEFAULT_POLICY = {
@@ -154,7 +155,7 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('should return true for isPasswordValid when all requirements are met', () => {
-      component.registerForm.get('password')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
       expect(component.isPasswordValid()).toBe(true);
     });
 
@@ -166,14 +167,14 @@ describe('RegistrationFormComponent', () => {
 
   describe('password match validation', () => {
     it('should show error when passwords do not match', () => {
-      component.registerForm.get('password')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
       component.registerForm.get('confirmPassword')?.setValue('DifferentPass!');
       expect(component.registerForm.hasError('passwordMismatch')).toBe(true);
     });
 
     it('should not show error when passwords match', () => {
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
       expect(component.registerForm.hasError('passwordMismatch')).toBe(false);
     });
   });
@@ -205,7 +206,7 @@ describe('RegistrationFormComponent', () => {
     });
 
     it('should return password mismatch error', () => {
-      component.registerForm.get('password')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
       component.registerForm.get('confirmPassword')?.setValue('Different123!');
       component.registerForm.get('confirmPassword')?.markAsTouched();
       expect(component.getConfirmPasswordErrorMessage()).toBe(
@@ -231,8 +232,8 @@ describe('RegistrationFormComponent', () => {
 
     it('should call authService.registerUser with correct data', async () => {
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
 
       const mockUser: User = {
         id: '1',
@@ -256,14 +257,14 @@ describe('RegistrationFormComponent', () => {
 
       expect(authService.registerUser).toHaveBeenCalledWith({
         username: 'testuser',
-        password: 'ValidPass123!',
+        password: TEST_PASSWORDS.VALID,
       });
     });
 
     it('should include name and email when provided', async () => {
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
       component.registerForm.get('displayName')?.setValue('Test User');
       component.registerForm.get('email')?.setValue('test@example.com');
 
@@ -291,7 +292,7 @@ describe('RegistrationFormComponent', () => {
 
       expect(authService.registerUser).toHaveBeenCalledWith({
         username: 'testuser',
-        password: 'ValidPass123!',
+        password: TEST_PASSWORDS.VALID,
         name: 'Test User',
         email: 'test@example.com',
       });
@@ -302,8 +303,8 @@ describe('RegistrationFormComponent', () => {
       component.registered.subscribe(registeredSpy);
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
 
       const mockUser: User = {
         id: '1',
@@ -337,8 +338,8 @@ describe('RegistrationFormComponent', () => {
       component.registrationError.subscribe(errorSpy);
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
 
       const errorResponse = new HttpErrorResponse({
         status: 500,
@@ -357,8 +358,8 @@ describe('RegistrationFormComponent', () => {
 
     it('should set isRegistering to true during registration', async () => {
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
 
       const mockUser: User = {
         id: '1',
@@ -392,15 +393,15 @@ describe('RegistrationFormComponent', () => {
       component.externalSubmit = true;
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
 
       await component.submit();
 
       expect(authService.registerUser).not.toHaveBeenCalled();
       expect(submitRequestSpy).toHaveBeenCalledWith({
         username: 'testuser',
-        password: 'ValidPass123!',
+        password: TEST_PASSWORDS.VALID,
       });
     });
   });
@@ -524,8 +525,8 @@ describe('RegistrationFormComponent', () => {
       expect(component.isValid).toBe(false);
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
 
       expect(component.isValid).toBe(true);
     });
@@ -562,8 +563,8 @@ describe('RegistrationFormComponent', () => {
       authService.registerUser.mockReturnValue(throwError(() => httpError));
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
       fixture.detectChanges();
 
       await component.submit();
@@ -589,8 +590,8 @@ describe('RegistrationFormComponent', () => {
       authService.registerUser.mockReturnValue(throwError(() => httpError));
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
       fixture.detectChanges();
 
       await component.submit();
@@ -604,8 +605,8 @@ describe('RegistrationFormComponent', () => {
       );
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
       fixture.detectChanges();
 
       await component.submit();
@@ -619,8 +620,8 @@ describe('RegistrationFormComponent', () => {
       );
 
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('ValidPass123!');
-      component.registerForm.get('confirmPassword')?.setValue('ValidPass123!');
+      component.registerForm.get('password')?.setValue(TEST_PASSWORDS.VALID);
+      component.registerForm.get('confirmPassword')?.setValue(TEST_PASSWORDS.VALID);
       fixture.detectChanges();
 
       await component.submit();

@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures';
+import { TEST_PASSWORDS } from '../../common/test-credentials';
 
 // Helper to open register dialog
 async function openRegisterDialog(page: import('@playwright/test').Page) {
@@ -27,9 +28,9 @@ test.describe('User Registration', () => {
     // Wait for availability check to complete (button depends on it)
     await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
-    await page.getByTestId('password-input').fill('ValidPass123!');
+    await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
     await page.getByTestId('password-input').blur();
-    await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
 
     // Tab away to ensure form validation update
     await page.keyboard.press('Tab');
@@ -56,7 +57,7 @@ test.describe('User Registration', () => {
       {
         data: {
           username: existingUsername,
-          password: 'ExistingPass123!',
+          password: TEST_PASSWORDS.EXISTING,
         },
       }
     );
@@ -82,8 +83,8 @@ test.describe('User Registration', () => {
     await expect(page.getByTestId('username-unavailable-icon')).toBeVisible();
 
     // Fill in password fields with valid passwords
-    await page.getByTestId('password-input').fill('ValidPass123!');
-    await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
+    await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
 
     // Register button should be disabled due to username being taken
     await expect(
@@ -106,7 +107,7 @@ test.describe('User Registration', () => {
       {
         data: {
           username: existingUsername,
-          password: 'ExistingPass123!',
+          password: TEST_PASSWORDS.EXISTING,
         },
       }
     );
@@ -139,7 +140,7 @@ test.describe('User Registration', () => {
     // Wait for username check to complete
     await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
-    await page.getByTestId('password-input').fill('ValidPass123!');
+    await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
     await page.getByTestId('confirm-password-input').fill('DifferentPass123!');
 
     // Register button should be disabled due to password mismatch
@@ -149,7 +150,7 @@ test.describe('User Registration', () => {
 
     // Now fix the password to match
     await page.getByTestId('confirm-password-input').clear();
-    await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
 
     // Button should now be enabled
     await expect(
@@ -184,7 +185,7 @@ test.describe('User Registration', () => {
 
     // Fill password (button should still be disabled - missing confirm password)
     await page.getByTestId('password-input').click();
-    await page.getByTestId('password-input').fill('ValidPass123!');
+    await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
     await page.keyboard.press('Tab');
     await expect(
       page.locator('mat-dialog-container [data-testid="register-button"]')
@@ -192,7 +193,7 @@ test.describe('User Registration', () => {
 
     // Fill confirm password - now all fields are filled
     await page.getByTestId('confirm-password-input').click();
-    await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
     await page.keyboard.press('Tab');
 
     // Now button should be enabled
@@ -231,10 +232,10 @@ test.describe('User Registration', () => {
     await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
     // Fill password fields with proper blur triggering
-    await page.getByTestId('password-input').fill('ValidPass123!');
+    await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
     await page.keyboard.press('Tab'); // Move to confirm password
 
-    await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+    await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
     await page.keyboard.press('Tab'); // Blur confirm password
 
     // Now button should be enabled
@@ -253,7 +254,7 @@ test.describe('User Registration', () => {
       {
         data: {
           username: existingUsername,
-          password: 'ExistingPass123!',
+          password: TEST_PASSWORDS.EXISTING,
         },
       }
     );
@@ -292,9 +293,9 @@ test.describe('User Registration', () => {
     // Wait for availability check to complete
     await expect(page.getByTestId('username-available-icon')).toBeVisible();
 
-    await page.getByTestId('password-input').fill('AutoPass123!');
+    await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
     await page.keyboard.press('Tab');
-    await page.getByTestId('confirm-password-input').fill('AutoPass123!');
+    await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
     await page.keyboard.press('Tab');
 
     // Wait for the button to be enabled (gives time for async validation and providers loaded signal)

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { FalAiImageProvider } from '../src/services/image-providers/falai-provider';
+import { TEST_API_KEYS } from './test-credentials';
 
 describe('FalAiImageProvider', () => {
   let provider: FalAiImageProvider;
@@ -24,26 +25,26 @@ describe('FalAiImageProvider', () => {
     });
 
     it('should return true when configured with API key and enabled', () => {
-      provider.configure({ apiKey: 'test-key', enabled: true });
+      provider.configure({ apiKey: TEST_API_KEYS.GENERIC, enabled: true });
       expect(provider.isAvailable()).toBe(true);
     });
 
     it('should return false when API key set but not enabled', () => {
-      provider.configure({ apiKey: 'test-key', enabled: false });
+      provider.configure({ apiKey: TEST_API_KEYS.GENERIC, enabled: false });
       expect(provider.isAvailable()).toBe(false);
     });
   });
 
   describe('configure', () => {
     it('should configure with API key and enabled', () => {
-      provider.configure({ apiKey: 'test-api-key', enabled: true });
+      provider.configure({ apiKey: TEST_API_KEYS.FALAI_ALT, enabled: true });
       expect(provider.isAvailable()).toBe(true);
     });
 
     it('should configure with custom models', () => {
       const customModels = [{ id: 'custom/model', name: 'Custom Model' }];
       provider.configure({
-        apiKey: 'test-key',
+        apiKey: TEST_API_KEYS.GENERIC,
         enabled: true,
         models: customModels,
       });

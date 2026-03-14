@@ -2,6 +2,8 @@ import { request } from '@playwright/test';
 import { execSync } from 'child_process';
 import * as path from 'path';
 
+import { TEST_API_KEYS, TEST_PASSWORDS, TEST_SESSION_SECRETS } from '../common/test-credentials';
+
 const CONTAINER_NAME = 'inkweld-e2e-test';
 const DOCKER_PORT = 9333;
 const HEALTH_CHECK_URL = `http://localhost:${DOCKER_PORT}/api/v1/health`;
@@ -11,7 +13,7 @@ const HEALTH_CHECK_INTERVAL = 2000;
 
 const ADMIN_CREDENTIALS = {
   username: 'e2e-admin',
-  password: 'E2eAdminPassword123!',
+  password: TEST_PASSWORDS.ADMIN,
 };
 
 /**
@@ -58,7 +60,7 @@ export default async function globalSetup(): Promise<void> {
     '-e',
     'DB_PATH=/data/sqlite.db',
     '-e',
-    'SESSION_SECRET=test-session-secret-for-docker-e2e-testing-min-32-chars',
+    `SESSION_SECRET=${TEST_SESSION_SECRETS.DOCKER}`,
     '-e',
     'USER_APPROVAL_REQUIRED=false',
     '-e',
@@ -72,7 +74,7 @@ export default async function globalSetup(): Promise<void> {
     '-e',
     'DEFAULT_ADMIN_USERNAME=e2e-admin',
     '-e',
-    'DEFAULT_ADMIN_PASSWORD=E2eAdminPassword123!',
+    `DEFAULT_ADMIN_PASSWORD=${TEST_PASSWORDS.ADMIN}`,
     // Disable AI kill switch to allow AI feature testing (matches online config)
     '-e',
     'AI_KILL_SWITCH=false',
@@ -254,7 +256,7 @@ async function setupAIConfiguration(): Promise<void> {
         'Content-Type': 'application/json',
       },
       data: {
-        apiKey: 'sk-fake-test-key-1234567890abcdefghijklmnopqrstuv',
+        apiKey: TEST_API_KEYS.FAKE_OPENAI,
       },
     });
 
