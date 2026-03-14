@@ -220,8 +220,11 @@ describe('IdentityPanelComponent', () => {
   });
 
   describe('resolveImageUrl URL scheme validation', () => {
+    type IdentityPanelPrivateApi = {
+      resolveImageUrl: (url: string) => Promise<void>;
+    };
     const resolveImageUrl = (comp: IdentityPanelComponent, url: string) =>
-      (comp as any)['resolveImageUrl'](url);
+      (comp as unknown as IdentityPanelPrivateApi).resolveImageUrl(url);
 
     it('should allow https:// URLs', async () => {
       fixture.detectChanges();
