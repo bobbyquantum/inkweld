@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from 'hono';
-import { randomBytes, timingSafeEqual } from 'crypto';
+import { timingSafeEqual } from 'crypto';
 import { ForbiddenError } from '../errors';
 import { config } from '../config/env';
 
@@ -29,8 +29,17 @@ function sweepExpiredTokens(): void {
   }
 }
 
+/**
+ * Generate a cryptographically secure CSRF token using the Web Crypto API.
+ * Uses getRandomValues() instead of Node.js randomBytes() for compatibility
+ * with both Bun/Node.js and Cloudflare Workers runtimes.
+ */
 export function generateCSRFToken(): string {
-  return randomBytes(32).toString('hex');
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export function setupCSRF(): MiddlewareHandler {

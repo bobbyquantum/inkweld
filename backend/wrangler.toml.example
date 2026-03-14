@@ -167,12 +167,20 @@ script_name = "inkweld-backend-prod"
 # ========================================
 # SECRETS (set via wrangler secret put)
 # ========================================
-# Required for each environment:
-#   SESSION_SECRET - Session encryption key (32+ characters)
+# Secrets are only accessible through c.env (Hono context bindings) at runtime,
+# NOT through process.env. The app reads secrets from c.env first, falling back
+# to config/process.env for non-Workers environments (Bun/Node.js).
 #
-# Optional (if features enabled):
-#   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+# Required for each environment:
+#   SESSION_SECRET - Used for JWT signing, CSRF token generation, and session
+#                    cookies. Must be at least 32 characters in production.
+#
+# Optional:
+#   DATABASE_KEY   - Override for SESSION_SECRET, used specifically for database
+#                    encryption. Falls back to SESSION_SECRET if not set.
+#   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET - Required if GitHub OAuth is enabled.
 #
 # Set with:
 #   npx wrangler secret put SESSION_SECRET --env preview
 #   npx wrangler secret put SESSION_SECRET --env production
+#   npx wrangler secret put DATABASE_KEY --env production  # optional override

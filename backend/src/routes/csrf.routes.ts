@@ -4,7 +4,16 @@ import { generateCSRFToken, getCSRFToken } from '../middleware/csrf';
 import { logger } from '../services/logger.service';
 
 const csrfLog = logger.child('CSRF');
-const csrfRoutes = new OpenAPIHono();
+
+// In Cloudflare Workers, secrets set via `wrangler secret put` are only accessible
+// through c.env bindings, not process.env. Define the bindings type so the route
+// handler can access them when running in a Workers environment.
+type CSRFBindings = {
+  SESSION_SECRET?: string;
+  DATABASE_KEY?: string;
+};
+
+const csrfRoutes = new OpenAPIHono<{ Bindings: CSRFBindings }>();
 
 // Schema definitions
 const CSRFTokenResponseSchema = z
