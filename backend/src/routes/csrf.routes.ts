@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { getCSRFToken } from '../middleware/csrf';
+import { generateCSRFToken, getCSRFToken } from '../middleware/csrf';
 import { logger } from '../services/logger.service';
 
 const csrfLog = logger.child('CSRF');
@@ -53,12 +53,11 @@ const tokenRoute = createRoute({
 csrfRoutes.openapi(tokenRoute, async (c) => {
   try {
     const session = c.get('session') as { userId?: string } | undefined;
-    if (!session?.userId) {
-      return c.json({ message: 'Authentication required' }, 500);
-    }
 
-    // Generate and store a token for this user
-    const token = getCSRFToken(session.userId);
+    // If authenticated, generate a stored token keyed by userId for validation.
+    // If unauthenticated, return a standalone token (middleware only validates
+    // on authenticated, mutating requests).
+    const token = session?.userId ? getCSRFToken(session.userId) : generateCSRFToken();
 
     return c.json({ token }, 200);
   } catch (error: unknown) {
