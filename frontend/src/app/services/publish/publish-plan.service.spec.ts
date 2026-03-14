@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ChapterNumbering,
   PublishFormat,
-  PublishPlan,
+  type PublishPlan,
   PublishPlanItemType,
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';

@@ -1,7 +1,14 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { User } from '@inkweld/index';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+import { type User } from '@inkweld/index';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedObject,
+  vi,
+} from 'vitest';
 
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';

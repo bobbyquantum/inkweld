@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';

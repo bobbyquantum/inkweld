@@ -1,4 +1,4 @@
-import { Page, Route } from '@playwright/test';
+import { type Page, type Route } from '@playwright/test';
 
 import { MockApiRegistry } from './registry';
 

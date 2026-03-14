@@ -3,15 +3,15 @@ import { firstValueFrom } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
 import {
-  GeneratedImage,
-  ImageGenerateRequest,
-  ImageGenerateResponse,
+  type GeneratedImage,
+  type ImageGenerateRequest,
+  type ImageGenerateResponse,
 } from '../../../api-client/model/models';
 import { environment } from '../../../environments/environment';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { XsrfService } from '../auth/xsrf.service';
 import {
-  GenerationMetadata,
+  type GenerationMetadata,
   LocalStorageService,
 } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';

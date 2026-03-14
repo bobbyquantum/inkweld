@@ -1,4 +1,4 @@
-import { Context, Next } from 'hono';
+import { type Context, type Next } from 'hono';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 import { type AppContext } from '../types/context';

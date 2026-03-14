@@ -13,7 +13,7 @@ import {
   extractMediaId,
   extractMimeType,
   generateMediaId,
-  ImagePastePluginCallbacks,
+  type ImagePastePluginCallbacks,
   imagePastePluginKey,
   isBase64ImageUrl,
   isMediaUrl,

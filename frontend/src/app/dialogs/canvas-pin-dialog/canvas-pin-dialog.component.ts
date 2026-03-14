@@ -16,8 +16,8 @@ import { ColorSwatchesComponent } from '@components/color-swatches/color-swatche
 import { ElementType } from '../../../api-client/model/element-type';
 import {
   ElementPickerDialogComponent,
-  ElementPickerDialogData,
-  ElementPickerDialogResult,
+  type ElementPickerDialogData,
+  type ElementPickerDialogResult,
 } from '../element-picker-dialog/element-picker-dialog.component';
 
 export interface CanvasPinDialogData {

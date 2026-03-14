@@ -1,6 +1,6 @@
 import {
   CdkDrag,
-  CdkDragDrop,
+  type CdkDragDrop,
   CdkDropList,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
@@ -11,7 +11,7 @@ import {
   effect,
   inject,
   Input,
-  OnInit,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,7 +22,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { ProjectElement } from '../../models/project-element';
+import { type ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { TreeNodeIconComponent } from '../project-tree/components/tree-node-icon/tree-node-icon.component';
 

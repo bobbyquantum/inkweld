@@ -1,14 +1,14 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
-import { Element } from '../../../api-client/model/element';
+import { type Element } from '../../../api-client/model/element';
 import { ElementType } from '../../../api-client/model/element-type';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   ElementPickerDialogComponent,
-  ElementPickerDialogData,
+  type ElementPickerDialogData,
 } from './element-picker-dialog.component';
 
 describe('ElementPickerDialogComponent', () => {

@@ -2,18 +2,26 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { Element, ElementType, Project, ProjectsService } from '@inkweld/index';
+import {
+  type Element,
+  ElementType,
+  type Project,
+  ProjectsService,
+} from '@inkweld/index';
 import { BehaviorSubject, of, Subject } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -22,8 +30,8 @@ import { StorageService } from '../local/storage.service';
 import { UnifiedProjectService } from '../local/unified-project.service';
 import {
   ElementSyncProviderFactory,
-  IElementSyncProvider,
-  ProjectMeta,
+  type IElementSyncProvider,
+  type ProjectMeta,
 } from '../sync/index';
 import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';

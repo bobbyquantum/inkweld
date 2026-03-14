@@ -1,17 +1,17 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ImageCroppedEvent, LoadedImage } from 'ngx-image-cropper';
-import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { SystemConfigService } from '../../services/core/system-config.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   InsertImageDialogComponent,
-  InsertImageDialogData,
+  type InsertImageDialogData,
 } from './insert-image-dialog.component';
 
 describe('InsertImageDialogComponent', () => {

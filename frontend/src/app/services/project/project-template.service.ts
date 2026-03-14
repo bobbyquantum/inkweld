@@ -3,22 +3,25 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import {
-  ArchiveDocumentContent,
-  ArchiveElement,
-  ArchiveManifest,
-  ArchiveMediaFile,
-  ArchiveProject,
-  ArchiveSnapshot,
-  ArchiveWorldbuildingData,
-  ProjectArchive,
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
+import {
+  type ArchiveDocumentContent,
+  type ArchiveElement,
+  type ArchiveManifest,
+  type ArchiveMediaFile,
+  type ArchiveProject,
+  type ArchiveSnapshot,
+  type ArchiveWorldbuildingData,
+  type ProjectArchive,
 } from '../../models/project-archive';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 
 /**

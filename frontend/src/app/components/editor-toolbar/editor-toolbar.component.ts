@@ -10,7 +10,7 @@ import {
   effect,
   EventEmitter,
   Input,
-  OnDestroy,
+  type OnDestroy,
   Output,
   signal,
 } from '@angular/core';
@@ -19,14 +19,14 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { toggleMark } from 'prosemirror-commands';
 import { redo, undo } from 'prosemirror-history';
-import { MarkType, NodeType } from 'prosemirror-model';
+import { type MarkType, type NodeType } from 'prosemirror-model';
 import { wrapInList } from 'prosemirror-schema-list';
-import { EditorState, Transaction } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import { Subscription } from 'rxjs';
+import { type EditorState, type Transaction } from 'prosemirror-state';
+import { type EditorView } from 'prosemirror-view';
+import { type Subscription } from 'rxjs';
 
 type Command = (
   state: EditorState,

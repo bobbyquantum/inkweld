@@ -1,11 +1,11 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Element, ElementType, Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  QuickOpenResult,
+  type QuickOpenResult,
   QuickOpenService,
 } from '../../services/core/quick-open.service';
 import { ProjectStateService } from '../../services/project/project-state.service';

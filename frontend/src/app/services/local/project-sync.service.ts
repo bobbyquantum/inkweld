@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 
 import { StorageContextService } from '../core/storage-context.service';
-import { StorageConfig, StorageService } from './storage.service';
+import { type StorageConfig, StorageService } from './storage.service';
 
 /**
  * Pending project creation data stored for offline sync

@@ -4,13 +4,13 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { TagService } from '@services/tag/tag.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { IdentityPanelComponent } from './identity-panel.component';
 

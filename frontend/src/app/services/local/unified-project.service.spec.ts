@@ -1,7 +1,14 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Project } from '@inkweld/index';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+import { type Project } from '@inkweld/index';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedObject,
+  vi,
+} from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';

@@ -9,7 +9,7 @@
  */
 
 import type { DurableObjectNamespace, DurableObjectStub } from '../types/cloudflare';
-import { Element } from '../schemas/element.schemas';
+import { type Element } from '../schemas/element.schemas';
 import { logger } from './logger.service';
 
 const log = logger.child('YjsWorkerService');

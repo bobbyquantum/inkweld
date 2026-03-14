@@ -3,8 +3,8 @@ import {
   computed,
   effect,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +17,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
-  GenerationJob,
+  type GenerationJob,
   ImageGenerationService,
 } from '@services/ai/image-generation.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -25,7 +25,7 @@ import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
   LocalStorageService,
-  MediaInfo,
+  type MediaInfo,
 } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';

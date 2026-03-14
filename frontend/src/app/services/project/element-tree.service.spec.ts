@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 
 import { ElementTreeService } from './element-tree.service';
 

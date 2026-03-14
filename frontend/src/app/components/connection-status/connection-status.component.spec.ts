@@ -1,10 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { MediaSyncState } from '../../services/local/media-sync.service';
+import { type MediaSyncState } from '../../services/local/media-sync.service';
 import { ConnectionStatusComponent } from './connection-status.component';
 
 describe('ConnectionStatusComponent', () => {

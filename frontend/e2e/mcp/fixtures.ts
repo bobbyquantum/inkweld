@@ -1,4 +1,4 @@
-import { APIRequestContext, expect, test as base } from '@playwright/test';
+import { type APIRequestContext, expect, test as base } from '@playwright/test';
 
 export const API_BASE = 'http://localhost:9333';
 export const INSPECTOR_URL = 'http://localhost:6274';

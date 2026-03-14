@@ -7,15 +7,15 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AdminService as ApiAdminService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import {
   AdminService,
   AdminServiceError,
-  AdminUser,
-  PaginatedUsersResponse,
+  type AdminUser,
+  type PaginatedUsersResponse,
 } from './admin.service';
 
 const TEST_USERS: AdminUser[] = [

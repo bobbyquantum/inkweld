@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
-  ElementRef,
+  type ElementRef,
   HostListener,
   inject,
   signal,
@@ -19,7 +19,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ElementType } from '@inkweld/index';
 
 import {
-  QuickOpenResult,
+  type QuickOpenResult,
   QuickOpenService,
 } from '../../services/core/quick-open.service';
 import { ProjectStateService } from '../../services/project/project-state.service';

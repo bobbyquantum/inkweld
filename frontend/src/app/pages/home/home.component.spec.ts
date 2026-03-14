@@ -2,7 +2,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
@@ -14,11 +14,11 @@ import {
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
-import { Project, User } from '@inkweld/index';
+import { type Project, type User } from '@inkweld/index';
 import {
-  CollaboratedProject,
+  type CollaboratedProject,
   CollaboratorRole,
-  PendingInvitation,
+  type PendingInvitation,
 } from '@inkweld/model/models';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
@@ -36,7 +36,7 @@ import {
   describe,
   expect,
   it,
-  MockedObject,
+  type MockedObject,
   vi,
 } from 'vitest';
 

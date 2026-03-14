@@ -4,7 +4,11 @@
  * These fixtures are designed for generating promotional screenshots
  * and are separate from the main e2e test suite.
  */
-import { expect as baseExpect, Page, test as base } from '@playwright/test';
+import {
+  expect as baseExpect,
+  type Page,
+  test as base,
+} from '@playwright/test';
 
 import { mockApi } from './mock-api';
 import { setupAiImageHandlers } from './mock-api/ai-image';

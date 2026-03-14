@@ -1,13 +1,13 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType, Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
-  PublishPlan,
+  type PublishPlan,
   PublishPlanItemType,
   SeparatorStyle,
 } from '../../models/publish-plan';
@@ -18,8 +18,8 @@ import { ProjectStateService } from '../project/project-state.service';
 import {
   EpubGeneratorService,
   EpubPhase,
-  EpubProgress,
-  EpubResult,
+  type EpubProgress,
+  type EpubResult,
 } from './epub-generator.service';
 
 // Mock JSZip - epub generator uses file() and generateAsync() methods

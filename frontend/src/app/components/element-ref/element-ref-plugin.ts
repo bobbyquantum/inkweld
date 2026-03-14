@@ -9,16 +9,19 @@
  */
 
 import {
-  EditorState,
+  type EditorState,
   Plugin,
   PluginKey,
   TextSelection,
-  Transaction,
+  type Transaction,
 } from 'prosemirror-state';
-import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
+import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 
 import { ElementType } from '../../../api-client';
-import { ElementRefClickEvent, ElementRefNodeAttrs } from './element-ref.model';
+import {
+  type ElementRefClickEvent,
+  type ElementRefNodeAttrs,
+} from './element-ref.model';
 import { ELEMENT_REF_NODE_NAME } from './element-ref-schema';
 import type { ElementRefTooltipData } from './element-ref-tooltip/element-ref-tooltip.component';
 

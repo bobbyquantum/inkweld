@@ -9,7 +9,7 @@
  * Screenshots are stored in docs/site/static/img/features/
  */
 
-import { Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 import { join } from 'path';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';

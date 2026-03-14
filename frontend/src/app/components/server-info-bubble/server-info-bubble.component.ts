@@ -5,7 +5,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import {
-  ServerConfig,
+  type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
 

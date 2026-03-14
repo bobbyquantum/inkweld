@@ -1,4 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -20,17 +26,17 @@ import { RouterModule } from '@angular/router';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
-  AdminImageModelProfile,
+  type AdminImageModelProfile,
   AdminImageProfilesService,
-  AdminListImageProviders200ResponseInner,
+  type AdminListImageProviders200ResponseInner,
   AIImageGenerationService,
   AIProvidersService,
-  CreateImageModelProfileRequest,
-  CustomImageSize,
-  DefaultTextToImageModelsResponse,
-  ImageModelInfo,
-  ProviderStatus,
-  UpdateImageModelProfileRequest,
+  type CreateImageModelProfileRequest,
+  type CustomImageSize,
+  type DefaultTextToImageModelsResponse,
+  type ImageModelInfo,
+  type ProviderStatus,
+  type UpdateImageModelProfileRequest,
 } from 'api-client';
 import { firstValueFrom } from 'rxjs';
 

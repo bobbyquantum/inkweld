@@ -1,12 +1,22 @@
 import { TestBed } from '@angular/core/testing';
 import { BehaviorSubject, of } from 'rxjs';
-import { beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from 'vitest';
 
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
-import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
+import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { TagService } from './tag.service';
 
 // Mock tag definitions for testing (simulates what templates would provide)

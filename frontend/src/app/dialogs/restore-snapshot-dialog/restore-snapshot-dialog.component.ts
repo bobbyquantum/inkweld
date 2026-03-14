@@ -6,7 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { UnifiedSnapshot } from '@services/project/unified-snapshot.service';
+import { type UnifiedSnapshot } from '@services/project/unified-snapshot.service';
 
 /**
  * Data passed to the RestoreSnapshotDialog

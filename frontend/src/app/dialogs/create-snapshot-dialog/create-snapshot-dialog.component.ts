@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import {
   FormBuilder,
-  FormControl,
+  type FormControl,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';

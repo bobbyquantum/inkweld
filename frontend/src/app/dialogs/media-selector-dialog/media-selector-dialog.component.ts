@@ -2,8 +2,8 @@ import {
   Component,
   computed,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -21,11 +21,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   LocalStorageService,
-  MediaInfo,
+  type MediaInfo,
 } from '@services/local/local-storage.service';
 import {
   MediaSyncService,
-  MediaSyncStatus,
+  type MediaSyncStatus,
 } from '@services/local/media-sync.service';
 
 export interface MediaSelectorDialogData {

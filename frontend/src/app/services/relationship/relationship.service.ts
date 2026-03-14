@@ -15,11 +15,11 @@ import { computed, inject, Injectable, NgZone, signal } from '@angular/core';
 import { nanoid } from 'nanoid';
 
 import {
-  ElementRelationship,
-  ElementRelationshipView,
+  type ElementRelationship,
+  type ElementRelationshipView,
   getRelationshipLabel,
-  RelationshipTypeDefinition,
-  ResolvedRelationship,
+  type RelationshipTypeDefinition,
+  type ResolvedRelationship,
 } from '../../components/element-ref/element-ref.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';

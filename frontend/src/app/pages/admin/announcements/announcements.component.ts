@@ -1,5 +1,5 @@
 import { DatePipe, TitleCasePipe } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, type OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -13,17 +13,17 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   ConfirmationDialogComponent,
-  ConfirmationDialogData,
+  type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import {
-  Announcement,
+  type Announcement,
   AnnouncementService,
 } from '@services/announcement/announcement.service';
 import { firstValueFrom } from 'rxjs';
 
 import {
   AnnouncementEditorDialogComponent,
-  AnnouncementEditorDialogData,
+  type AnnouncementEditorDialogData,
 } from './announcement-editor-dialog/announcement-editor-dialog.component';
 
 @Component({

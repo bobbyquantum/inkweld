@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType, Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 // Import $typst from the globally mocked module (see setup-vitest.ts).
 // Do NOT re-mock @myriaddreamin/typst.ts here — with isolate: false the
 // duplicate vi.mock creates a separate object that diverges from the one
@@ -12,7 +12,7 @@ import {
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
-  PublishPlan,
+  type PublishPlan,
   PublishPlanItemType,
   SeparatorStyle,
 } from '../../models/publish-plan';
@@ -23,8 +23,8 @@ import { ProjectStateService } from '../project/project-state.service';
 import {
   PdfGeneratorService,
   PdfPhase,
-  PdfProgress,
-  PdfResult,
+  type PdfProgress,
+  type PdfResult,
 } from './pdf-generator.service';
 
 describe('PdfGeneratorService', () => {

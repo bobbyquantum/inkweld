@@ -8,7 +8,7 @@ import {
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   PublishingPhase,
-  PublishingProgress,
+  type PublishingProgress,
   PublishService,
 } from '@services/publish';
 import { BehaviorSubject } from 'rxjs';
@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   PublishingProgressDialogComponent,
-  PublishingProgressDialogData,
+  type PublishingProgressDialogData,
 } from './publishing-progress-dialog.component';
 
 describe('PublishingProgressDialogComponent', () => {

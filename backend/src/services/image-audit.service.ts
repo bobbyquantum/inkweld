@@ -2,8 +2,8 @@ import { eq, desc, and, gte, lte, like } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import {
   imageGenerationAudits,
-  ImageGenerationAudit,
-  InsertImageGenerationAudit,
+  type ImageGenerationAudit,
+  type InsertImageGenerationAudit,
 } from '../db/schema/image-generation-audits';
 import { users } from '../db/schema/users';
 import { logger } from './logger.service';

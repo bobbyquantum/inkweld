@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   RelationshipCategory,
-  RelationshipTypeDefinition,
+  type RelationshipTypeDefinition,
 } from '../../../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { RelationshipsTabComponent } from './relationships-tab.component';

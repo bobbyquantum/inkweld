@@ -1,32 +1,32 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
 import { ImageProfilesService } from '../../../api-client/api/image-profiles.service';
 import {
-  CustomSizesResponse,
-  ImageGenerationStatus,
+  type CustomSizesResponse,
+  type ImageGenerationStatus,
   ImageProviderType,
   ImageSize,
-  PublicImageModelProfile,
+  type PublicImageModelProfile,
   PublicImageModelProfileProvider,
 } from '../../../api-client/model/models';
-import { WorldbuildingElementSelection } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
+import { type WorldbuildingElementSelection } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import {
-  GenerationJob,
+  type GenerationJob,
   ImageGenerationService,
 } from '../../services/ai/image-generation.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
   ImageGenerationDialogComponent,
-  ImageGenerationDialogData,
+  type ImageGenerationDialogData,
 } from './image-generation-dialog.component';
 
 describe('ImageGenerationDialogComponent', () => {

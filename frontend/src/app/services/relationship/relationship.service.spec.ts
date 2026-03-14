@@ -1,18 +1,18 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  ElementRelationship,
+  type ElementRelationship,
   RelationshipCategory,
-  RelationshipTypeDefinition,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
-import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
+import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { RelationshipService } from './relationship.service';
 
 // Mock relationship types (simulating what would come from a project template)

@@ -7,7 +7,7 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { BASE_PATH } from '@inkweld/variables';

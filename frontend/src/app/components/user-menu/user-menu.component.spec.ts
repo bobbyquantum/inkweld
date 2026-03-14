@@ -1,21 +1,21 @@
 import { HttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { User } from '@inkweld/index';
+import { type User } from '@inkweld/index';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
-  ServerConfig,
+  type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
-import { ThemeOption, ThemeService } from '@themes/theme.service';
+import { type ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { UserMenuComponent } from './user-menu.component';
 

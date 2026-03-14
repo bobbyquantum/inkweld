@@ -20,7 +20,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import {
   AdminConfigService,
-  ConfigValue,
+  type ConfigValue,
 } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {

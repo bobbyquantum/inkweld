@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 
 /**
  * Represents the valid drop levels for a drag-and-drop operation

@@ -11,7 +11,7 @@ import { registerResourceHandler } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { YjsWorkerService } from '../../services/yjs-worker.service';
-import { Element } from '../../schemas/element.schemas';
+import { type Element } from '../../schemas/element.schemas';
 import { getElementsDocId } from '../tools/tree-helpers';
 import { logger } from '../../services/logger.service';
 

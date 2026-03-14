@@ -5,7 +5,7 @@ import {
   withXsrfConfiguration,
 } from '@angular/common/http';
 import {
-  ApplicationConfig,
+  type ApplicationConfig,
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { isDevMode } from '@angular/core';
