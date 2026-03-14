@@ -511,7 +511,10 @@ class McpOAuthService {
 
     // Validate client_secret for confidential clients
     const client = await this.lookupClient(db, data.clientId);
-    if (client?.clientType === 'confidential') {
+    if (!client) {
+      throw new OAuthError('invalid_client', 'Client not found');
+    }
+    if (client.clientType === 'confidential') {
       if (!data.clientSecret) {
         throw new OAuthError(
           'invalid_client',

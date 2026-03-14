@@ -494,6 +494,36 @@ describe('MCP OAuth Service - exchangeAuthorizationCode', () => {
     expect(tokens.refreshToken).toBeDefined();
   });
 
+  it('should reject exchange when client is not found', async () => {
+    const code = await mcpOAuthService.createAuthorizationCode(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      redirectUri: 'http://localhost:3000/callback',
+      codeChallenge,
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+
+    // Delete the client so lookupClient returns null
+    const [deleted] = await db
+      .delete(mcpOAuthClients)
+      .where(eq(mcpOAuthClients.id, testClientId))
+      .returning();
+
+    await expect(
+      mcpOAuthService.exchangeAuthorizationCode(db, {
+        code,
+        codeVerifier,
+        clientId: testClientId,
+        redirectUri: 'http://localhost:3000/callback',
+        issuer: 'http://localhost:8333',
+      })
+    ).rejects.toThrow('Client not found');
+
+    // Re-insert the client for subsequent tests
+    await db.insert(mcpOAuthClients).values(deleted);
+  });
+
   it('should require client_secret for confidential clients', async () => {
     const code = await mcpOAuthService.createAuthorizationCode(db, {
       userId: testUserId,
