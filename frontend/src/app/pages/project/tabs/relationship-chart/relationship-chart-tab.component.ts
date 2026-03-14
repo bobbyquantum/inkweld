@@ -45,12 +45,12 @@ import {
   type ChartLayout,
   type ChartMode,
 } from '../../../../models/relationship-chart.model';
+import { SetupService } from '../../../../services/core/setup.service';
 import { LocalStorageService } from '../../../../services/local/local-storage.service';
 import { MediaSyncService } from '../../../../services/local/media-sync.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
-import { SetupService } from '../../../../services/core/setup.service';
 
 /** Color palette for node categories */
 const CATEGORY_COLORS: Record<string, string> = {
