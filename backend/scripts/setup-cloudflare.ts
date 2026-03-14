@@ -81,7 +81,6 @@ function runCommand(command: string, args: string[]): { success: boolean; output
   const result = spawnSync(actualCommand, args, {
     encoding: 'utf-8',
     cwd: BACKEND_DIR,
-    shell: true,
   });
 
   return {
@@ -270,7 +269,6 @@ function setSecret(envName: string, secretName: string, secretValue: string): bo
   const result = spawnSync(wranglerPath, ['secret', 'put', secretName, '--env', envName], {
     encoding: 'utf-8',
     cwd: BACKEND_DIR,
-    shell: true,
     input: secretValue + '\n',
   });
 

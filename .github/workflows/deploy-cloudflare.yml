@@ -4,9 +4,6 @@ on:
   push:
     branches: ["main"]
 
-permissions:
-  contents: read
-
 concurrency:
   group: deploy-cloudflare-preview
   cancel-in-progress: true
@@ -14,6 +11,8 @@ concurrency:
 jobs:
   deploy-preview:
     name: Deploy Preview
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     environment: preview
     steps:
@@ -22,7 +21,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: package.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

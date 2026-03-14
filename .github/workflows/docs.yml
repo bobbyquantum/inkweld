@@ -9,11 +9,6 @@ on:
       - ".github/workflows/docs.yml"
   workflow_dispatch: # Allow manual trigger
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -22,13 +17,15 @@ jobs:
   build:
     name: Build Docs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: package.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -64,6 +61,10 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
