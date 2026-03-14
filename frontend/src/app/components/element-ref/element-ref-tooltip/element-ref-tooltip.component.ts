@@ -10,6 +10,7 @@
  */
 
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -21,8 +22,11 @@ import {
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { firstValueFrom } from 'rxjs';
 
 import { ElementType } from '../../../../api-client';
+import { environment } from '../../../../environments/environment';
+import { LocalStorageService } from '../../../services/local/local-storage.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { isWorldbuildingType } from '../../../utils/worldbuilding.utils';
@@ -73,52 +77,69 @@ export interface ElementPreviewContent {
         [style.top.px]="tooltipPosition().y"
         role="tooltip"
         data-testid="element-ref-tooltip">
-        <!-- Header with icon and name -->
-        <div class="tooltip-header">
-          <mat-icon class="type-icon" [class]="'type-' + data()?.elementType">
-            {{ getTypeIcon() }}
-          </mat-icon>
-          <div class="tooltip-title">
-            <span class="element-name">{{ data()?.originalName }}</span>
-            @if (data()?.displayText !== data()?.originalName) {
-              <span class="display-alias"
-                >(shown as "{{ data()?.displayText }}")</span
-              >
+        <div class="tooltip-body">
+          <!-- Image thumbnail -->
+          @if (resolvedImageUrl()) {
+            <div class="tooltip-image">
+              <img
+                [src]="resolvedImageUrl()"
+                [alt]="data()?.originalName ?? ''" />
+            </div>
+          }
+
+          <div class="tooltip-content">
+            <!-- Header with icon and name -->
+            <div class="tooltip-header">
+              <mat-icon
+                class="type-icon"
+                [class]="'type-' + data()?.elementType">
+                {{ getTypeIcon() }}
+              </mat-icon>
+              <div class="tooltip-title">
+                <span class="element-name">{{ data()?.originalName }}</span>
+                @if (data()?.displayText !== data()?.originalName) {
+                  <span class="display-alias"
+                    >(shown as "{{ data()?.displayText }}")</span
+                  >
+                }
+              </div>
+            </div>
+
+            <!-- Type badge -->
+            <div
+              class="tooltip-type-badge"
+              [class]="'badge-' + data()?.elementType">
+              {{ formatElementType() }}
+            </div>
+
+            <!-- Preview content (async loaded) -->
+            @if (isLoadingPreview()) {
+              <div class="tooltip-preview loading">
+                <mat-spinner diameter="16"></mat-spinner>
+                <span>Loading preview...</span>
+              </div>
+            } @else if (previewContent()) {
+              <div class="tooltip-preview">
+                @if (previewContent()?.path) {
+                  <div class="preview-path">
+                    <mat-icon>folder</mat-icon>
+                    <span>{{ previewContent()?.path }}</span>
+                  </div>
+                }
+                @if (previewContent()?.excerpt) {
+                  <div class="preview-excerpt">
+                    {{ previewContent()?.excerpt }}
+                  </div>
+                }
+                @if (previewContent()?.wordCount) {
+                  <div class="preview-meta">
+                    {{ previewContent()?.wordCount }} words
+                  </div>
+                }
+              </div>
             }
           </div>
         </div>
-
-        <!-- Type badge -->
-        <div
-          class="tooltip-type-badge"
-          [class]="'badge-' + data()?.elementType">
-          {{ formatElementType() }}
-        </div>
-
-        <!-- Preview content (async loaded) -->
-        @if (isLoadingPreview()) {
-          <div class="tooltip-preview loading">
-            <mat-spinner diameter="16"></mat-spinner>
-            <span>Loading preview...</span>
-          </div>
-        } @else if (previewContent()) {
-          <div class="tooltip-preview">
-            @if (previewContent()?.path) {
-              <div class="preview-path">
-                <mat-icon>folder</mat-icon>
-                <span>{{ previewContent()?.path }}</span>
-              </div>
-            }
-            @if (previewContent()?.excerpt) {
-              <div class="preview-excerpt">{{ previewContent()?.excerpt }}</div>
-            }
-            @if (previewContent()?.wordCount) {
-              <div class="preview-meta">
-                {{ previewContent()?.wordCount }} words
-              </div>
-            }
-          </div>
-        }
 
         <!-- Hint -->
         <div class="tooltip-hint">
@@ -133,7 +154,7 @@ export interface ElementPreviewContent {
         position: fixed;
         z-index: 10000;
         min-width: 200px;
-        max-width: 320px;
+        max-width: 380px;
         background: var(--sys-surface-container, #fff);
         border-radius: 8px;
         box-shadow:
@@ -177,6 +198,31 @@ export interface ElementPreviewContent {
           opacity: 1;
           transform: translateY(0);
         }
+      }
+
+      .tooltip-body {
+        display: flex;
+        gap: 10px;
+      }
+
+      .tooltip-image {
+        flex-shrink: 0;
+        width: 112px;
+        height: 112px;
+        border-radius: 6px;
+        overflow: hidden;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+      }
+
+      .tooltip-content {
+        flex: 1;
+        min-width: 0;
       }
 
       .tooltip-header {
@@ -387,6 +433,8 @@ export class ElementRefTooltipComponent {
   private elementRefService = inject(ElementRefService);
   private worldbuildingService = inject(WorldbuildingService);
   private projectState = inject(ProjectStateService);
+  private http = inject(HttpClient);
+  private localStorage = inject(LocalStorageService);
 
   /** The tooltip data */
   @Input() set tooltipData(value: ElementRefTooltipData | null) {
@@ -396,6 +444,7 @@ export class ElementRefTooltipComponent {
     } else {
       this.previewContent.set(null);
       this.isLoadingPreview.set(false);
+      this.resolvedImageUrl.set(null);
     }
   }
 
@@ -410,6 +459,9 @@ export class ElementRefTooltipComponent {
   readonly previewContent = signal<ElementPreviewContent | null>(null);
   readonly isLoadingPreview = signal(false);
 
+  /** Resolved image URL for display */
+  readonly resolvedImageUrl = signal<string | null>(null);
+
   /** Whether to show tooltip above the element (if near bottom of screen) */
   readonly showAbove = computed(() => {
     const data = this._data();
@@ -423,7 +475,7 @@ export class ElementRefTooltipComponent {
     const data = this._data();
     if (!data) return { x: 0, y: 0 };
 
-    const tooltipWidth = 280;
+    const tooltipWidth = 340;
     const tooltipHeight = 200;
     const padding = 12;
 
@@ -469,6 +521,46 @@ export class ElementRefTooltipComponent {
     return this.elementRefService.formatElementType(type);
   }
 
+  /** Resolve a media:// URL to a displayable blob URL */
+  private async resolveImageUrl(
+    imageUrl: string,
+    username: string,
+    slug: string
+  ): Promise<void> {
+    if (!imageUrl.startsWith('media://')) {
+      this.resolvedImageUrl.set(imageUrl);
+      return;
+    }
+
+    const projectKey = `${username}/${slug}`;
+    const filename = imageUrl.substring('media://'.length);
+    const mediaId = filename.includes('.')
+      ? filename.substring(0, filename.lastIndexOf('.'))
+      : filename;
+
+    try {
+      const cachedUrl = await this.localStorage.getMediaUrl(
+        projectKey,
+        mediaId
+      );
+      if (cachedUrl) {
+        this.resolvedImageUrl.set(cachedUrl);
+        return;
+      }
+
+      const apiUrl = `${environment.apiUrl}/api/v1/media/${username}/${slug}/${filename}`;
+      const blob = await firstValueFrom(
+        this.http.get(apiUrl, { responseType: 'blob' })
+      );
+
+      await this.localStorage.saveMedia(projectKey, mediaId, blob, filename);
+      const blobUrl = await this.localStorage.getMediaUrl(projectKey, mediaId);
+      this.resolvedImageUrl.set(blobUrl);
+    } catch {
+      this.resolvedImageUrl.set(null);
+    }
+  }
+
   /** Load preview content for an element */
   private async loadPreviewContent(elementId: string): Promise<void> {
     this.isLoadingPreview.set(true);
@@ -495,6 +587,14 @@ export class ElementRefTooltipComponent {
               excerpt: identityData.description,
               wordCount: undefined,
             });
+
+            if (identityData.image) {
+              void this.resolveImageUrl(
+                identityData.image,
+                project.username,
+                project.slug
+              );
+            }
             return;
           }
         }
