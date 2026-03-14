@@ -16,10 +16,18 @@ import { d1DatabaseMiddleware, type D1AppContext } from './middleware/database.d
 import { registerCommonRoutes } from './config/routes';
 import yjsWorkerRoutes from './routes/yjs-worker.routes';
 
-// Extend D1AppContext bindings to include env vars from wrangler.toml
+// Extend D1AppContext bindings to include env vars and secrets from wrangler.toml.
+// In Cloudflare Workers, secrets set via `wrangler secret put` are only accessible
+// through c.env (Hono context bindings), NOT process.env.
 type WorkerAppContext = {
   Bindings: D1AppContext['Bindings'] & {
     ALLOWED_ORIGINS?: string;
+    /** Session encryption key, set via `wrangler secret put SESSION_SECRET`.
+     *  Used for JWT signing, CSRF token generation, and session cookies. */
+    SESSION_SECRET?: string;
+    /** Optional override for SESSION_SECRET for database encryption.
+     *  Set via `wrangler secret put DATABASE_KEY`. Falls back to SESSION_SECRET. */
+    DATABASE_KEY?: string;
   };
   Variables: D1AppContext['Variables'];
 };
