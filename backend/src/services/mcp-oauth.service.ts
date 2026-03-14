@@ -462,6 +462,7 @@ class McpOAuthService {
       code: string;
       codeVerifier: string;
       clientId: string;
+      clientSecret?: string;
       redirectUri: string;
       issuer: string;
       clientIp?: string;
@@ -503,16 +504,27 @@ class McpOAuthService {
       throw new OAuthError('invalid_grant', 'Redirect URI mismatch');
     }
 
-    // Client ID validation - for public clients using PKCE, we can be lenient
-    // since PKCE already proves the same party is completing the flow.
-    // Some OAuth clients (e.g., Claude) register multiple dynamic clients
-    // and may use a different one for token exchange due to race conditions.
+    // Client ID must match exactly (RFC 6749 §4.1.3)
     if (authCode.clientId !== data.clientId) {
-      oauthLog.warn(
-        `Client ID mismatch during token exchange: code was for ${authCode.clientId}, ` +
-          `but request used ${data.clientId}. Allowing due to valid PKCE.`
-      );
-      // We continue with the ORIGINAL client ID from the auth code for session creation
+      throw new OAuthError('invalid_grant', 'Client ID mismatch');
+    }
+
+    // Validate client_secret for confidential clients
+    const client = await this.lookupClient(db, data.clientId);
+    if (!client) {
+      throw new OAuthError('invalid_client', 'Client not found');
+    }
+    if (client.clientType === 'confidential') {
+      if (!data.clientSecret) {
+        throw new OAuthError(
+          'invalid_client',
+          'client_secret is required for confidential clients'
+        );
+      }
+      const secretValid = await this.validateClientSecret(db, data.clientId, data.clientSecret);
+      if (!secretValid) {
+        throw new OAuthError('invalid_client', 'Invalid client_secret');
+      }
     }
 
     // Mark code as used
@@ -648,6 +660,8 @@ class McpOAuthService {
   async refreshTokens(
     db: DatabaseInstance,
     refreshToken: string,
+    clientId: string,
+    clientSecret: string | undefined,
     issuer: string,
     clientIp?: string,
     userAgent?: string,
@@ -687,6 +701,29 @@ class McpOAuthService {
     // Check if session is expired
     if (session.expiresAt && session.expiresAt < now) {
       throw new OAuthError('invalid_grant', 'Session has expired');
+    }
+
+    // Validate client_id matches the session's client
+    if (session.clientId !== clientId) {
+      throw new OAuthError('invalid_grant', 'Client ID mismatch');
+    }
+
+    // Validate client_secret for confidential clients
+    const client = await this.lookupClient(db, session.clientId);
+    if (!client) {
+      throw new OAuthError('invalid_client', 'Client not found');
+    }
+    if (client.clientType === 'confidential') {
+      if (!clientSecret) {
+        throw new OAuthError(
+          'invalid_client',
+          'client_secret is required for confidential clients'
+        );
+      }
+      const secretValid = await this.validateClientSecret(db, session.clientId, clientSecret);
+      if (!secretValid) {
+        throw new OAuthError('invalid_client', 'Invalid client_secret');
+      }
     }
 
     // Rotate refresh token
