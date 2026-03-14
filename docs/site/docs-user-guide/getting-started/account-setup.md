@@ -17,13 +17,14 @@ From the login page, click **Register** to create a new account.
 
 Enter the following details:
 
-| Field | Description |
-|-------|-------------|
-| **Username** | A unique identifier (3+ characters). Used in your project URLs. |
-| **Password** | A strong password (8+ characters with complexity requirements). |
-| **Confirm Password** | Re-enter your password to confirm. |
+| Field                | Description                                                     |
+| -------------------- | --------------------------------------------------------------- |
+| **Username**         | A unique identifier (3+ characters). Used in your project URLs. |
+| **Password**         | A strong password (8+ characters with complexity requirements). |
+| **Confirm Password** | Re-enter your password to confirm.                              |
 
 As you type your username, Inkweld checks availability in real-time:
+
 - ✅ Green checkmark — username is available
 - ❌ Red X — username is taken (suggestions may be shown)
 
@@ -40,7 +41,7 @@ If approval is required:
 3. Once approved, you can log in normally
 
 :::info
-Contact your instance administrator if your account is pending approval. Administrators can manage users via the admin CLI — see the [Admin CLI documentation](/docs/admin-guide/admin-cli) for details.
+Contact your instance administrator if your account is pending approval. Administrators can manage users from the [Admin Panel](/docs/admin-guide/overview).
 :::
 
 ## Logging In

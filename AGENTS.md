@@ -434,7 +434,7 @@ cd backend && bun run generate:angular-client
 - **Getting Started**: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 - **CI/CD Pipeline**: [docs/CI_CD.md](docs/CI_CD.md)
 - **E2E Testing**: [frontend/e2e/BEST_PRACTICES.md](frontend/e2e/BEST_PRACTICES.md)
-- **Admin CLI**: [backend/ADMIN_CLI.md](backend/ADMIN_CLI.md)
+- **Deployment Wizard**: `bun run deploy` (interactive TUI in `scripts/deploy-wizard.ts`)
 - **API Documentation**: <http://localhost:8333/api> (served by the Hono backend)
 - **OpenAPI Spec**: [backend/openapi.json](backend/openapi.json)
 

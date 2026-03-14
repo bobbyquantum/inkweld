@@ -36,7 +36,6 @@ const sidebars: SidebarsConfig = {
       items: [
         'admin-guide/overview',
         'admin-guide/ai-kill-switch',
-        'admin-guide/admin-cli',
         'admin-guide/ai-image-generation',
         'admin-guide/ci-cd',
       ],

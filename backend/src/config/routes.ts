@@ -27,6 +27,7 @@ import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
 import { adminConfigRoutes } from '../routes/admin-config.routes';
+import { adminStatsRoutes } from '../routes/admin-stats.routes';
 import { imageProfileUserRoutes, imageProfileAdminRoutes } from '../routes/image-profile.routes';
 import { imageAuditAdminRoutes } from '../routes/image-audit.routes';
 import {
@@ -55,6 +56,7 @@ export function registerCommonRoutes(app: any): void {
   // Admin routes (requires admin role)
   app.route('/api/v1/admin', adminRoutes);
   app.route('/api/v1/admin/config', adminConfigRoutes);
+  app.route('/api/v1/admin', adminStatsRoutes);
 
   // Project routes (projects, documents, elements, images)
   app.route('/api/v1/projects', projectRoutes);
