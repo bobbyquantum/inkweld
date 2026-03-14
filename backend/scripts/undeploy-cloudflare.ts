@@ -44,7 +44,6 @@ function runCommand(command: string, args: string[]): { success: boolean; output
   const result = spawnSync(command, args, {
     encoding: 'utf-8',
     cwd: BACKEND_DIR,
-    shell: true,
   });
   return {
     success: result.status === 0,
