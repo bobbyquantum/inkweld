@@ -1,8 +1,8 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
-  FormArray,
+  type FormArray,
   FormBuilder,
-  FormControl,
+  type FormControl,
   FormsModule,
   ReactiveFormsModule,
   Validators,
@@ -23,14 +23,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
-  AdminImageModelProfile,
-  AdminListImageProviders200ResponseInner,
+  type AdminImageModelProfile,
+  type AdminListImageProviders200ResponseInner,
   AIImageGenerationService,
   AIProvidersService,
-  CreateImageModelProfileRequest,
-  CreateImageModelProfileRequestProvider,
-  ImageModelInfo,
-  ImageProviderType,
+  type CreateImageModelProfileRequest,
+  type CreateImageModelProfileRequestProvider,
+  type ImageModelInfo,
+  type ImageProviderType,
 } from 'api-client';
 import { firstValueFrom } from 'rxjs';
 

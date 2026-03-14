@@ -1,13 +1,13 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType, Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
-  PublishPlan,
+  type PublishPlan,
   PublishPlanItemType,
   SeparatorStyle,
 } from '../../models/publish-plan';
@@ -18,7 +18,7 @@ import { ProjectStateService } from '../project/project-state.service';
 import {
   HtmlGeneratorService,
   HtmlPhase,
-  HtmlProgress,
+  type HtmlProgress,
 } from './html-generator.service';
 
 describe('HtmlGeneratorService', () => {

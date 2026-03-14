@@ -2,9 +2,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import {
   AuthenticationService,
-  Element,
+  type Element,
   ElementType,
-  Project,
+  type Project,
   ProjectsService,
 } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';

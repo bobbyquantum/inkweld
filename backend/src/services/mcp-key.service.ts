@@ -2,9 +2,9 @@ import { eq, and, isNull } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import {
   mcpAccessKeys,
-  McpAccessKey,
-  InsertMcpAccessKey,
-  McpPermission,
+  type McpAccessKey,
+  type InsertMcpAccessKey,
+  type McpPermission,
   MCP_PERMISSIONS,
 } from '../db/schema/mcp-access-keys';
 import { logger } from './logger.service';

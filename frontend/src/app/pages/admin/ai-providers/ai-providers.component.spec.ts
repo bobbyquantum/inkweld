@@ -15,9 +15,9 @@ import { provideRouter } from '@angular/router';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
   AIProvidersService,
-  ProvidersStatusResponse,
-  ProviderStatus,
-  ProviderSuccessResponse,
+  type ProvidersStatusResponse,
+  type ProviderStatus,
+  type ProviderSuccessResponse,
 } from 'api-client';
 import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';

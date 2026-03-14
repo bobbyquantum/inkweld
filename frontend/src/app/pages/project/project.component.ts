@@ -1,12 +1,12 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   Component,
   effect,
   HostListener,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -29,7 +29,7 @@ import { ConnectionStatusComponent } from '@components/connection-status/connect
 import { PresenceIndicatorComponent } from '@components/presence-indicator/presence-indicator.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { Element, ElementType, Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
@@ -39,15 +39,15 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import {
   AngularSplitModule,
   SplitGutterDirective,
-  SplitGutterInteractionEvent,
+  type SplitGutterInteractionEvent,
 } from 'angular-split';
-import { Subject, Subscription, takeUntil } from 'rxjs';
+import { Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import {
   createDefaultPublishPlan,
-  PublishPlan,
+  type PublishPlan,
 } from '../../models/publish-plan';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectSearchService } from '../../services/core/project-search.service';

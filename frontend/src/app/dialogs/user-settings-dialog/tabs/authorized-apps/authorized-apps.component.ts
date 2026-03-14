@@ -1,6 +1,6 @@
 import { TitleCasePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, type OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -10,13 +10,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
-  OAuthSessionDetails,
-  OAuthSessionDetailsGrantsInner,
+  type OAuthSessionDetails,
+  type OAuthSessionDetailsGrantsInner,
   OAuthSessionDetailsGrantsInnerRole,
-  Project,
+  type Project,
   ProjectsService,
-  PublicOAuthSession,
-  UpdateOAuthGrantRequestRole,
+  type PublicOAuthSession,
+  type UpdateOAuthGrantRequestRole,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { firstValueFrom } from 'rxjs';

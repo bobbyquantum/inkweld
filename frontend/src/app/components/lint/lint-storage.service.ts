@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
-import { Correction } from '../../../api-client/model/correction';
-import { ExtendedCorrectionDto } from './correction-dto.extension';
+import { type Correction } from '../../../api-client/model/correction';
+import { type ExtendedCorrectionDto } from './correction-dto.extension';
 
 /**
  * Service to store and manage user decisions on lint suggestions

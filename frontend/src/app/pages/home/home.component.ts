@@ -3,8 +3,8 @@ import {
   Component,
   computed,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -29,8 +29,11 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
-import { Project } from '@inkweld/index';
-import { CollaboratedProject, PendingInvitation } from '@inkweld/model/models';
+import { type Project } from '@inkweld/index';
+import {
+  type CollaboratedProject,
+  type PendingInvitation,
+} from '@inkweld/model/models';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';

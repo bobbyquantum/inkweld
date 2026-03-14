@@ -2,7 +2,7 @@ import {
   Component,
   inject,
   input,
-  OnInit,
+  type OnInit,
   output,
   signal,
 } from '@angular/core';
@@ -14,18 +14,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
-  UnifiedSnapshot,
+  type UnifiedSnapshot,
   UnifiedSnapshotService,
 } from '@services/project/unified-snapshot.service';
 
 import {
   CreateSnapshotDialogComponent,
-  CreateSnapshotDialogData,
-  CreateSnapshotDialogResult,
+  type CreateSnapshotDialogData,
+  type CreateSnapshotDialogResult,
 } from '../../dialogs/create-snapshot-dialog/create-snapshot-dialog.component';
 import {
   RestoreSnapshotDialogComponent,
-  RestoreSnapshotDialogData,
+  type RestoreSnapshotDialogData,
 } from '../../dialogs/restore-snapshot-dialog/restore-snapshot-dialog.component';
 
 /**

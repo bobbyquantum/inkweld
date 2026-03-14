@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { type Element, ElementType } from '@inkweld/index';
+import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { LoggerService } from '../core/logger.service';

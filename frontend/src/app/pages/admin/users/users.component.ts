@@ -2,10 +2,10 @@ import { NgClass } from '@angular/common';
 import {
   Component,
   computed,
-  ElementRef,
+  type ElementRef,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -26,9 +26,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import {
   ConfirmationDialogComponent,
-  ConfirmationDialogData,
+  type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
-import { AdminService, AdminUser } from '@services/admin/admin.service';
+import { AdminService, type AdminUser } from '@services/admin/admin.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { firstValueFrom, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';

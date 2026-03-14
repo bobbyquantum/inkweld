@@ -5,16 +5,16 @@ import {
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
-  ActivatedRouteSnapshot,
-  CanActivateFn,
+  type ActivatedRouteSnapshot,
+  type CanActivateFn,
   Router,
-  RouterStateSnapshot,
+  type RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { User } from '@inkweld/index';
+import { type User } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
-import { Mock, vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 import { authGuard } from './auth.guard';
 

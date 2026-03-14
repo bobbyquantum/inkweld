@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
-import { Element } from '@inkweld/index';
+import { type Element } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';

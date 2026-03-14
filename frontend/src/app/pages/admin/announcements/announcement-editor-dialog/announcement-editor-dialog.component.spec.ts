@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   AnnouncementEditorDialogComponent,
-  AnnouncementEditorDialogData,
+  type AnnouncementEditorDialogData,
 } from './announcement-editor-dialog.component';
 
 describe('AnnouncementEditorDialogComponent', () => {

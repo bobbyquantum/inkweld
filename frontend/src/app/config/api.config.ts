@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Provider } from '@angular/core';
+import { type Provider } from '@angular/core';
 import {
   AuthenticationService,
   Configuration,

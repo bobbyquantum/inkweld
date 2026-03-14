@@ -1,22 +1,25 @@
 import { inject, Injectable } from '@angular/core';
-import { Element } from '@inkweld/index';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { type Element } from '@inkweld/index';
+import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import {
-  IElementSyncProvider,
-  ProjectMeta,
-  SyncConnectionConfig,
-  SyncConnectionResult,
+  type IElementSyncProvider,
+  type ProjectMeta,
+  type SyncConnectionConfig,
+  type SyncConnectionResult,
 } from './element-sync-provider.interface';
 
 /**

@@ -1,18 +1,18 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import {
-  AfterViewChecked,
+  type AfterViewChecked,
   ChangeDetectorRef,
   Component,
   computed,
   effect,
-  ElementRef,
+  type ElementRef,
   inject,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
+  type OnChanges,
+  type OnDestroy,
+  type OnInit,
   signal,
-  SimpleChanges,
+  type SimpleChanges,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,7 +21,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Editor, NgxEditorModule, Toolbar } from '@bobbyquantum/ngx-editor';
+import {
+  Editor,
+  NgxEditorModule,
+  type Toolbar,
+} from '@bobbyquantum/ngx-editor';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { InsertImageService } from '@services/core/insert-image.service';
 import { SettingsService } from '@services/core/settings.service';
@@ -32,11 +36,11 @@ import { RelationshipService } from '@services/relationship';
 
 import {
   SnapshotsDialogComponent,
-  SnapshotsDialogData,
+  type SnapshotsDialogData,
 } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import {
   TagEditorDialogComponent,
-  TagEditorDialogData,
+  type TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import { TagService } from '../../services/tag/tag.service';
@@ -44,14 +48,14 @@ import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
   deleteElementRef,
-  ElementRefAction,
-  ElementRefContextData,
+  type ElementRefAction,
+  type ElementRefContextData,
   ElementRefContextMenuComponent,
   ElementRefPopupComponent,
   ElementRefService,
   ElementRefTooltipComponent,
-  ElementRefTooltipData,
-  ElementSearchResult,
+  type ElementRefTooltipData,
+  type ElementSearchResult,
   extendedSchema,
   insertElementRef,
   updateElementRefText,
@@ -61,7 +65,7 @@ import { createMediaUrl } from '../image-paste';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
-import { ResolvedTag } from '../tags/tag.model';
+import { type ResolvedTag } from '../tags/tag.model';
 
 @Component({
   selector: 'app-document-element-editor',

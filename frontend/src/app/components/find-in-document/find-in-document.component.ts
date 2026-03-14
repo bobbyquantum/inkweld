@@ -13,10 +13,10 @@
 import {
   Component,
   effect,
-  ElementRef,
+  type ElementRef,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
   ViewChild,
 } from '@angular/core';

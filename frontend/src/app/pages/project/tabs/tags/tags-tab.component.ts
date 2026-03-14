@@ -17,10 +17,10 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { firstValueFrom } from 'rxjs';
 
-import { TagIndexEntry } from '../../../../components/tags/tag.model';
+import { type TagIndexEntry } from '../../../../components/tags/tag.model';
 import {
   TagEditDialogComponent,
-  TagEditDialogResult,
+  type TagEditDialogResult,
 } from '../../../../dialogs/tag-edit-dialog/tag-edit-dialog.component';
 
 /**

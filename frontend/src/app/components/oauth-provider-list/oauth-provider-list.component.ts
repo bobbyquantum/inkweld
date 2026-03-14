@@ -4,7 +4,7 @@ import {
   inject,
   Input,
   NgZone,
-  OnInit,
+  type OnInit,
   Output,
   signal,
 } from '@angular/core';

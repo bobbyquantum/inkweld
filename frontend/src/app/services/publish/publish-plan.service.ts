@@ -1,10 +1,10 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { Observable } from 'rxjs';
+import { type Observable } from 'rxjs';
 
 import {
   createDefaultPublishPlan,
-  PublishPlan,
+  type PublishPlan,
   PublishPlanItemType,
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';

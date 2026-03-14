@@ -1,12 +1,12 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { UnifiedSnapshot } from '@services/project/unified-snapshot.service';
-import { MockedObject, vi } from 'vitest';
+import { type UnifiedSnapshot } from '@services/project/unified-snapshot.service';
+import { type MockedObject, vi } from 'vitest';
 
 import {
   RestoreSnapshotDialogComponent,
-  RestoreSnapshotDialogData,
+  type RestoreSnapshotDialogData,
 } from './restore-snapshot-dialog.component';
 
 describe('RestoreSnapshotDialogComponent', () => {

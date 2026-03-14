@@ -1,19 +1,22 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
-import { ProjectMeta } from '../sync/element-sync-provider.interface';
+import { type ProjectMeta } from '../sync/element-sync-provider.interface';
 
 const LOCAL_ELEMENTS_BASE_KEY = 'inkweld-local-elements';
 

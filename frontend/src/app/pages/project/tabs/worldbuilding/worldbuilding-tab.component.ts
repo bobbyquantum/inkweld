@@ -2,14 +2,14 @@ import {
   Component,
   effect,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { type Subscription } from 'rxjs';
 
-import { Element, ElementType } from '../../../../../api-client';
+import { type Element, type ElementType } from '../../../../../api-client';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 

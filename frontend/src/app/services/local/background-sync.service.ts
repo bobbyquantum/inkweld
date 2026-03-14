@@ -1,4 +1,4 @@
-import { inject, Injectable, OnDestroy } from '@angular/core';
+import { inject, Injectable, type OnDestroy } from '@angular/core';
 import { ProjectsService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 

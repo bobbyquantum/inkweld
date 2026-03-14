@@ -2,9 +2,9 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
-  ElementRef,
+  type ElementRef,
   inject,
-  OnInit,
+  type OnInit,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -23,9 +23,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { ProjectsService } from '@inkweld/api/projects.service';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -33,9 +33,9 @@ import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
-  ImageCroppedEvent,
+  type ImageCroppedEvent,
   ImageCropperComponent,
-  LoadedImage,
+  type LoadedImage,
 } from 'ngx-image-cropper';
 
 @Component({

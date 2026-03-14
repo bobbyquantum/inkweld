@@ -1,17 +1,17 @@
 import { Tab, TabList, Tabs } from '@angular/aria/tabs';
 import { CommonModule } from '@angular/common';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   Component,
   ContentChildren,
-  ElementRef,
+  type ElementRef,
   EventEmitter,
   Input,
-  OnChanges,
+  type OnChanges,
   Output,
-  QueryList,
+  type QueryList,
   signal,
-  SimpleChanges,
+  type SimpleChanges,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';

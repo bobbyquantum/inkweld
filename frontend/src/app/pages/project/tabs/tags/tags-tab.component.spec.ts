@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -8,8 +8,8 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  TagDefinition,
-  TagIndexEntry,
+  type TagDefinition,
+  type TagIndexEntry,
 } from '../../../../components/tags/tag.model';
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';

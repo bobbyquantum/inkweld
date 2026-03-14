@@ -1,4 +1,4 @@
-import { ProjectArchive } from '../../models/project-archive';
+import { type ProjectArchive } from '../../models/project-archive';
 
 /**
  * Defines a migration from one archive version to the next.

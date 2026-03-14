@@ -1,5 +1,5 @@
 import { computed, inject, Injectable, Injector } from '@angular/core';
-import { Element, Project } from '@inkweld/index';
+import { type Element, type Project } from '@inkweld/index';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';

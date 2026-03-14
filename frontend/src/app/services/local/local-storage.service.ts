@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 
 import { StorageContextService } from '../core/storage-context.service';
-import { StorageConfig, StorageService } from './storage.service';
+import { type StorageConfig, StorageService } from './storage.service';
 
 /**
  * Metadata for AI-generated images

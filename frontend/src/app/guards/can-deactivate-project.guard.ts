@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { CanDeactivate } from '@angular/router';
+import { type CanDeactivate } from '@angular/router';
 
-import { ProjectComponent } from '../pages/project/project.component';
+import { type ProjectComponent } from '../pages/project/project.component';
 
 @Injectable({
   providedIn: 'root',

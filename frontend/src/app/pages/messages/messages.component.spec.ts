@@ -1,5 +1,5 @@
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterModule } from '@angular/router';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

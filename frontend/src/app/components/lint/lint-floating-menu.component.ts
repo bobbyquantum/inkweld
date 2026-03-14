@@ -2,17 +2,17 @@ import {
   Component,
   HostListener,
   Input,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { TextSelection } from 'prosemirror-state';
-import { Subscription } from 'rxjs';
+import { type Subscription } from 'rxjs';
 
-import { ExtendedCorrectionDto } from './correction-dto.extension';
+import { type ExtendedCorrectionDto } from './correction-dto.extension';
 import { pluginKey } from './lint-plugin';
 
 @Component({

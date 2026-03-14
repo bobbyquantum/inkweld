@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -8,8 +8,8 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Project } from '../../../../../api-client';
-import { ElementTypeSchema } from '../../../../models/schema-types';
+import { type Project } from '../../../../../api-client';
+import { type ElementTypeSchema } from '../../../../models/schema-types';
 import {
   TEMPLATE_RELOAD_DELAY,
   TemplatesTabComponent,

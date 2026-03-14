@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   APP_CONFIG_STORAGE_KEY,
-  AppConfigV2,
+  type AppConfigV2,
   LOCAL_CONFIG_ID,
   StorageContextService,
 } from './storage-context.service';

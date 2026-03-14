@@ -1,21 +1,21 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
-  DocumentSnapshot,
+  type DocumentSnapshot,
   ElementType,
-  Project,
+  type Project,
   SnapshotsService,
 } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import { ProjectElement } from '../../models/project-element';
+import { type ProjectElement } from '../../models/project-element';
 import { LoggerService } from '../core/logger.service';
 import {
   LocalSnapshotService,
-  SnapshotInfo,
-  StoredSnapshot,
+  type SnapshotInfo,
+  type StoredSnapshot,
 } from '../local/local-snapshot.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';

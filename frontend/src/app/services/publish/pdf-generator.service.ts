@@ -1,20 +1,20 @@
 import { inject, Injectable } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { $typst } from '@myriaddreamin/typst.ts/contrib/snippet';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import {
   ChapterNumbering,
-  ElementItem,
-  FrontmatterItem,
+  type ElementItem,
+  type FrontmatterItem,
   FrontmatterType,
-  PublishMetadata,
-  PublishOptions,
-  PublishPlan,
-  PublishPlanItem,
+  type PublishMetadata,
+  type PublishOptions,
+  type PublishPlan,
+  type PublishPlanItem,
   PublishPlanItemType,
-  PublishStats,
-  SeparatorItem,
+  type PublishStats,
+  type SeparatorItem,
   SeparatorStyle,
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';

@@ -1,19 +1,19 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType, ImagesService } from '@inkweld/index';
+import { type Element, ElementType, ImagesService } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
+import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import {
-  ElementRelationship,
+  type ElementRelationship,
   RelationshipCategory,
-  RelationshipTypeDefinition,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import {
   ARCHIVE_VERSION,
-  ArchiveManifest,
-  ArchiveProject,
+  type ArchiveManifest,
+  type ArchiveProject,
   ExportPhase,
   ProjectArchiveError,
   ProjectArchiveErrorType,
@@ -22,9 +22,9 @@ import {
   DEFAULT_PUBLISH_METADATA,
   DEFAULT_PUBLISH_OPTIONS,
   PublishFormat,
-  PublishPlan,
+  type PublishPlan,
 } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { LocalSnapshotService } from '../local/local-snapshot.service';

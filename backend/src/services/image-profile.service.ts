@@ -2,8 +2,8 @@ import { eq, asc } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import {
   imageModelProfiles,
-  ImageModelProfile,
-  InsertImageModelProfile,
+  type ImageModelProfile,
+  type InsertImageModelProfile,
   IMAGE_PROVIDERS,
   type ImageProvider,
 } from '../db/schema/image-model-profiles';

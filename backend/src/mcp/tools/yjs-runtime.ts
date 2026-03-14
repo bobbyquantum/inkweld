@@ -9,7 +9,7 @@
  */
 
 import type { McpContext } from '../mcp.types';
-import { Element } from '../../schemas/element.schemas';
+import { type Element } from '../../schemas/element.schemas';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 
 /**

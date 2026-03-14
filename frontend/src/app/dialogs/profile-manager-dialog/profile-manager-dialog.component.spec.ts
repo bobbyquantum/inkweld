@@ -1,21 +1,21 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { Project, ProjectsService } from '@inkweld/index';
+import { type Project, ProjectsService } from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import {
-  ServerConfig,
+  type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
 import { BackgroundSyncService } from '@services/local/background-sync.service';
 import {
   MigrationService,
-  MigrationState,
+  type MigrationState,
   MigrationStatus,
 } from '@services/local/migration.service';
 import { of } from 'rxjs';

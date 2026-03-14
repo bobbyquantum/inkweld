@@ -1,17 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  Element,
+  type Element,
   ElementsService,
   ElementType,
 } from '../../../../../api-client';
 import {
-  ChartGraphData,
+  type ChartGraphData,
   createDefaultChartConfig,
 } from '../../../../models/relationship-chart.model';
 import { ProjectStateService } from '../../../../services/project/project-state.service';

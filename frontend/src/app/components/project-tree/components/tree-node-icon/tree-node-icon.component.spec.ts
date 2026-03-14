@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';

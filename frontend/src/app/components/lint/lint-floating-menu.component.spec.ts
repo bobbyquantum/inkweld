@@ -1,10 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ExtendedCorrectionDto } from './correction-dto.extension';
+import { type ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintFloatingMenuComponent } from './lint-floating-menu.component';
 import * as lintPlugin from './lint-plugin';
 

@@ -4,7 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { SecurityService } from '@inkweld/index';
 import { of } from 'rxjs';
-import { Mock, vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 import { XsrfService } from './xsrf.service';
 

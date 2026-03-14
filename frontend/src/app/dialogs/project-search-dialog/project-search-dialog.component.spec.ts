@@ -1,13 +1,13 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { Element, ElementType } from '@inkweld/index';
-import { MockedObject, vi } from 'vitest';
+import { type Element, ElementType } from '@inkweld/index';
+import { type MockedObject, vi } from 'vitest';
 
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import {
-  ProjectSearchProgress,
-  ProjectSearchResult,
+  type ProjectSearchProgress,
+  type ProjectSearchResult,
   ProjectSearchService,
 } from '../../services/core/project-search.service';
 import { ProjectStateService } from '../../services/project/project-state.service';

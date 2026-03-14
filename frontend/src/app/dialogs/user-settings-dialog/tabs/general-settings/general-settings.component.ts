@@ -1,9 +1,9 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, type OnDestroy, type OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { ThemeOption, ThemeService } from '@themes/theme.service';
-import { Subscription } from 'rxjs';
+import { type ThemeOption, ThemeService } from '@themes/theme.service';
+import { type Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-general-settings',

@@ -1,10 +1,10 @@
 import {
-  ElementTypeSchema,
-  FieldLayout,
-  FieldSchema,
+  type ElementTypeSchema,
+  type FieldLayout,
+  type FieldSchema,
   FieldType,
-  FieldValidation,
-  TabSchema,
+  type FieldValidation,
+  type TabSchema,
 } from './schema-types';
 
 describe('schema-types', () => {

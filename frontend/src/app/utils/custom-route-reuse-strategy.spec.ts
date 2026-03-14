@@ -1,4 +1,7 @@
-import { ActivatedRouteSnapshot, DetachedRouteHandle } from '@angular/router';
+import {
+  type ActivatedRouteSnapshot,
+  type DetachedRouteHandle,
+} from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CustomRouteReuseStrategy } from './custom-route-reuse-strategy';

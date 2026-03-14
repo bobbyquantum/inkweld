@@ -3,10 +3,10 @@ import { nanoid } from 'nanoid';
 import { BehaviorSubject } from 'rxjs';
 
 import {
-  CreatePublishedFileRequest,
-  PublishedFile,
+  type CreatePublishedFileRequest,
+  type PublishedFile,
   SharePermission,
-  UpdatePublishedFileRequest,
+  type UpdatePublishedFileRequest,
 } from '../../models/published-file';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';

@@ -1,58 +1,58 @@
 import { inject, Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { ElementType, Project } from '@inkweld/index';
+import { ElementType, type Project } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import {
   AddRelationshipDialogComponent,
-  AddRelationshipDialogData,
-  AddRelationshipDialogResult,
+  type AddRelationshipDialogData,
+  type AddRelationshipDialogResult,
 } from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
 import {
   ConfirmationDialogComponent,
-  ConfirmationDialogData,
+  type ConfirmationDialogData,
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
 import {
   ImageGenerationDialogComponent,
-  ImageGenerationDialogData,
-  ImageGenerationDialogResult,
+  type ImageGenerationDialogData,
+  type ImageGenerationDialogResult,
 } from '../../dialogs/image-generation-dialog/image-generation-dialog.component';
 import {
   ImageViewerDialogComponent,
-  ImageViewerDialogData,
+  type ImageViewerDialogData,
 } from '../../dialogs/image-viewer-dialog/image-viewer-dialog.component';
 import {
   ImportProjectDialogComponent,
-  ImportProjectDialogData,
-  ImportProjectDialogResult,
+  type ImportProjectDialogData,
+  type ImportProjectDialogResult,
 } from '../../dialogs/import-project-dialog/import-project-dialog.component';
 import {
   InsertImageDialogComponent,
-  InsertImageDialogData,
-  InsertImageDialogResult,
+  type InsertImageDialogData,
+  type InsertImageDialogResult,
 } from '../../dialogs/insert-image-dialog/insert-image-dialog.component';
 import {
   MediaSelectorDialogComponent,
-  MediaSelectorDialogData,
-  MediaSelectorDialogResult,
+  type MediaSelectorDialogData,
+  type MediaSelectorDialogResult,
 } from '../../dialogs/media-selector-dialog/media-selector-dialog.component';
 import {
   NewElementDialogComponent,
-  NewElementDialogResult,
+  type NewElementDialogResult,
 } from '../../dialogs/new-element-dialog/new-element-dialog.component';
 import { ProfileManagerDialogComponent } from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
 import {
   RenameDialogComponent,
-  RenameDialogData,
+  type RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import {
   WorldbuildingImageDialogComponent,
-  WorldbuildingImageDialogData,
-  WorldbuildingImageDialogResult,
+  type WorldbuildingImageDialogData,
+  type WorldbuildingImageDialogResult,
 } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
 
 @Injectable({

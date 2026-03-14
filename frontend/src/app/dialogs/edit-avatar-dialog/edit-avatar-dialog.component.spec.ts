@@ -1,11 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { SetupService } from '@services/core/setup.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
-import { ImageCroppedEvent, LoadedImage } from 'ngx-image-cropper';
+import { type ImageCroppedEvent, type LoadedImage } from 'ngx-image-cropper';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 

@@ -1,11 +1,11 @@
 import { ElementType } from '../../api-client';
 import {
   ARCHIVE_VERSION,
-  ArchiveElement,
-  ArchiveManifest,
-  ArchiveProject,
+  type ArchiveElement,
+  type ArchiveManifest,
+  type ArchiveProject,
   MIN_SUPPORTED_VERSION,
-  ProjectArchive,
+  type ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
 } from './project-archive';

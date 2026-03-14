@@ -1,12 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/api/documents.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DeepMockProxy } from 'vitest-mock-extended';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
+import { type DeepMockProxy } from 'vitest-mock-extended';
+import { type IndexeddbPersistence } from 'y-indexeddb';
+import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { LintApiService } from '../../components/lint/lint-api.service';

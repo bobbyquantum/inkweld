@@ -4,11 +4,11 @@ import { firstValueFrom } from 'rxjs';
 
 import { LintingService } from '../../../api-client/api/linting.service';
 import {
-  LintRequest,
+  type LintRequest,
   LintRequestLevel,
 } from '../../../api-client/model/lint-request';
 import {
-  LintResponse,
+  type LintResponse,
   LintResponseSource,
 } from '../../../api-client/model/lint-response';
 

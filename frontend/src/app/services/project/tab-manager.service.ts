@@ -1,8 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { Subject } from 'rxjs';
 
-import { PublishPlan } from '../../models/publish-plan';
+import { type PublishPlan } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
 
 /**

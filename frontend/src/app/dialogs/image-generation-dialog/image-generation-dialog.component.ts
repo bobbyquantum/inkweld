@@ -5,8 +5,8 @@ import {
   computed,
   effect,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
   viewChild,
 } from '@angular/core';
@@ -24,30 +24,30 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatStepper, MatStepperModule } from '@angular/material/stepper';
+import { type MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
 import { ImageProfilesService } from '../../../api-client/api/image-profiles.service';
 import {
-  CustomImageSize,
-  GeneratedImage,
-  ImageGenerateRequest,
+  type CustomImageSize,
+  type GeneratedImage,
+  type ImageGenerateRequest,
   ImageGenerateRequestQuality,
   ImageGenerateRequestStyle,
-  ImageGenerateResponse,
-  ImageGenerationStatus,
+  type ImageGenerateResponse,
+  type ImageGenerationStatus,
   ImageProviderType,
   ImageSize,
-  PublicImageModelProfile,
+  type PublicImageModelProfile,
   PublicImageModelProfileProvider,
-  WorldbuildingContext,
+  type WorldbuildingContext,
   WorldbuildingContextRole,
 } from '../../../api-client/model/models';
 import {
-  SelectionChangeEvent,
-  WorldbuildingElementSelection,
+  type SelectionChangeEvent,
+  type WorldbuildingElementSelection,
   WorldbuildingElementSelectorComponent,
 } from '../../components/worldbuilding-element-selector/worldbuilding-element-selector.component';
 import { ImageGenerationService } from '../../services/ai/image-generation.service';

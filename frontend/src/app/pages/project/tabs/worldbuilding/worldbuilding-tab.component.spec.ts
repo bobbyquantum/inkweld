@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import {
-  ComponentFixture,
+  type ComponentFixture,
   DeferBlockState,
   TestBed,
 } from '@angular/core/testing';
@@ -9,7 +9,11 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { BehaviorSubject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Element, ElementType, Project } from '../../../../../api-client';
+import {
+  type Element,
+  ElementType,
+  type Project,
+} from '../../../../../api-client';
 import { WorldbuildingTabComponent } from './worldbuilding-tab.component';
 
 describe('WorldbuildingTabComponent', () => {

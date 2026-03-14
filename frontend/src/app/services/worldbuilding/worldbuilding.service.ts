@@ -1,18 +1,18 @@
 import { inject, Injectable } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
-import { Subscription } from 'rxjs';
+import { type Element, ElementType } from '@inkweld/index';
+import { type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
+import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { createAuthenticatedWebsocketProvider } from '../sync/authenticated-websocket-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
-import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
+import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 
 // Constants for timeouts and intervals
 const INDEXEDDB_SYNC_TIMEOUT = 5000;

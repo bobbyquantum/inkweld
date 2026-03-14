@@ -8,7 +8,7 @@
  * - Keyboard navigation works (up/down arrows, Enter, Escape)
  */
 
-import { expect, Locator, Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 

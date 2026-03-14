@@ -1,10 +1,10 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import {
   AdminImageAuditsService,
-  ImageGenerationAudit,
+  type ImageGenerationAudit,
   ImageGenerationAuditStatus,
 } from 'api-client';
 import { of } from 'rxjs';

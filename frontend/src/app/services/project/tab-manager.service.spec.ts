@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 
 import { LoggerService } from '../core/logger.service';
-import { AppTab, TabManagerService } from './tab-manager.service';
+import { type AppTab, TabManagerService } from './tab-manager.service';
 
 describe('TabManagerService', () => {
   let service: TabManagerService;

@@ -4,11 +4,11 @@ import {
   computed,
   DestroyRef,
   effect,
-  ElementRef,
+  type ElementRef,
   HostBinding,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
   viewChild,
 } from '@angular/core';
@@ -17,10 +17,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import { RelationshipCategory } from '@components/element-ref/element-ref.model';
+import { type RelationshipCategory } from '@components/element-ref/element-ref.model';
 import {
   createMediaUrl,
   extractMediaId,
@@ -28,38 +28,38 @@ import {
 } from '@components/image-paste/image-paste-plugin';
 import {
   CanvasColorDialogComponent,
-  CanvasColorDialogData,
+  type CanvasColorDialogData,
 } from '@dialogs/canvas-color-dialog/canvas-color-dialog.component';
 import {
   CanvasPinDialogComponent,
-  CanvasPinDialogData,
-  CanvasPinDialogResult,
+  type CanvasPinDialogData,
+  type CanvasPinDialogResult,
 } from '@dialogs/canvas-pin-dialog/canvas-pin-dialog.component';
 import {
   CanvasTextDialogComponent,
-  CanvasTextDialogData,
-  CanvasTextDialogResult,
+  type CanvasTextDialogData,
+  type CanvasTextDialogResult,
 } from '@dialogs/canvas-text-dialog/canvas-text-dialog.component';
 import {
   ConfirmationDialogComponent,
-  ConfirmationDialogData,
+  type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import {
   RenameDialogComponent,
-  RenameDialogData,
+  type RenameDialogData,
 } from '@dialogs/rename-dialog/rename-dialog.component';
 import {
   CANVAS_PIN_RELATIONSHIP_TYPE,
-  CanvasImage,
-  CanvasLayer,
-  CanvasObject,
-  CanvasPath,
-  CanvasPin,
-  CanvasShape,
-  CanvasShapeType,
-  CanvasText,
-  CanvasTool,
-  CanvasToolSettings,
+  type CanvasImage,
+  type CanvasLayer,
+  type CanvasObject,
+  type CanvasPath,
+  type CanvasPin,
+  type CanvasShape,
+  type CanvasShapeType,
+  type CanvasText,
+  type CanvasTool,
+  type CanvasToolSettings,
   createDefaultToolSettings,
 } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
@@ -70,7 +70,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
 import { nanoid } from 'nanoid';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom, type Observable } from 'rxjs';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
 const SIDEBAR_RESIZE_DELAY_MS = 250;

@@ -1,12 +1,12 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import {
   CreateSnapshotDialogComponent,
-  CreateSnapshotDialogData,
+  type CreateSnapshotDialogData,
 } from './create-snapshot-dialog.component';
 
 describe('CreateSnapshotDialogComponent', () => {

@@ -1,9 +1,9 @@
 import { OverlayModule } from '@angular/cdk/overlay';
 import {
-  ConnectedPosition,
+  type ConnectedPosition,
   Overlay,
   OverlayPositionBuilder,
-  OverlayRef,
+  type OverlayRef,
 } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { KeyValuePipe } from '@angular/common';
@@ -16,21 +16,21 @@ import {
   EventEmitter,
   inject,
   Input,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   Output,
   signal,
-  TemplateRef,
+  type TemplateRef,
   ViewChild,
   ViewContainerRef,
 } from '@angular/core';
 import {
-  AbstractControl,
+  type AbstractControl,
   FormBuilder,
   FormsModule,
   ReactiveFormsModule,
-  ValidationErrors,
-  ValidatorFn,
+  type ValidationErrors,
+  type ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,8 +41,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   AuthenticationService,
-  User,
-  UsernameAvailability,
+  type User,
+  type UsernameAvailability,
 } from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';

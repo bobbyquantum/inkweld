@@ -5,10 +5,10 @@ import {
   computed,
   DestroyRef,
   effect,
-  ElementRef,
+  type ElementRef,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
   viewChild,
 } from '@angular/core';
@@ -32,20 +32,20 @@ cytoscape.use(fcose);
 cytoscape.use(dagre);
 
 import {
-  Element,
+  type Element,
   ElementsService,
   ElementType,
 } from '../../../../../api-client';
 import { environment } from '../../../../../environments/environment';
-import { RelationshipTypeDefinition } from '../../../../components/element-ref/element-ref.model';
+import { type RelationshipTypeDefinition } from '../../../../components/element-ref/element-ref.model';
 import {
   ElementPickerDialogComponent,
-  ElementPickerDialogResult,
+  type ElementPickerDialogResult,
 } from '../../../../dialogs/element-picker-dialog/element-picker-dialog.component';
 import {
-  ChartGraphData,
-  ChartLayout,
-  ChartMode,
+  type ChartGraphData,
+  type ChartLayout,
+  type ChartMode,
 } from '../../../../models/relationship-chart.model';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RelationshipService } from '../../../../services/relationship/relationship.service';

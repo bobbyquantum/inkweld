@@ -19,7 +19,7 @@
  * - Small tablet (600x900)
  */
 
-import { Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 import { join } from 'path';
 
 import {

@@ -5,10 +5,10 @@ import * as syncProtocol from 'y-protocols/sync';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
-import { WebSocket } from 'ws';
+import { type WebSocket } from 'ws';
 import { fileStorageService } from './file-storage.service';
 import * as path from 'path';
-import { Element, ElementType } from '../schemas/element.schemas';
+import { type Element, type ElementType } from '../schemas/element.schemas';
 import { logger } from './logger.service';
 
 const yjsLog = logger.child('Yjs');

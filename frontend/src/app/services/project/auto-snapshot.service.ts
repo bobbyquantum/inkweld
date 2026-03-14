@@ -1,11 +1,11 @@
-import { inject, Injectable, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { inject, Injectable, type OnDestroy } from '@angular/core';
+import { type Subscription } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
 import { SettingsService } from '../core/settings.service';
 import {
   LocalSnapshotService,
-  StoredSnapshot,
+  type StoredSnapshot,
 } from '../local/local-snapshot.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
