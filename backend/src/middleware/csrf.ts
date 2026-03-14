@@ -5,6 +5,11 @@ import { config } from '../config/env';
 // Simple CSRF token storage (in production, use Redis or similar)
 const csrfTokens = new Map<string, string>();
 
+/**
+ * Create a 32-byte cryptographically secure CSRF token encoded as a lowercase hexadecimal string.
+ *
+ * @returns A 64-character lowercase hexadecimal string representing 32 bytes of cryptographically secure random data.
+ */
 export function generateCSRFToken(): string {
   // Use Web Crypto API (works in both Bun/Node.js and Cloudflare Workers)
   const bytes = new Uint8Array(32);
@@ -14,6 +19,18 @@ export function generateCSRFToken(): string {
     .join('');
 }
 
+/**
+ * Create a Hono middleware that enforces header-based CSRF protection for non-safe requests.
+ *
+ * The middleware skips checks in test mode, for safe HTTP methods (GET, HEAD, OPTIONS),
+ * and for paths under `/api/auth/`. For other requests it requires an active session
+ * and validates the `x-csrf-token` header against the session's `csrfToken`.
+ *
+ * @returns A MiddlewareHandler that validates an `x-csrf-token` header against the request session's `csrfToken`.
+ * @throws {ForbiddenError} when no session is present.
+ * @throws {ForbiddenError} when the `x-csrf-token` header is missing.
+ * @throws {ForbiddenError} when the provided CSRF token does not match the session token.
+ */
 export function setupCSRF(): MiddlewareHandler {
   return async (c, next) => {
     // Skip CSRF in test mode
