@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from 'hono';
-import { timingSafeEqual } from 'crypto';
+import { timingSafeEqual } from 'node:crypto';
 import { ForbiddenError } from '../errors';
 import { config } from '../config/env';
 

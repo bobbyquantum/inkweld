@@ -61,10 +61,10 @@ export class IdentityPanelComponent implements OnDestroy {
   renameRequested = output<void>();
 
   // Services
-  private worldbuildingService = inject(WorldbuildingService);
-  private dialogGateway = inject(DialogGatewayService);
-  private http = inject(HttpClient);
-  private localStorage = inject(LocalStorageService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly http = inject(HttpClient);
+  private readonly localStorage = inject(LocalStorageService);
 
   // State
   identity = signal<WorldbuildingIdentity>({});
@@ -83,8 +83,8 @@ export class IdentityPanelComponent implements OnDestroy {
   isLoadingImage = signal(false);
 
   // Cleanup
-  private destroy$ = new Subject<void>();
-  private descriptionChange$ = new Subject<string>();
+  private readonly destroy$ = new Subject<void>();
+  private readonly descriptionChange$ = new Subject<string>();
   private unsubscribeObserver: (() => void) | null = null;
 
   constructor() {

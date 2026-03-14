@@ -63,7 +63,7 @@ adminStatsRoutes.openapi(systemStatsRoute, async (c) => {
       pendingUserCount: pendingCount,
       version: config.version,
       uptime: process.uptime(),
-      runtime: typeof Bun !== 'undefined' ? 'bun' : 'node',
+      runtime: typeof Bun === 'undefined' ? 'node' : 'bun',
     },
     200
   );

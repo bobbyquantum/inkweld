@@ -461,8 +461,8 @@ export class RelationshipChartService {
       // Convert schema IDs like 'character-v1' to 'Character'
       const name = element.schemaId
         .replace(/-v\d+$/, '') // Remove version suffix
-        .replace(/-/g, ' ') // Replace dashes with spaces
-        .replace(/\b\w/g, c => c.toUpperCase()); // Title case
+        .replaceAll('-', ' ') // Replace dashes with spaces
+        .replaceAll(/\b\w/g, c => c.toUpperCase()); // Title case
       return name;
     }
     if (element.type === ElementType.Item) return 'Document';

@@ -433,8 +433,8 @@ export class ElementRefTooltipComponent {
   private elementRefService = inject(ElementRefService);
   private worldbuildingService = inject(WorldbuildingService);
   private projectState = inject(ProjectStateService);
-  private http = inject(HttpClient);
-  private localStorage = inject(LocalStorageService);
+  private readonly http = inject(HttpClient);
+  private readonly localStorage = inject(LocalStorageService);
 
   /** The tooltip data */
   @Input() set tooltipData(value: ElementRefTooltipData | null) {

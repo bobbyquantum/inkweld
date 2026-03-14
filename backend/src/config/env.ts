@@ -21,13 +21,13 @@ if (!isCloudflareWorkers) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const dotenv = require('dotenv');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('path');
+    const path = require('node:path');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { existsSync } = require('fs');
+    const { existsSync } = require('node:fs');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { homedir, platform } = require('os');
+    const { homedir, platform } = require('node:os');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { fileURLToPath } = require('url');
+    const { fileURLToPath } = require('node:url');
 
     // Safely get __dirname - import.meta.url might be undefined in some contexts
     let envDir: string;

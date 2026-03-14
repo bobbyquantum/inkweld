@@ -236,9 +236,9 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   private stage: Konva.Stage | null = null;
   /** Map from CanvasLayer.id → Konva.Layer */
-  private konvaLayers = new Map<string, Konva.Layer>();
+  private readonly konvaLayers = new Map<string, Konva.Layer>();
   /** Map from CanvasObject.id → Konva.Node */
-  private konvaNodes = new Map<string, Konva.Node>();
+  private readonly konvaNodes = new Map<string, Konva.Node>();
   /** Konva Transformer for selection handles */
   private transformer: Konva.Transformer | null = null;
   /** Top-level layer for the transformer and selection */
@@ -1704,7 +1704,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Keyboard Shortcuts
   // ─────────────────────────────────────────────────────────────────────────
 
-  private keyHandler = (e: KeyboardEvent) => {
+  private readonly keyHandler = (e: KeyboardEvent) => {
     // Don't handle shortcuts when typing in an input
     if (
       e.target instanceof HTMLInputElement ||
@@ -2043,7 +2043,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       maxY = Math.max(maxY, rect.y + rect.height);
     }
 
-    if (!isFinite(minX)) return;
+    if (!Number.isFinite(minX)) return;
 
     const contentWidth = maxX - minX;
     const contentHeight = maxY - minY;
@@ -2528,10 +2528,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     }
 
     const PAD = 20;
-    const vX = (isFinite(minX) ? minX : 0) - PAD;
-    const vY = (isFinite(minY) ? minY : 0) - PAD;
-    const vW = (isFinite(maxX) && maxX > minX ? maxX - minX : 800) + PAD * 2;
-    const vH = (isFinite(maxY) && maxY > minY ? maxY - minY : 600) + PAD * 2;
+    const vX = (Number.isFinite(minX) ? minX : 0) - PAD;
+    const vY = (Number.isFinite(minY) ? minY : 0) - PAD;
+    const vW =
+      (Number.isFinite(maxX) && maxX > minX ? maxX - minX : 800) + PAD * 2;
+    const vH =
+      (Number.isFinite(maxY) && maxY > minY ? maxY - minY : 600) + PAD * 2;
 
     const lines: string[] = [
       `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`,
@@ -2563,7 +2565,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   private svgEsc(s: string): string {
-    return s.replace(
+    return s.replaceAll(
       /[&<>"']/g,
       c =>
         ({

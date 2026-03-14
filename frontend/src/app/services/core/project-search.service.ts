@@ -97,7 +97,7 @@ export class ProjectSearchService {
     if (this.keydownListener) return;
 
     this.keydownListener = (event: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 
       if (modifierKey && event.shiftKey && event.key.toLowerCase() === 'f') {
