@@ -34,8 +34,8 @@ For a guided setup experience, use the interactive deployment wizard:
 
 ```bash
 git clone https://github.com/bobbyquantum/inkweld.git
-cd inkweld/backend
-bun run admin-cli.ts deploy
+cd inkweld
+bun run deploy
 ```
 
 Select **Docker** and the wizard will:
@@ -118,7 +118,7 @@ curl http://localhost:8333/api/v1/health
 You should see:
 
 ```json
-{"status":"ok","uptime":1.23,"backend":"bun"}
+{ "status": "ok", "uptime": 1.23, "backend": "bun" }
 ```
 
 ## Docker Compose
@@ -132,7 +132,7 @@ services:
     container_name: inkweld
     restart: unless-stopped
     ports:
-      - "8333:8333"
+      - '8333:8333'
     environment:
       - NODE_ENV=production
       - SESSION_SECRET=${SESSION_SECRET}
@@ -141,7 +141,7 @@ services:
     volumes:
       - inkweld_data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8333/api/v1/health"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8333/api/v1/health']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -271,6 +271,7 @@ docker logs inkweld
 ```
 
 Common issues:
+
 - **Port already in use**: Change the port mapping (e.g., `-p 9000:8333`)
 - **Invalid SESSION_SECRET**: Must be at least 32 characters
 
@@ -297,5 +298,5 @@ docker run -d \
 ## Next Steps
 
 - **[Configure your instance](../configuration)** - Customize authentication, storage, and features
-- **[Set up the admin CLI](../admin-guide/admin-cli)** - Manage users from the command line
+- **[Admin Panel](../admin-guide/overview)** - Manage users and system health from the web UI
 - **[Enable AI features](../admin-guide/ai-image-generation)** - Add AI-powered image generation

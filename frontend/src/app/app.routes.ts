@@ -124,6 +124,14 @@ export const routes: Routes = [
           ),
         title: 'Admin - Image Audits',
       },
+      {
+        path: 'system-health',
+        loadComponent: () =>
+          import('./pages/admin/system-health/system-health.component').then(
+            m => m.AdminSystemHealthComponent
+          ),
+        title: 'Admin - System Health',
+      },
     ],
   },
   {

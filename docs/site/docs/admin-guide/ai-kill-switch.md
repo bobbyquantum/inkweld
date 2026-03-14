@@ -129,4 +129,4 @@ When using self-hosted providers, your data stays within your infrastructure.
 
 - [AI Image Generation](/docs/admin-guide/ai-image-generation) - Configure image generation providers
 - [Docker Deployment](/docs/installation/docker) - Environment variable configuration
-- [Admin CLI](/docs/admin-guide/admin-cli) - Command-line administration
+- [Admin Panel](/docs/admin-guide/overview) - Web-based administration

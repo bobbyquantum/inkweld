@@ -1,0 +1,83 @@
+<div class="system-health-container" data-testid="system-health-page">
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <mat-icon>error</mat-icon>
+        <p>{{ error() }}</p>
+        <button mat-raised-button color="primary" (click)="loadStats()">
+          Retry
+        </button>
+      </mat-card-content>
+    </mat-card>
+  } @else if (stats(); as s) {
+    <div class="stats-grid">
+      <mat-card class="stat-card" data-testid="stat-users">
+        <mat-card-content>
+          <mat-icon class="stat-icon">people</mat-icon>
+          <div class="stat-value">{{ s.userCount }}</div>
+          <div class="stat-label">Total Users</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card" data-testid="stat-projects">
+        <mat-card-content>
+          <mat-icon class="stat-icon">folder</mat-icon>
+          <div class="stat-value">{{ s.projectCount }}</div>
+          <div class="stat-label">Total Projects</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card" data-testid="stat-pending">
+        <mat-card-content>
+          <mat-icon class="stat-icon">hourglass_empty</mat-icon>
+          <div class="stat-value">{{ s.pendingUserCount }}</div>
+          <div class="stat-label">Pending Users</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card" data-testid="stat-uptime">
+        <mat-card-content>
+          <mat-icon class="stat-icon">schedule</mat-icon>
+          <div class="stat-value">{{ formatUptime(s.uptime) }}</div>
+          <div class="stat-label">Uptime</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card class="info-card">
+      <mat-card-content>
+        <h3>Server Information</h3>
+        <div class="info-row">
+          <span class="info-label">Version</span>
+          <span class="info-value" data-testid="info-version">{{
+            s.version
+          }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Runtime</span>
+          <span class="info-value" data-testid="info-runtime">{{
+            s.runtime
+          }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Uptime</span>
+          <span class="info-value">{{ formatUptime(s.uptime) }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="actions">
+      <button
+        mat-stroked-button
+        (click)="loadStats()"
+        data-testid="refresh-stats">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  }
+</div>
