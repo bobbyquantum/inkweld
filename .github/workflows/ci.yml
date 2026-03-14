@@ -79,6 +79,14 @@ jobs:
       - name: Run frontend tests
         run: cd frontend && npm test
 
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/inkweld-frontend/lcov.info
+          retention-days: 1
+
   # ===========================================
   # Unit Tests - Backend (Bun)
   # ===========================================
@@ -106,6 +114,47 @@ jobs:
 
       - name: Run backend tests
         run: cd backend && DB_DATABASE=":memory:" USER_APPROVAL_REQUIRED="false" bun test
+
+      - name: Upload backend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage/lcov.info
+          retention-days: 1
+
+  # ===========================================
+  # SonarCloud Analysis
+  # ===========================================
+  sonarcloud:
+    name: SonarCloud Code Analysis
+    runs-on: ubuntu-latest
+    needs: [test-frontend, test-backend]
+    if: always()
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/inkweld-frontend
+        continue-on-error: true
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+        continue-on-error: true
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703 # v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ===========================================
   # E2E Tests - Split across parallel runners
