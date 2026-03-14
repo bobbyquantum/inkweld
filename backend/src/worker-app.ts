@@ -11,6 +11,7 @@ import { requestLogger } from './middleware/request-logger';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import { d1DatabaseMiddleware, type D1AppContext } from './middleware/database.d1.middleware';
+import { configService } from './services/config.service';
 
 // Import common route registration + Worker-specific routes
 import { registerCommonRoutes } from './config/routes';
@@ -41,6 +42,21 @@ app.use('*', secureHeaders());
 
 // Database middleware - attaches D1 database to context
 app.use('*', d1DatabaseMiddleware);
+
+// Patch ConfigService's encryption key from Workers secrets (c.env) on the first request.
+// In Workers, process.env doesn't have secrets — they're only available via c.env.
+// ConfigService uses this key for encrypting/decrypting sensitive config values in D1.
+let configKeyPatched = false;
+app.use('*', async (c, next) => {
+  if (!configKeyPatched) {
+    const secret = c.env?.DATABASE_KEY || c.env?.SESSION_SECRET;
+    if (secret) {
+      configService.setDatabaseKey(secret);
+      configKeyPatched = true;
+    }
+  }
+  return next();
+});
 
 // OAuth/MCP discovery endpoints need permissive CORS since MCP clients (like Claude.ai)
 // need to fetch them from any origin. These endpoints are public metadata.

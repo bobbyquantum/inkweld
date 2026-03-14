@@ -41,11 +41,23 @@ class ConfigService {
   private readonly authTagLength = 16;
   private readonly saltLength = 16;
 
+  // On Cloudflare Workers, secrets are only available via c.env at request time,
+  // not through process.env at module scope. This override is set by middleware
+  // in worker-app.ts so that encryption/decryption uses the real secret.
+  private databaseKeyOverride: string | undefined;
+
+  /**
+   * Set the database encryption key at runtime (used by Workers middleware).
+   */
+  setDatabaseKey(key: string): void {
+    this.databaseKeyOverride = key;
+  }
+
   /**
    * Derive encryption key from the database key using scrypt
    */
   private deriveKey(salt: Buffer): Buffer {
-    const databaseKey = envConfig.databaseKey;
+    const databaseKey = this.databaseKeyOverride || envConfig.databaseKey;
     return scryptSync(databaseKey, salt, this.keyLength);
   }
 

@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
 import {
@@ -228,9 +228,9 @@ export class ImageGenerationService {
       const job = this.getJob(jobId);
       if (!job) return;
 
-      // Call the API
+      // Call the API (3-minute timeout to handle slow models / Workers limits)
       const response = await firstValueFrom(
-        this.aiImageService.generateImage(job.request)
+        this.aiImageService.generateImage(job.request).pipe(timeout(180_000))
       );
 
       // Check if the model returned text instead of images
@@ -288,7 +288,10 @@ export class ImageGenerationService {
 
       // Extract error message from various error formats
       let errorMessage = 'Generation failed';
-      if (err instanceof Error) {
+      if (err instanceof TimeoutError) {
+        errorMessage =
+          'Image generation timed out. The model may be overloaded — please try again.';
+      } else if (err instanceof Error) {
         errorMessage = err.message;
       }
       // Handle Angular HttpErrorResponse (from API calls)
