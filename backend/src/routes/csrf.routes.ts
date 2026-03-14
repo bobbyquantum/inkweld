@@ -1,10 +1,19 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { config } from '../config/env';
+import { generateCSRFToken, getCSRFToken } from '../middleware/csrf';
 import { logger } from '../services/logger.service';
 
 const csrfLog = logger.child('CSRF');
-const csrfRoutes = new OpenAPIHono();
+
+// In Cloudflare Workers, secrets set via `wrangler secret put` are only accessible
+// through c.env bindings, not process.env. Define the bindings type so the route
+// handler can access them when running in a Workers environment.
+type CSRFBindings = {
+  SESSION_SECRET?: string;
+  DATABASE_KEY?: string;
+};
+
+const csrfRoutes = new OpenAPIHono<{ Bindings: CSRFBindings }>();
 
 // Schema definitions
 const CSRFTokenResponseSchema = z
@@ -23,51 +32,6 @@ const CSRFErrorResponseSchema = z
     error: z.string().optional().openapi({ description: 'Error details' }),
   })
   .openapi('CSRFErrorResponse');
-
-/**
- * Generate a CSRF token - works in both Bun and Workers
- */
-async function generateCSRFToken(secret: string): Promise<string> {
-  // Check if we're in Bun runtime
-  // Use globalThis to avoid bundler issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const bunRuntime = (globalThis as any).Bun;
-  if (bunRuntime && bunRuntime.CSRF) {
-    // Use Bun.CSRF API
-    return bunRuntime.CSRF.generate(secret, {
-      encoding: 'hex',
-      expiresIn: 60 * 60 * 1000, // 1 hour
-    });
-  }
-
-  // Fallback for Workers: generate a simple signed token
-  const timestamp = Date.now();
-  const expiresAt = timestamp + 60 * 60 * 1000; // 1 hour from now
-  const data = `${timestamp}:${expiresAt}:${crypto.randomUUID()}`;
-
-  // Create HMAC signature using Web Crypto API (available in Workers)
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(secret);
-  const key = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
-  const signatureHex = Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-
-  // Convert data to hex (Workers-compatible)
-  const dataHex = Array.from(encoder.encode(data))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-
-  return `${dataHex}.${signatureHex}`;
-}
 
 // CSRF token endpoint route
 const tokenRoute = createRoute({
@@ -97,24 +61,19 @@ const tokenRoute = createRoute({
 
 csrfRoutes.openapi(tokenRoute, async (c) => {
   try {
-    // Get the secret from config
-    const secret = config.databaseKey;
-    if (!secret) {
-      csrfLog.error('DATABASE_KEY is not configured — cannot generate CSRF tokens');
-      return c.json({ message: 'Server configuration error' }, 500);
-    }
+    const session = c.get('session') as { userId?: string } | undefined;
 
-    // Generate a token using our cross-platform function
-    const token = await generateCSRFToken(secret);
+    // If authenticated, generate a stored token keyed by userId for validation.
+    // If unauthenticated, return a standalone token (middleware only validates
+    // on authenticated, mutating requests).
+    const token = session?.userId ? getCSRFToken(session.userId) : generateCSRFToken();
 
-    // Return the token in the response body
     return c.json({ token }, 200);
   } catch (error: unknown) {
     csrfLog.error('Error generating CSRF token', error);
     return c.json(
       {
         message: 'Failed to generate CSRF token',
-        error: config.nodeEnv === 'production' ? undefined : String(error),
       },
       500
     );
