@@ -14,83 +14,81 @@ const isCloudflareWorkers =
   typeof (globalThis as Record<string, unknown>).caches !== 'undefined' &&
   typeof (globalThis as Record<string, unknown>).WebSocketPair !== 'undefined';
 
-// Only load dotenv in Node.js/Bun environments
+// Only load dotenv in Node.js/Bun environments (synchronously, before config is read)
 if (!isCloudflareWorkers) {
-  // Dynamic imports to avoid bundling Node.js modules in Workers
-  const loadEnvironment = async () => {
+  try {
+    // Use require() for synchronous loading so process.env is populated before config
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const dotenv = require('dotenv');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { existsSync } = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { homedir, platform } = require('os');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { fileURLToPath } = require('url');
+
+    // Safely get __dirname - import.meta.url might be undefined in some contexts
+    let envDir: string;
     try {
-      const dotenv = await import('dotenv');
-      const path = await import('path');
-      const { existsSync } = await import('fs');
-      const { homedir, platform } = await import('os');
-      const { fileURLToPath } = await import('url');
-
-      // Safely get __dirname - import.meta.url might be undefined in some contexts
-      let __dirname: string;
-      try {
-        if (import.meta.url) {
-          const __filename = fileURLToPath(import.meta.url);
-          __dirname = path.dirname(__filename);
-        } else {
-          __dirname = process.cwd();
-        }
-      } catch {
-        __dirname = process.cwd();
+      if (import.meta.url) {
+        const filename = fileURLToPath(import.meta.url);
+        envDir = path.dirname(filename);
+      } else {
+        envDir = process.cwd();
       }
+    } catch {
+      envDir = process.cwd();
+    }
 
-      // Priority 1: Current directory (e.g., backend/.env when running from backend/)
-      const localEnv = path.resolve(process.cwd(), '.env');
-      if (existsSync(localEnv)) {
-        dotenv.config({ path: localEnv });
-        return;
-      }
-
-      // Priority 2: Parent directory (e.g., root .env when running from backend/)
+    // Priority 1: Current directory (e.g., backend/.env when running from backend/)
+    const localEnv = path.resolve(process.cwd(), '.env');
+    if (existsSync(localEnv)) {
+      dotenv.config({ path: localEnv });
+    }
+    // Priority 2: Parent directory (e.g., root .env when running from backend/)
+    else {
       const parentEnv = path.resolve(process.cwd(), '../.env');
       if (existsSync(parentEnv)) {
         dotenv.config({ path: parentEnv });
-        return;
       }
-
       // Priority 3: Monorepo root relative to this file (backend/src/config/env.ts → root/.env)
-      const monorepoRoot = path.resolve(__dirname, '../../../.env');
-      if (existsSync(monorepoRoot)) {
-        dotenv.config({ path: monorepoRoot });
-        return;
+      else {
+        const monorepoRoot = path.resolve(envDir, '../../../.env');
+        if (existsSync(monorepoRoot)) {
+          dotenv.config({ path: monorepoRoot });
+        }
+        // Priority 4: User config directory (~/.inkweld/.env on Unix, %APPDATA%\Inkweld\.env on Windows)
+        else {
+          const home = homedir();
+          const plat = platform();
+          let configDir: string;
+
+          switch (plat) {
+            case 'win32':
+              configDir = path.join(
+                process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
+                'Inkweld'
+              );
+              break;
+            case 'darwin':
+            case 'linux':
+            default:
+              configDir = path.join(home, '.inkweld');
+          }
+
+          const configEnv = path.join(configDir, '.env');
+          if (existsSync(configEnv)) {
+            dotenv.config({ path: configEnv });
+          }
+        }
       }
-
-      // Priority 4: User config directory (~/.inkweld/.env on Unix, %APPDATA%\Inkweld\.env on Windows)
-      const home = homedir();
-      const plat = platform();
-      let configDir: string;
-
-      switch (plat) {
-        case 'win32':
-          configDir = path.join(
-            process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
-            'Inkweld'
-          );
-          break;
-        case 'darwin':
-        case 'linux':
-        default:
-          configDir = path.join(home, '.inkweld');
-      }
-
-      const configEnv = path.join(configDir, '.env');
-      if (existsSync(configEnv)) {
-        dotenv.config({ path: configEnv });
-      }
-
-      // If none found, continue with environment variables only
-    } catch {
-      // Silently fail - we're likely in a Workers environment or imports failed
     }
-  };
-
-  // Note: This is async but we call it synchronously for side effects
-  // In Workers, this block is skipped entirely
-  loadEnvironment();
+    // If none found, continue with environment variables only
+  } catch {
+    // Silently fail - require() not available or imports failed
+  }
 }
 
 export const config = {
@@ -112,11 +110,24 @@ export const config = {
 
   // Database encryption key (used for encrypting sensitive config values)
   // Also used for session cookie signing
-  // In production, DATABASE_KEY or SESSION_SECRET MUST be set — no fallback is provided.
-  databaseKey:
-    process.env.DATABASE_KEY ||
-    process.env.SESSION_SECRET ||
-    (process.env.NODE_ENV === 'production' ? '' : 'fallback-secret-for-development-only'),
+  // In production, DATABASE_KEY or SESSION_SECRET MUST be set — server will refuse to start without it.
+  databaseKey: (() => {
+    const key = process.env.DATABASE_KEY || process.env.SESSION_SECRET;
+    if (process.env.NODE_ENV === 'production') {
+      if (!key) {
+        throw new Error(
+          'DATABASE_KEY or SESSION_SECRET must be set in production. ' +
+            'Generate a secure random key of at least 32 characters.'
+        );
+      }
+      if (key.length < 32) {
+        throw new Error(
+          'DATABASE_KEY or SESSION_SECRET must be at least 32 characters in production.'
+        );
+      }
+    }
+    return key || 'fallback-secret-for-development-only';
+  })(),
 
   // Session (uses databaseKey for signing)
   session: {
