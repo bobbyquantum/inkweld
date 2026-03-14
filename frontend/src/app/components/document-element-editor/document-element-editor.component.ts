@@ -106,7 +106,7 @@ export class DocumentElementEditorComponent
   private insertImageService = inject(InsertImageService);
   protected elementRefService = inject(ElementRefService);
   protected findService = inject(FindInDocumentService);
-  private tagService = inject(TagService);
+  private readonly tagService = inject(TagService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';

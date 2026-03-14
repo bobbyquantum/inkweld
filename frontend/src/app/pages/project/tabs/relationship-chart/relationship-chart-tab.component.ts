@@ -177,7 +177,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         schemas.add(el.schemaId);
       }
     }
-    return Array.from(schemas).sort();
+    return Array.from(schemas).sort((a, b) => a.localeCompare(b));
   });
 
   /** Currently active schema filter IDs (empty = all schemas shown) */
@@ -454,9 +454,9 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
   /** Update the BFS traversal depth while in focus mode */
   protected onMaxDepthChange(event: Event): void {
-    const raw = parseInt((event.target as HTMLInputElement).value, 10);
+    const raw = Number.parseInt((event.target as HTMLInputElement).value, 10);
     const depth = Math.min(
-      Math.max(1, isNaN(raw) ? 3 : raw),
+      Math.max(1, Number.isNaN(raw) ? 3 : raw),
       RelationshipChartTabComponent.MAX_FOCUS_DEPTH
     );
     this.maxDepth.set(depth);
@@ -501,8 +501,8 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   protected getSchemaLabel(schemaId: string): string {
     return schemaId
       .replace(/-v\d+$/, '')
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase());
+      .replaceAll('-', ' ')
+      .replaceAll(/\b\w/g, c => c.toUpperCase());
   }
 
   /** Whether a schema is included (empty filter = all schemas shown) */

@@ -169,6 +169,18 @@ describe('ProjectSearchService', () => {
     it('should not throw when destroy() is called before initialize()', () => {
       expect(() => service.destroy()).not.toThrow();
     });
+
+    it('should open search dialog on Ctrl+Shift+F shortcut', () => {
+      service.initialize();
+      const event = new KeyboardEvent('keydown', {
+        key: 'f',
+        ctrlKey: true,
+        shiftKey: true,
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+    });
   });
 
   describe('dialog management', () => {

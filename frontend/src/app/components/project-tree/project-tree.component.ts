@@ -65,7 +65,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
 export class ProjectTreeComponent implements OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
   private logger = inject(LoggerService);
-  private projectSearchService = inject(ProjectSearchService);
+  private readonly projectSearchService = inject(ProjectSearchService);
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
