@@ -218,4 +218,58 @@ describe('IdentityPanelComponent', () => {
       );
     });
   });
+
+  describe('resolveImageUrl URL scheme validation', () => {
+    const resolveImageUrl = (comp: IdentityPanelComponent, url: string) =>
+      (comp as any)['resolveImageUrl'](url);
+
+    it('should allow https:// URLs', async () => {
+      fixture.detectChanges();
+      await resolveImageUrl(component, 'https://example.com/image.png');
+      expect(component.resolvedImageUrl()).toBe(
+        'https://example.com/image.png'
+      );
+    });
+
+    it('should allow http:// URLs', async () => {
+      fixture.detectChanges();
+      await resolveImageUrl(component, 'http://example.com/image.png');
+      expect(component.resolvedImageUrl()).toBe(
+        'http://example.com/image.png'
+      );
+    });
+
+    it('should allow blob: URLs', async () => {
+      fixture.detectChanges();
+      await resolveImageUrl(component, 'blob:http://localhost/abc123');
+      expect(component.resolvedImageUrl()).toBe(
+        'blob:http://localhost/abc123'
+      );
+    });
+
+    it('should allow data:image/ URLs', async () => {
+      fixture.detectChanges();
+      await resolveImageUrl(component, 'data:image/png;base64,abc123');
+      expect(component.resolvedImageUrl()).toBe(
+        'data:image/png;base64,abc123'
+      );
+    });
+
+    it('should reject javascript: URLs', async () => {
+      fixture.detectChanges();
+      component.resolvedImageUrl.set(null);
+      await resolveImageUrl(component, 'javascript:alert(1)');
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
+
+    it('should reject data:text/html URLs', async () => {
+      fixture.detectChanges();
+      component.resolvedImageUrl.set(null);
+      await resolveImageUrl(
+        component,
+        'data:text/html,<script>alert(1)</script>'
+      );
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
+  });
 });
