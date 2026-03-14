@@ -131,9 +131,11 @@ export class IdentityPanelComponent implements OnDestroy {
     const username = this.username();
     const slug = this.slug();
 
-    // If it's not a media:// URL, use it directly
+    // If it's not a media:// URL, use it directly (only safe schemes)
     if (!imageUrl.startsWith('media://')) {
-      this.resolvedImageUrl.set(imageUrl);
+      if (/^(https?:|blob:|data:image\/)/i.test(imageUrl)) {
+        this.resolvedImageUrl.set(imageUrl);
+      }
       return;
     }
 
