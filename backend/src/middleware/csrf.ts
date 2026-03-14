@@ -13,16 +13,21 @@ interface StoredToken {
 // CSRF token storage keyed by userId
 const csrfTokens = new Map<string, StoredToken>();
 
-// Periodically evict expired tokens
+// Lazy sweep: evict expired tokens when accessed, avoiding setInterval in global
+// scope (which Cloudflare Workers disallows).
+let lastSweep = 0;
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-setInterval(() => {
+
+function sweepExpiredTokens(): void {
   const now = Date.now();
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
+  lastSweep = now;
   for (const [key, entry] of csrfTokens) {
     if (now - entry.createdAt > CSRF_TOKEN_TTL_MS) {
       csrfTokens.delete(key);
     }
   }
-}, SWEEP_INTERVAL_MS).unref?.();
+}
 
 export function generateCSRFToken(): string {
   return randomBytes(32).toString('hex');
@@ -83,6 +88,7 @@ export function setupCSRF(): MiddlewareHandler {
 }
 
 export function getCSRFToken(userId: string): string {
+  sweepExpiredTokens();
   const existing = csrfTokens.get(userId);
   if (existing && Date.now() - existing.createdAt <= CSRF_TOKEN_TTL_MS) {
     return existing.token;
