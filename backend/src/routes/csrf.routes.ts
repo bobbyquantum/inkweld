@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { randomBytes } from 'crypto';
+import { getCSRFToken } from '../middleware/csrf';
 import { logger } from '../services/logger.service';
 
 const csrfLog = logger.child('CSRF');
@@ -52,9 +52,13 @@ const tokenRoute = createRoute({
 
 csrfRoutes.openapi(tokenRoute, async (c) => {
   try {
-    // Generate a simple random hex token matching the format expected
-    // by the CSRF middleware (randomBytes hex string)
-    const token = randomBytes(32).toString('hex');
+    const session = c.get('session') as { userId?: string } | undefined;
+    if (!session?.userId) {
+      return c.json({ message: 'Authentication required' }, 500);
+    }
+
+    // Generate and store a token for this user
+    const token = getCSRFToken(session.userId);
 
     return c.json({ token }, 200);
   } catch (error: unknown) {
