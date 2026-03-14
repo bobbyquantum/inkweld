@@ -71,10 +71,25 @@
     "clean:frontend": "cd frontend && bun run clean && rm -rf node_modules/.cache .angular",
     "clean:backend": "cd backend && rm -rf dist coverage",
     "clean:docs": "cd docs/site && bun run clear && rm -rf build",
-    "clean:all": "npm run clean && rm -rf node_modules frontend/node_modules backend/node_modules docs/site/node_modules"
+    "clean:all": "npm run clean && rm -rf node_modules frontend/node_modules backend/node_modules docs/site/node_modules",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1"
+  },
+  "lint-staged": {
+    "frontend/src/!(api-client)/**/*.{ts,html,scss}": [
+      "prettier --write --config frontend/.prettierrc.json"
+    ],
+    "backend/src/**/*.ts": [
+      "prettier --write --config backend/.prettierrc"
+    ],
+    "docs/site/**/*.{ts,md,mdx}": [
+      "prettier --write --config docs/site/.prettierrc"
+    ]
   },
   "engines": {
     "node": ">=22.0.0"
