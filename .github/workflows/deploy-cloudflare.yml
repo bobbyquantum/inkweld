@@ -4,9 +4,6 @@ on:
   push:
     branches: ["main"]
 
-permissions:
-  contents: read
-
 concurrency:
   group: deploy-cloudflare-preview
   cancel-in-progress: true
@@ -14,6 +11,8 @@ concurrency:
 jobs:
   deploy-preview:
     name: Deploy Preview
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     environment: preview
     steps:

@@ -16,9 +16,6 @@ on:
       # This workflow itself
       - ".github/workflows/electron-build-check.yml"
 
-permissions:
-  contents: read
-
 concurrency:
   group: electron-build-${{ github.ref }}
   cancel-in-progress: true
@@ -29,6 +26,8 @@ jobs:
   # ===========================================
   build-windows:
     name: Build (Windows)
+    permissions:
+      contents: read
     # Run on path changes OR when 'check-installation' label is applied
     if: github.event_name == 'pull_request' && (github.event.action != 'labeled' || github.event.label.name == 'check-installation')
     runs-on: windows-latest
@@ -80,6 +79,8 @@ jobs:
   # ===========================================
   build-macos:
     name: Build (macOS)
+    permissions:
+      contents: read
     # Run on path changes OR when 'check-installation' label is applied
     if: github.event_name == 'pull_request' && (github.event.action != 'labeled' || github.event.label.name == 'check-installation')
     runs-on: macos-latest
@@ -131,6 +132,8 @@ jobs:
   # ===========================================
   build-linux:
     name: Build (Linux)
+    permissions:
+      contents: read
     # Run on path changes OR when 'check-installation' label is applied
     if: github.event_name == 'pull_request' && (github.event.action != 'labeled' || github.event.label.name == 'check-installation')
     runs-on: ubuntu-latest

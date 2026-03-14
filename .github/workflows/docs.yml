@@ -9,11 +9,6 @@ on:
       - ".github/workflows/docs.yml"
   workflow_dispatch: # Allow manual trigger
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
   group: "pages"
   cancel-in-progress: true
@@ -22,6 +17,8 @@ jobs:
   build:
     name: Build Docs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -64,6 +61,10 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
