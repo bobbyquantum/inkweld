@@ -6,13 +6,13 @@ import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-
 import {
   AuthenticationService,
   type UpdateProfileRequest,
-  User,
+  type User,
   UsersService,
 } from '@inkweld/index';
 import {
   catchError,
   firstValueFrom,
-  Observable,
+  type Observable,
   retry,
   throwError,
 } from 'rxjs';

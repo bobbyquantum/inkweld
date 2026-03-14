@@ -1,11 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { Project, ProjectsService } from '@inkweld/index';
+import { type Project, ProjectsService } from '@inkweld/index';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { MediaSyncService, MediaSyncState } from '../local/media-sync.service';
+import {
+  MediaSyncService,
+  type MediaSyncState,
+} from '../local/media-sync.service';
 import { SyncQueueService, SyncStage } from './sync-queue.service';
 
 describe('SyncQueueService', () => {

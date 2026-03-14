@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +10,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
   LocalStorageService,
-  MediaInfo,
+  type MediaInfo,
 } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -18,7 +18,7 @@ import { vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
-import { MediaItem, MediaTabComponent } from './media-tab.component';
+import { type MediaItem, MediaTabComponent } from './media-tab.component';
 
 describe('MediaTabComponent', () => {
   let component: MediaTabComponent;

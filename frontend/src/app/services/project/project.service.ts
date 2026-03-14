@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { ImagesService, Project, ProjectsService } from '@inkweld/index';
+import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { XsrfService } from '../auth/xsrf.service';

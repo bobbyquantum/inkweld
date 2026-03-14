@@ -6,7 +6,7 @@ import {
   effect,
   inject,
   input,
-  OnDestroy,
+  type OnDestroy,
   output,
   signal,
 } from '@angular/core';
@@ -19,7 +19,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import {
-  WorldbuildingIdentity,
+  type WorldbuildingIdentity,
   WorldbuildingService,
 } from '@services/worldbuilding/worldbuilding.service';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';

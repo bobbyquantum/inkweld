@@ -1,15 +1,15 @@
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
-  OAuthSessionDetails,
+  type OAuthSessionDetails,
   OAuthSessionDetailsGrantsInnerRole,
-  Project,
+  type Project,
   ProjectsService,
-  PublicOAuthSession,
+  type PublicOAuthSession,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { of, throwError } from 'rxjs';

@@ -12,16 +12,19 @@ import {
 import { FormsModule } from '@angular/forms';
 import {
   MatAutocompleteModule,
-  MatAutocompleteSelectedEvent,
+  type MatAutocompleteSelectedEvent,
 } from '@angular/material/autocomplete';
-import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips';
+import {
+  type MatChipInputEvent,
+  MatChipsModule,
+} from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { TagService } from '../../services/tag/tag.service';
-import { ResolvedTag, TagDefinition } from './tag.model';
+import { type ResolvedTag, type TagDefinition } from './tag.model';
 
 /**
  * Autocomplete option value type

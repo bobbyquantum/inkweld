@@ -5,18 +5,18 @@
  */
 
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import type { EditorView } from 'prosemirror-view';
 
 import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
-  ElementRefClickEvent,
-  ElementRefNodeAttrs,
-  ElementSearchResult,
+  type ElementRefClickEvent,
+  type ElementRefNodeAttrs,
+  type ElementSearchResult,
 } from './element-ref.model';
-import { ElementRefTooltipData } from './element-ref-tooltip/element-ref-tooltip.component';
+import { type ElementRefTooltipData } from './element-ref-tooltip/element-ref-tooltip.component';
 
 /**
  * Default icons for element types

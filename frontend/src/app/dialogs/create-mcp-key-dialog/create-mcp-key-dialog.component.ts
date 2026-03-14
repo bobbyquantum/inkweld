@@ -17,9 +17,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import {
-  CreateMcpKeyRequest,
+  type CreateMcpKeyRequest,
   McpPermission,
-  McpPublicKey,
+  type McpPublicKey,
 } from '@inkweld/index';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';

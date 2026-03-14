@@ -3,17 +3,17 @@
  */
 
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Element, ElementType } from '../../../../api-client';
+import { type Element, ElementType } from '../../../../api-client';
 import { LoggerService } from '../../../services/core/logger.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { ElementRefService } from '../element-ref.service';
 import {
   ElementRefTooltipComponent,
-  ElementRefTooltipData,
+  type ElementRefTooltipData,
 } from './element-ref-tooltip.component';
 
 describe('ElementRefTooltipComponent', () => {

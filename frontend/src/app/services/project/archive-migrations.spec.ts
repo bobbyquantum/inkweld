@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { ARCHIVE_VERSION, ProjectArchive } from '../../models/project-archive';
+import {
+  ARCHIVE_VERSION,
+  type ProjectArchive,
+} from '../../models/project-archive';
 import {
   ARCHIVE_MIGRATIONS,
-  ArchiveMigration,
+  type ArchiveMigration,
   findMigration,
   hasMigrationPath,
 } from './archive-migrations';

@@ -1,4 +1,4 @@
-import { Route } from '@playwright/test';
+import { type Route } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 

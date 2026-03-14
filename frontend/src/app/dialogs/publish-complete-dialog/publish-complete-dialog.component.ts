@@ -17,7 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   getFormatDisplayName,
   getFormatIcon,
-  PublishedFile,
+  type PublishedFile,
   SharePermission,
 } from '../../models/published-file';
 import { SetupService } from '../../services/core/setup.service';

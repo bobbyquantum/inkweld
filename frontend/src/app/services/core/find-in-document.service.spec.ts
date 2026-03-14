@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { Schema } from 'prosemirror-model';
 import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';

@@ -6,7 +6,7 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  ProjectTemplateInfo,
+  type ProjectTemplateInfo,
   ProjectTemplateService,
 } from './project-template.service';
 

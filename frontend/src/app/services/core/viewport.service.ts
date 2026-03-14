@@ -3,7 +3,7 @@ import {
   computed,
   inject,
   Injectable,
-  OnDestroy,
+  type OnDestroy,
   PLATFORM_ID,
   signal,
 } from '@angular/core';

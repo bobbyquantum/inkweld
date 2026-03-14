@@ -8,7 +8,7 @@ import * as Y from 'yjs';
 
 import { LoggerService } from '../core/logger.service';
 import {
-  MigrationResult,
+  type MigrationResult,
   ProjectRenameMigrationService,
 } from './project-rename-migration.service';
 

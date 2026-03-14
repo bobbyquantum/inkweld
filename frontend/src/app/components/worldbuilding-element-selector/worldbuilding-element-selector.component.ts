@@ -6,10 +6,10 @@ import {
   computed,
   inject,
   input,
-  OnInit,
+  type OnInit,
   output,
   signal,
-  WritableSignal,
+  type WritableSignal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -18,15 +18,15 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
 
-import { Element, ElementType } from '../../../api-client/model/models';
+import { type Element, ElementType } from '../../../api-client/model/models';
 import {
   ElementPickerDialogComponent,
-  ElementPickerDialogData,
-  ElementPickerDialogResult,
+  type ElementPickerDialogData,
+  type ElementPickerDialogResult,
 } from '../../dialogs/element-picker-dialog/element-picker-dialog.component';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
-  WorldbuildingIdentity,
+  type WorldbuildingIdentity,
   WorldbuildingService,
 } from '../../services/worldbuilding/worldbuilding.service';
 

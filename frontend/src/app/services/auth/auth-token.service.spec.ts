@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   APP_CONFIG_STORAGE_KEY,
-  AppConfigV2,
+  type AppConfigV2,
   StorageContextService,
 } from '../core/storage-context.service';
 import { AuthTokenService } from './auth-token.service';

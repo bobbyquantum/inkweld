@@ -3,7 +3,7 @@
  * This file must NOT import bun:sqlite or better-sqlite3
  * to avoid Wrangler bundling errors
  */
-import { drizzle, DrizzleD1Database } from 'drizzle-orm/d1';
+import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
 import * as schema from './schema';
 
 /**

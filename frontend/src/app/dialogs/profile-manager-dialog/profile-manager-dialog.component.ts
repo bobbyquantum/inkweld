@@ -15,11 +15,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { RegistrationFormComponent } from '@components/registration-form/registration-form.component';
-import { Project, ProjectsService } from '@inkweld/index';
+import { type Project, ProjectsService } from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import {
-  ServerConfig,
+  type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
 import { BackgroundSyncService } from '@services/local/background-sync.service';
@@ -31,7 +31,7 @@ import { firstValueFrom } from 'rxjs';
 
 import {
   ConfirmationDialogComponent,
-  ConfirmationDialogData,
+  type ConfirmationDialogData,
 } from '../confirmation-dialog/confirmation-dialog.component';
 
 /**

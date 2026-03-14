@@ -19,8 +19,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { Element } from '../../../api-client/model/element';
-import { ElementType } from '../../../api-client/model/element-type';
+import { type Element } from '../../../api-client/model/element';
+import { type ElementType } from '../../../api-client/model/element-type';
 import { ProjectStateService } from '../../services/project/project-state.service';
 
 /**

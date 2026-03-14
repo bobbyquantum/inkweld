@@ -21,7 +21,7 @@
  */
 
 import { nanoid } from 'nanoid';
-import { Element, ElementType } from '../../schemas/element.schemas';
+import { type Element, type ElementType } from '../../schemas/element.schemas';
 
 /**
  * Get the Yjs document ID for a project's elements array.

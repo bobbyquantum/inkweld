@@ -1,11 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { vi } from 'vitest';
 
 import {
   ImageViewerDialogComponent,
-  ImageViewerDialogData,
+  type ImageViewerDialogData,
 } from './image-viewer-dialog.component';
 
 describe('ImageViewerDialogComponent', () => {

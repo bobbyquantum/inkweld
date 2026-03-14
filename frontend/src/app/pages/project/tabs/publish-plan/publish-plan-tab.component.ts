@@ -1,5 +1,5 @@
 import {
-  CdkDragDrop,
+  type CdkDragDrop,
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
@@ -8,8 +8,8 @@ import {
   computed,
   effect,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -25,29 +25,29 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ElementType } from '@inkweld/index';
-import { firstValueFrom, Subscription } from 'rxjs';
+import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
 import {
   PublishCompleteDialogComponent,
-  PublishCompleteDialogData,
-  PublishCompleteDialogResult,
+  type PublishCompleteDialogData,
+  type PublishCompleteDialogResult,
 } from '../../../../dialogs/publish-complete-dialog/publish-complete-dialog.component';
 import {
   BackmatterType,
   ChapterNumbering,
-  ElementItem,
+  type ElementItem,
   FrontmatterType,
   PublishFormat,
-  PublishPlan,
-  PublishPlanItem,
+  type PublishPlan,
+  type PublishPlanItem,
   PublishPlanItemType,
   SeparatorStyle,
 } from '../../../../models/publish-plan';
-import { PublishedFile } from '../../../../models/published-file';
+import { type PublishedFile } from '../../../../models/published-file';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import {
-  PublishingResult,
+  type PublishingResult,
   PublishService,
 } from '../../../../services/publish/publish.service';
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';

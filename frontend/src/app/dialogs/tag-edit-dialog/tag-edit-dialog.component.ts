@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { TagDefinition } from '../../components/tags/tag.model';
+import { type TagDefinition } from '../../components/tags/tag.model';
 
 export interface TagEditDialogData {
   tag?: TagDefinition;

@@ -1,10 +1,10 @@
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import {
-  Announcement,
+  type Announcement,
   AnnouncementService,
 } from '@services/announcement/announcement.service';
 import { of } from 'rxjs';

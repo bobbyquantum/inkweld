@@ -1,10 +1,10 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { User } from '@inkweld/index';
+import { type User } from '@inkweld/index';
 
 import { environment } from '../../../environments/environment';
 import {
   LOCAL_CONFIG_ID,
-  ServerConfig,
+  type ServerConfig,
   StorageContextService,
 } from './storage-context.service';
 

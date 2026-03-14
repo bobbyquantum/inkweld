@@ -1,15 +1,15 @@
-import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
+import { CdkDrag, type CdkDragEnd } from '@angular/cdk/drag-drop';
 import {
-  AfterViewChecked,
-  AfterViewInit,
+  type AfterViewChecked,
+  type AfterViewInit,
   Component,
   effect,
-  EffectRef,
-  ElementRef,
+  type EffectRef,
+  type ElementRef,
   EventEmitter,
   HostListener,
   Input,
-  OnDestroy,
+  type OnDestroy,
   Output,
   signal,
   ViewChild,
@@ -17,7 +17,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 import { debounce } from 'lodash-es';
 
 @Component({

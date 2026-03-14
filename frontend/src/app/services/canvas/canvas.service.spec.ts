@@ -1,12 +1,12 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  CanvasObject,
-  CanvasPin,
-  CanvasText,
+  type CanvasObject,
+  type CanvasPin,
+  type CanvasText,
   createDefaultCanvasConfig,
 } from '../../models/canvas.model';
 import { LoggerService } from '../core/logger.service';

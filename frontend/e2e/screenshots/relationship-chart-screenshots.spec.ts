@@ -10,7 +10,7 @@
  * "Character Web" chart with curated elements and relationships.
  */
 
-import { Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 import { join } from 'path';
 
 import {

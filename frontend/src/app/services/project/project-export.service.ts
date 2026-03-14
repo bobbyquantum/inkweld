@@ -1,25 +1,25 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Element, ElementType, ImagesService } from '@inkweld/index';
+import { type Element, ElementType, ImagesService } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
-import { ElementRelationship } from '../../components/element-ref/element-ref.model';
+import { type ElementRelationship } from '../../components/element-ref/element-ref.model';
 import {
   ARCHIVE_VERSION,
-  ArchiveDocumentContent,
-  ArchiveElement,
-  ArchiveManifest,
-  ArchiveMediaFile,
-  ArchiveProgress,
-  ArchiveSnapshot,
-  ArchiveWorldbuildingData,
+  type ArchiveDocumentContent,
+  type ArchiveElement,
+  type ArchiveManifest,
+  type ArchiveMediaFile,
+  type ArchiveProgress,
+  type ArchiveSnapshot,
+  type ArchiveWorldbuildingData,
   ExportPhase,
-  ProjectArchive,
+  type ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
 } from '../../models/project-archive';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { LocalSnapshotService } from '../local/local-snapshot.service';

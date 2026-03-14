@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { marked } from 'marked';
-import { map, Observable } from 'rxjs';
+import { map, type Observable } from 'rxjs';
 
 export interface ChangelogVersion {
   version: string;

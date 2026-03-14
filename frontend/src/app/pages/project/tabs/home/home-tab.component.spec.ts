@@ -1,15 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
-import { Element, ElementType, Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { vi } from 'vitest';
-import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
+import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
 import { ProjectService } from '../../../../services/project/project.service';

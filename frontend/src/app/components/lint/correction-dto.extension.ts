@@ -1,4 +1,4 @@
-import { Correction } from '../../../api-client/model/correction';
+import { type Correction } from '../../../api-client/model/correction';
 
 /**
  * Extended correction interface for internal use in the lint system.

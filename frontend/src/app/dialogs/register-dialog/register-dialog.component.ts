@@ -2,8 +2,8 @@ import {
   ChangeDetectorRef,
   Component,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -15,7 +15,7 @@ import { Router } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import {
   RegistrationFormComponent,
-  RegistrationResult,
+  type RegistrationResult,
 } from '@components/registration-form/registration-form.component';
 import { Subject } from 'rxjs';
 

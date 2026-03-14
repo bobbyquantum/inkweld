@@ -1,5 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { Project, ProjectsService } from '@inkweld/index';
+import { type Project, ProjectsService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';

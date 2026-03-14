@@ -23,9 +23,12 @@ import { firstValueFrom } from 'rxjs';
 
 import {
   TemplateEditorDialogComponent,
-  TemplateEditorDialogData,
+  type TemplateEditorDialogData,
 } from '../../../../dialogs/template-editor-dialog/template-editor-dialog.component';
-import { ElementTypeSchema, TabSchema } from '../../../../models/schema-types';
+import {
+  type ElementTypeSchema,
+  type TabSchema,
+} from '../../../../models/schema-types';
 
 /**
  * Injection token for reload delay after mutations.

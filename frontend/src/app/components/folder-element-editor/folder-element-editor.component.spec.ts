@@ -1,12 +1,12 @@
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { ElementType } from '@inkweld/index';
 import { vi } from 'vitest';
 
-import { ProjectElement } from '../../models/project-element';
+import { type ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
 

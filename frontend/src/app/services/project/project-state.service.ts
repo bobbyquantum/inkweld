@@ -3,18 +3,18 @@ import {
   inject,
   Injectable,
   NgZone,
-  OnDestroy,
+  type OnDestroy,
   signal,
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { Element, ElementType, Project } from '@inkweld/index';
-import { ProjectElement } from 'app/models/project-element';
+import { type Element, ElementType, type Project } from '@inkweld/index';
+import { type ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
-import { Subscription } from 'rxjs';
+import { type Subscription } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { PublishPlan } from '../../models/publish-plan';
+import { type PublishPlan } from '../../models/publish-plan';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -26,14 +26,17 @@ import { StorageService } from '../local/storage.service';
 import { UnifiedProjectService } from '../local/unified-project.service';
 import {
   ElementSyncProviderFactory,
-  IElementSyncProvider,
+  type IElementSyncProvider,
 } from '../sync/index';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
-import { ElementTreeService, ValidDropLevels } from './element-tree.service';
+import {
+  ElementTreeService,
+  type ValidDropLevels,
+} from './element-tree.service';
 import { ProjectRenamedError } from './project.service';
 import { RecentFilesService } from './recent-files.service';
-import { AppTab, TabManagerService } from './tab-manager.service';
+import { type AppTab, TabManagerService } from './tab-manager.service';
 
 // Constants for document cache configuration
 const DOCUMENT_CACHE_CONFIG = {

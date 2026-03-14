@@ -2,9 +2,9 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
-  ElementRef,
+  type ElementRef,
   inject,
-  OnInit,
+  type OnInit,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -18,14 +18,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
-  ImageCroppedEvent,
+  type ImageCroppedEvent,
   ImageCropperComponent,
-  LoadedImage,
+  type LoadedImage,
 } from 'ngx-image-cropper';
 
 /**

@@ -3,12 +3,12 @@ import {
   Component,
   effect,
   inject,
-  OnInit,
+  type OnInit,
   signal,
 } from '@angular/core';
 import {
   FormBuilder,
-  FormControl,
+  type FormControl,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -22,12 +22,12 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 import { ElectronService } from '@services/electron.service';
 
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import {
-  ProjectTemplateInfo,
+  type ProjectTemplateInfo,
   ProjectTemplateService,
 } from '../../services/project/project-template.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';

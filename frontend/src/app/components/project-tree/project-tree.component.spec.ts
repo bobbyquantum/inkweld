@@ -1,17 +1,17 @@
 import {
-  CdkDrag,
-  CdkDragDrop,
-  CdkDragMove,
-  CdkDragSortEvent,
-  CdkDropList,
+  type CdkDrag,
+  type CdkDragDrop,
+  type CdkDragMove,
+  type CdkDragSortEvent,
+  type CdkDropList,
 } from '@angular/cdk/drag-drop';
 import { provideHttpClient } from '@angular/common/http';
 import {
   provideZonelessChangeDetection,
   signal,
-  WritableSignal,
+  type WritableSignal,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
@@ -22,12 +22,12 @@ import {
   describe,
   expect,
   it,
-  MockedObject,
+  type MockedObject,
   vi,
 } from 'vitest';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
-import { ProjectElement } from '../../models/project-element';
+import { type ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { ProjectTreeComponent } from './project-tree.component';

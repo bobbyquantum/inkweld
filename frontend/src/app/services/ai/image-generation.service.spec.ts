@@ -6,10 +6,10 @@ import { type MockedObject, vi } from 'vitest';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
 import {
-  GeneratedImage,
-  ImageGenerateRequest,
-  ImageGenerateResponse,
-  ImageProviderType,
+  type GeneratedImage,
+  type ImageGenerateRequest,
+  type ImageGenerateResponse,
+  type ImageProviderType,
 } from '../../../api-client/model/models';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { XsrfService } from '../auth/xsrf.service';

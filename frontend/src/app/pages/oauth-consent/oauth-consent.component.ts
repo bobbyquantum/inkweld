@@ -4,7 +4,7 @@ import {
   Component,
   computed,
   inject,
-  OnInit,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -16,10 +16,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import {
-  AuthorizationInfo,
-  AuthorizationInfoProjectsInner,
+  ActivatedRoute,
+  type Params,
+  Router,
+  RouterLink,
+} from '@angular/router';
+import {
+  type AuthorizationInfo,
+  type AuthorizationInfoProjectsInner,
   ConsentRequestGrantsInnerRole,
   OAuthService as OAuthApiService,
 } from '@inkweld/index';

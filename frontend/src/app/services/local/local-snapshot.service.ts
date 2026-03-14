@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
-import { StorageConfig, StorageService } from './storage.service';
+import { type StorageConfig, StorageService } from './storage.service';
 
 /**
  * Stored snapshot record in IndexedDB

@@ -1,15 +1,15 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import {
   CanvasTextDialogComponent,
-  CanvasTextDialogData,
+  type CanvasTextDialogData,
 } from './canvas-text-dialog.component';
 
 describe('CanvasTextDialogComponent', () => {

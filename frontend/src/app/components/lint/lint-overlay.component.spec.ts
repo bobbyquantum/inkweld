@@ -1,10 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Correction } from '../../../api-client/model/correction';
-import { ExtendedCorrectionDto } from './correction-dto.extension';
+import { type Correction } from '../../../api-client/model/correction';
+import { type ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintOverlayComponent } from './lint-overlay.component';
 
 describe('LintOverlayComponent', () => {

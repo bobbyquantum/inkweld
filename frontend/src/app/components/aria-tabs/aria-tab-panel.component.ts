@@ -1,4 +1,4 @@
-import { Component, Input, TemplateRef, ViewChild } from '@angular/core';
+import { Component, Input, type TemplateRef, ViewChild } from '@angular/core';
 
 /**
  * Tab panel component for use with AriaTabsComponent.

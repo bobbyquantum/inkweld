@@ -5,7 +5,7 @@
  * or long-pressing an element reference in the editor.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -16,7 +16,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { ElementType } from '../../../../api-client';
 import {
-  ElementRefContextData,
+  type ElementRefContextData,
   ElementRefContextMenuComponent,
 } from './element-ref-context-menu.component';
 

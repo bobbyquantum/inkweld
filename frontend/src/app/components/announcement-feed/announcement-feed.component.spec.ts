@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
-  Announcement,
+  type Announcement,
   AnnouncementService,
 } from '@services/announcement/announcement.service';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,13 +1,13 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { TagService } from '../../services/tag/tag.service';
 import {
   TagEditorDialogComponent,
-  TagEditorDialogData,
+  type TagEditorDialogData,
 } from './tag-editor-dialog.component';
 
 describe('TagEditorDialogComponent', () => {

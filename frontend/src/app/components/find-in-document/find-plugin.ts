@@ -4,14 +4,14 @@
  * Provides search functionality with highlighting decorations for matches.
  * Designed for future extension to support replace functionality.
  */
-import { Node as ProseMirrorNode } from 'prosemirror-model';
+import { type Node as ProseMirrorNode } from 'prosemirror-model';
 import {
   Plugin,
   PluginKey,
   TextSelection,
-  Transaction,
+  type Transaction,
 } from 'prosemirror-state';
-import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
+import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 
 /**
  * State managed by the find plugin

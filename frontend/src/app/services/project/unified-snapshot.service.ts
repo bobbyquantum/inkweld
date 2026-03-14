@@ -1,9 +1,9 @@
 import { inject, Injectable, signal } from '@angular/core';
 import {
-  CreateSnapshotRequest,
-  DocumentSnapshot,
+  type CreateSnapshotRequest,
+  type DocumentSnapshot,
   SnapshotsService,
-  SnapshotWithContent,
+  type SnapshotWithContent,
 } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 import * as Y from 'yjs';
@@ -16,10 +16,10 @@ import {
 } from '../../utils/yjs-xml-serializer';
 import { LoggerService } from '../core/logger.service';
 import {
-  CreateSnapshotOptions,
+  type CreateSnapshotOptions,
   LocalSnapshotService,
-  SnapshotInfo,
-  StoredSnapshot,
+  type SnapshotInfo,
+  type StoredSnapshot,
 } from '../local/local-snapshot.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, type OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -12,22 +12,22 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
-  UnifiedSnapshot,
+  type UnifiedSnapshot,
   UnifiedSnapshotService,
 } from '@services/project/unified-snapshot.service';
 
 import {
   ConfirmationDialogComponent,
-  ConfirmationDialogData,
+  type ConfirmationDialogData,
 } from '../confirmation-dialog/confirmation-dialog.component';
 import {
   CreateSnapshotDialogComponent,
-  CreateSnapshotDialogData,
-  CreateSnapshotDialogResult,
+  type CreateSnapshotDialogData,
+  type CreateSnapshotDialogResult,
 } from '../create-snapshot-dialog/create-snapshot-dialog.component';
 import {
   RestoreSnapshotDialogComponent,
-  RestoreSnapshotDialogData,
+  type RestoreSnapshotDialogData,
 } from '../restore-snapshot-dialog/restore-snapshot-dialog.component';
 
 /**

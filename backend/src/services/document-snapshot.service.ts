@@ -2,8 +2,8 @@ import { eq, and, desc } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import {
   documentSnapshots,
-  DocumentSnapshot,
-  InsertDocumentSnapshot,
+  type DocumentSnapshot,
+  type InsertDocumentSnapshot,
 } from '../db/schema/document-snapshots';
 
 class DocumentSnapshotService {

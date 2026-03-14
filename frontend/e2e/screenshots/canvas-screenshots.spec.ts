@@ -11,7 +11,7 @@
  * in the browser's local IndexedDB.
  */
 
-import { Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 import { join } from 'path';
 
 import { dismissToastIfPresent } from '../common/test-helpers';

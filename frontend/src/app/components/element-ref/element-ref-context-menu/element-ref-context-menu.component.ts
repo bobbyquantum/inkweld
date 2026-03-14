@@ -26,7 +26,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 
-import { ElementType } from '../../../../api-client';
+import { type ElementType } from '../../../../api-client';
 
 /**
  * Data about the element reference being acted upon

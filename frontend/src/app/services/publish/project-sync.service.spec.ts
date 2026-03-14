@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -11,8 +11,8 @@ import { ProjectStateService } from '../project/project-state.service';
 import {
   ProjectSyncService,
   SyncPhase,
-  SyncProgress,
-  SyncResult,
+  type SyncProgress,
+  type SyncResult,
 } from './project-sync.service';
 
 describe('ProjectSyncService', () => {

@@ -6,12 +6,12 @@ import {
   effect,
   inject,
   Input,
-  OnChanges,
-  OnDestroy,
+  type OnChanges,
+  type OnDestroy,
   signal,
-  SimpleChanges,
+  type SimpleChanges,
 } from '@angular/core';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 
 import { SetupService } from '../../services/core/setup.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';

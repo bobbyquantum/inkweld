@@ -3,19 +3,19 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { By } from '@angular/platform-browser';
-import { Event, Router } from '@angular/router';
+import { type Event, Router } from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
 import { Configuration, UsersService } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { UpdateService } from '@services/core/update.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { userServiceMock } from '../testing/user-api.mock';
 import { ThemeService } from '../themes/theme.service';
