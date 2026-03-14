@@ -263,7 +263,7 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
     const envPath = path.join(process.cwd(), '.env');
 
     execSync(
-      `docker run -d -p ${config.PORT}:${config.PORT} -v inkweld_data:/data --env-file "${envPath}" --name inkweld-backend inkweld/backend:local`,
+      `docker run -d -p ${config.PORT}:${config.PORT} -v inkweld_data:/data --env-file "${envPath}" --name inkweld-backend inkweld:local`,
       { stdio: 'inherit' }
     );
 
