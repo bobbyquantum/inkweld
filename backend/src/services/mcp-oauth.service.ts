@@ -660,6 +660,8 @@ class McpOAuthService {
   async refreshTokens(
     db: DatabaseInstance,
     refreshToken: string,
+    clientId: string,
+    clientSecret: string | undefined,
     issuer: string,
     clientIp?: string,
     userAgent?: string,
@@ -699,6 +701,29 @@ class McpOAuthService {
     // Check if session is expired
     if (session.expiresAt && session.expiresAt < now) {
       throw new OAuthError('invalid_grant', 'Session has expired');
+    }
+
+    // Validate client_id matches the session's client
+    if (session.clientId !== clientId) {
+      throw new OAuthError('invalid_grant', 'Client ID mismatch');
+    }
+
+    // Validate client_secret for confidential clients
+    const client = await this.lookupClient(db, session.clientId);
+    if (!client) {
+      throw new OAuthError('invalid_client', 'Client not found');
+    }
+    if (client.clientType === 'confidential') {
+      if (!clientSecret) {
+        throw new OAuthError(
+          'invalid_client',
+          'client_secret is required for confidential clients'
+        );
+      }
+      const secretValid = await this.validateClientSecret(db, session.clientId, clientSecret);
+      if (!secretValid) {
+        throw new OAuthError('invalid_client', 'Invalid client_secret');
+      }
     }
 
     // Rotate refresh token
