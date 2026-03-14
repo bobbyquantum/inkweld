@@ -182,6 +182,7 @@ describe('ProjectCoverComponent', () => {
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
 
+      expect(mockOfflineStorage.getMediaUrl).toHaveBeenCalled();
       // No HTTP requests should be made
       httpTestingController.expectNone(() => true);
     });
