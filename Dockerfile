@@ -121,13 +121,13 @@ RUN apt-get update && \
 
 # Copy only the compiled binary and drizzle migrations (required for DB setup)
 COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/inkweld-server ./
-COPY --from=backend-builder --chown=inkweld:inkweld --chmod=444 /app/backend/drizzle ./drizzle
+COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/drizzle ./drizzle
 
 # Copy frontend assets from dist directory
 # Angular outputs to dist/browser/ in production mode. We copy the entire dist/ directory
 # to /app/frontend/, which creates /app/frontend/browser/ containing index.html and assets.
 # FRONTEND_DIST env var points to /app/frontend/browser for serving.
-COPY --from=frontend-builder --chown=inkweld:inkweld --chmod=444 /app/frontend/dist /app/frontend
+COPY --from=frontend-builder --chown=inkweld:inkweld --chmod=555 /app/frontend/dist /app/frontend
 
 USER inkweld
 VOLUME ["/data"]
