@@ -111,9 +111,11 @@ export const config = {
   // Database encryption key (used for encrypting sensitive config values)
   // Also used for session cookie signing
   // In production, DATABASE_KEY or SESSION_SECRET MUST be set — server will refuse to start without it.
+  // On Cloudflare Workers, secrets are only available through c.env (not process.env),
+  // so module-level validation is skipped — runtime validation happens in middleware instead.
   databaseKey: (() => {
     const key = process.env.DATABASE_KEY || process.env.SESSION_SECRET;
-    if (process.env.NODE_ENV === 'production') {
+    if (!isCloudflareWorkers && process.env.NODE_ENV === 'production') {
       if (!key) {
         throw new Error(
           'DATABASE_KEY or SESSION_SECRET must be set in production. ' +
