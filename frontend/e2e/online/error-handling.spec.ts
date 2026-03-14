@@ -33,7 +33,9 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.getByTestId('username-input').fill('user@#$%');
       await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
-      await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
 
       // The dialog should still be open and handling the error gracefully
       await expect(page.locator('mat-dialog-container')).toBeVisible();
@@ -49,7 +51,9 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.getByTestId('username-input').fill(veryLongString);
       await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
-      await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
 
       // Should handle gracefully without crashing - dialog still open
       await expect(page.locator('mat-dialog-container')).toBeVisible();
@@ -63,7 +67,9 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.getByTestId('username-input').fill('user👨‍💻😀');
       await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
-      await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
 
       // Should handle unicode gracefully (likely reject as invalid username)
       await expect(page.getByTestId('username-input')).toHaveValue('user👨‍💻😀');
@@ -143,7 +149,9 @@ test.describe('Error Handling and Edge Cases', () => {
       ).toBeVisible();
 
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
-      await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
       await page.keyboard.press('Tab'); // Trigger second blur
 
       // Wait for button to be enabled before attempting to click
@@ -204,7 +212,9 @@ test.describe('Error Handling and Edge Cases', () => {
       ).toBeVisible();
 
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
-      await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
       await page.keyboard.press('Tab');
 
       // Click submit button once (button disables after first click)

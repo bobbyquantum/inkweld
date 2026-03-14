@@ -2,7 +2,11 @@ import { request } from '@playwright/test';
 import { execSync } from 'child_process';
 import * as path from 'path';
 
-import { TEST_API_KEYS, TEST_PASSWORDS, TEST_SESSION_SECRETS } from '../common/test-credentials';
+import {
+  TEST_API_KEYS,
+  TEST_PASSWORDS,
+  TEST_SESSION_SECRETS,
+} from '../common/test-credentials';
 
 const CONTAINER_NAME = 'inkweld-e2e-test';
 const DOCKER_PORT = 9333;

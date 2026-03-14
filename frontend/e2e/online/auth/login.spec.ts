@@ -1,5 +1,5 @@
-import { expect, test } from '../fixtures';
 import { TEST_PASSWORDS } from '../../common/test-credentials';
+import { expect, test } from '../fixtures';
 
 test.describe('User Login', () => {
   test('should login successfully with valid credentials', async ({

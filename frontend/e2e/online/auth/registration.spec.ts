@@ -1,5 +1,5 @@
-import { expect, test } from '../fixtures';
 import { TEST_PASSWORDS } from '../../common/test-credentials';
+import { expect, test } from '../fixtures';
 
 // Helper to open register dialog
 async function openRegisterDialog(page: import('@playwright/test').Page) {

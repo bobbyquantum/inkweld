@@ -1,3 +1,4 @@
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import {
   API_BASE,
   expect,
@@ -7,7 +8,6 @@ import {
   performOAuthFlow,
   test,
 } from './fixtures';
-import { TEST_PASSWORDS } from '../common/test-credentials';
 
 /**
  * MCP Authentication E2E Tests
