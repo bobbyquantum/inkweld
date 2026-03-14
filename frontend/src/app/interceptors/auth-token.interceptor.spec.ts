@@ -1,4 +1,8 @@
-import { HttpHandlerFn, HttpHeaders, HttpRequest } from '@angular/common/http';
+import {
+  type HttpHandlerFn,
+  HttpHeaders,
+  HttpRequest,
+} from '@angular/common/http';
 import { Injector, runInInjectionContext } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';

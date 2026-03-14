@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalStorageService } from './local-storage.service';
 import {
   MediaSyncService,
-  ServerMediaListResponse,
+  type ServerMediaListResponse,
 } from './media-sync.service';
 import { ProjectSyncService } from './project-sync.service';
 

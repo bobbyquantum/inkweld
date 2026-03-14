@@ -1,6 +1,6 @@
 import { ChangeDetectorRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';

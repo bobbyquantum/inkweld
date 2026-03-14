@@ -4,7 +4,7 @@ import {
   provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -19,12 +19,12 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectTemplateService } from '@services/project/project-template.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { CreateProjectComponent } from './create-project.component';
 

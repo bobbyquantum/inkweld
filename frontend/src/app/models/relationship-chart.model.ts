@@ -8,7 +8,7 @@
  * elements, relationships, and other project-level data.
  */
 
-import { ElementType } from '../../api-client';
+import { type ElementType } from '../../api-client';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart Layout

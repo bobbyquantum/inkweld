@@ -1,12 +1,12 @@
 import {
-  HttpErrorResponse,
-  HttpEvent,
-  HttpHandler,
-  HttpInterceptor,
-  HttpRequest,
+  type HttpErrorResponse,
+  type HttpEvent,
+  type HttpHandler,
+  type HttpInterceptor,
+  type HttpRequest,
 } from '@angular/common/http';
 import { DOCUMENT, inject, Injectable } from '@angular/core';
-import { from, Observable, switchMap, throwError } from 'rxjs';
+import { from, type Observable, switchMap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';

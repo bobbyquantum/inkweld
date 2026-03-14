@@ -1,4 +1,4 @@
-import { ErrorHandler } from 'hono';
+import { type ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { logger } from '../services/logger.service';
 import { getRequestCorrelationId } from './request-logger';

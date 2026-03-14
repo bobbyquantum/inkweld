@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -10,7 +10,7 @@ import {
   MigrationStatus,
 } from '@services/local/migration.service';
 import { of } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { ConnectionSettingsComponent } from './connection-settings.component';
 

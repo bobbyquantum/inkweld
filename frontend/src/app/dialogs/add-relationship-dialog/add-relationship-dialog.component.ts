@@ -1,8 +1,14 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {
   MatAutocompleteModule,
-  MatAutocompleteSelectedEvent,
+  type MatAutocompleteSelectedEvent,
 } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -18,8 +24,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 
-import { Element, ElementType } from '../../../api-client';
-import { RelationshipTypeDefinition } from '../../components/element-ref/element-ref.model';
+import { type Element, ElementType } from '../../../api-client';
+import { type RelationshipTypeDefinition } from '../../components/element-ref/element-ref.model';
 
 /**
  * Data passed to the dialog

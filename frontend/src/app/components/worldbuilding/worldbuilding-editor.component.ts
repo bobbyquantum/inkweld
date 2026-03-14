@@ -7,7 +7,7 @@ import {
   effect,
   inject,
   input,
-  OnDestroy,
+  type OnDestroy,
   signal,
   viewChild,
 } from '@angular/core';
@@ -28,19 +28,22 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime } from 'rxjs';
 
-import { Element as ApiElement, ElementType } from '../../../api-client';
+import {
+  type Element as ApiElement,
+  type ElementType,
+} from '../../../api-client';
 import {
   SnapshotsDialogComponent,
-  SnapshotsDialogData,
+  type SnapshotsDialogData,
 } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import {
   TagEditorDialogComponent,
-  TagEditorDialogData,
+  type TagEditorDialogData,
 } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import {
-  ElementTypeSchema,
-  FieldSchema,
-  TabSchema,
+  type ElementTypeSchema,
+  type FieldSchema,
+  type TabSchema,
 } from '../../models/schema-types';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
@@ -48,12 +51,12 @@ import { ElementSyncProviderFactory } from '../../services/sync/element-sync-pro
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
-  AriaTabConfig,
+  type AriaTabConfig,
   AriaTabPanelComponent,
   AriaTabsComponent,
 } from '../aria-tabs';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
-import { ResolvedTag } from '../tags/tag.model';
+import { type ResolvedTag } from '../tags/tag.model';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 
 /**

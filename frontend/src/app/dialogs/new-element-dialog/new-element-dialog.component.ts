@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import {
   FormBuilder,
-  FormControl,
+  type FormControl,
   FormsModule,
   ReactiveFormsModule,
   Validators,

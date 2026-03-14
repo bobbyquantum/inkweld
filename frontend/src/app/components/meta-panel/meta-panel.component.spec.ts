@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -10,9 +10,9 @@ import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  ElementRelationship,
+  type ElementRelationship,
   RelationshipCategory,
-  RelationshipTypeDefinition,
+  type RelationshipTypeDefinition,
 } from '../element-ref/element-ref.model';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { MetaPanelComponent } from './meta-panel.component';

@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MAT_DIALOG_DATA,
   MatDialog,
@@ -7,15 +7,15 @@ import {
 } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
-  UnifiedSnapshot,
+  type UnifiedSnapshot,
   UnifiedSnapshotService,
 } from '@services/project/unified-snapshot.service';
 import { of } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import {
   SnapshotsDialogComponent,
-  SnapshotsDialogData,
+  type SnapshotsDialogData,
 } from './snapshots-dialog.component';
 
 describe('SnapshotsDialogComponent', () => {

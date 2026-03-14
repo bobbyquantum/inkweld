@@ -3,11 +3,11 @@ import {
   provideZonelessChangeDetection,
   ViewChild,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { AriaTabPanelComponent } from './aria-tab-panel.component';
-import { AriaTabConfig, AriaTabsComponent } from './aria-tabs.component';
+import { type AriaTabConfig, AriaTabsComponent } from './aria-tabs.component';
 
 // Test host component to wrap AriaTabsComponent with projected content
 @Component({

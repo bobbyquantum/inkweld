@@ -2,10 +2,18 @@ import {
   NO_ERRORS_SCHEMA,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Subject } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 
 import { EditorFloatingMenuComponent } from './editor-floating-menu.component';
 

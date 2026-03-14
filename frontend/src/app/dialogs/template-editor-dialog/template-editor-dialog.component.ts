@@ -1,20 +1,20 @@
 import {
-  CdkDragDrop,
+  type CdkDragDrop,
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   inject,
-  QueryList,
+  type QueryList,
   signal,
   ViewChildren,
 } from '@angular/core';
 import {
   FormBuilder,
-  FormControl,
+  type FormControl,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -33,9 +33,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
 import {
-  ElementTypeSchema,
-  FieldSchema,
-  TabSchema,
+  type ElementTypeSchema,
+  type FieldSchema,
+  type TabSchema,
 } from '../../models/schema-types';
 
 export interface TemplateEditorDialogData {

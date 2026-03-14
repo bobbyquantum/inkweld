@@ -3,9 +3,9 @@ import {
   provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Element, Project } from '@inkweld/index';
+import { type Element, type Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';

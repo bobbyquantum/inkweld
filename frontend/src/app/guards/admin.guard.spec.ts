@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { User } from '@inkweld/model/user';
+import { type User } from '@inkweld/model/user';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SetupService } from '../services/core/setup.service';

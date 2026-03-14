@@ -3,7 +3,7 @@ import {
   computed,
   effect,
   inject,
-  OnDestroy,
+  type OnDestroy,
   signal,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';

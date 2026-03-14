@@ -6,37 +6,37 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ChapterNumbering,
   PublishFormat,
-  PublishPlan,
+  type PublishPlan,
   PublishPlanItemType,
 } from '../../models/publish-plan';
 import {
   EpubGeneratorService,
   EpubPhase,
-  EpubProgress,
-  EpubResult,
+  type EpubProgress,
+  type EpubResult,
 } from './epub-generator.service';
 import {
   HtmlGeneratorService,
   HtmlPhase,
-  HtmlProgress,
-  HtmlResult,
+  type HtmlProgress,
+  type HtmlResult,
 } from './html-generator.service';
 import {
   MarkdownGeneratorService,
   MarkdownPhase,
-  MarkdownProgress,
-  MarkdownResult,
+  type MarkdownProgress,
+  type MarkdownResult,
 } from './markdown-generator.service';
 import {
   PdfGeneratorService,
   PdfPhase,
-  PdfProgress,
-  PdfResult,
+  type PdfProgress,
+  type PdfResult,
 } from './pdf-generator.service';
 import {
   ProjectSyncService,
   SyncPhase,
-  SyncProgress,
+  type SyncProgress,
 } from './project-sync.service';
 import { PublishingPhase, PublishService } from './publish.service';
 import { PublishPlanService } from './publish-plan.service';

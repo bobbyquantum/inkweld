@@ -1,11 +1,11 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TagService } from '../../services/tag/tag.service';
-import { ResolvedTag, TagDefinition } from './tag.model';
+import { type ResolvedTag, type TagDefinition } from './tag.model';
 import { TagChipListComponent } from './tag-chip-list.component';
 
 describe('TagChipListComponent', () => {

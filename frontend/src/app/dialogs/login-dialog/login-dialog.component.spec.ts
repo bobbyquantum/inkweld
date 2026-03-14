@@ -1,14 +1,21 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
 import { AuthenticationService } from '@inkweld/index';
 import { UserService, UserServiceError } from '@services/user/user.service';
 import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedObject,
+  vi,
+} from 'vitest';
 
 import { LoginDialogComponent } from './login-dialog.component';
 

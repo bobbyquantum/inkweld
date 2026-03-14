@@ -1,10 +1,10 @@
 import {
   CdkDrag,
-  CdkDragDrop,
-  CdkDragMove,
+  type CdkDragDrop,
+  type CdkDragMove,
   CdkDragPlaceholder,
   CdkDragPreview,
-  CdkDragSortEvent,
+  type CdkDragSortEvent,
   CdkDropList,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
@@ -13,11 +13,11 @@ import {
   Component,
   computed,
   effect,
-  ElementRef,
+  type ElementRef,
   EventEmitter,
   inject,
   input,
-  OnDestroy,
+  type OnDestroy,
   Output,
   output,
   signal,
@@ -28,12 +28,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { ProjectSearchService } from '@services/core/project-search.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
-import { ProjectElement } from '../../models/project-element';
+import { type ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { LoggerService } from '../../services/core/logger.service';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';

@@ -7,16 +7,16 @@
 
 import { CommonModule } from '@angular/common';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
-  ElementRef,
+  type ElementRef,
   HostListener,
   inject,
   input,
-  OnDestroy,
+  type OnDestroy,
   output,
   signal,
   ViewChild,
@@ -26,8 +26,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 
-import { ElementType } from '../../../../api-client';
-import { ElementSearchResult } from '../element-ref.model';
+import { type ElementType } from '../../../../api-client';
+import { type ElementSearchResult } from '../element-ref.model';
 import { ElementRefService } from '../element-ref.service';
 
 @Component({

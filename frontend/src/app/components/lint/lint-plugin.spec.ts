@@ -1,13 +1,16 @@
 /**
  * @jest-environment jsdom
  */
-import { LintResponse, LintResponseSource } from '@inkweld/model/lint-response';
+import {
+  type LintResponse,
+  LintResponseSource,
+} from '@inkweld/model/lint-response';
 import { Schema } from 'prosemirror-model';
-import { EditorState, Plugin } from 'prosemirror-state';
+import { EditorState, type Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
-import { LintApiService } from './lint-api.service';
+import { type LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey } from './lint-plugin';
 
 // Test timeout configuration is handled by vitest.config.ts

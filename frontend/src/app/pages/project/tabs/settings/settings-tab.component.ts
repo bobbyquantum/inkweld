@@ -1,11 +1,11 @@
 import { Tab, TabList, Tabs } from '@angular/aria/tabs';
 import { DatePipe } from '@angular/common';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   Component,
   computed,
   effect,
-  ElementRef,
+  type ElementRef,
   inject,
   signal,
   ViewChild,
@@ -26,17 +26,17 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import {
   CreateMcpKeyDialogComponent,
-  CreateMcpKeyDialogResult,
+  type CreateMcpKeyDialogResult,
 } from '@dialogs/create-mcp-key-dialog/create-mcp-key-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
-  Collaborator,
+  type Collaborator,
   CollaboratorCollaboratorType,
   CollaboratorRole,
   InvitationStatus,
-  McpPublicKey,
+  type McpPublicKey,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
@@ -50,7 +50,7 @@ import { firstValueFrom } from 'rxjs';
 
 import {
   createDefaultPublishPlan,
-  PublishPlan,
+  type PublishPlan,
 } from '../../../../models/publish-plan';
 import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
 import { TagsTabComponent } from '../tags/tags-tab.component';

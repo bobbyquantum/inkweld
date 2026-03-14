@@ -1,24 +1,27 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { SetupService } from '../core/setup.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import {
-  IElementSyncProvider,
-  ProjectMeta,
+  type IElementSyncProvider,
+  type ProjectMeta,
 } from '../sync/element-sync-provider.interface';
 import { WorldbuildingService } from './worldbuilding.service';
 

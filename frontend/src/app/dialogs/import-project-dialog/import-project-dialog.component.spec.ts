@@ -1,24 +1,31 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedObject,
+  vi,
+} from 'vitest';
 
 import {
   ARCHIVE_VERSION,
-  ArchiveProgress,
+  type ArchiveProgress,
   ImportPhase,
 } from '../../models/project-archive';
 import {
   ProjectImportService,
-  SlugValidationResult,
+  type SlugValidationResult,
 } from '../../services/project/project-import.service';
 import {
   ImportProjectDialogComponent,
-  ImportProjectDialogData,
-  ImportProjectDialogResult,
+  type ImportProjectDialogData,
+  type ImportProjectDialogResult,
 } from './import-project-dialog.component';
 
 describe('ImportProjectDialogComponent', () => {

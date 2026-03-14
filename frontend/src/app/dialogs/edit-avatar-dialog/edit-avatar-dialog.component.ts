@@ -3,15 +3,15 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { SetupService } from '@services/core/setup.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import {
-  ImageCroppedEvent,
+  type ImageCroppedEvent,
   ImageCropperComponent,
-  LoadedImage,
+  type LoadedImage,
 } from 'ngx-image-cropper';
 import { firstValueFrom } from 'rxjs';
 

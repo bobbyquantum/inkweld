@@ -5,7 +5,7 @@
  * allowing users to search and select elements for reference insertion.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -13,7 +13,7 @@ import { MatListModule } from '@angular/material/list';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { ElementType } from '../../../../api-client';
-import { ElementSearchResult } from '../element-ref.model';
+import { type ElementSearchResult } from '../element-ref.model';
 import { ElementRefService } from '../element-ref.service';
 import { ElementRefPopupComponent } from './element-ref-popup.component';
 

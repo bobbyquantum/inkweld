@@ -2,13 +2,13 @@ import {
   ChangeDetectorRef,
   Component,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { Subscription } from 'rxjs';
+import { type Subscription } from 'rxjs';
 
 import { FolderElementEditorComponent } from '../../../../components/folder-element-editor/folder-element-editor.component';
 

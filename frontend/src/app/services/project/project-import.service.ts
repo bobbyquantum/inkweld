@@ -1,31 +1,34 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { Element, Project, ProjectsService } from '@inkweld/index';
+import { type Element, type Project, ProjectsService } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
 import {
   ARCHIVE_VERSION,
-  ArchiveDocumentContent,
-  ArchiveElement,
-  ArchiveManifest,
-  ArchiveMediaFile,
-  ArchiveProgress,
-  ArchiveSnapshot,
-  ArchiveWorldbuildingData,
+  type ArchiveDocumentContent,
+  type ArchiveElement,
+  type ArchiveManifest,
+  type ArchiveMediaFile,
+  type ArchiveProgress,
+  type ArchiveSnapshot,
+  type ArchiveWorldbuildingData,
   ImportPhase,
   MIN_SUPPORTED_VERSION,
-  ProjectArchive,
+  type ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
 } from '../../models/project-archive';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectService } from '../local/local-project.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';

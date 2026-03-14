@@ -1,15 +1,15 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ElementType, Project } from '@inkweld/index';
+import { ElementType, type Project } from '@inkweld/index';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProjectElement } from '../../models/project-element';
+import { type ProjectElement } from '../../models/project-element';
 import { LoggerService } from '../core/logger.service';
 import { SettingsService } from '../core/settings.service';
 import {
   LocalSnapshotService,
-  StoredSnapshot,
+  type StoredSnapshot,
 } from '../local/local-snapshot.service';
 import {
   AUTO_SNAPSHOT_NAME_PREFIX,
@@ -17,7 +17,7 @@ import {
 } from './auto-snapshot.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
-import { AppTab, TabManagerService } from './tab-manager.service';
+import { type AppTab, TabManagerService } from './tab-manager.service';
 import { UnifiedSnapshotService } from './unified-snapshot.service';
 
 describe('AutoSnapshotService', () => {

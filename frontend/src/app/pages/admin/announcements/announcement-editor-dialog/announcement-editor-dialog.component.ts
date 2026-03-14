@@ -1,7 +1,7 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, type OnInit } from '@angular/core';
 import {
   FormBuilder,
-  FormGroup,
+  type FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -21,7 +21,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
-  Announcement,
+  type Announcement,
   AnnouncementService,
 } from '@services/announcement/announcement.service';
 

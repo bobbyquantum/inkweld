@@ -1,4 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  type OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -19,9 +25,9 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import {
   AIProvidersService,
   AITextGenerationService,
-  DefaultTextModelsResponse,
-  OpenRouterModel,
-  TextModelInfo,
+  type DefaultTextModelsResponse,
+  type OpenRouterModel,
+  type TextModelInfo,
 } from 'api-client';
 import { firstValueFrom } from 'rxjs';
 

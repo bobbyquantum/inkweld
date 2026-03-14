@@ -1,9 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { AuthenticationService, OAuthProvidersResponse } from '@inkweld/index';
-import { Observable, of, throwError } from 'rxjs';
+import {
+  AuthenticationService,
+  type OAuthProvidersResponse,
+} from '@inkweld/index';
+import { type Observable, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { OAuthProviderListComponent } from './oauth-provider-list.component';

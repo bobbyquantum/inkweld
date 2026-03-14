@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   PresenceIndicatorComponent,
-  PresenceUser,
+  type PresenceUser,
 } from './presence-indicator.component';
 
 describe('PresenceIndicatorComponent', () => {

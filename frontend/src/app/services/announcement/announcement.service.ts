@@ -1,13 +1,13 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { type HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
-  AdminCreateAnnouncementRequest,
-  AdminCreateAnnouncementRequestPriority,
-  AdminCreateAnnouncementRequestType,
+  type AdminCreateAnnouncementRequest,
+  type AdminCreateAnnouncementRequestPriority,
+  type AdminCreateAnnouncementRequestType,
   AdminService as ApiAdminService,
-  AdminUpdateAnnouncementRequest,
-  AdminUpdateAnnouncementRequestPriority,
-  AdminUpdateAnnouncementRequestType,
+  type AdminUpdateAnnouncementRequest,
+  type AdminUpdateAnnouncementRequestPriority,
+  type AdminUpdateAnnouncementRequestType,
   AnnouncementsService as ApiAnnouncementsService,
 } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';

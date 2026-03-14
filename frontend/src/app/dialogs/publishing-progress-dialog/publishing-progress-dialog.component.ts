@@ -1,5 +1,5 @@
 import { AsyncPipe, DecimalPipe } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, type OnDestroy, type OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -10,10 +10,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import {
   PublishingPhase,
-  PublishingProgress,
+  type PublishingProgress,
   PublishService,
 } from '@services/publish';
-import { Observable, Subject, takeUntil } from 'rxjs';
+import { type Observable, Subject, takeUntil } from 'rxjs';
 
 /**
  * Data passed to the publishing progress dialog

@@ -2,13 +2,13 @@ import {
   DOCUMENT,
   inject,
   Injectable,
-  OnDestroy,
-  Renderer2,
+  type OnDestroy,
+  type Renderer2,
   RendererFactory2,
 } from '@angular/core';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, type Observable } from 'rxjs';
 
 export type ThemeOption = 'light-theme' | 'dark-theme' | 'system';
 

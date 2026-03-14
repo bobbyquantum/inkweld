@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 
 import { SetupService } from '../core/setup.service';
-import { IElementSyncProvider } from './element-sync-provider.interface';
+import { type IElementSyncProvider } from './element-sync-provider.interface';
 import { LocalElementSyncProvider } from './local-element-sync.provider';
 import { YjsElementSyncProvider } from './yjs-element-sync.provider';
 

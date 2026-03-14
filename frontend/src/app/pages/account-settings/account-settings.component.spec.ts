@@ -3,19 +3,19 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import {
   OAuthService as OAuthApiService,
-  OAuthSessionDetails,
+  type OAuthSessionDetails,
   OAuthSessionDetailsGrantsInnerRole,
-  PublicOAuthSession,
+  type PublicOAuthSession,
   UpdateOAuthGrantRequestRole,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { of, throwError } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { AccountSettingsComponent } from './account-settings.component';
 

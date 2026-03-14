@@ -3,13 +3,16 @@ import {
   ElementRef,
   inject,
   Input,
-  OnChanges,
-  OnInit,
+  type OnChanges,
+  type OnInit,
   ViewEncapsulation,
 } from '@angular/core';
-import { MatTooltipModule, TooltipPosition } from '@angular/material/tooltip';
+import {
+  MatTooltipModule,
+  type TooltipPosition,
+} from '@angular/material/tooltip';
 
-import { ExtendedCorrectionDto } from './correction-dto.extension';
+import { type ExtendedCorrectionDto } from './correction-dto.extension';
 
 @Component({
   selector: 'app-lint-overlay',

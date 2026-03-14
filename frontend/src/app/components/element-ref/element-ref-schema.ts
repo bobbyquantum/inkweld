@@ -6,10 +6,10 @@
  * within document content.
  */
 
-import { NodeSpec } from 'prosemirror-model';
+import { type NodeSpec } from 'prosemirror-model';
 
-import { ElementType } from '../../../api-client';
-import { ElementRefNodeAttrs } from './element-ref.model';
+import { type ElementType } from '../../../api-client';
+import { type ElementRefNodeAttrs } from './element-ref.model';
 
 /**
  * ProseMirror node specification for element references

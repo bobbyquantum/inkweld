@@ -6,7 +6,7 @@
  * with typed, bidirectional relationships.
  */
 
-import { ElementType } from '../../../api-client';
+import { type ElementType } from '../../../api-client';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Relationship Categories & Types

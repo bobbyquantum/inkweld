@@ -1,16 +1,16 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { ElementType, Project } from '@inkweld/index';
-import { MockedObject, vi } from 'vitest';
+import { ElementType, type Project } from '@inkweld/index';
+import { type MockedObject, vi } from 'vitest';
 
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { NewElementDialogComponent } from './new-element-dialog.component';

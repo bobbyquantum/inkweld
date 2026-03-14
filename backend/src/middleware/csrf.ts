@@ -1,4 +1,4 @@
-import { MiddlewareHandler } from 'hono';
+import { type MiddlewareHandler } from 'hono';
 import { randomBytes } from 'crypto';
 import { ForbiddenError } from '../errors';
 import { config } from '../config/env';

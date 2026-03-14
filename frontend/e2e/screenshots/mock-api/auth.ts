@@ -1,7 +1,7 @@
-import { Route } from '@playwright/test';
+import { type Route } from '@playwright/test';
 
 import { mockApi } from './index';
-import { MockUserDto, mockUsers } from './users';
+import { type MockUserDto, mockUsers } from './users';
 
 interface RegisterRequestBody {
   username: string;

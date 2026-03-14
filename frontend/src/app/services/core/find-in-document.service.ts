@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 
 import {
   dispatchClose,
@@ -10,7 +10,7 @@ import {
   dispatchSearch,
   dispatchToggleCaseSensitive,
   findPluginKey,
-  FindPluginState,
+  type FindPluginState,
   getFindState,
 } from '../../components/find-in-document/find-plugin';
 import { LoggerService } from '../core/logger.service';

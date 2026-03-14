@@ -1,10 +1,13 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
+import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { LoggerService } from '../core/logger.service';
-import { LocalSnapshotService, StoredSnapshot } from './local-snapshot.service';
+import {
+  LocalSnapshotService,
+  type StoredSnapshot,
+} from './local-snapshot.service';
 import { StorageService } from './storage.service';
 
 /**

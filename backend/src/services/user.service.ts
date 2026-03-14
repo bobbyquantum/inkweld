@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { eq, like, or, asc, and } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
-import { users, User, InsertUser } from '../db/schema';
+import { users, type User, type InsertUser } from '../db/schema';
 import { configService } from './config.service';
 
 const SALT_ROUNDS = 10;

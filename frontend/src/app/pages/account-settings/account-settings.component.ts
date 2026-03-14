@@ -4,7 +4,7 @@ import {
   Component,
   computed,
   inject,
-  OnInit,
+  type OnInit,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,10 +22,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import {
   OAuthService as OAuthApiService,
-  OAuthSessionDetails,
-  OAuthSessionDetailsGrantsInner,
-  OAuthSessionDetailsGrantsInnerRole,
-  PublicOAuthSession,
+  type OAuthSessionDetails,
+  type OAuthSessionDetailsGrantsInner,
+  type OAuthSessionDetailsGrantsInnerRole,
+  type PublicOAuthSession,
   UpdateOAuthGrantRequestRole,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';

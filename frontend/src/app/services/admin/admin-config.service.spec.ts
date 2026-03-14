@@ -6,7 +6,7 @@ import {
 import { TestBed } from '@angular/core/testing';
 
 import { SetupService } from '../core/setup.service';
-import { AdminConfigService, ConfigValue } from './admin-config.service';
+import { AdminConfigService, type ConfigValue } from './admin-config.service';
 
 describe('AdminConfigService', () => {
   let service: AdminConfigService;

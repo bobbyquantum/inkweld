@@ -9,7 +9,7 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { User } from '@inkweld/model/user';
+import { type User } from '@inkweld/model/user';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

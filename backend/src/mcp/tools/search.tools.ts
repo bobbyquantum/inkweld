@@ -19,7 +19,7 @@ import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
 import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { getStorageService } from '../../services/storage.service';
-import { Element } from '../../schemas/element.schemas';
+import { type Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
 import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
 import { logger } from '../../services/logger.service';

@@ -10,10 +10,10 @@
 
 import { inject, Injectable, signal } from '@angular/core';
 import {
-  CanvasConfig,
-  CanvasLayer,
-  CanvasObject,
-  CanvasViewport,
+  type CanvasConfig,
+  type CanvasLayer,
+  type CanvasObject,
+  type CanvasViewport,
   createDefaultCanvasConfig,
   createDefaultLayer,
 } from '@models/canvas.model';

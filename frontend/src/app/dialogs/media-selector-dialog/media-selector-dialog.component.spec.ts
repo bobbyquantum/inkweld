@@ -1,15 +1,15 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import {
   LocalStorageService,
-  MediaInfo,
+  type MediaInfo,
 } from '@services/local/local-storage.service';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import {
   MediaSelectorDialogComponent,
-  MediaSelectorDialogData,
+  type MediaSelectorDialogData,
 } from './media-selector-dialog.component';
 
 /**

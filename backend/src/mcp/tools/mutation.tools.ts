@@ -23,7 +23,7 @@ import { registerTool } from '../mcp.handler';
 import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
 import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
-import { Element, ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
+import { type Element, type ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
 import { logger } from '../../services/logger.service';
 import {
   isCloudflareWorkers,

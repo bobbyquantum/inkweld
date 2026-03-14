@@ -14,10 +14,10 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { AuthenticationService, User } from '@inkweld/index';
+import { AuthenticationService, type User } from '@inkweld/index';
 import { UsersService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
-import { Mock, vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 import { userServiceMock } from '../../../testing/user-api.mock';
 import { StorageService } from '../local/storage.service';

@@ -1,15 +1,15 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Project, User } from '@inkweld/index';
+import { type Project, type User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { of, Subject } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { UserProfileComponent } from './user-profile.component';
 

@@ -3,7 +3,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { LocalStorageService, MediaInfo } from './local-storage.service';
+import { LocalStorageService, type MediaInfo } from './local-storage.service';
 import { ProjectSyncService } from './project-sync.service';
 
 /**

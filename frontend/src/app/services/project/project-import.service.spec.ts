@@ -3,19 +3,19 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ElementType, Project, ProjectsService } from '@inkweld/index';
+import { ElementType, type Project, ProjectsService } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, MockedObject } from 'vitest';
+import { beforeEach, describe, expect, it, type MockedObject } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
 import {
   ARCHIVE_VERSION,
-  ArchiveElement,
-  ArchiveManifest,
+  type ArchiveElement,
+  type ArchiveManifest,
   ImportPhase,
   MIN_SUPPORTED_VERSION,
-  ProjectArchive,
+  type ProjectArchive,
   ProjectArchiveErrorType,
 } from '../../models/project-archive';
 import { LoggerService } from '../core/logger.service';

@@ -1,16 +1,16 @@
 import { Tab, TabList, Tabs } from '@angular/aria/tabs';
-import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { CdkDrag, type CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
-  AfterViewInit,
+  type AfterViewInit,
   ChangeDetectorRef,
   Component,
   effect,
-  ElementRef,
+  type ElementRef,
   EventEmitter,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   Output,
   signal,
   ViewChild,
@@ -26,13 +26,13 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { DocumentService } from '@services/project/document.service';
 import {
-  AppTab,
+  type AppTab,
   ProjectStateService,
 } from '@services/project/project-state.service';
-import { filter, Subject, Subscription, takeUntil } from 'rxjs';
+import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';

@@ -1,17 +1,24 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
-import { RegistrationResult } from '@components/registration-form/registration-form.component';
-import { AuthenticationService, User } from '@inkweld/index';
+import { type RegistrationResult } from '@components/registration-form/registration-form.component';
+import { AuthenticationService, type User } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedObject,
+  vi,
+} from 'vitest';
 
 import { RegisterDialogComponent } from './register-dialog.component';
 

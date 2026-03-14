@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { User } from '@inkweld/index';
+import { type User } from '@inkweld/index';
 
 import { SetupService } from '../core/setup.service';
 import { LocalUserService } from '../local/local-user.service';

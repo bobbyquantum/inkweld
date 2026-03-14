@@ -2,17 +2,21 @@
  * Tests for Element Reference ProseMirror Plugin
  */
 import { Schema } from 'prosemirror-model';
-import { EditorState, TextSelection, Transaction } from 'prosemirror-state';
-import { DecorationSet, EditorView } from 'prosemirror-view';
+import {
+  EditorState,
+  TextSelection,
+  type Transaction,
+} from 'prosemirror-state';
+import { DecorationSet, type EditorView } from 'prosemirror-view';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ElementType } from '../../../api-client';
-import { ElementRefNodeAttrs } from './element-ref.model';
+import { type ElementRefNodeAttrs } from './element-ref.model';
 import {
   cancelElementRef,
   createElementRefPlugin,
   deleteElementRef,
-  ElementRefPluginCallbacks,
+  type ElementRefPluginCallbacks,
   elementRefPluginKey,
   getElementRefState,
   insertElementRef,

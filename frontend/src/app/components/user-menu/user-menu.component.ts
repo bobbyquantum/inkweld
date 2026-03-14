@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, OnInit } from '@angular/core';
+import { Component, computed, inject, Input, type OnInit } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -6,17 +6,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
-import { User } from '@inkweld/index';
+import { type User } from '@inkweld/index';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
-  ServerConfig,
+  type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
-import { ThemeOption, ThemeService } from '@themes/theme.service';
+import { type ThemeOption, ThemeService } from '@themes/theme.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 

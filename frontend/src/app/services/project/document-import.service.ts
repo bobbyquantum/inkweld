@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
-import { ArchiveWorldbuildingData } from '../../models/project-archive';
+import { type ArchiveWorldbuildingData } from '../../models/project-archive';
 import { LoggerService } from '../core/logger.service';
 
 /**

@@ -1,7 +1,7 @@
 import {
-  BrowserContext,
+  type BrowserContext,
   expect as baseExpect,
-  Page,
+  type Page,
   test as base,
 } from '@playwright/test';
 

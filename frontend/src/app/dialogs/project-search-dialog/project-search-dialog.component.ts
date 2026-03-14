@@ -1,12 +1,12 @@
 import {
-  AfterViewInit,
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
-  ElementRef,
+  type ElementRef,
   HostListener,
   inject,
-  OnDestroy,
+  type OnDestroy,
   signal,
   ViewChild,
 } from '@angular/core';
@@ -19,11 +19,11 @@ import { ElementType } from '@inkweld/index';
 
 import { FindInDocumentService } from '../../services/core/find-in-document.service';
 import {
-  ProjectSearchFilters,
-  ProjectSearchProgress,
-  ProjectSearchResult,
+  type ProjectSearchFilters,
+  type ProjectSearchProgress,
+  type ProjectSearchResult,
   ProjectSearchService,
-  SearchSnippet,
+  type SearchSnippet,
 } from '../../services/core/project-search.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { RelationshipService } from '../../services/relationship/relationship.service';

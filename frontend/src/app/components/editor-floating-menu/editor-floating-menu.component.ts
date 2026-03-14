@@ -6,16 +6,16 @@ import {
   effect,
   HostListener,
   Input,
-  OnDestroy,
+  type OnDestroy,
   signal,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { toggleMark } from 'prosemirror-commands';
-import { MarkType } from 'prosemirror-model';
-import { EditorState, Transaction } from 'prosemirror-state';
-import { Subscription } from 'rxjs';
+import { type MarkType } from 'prosemirror-model';
+import { type EditorState, type Transaction } from 'prosemirror-state';
+import { type Subscription } from 'rxjs';
 
 type Command = (
   state: EditorState,

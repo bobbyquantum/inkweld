@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthenticationService } from '@inkweld/api/authentication.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
-import { Project } from '@inkweld/model/project';
+import { type Project } from '@inkweld/model/project';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

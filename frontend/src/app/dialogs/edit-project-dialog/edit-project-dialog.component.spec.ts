@@ -1,13 +1,13 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ProjectsService } from '@inkweld/api/projects.service';
-import { Project, User } from '@inkweld/index';
-import { LoadedImage } from 'ngx-image-cropper';
+import { type ProjectsService } from '@inkweld/api/projects.service';
+import { type Project, type User } from '@inkweld/index';
+import { type LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -16,7 +16,7 @@ import {
   describe,
   expect,
   it,
-  MockedObject,
+  type MockedObject,
   vi,
 } from 'vitest';
 

@@ -4,15 +4,18 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { PublishFormat } from '../../models/publish-plan';
-import { PublishedFile, SharePermission } from '../../models/published-file';
+import {
+  type PublishedFile,
+  SharePermission,
+} from '../../models/published-file';
 import { SetupService } from '../../services/core/setup.service';
 import { PublishedFilesService } from '../../services/publish/published-files.service';
 import {
   PublishCompleteDialogComponent,
-  PublishCompleteDialogData,
+  type PublishCompleteDialogData,
 } from './publish-complete-dialog.component';
 
 describe('PublishCompleteDialogComponent', () => {

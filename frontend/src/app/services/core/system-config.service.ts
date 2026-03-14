@@ -1,9 +1,9 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
   ConfigurationService,
-  SystemFeatures,
+  type SystemFeatures,
   SystemFeaturesAppMode,
-  SystemFeaturesPasswordPolicy,
+  type SystemFeaturesPasswordPolicy,
 } from '@inkweld/index';
 import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';

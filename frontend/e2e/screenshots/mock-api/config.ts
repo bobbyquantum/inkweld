@@ -1,4 +1,4 @@
-import { Route } from '@playwright/test';
+import { type Route } from '@playwright/test';
 
 import { mockApi } from './index';
 

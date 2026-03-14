@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';

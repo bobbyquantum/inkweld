@@ -1,13 +1,13 @@
-import { provideZonelessChangeDetection, QueryList } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection, type QueryList } from '@angular/core';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatExpansionPanel } from '@angular/material/expansion';
+import { type MatExpansionPanel } from '@angular/material/expansion';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { TemplateEditorDialogComponent } from './template-editor-dialog.component';
 
 describe('TemplateEditorDialogComponent', () => {

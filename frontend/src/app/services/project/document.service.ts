@@ -2,11 +2,11 @@ import {
   inject,
   Injectable,
   NgZone,
-  Signal,
+  type Signal,
   signal,
-  WritableSignal,
+  type WritableSignal,
 } from '@angular/core';
-import { Editor } from '@bobbyquantum/ngx-editor';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/index';
 import { Plugin } from 'prosemirror-state';
 import { Observable, Subject } from 'rxjs';
@@ -17,7 +17,7 @@ import {
   yUndoPlugin,
   yXmlFragmentToProsemirrorJSON,
 } from 'y-prosemirror';
-import { WebsocketProvider } from 'y-websocket';
+import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { createKeyboardShortcutsPlugin } from '../../components/editor-shortcuts';

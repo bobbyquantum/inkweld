@@ -1,9 +1,9 @@
 import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
-import { projects, Project, InsertProject } from '../db/schema/projects';
+import { projects, type Project, type InsertProject } from '../db/schema/projects';
 import { users } from '../db/schema/users';
-import { projectSlugAliases, ProjectSlugAlias } from '../db/schema/project-slug-aliases';
-import { projectTombstones, ProjectTombstone } from '../db/schema/project-tombstones';
+import { projectSlugAliases, type ProjectSlugAlias } from '../db/schema/project-slug-aliases';
+import { projectTombstones, type ProjectTombstone } from '../db/schema/project-tombstones';
 
 class ProjectService {
   /**

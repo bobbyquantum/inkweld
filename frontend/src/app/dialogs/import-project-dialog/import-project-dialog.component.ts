@@ -3,14 +3,14 @@ import {
   computed,
   effect,
   inject,
-  OnDestroy,
-  OnInit,
+  type OnDestroy,
+  type OnInit,
   signal,
 } from '@angular/core';
 import {
   FormControl,
   ReactiveFormsModule,
-  ValidatorFn,
+  type ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,7 +25,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 
-import { ArchiveManifest, ArchiveProject } from '../../models/project-archive';
+import {
+  type ArchiveManifest,
+  type ArchiveProject,
+} from '../../models/project-archive';
 import { ProjectImportService } from '../../services/project/project-import.service';
 
 export interface ImportProjectDialogData {

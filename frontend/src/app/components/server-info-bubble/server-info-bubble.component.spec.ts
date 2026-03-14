@@ -1,11 +1,11 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import {
-  ServerConfig,
+  type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { ServerInfoBubbleComponent } from './server-info-bubble.component';
 

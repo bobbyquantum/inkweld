@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Element } from '@inkweld/index';
+import { type Element } from '@inkweld/index';
 
 import { LoggerService } from '../core/logger.service';
 import { SettingsService } from '../core/settings.service';

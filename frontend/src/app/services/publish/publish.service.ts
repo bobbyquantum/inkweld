@@ -12,7 +12,13 @@
  */
 
 import { inject, Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, take, takeUntil } from 'rxjs';
+import {
+  BehaviorSubject,
+  type Observable,
+  Subject,
+  take,
+  takeUntil,
+} from 'rxjs';
 
 import {
   PublishFormat,
@@ -22,9 +28,9 @@ import {
   type PublishStats,
 } from '../../models/publish-plan';
 import {
-  CreatePublishedFileRequest,
+  type CreatePublishedFileRequest,
   getMimeTypeForFormat,
-  PublishedFile,
+  type PublishedFile,
   SharePermission,
 } from '../../models/published-file';
 import { ProjectStateService } from '../project/project-state.service';

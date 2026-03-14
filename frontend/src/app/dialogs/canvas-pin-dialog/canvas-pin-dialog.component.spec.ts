@@ -1,17 +1,17 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
-import { Element } from '../../../api-client/model/element';
+import { type Element } from '../../../api-client/model/element';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import {
   CanvasPinDialogComponent,
-  CanvasPinDialogData,
+  type CanvasPinDialogData,
 } from './canvas-pin-dialog.component';
 
 describe('CanvasPinDialogComponent', () => {

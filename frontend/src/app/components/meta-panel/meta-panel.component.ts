@@ -20,20 +20,20 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
-  ElementRelationship,
+  type ElementRelationship,
   RelationshipService,
-  RelationshipTypeDefinition,
+  type RelationshipTypeDefinition,
 } from '@services/relationship';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
-import { Element, ElementType } from '../../../api-client';
+import { type Element, ElementType } from '../../../api-client';
 import {
   AddRelationshipDialogComponent,
-  AddRelationshipDialogData,
-  AddRelationshipDialogResult,
+  type AddRelationshipDialogData,
+  type AddRelationshipDialogResult,
 } from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
 import { ElementRefService } from '../element-ref/element-ref.service';
-import { ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
+import { type ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
 
 /**
  * Grouped relationships by type for display

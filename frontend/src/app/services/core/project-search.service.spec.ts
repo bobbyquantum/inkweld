@@ -1,14 +1,14 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { Element, ElementType, Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import {
-  ProjectSearchProgress,
+  type ProjectSearchProgress,
   ProjectSearchService,
 } from './project-search.service';
 

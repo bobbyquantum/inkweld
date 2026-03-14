@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+import { SwUpdate, type VersionReadyEvent } from '@angular/service-worker';
 import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import { of, Subject } from 'rxjs';
 import { vi } from 'vitest';

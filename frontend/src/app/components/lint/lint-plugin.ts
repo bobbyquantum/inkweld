@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Node } from 'prosemirror-model';
+import { type Node } from 'prosemirror-model';
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
-import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
-import { debounceTime, Subject, Subscription } from 'rxjs';
+import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
+import { debounceTime, Subject, type Subscription } from 'rxjs';
 
-import { LintResponse } from '../../../api-client/model/lint-response';
-import { ExtendedCorrectionDto } from './correction-dto.extension';
-import { LintApiService } from './lint-api.service';
+import { type LintResponse } from '../../../api-client/model/lint-response';
+import { type ExtendedCorrectionDto } from './correction-dto.extension';
+import { type LintApiService } from './lint-api.service';
 import { LintStorageService } from './lint-storage.service';
 
 // Store the plugin state

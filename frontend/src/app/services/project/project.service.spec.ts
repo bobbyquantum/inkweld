@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import { HttpErrorResponse, type HttpResponse } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -8,10 +8,10 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
-import { Project } from '@inkweld/model/project';
-import { Observable } from 'rxjs';
+import { type Project } from '@inkweld/model/project';
+import { type Observable } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
+import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { apiErr, apiOk } from '../../../testing/utils';
 import { XsrfService } from '../auth/xsrf.service';

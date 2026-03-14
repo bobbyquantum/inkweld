@@ -2,7 +2,7 @@
  * Database initialization for Bun runtime using native bun:sqlite
  * This file can ONLY be imported in Bun-specific code paths
  */
-import { drizzle, BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
+import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';

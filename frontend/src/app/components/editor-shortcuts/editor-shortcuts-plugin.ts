@@ -8,7 +8,7 @@ import { toggleMark } from 'prosemirror-commands';
 import { keymap } from 'prosemirror-keymap';
 import type { NodeType, Schema } from 'prosemirror-model';
 import { liftListItem, wrapInList } from 'prosemirror-schema-list';
-import { Command, Plugin } from 'prosemirror-state';
+import { type Command, type Plugin } from 'prosemirror-state';
 
 /**
  * Configuration options for the keyboard shortcuts plugin

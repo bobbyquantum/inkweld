@@ -3,18 +3,18 @@ import {
   Component,
   inject,
   Input,
-  OnChanges,
-  OnDestroy,
-  OnInit,
+  type OnChanges,
+  type OnDestroy,
+  type OnInit,
   signal,
-  SimpleChanges,
+  type SimpleChanges,
 } from '@angular/core';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { generateFracticonDataURL } from 'fracticons';
-import { Subscription } from 'rxjs';
+import { type Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-user-avatar',

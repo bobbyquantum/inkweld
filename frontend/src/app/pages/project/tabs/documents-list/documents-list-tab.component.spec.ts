@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,10 +7,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { Mock, vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { DocumentsListTabComponent } from './documents-list-tab.component';

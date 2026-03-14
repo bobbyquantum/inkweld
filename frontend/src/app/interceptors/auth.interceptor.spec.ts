@@ -7,7 +7,14 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedObject,
+  vi,
+} from 'vitest';
 
 import { AuthTokenService } from '../services/auth/auth-token.service';
 import { SetupService } from '../services/core/setup.service';

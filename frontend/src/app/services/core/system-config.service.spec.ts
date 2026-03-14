@@ -2,11 +2,11 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ConfigurationService } from '@inkweld/api/configuration.service';
 import {
-  SystemFeatures,
+  type SystemFeatures,
   SystemFeaturesAppMode,
 } from '@inkweld/model/system-features';
 import { of, throwError } from 'rxjs';
-import { Mock, MockedObject, vi } from 'vitest';
+import { type Mock, type MockedObject, vi } from 'vitest';
 
 import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';

@@ -15,11 +15,11 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { nanoid } from 'nanoid';
 
 import {
-  ElementTag,
-  ElementTagView,
-  ResolvedTag,
-  TagDefinition,
-  TagIndexEntry,
+  type ElementTag,
+  type ElementTagView,
+  type ResolvedTag,
+  type TagDefinition,
+  type TagIndexEntry,
 } from '../../components/tags/tag.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';

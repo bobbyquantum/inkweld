@@ -3,16 +3,16 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   provideZonelessChangeDetection,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import {
-  AuthorizationInfo,
+  type AuthorizationInfo,
   ConsentRequestGrantsInnerRole,
   OAuthService as OAuthApiService,
 } from '@inkweld/index';
 import { BehaviorSubject, of, throwError } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
 import { OAuthConsentComponent } from './oauth-consent.component';
 

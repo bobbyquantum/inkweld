@@ -2,8 +2,8 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 
 import { environment } from '../../../environments/environment';
 import {
-  ServerConfig,
-  ServerVersionInfo,
+  type ServerConfig,
+  type ServerVersionInfo,
   StorageContextService,
 } from './storage-context.service';
 import { UpdateService } from './update.service';

@@ -20,7 +20,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
 import {
   createDefaultPublishPlan,
-  PublishPlan,
+  type PublishPlan,
 } from '../../../../models/publish-plan';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 

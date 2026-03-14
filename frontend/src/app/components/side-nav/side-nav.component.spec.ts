@@ -1,20 +1,20 @@
 import {
   provideZonelessChangeDetection,
   signal,
-  WritableSignal,
+  type WritableSignal,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { Project } from '@inkweld/index';
+import { type Project } from '@inkweld/index';
 import {
-  ProjectSyncStatus,
+  type ProjectSyncStatus,
   SyncQueueService,
   SyncStage,
 } from '@services/sync/sync-queue.service';
 import { UserService } from '@services/user/user.service';
-import { MockedObject, vi } from 'vitest';
+import { type MockedObject, vi } from 'vitest';
 
-import { NavItem, SideNavComponent } from './side-nav.component';
+import { type NavItem, SideNavComponent } from './side-nav.component';
 
 describe('SideNavComponent', () => {
   let component: SideNavComponent;

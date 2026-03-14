@@ -15,7 +15,7 @@ import { RelationshipService } from '@services/relationship/relationship.service
 
 import {
   RelationshipCategory,
-  RelationshipTypeDefinition,
+  type RelationshipTypeDefinition,
 } from '../../../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 

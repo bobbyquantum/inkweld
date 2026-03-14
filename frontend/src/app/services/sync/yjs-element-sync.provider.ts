@@ -1,19 +1,22 @@
 import { inject, Injectable } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { nanoid } from 'nanoid';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
+import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -23,10 +26,10 @@ import {
   setupReauthentication,
 } from './authenticated-websocket-provider';
 import {
-  IElementSyncProvider,
-  ProjectMeta,
-  SyncConnectionConfig,
-  SyncConnectionResult,
+  type IElementSyncProvider,
+  type ProjectMeta,
+  type SyncConnectionConfig,
+  type SyncConnectionResult,
 } from './element-sync-provider.interface';
 
 /**

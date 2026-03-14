@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { Element, ElementType } from '@inkweld/index';
+import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
+import { type Element, ElementType } from '@inkweld/index';
 
 import { QuickOpenDialogComponent } from '../../dialogs/quick-open-dialog/quick-open-dialog.component';
 import { ProjectStateService } from '../project/project-state.service';

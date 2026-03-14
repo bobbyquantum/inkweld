@@ -1,11 +1,14 @@
-import { ElementType } from '../../api-client';
+import { type ElementType } from '../../api-client';
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../components/tags/tag.model';
-import { PublishPlan } from './publish-plan';
-import { ElementTypeSchema } from './schema-types';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../components/tags/tag.model';
+import { type PublishPlan } from './publish-plan';
+import { type ElementTypeSchema } from './schema-types';
 
 /**
  * Current archive format version.

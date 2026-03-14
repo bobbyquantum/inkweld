@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -10,14 +10,14 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Element, ElementType } from '../../../api-client';
+import { type Element, ElementType } from '../../../api-client';
 import {
   RelationshipCategory,
-  RelationshipTypeDefinition,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import {
   AddRelationshipDialogComponent,
-  AddRelationshipDialogData,
+  type AddRelationshipDialogData,
 } from './add-relationship-dialog.component';
 
 describe('AddRelationshipDialogComponent', () => {

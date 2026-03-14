@@ -1,8 +1,15 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { User } from '@inkweld/index';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+import { type User } from '@inkweld/index';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockedObject,
+  vi,
+} from 'vitest';
 
 import { SetupService } from '../core/setup.service';
 import { LocalUserService } from '../local/local-user.service';

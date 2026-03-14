@@ -18,13 +18,13 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
-  AdminImageModelProfile,
+  type AdminImageModelProfile,
   AdminImageModelProfileProvider,
-  AdminListImageProviders200ResponseInner,
+  type AdminListImageProviders200ResponseInner,
   AIImageGenerationService,
   AIProvidersService,
   CreateImageModelProfileRequestProvider,
-  ImageModelInfo,
+  type ImageModelInfo,
   ImageProviderType,
 } from 'api-client';
 import { of, throwError } from 'rxjs';
@@ -32,7 +32,7 @@ import { vi } from 'vitest';
 
 import {
   ImageProfileDialogComponent,
-  ImageProfileDialogData,
+  type ImageProfileDialogData,
 } from './image-profile-dialog.component';
 
 describe('ImageProfileDialogComponent', () => {

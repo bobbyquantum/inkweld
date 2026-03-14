@@ -1,14 +1,17 @@
-import { Element } from '@inkweld/index';
-import { Observable } from 'rxjs';
+import { type Element } from '@inkweld/index';
+import { type Observable } from 'rxjs';
 
 import {
-  ElementRelationship,
-  RelationshipTypeDefinition,
+  type ElementRelationship,
+  type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
-import { DocumentSyncState } from '../../models/document-sync-state';
-import { PublishPlan } from '../../models/publish-plan';
-import { ElementTypeSchema } from '../../models/schema-types';
+import {
+  type ElementTag,
+  type TagDefinition,
+} from '../../components/tags/tag.model';
+import { type DocumentSyncState } from '../../models/document-sync-state';
+import { type PublishPlan } from '../../models/publish-plan';
+import { type ElementTypeSchema } from '../../models/schema-types';
 
 /**
  * Project metadata stored in Yjs for offline-first sync.

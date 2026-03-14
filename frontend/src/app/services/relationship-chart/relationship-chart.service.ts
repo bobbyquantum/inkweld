@@ -7,16 +7,16 @@
  */
 
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 
-import { RelationshipTypeDefinition } from '../../components/element-ref/element-ref.model';
+import { type RelationshipTypeDefinition } from '../../components/element-ref/element-ref.model';
 import {
-  ChartConfig,
-  ChartEdge,
-  ChartFilters,
-  ChartGraphData,
-  ChartLayout,
-  ChartNode,
+  type ChartConfig,
+  type ChartEdge,
+  type ChartFilters,
+  type ChartGraphData,
+  type ChartLayout,
+  type ChartNode,
   createDefaultChartConfig,
 } from '../../models/relationship-chart.model';
 import { LoggerService } from '../core/logger.service';

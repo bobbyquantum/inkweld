@@ -7,16 +7,16 @@ import {
   provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
-import { User } from '@inkweld/model/user';
-import { AdminService, AdminUser } from '@services/admin/admin.service';
+import { type User } from '@inkweld/model/user';
+import { AdminService, type AdminUser } from '@services/admin/admin.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
-import { MockedObject } from 'vitest';
+import { type MockedObject } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminUsersComponent } from './users.component';

@@ -21,7 +21,7 @@ import { firstValueFrom } from 'rxjs';
 
 import {
   ConfirmationDialogComponent,
-  ConfirmationDialogData,
+  type ConfirmationDialogData,
 } from '../../../confirmation-dialog/confirmation-dialog.component';
 
 @Component({
