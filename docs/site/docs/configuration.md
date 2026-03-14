@@ -22,6 +22,7 @@ cp .env.example .env
 ```
 
 The backend searches for `.env` in this order:
+
 1. `backend/.env`
 2. `.env` (project root - **recommended**)
 3. `~/.inkweld/.env` (user config directory)
@@ -73,11 +74,12 @@ SESSION_SECRET=your-super-secret-key-at-least-32-characters-long
 ```
 
 :::danger Critical Security Setting
+
 - Use a strong, random value (at least 32 characters)
 - Never commit this to version control
 - Changing this invalidates all existing sessions
 - If used for database encryption, changing it makes existing encrypted data unreadable
-:::
+  :::
 
 Generate a secure secret:
 
@@ -152,10 +154,12 @@ LOG_LEVEL=none     # Disable logging
 ```
 
 **Log Output Format:**
+
 - **Development**: Human-readable, colored output to the terminal
 - **Production**: Structured JSON for log aggregators (Docker, Cloudflare, etc.)
 
 **Features:**
+
 - Request correlation IDs (`X-Correlation-ID` header) for tracing
 - Automatic timing of request/response cycles
 - Structured error logging with stack traces
@@ -190,6 +194,7 @@ DB_PATH=./data/inkweld.db
 **Default:** `./data` | Directory path
 
 Base directory for all data storage, including:
+
 - Per-project LevelDB instances (Yjs documents)
 - User-uploaded files (if not using R2)
 - Temporary files
@@ -323,6 +328,7 @@ SERVE_FRONTEND=false    # API-only mode
 ```
 
 Set to `false` when:
+
 - Hosting frontend separately (e.g., Cloudflare Pages)
 - Running in API-only mode for integrations
 
@@ -351,6 +357,7 @@ OPENAI_API_KEY=sk-...
 ```
 
 Features enabled with this key:
+
 - AI writing assistance
 - Content linting suggestions
 - DALL-E image generation
@@ -457,37 +464,37 @@ wrangler secret put SESSION_SECRET --env production
 
 ## Environment Variable Reference
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SESSION_SECRET` | Required | Session encryption key (32+ chars) |
-| `ALLOWED_ORIGINS` | Required | Comma-separated CORS origins |
-| `PORT` | `8333` | HTTP server port |
-| `HOST` | `0.0.0.0` | Network interface to bind |
-| `NODE_ENV` | `development` | Environment mode |
-| `DB_TYPE` | `sqlite` | Database type (`sqlite` or `d1`) |
-| `DB_PATH` | `./sqlite.db` | SQLite file path |
-| `DATA_PATH` | `./data` | Data storage directory |
-| `USER_APPROVAL_REQUIRED` | `false` | Require admin approval for new users |
-| `GITHUB_ENABLED` | `false` | Enable GitHub OAuth |
-| `GITHUB_CLIENT_ID` | - | GitHub OAuth client ID |
-| `GITHUB_CLIENT_SECRET` | - | GitHub OAuth client secret |
-| `GITHUB_CALLBACK_URL` | Auto | GitHub OAuth callback URL |
-| `DEFAULT_ADMIN_USERNAME` | - | Initial admin username |
-| `DEFAULT_ADMIN_PASSWORD` | - | Initial admin password |
-| `SERVE_FRONTEND` | `true` | Serve embedded frontend |
-| `FRONTEND_DIST` | - | External frontend path |
-| `OPENAI_API_KEY` | - | OpenAI API key for AI features |
-| `AI_KILL_SWITCH` | `true` | Disable all AI features when `true` |
-| `WORKERSAI_ACCOUNT_ID` | - | Cloudflare Account ID for Workers AI |
-| `WORKERSAI_API_TOKEN` | - | Cloudflare Workers AI API token |
-| `COOKIE_DOMAIN` | Auto | Cookie domain |
-| `GC` | `true` | Yjs garbage collection |
-| `LOG_LEVEL` | `debug`/`info` | Log verbosity (`debug`, `info`, `warn`, `error`, `none`) |
+| Variable                 | Default        | Description                                              |
+| ------------------------ | -------------- | -------------------------------------------------------- |
+| `SESSION_SECRET`         | Required       | Session encryption key (32+ chars)                       |
+| `ALLOWED_ORIGINS`        | Required       | Comma-separated CORS origins                             |
+| `PORT`                   | `8333`         | HTTP server port                                         |
+| `HOST`                   | `0.0.0.0`      | Network interface to bind                                |
+| `NODE_ENV`               | `development`  | Environment mode                                         |
+| `DB_TYPE`                | `sqlite`       | Database type (`sqlite` or `d1`)                         |
+| `DB_PATH`                | `./sqlite.db`  | SQLite file path                                         |
+| `DATA_PATH`              | `./data`       | Data storage directory                                   |
+| `USER_APPROVAL_REQUIRED` | `false`        | Require admin approval for new users                     |
+| `GITHUB_ENABLED`         | `false`        | Enable GitHub OAuth                                      |
+| `GITHUB_CLIENT_ID`       | -              | GitHub OAuth client ID                                   |
+| `GITHUB_CLIENT_SECRET`   | -              | GitHub OAuth client secret                               |
+| `GITHUB_CALLBACK_URL`    | Auto           | GitHub OAuth callback URL                                |
+| `DEFAULT_ADMIN_USERNAME` | -              | Initial admin username                                   |
+| `DEFAULT_ADMIN_PASSWORD` | -              | Initial admin password                                   |
+| `SERVE_FRONTEND`         | `true`         | Serve embedded frontend                                  |
+| `FRONTEND_DIST`          | -              | External frontend path                                   |
+| `OPENAI_API_KEY`         | -              | OpenAI API key for AI features                           |
+| `AI_KILL_SWITCH`         | `true`         | Disable all AI features when `true`                      |
+| `WORKERSAI_ACCOUNT_ID`   | -              | Cloudflare Account ID for Workers AI                     |
+| `WORKERSAI_API_TOKEN`    | -              | Cloudflare Workers AI API token                          |
+| `COOKIE_DOMAIN`          | Auto           | Cookie domain                                            |
+| `GC`                     | `true`         | Yjs garbage collection                                   |
+| `LOG_LEVEL`              | `debug`/`info` | Log verbosity (`debug`, `info`, `warn`, `error`, `none`) |
 
 ---
 
 ## Next Steps
 
-- **[Admin CLI](./admin-guide/admin-cli)** - Manage users and settings from the command line
+- **[Admin Panel](./admin-guide/overview)** - Manage users, settings, and system health from the web UI
 - **[AI Image Generation](./admin-guide/ai-image-generation)** - Set up AI-powered features
 - **[Troubleshooting](./troubleshooting/logging)** - Common issues and solutions

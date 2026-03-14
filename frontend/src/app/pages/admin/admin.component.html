@@ -40,6 +40,14 @@
         <mat-icon matListItemIcon>email</mat-icon>
         <span matListItemTitle>Email</span>
       </a>
+      <a
+        mat-list-item
+        routerLink="system-health"
+        routerLinkActive="active"
+        data-testid="admin-nav-system-health">
+        <mat-icon matListItemIcon>monitor_heart</mat-icon>
+        <span matListItemTitle>System Health</span>
+      </a>
       @if (!isAiKillSwitchEnabled()) {
         <a
           mat-list-item
