@@ -97,8 +97,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
-  private tagService = inject(TagService);
-  private syncProviderFactory = inject(ElementSyncProviderFactory);
+  private readonly tagService = inject(TagService);
+  private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);

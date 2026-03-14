@@ -210,14 +210,14 @@ export class ColorSwatchesComponent {
   onHexInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     // Strip non-hex characters
-    input.value = input.value.replace(/[^0-9a-fA-F]/g, '');
+    input.value = input.value.replaceAll(/[^0-9a-fA-F]/g, '');
   }
 
   onHexBlur(): void {
     // Read raw value from the input
     const el = this.hexInputRef?.nativeElement;
     if (!el) return;
-    const hex = el.value.replace(/[^0-9a-fA-F]/g, '');
+    const hex = el.value.replaceAll(/[^0-9a-fA-F]/g, '');
     if (hex.length === 3 || hex.length === 6) {
       const color = `#${hex.toUpperCase()}`;
       this.selectedColor = color;
