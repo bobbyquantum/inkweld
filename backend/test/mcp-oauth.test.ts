@@ -94,7 +94,10 @@ beforeAll(async () => {
     clientType: 'confidential',
   });
   testConfidentialClientId = registration.clientId;
-  testConfidentialClientSecret = registration.clientSecret!;
+  testConfidentialClientSecret = registration.clientSecret ?? '';
+  if (!testConfidentialClientSecret) {
+    throw new Error('Expected clientSecret for confidential client');
+  }
 });
 
 afterAll(() => {
