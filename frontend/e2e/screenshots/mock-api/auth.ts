@@ -1,5 +1,6 @@
 import { type Route } from '@playwright/test';
 
+import { TEST_PASSWORDS } from '../../common/test-credentials';
 import { mockApi } from './index';
 import { type MockUserDto, mockUsers } from './users';
 
@@ -238,7 +239,7 @@ export function setupAuthHandlers(): void {
     // In a real app, we'd check password hash
     // For testing, we'll use a convention: "correct-password" is always right
     const user = mockUsers.findByUsername(body.username);
-    const validPassword = body.password === 'correct-password';
+    const validPassword = body.password === TEST_PASSWORDS.MOCK_CORRECT;
 
     if (!user || !validPassword) {
       await route.fulfill({

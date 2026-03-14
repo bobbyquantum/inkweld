@@ -4,6 +4,7 @@ import { users, projects } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Projects', () => {
   let testUserId: string;
@@ -22,7 +23,7 @@ describe('Projects', () => {
     await db.delete(users).where(eq(users.username, 'projectuser'));
 
     // Create test user
-    const hashedPassword = await bcrypt.hash('testpassword123', 10);
+    const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
 
     const [testUser] = await db
       .insert(users)
@@ -41,7 +42,7 @@ describe('Projects', () => {
     testUsername = testUser.username ?? 'projectuser';
 
     // Login to get session
-    const loggedIn = await client.login('projectuser', 'testpassword123');
+    const loggedIn = await client.login('projectuser', TEST_PASSWORDS.DEFAULT);
     expect(loggedIn).toBe(true);
   });
 

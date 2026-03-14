@@ -1,3 +1,4 @@
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import { expect, test } from './fixtures';
 
 /**
@@ -17,7 +18,7 @@ test.describe('Online Infrastructure', () => {
     const page = await context.newPage();
 
     const testUsername = `e2etest-${Date.now()}`;
-    const testPassword = 'TestPassword123!';
+    const testPassword = TEST_PASSWORDS.USER;
 
     // First, verify the backend config has USER_APPROVAL_REQUIRED=false
     const configResponse = await page.request.get(

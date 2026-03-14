@@ -1,5 +1,6 @@
 import { type Page } from '@playwright/test';
 
+import { TEST_API_KEYS, TEST_PASSWORDS } from '../common/test-credentials';
 import { createProject, expect, test } from './fixtures';
 
 /**
@@ -33,9 +34,9 @@ async function waitForDialogReady(page: Page): Promise<void> {
 
 // Fake API keys that look valid but won't work
 const FAKE_API_KEYS = {
-  openai: 'sk-fake-test-key-1234567890abcdefghijklmnopqrstuv',
-  openrouter: 'sk-or-v1-fake-test-key-1234567890abcdefghijklmnopqrstuv',
-  falai: 'fal-ai-fake-test-key-1234567890abcdefghijklmnopqrstuv',
+  openai: TEST_API_KEYS.FAKE_OPENAI,
+  openrouter: TEST_API_KEYS.FAKE_OPENROUTER,
+  falai: TEST_API_KEYS.FAKE_FALAI,
 };
 
 // Static test profile for user tests - created once
@@ -340,7 +341,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
       {
         data: {
           username: 'e2e-admin',
-          password: 'E2eAdminPassword123!',
+          password: TEST_PASSWORDS.ADMIN,
         },
       }
     );

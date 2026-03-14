@@ -4,12 +4,13 @@ import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
 import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
+import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Media Routes', () => {
   let baseUrl: string;
   let client: TestClient;
   const username = 'mediauser';
-  const password = 'password123';
+  const password = TEST_PASSWORDS.ALT;
   const slug = 'media-test-project';
 
   beforeAll(async () => {

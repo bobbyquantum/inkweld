@@ -5,6 +5,7 @@
  * connected to a real backend server.
  */
 import { generateUniqueUsername } from '../common';
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import { expect, test } from './fixtures';
 
 // Helper to open register dialog
@@ -31,8 +32,10 @@ test.describe('Error Handling and Edge Cases', () => {
       // Try special characters - should show validation error or server error
       await page.getByTestId('username-input').fill('user@#$%');
       await page.keyboard.press('Tab');
-      await page.getByTestId('password-input').fill('ValidPass123!');
-      await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+      await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
 
       // The dialog should still be open and handling the error gracefully
       await expect(page.locator('mat-dialog-container')).toBeVisible();
@@ -47,8 +50,10 @@ test.describe('Error Handling and Edge Cases', () => {
 
       await page.getByTestId('username-input').fill(veryLongString);
       await page.keyboard.press('Tab');
-      await page.getByTestId('password-input').fill('ValidPass123!');
-      await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+      await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
 
       // Should handle gracefully without crashing - dialog still open
       await expect(page.locator('mat-dialog-container')).toBeVisible();
@@ -61,8 +66,10 @@ test.describe('Error Handling and Edge Cases', () => {
 
       await page.getByTestId('username-input').fill('user👨‍💻😀');
       await page.keyboard.press('Tab');
-      await page.getByTestId('password-input').fill('ValidPass123!');
-      await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+      await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
 
       // Should handle unicode gracefully (likely reject as invalid username)
       await expect(page.getByTestId('username-input')).toHaveValue('user👨‍💻😀');
@@ -141,8 +148,10 @@ test.describe('Error Handling and Edge Cases', () => {
         page.locator('mat-icon:has-text("check_circle")')
       ).toBeVisible();
 
-      await page.getByTestId('password-input').fill('ValidPass123!');
-      await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+      await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
       await page.keyboard.press('Tab'); // Trigger second blur
 
       // Wait for button to be enabled before attempting to click
@@ -202,8 +211,10 @@ test.describe('Error Handling and Edge Cases', () => {
         page.locator('mat-icon:has-text("check_circle")')
       ).toBeVisible();
 
-      await page.getByTestId('password-input').fill('ValidPass123!');
-      await page.getByTestId('confirm-password-input').fill('ValidPass123!');
+      await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
+      await page
+        .getByTestId('confirm-password-input')
+        .fill(TEST_PASSWORDS.VALID);
       await page.keyboard.press('Tab');
 
       // Click submit button once (button disables after first click)

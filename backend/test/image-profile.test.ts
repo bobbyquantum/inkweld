@@ -11,6 +11,7 @@ import { imageModelProfiles } from '../src/db/schema/image-model-profiles';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Image Profile Routes', () => {
   let adminClient: TestClient;
@@ -34,7 +35,7 @@ describe('Image Profile Routes', () => {
     await db.delete(users).where(eq(users.username, 'imgprofileuser'));
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('testpassword123', 10);
+    const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
 
     const [adminUser] = await db
       .insert(users)
@@ -68,11 +69,11 @@ describe('Image Profile Routes', () => {
     testUserId = regularUser.id;
 
     // Login admin
-    const adminLoggedIn = await adminClient.login('imgprofileadmin', 'testpassword123');
+    const adminLoggedIn = await adminClient.login('imgprofileadmin', TEST_PASSWORDS.DEFAULT);
     expect(adminLoggedIn).toBe(true);
 
     // Login regular user
-    const userLoggedIn = await userClient.login('imgprofileuser', 'testpassword123');
+    const userLoggedIn = await userClient.login('imgprofileuser', TEST_PASSWORDS.DEFAULT);
     expect(userLoggedIn).toBe(true);
   });
 

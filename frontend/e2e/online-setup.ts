@@ -11,12 +11,14 @@
 
 import { request } from '@playwright/test';
 
+import { TEST_API_KEYS, TEST_PASSWORDS } from './common/test-credentials';
+
 const API_BASE_URL = 'http://localhost:9333';
 
 // Must match playwright.online.config.ts env vars
 const DEFAULT_ADMIN = {
   username: 'e2e-admin',
-  password: 'E2eAdminPassword123!',
+  password: TEST_PASSWORDS.ADMIN,
 };
 
 export default async function globalSetup(): Promise<void> {
@@ -89,7 +91,7 @@ export default async function globalSetup(): Promise<void> {
               'Content-Type': 'application/json',
             },
             data: {
-              apiKey: 'sk-fake-test-key-1234567890abcdefghijklmnopqrstuv',
+              apiKey: TEST_API_KEYS.FAKE_OPENAI,
             },
           }
         );
