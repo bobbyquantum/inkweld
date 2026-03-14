@@ -713,7 +713,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     pos: number,
     marks: Record<string, unknown> = {}
   ): { nodes: any[]; pos: number } {
-    const tagMatch = /^<([a-zA-Z_][a-zA-Z0-9_-]*)/.exec(xml.substring(pos));
+    const tagMatch = xml.substring(pos).match(/^<([a-zA-Z_][a-zA-Z0-9_-]*)/);
     if (!tagMatch) {
       // Not a valid tag, treat as text
       let end = xml.indexOf('<', pos + 1);
@@ -734,9 +734,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       while (cursor < xml.length && /\s/.test(xml[cursor])) cursor++;
       if (xml[cursor] === '>' || (xml[cursor] === '/' && xml[cursor + 1] === '>')) break;
 
-      const attrMatch = /^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/.exec(
-        xml.substring(cursor)
-      );
+      const attrMatch = xml
+        .substring(cursor)
+        .match(/^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/);
       if (attrMatch) {
         attrs[attrMatch[1]] = this.decodeXmlEntities(attrMatch[2] ?? attrMatch[3] ?? '');
         cursor += attrMatch[0].length;
@@ -770,7 +770,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         }
         const childResult = this.parseXmlNode(Y, xml, cursor, newMarks);
         if (!childResult) {
-          const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
+          const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
           if (closeMatch) cursor += closeMatch[0].length;
           break;
         }
@@ -806,7 +806,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       }
       const childResult = this.parseXmlNode(Y, xml, cursor);
       if (!childResult) {
-        const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
+        const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
         if (closeMatch) cursor += closeMatch[0].length;
         break;
       }
