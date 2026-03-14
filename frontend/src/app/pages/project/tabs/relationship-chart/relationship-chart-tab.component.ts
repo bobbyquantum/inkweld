@@ -1012,7 +1012,10 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       const projectKey = `${username}/${slug}`;
 
       // Try local IndexedDB first
-      const localUrl = await this.localStorageService.getMediaUrl(projectKey, mediaId);
+      const localUrl = await this.localStorageService.getMediaUrl(
+        projectKey,
+        mediaId
+      );
       if (localUrl) {
         this.blobUrls.push(localUrl);
         return localUrl;
@@ -1022,7 +1025,10 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       if (this.setupService.getMode() !== 'local') {
         try {
           await this.mediaSyncService.downloadAllFromServer(projectKey);
-          const retryUrl = await this.localStorageService.getMediaUrl(projectKey, mediaId);
+          const retryUrl = await this.localStorageService.getMediaUrl(
+            projectKey,
+            mediaId
+          );
           if (retryUrl) {
             this.blobUrls.push(retryUrl);
             return retryUrl;
