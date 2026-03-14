@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
@@ -14,6 +13,9 @@ import {
   type ChartGraphData,
   createDefaultChartConfig,
 } from '../../../../models/relationship-chart.model';
+import { SetupService } from '../../../../services/core/setup.service';
+import { LocalStorageService } from '../../../../services/local/local-storage.service';
+import { MediaSyncService } from '../../../../services/local/media-sync.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
@@ -90,8 +92,16 @@ describe('RelationshipChartTabComponent', () => {
     getElementImages: vi.fn(() => of({ images: {} })),
   };
 
-  const mockHttpClient = {
-    get: vi.fn(() => of(new Blob())),
+  const mockLocalStorageService = {
+    getMediaUrl: vi.fn().mockResolvedValue(null),
+  };
+
+  const mockMediaSyncService = {
+    downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const mockSetupService = {
+    getMode: vi.fn().mockReturnValue('server'),
   };
 
   const mockRelationshipService = {
@@ -132,7 +142,9 @@ describe('RelationshipChartTabComponent', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: ElementsService, useValue: mockElementsService },
-        { provide: HttpClient, useValue: mockHttpClient },
+        { provide: LocalStorageService, useValue: mockLocalStorageService },
+        { provide: MediaSyncService, useValue: mockMediaSyncService },
+        { provide: SetupService, useValue: mockSetupService },
         { provide: RelationshipService, useValue: mockRelationshipService },
       ],
     })
@@ -608,5 +620,125 @@ describe('RelationshipChartTabComponent', () => {
     config.filters.showOrphans = false;
     mockChartService.activeConfig.set(config);
     expect(component['showOrphans']()).toBe(false);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // resolveImageUrl
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('should pass through data: URLs unchanged', async () => {
+    fixture.detectChanges();
+    const dataUrl = 'data:image/png;base64,abc123';
+    const result = await component['resolveImageUrl'](dataUrl, 'user', 'proj');
+    expect(result).toBe(dataUrl);
+  });
+
+  it('should pass through regular HTTP URLs unchanged', async () => {
+    fixture.detectChanges();
+    const httpUrl = 'https://example.com/image.png';
+    const result = await component['resolveImageUrl'](httpUrl, 'user', 'proj');
+    expect(result).toBe(httpUrl);
+  });
+
+  it('should resolve media:// URL from local IndexedDB', async () => {
+    fixture.detectChanges();
+    mockLocalStorageService.getMediaUrl.mockResolvedValue(
+      'blob:http://local/abc'
+    );
+
+    const result = await component['resolveImageUrl'](
+      'media://element-abc.png',
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toBe('blob:http://local/abc');
+    expect(mockLocalStorageService.getMediaUrl).toHaveBeenCalledWith(
+      'testuser/test-project',
+      'element-abc'
+    );
+  });
+
+  it('should sync and retry when media:// URL not found locally', async () => {
+    fixture.detectChanges();
+    mockLocalStorageService.getMediaUrl
+      .mockResolvedValueOnce(null) // first lookup fails
+      .mockResolvedValueOnce('blob:http://local/synced'); // retry succeeds
+
+    const result = await component['resolveImageUrl'](
+      'media://cover.jpg',
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toBe('blob:http://local/synced');
+    expect(mockMediaSyncService.downloadAllFromServer).toHaveBeenCalledWith(
+      'testuser/test-project'
+    );
+    expect(mockLocalStorageService.getMediaUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it('should return null when media:// URL not found even after sync', async () => {
+    fixture.detectChanges();
+    mockLocalStorageService.getMediaUrl.mockResolvedValue(null);
+
+    const result = await component['resolveImageUrl'](
+      'media://missing.png',
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toBeNull();
+    expect(mockMediaSyncService.downloadAllFromServer).toHaveBeenCalled();
+  });
+
+  it('should skip sync in local mode and return null for missing media', async () => {
+    fixture.detectChanges();
+    mockSetupService.getMode.mockReturnValue('local');
+    mockLocalStorageService.getMediaUrl.mockResolvedValue(null);
+
+    const result = await component['resolveImageUrl'](
+      'media://element-abc.png',
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toBeNull();
+    expect(mockMediaSyncService.downloadAllFromServer).not.toHaveBeenCalled();
+  });
+
+  it('should return null when sync fails for missing media', async () => {
+    fixture.detectChanges();
+    mockLocalStorageService.getMediaUrl.mockResolvedValue(null);
+    mockMediaSyncService.downloadAllFromServer.mockRejectedValue(
+      new Error('Network error')
+    );
+
+    const result = await component['resolveImageUrl'](
+      'media://broken.png',
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('should handle media:// filenames without extension', async () => {
+    fixture.detectChanges();
+    mockLocalStorageService.getMediaUrl.mockResolvedValue(
+      'blob:http://local/noext'
+    );
+
+    const result = await component['resolveImageUrl'](
+      'media://noextension',
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toBe('blob:http://local/noext');
+    expect(mockLocalStorageService.getMediaUrl).toHaveBeenCalledWith(
+      'testuser/test-project',
+      'noextension'
+    );
   });
 });
