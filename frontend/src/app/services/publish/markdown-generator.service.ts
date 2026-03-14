@@ -741,9 +741,9 @@ export class MarkdownGeneratorService {
   private headingToAnchor(heading: string): string {
     return heading
       .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replaceAll(/[^\w\s-]/g, '')
+      .replaceAll(/\s+/g, '-')
+      .replaceAll(/-{2,}/g, '-')
+      .replaceAll(/^-+|-+$/g, '');
   }
 }

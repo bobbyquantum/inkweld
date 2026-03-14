@@ -26,7 +26,7 @@ export async function getPasswordPolicy(db: DatabaseInstance): Promise<PasswordP
     ]);
 
   return {
-    minLength: Math.max(8, parseInt(minLength.value, 10) || 8),
+    minLength: Math.max(8, Number.parseInt(minLength.value, 10) || 8),
     requireUppercase,
     requireLowercase,
     requireNumber,
