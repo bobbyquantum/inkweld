@@ -756,6 +756,27 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
     body = await c.req.json();
   }
 
+  // RFC 6749 §2.3.1: Support Authorization: Basic for client_secret_basic auth
+  const authHeader = c.req.header('authorization') || '';
+  if (authHeader.startsWith('Basic ')) {
+    try {
+      const decoded = atob(authHeader.slice(6));
+      const colonIdx = decoded.indexOf(':');
+      if (colonIdx > 0) {
+        const basicClientId = decodeURIComponent(decoded.slice(0, colonIdx));
+        const basicClientSecret = decodeURIComponent(decoded.slice(colonIdx + 1));
+        // Basic auth overrides body params per RFC 6749 §2.3.1
+        body.client_id = basicClientId;
+        body.client_secret = basicClientSecret;
+      }
+    } catch {
+      return c.json(
+        { error: 'invalid_client', error_description: 'Malformed Authorization header' },
+        401
+      );
+    }
+  }
+
   const clientIp =
     c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || c.req.header('x-real-ip');
   const userAgent = c.req.header('user-agent');
@@ -781,6 +802,7 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
           code: body.code,
           codeVerifier: body.code_verifier,
           clientId: body.client_id,
+          clientSecret: body.client_secret,
           redirectUri: body.redirect_uri,
           issuer,
           clientIp,
@@ -810,6 +832,8 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
       const tokens = await mcpOAuthService.refreshTokens(
         db,
         body.refresh_token,
+        body.client_id,
+        body.client_secret,
         issuer,
         clientIp,
         userAgent,

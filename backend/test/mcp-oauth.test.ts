@@ -7,6 +7,7 @@ import { join } from 'path';
 import * as schema from '../src/db/schema';
 import { mcpOAuthService } from '../src/services/mcp-oauth.service';
 import { mcpOAuthClients } from '../src/db/schema/mcp-oauth-clients';
+import { mcpOAuthCodes } from '../src/db/schema/mcp-oauth-codes';
 import { mcpOAuthSessions } from '../src/db/schema/mcp-oauth-sessions';
 import { projectCollaborators } from '../src/db/schema/project-collaborators';
 import { projects } from '../src/db/schema/projects';
@@ -19,6 +20,8 @@ let testProjectId: string;
 let testProject2Id: string;
 let testClientId: string;
 let testClient2Id: string;
+let testConfidentialClientId: string;
+let testConfidentialClientSecret: string;
 
 beforeAll(async () => {
   sqlite = new BunDatabase(':memory:');
@@ -83,6 +86,18 @@ beforeAll(async () => {
       createdAt: now,
     },
   ]);
+
+  // Create a confidential client for client_secret tests
+  const registration = await mcpOAuthService.registerClient(db, {
+    clientName: 'Confidential Agent',
+    redirectUris: ['http://localhost:5000/callback'],
+    clientType: 'confidential',
+  });
+  testConfidentialClientId = registration.clientId;
+  testConfidentialClientSecret = registration.clientSecret ?? '';
+  if (!testConfidentialClientSecret) {
+    throw new Error('Expected clientSecret for confidential client');
+  }
 });
 
 afterAll(() => {
@@ -90,9 +105,10 @@ afterAll(() => {
 });
 
 beforeEach(async () => {
-  // Clean up sessions and collaborators between tests
+  // Clean up sessions, collaborators, and codes between tests
   await db.delete(projectCollaborators);
   await db.delete(mcpOAuthSessions);
+  await db.delete(mcpOAuthCodes);
 });
 
 describe('MCP OAuth Service - Session Management', () => {
@@ -412,5 +428,166 @@ describe('MCP OAuth Service - Session Management', () => {
       const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
       expect(grants[0].role).toBe('admin');
     });
+  });
+});
+
+// Helper: compute S256 PKCE challenge from a code verifier
+async function computeCodeChallenge(verifier: string): Promise<string> {
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  const bytes = new Uint8Array(digest);
+  let binary = '';
+  for (const b of bytes) {
+    binary += String.fromCodePoint(b);
+  }
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+describe('MCP OAuth Service - exchangeAuthorizationCode', () => {
+  const codeVerifier = 'test-code-verifier-that-is-long-enough-for-pkce';
+  let codeChallenge: string;
+
+  beforeAll(async () => {
+    codeChallenge = await computeCodeChallenge(codeVerifier);
+  });
+
+  it('should reject client ID mismatch', async () => {
+    const code = await mcpOAuthService.createAuthorizationCode(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      redirectUri: 'http://localhost:3000/callback',
+      codeChallenge,
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+
+    await expect(
+      mcpOAuthService.exchangeAuthorizationCode(db, {
+        code,
+        codeVerifier,
+        clientId: testClient2Id, // different client
+        redirectUri: 'http://localhost:3000/callback',
+        issuer: 'http://localhost:8333',
+      })
+    ).rejects.toThrow('Client ID mismatch');
+  });
+
+  it('should exchange code successfully with matching client ID (public client)', async () => {
+    const code = await mcpOAuthService.createAuthorizationCode(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      redirectUri: 'http://localhost:3000/callback',
+      codeChallenge,
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+
+    const tokens = await mcpOAuthService.exchangeAuthorizationCode(db, {
+      code,
+      codeVerifier,
+      clientId: testClientId,
+      redirectUri: 'http://localhost:3000/callback',
+      issuer: 'http://localhost:8333',
+    });
+
+    expect(tokens.accessToken).toBeDefined();
+    expect(tokens.refreshToken).toBeDefined();
+  });
+
+  it('should reject exchange when client is not found', async () => {
+    const code = await mcpOAuthService.createAuthorizationCode(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      redirectUri: 'http://localhost:3000/callback',
+      codeChallenge,
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+
+    // Delete the client so lookupClient returns null
+    const [deleted] = await db
+      .delete(mcpOAuthClients)
+      .where(eq(mcpOAuthClients.id, testClientId))
+      .returning();
+
+    await expect(
+      mcpOAuthService.exchangeAuthorizationCode(db, {
+        code,
+        codeVerifier,
+        clientId: testClientId,
+        redirectUri: 'http://localhost:3000/callback',
+        issuer: 'http://localhost:8333',
+      })
+    ).rejects.toThrow('Client not found');
+
+    // Re-insert the client for subsequent tests
+    await db.insert(mcpOAuthClients).values(deleted);
+  });
+
+  it('should require client_secret for confidential clients', async () => {
+    const code = await mcpOAuthService.createAuthorizationCode(db, {
+      userId: testUserId,
+      clientId: testConfidentialClientId,
+      redirectUri: 'http://localhost:5000/callback',
+      codeChallenge,
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+
+    await expect(
+      mcpOAuthService.exchangeAuthorizationCode(db, {
+        code,
+        codeVerifier,
+        clientId: testConfidentialClientId,
+        redirectUri: 'http://localhost:5000/callback',
+        issuer: 'http://localhost:8333',
+        // no clientSecret provided
+      })
+    ).rejects.toThrow('client_secret is required for confidential clients');
+  });
+
+  it('should reject wrong client_secret for confidential clients', async () => {
+    const code = await mcpOAuthService.createAuthorizationCode(db, {
+      userId: testUserId,
+      clientId: testConfidentialClientId,
+      redirectUri: 'http://localhost:5000/callback',
+      codeChallenge,
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+
+    await expect(
+      mcpOAuthService.exchangeAuthorizationCode(db, {
+        code,
+        codeVerifier,
+        clientId: testConfidentialClientId,
+        clientSecret: 'wrong-secret',
+        redirectUri: 'http://localhost:5000/callback',
+        issuer: 'http://localhost:8333',
+      })
+    ).rejects.toThrow('Invalid client_secret');
+  });
+
+  it('should accept correct client_secret for confidential clients', async () => {
+    const code = await mcpOAuthService.createAuthorizationCode(db, {
+      userId: testUserId,
+      clientId: testConfidentialClientId,
+      redirectUri: 'http://localhost:5000/callback',
+      codeChallenge,
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+
+    const tokens = await mcpOAuthService.exchangeAuthorizationCode(db, {
+      code,
+      codeVerifier,
+      clientId: testConfidentialClientId,
+      clientSecret: testConfidentialClientSecret,
+      redirectUri: 'http://localhost:5000/callback',
+      issuer: 'http://localhost:8333',
+    });
+
+    expect(tokens.accessToken).toBeDefined();
+    expect(tokens.refreshToken).toBeDefined();
   });
 });
