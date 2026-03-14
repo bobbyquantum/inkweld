@@ -39,8 +39,7 @@ coveragePathIgnorePatterns = [
   # External API clients with no testable logic
   "**/fal-model-metadata.service.ts",
   "**/reference-image-loader.ts",
-  # OAuth routes (complex external OAuth 2.1 flows)
-  "**/oauth.routes.ts",
+  # OAuth service (complex external OAuth 2.1 flows - tested via route integration tests)
   "**/mcp-oauth.service.ts",
   # Image processing & audit (platform-specific / external API dependent)
   "**/image.service.ts",
