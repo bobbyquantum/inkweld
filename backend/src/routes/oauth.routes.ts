@@ -781,6 +781,7 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
           code: body.code,
           codeVerifier: body.code_verifier,
           clientId: body.client_id,
+          clientSecret: body.client_secret,
           redirectUri: body.redirect_uri,
           issuer,
           clientIp,
