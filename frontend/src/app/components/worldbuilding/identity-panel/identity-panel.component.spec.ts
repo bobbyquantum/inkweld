@@ -234,25 +234,19 @@ describe('IdentityPanelComponent', () => {
     it('should allow http:// URLs', async () => {
       fixture.detectChanges();
       await resolveImageUrl(component, 'http://example.com/image.png');
-      expect(component.resolvedImageUrl()).toBe(
-        'http://example.com/image.png'
-      );
+      expect(component.resolvedImageUrl()).toBe('http://example.com/image.png');
     });
 
     it('should allow blob: URLs', async () => {
       fixture.detectChanges();
       await resolveImageUrl(component, 'blob:http://localhost/abc123');
-      expect(component.resolvedImageUrl()).toBe(
-        'blob:http://localhost/abc123'
-      );
+      expect(component.resolvedImageUrl()).toBe('blob:http://localhost/abc123');
     });
 
     it('should allow data:image/ URLs', async () => {
       fixture.detectChanges();
       await resolveImageUrl(component, 'data:image/png;base64,abc123');
-      expect(component.resolvedImageUrl()).toBe(
-        'data:image/png;base64,abc123'
-      );
+      expect(component.resolvedImageUrl()).toBe('data:image/png;base64,abc123');
     });
 
     it('should reject javascript: URLs', async () => {
