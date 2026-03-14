@@ -9,6 +9,7 @@ import * as schema from '../src/db/schema';
 import { users, passwordResetTokens } from '../src/db/schema';
 import { configService } from '../src/services/config.service';
 import { config } from '../src/db/schema/config';
+import { TEST_PASSWORDS } from './test-credentials';
 
 let db: BunSQLiteDatabase<typeof schema>;
 let sqlite: BunDatabase;
@@ -39,7 +40,7 @@ beforeEach(async () => {
 
   // Create a test user
   testUserId = crypto.randomUUID();
-  const hashedPassword = await bcrypt.hash('oldpassword', 10);
+  const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.OLD, 10);
   await db.insert(users).values({
     id: testUserId,
     username: 'resetuser',

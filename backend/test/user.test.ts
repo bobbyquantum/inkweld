@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
 import { userService } from '../src/services/user.service';
+import { TEST_PASSWORDS } from './test-credentials';
 
 describe('User Service', () => {
   const db = getDatabase();
@@ -114,7 +115,7 @@ describe('User Service', () => {
       const user = await userService.create(db, {
         username: 'serviceuser',
         email: 'service@example.com',
-        password: 'mypassword123',
+        password: TEST_PASSWORDS.DEFAULT,
         name: 'Service User',
       });
 
@@ -124,7 +125,7 @@ describe('User Service', () => {
       expect(user.name).toBe('Service User');
       expect(user.enabled).toBe(true);
       // Password should be hashed, not plain text
-      expect(user.password).not.toBe('mypassword123');
+      expect(user.password).not.toBe(TEST_PASSWORDS.DEFAULT);
       expect(user.password?.startsWith('$2')).toBe(true); // bcrypt hash prefix
     });
 
@@ -132,7 +133,7 @@ describe('User Service', () => {
       const user = await userService.create(db, {
         username: 'serviceuser',
         email: 'service@example.com',
-        password: 'mypassword123',
+        password: TEST_PASSWORDS.DEFAULT,
       });
 
       expect(user.name).toBeNull();
@@ -182,10 +183,10 @@ describe('User Service', () => {
       const user = await userService.create(db, {
         username: 'passworduser',
         email: 'password@example.com',
-        password: 'correctpassword',
+        password: TEST_PASSWORDS.CORRECT,
       });
 
-      const isValid = await userService.validatePassword(user, 'correctpassword');
+      const isValid = await userService.validatePassword(user, TEST_PASSWORDS.CORRECT);
       expect(isValid).toBe(true);
     });
 
@@ -193,10 +194,10 @@ describe('User Service', () => {
       const user = await userService.create(db, {
         username: 'passworduser',
         email: 'password@example.com',
-        password: 'correctpassword',
+        password: TEST_PASSWORDS.CORRECT,
       });
 
-      const isValid = await userService.validatePassword(user, 'wrongpassword');
+      const isValid = await userService.validatePassword(user, TEST_PASSWORDS.WRONG);
       expect(isValid).toBe(false);
     });
 
@@ -209,7 +210,7 @@ describe('User Service', () => {
         name: 'No Password User',
       });
 
-      const isValid = await userService.validatePassword(user, 'anypassword');
+      const isValid = await userService.validatePassword(user, TEST_PASSWORDS.DEFAULT);
       expect(isValid).toBe(false);
     });
   });
@@ -219,21 +220,21 @@ describe('User Service', () => {
       const user = await userService.create(db, {
         username: 'passworduser',
         email: 'password@example.com',
-        password: 'oldpassword',
+        password: TEST_PASSWORDS.OLD,
       });
 
-      await userService.updatePassword(db, user.id, 'newpassword');
+      await userService.updatePassword(db, user.id, TEST_PASSWORDS.NEW);
 
       const updated = await userService.findById(db, user.id);
       expect(updated).toBeDefined();
       if (!updated) throw new Error('User not found after update');
 
       // Old password should no longer work
-      const oldValid = await userService.validatePassword(updated, 'oldpassword');
+      const oldValid = await userService.validatePassword(updated, TEST_PASSWORDS.OLD);
       expect(oldValid).toBe(false);
 
       // New password should work
-      const newValid = await userService.validatePassword(updated, 'newpassword');
+      const newValid = await userService.validatePassword(updated, TEST_PASSWORDS.NEW);
       expect(newValid).toBe(true);
     });
   });
@@ -261,7 +262,7 @@ describe('User Service', () => {
       const user = await userService.create(db, {
         username: 'serviceuser',
         email: 'service@example.com',
-        password: 'password123',
+        password: TEST_PASSWORDS.ALT,
       });
 
       expect(user.enabled).toBe(true);
@@ -276,7 +277,7 @@ describe('User Service', () => {
       const user = await userService.create(db, {
         username: 'serviceuser',
         email: 'service@example.com',
-        password: 'password123',
+        password: TEST_PASSWORDS.ALT,
       });
 
       await userService.setUserEnabled(db, user.id, false);
@@ -416,7 +417,7 @@ describe('User Routes', () => {
     await db.delete(users).where(eq(users.username, 'searchuser2'));
     await db.delete(users).where(eq(users.username, 'testadmin'));
 
-    const hashedPassword = await bcrypt.hash('testpassword123', 10);
+    const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
     await db.insert(users).values([
       {
         id: crypto.randomUUID(),

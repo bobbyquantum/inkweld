@@ -10,6 +10,7 @@ import {
 import { eq, and } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Collaboration', () => {
   let ownerUserId: string;
@@ -33,7 +34,7 @@ describe('Collaboration', () => {
     await db.delete(users).where(eq(users.username, 'collab_member'));
 
     // Create project owner
-    const hashedPassword = await bcrypt.hash('testpassword123', 10);
+    const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
 
     const [owner] = await db
       .insert(users)
@@ -67,8 +68,8 @@ describe('Collaboration', () => {
     collaboratorUsername = collaborator.username ?? 'collab_member';
 
     // Login both users
-    await ownerClient.login('collab_owner', 'testpassword123');
-    await collaboratorClient.login('collab_member', 'testpassword123');
+    await ownerClient.login('collab_owner', TEST_PASSWORDS.DEFAULT);
+    await collaboratorClient.login('collab_member', TEST_PASSWORDS.DEFAULT);
 
     // Create a test project
     const { response, json } = await ownerClient.request('/api/v1/projects', {

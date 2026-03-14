@@ -1,3 +1,4 @@
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import {
   createOfflineProject,
   expect,
@@ -97,7 +98,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Step 9: Register a new user
     const testUsername = `migrationtest-${Date.now()}`;
-    const testPassword = 'TestPassword123!';
+    const testPassword = TEST_PASSWORDS.USER;
 
     await offlinePage
       .locator('[data-testid="migration-username-input"]')
@@ -268,7 +269,7 @@ test.describe('Offline to Server Migration', () => {
     ).toBeVisible();
 
     const testUsername = `contenttest-${Date.now()}`;
-    const testPassword = 'TestPassword123!';
+    const testPassword = TEST_PASSWORDS.USER;
 
     await offlinePage
       .locator('[data-testid="migration-username-input"]')
@@ -393,7 +394,7 @@ test.describe('Offline to Server Migration', () => {
     const projectASlug = `project-a-${testId}`;
     const projectBSlug = `project-b-${testId}`;
     const uniqueSlug = `unique-${testId}`;
-    const testPassword = 'TestPassword123!';
+    const testPassword = TEST_PASSWORDS.USER;
     const testUsername = `conflictuser-${testId}`;
 
     // ════════════════════════════════════════════════════════════════════════

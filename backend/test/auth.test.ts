@@ -4,6 +4,7 @@ import { users } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Authentication', () => {
   let client: TestClient;
@@ -24,7 +25,7 @@ describe('Authentication', () => {
     await db.delete(users).where(eq(users.username, 'meuser'));
 
     // Create a test user
-    const hashedPassword = await bcrypt.hash('testpassword123', 10);
+    const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
 
     const [testUser] = await db
       .insert(users)
@@ -53,7 +54,7 @@ describe('Authentication', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'testuser',
-          password: 'testpassword123',
+          password: TEST_PASSWORDS.DEFAULT,
         }),
       });
 
@@ -70,7 +71,7 @@ describe('Authentication', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'testuser',
-          password: 'wrongpassword',
+          password: TEST_PASSWORDS.WRONG,
         }),
       });
 
@@ -83,7 +84,7 @@ describe('Authentication', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'nonexistent',
-          password: 'password123',
+          password: TEST_PASSWORDS.ALT,
         }),
       });
 
@@ -94,7 +95,7 @@ describe('Authentication', () => {
   describe('GET /api/v1/users/me', () => {
     it('should return current user when authenticated', async () => {
       // First login - token persists automatically with TestClient
-      await client.login('testuser', 'testpassword123');
+      await client.login('testuser', TEST_PASSWORDS.DEFAULT);
 
       // Then get current user
       const { response, json } = await client.request('/api/v1/users/me');
@@ -124,7 +125,7 @@ describe('Authentication', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'testuser',
-          password: 'testpassword123',
+          password: TEST_PASSWORDS.DEFAULT,
         }),
       });
 

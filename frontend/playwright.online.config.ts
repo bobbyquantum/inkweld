@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './e2e/common/test-credentials';
+
 /**
  * Online E2E Test Configuration
  *
@@ -80,8 +82,7 @@ export default defineConfig({
         PORT: '9333',
         DB_TYPE: 'sqlite',
         DB_DATABASE: ':memory:',
-        SESSION_SECRET:
-          'test-session-secret-for-e2e-testing-minimum-32-characters',
+        SESSION_SECRET: TEST_SESSION_SECRETS.ONLINE,
         ALLOWED_ORIGINS: 'http://localhost:4400',
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
@@ -92,7 +93,7 @@ export default defineConfig({
         AI_IMAGE_ENABLED: 'true',
         // Default admin for e2e tests
         DEFAULT_ADMIN_USERNAME: 'e2e-admin',
-        DEFAULT_ADMIN_PASSWORD: 'E2eAdminPassword123!',
+        DEFAULT_ADMIN_PASSWORD: TEST_PASSWORDS.ADMIN,
       },
     },
     {

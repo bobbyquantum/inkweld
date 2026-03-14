@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './e2e/common/test-credentials';
+
 /**
  * MCP (Model Context Protocol) E2E Test Configuration
  *
@@ -70,7 +72,7 @@ export default defineConfig({
         PORT: '9333',
         DB_TYPE: 'sqlite',
         DB_DATABASE: ':memory:',
-        SESSION_SECRET: 'test-session-secret-for-e2e-mcp-testing-minimum-32-chars',
+        SESSION_SECRET: TEST_SESSION_SECRETS.MCP,
         ALLOWED_ORIGINS: 'http://localhost:6274,http://localhost:6277,http://localhost:4200',
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
@@ -78,7 +80,7 @@ export default defineConfig({
         AI_KILL_SWITCH: 'false',
         AI_IMAGE_ENABLED: 'false',
         DEFAULT_ADMIN_USERNAME: 'mcp-admin',
-        DEFAULT_ADMIN_PASSWORD: 'McpAdminPassword123!',
+        DEFAULT_ADMIN_PASSWORD: TEST_PASSWORDS.MCP_ADMIN,
         // Set BASE_URL for OAuth metadata endpoints
         BASE_URL: 'http://localhost:9333',
       },

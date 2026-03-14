@@ -11,6 +11,7 @@ import { config as configTable } from '../src/db/schema/config';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { TEST_API_KEYS, TEST_PASSWORDS } from './test-credentials';
 
 describe('AI Providers Routes', () => {
   let adminClient: TestClient;
@@ -36,7 +37,7 @@ describe('AI Providers Routes', () => {
     await db.delete(users).where(eq(users.username, 'aiprovideruser'));
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('testpassword123', 10);
+    const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
 
     const [adminUser] = await db
       .insert(users)
@@ -70,11 +71,11 @@ describe('AI Providers Routes', () => {
     testUserId = regularUser.id;
 
     // Login admin
-    const adminLoggedIn = await adminClient.login('aiprovideradmin', 'testpassword123');
+    const adminLoggedIn = await adminClient.login('aiprovideradmin', TEST_PASSWORDS.DEFAULT);
     expect(adminLoggedIn).toBe(true);
 
     // Login regular user
-    const userLoggedIn = await userClient.login('aiprovideruser', 'testpassword123');
+    const userLoggedIn = await userClient.login('aiprovideruser', TEST_PASSWORDS.DEFAULT);
     expect(userLoggedIn).toBe(true);
   });
 
@@ -162,7 +163,7 @@ describe('AI Providers Routes', () => {
       const { response, json } = await adminClient.request('/api/v1/ai/providers/openai/key', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: 'test-openai-key-12345' }),
+        body: JSON.stringify({ apiKey: TEST_API_KEYS.OPENAI }),
       });
 
       expect(response.status).toBe(200);
@@ -187,7 +188,7 @@ describe('AI Providers Routes', () => {
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: 'test-key' }),
+          body: JSON.stringify({ apiKey: TEST_API_KEYS.GENERIC }),
         }
       );
 
@@ -229,7 +230,7 @@ describe('AI Providers Routes', () => {
       await adminClient.request('/api/v1/ai/providers/falai/key', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: 'test-falai-key' }),
+        body: JSON.stringify({ apiKey: TEST_API_KEYS.FALAI }),
       });
 
       // Verify it's set
