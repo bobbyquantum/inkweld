@@ -99,6 +99,7 @@ describe('AdminSettingsComponent', () => {
   it('should load config on init', () => {
     fixture.detectChanges();
     flushAllConfigRequests(httpMock);
+    expect(component).toBeTruthy();
   });
 
   it('should call setConfig when toggle is changed', async () => {

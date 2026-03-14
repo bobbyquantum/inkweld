@@ -314,14 +314,14 @@ describe('HomeComponent', () => {
 
   it('should navigate to create-project route when openNewProjectDialog is called', () => {
     // Call the method
-    component.openNewProjectDialog();
+    void component.openNewProjectDialog();
 
     // Verify that router.navigate was called with the correct route
     expect(router.navigate).toHaveBeenCalledWith(['/create-project']);
   });
 
   it('should open import project dialog when importProject is called', () => {
-    component.importProject();
+    void component.importProject();
     expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
       'testuser'
     );
@@ -332,7 +332,7 @@ describe('HomeComponent', () => {
       dialogGateway.openImportProjectDialog as ReturnType<typeof vi.fn>
     ).mockResolvedValueOnce({ success: true, slug: 'imported-project' });
 
-    component.importProject();
+    void component.importProject();
 
     // Wait for the promise to resolve
     await vi.waitFor(() => {

@@ -374,6 +374,7 @@ describe('DocumentService', () => {
     it.skip('should add ProseMirror plugins', async () => {
       // Skip: Cannot verify internal editor.state.reconfigure calls - integration test candidate
       await service.setupCollaboration(mockEditor, testDocumentId);
+      expect(mockEditor).toBeDefined();
     });
 
     it('should handle editor initialization errors', async () => {
