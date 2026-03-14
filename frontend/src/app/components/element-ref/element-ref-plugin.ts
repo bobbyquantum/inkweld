@@ -345,15 +345,14 @@ export function createElementRefPlugin(
             event.preventDefault();
 
             // Extract attributes directly from DOM for reliability
-            const elementId = refSpan.getAttribute('data-element-id') || '';
-            const elementTypeStr = refSpan.getAttribute('data-element-type');
+            const el = refSpan as HTMLElement;
+            const elementId = el.dataset['elementId'] || '';
+            const elementTypeStr = el.dataset['elementType'];
             const elementType =
               (elementTypeStr as ElementType) || ElementType.Item;
             const displayText = refSpan.textContent || '';
-            const originalName =
-              refSpan.getAttribute('data-original-name') || '';
-            const relationshipId =
-              refSpan.getAttribute('data-relationship-id') || undefined;
+            const originalName = el.dataset['originalName'] || '';
+            const relationshipId = el.dataset['relationshipId'] || undefined;
 
             // Try to get node position from ProseMirror, fall back to -1 if not found
             let nodePos = -1;

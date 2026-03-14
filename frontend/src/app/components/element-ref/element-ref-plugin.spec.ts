@@ -819,6 +819,14 @@ describe('elementRefNodeSpec', () => {
           };
           return attrs[attr] || '';
         }),
+        dataset: {
+          elementId: 'parsed-id',
+          elementType: ElementType.Worldbuilding,
+          originalName: 'Castle',
+          relationshipId: 'rel-2',
+          relationshipType: 'contains',
+          relationshipNote: 'Setting',
+        },
         textContent: 'Castle Blackwood',
       } as unknown as HTMLElement;
 

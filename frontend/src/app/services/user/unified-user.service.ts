@@ -101,7 +101,7 @@ export class UnifiedUserService {
   async hasCachedUser(): Promise<boolean> {
     const mode = this.setupService.getMode();
     if (mode === 'local') {
-      return Promise.resolve(this.localUserService.hasCachedUser());
+      return this.localUserService.hasCachedUser();
     } else if (mode === 'server') {
       return this.userService.hasCachedUser();
     }
