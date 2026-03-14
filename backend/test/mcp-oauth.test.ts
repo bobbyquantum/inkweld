@@ -437,8 +437,8 @@ async function computeCodeChallenge(verifier: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', data);
   const bytes = new Uint8Array(digest);
   let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  for (const b of bytes) {
+    binary += String.fromCodePoint(b);
   }
   return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
