@@ -317,6 +317,7 @@ describe('WorldbuildingEditorComponent', () => {
       };
       // Should not throw
       component['buildFormFromSchema'](emptySchema);
+      expect(component.form).toBeDefined();
     });
   });
 

@@ -342,29 +342,26 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  openNewProjectDialog(): void {
-    void this.router.navigate(['/create-project']);
+  async openNewProjectDialog(): Promise<void> {
+    await this.router.navigate(['/create-project']);
   }
 
-  importProject(): void {
+  async importProject(): Promise<void> {
     const user = this.userService.currentUser();
-    void this.dialogGateway
-      .openImportProjectDialog(user?.username)
-      .then(result => {
-        if (result?.success && result.slug) {
-          this.snackBar
-            .open('Project imported successfully!', 'View', {
-              duration: 5000,
-            })
-            .onAction()
-            .subscribe(() => {
-              const username = user?.username ?? 'offline';
-              void this.router.navigate(['/', username, result.slug]);
-            });
-          // Reload project list
-          void this.loadProjects();
-        }
-      });
+    const result = await this.dialogGateway.openImportProjectDialog(user?.username);
+    if (result?.success && result.slug) {
+      this.snackBar
+        .open('Project imported successfully!', 'View', {
+          duration: 5000,
+        })
+        .onAction()
+        .subscribe(async () => {
+          const username = user?.username ?? 'offline';
+          await this.router.navigate(['/', username, result.slug]);
+        });
+      // Reload project list
+      await this.loadProjects();
+    }
   }
 
   openLoginDialog(): void {

@@ -845,21 +845,19 @@ describe('MigrationService', () => {
       const copySingleDocument = getCopySingleDocument();
 
       // Mock IndexeddbPersistence to throw - it will fail but should be caught
-      await copySingleDocument(
-        'nonexistent:source:key',
-        'nonexistent:target:key'
-      );
-
       // Should not throw - errors are caught and logged
-      // The method should complete without error
+      await expect(
+        copySingleDocument('nonexistent:source:key', 'nonexistent:target:key')
+      ).resolves.toBeUndefined();
     });
 
     it('should skip empty documents', async () => {
       const copySingleDocument = getCopySingleDocument();
 
-      await copySingleDocument('empty:source:doc', 'empty:target:doc');
-
       // Empty docs are skipped - this verifies the method completes without error
+      await expect(
+        copySingleDocument('empty:source:doc', 'empty:target:doc')
+      ).resolves.toBeUndefined();
     });
   });
 });
