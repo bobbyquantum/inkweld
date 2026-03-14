@@ -53,7 +53,7 @@
     "generate:openapi": "cd backend && bun run generate:openapi",
     "generate:client": "cd backend && bun run generate:angular-client",
     "generate:all": "npm run generate:openapi && npm run generate:client && npm run docs:gen-api",
-    "admin": "cd backend && bun run admin",
+    "deploy": "bun run scripts/deploy-wizard.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",

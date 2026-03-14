@@ -51,4 +51,4 @@ See [AI Image Generation](./ai-image-generation) for detailed provider configura
 
 - [AI Kill Switch](./ai-kill-switch) - Control AI feature availability
 - [Docker Deployment](/docs/installation/docker) - Deploy Inkweld with Docker
-- [Admin CLI](./admin-cli) - Command-line administration
+- [Configuration](/docs/configuration) - Environment variables and customization

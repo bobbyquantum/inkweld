@@ -142,31 +142,24 @@ See [Deployment → Docker](./installation/docker) for production-focused guidan
 
 Add your D1 IDs and Durable Object bindings to `wrangler.toml`, then use `bun run logs:dev` (or `logs:prod`) to inspect deployments.
 
-## Admin CLI quick reference
+## Admin panel
 
-The Bun-based CLI (`backend/admin-cli.ts`) manages users, projects, and stats without requiring the UI:
+All user management, system stats, and configuration are handled through the web-based admin panel at `/admin`. Log in as an admin user to:
 
-```bash
- cd backend
+- Approve or reject pending registrations
+- View system health statistics (user counts, project counts, uptime)
+- Configure settings, announcements, and AI features
+- Manage email settings
 
- # Inspect pending registrations
- bun run admin users pending
+## Deployment wizard
 
- # Approve a user
- bun run admin users approve <username>
-
- # Review overall stats
- bun run admin stats
-```
-
-Inside Docker you can reuse the CLI against the running container:
+To set up a new deployment interactively, run the deployment wizard from the project root:
 
 ```bash
-docker exec -it inkweld \
-   ./inkweld-server admin users approve <username>
+bun run deploy
 ```
 
-The CLI loads the same `.env` values as the backend, so double-check database paths before pointing it at production data.
+It supports Docker, Docker Compose, and Cloudflare Workers deployment methods.
 
 ## Verify the Docker image locally
 
@@ -184,5 +177,4 @@ For multi-platform testing, use BuildKit: `docker buildx build --platform linux/
 
 - Review the [Docker deployment guide](./installation/docker) for production hardening.
 - Learn how CI/CD publishes the container in [Deployment → CI/CD](./admin-guide/ci-cd).
-- Keep commands handy with the [admin CLI reference](./admin-guide/admin-cli).
 - If something breaks in production, start with the [Troubleshooting](./troubleshooting/logging) section.

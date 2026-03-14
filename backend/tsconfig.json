@@ -19,7 +19,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "scripts/**/*", "admin-cli.ts"],
+  "include": ["src/**/*", "scripts/**/*"],
   "exclude": [
     "node_modules",
     "dist",

@@ -243,7 +243,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # WebSocket timeout
         proxy_read_timeout 86400;
     }
@@ -362,6 +362,7 @@ Check the error message:
 ```
 
 Common issues:
+
 - Missing `SESSION_SECRET` environment variable
 - Port already in use (change `PORT`)
 - Permission denied on data directory
@@ -394,5 +395,5 @@ Restart the process if needed. Consider adding memory limits to your service con
 ## Next Steps
 
 - **[Configure your instance](../configuration)** - Environment variables and customization
-- **[Admin CLI](../admin-guide/admin-cli)** - Manage users from the command line
+- **[Admin Panel](../admin-guide/overview)** - Manage users and system health from the web UI
 - **[Enable AI features](../admin-guide/ai-image-generation)** - Add AI-powered image generation

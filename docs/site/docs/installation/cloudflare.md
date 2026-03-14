@@ -14,7 +14,7 @@ Deploy Inkweld to Cloudflare's global edge network for low-latency access worldw
 Cloudflare deployment uses:
 
 - **Cloudflare Workers** - Serverless backend API at the edge
-- **Cloudflare Pages** - Global CDN for the Angular frontend  
+- **Cloudflare Pages** - Global CDN for the Angular frontend
 - **D1 Database** - SQLite-based database for user data and projects
 - **R2 Storage** - Object storage for media files (optional)
 - **Durable Objects** - Real-time collaborative editing with Yjs
@@ -84,11 +84,11 @@ The wizard detects your Cloudflare account and suggests unique worker names:
 ℹ️  Worker names must be globally unique across all Cloudflare accounts.
 ℹ️  Detected account: your-account-name
 
-Worker name for PREVIEW (default: your-account-inkweld-preview): 
+Worker name for PREVIEW (default: your-account-inkweld-preview):
 ✅ Preview worker URL: https://your-account-inkweld-preview.workers.dev
 Continue with this URL? (y/n): y
 
-Worker name for PRODUCTION (default: your-account-inkweld): 
+Worker name for PRODUCTION (default: your-account-inkweld):
 ✅ Production worker URL: https://your-account-inkweld.workers.dev
 Continue with this URL? (y/n): y
 ```
@@ -182,7 +182,7 @@ Configure sensitive values securely:
 
 ℹ️  SESSION_SECRET is required for each environment.
 ℹ️  This is a cryptographic key used to sign session cookies.
-⚠️  CRITICAL: If this key is used for database encryption, changing it will 
+⚠️  CRITICAL: If this key is used for database encryption, changing it will
     make existing data unreadable!
 
 Generate and set SESSION_SECRET automatically? (y/n): y
@@ -203,6 +203,7 @@ npm run cloudflare:prod:deploy
 ```
 
 The deploy commands:
+
 1. Build the Angular frontend with the correct environment
 2. Build the Cloudflare Worker backend
 3. Run any pending database migrations
@@ -216,9 +217,10 @@ Inkweld provides **one preview environment and one production environment**, rat
 **Manual deployments always go live:** When you run `cloudflare:preview:deploy` or `cloudflare:prod:deploy` from any branch, the deployment will immediately go live on your custom domain. A warning is shown if you're not on the `main` branch, but the deployment proceeds normally.
 
 This means you can only preview one branch at a time per environment. For a typical workflow:
+
 - Use **preview** environment for testing feature branches before merging
 - Use **production** environment for your live application from `main`
-:::
+  :::
 
 ## Manual Setup
 
@@ -257,7 +259,7 @@ migrations_dir = "drizzle"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "inkweld_prod"  
+database_name = "inkweld_prod"
 database_id = "your-production-database-id"
 migrations_dir = "drizzle"
 ```
@@ -307,6 +309,7 @@ Production frontend domain (e.g., yoursite.com): inkweld.app
 ```
 
 The wizard will:
+
 - Configure backend custom domains via `routes` in `wrangler.toml` (Workers support this)
 - Add frontend custom domains to `ALLOWED_ORIGINS` for CORS
 - Remind you to configure frontend custom domains in the Cloudflare Dashboard
@@ -330,6 +333,7 @@ routes = [{ pattern = "api.yoursite.com", custom_domain = true }]
 ```
 
 Or via Cloudflare Dashboard:
+
 1. Go to **Workers & Pages** → Your worker → **Settings** → **Triggers**
 2. Click **Add Custom Domain**
 3. Enter your domain (e.g., `api.yoursite.com`)
@@ -339,6 +343,7 @@ Or via Cloudflare Dashboard:
 **Important**: Unlike Workers, Cloudflare Pages does not support custom domain configuration via `wrangler.toml`. Custom domains for Pages must be configured in the Cloudflare Dashboard.
 
 **Via Cloudflare Dashboard** (required for Pages):
+
 1. Go to **Workers & Pages** → Your Pages project → **Custom domains**
 2. Click **Set up a custom domain**
 3. Enter your domain (e.g., `preview.yoursite.com` or `yoursite.com`)
@@ -372,13 +377,13 @@ npm run cloudflare:prod:deploy
 
 Cloudflare's free tier is generous for development and small teams:
 
-| Service | Free Tier Limit | Notes |
-|---------|----------------|-------|
-| **Workers** | 100K requests/day | 10ms CPU per request |
-| **D1 Database** | 5M reads/day, 100K writes/day | 5GB storage |
-| **Durable Objects** | 100K requests/day | 13K GB-seconds/day |
-| **R2 Storage** | 10GB storage | Requires payment method |
-| **Pages** | Unlimited sites | 500 builds/month |
+| Service             | Free Tier Limit               | Notes                   |
+| ------------------- | ----------------------------- | ----------------------- |
+| **Workers**         | 100K requests/day             | 10ms CPU per request    |
+| **D1 Database**     | 5M reads/day, 100K writes/day | 5GB storage             |
+| **Durable Objects** | 100K requests/day             | 13K GB-seconds/day      |
+| **R2 Storage**      | 10GB storage                  | Requires payment method |
+| **Pages**           | Unlimited sites               | 500 builds/month        |
 
 :::info Understanding GB-seconds
 Durable Objects are billed by memory × time. 13,000 GB-seconds translates to roughly **21 hours** of continuous real-time collaboration per day.
@@ -407,6 +412,7 @@ bun run wrangler tail --env production
 ### Analytics
 
 In the Cloudflare dashboard:
+
 1. Go to **Workers & Pages**
 2. Select your worker
 3. Click **Analytics** for requests, errors, and performance
@@ -461,4 +467,4 @@ Disabling AI crawler blocking entirely exposes your site to content scraping for
 
 - **[Configure your instance](../configuration)** - Environment variables and customization
 - **[Set up CI/CD](../admin-guide/ci-cd)** - Automate deployments
-- **[Admin CLI](../admin-guide/admin-cli)** - Manage users from the command line
+- **[Admin Panel](../admin-guide/overview)** - Manage users and system health from the web UI
