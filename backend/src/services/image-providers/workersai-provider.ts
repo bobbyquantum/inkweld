@@ -244,7 +244,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
     const url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/${model}`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+    const timeoutId = setTimeout(() => controller.abort(), 90_000); // 90s (within CF Workers' 100s subrequest limit)
 
     try {
       let response: Response;
