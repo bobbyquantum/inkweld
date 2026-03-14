@@ -193,7 +193,7 @@ describe('ProjectTemplateService', () => {
       const promise1 = service.getTemplates();
       const req1 = httpMock.expectOne('/assets/project-templates/index.json');
       req1.flush(mockTemplateIndex);
-      await promise1;
+      const templates1 = await promise1;
 
       // Clear cache
       service.clearCache();
@@ -202,7 +202,9 @@ describe('ProjectTemplateService', () => {
       const promise2 = service.getTemplates();
       const req2 = httpMock.expectOne('/assets/project-templates/index.json');
       req2.flush(mockTemplateIndex);
-      await promise2;
+      const templates2 = await promise2;
+
+      expect(templates1).toEqual(templates2);
     });
   });
 });

@@ -733,14 +733,16 @@ const tokenRoute = createRoute({
   },
 });
 
-// @ts-expect-error OpenAPI handler return type mismatch
-oauthRoutes.openapi(tokenRoute, async (c) => {
-  const db = c.get('db');
-
-  // Parse body (support both form and JSON)
-  let body: z.infer<typeof TokenRequestSchema>;
+/**
+ * Parse the token request body from form-urlencoded or JSON,
+ * and apply RFC 6749 §2.3.1 Basic auth overrides if present.
+ */
+async function parseTokenRequestBody(
+  c: Context
+): Promise<z.infer<typeof TokenRequestSchema> | { error: string; error_description: string }> {
   const contentType = c.req.header('content-type') || '';
 
+  let body: z.infer<typeof TokenRequestSchema>;
   if (contentType.includes('application/x-www-form-urlencoded')) {
     const formData = await c.req.parseBody();
     body = {
@@ -763,18 +765,24 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
       const decoded = atob(authHeader.slice(6));
       const colonIdx = decoded.indexOf(':');
       if (colonIdx > 0) {
-        const basicClientId = decodeURIComponent(decoded.slice(0, colonIdx));
-        const basicClientSecret = decodeURIComponent(decoded.slice(colonIdx + 1));
-        // Basic auth overrides body params per RFC 6749 §2.3.1
-        body.client_id = basicClientId;
-        body.client_secret = basicClientSecret;
+        body.client_id = decodeURIComponent(decoded.slice(0, colonIdx));
+        body.client_secret = decodeURIComponent(decoded.slice(colonIdx + 1));
       }
     } catch {
-      return c.json(
-        { error: 'invalid_client', error_description: 'Malformed Authorization header' },
-        401
-      );
+      return { error: 'invalid_client', error_description: 'Malformed Authorization header' };
     }
+  }
+
+  return body;
+}
+
+// @ts-expect-error OpenAPI handler return type mismatch
+oauthRoutes.openapi(tokenRoute, async (c) => {
+  const db = c.get('db');
+
+  const body = await parseTokenRequestBody(c);
+  if ('error' in body) {
+    return c.json(body, 401);
   }
 
   const clientIp =

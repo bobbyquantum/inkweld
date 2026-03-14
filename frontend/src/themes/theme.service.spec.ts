@@ -182,9 +182,8 @@ describe('ThemeService', () => {
       changeHandler({ matches: true });
     }
 
-    // Should NOT have called addClass since we're not on 'system'
-    // Note: The service internally may still call due to how isDarkMode is computed
-    // but this tests the systemThemeChanged branch correctly
+    // Explicit dark-theme should remain dark regardless of system theme change
+    expect(service.isDarkMode()).toBe(true);
   });
 
   it('should return false for isDarkMode when theme is light-theme', () => {

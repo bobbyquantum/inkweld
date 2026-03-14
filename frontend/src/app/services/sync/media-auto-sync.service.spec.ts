@@ -172,7 +172,7 @@ describe('MediaAutoSyncService', () => {
       );
 
       // Should not throw
-      await service.triggerSyncAfterUpload();
+      await expect(service.triggerSyncAfterUpload()).resolves.toBeUndefined();
     });
   });
 
