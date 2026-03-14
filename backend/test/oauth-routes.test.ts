@@ -5,17 +5,16 @@
  * authorization flow, token exchange, revocation, and session management.
  * The underlying service logic is tested in mcp-oauth.test.ts.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
 import { mcpOAuthClients } from '../src/db/schema/mcp-oauth-clients';
 import { mcpOAuthSessions } from '../src/db/schema/mcp-oauth-sessions';
 import { mcpOAuthCodes } from '../src/db/schema/mcp-oauth-codes';
 import { projectCollaborators } from '../src/db/schema/project-collaborators';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
-import { mcpOAuthService } from '../src/services/mcp-oauth.service';
 
 const db = getDatabase();
 let client: TestClient;
@@ -98,9 +97,7 @@ async function computeCodeChallenge(verifier: string): Promise<string> {
 // ============================================
 describe('OAuth Discovery Endpoints', () => {
   it('GET /.well-known/oauth-protected-resource returns resource metadata', async () => {
-    const { response, json } = await unauthClient.request(
-      '/.well-known/oauth-protected-resource'
-    );
+    const { response, json } = await unauthClient.request('/.well-known/oauth-protected-resource');
     expect(response.status).toBe(200);
     const data = (await json()) as Record<string, unknown>;
     expect(data.resource).toContain('/api/v1/ai/mcp');
@@ -135,9 +132,7 @@ describe('OAuth Discovery Endpoints', () => {
   });
 
   it('GET /.well-known/openid-configuration returns OIDC-compatible metadata', async () => {
-    const { response, json } = await unauthClient.request(
-      '/.well-known/openid-configuration'
-    );
+    const { response, json } = await unauthClient.request('/.well-known/openid-configuration');
     expect(response.status).toBe(200);
     const data = (await json()) as Record<string, unknown>;
     expect(data.issuer).toBeDefined();
@@ -354,8 +349,8 @@ describe('OAuth Authorization Endpoint', () => {
     expect(response.status).toBe(200);
     const data = (await json()) as Record<string, unknown>;
     expect(data.redirectUri).toBeDefined();
-    expect((data.redirectUri as string)).toContain('http://localhost:9999/callback');
-    expect((data.redirectUri as string)).toContain('code=');
+    expect(data.redirectUri as string).toContain('http://localhost:9999/callback');
+    expect(data.redirectUri as string).toContain('code=');
   });
 
   it('POST /oauth/authorize rejects grant for project user does not own', async () => {
@@ -569,7 +564,7 @@ describe('OAuth Token Endpoint', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${basicAuth}`,
+        Authorization: `Basic ${basicAuth}`,
       },
       body: JSON.stringify({
         grant_type: 'authorization_code',
@@ -589,7 +584,7 @@ describe('OAuth Token Endpoint', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic !!!invalid-base64!!!',
+        Authorization: 'Basic !!!invalid-base64!!!',
       },
       body: JSON.stringify({
         grant_type: 'authorization_code',
@@ -752,9 +747,7 @@ describe('OAuth Session Management', () => {
     expect(data.length).toBeGreaterThanOrEqual(1);
 
     // Find our session
-    const session = data.find(
-      (s) => (s.client as Record<string, unknown>).id === sessionClientId
-    );
+    const session = data.find((s) => (s.client as Record<string, unknown>).id === sessionClientId);
     expect(session).toBeDefined();
     sessionId = session!.id as string;
   });
@@ -805,57 +798,45 @@ describe('OAuth Session Management', () => {
       method: 'DELETE',
     });
 
-    const { response, json } = await client.request(
-      `/oauth/sessions/${sessionId}/grants`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: PROJECT_2_ID, role: 'viewer' }),
-      }
-    );
+    const { response, json } = await client.request(`/oauth/sessions/${sessionId}/grants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: PROJECT_2_ID, role: 'viewer' }),
+    });
     expect(response.status).toBe(201);
     const data = (await json()) as Record<string, unknown>;
     expect(data.message).toContain('added');
   });
 
   it('POST /oauth/sessions/:sessionId/grants rejects duplicate grant', async () => {
-    const { response, json } = await client.request(
-      `/oauth/sessions/${sessionId}/grants`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: PROJECT_2_ID, role: 'editor' }),
-      }
-    );
+    const { response, json } = await client.request(`/oauth/sessions/${sessionId}/grants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: PROJECT_2_ID, role: 'editor' }),
+    });
     expect(response.status).toBe(400);
     const data = (await json()) as Record<string, unknown>;
     expect(data.error).toBe('invalid_request');
-    expect((data.error_description as string)).toContain('already');
+    expect(data.error_description as string).toContain('already');
   });
 
   it('POST /oauth/sessions/:sessionId/grants rejects non-owned project', async () => {
-    const { response, json } = await client.request(
-      `/oauth/sessions/${sessionId}/grants`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: 'non-existent-project', role: 'viewer' }),
-      }
-    );
+    const { response, json } = await client.request(`/oauth/sessions/${sessionId}/grants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: 'non-existent-project', role: 'viewer' }),
+    });
     expect(response.status).toBe(400);
     const data = (await json()) as Record<string, unknown>;
     expect(data.error).toBe('invalid_request');
   });
 
   it('POST /oauth/sessions/:sessionId/grants returns 404 for non-existent session', async () => {
-    const { response } = await client.request(
-      `/oauth/sessions/non-existent-id/grants`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: PROJECT_ID, role: 'viewer' }),
-      }
-    );
+    const { response } = await client.request(`/oauth/sessions/non-existent-id/grants`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId: PROJECT_ID, role: 'viewer' }),
+    });
     expect(response.status).toBe(404);
   });
 
