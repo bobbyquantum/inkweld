@@ -135,13 +135,16 @@ jobs:
       contents: read
     needs: [test-frontend, test-backend]
     if: always()
-    # Configure the 15-minute wait timer on the sonarcloud-analysis environment.
-    environment:
-      name: sonarcloud-analysis
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
+
+      # Debounce main-branch Sonar analysis so successive merges coalesce into
+      # a single scan via workflow concurrency cancellation.
+      - name: Debounce SonarCloud analysis after main merges
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: sleep 900
 
       - name: Download frontend coverage
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
