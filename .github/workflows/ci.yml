@@ -140,12 +140,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Debounce main-branch Sonar analysis so successive merges coalesce into
-      # a single scan via workflow concurrency cancellation.
-      - name: Debounce SonarCloud analysis after main merges
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: sleep 900
-
       - name: Download frontend coverage
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
