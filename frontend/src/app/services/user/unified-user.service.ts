@@ -10,10 +10,10 @@ import { UserService } from './user.service';
   providedIn: 'root',
 })
 export class UnifiedUserService {
-  private setupService = inject(SetupService);
-  private userService = inject(UserService);
-  private localUserService = inject(LocalUserService);
-  private router = inject(Router);
+  private readonly setupService = inject(SetupService);
+  private readonly userService = inject(UserService);
+  private readonly localUserService = inject(LocalUserService);
+  private readonly router = inject(Router);
 
   readonly currentUser = computed(() => {
     const mode = this.setupService.getMode();
@@ -101,7 +101,7 @@ export class UnifiedUserService {
   async hasCachedUser(): Promise<boolean> {
     const mode = this.setupService.getMode();
     if (mode === 'local') {
-      return Promise.resolve(this.localUserService.hasCachedUser());
+      return this.localUserService.hasCachedUser();
     } else if (mode === 'server') {
       return this.userService.hasCachedUser();
     }

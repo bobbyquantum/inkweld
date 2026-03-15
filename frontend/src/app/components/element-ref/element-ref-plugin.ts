@@ -88,6 +88,19 @@ export interface ElementRefPluginCallbacks {
   onRefHoverEnd?: () => void;
 }
 
+/**
+ * Create an inactive plugin state (used when deactivating or resetting)
+ */
+function createInactiveState(): ElementRefPluginState {
+  return {
+    active: false,
+    triggerPos: null,
+    query: '',
+    popupPosition: null,
+    decorations: DecorationSet.empty,
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin Factory
 // ─────────────────────────────────────────────────────────────────────────────
@@ -128,51 +141,7 @@ export function createElementRefPlugin(
           | undefined;
 
         if (action) {
-          switch (action.type) {
-            case 'activate':
-              return {
-                active: true,
-                triggerPos: action.triggerPos,
-                query: '',
-                popupPosition: action.popupPosition,
-                decorations: createTriggerDecoration(
-                  newState,
-                  action.triggerPos
-                ),
-              };
-
-            case 'updateQuery':
-              return {
-                ...state,
-                query: action.query,
-                decorations: state.triggerPos
-                  ? createTriggerDecoration(
-                      newState,
-                      state.triggerPos,
-                      action.query.length
-                    )
-                  : state.decorations,
-              };
-
-            case 'deactivate':
-              return {
-                active: false,
-                triggerPos: null,
-                query: '',
-                popupPosition: null,
-                decorations: DecorationSet.empty,
-              };
-
-            case 'insert':
-              // Insertion is handled in handleSelect, just deactivate here
-              return {
-                active: false,
-                triggerPos: null,
-                query: '',
-                popupPosition: null,
-                decorations: DecorationSet.empty,
-              };
-          }
+          return applyAction(action, state, newState);
         }
 
         // If not active, nothing to update
@@ -185,52 +154,7 @@ export function createElementRefPlugin(
 
         // Check if cursor moved away from trigger position
         if (tr.docChanged || tr.selectionSet) {
-          const { $from } = newState.selection;
-
-          // If cursor is before trigger position, deactivate
-          if (state.triggerPos !== null && $from.pos < state.triggerPos) {
-            callbacks.onClose();
-            return {
-              active: false,
-              triggerPos: null,
-              query: '',
-              popupPosition: null,
-              decorations: DecorationSet.empty,
-            };
-          }
-
-          // Update query based on text between trigger and cursor
-          if (state.triggerPos !== null) {
-            const query = newState.doc.textBetween(
-              state.triggerPos + 1, // +1 to skip the @
-              $from.pos
-            );
-
-            // Check for space or newline (ends the mention)
-            if (query.includes(' ') || query.includes('\n')) {
-              callbacks.onClose();
-              return {
-                active: false,
-                triggerPos: null,
-                query: '',
-                popupPosition: null,
-                decorations: DecorationSet.empty,
-              };
-            }
-
-            if (query !== state.query) {
-              callbacks.onQueryChange(query);
-              return {
-                ...state,
-                query,
-                decorations: createTriggerDecoration(
-                  newState,
-                  state.triggerPos,
-                  query.length
-                ),
-              };
-            }
-          }
+          return handleSelectionChange(state, newState, callbacks, decorations);
         }
 
         return {
@@ -345,15 +269,14 @@ export function createElementRefPlugin(
             event.preventDefault();
 
             // Extract attributes directly from DOM for reliability
-            const elementId = refSpan.getAttribute('data-element-id') || '';
-            const elementTypeStr = refSpan.getAttribute('data-element-type');
+            const el = refSpan as HTMLElement;
+            const elementId = el.dataset['elementId'] || '';
+            const elementTypeStr = el.dataset['elementType'];
             const elementType =
               (elementTypeStr as ElementType) || ElementType.Item;
             const displayText = refSpan.textContent || '';
-            const originalName =
-              refSpan.getAttribute('data-original-name') || '';
-            const relationshipId =
-              refSpan.getAttribute('data-relationship-id') || undefined;
+            const originalName = el.dataset['originalName'] || '';
+            const relationshipId = el.dataset['relationshipId'] || undefined;
 
             // Try to get node position from ProseMirror, fall back to -1 if not found
             let nodePos = -1;
@@ -529,6 +452,90 @@ export function createElementRefPlugin(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Apply a plugin action to produce a new state
+ */
+function applyAction(
+  action: PluginAction,
+  state: ElementRefPluginState,
+  newState: EditorState
+): ElementRefPluginState {
+  switch (action.type) {
+    case 'activate':
+      return {
+        active: true,
+        triggerPos: action.triggerPos,
+        query: '',
+        popupPosition: action.popupPosition,
+        decorations: createTriggerDecoration(newState, action.triggerPos),
+      };
+
+    case 'updateQuery':
+      return {
+        ...state,
+        query: action.query,
+        decorations: state.triggerPos
+          ? createTriggerDecoration(
+              newState,
+              state.triggerPos,
+              action.query.length
+            )
+          : state.decorations,
+      };
+
+    case 'deactivate':
+    case 'insert':
+      return createInactiveState();
+  }
+}
+
+/**
+ * Handle document/selection changes while the plugin is active
+ */
+function handleSelectionChange(
+  state: ElementRefPluginState,
+  newState: EditorState,
+  callbacks: ElementRefPluginCallbacks,
+  decorations: DecorationSet
+): ElementRefPluginState {
+  const { $from } = newState.selection;
+
+  // If cursor is before trigger position, deactivate
+  if (state.triggerPos !== null && $from.pos < state.triggerPos) {
+    callbacks.onClose();
+    return createInactiveState();
+  }
+
+  // Update query based on text between trigger and cursor
+  if (state.triggerPos !== null) {
+    const query = newState.doc.textBetween(
+      state.triggerPos + 1, // +1 to skip the @
+      $from.pos
+    );
+
+    // Check for space or newline (ends the mention)
+    if (query.includes(' ') || query.includes('\n')) {
+      callbacks.onClose();
+      return createInactiveState();
+    }
+
+    if (query !== state.query) {
+      callbacks.onQueryChange(query);
+      return {
+        ...state,
+        query,
+        decorations: createTriggerDecoration(
+          newState,
+          state.triggerPos,
+          query.length
+        ),
+      };
+    }
+  }
+
+  return { ...state, decorations };
+}
+
+/**
  * Create a decoration to highlight the trigger text (@query)
  */
 function createTriggerDecoration(
@@ -651,7 +658,7 @@ export function updateElementRefText(
   const $pos = doc.resolve(nodePos);
   const node = $pos.nodeAfter;
 
-  if (!node || node.type.name !== ELEMENT_REF_NODE_NAME) {
+  if (node?.type.name !== ELEMENT_REF_NODE_NAME) {
     console.warn('[ElementRefPlugin] No elementRef node at position', nodePos);
     return false;
   }
@@ -685,7 +692,7 @@ export function deleteElementRef(view: EditorView, nodePos: number): boolean {
   const $pos = doc.resolve(nodePos);
   const node = $pos.nodeAfter;
 
-  if (!node || node.type.name !== ELEMENT_REF_NODE_NAME) {
+  if (node?.type.name !== ELEMENT_REF_NODE_NAME) {
     console.warn('[ElementRefPlugin] No elementRef node at position', nodePos);
     return false;
   }

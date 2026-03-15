@@ -154,6 +154,14 @@ const getDocRoute = createRoute({
       },
       description: 'Not authenticated',
     },
+    403: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Access denied',
+    },
     404: {
       content: {
         'application/json': {

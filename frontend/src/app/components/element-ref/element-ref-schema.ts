@@ -50,16 +50,14 @@ export const elementRefNodeSpec: NodeSpec = {
       tag: 'span[data-element-ref]',
       getAttrs(dom: HTMLElement): ElementRefNodeAttrs {
         return {
-          elementId: dom.getAttribute('data-element-id') || '',
-          elementType:
-            (dom.getAttribute('data-element-type') as ElementType) || null,
+          elementId: dom.dataset['elementId'] || '',
+          elementType: (dom.dataset['elementType'] as ElementType) || null,
           displayText: dom.textContent || '',
-          originalName: dom.getAttribute('data-original-name') || '',
-          relationshipId: dom.getAttribute('data-relationship-id') || undefined,
+          originalName: dom.dataset['originalName'] || '',
+          relationshipId: dom.dataset['relationshipId'] || undefined,
           relationshipTypeId:
-            dom.getAttribute('data-relationship-type') || 'referenced-in',
-          relationshipNote:
-            dom.getAttribute('data-relationship-note') || undefined,
+            dom.dataset['relationshipType'] || 'referenced-in',
+          relationshipNote: dom.dataset['relationshipNote'] || undefined,
         };
       },
     },
