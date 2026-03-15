@@ -48,6 +48,7 @@ import {
   getSubtree,
   findParentByPosition,
 } from './tree-helpers';
+import { xmlContentToText } from '../../utils/xml-utils';
 
 /**
  * Common project parameter schema for all mutation tools
@@ -1253,16 +1254,7 @@ The content replaces the entire document. Use get_document_content first to read
       await runtimeUpdateDocumentContent(ctx, username, slug, elementId, xmlContent);
 
       // Calculate word count from the content
-      const textContent = xmlContent
-        .replaceAll(/<\/(?:paragraph|heading|blockquote|listItem)>/gi, '\n')
-        .replaceAll(/<\/[^>]+>/g, '')
-        .replaceAll(/<[^>]+>/g, '')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'")
-        .trim();
+      const textContent = xmlContentToText(xmlContent);
 
       const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { textToProseMirrorXml } from '../src/mcp/tools/mutation.tools';
-import { decodeXmlEntities } from '../src/utils/xml-utils';
+import { decodeXmlEntities, xmlContentToText, sanitizeFilename } from '../src/utils/xml-utils';
 import { escapeHtml } from '../src/routes/document.routes';
 
 describe('textToProseMirrorXml', () => {
@@ -78,6 +78,74 @@ describe('decodeXmlEntities', () => {
     expect(decodeXmlEntities('&lt;div class=&quot;test&quot;&gt;&#65;&#x42;&lt;/div&gt;')).toBe(
       '<div class="test">AB</div>'
     );
+  });
+});
+
+describe('xmlContentToText', () => {
+  it('should strip all tags and return plain text', () => {
+    expect(xmlContentToText('<paragraph>Hello world</paragraph>')).toBe('Hello world');
+  });
+
+  it('should convert block-level closing tags to newlines', () => {
+    const result = xmlContentToText('<paragraph>First</paragraph><paragraph>Second</paragraph>');
+    expect(result).toBe('First\nSecond');
+  });
+
+  it('should strip inline tags entirely', () => {
+    expect(xmlContentToText('<paragraph>Hello <hard_break/>world</paragraph>')).toBe('Hello world');
+  });
+
+  it('should decode HTML entities', () => {
+    expect(xmlContentToText('<paragraph>a &amp; b &lt; c &gt; d &quot;e&quot;</paragraph>')).toBe(
+      'a & b < c > d "e"'
+    );
+  });
+
+  it('should decode &#39; entity', () => {
+    expect(xmlContentToText('<paragraph>it&#39;s</paragraph>')).toBe("it's");
+  });
+
+  it('should handle heading closing tags as newlines', () => {
+    const xml = '<heading level="1">Title</heading><paragraph>Body</paragraph>';
+    expect(xmlContentToText(xml)).toBe('Title\nBody');
+  });
+
+  it('should trim leading and trailing whitespace', () => {
+    expect(xmlContentToText('<paragraph>  Hello  </paragraph>')).toBe('Hello');
+  });
+
+  it('should return empty string for empty XML', () => {
+    expect(xmlContentToText('<paragraph></paragraph>')).toBe('');
+  });
+});
+
+describe('sanitizeFilename', () => {
+  it('should pass through a safe filename unchanged', () => {
+    expect(sanitizeFilename('document.pdf')).toBe('document.pdf');
+  });
+
+  it('should remove double quotes', () => {
+    expect(sanitizeFilename('my "file".pdf')).toBe('my file.pdf');
+  });
+
+  it('should remove backslashes', () => {
+    expect(sanitizeFilename('path\\file.pdf')).toBe('pathfile.pdf');
+  });
+
+  it('should remove carriage returns and newlines', () => {
+    expect(sanitizeFilename('file\r\nname.pdf')).toBe('filename.pdf');
+  });
+
+  it('should replace non-ASCII characters with underscore', () => {
+    expect(sanitizeFilename('café.pdf')).toBe('caf_.pdf');
+  });
+
+  it('should replace non-printable ASCII with underscore', () => {
+    expect(sanitizeFilename('file\x01name.pdf')).toBe('file_name.pdf');
+  });
+
+  it('should handle multiple replaceable characters', () => {
+    expect(sanitizeFilename('"bad\nfile\\name".pdf')).toBe('badfilename.pdf');
   });
 });
 
