@@ -26,21 +26,43 @@ import {
 } from '../../../../models/canvas.model';
 import { CanvasService } from '../../../../services/canvas/canvas.service';
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
+import { LoggerService } from '../../../../services/core/logger.service';
 import { LocalStorageService } from '../../../../services/local/local-storage.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
+import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { CanvasTabComponent } from './canvas-tab.component';
 
 // Konva requires ResizeObserver which is not available in jsdom
 class MockResizeObserver {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
+  observe(): void {
+    // noop for jsdom tests
+  }
+  unobserve(): void {
+    // noop for jsdom tests
+  }
+  disconnect(): void {
+    // noop for jsdom tests
+  }
 }
 
 describe('CanvasTabComponent', () => {
   let component: CanvasTabComponent;
   let fixture: ComponentFixture<CanvasTabComponent>;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+
+  function createStageStub(overrides: Record<string, unknown> = {}) {
+    return {
+      width: vi.fn(() => 400),
+      height: vi.fn(() => 200),
+      x: vi.fn(() => 0),
+      y: vi.fn(() => 0),
+      scaleX: vi.fn(() => 1),
+      position: vi.fn(),
+      scale: vi.fn(),
+      destroy: vi.fn(),
+      ...overrides,
+    };
+  }
 
   beforeAll(() => {
     if (!globalThis.ResizeObserver) {
@@ -101,7 +123,10 @@ describe('CanvasTabComponent', () => {
 
   const mockProjectState = {
     elements: signal(testElements),
-    project: signal({ username: 'testuser', slug: 'test-project' }),
+    project: signal<{ username: string; slug: string } | null>({
+      username: 'testuser',
+      slug: 'test-project',
+    }),
     updateElementMetadata: vi.fn(),
   };
 
@@ -115,8 +140,20 @@ describe('CanvasTabComponent', () => {
 
   const mockLocalStorageService = {
     saveMedia: vi.fn(() => Promise.resolve()),
-    getMediaUrl: vi.fn(() => Promise.resolve(null)),
+    getMediaUrl: vi.fn<
+      (projectKey: string, mediaId: string) => Promise<string | null>
+    >(() => Promise.resolve(null)),
     preCacheMediaUrl: vi.fn(() => 'blob:mock-url'),
+  };
+
+  const mockLogger = {
+    warn: vi.fn(),
+  };
+
+  const mockRelationshipService = {
+    getOrCreateRelationshipType: vi.fn(() => 'canvas-pin'),
+    deleteRelationship: vi.fn(),
+    createRelationship: vi.fn(() => 'relationship-1'),
   };
 
   beforeEach(async () => {
@@ -125,6 +162,10 @@ describe('CanvasTabComponent', () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     mockCanvasService.activeConfig.set(defaultConfig);
+    mockProjectState.project.set({
+      username: 'testuser',
+      slug: 'test-project',
+    });
 
     mockDialog = {
       open: vi.fn(() => ({
@@ -140,6 +181,8 @@ describe('CanvasTabComponent', () => {
         { provide: MatDialog, useValue: mockDialog },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
         { provide: LocalStorageService, useValue: mockLocalStorageService },
+        { provide: LoggerService, useValue: mockLogger },
+        { provide: RelationshipService, useValue: mockRelationshipService },
       ],
     })
       // CanvasService is a component-level provider; override it
@@ -234,6 +277,111 @@ describe('CanvasTabComponent', () => {
       expect(component['activeLayerId']()).toBe('some-layer');
     });
 
+    it('should toggle layer visibility and stop propagation', () => {
+      const event = { stopPropagation: vi.fn() } as unknown as Event;
+
+      component['onToggleLayerVisibility'](defaultConfig.layers[0].id, event);
+
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(mockCanvasService.updateLayer).toHaveBeenCalledWith(
+        defaultConfig.layers[0].id,
+        { visible: false }
+      );
+    });
+
+    it('should toggle layer lock and stop propagation', () => {
+      const event = { stopPropagation: vi.fn() } as unknown as Event;
+
+      component['onToggleLayerLock'](defaultConfig.layers[0].id, event);
+
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(mockCanvasService.updateLayer).toHaveBeenCalledWith(
+        defaultConfig.layers[0].id,
+        { locked: true }
+      );
+    });
+
+    it('should rename a layer using trimmed dialog input', async () => {
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of('  Renamed Layer  '),
+      } as MatDialogRef<unknown>);
+
+      await component['onRenameLayer'](defaultConfig.layers[0].id);
+
+      expect(mockCanvasService.updateLayer).toHaveBeenCalledWith(
+        defaultConfig.layers[0].id,
+        { name: 'Renamed Layer' }
+      );
+    });
+
+    it('should ignore blank rename dialog results', async () => {
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of('   '),
+      } as MatDialogRef<unknown>);
+
+      await component['onRenameLayer'](defaultConfig.layers[0].id);
+
+      expect(mockCanvasService.updateLayer).not.toHaveBeenCalled();
+    });
+
+    it('should duplicate layer objects and clear pin relationships', () => {
+      const shape: CanvasShape = {
+        id: 'shape-1',
+        layerId: defaultConfig.layers[0].id,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 10,
+        y: 20,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        width: 20,
+        height: 30,
+        fill: '#fff',
+        stroke: '#000',
+        strokeWidth: 1,
+      };
+      const pin: CanvasPin = {
+        id: 'pin-1',
+        layerId: defaultConfig.layers[0].id,
+        type: 'pin',
+        x: 30,
+        y: 40,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        label: 'Pin',
+        icon: 'place',
+        color: '#f00',
+        linkedElementId: 'character-1',
+        relationshipId: 'rel-1',
+      };
+
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [shape, pin],
+      });
+
+      component['onDuplicateLayer'](defaultConfig.layers[0].id);
+
+      expect(mockCanvasService.addLayer).toHaveBeenCalledWith('Layer 1 (copy)');
+      expect(mockCanvasService.addObject).toHaveBeenCalledTimes(2);
+      expect(mockCanvasService.addObject.mock.calls[0][0]).toMatchObject({
+        layerId: 'new-layer-id',
+        type: 'shape',
+      });
+      expect(mockCanvasService.addObject.mock.calls[1][0]).toMatchObject({
+        layerId: 'new-layer-id',
+        type: 'pin',
+        linkedElementId: undefined,
+        relationshipId: undefined,
+      });
+    });
+
     it('should delegate delete layer to service on confirm', async () => {
       mockDialog.open.mockReturnValue({
         afterClosed: () => of(true),
@@ -292,8 +440,36 @@ describe('CanvasTabComponent', () => {
       expect(component['activeLayerObjects']()).toHaveLength(0);
     });
 
+    it('should return empty computed values when config is missing', () => {
+      mockCanvasService.activeConfig.set(null);
+
+      expect(component['sortedLayers']()).toEqual([]);
+      expect(component['activeLayerObjects']()).toEqual([]);
+      expect(component['hasActiveLayer']()).toBe(false);
+    });
+
     it('should compute shape icon based on tool settings', () => {
       expect(component['shapeIcon']()).toBe('crop_square');
+    });
+
+    it('should compute shape icon for alternate shape types', () => {
+      component['toolSettings'].update(settings => ({
+        ...settings,
+        shapeType: 'ellipse',
+      }));
+      expect(component['shapeIcon']()).toBe('circle');
+
+      component['toolSettings'].update(settings => ({
+        ...settings,
+        shapeType: 'arrow',
+      }));
+      expect(component['shapeIcon']()).toBe('arrow_right_alt');
+
+      component['toolSettings'].update(settings => ({
+        ...settings,
+        shapeType: 'line',
+      }));
+      expect(component['shapeIcon']()).toBe('horizontal_rule');
     });
   });
 
@@ -306,6 +482,20 @@ describe('CanvasTabComponent', () => {
       const initial = component['sidebarOpen']();
       component['toggleSidebar']();
       expect(component['sidebarOpen']()).toBe(!initial);
+    });
+
+    it('should persist sidebar state to localStorage', () => {
+      const writeLocalStorageSpy = vi.spyOn(
+        component as never,
+        'writeLocalStorage'
+      );
+
+      component['toggleSidebar']();
+
+      expect(writeLocalStorageSpy).toHaveBeenCalledWith(
+        'canvasSidebarOpen',
+        String(component['sidebarOpen']())
+      );
     });
   });
 
@@ -384,6 +574,26 @@ describe('CanvasTabComponent', () => {
   });
 
   describe('getObjectLabel', () => {
+    it('should return Image for image objects', () => {
+      const obj: CanvasImage = {
+        id: 'x',
+        layerId: 'l',
+        type: 'image',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        src: 'image.png',
+        width: 100,
+        height: 100,
+      };
+
+      expect(component['getObjectLabel'](obj)).toBe('Image');
+    });
+
     it('should return text content for text objects', () => {
       const obj: CanvasText = {
         id: 'x',
@@ -406,6 +616,52 @@ describe('CanvasTabComponent', () => {
       };
       const label = component['getObjectLabel'](obj);
       expect(label).toBe('Hello World');
+    });
+
+    it('should fall back to Text when the text object is empty', () => {
+      const obj: CanvasText = {
+        id: 'x',
+        layerId: 'l',
+        type: 'text',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        text: '',
+        fontSize: 16,
+        fontFamily: 'Arial',
+        fontStyle: 'normal',
+        fill: '#000',
+        width: 200,
+        align: 'left',
+      };
+
+      expect(component['getObjectLabel'](obj)).toBe('Text');
+    });
+
+    it('should return point count for path objects', () => {
+      const obj: CanvasPath = {
+        id: 'x',
+        layerId: 'l',
+        type: 'path',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        points: [0, 0, 10, 10, 20, 20],
+        stroke: '#000',
+        strokeWidth: 2,
+        closed: false,
+        tension: 0,
+      };
+
+      expect(component['getObjectLabel'](obj)).toBe('Path (3 pts)');
     });
 
     it('should return pin label for pin objects', () => {
@@ -590,6 +846,17 @@ describe('CanvasTabComponent', () => {
       expect(component['clipboard']()).toBeNull();
     });
 
+    it('should auto-select the first layer when pasting with no active layer', () => {
+      component['selectedObjectId'].set('shape-1');
+      component['onCopy']();
+      component['activeLayerId'].set('');
+
+      component['onPaste']();
+
+      expect(component['activeLayerId']()).toBe(defaultConfig.layers[0].id);
+      expect(mockCanvasService.addObject).toHaveBeenCalled();
+    });
+
     it('should duplicate selected object', () => {
       component['selectedObjectId'].set('shape-1');
       component['onDuplicateObject']();
@@ -650,6 +917,78 @@ describe('CanvasTabComponent', () => {
       fixture.detectChanges();
       component['selectedObjectId'].set(null);
       expect(component['getSelectedObjectLayerId']()).toBe('');
+    });
+  });
+
+  describe('zoom actions', () => {
+    it('should zoom in around the stage center', () => {
+      component['stage'] = createStageStub() as never;
+      const zoomToPointSpy = vi.spyOn(component as never, 'zoomToPoint');
+
+      component['onZoomIn']();
+
+      expect(zoomToPointSpy).toHaveBeenCalledWith({ x: 200, y: 100 }, 1.1);
+    });
+
+    it('should zoom out around the stage center', () => {
+      component['stage'] = createStageStub() as never;
+      const zoomToPointSpy = vi.spyOn(component as never, 'zoomToPoint');
+
+      component['onZoomOut']();
+
+      expect(zoomToPointSpy).toHaveBeenCalledWith({ x: 200, y: 100 }, 1 / 1.1);
+    });
+
+    it('should reset position and zoom when fitting an empty canvas', () => {
+      const stage = createStageStub();
+      component['stage'] = stage as never;
+      mockCanvasService.activeConfig.set({ ...defaultConfig, objects: [] });
+
+      component['onFitAll']();
+
+      expect(stage.position).toHaveBeenCalledWith({ x: 0, y: 0 });
+      expect(stage.scale).toHaveBeenCalledWith({ x: 1, y: 1 });
+      expect(component['zoomLevel']()).toBe(1);
+    });
+  });
+
+  describe('resolveImageSrc', () => {
+    it('should return non-media URLs unchanged', async () => {
+      await expect(
+        component['resolveImageSrc']('https://example.com/test.png')
+      ).resolves.toBe('https://example.com/test.png');
+    });
+
+    it('should return an empty string when project context is missing', async () => {
+      mockProjectState.project.set(null);
+
+      await expect(
+        component['resolveImageSrc']('media:test-image')
+      ).resolves.toBe('');
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it('should return an empty string when stored media cannot be found', async () => {
+      mockLocalStorageService.getMediaUrl.mockResolvedValueOnce(null);
+
+      await expect(
+        component['resolveImageSrc']('media:test-image')
+      ).resolves.toBe('');
+      expect(mockLocalStorageService.getMediaUrl).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'test-image'
+      );
+      expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    it('should return the resolved blob URL for stored media', async () => {
+      mockLocalStorageService.getMediaUrl.mockResolvedValueOnce(
+        'blob:resolved-image'
+      );
+
+      await expect(
+        component['resolveImageSrc']('media:test-image')
+      ).resolves.toBe('blob:resolved-image');
     });
   });
 });
