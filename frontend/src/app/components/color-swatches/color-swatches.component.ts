@@ -199,7 +199,7 @@ export class ColorSwatchesComponent {
   ];
 
   get hexValue(): string {
-    return this.selectedColor.replace('#', '');
+    return this.selectedColor.replaceAll('#', '');
   }
 
   selectColor(color: string): void {

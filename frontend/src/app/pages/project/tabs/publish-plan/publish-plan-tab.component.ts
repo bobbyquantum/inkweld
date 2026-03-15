@@ -448,8 +448,8 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
   formatEnumLabel(value: string): string {
     return value
-      .replace(/-/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replaceAll('-', ' ')
+      .replaceAll(/([a-z])([A-Z])/g, '$1 $2')
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');

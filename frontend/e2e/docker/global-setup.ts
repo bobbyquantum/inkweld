@@ -122,7 +122,7 @@ export default async function globalSetup(): Promise<void> {
       `docker inspect -f "{{.State.Status}}" ${CONTAINER_NAME}`,
       { encoding: 'utf-8' }
     ).trim();
-    const cleanStatus = status.replace(/['"]/g, '');
+    const cleanStatus = status.replaceAll(/['"]/g, '');
 
     if (cleanStatus !== 'running') {
       execSync(`docker logs ${CONTAINER_NAME}`, {
@@ -180,7 +180,7 @@ export default async function globalSetup(): Promise<void> {
         { encoding: 'utf-8' }
       ).trim();
       // Status might have quotes on some platforms, strip them
-      const cleanStatus = status.replace(/['"]/g, '');
+      const cleanStatus = status.replaceAll(/['"]/g, '');
       if (cleanStatus !== 'running') {
         execSync(`docker logs ${CONTAINER_NAME}`, {
           encoding: 'utf-8',

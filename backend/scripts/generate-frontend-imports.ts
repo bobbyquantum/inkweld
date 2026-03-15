@@ -56,7 +56,7 @@ console.log(`   Found ${frontendFiles.length} frontend files`);
 
 // Generate import statements
 const imports = frontendFiles.map((file, idx) => {
-  const relativePath = relative(join(PROJECT_ROOT, 'backend/src'), file).replace(/\\/g, '/');
+  const relativePath = relative(join(PROJECT_ROOT, 'backend/src'), file).replaceAll('\\', '/');
   const varName = `asset_${idx}`;
   return `import ${varName} from '${relativePath}' with { type: 'file' };`;
 });

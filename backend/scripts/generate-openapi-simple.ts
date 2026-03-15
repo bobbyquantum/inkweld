@@ -35,7 +35,7 @@ function convertPathParameters(spec: Record<string, unknown>): Record<string, un
 
   for (const [pathKey, pathValue] of Object.entries(paths)) {
     // Convert :paramName to {paramName}
-    const convertedPath = pathKey.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    const convertedPath = pathKey.replaceAll(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
     convertedPaths[convertedPath] = pathValue;
   }
 

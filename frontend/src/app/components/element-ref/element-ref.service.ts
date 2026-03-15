@@ -239,8 +239,8 @@ export class ElementRefService {
       typeMap[type] ||
       String(type)
         .toLowerCase()
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase())
+        .replaceAll('_', ' ')
+        .replaceAll(/\b\w/g, c => c.toUpperCase())
     );
   }
 

@@ -837,15 +837,15 @@ export class PdfGeneratorService {
   private escapeTypst(text: string): string {
     if (!text) return '';
     return text
-      .replace(/\\/g, '\\\\')
-      .replace(/#/g, '\\#')
-      .replace(/\$/g, '\\$')
-      .replace(/_/g, '\\_')
-      .replace(/\*/g, '\\*')
-      .replace(/@/g, '\\@')
-      .replace(/\[/g, '\\[')
-      .replace(/\]/g, '\\]')
-      .replace(/`/g, '\\`');
+      .replaceAll('\\', '\\\\')
+      .replaceAll('#', '\\#')
+      .replaceAll('$', '\\$')
+      .replaceAll('_', '\\_')
+      .replaceAll('*', '\\*')
+      .replaceAll('@', '\\@')
+      .replaceAll('[', '\\[')
+      .replaceAll(']', '\\]')
+      .replaceAll('`', '\\`');
   }
 
   private toRoman(num: number): string {
@@ -912,8 +912,8 @@ export class PdfGeneratorService {
   private generateFilename(title: string): string {
     const safeName = title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replaceAll(/[^a-z0-9]+/g, '-')
+      .replaceAll(/^-+|-+$/g, '');
     return `${safeName || 'document'}.pdf`;
   }
 

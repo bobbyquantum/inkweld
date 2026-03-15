@@ -100,7 +100,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       const secret = this.getSecret();
 
       // Decode payload (base64url)
-      const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payloadB64 = parts[1].replaceAll('-', '+').replaceAll('_', '/');
       const payloadJson = atob(payloadB64);
       const payload = JSON.parse(payloadJson) as SessionData;
 
@@ -116,7 +116,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       );
 
       // Decode signature (base64url)
-      const sigB64 = parts[2].replace(/-/g, '+').replace(/_/g, '/');
+      const sigB64 = parts[2].replaceAll('-', '+').replaceAll('_', '/');
       // Pad if needed
       const padded = sigB64 + '='.repeat((4 - (sigB64.length % 4)) % 4);
       const sigBytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
@@ -846,13 +846,13 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    */
   private decodeXmlEntities(text: string): string {
     return text
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&apos;/g, "'")
-      .replace(/&#(\d+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 10)))
-      .replace(/&#x([0-9a-fA-F]+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 16)));
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll("&apos;", "'")
+      .replaceAll(/&#(\d+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 10)))
+      .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 16)));
   }
 
   /**

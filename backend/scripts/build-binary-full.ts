@@ -63,7 +63,7 @@ console.log('📝 Generating asset imports file...');
 
 const TEMP_IMPORTS_FILE = join(PROJECT_ROOT, 'backend/src/.frontend-imports-generated.ts');
 const imports = frontendFiles.map((file, idx) => {
-  const relativePath = relative(join(PROJECT_ROOT, 'backend/src'), file).replace(/\\/g, '/');
+  const relativePath = relative(join(PROJECT_ROOT, 'backend/src'), file).replaceAll('\\', '/');
   const varName = `asset_${idx}`;
   return `import ${varName} from '${relativePath}' with { type: 'file' };`;
 });

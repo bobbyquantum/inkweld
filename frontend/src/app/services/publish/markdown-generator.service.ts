@@ -689,8 +689,8 @@ export class MarkdownGeneratorService {
   private generateFilename(title: string): string {
     const safeName = title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replaceAll(/[^a-z0-9]+/g, '-')
+      .replaceAll(/^-+|-+$/g, '');
     return `${safeName || 'document'}.md`;
   }
 

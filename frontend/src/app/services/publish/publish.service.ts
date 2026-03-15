@@ -901,8 +901,8 @@ export class PublishService {
   private generateFilename(plan: PublishPlan): string {
     // Use plan name, sanitized for filesystem
     const baseName = plan.name
-      .replace(/[^a-zA-Z0-9\s-]/g, '')
-      .replace(/\s+/g, '-');
+      .replaceAll(/[^a-zA-Z0-9\s-]/g, '')
+      .replaceAll(/\s+/g, '-');
 
     // Add timestamp for uniqueness if needed
     const timestamp = new Date().toISOString().split('T')[0];

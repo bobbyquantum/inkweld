@@ -92,7 +92,7 @@ function compressAssets() {
 
       // Update hash in ngsw.json
       if (ngsw && ngsw.hashTable) {
-        const relativePath = '/' + path.relative(DIST_DIR, filePath).replace(/\\/g, '/');
+        const relativePath = '/' + path.relative(DIST_DIR, filePath).replaceAll('\\', '/');
         if (ngsw.hashTable[relativePath]) {
           const newHash = crypto.createHash('sha1').update(compressed).digest('hex');
           ngsw.hashTable[relativePath] = newHash;

@@ -259,7 +259,7 @@ documentRoutes.openapi(renderHtmlRoute, async (c) => {
 
   // Escape user-controlled values to prevent reflected XSS
   const escapeHtml = (str: string) =>
-    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 
   const safeDocId = escapeHtml(docId);
   const safeUsername = escapeHtml(username);

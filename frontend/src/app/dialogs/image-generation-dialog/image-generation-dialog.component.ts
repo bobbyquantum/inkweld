@@ -1119,7 +1119,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     };
 
     // Type may be like "worldbuilding/character" or just "character"
-    const normalizedType = type.replace('worldbuilding/', '').toLowerCase();
+    const normalizedType = type.replaceAll('worldbuilding/', '').toLowerCase();
     return iconMap[normalizedType] || 'category';
   }
 

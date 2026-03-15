@@ -32,7 +32,7 @@ function convertPathParameters(spec: Record<string, unknown>): Record<string, un
 
   for (const [pathKey, pathValue] of Object.entries(paths)) {
     // Convert :paramName to {paramName}
-    let convertedPath = pathKey.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    let convertedPath = pathKey.replaceAll(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
     // Normalize double slashes (e.g., //oauth/authorize -> /oauth/authorize)
     convertedPath = convertedPath.replace(/\/+/g, '/');
     convertedPaths[convertedPath] = pathValue;

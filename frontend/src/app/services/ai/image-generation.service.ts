@@ -321,7 +321,7 @@ export class ImageGenerationService {
       const isModerationBlock = errorMessage.includes('MODERATION_BLOCKED:');
       if (isModerationBlock) {
         // Strip the prefix for display
-        errorMessage = errorMessage.replace('MODERATION_BLOCKED:', '').trim();
+        errorMessage = errorMessage.replaceAll('MODERATION_BLOCKED:', '').trim();
       }
 
       this.updateJob(jobId, {
