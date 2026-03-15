@@ -562,32 +562,62 @@ describe('TabInterfaceComponent', () => {
 
   describe('getTabIcon', () => {
     it('should return home icon for home system tab', () => {
-      const tab: AppTab = { id: 'home', name: 'Home', type: 'system', systemType: 'home' };
+      const tab: AppTab = {
+        id: 'home',
+        name: 'Home',
+        type: 'system',
+        systemType: 'home',
+      };
       expect(component.getTabIcon(tab)).toBe('home');
     });
 
     it('should return list icon for documents-list system tab', () => {
-      const tab: AppTab = { id: 's', name: 'Docs', type: 'system', systemType: 'documents-list' };
+      const tab: AppTab = {
+        id: 's',
+        name: 'Docs',
+        type: 'system',
+        systemType: 'documents-list',
+      };
       expect(component.getTabIcon(tab)).toBe('list');
     });
 
     it('should return perm_media icon for media system tab', () => {
-      const tab: AppTab = { id: 's', name: 'Media', type: 'system', systemType: 'media' };
+      const tab: AppTab = {
+        id: 's',
+        name: 'Media',
+        type: 'system',
+        systemType: 'media',
+      };
       expect(component.getTabIcon(tab)).toBe('perm_media');
     });
 
     it('should return description icon for templates-list system tab', () => {
-      const tab: AppTab = { id: 's', name: 'Tpl', type: 'system', systemType: 'templates-list' };
+      const tab: AppTab = {
+        id: 's',
+        name: 'Tpl',
+        type: 'system',
+        systemType: 'templates-list',
+      };
       expect(component.getTabIcon(tab)).toBe('description');
     });
 
     it('should return settings icon for settings system tab', () => {
-      const tab: AppTab = { id: 's', name: 'Settings', type: 'system', systemType: 'settings' };
+      const tab: AppTab = {
+        id: 's',
+        name: 'Settings',
+        type: 'system',
+        systemType: 'settings',
+      };
       expect(component.getTabIcon(tab)).toBe('settings');
     });
 
     it('should return article as fallback for unknown system tab type', () => {
-      const tab: AppTab = { id: 's', name: 'X', type: 'system', systemType: 'relationships-list' };
+      const tab: AppTab = {
+        id: 's',
+        name: 'X',
+        type: 'system',
+        systemType: 'relationships-list',
+      };
       expect(component.getTabIcon(tab)).toBe('article');
     });
 
@@ -597,12 +627,21 @@ describe('TabInterfaceComponent', () => {
     });
 
     it('should return folder icon for folder tab', () => {
-      const tab: AppTab = { id: 'f1', name: 'Folder', type: 'folder', element: mockDocuments[1] };
+      const tab: AppTab = {
+        id: 'f1',
+        name: 'Folder',
+        type: 'folder',
+        element: mockDocuments[1],
+      };
       expect(component.getTabIcon(tab)).toBe('folder');
     });
 
     it('should return hub icon for relationship-chart tab', () => {
-      const tab: AppTab = { id: 'rc1', name: 'Chart', type: 'relationship-chart' };
+      const tab: AppTab = {
+        id: 'rc1',
+        name: 'Chart',
+        type: 'relationship-chart',
+      };
       expect(component.getTabIcon(tab)).toBe('hub');
     });
 
@@ -613,13 +652,21 @@ describe('TabInterfaceComponent', () => {
 
     it('should return category for worldbuilding tab with no schema', () => {
       const tab: AppTab = {
-        id: 'wb1', name: 'WB', type: 'worldbuilding', element: mockDocuments[0],
+        id: 'wb1',
+        name: 'WB',
+        type: 'worldbuilding',
+        element: mockDocuments[0],
       };
       expect(component.getTabIcon(tab)).toBe('category');
     });
 
     it('should return insert_drive_file for document tab', () => {
-      const tab: AppTab = { id: 'doc1', name: 'Doc', type: 'document', element: mockDocuments[0] };
+      const tab: AppTab = {
+        id: 'doc1',
+        name: 'Doc',
+        type: 'document',
+        element: mockDocuments[0],
+      };
       expect(component.getTabIcon(tab)).toBe('insert_drive_file');
     });
   });
@@ -679,8 +726,18 @@ describe('TabInterfaceComponent', () => {
     it('should close all non-home tabs and navigate to home', () => {
       const tabs: AppTab[] = [
         { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
-        { id: 'doc1', name: 'Doc 1', type: 'document', element: mockDocuments[0] },
-        { id: 'doc2', name: 'Doc 2', type: 'document', element: mockDocuments[1] },
+        {
+          id: 'doc1',
+          name: 'Doc 1',
+          type: 'document',
+          element: mockDocuments[0],
+        },
+        {
+          id: 'doc2',
+          name: 'Doc 2',
+          type: 'document',
+          element: mockDocuments[1],
+        },
       ];
       (projectStateService.openTabs as any).set(tabs);
       const onTabChangeSpy = vi.spyOn(component, 'onTabChange');
