@@ -680,7 +680,7 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
 
     const sessions = await mcpOAuthService.getUserSessions(db, testUserId);
     expect(sessions.length).toBeGreaterThanOrEqual(1);
-    const found = sessions.find(s => s.id === sessionId);
+    const found = sessions.find((s) => s.id === sessionId);
     expect(found).toBeDefined();
     expect(found?.client.id).toBe(testClientId);
   });
