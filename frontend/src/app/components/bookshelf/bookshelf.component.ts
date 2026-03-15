@@ -3,8 +3,6 @@ import {
   type AfterViewChecked,
   type AfterViewInit,
   Component,
-  effect,
-  type EffectRef,
   type ElementRef,
   EventEmitter,
   HostListener,
@@ -41,40 +39,30 @@ export class BookshelfComponent
   }
   @Output() projectSelected = new EventEmitter<Project>();
 
-  // Effect reference for cleanup
-  private projectsEffectRef?: EffectRef;
-
   @ViewChild('projectsGrid') projectsGrid?: ElementRef<HTMLElement>;
 
   protected activeCardIndex = signal(-1);
-
-  // Set up effect in constructor (injection context)
-  constructor() {
-    this.projectsEffectRef = effect(() => {
-      // Access projects to track changes
-      void this._projects;
-      // Just set the flag; actual recalculation will happen in ngAfterViewChecked
-      this.needsRecalculation = true;
-    });
-  }
 
   private recentlyDragged = false;
   private recentlyScrolled = false;
   private dragTargetIndex = -1;
   private dragStartActiveIndex = -1;
-  private wheelHandler = (e: WheelEvent) => this.handleWheel(e);
+  private readonly wheelHandler = (e: WheelEvent) => this.handleWheel(e);
 
   // Dynamic card width
   private cardWidth: number = 350; // fallback default
-  private cardGap: number = 20; // can be made dynamic if needed
+  private readonly cardGap: number = 20; // can be made dynamic if needed
 
   // Recalculation flag for view update
   private needsRecalculation = false;
   private isDestroyed = false;
 
   // Debounced functions
-  private debouncedUpdateCenteredItem = debounce(this.updateCenteredItem, 100);
-  private debouncedDragUpdate = debounce(() => {
+  private readonly debouncedUpdateCenteredItem = debounce(
+    this.updateCenteredItem,
+    100
+  );
+  private readonly debouncedDragUpdate = debounce(() => {
     const centerIndex = this.findCenterCardIndex();
     this.dragTargetIndex = centerIndex;
 
@@ -83,7 +71,7 @@ export class BookshelfComponent
       this.updateCardVisuals(centerIndex);
     }
   }, 50);
-  private debouncedWheelHandler = debounce((deltaX: number) => {
+  private readonly debouncedWheelHandler = debounce((deltaX: number) => {
     if (deltaX > 50) {
       this.scrollToNext();
     } else if (deltaX < -50) {
@@ -145,7 +133,7 @@ export class BookshelfComponent
     event.source.reset();
 
     // Prevent the browser from batching these style changes
-    void grid.offsetWidth;
+    this.forceReflow(grid);
 
     // Important: Apply exact release positions immediately
     cards.forEach(card => {
@@ -161,7 +149,7 @@ export class BookshelfComponent
     grid.classList.add('freeze-position');
 
     // Force layout recalculation to ensure positions are applied
-    void grid.offsetWidth;
+    this.forceReflow(grid);
 
     // Now we can safely remove the no-transitions class and add transitioning
     setTimeout(() => {
@@ -210,14 +198,13 @@ export class BookshelfComponent
         const element = card as HTMLElement;
 
         const distance = Math.abs(i - centerIndex);
+        const scale = this.getCardScale(distance);
+        const opacity = this.getCardOpacity(distance);
         element.style.zIndex =
           i === centerIndex ? '40' : (10 - distance).toString();
 
         // Calculate opacity based on distance
-        element.style.opacity =
-          distance === 0 ? '1' : distance === 1 ? '0.8' : '0.5';
-
-        const scale = distance === 0 ? 1 : distance === 1 ? 0.9 : 0.8;
+        element.style.opacity = opacity;
         element.style.transform = `translateX(-50%) scale(${scale})`;
 
         if (i === centerIndex) {
@@ -309,7 +296,7 @@ export class BookshelfComponent
         this.activeCardIndex.set(index);
       }
 
-      void grid.offsetWidth;
+      this.forceReflow(grid);
 
       // Use dynamic card width and gap
       const CARD_WIDTH = this.cardWidth;
@@ -338,12 +325,12 @@ export class BookshelfComponent
         element.style.left = `${position}px`;
 
         const distance = Math.abs(i - index);
-        const scale = distance === 0 ? 1.0 : distance === 1 ? 0.9 : 0.8;
+        const scale = this.getCardScale(distance);
+        const opacity = this.getCardOpacity(distance);
 
         element.style.transform = `translateX(-50%) scale(${scale})`;
         element.style.zIndex = i === index ? '40' : (10 - distance).toString();
-        element.style.opacity =
-          distance === 0 ? '1' : distance === 1 ? '0.8' : '0.5';
+        element.style.opacity = opacity;
 
         if (i === index) {
           element.classList.add('centered');
@@ -391,7 +378,7 @@ export class BookshelfComponent
 
     grid.style.transition = 'none';
     grid.style.transform = '';
-    void grid.offsetWidth;
+    this.forceReflow(grid);
 
     grid.style.transition = 'transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)';
     grid.style.transform = `translateX(${distance}px)`;
@@ -405,6 +392,38 @@ export class BookshelfComponent
 
   private handleScroll() {
     this.debouncedUpdateCenteredItem();
+  }
+
+  private getCardScale(distance: number): number {
+    if (distance === 0) {
+      return 1;
+    }
+
+    if (distance === 1) {
+      return 0.9;
+    }
+
+    return 0.8;
+  }
+
+  private getCardOpacity(distance: number): string {
+    if (distance === 0) {
+      return '1';
+    }
+
+    if (distance === 1) {
+      return '0.8';
+    }
+
+    return '0.5';
+  }
+
+  private forceReflow(element: HTMLElement): number {
+    if (typeof element.getBoundingClientRect === 'function') {
+      return element.getBoundingClientRect().width;
+    }
+
+    return element.offsetWidth;
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -557,11 +576,6 @@ export class BookshelfComponent
       );
     }
 
-    // Clean up effect
-    if (this.projectsEffectRef) {
-      this.projectsEffectRef.destroy();
-    }
-
     // Cancel any pending debounced operations
     this.debouncedUpdateCenteredItem.cancel();
     this.debouncedDragUpdate.cancel();
@@ -596,7 +610,7 @@ export class BookshelfComponent
         'transitioning'
       );
       // Force reflow
-      void gridElement.offsetWidth;
+      this.forceReflow(gridElement);
       this.scrollToCard(idx);
       this.updateCardVisuals(idx);
       // Optionally, add 'transitioning' class briefly to trigger transitions

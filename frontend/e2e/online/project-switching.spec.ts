@@ -9,16 +9,27 @@
  *   tabs from the previous project may appear in the new project,
  *   potentially causing navigation to the wrong project.
  */
-import { generateUniqueUsername } from '../common';
-import { TEST_PASSWORDS } from '../common/test-credentials';
-import { createProject, expect, registerUser, test } from './fixtures';
+import { createProject, expect, type Page, test } from './fixtures';
+
+function getTestUsername(page: Page): string {
+  const testCredentials = (
+    page as Page & {
+      testCredentials?: { username?: string };
+    }
+  ).testCredentials;
+
+  if (!testCredentials?.username) {
+    throw new Error('authenticatedPage is missing test credentials');
+  }
+
+  return testCredentials.username;
+}
 
 test.describe('Project Switching Bug Prevention', () => {
   test('should not navigate to wrong project when switching', async ({
-    anonymousPage: page,
+    authenticatedPage: page,
   }) => {
-    const username = generateUniqueUsername('switch');
-    await registerUser(page, username, TEST_PASSWORDS.VALID);
+    const username = getTestUsername(page);
 
     // Create first project
     await createProject(page, 'Test Project One', 'test-one');
@@ -50,10 +61,9 @@ test.describe('Project Switching Bug Prevention', () => {
   });
 
   test('should handle multiple project switches correctly', async ({
-    anonymousPage: page,
+    authenticatedPage: page,
   }) => {
-    const username = generateUniqueUsername('multi');
-    await registerUser(page, username, TEST_PASSWORDS.VALID);
+    const username = getTestUsername(page);
 
     // Create three projects
     for (let i = 1; i <= 3; i++) {
@@ -80,10 +90,9 @@ test.describe('Project Switching Bug Prevention', () => {
   });
 
   test('should show correct project title after back-and-forth switching', async ({
-    anonymousPage: page,
+    authenticatedPage: page,
   }) => {
-    const username = generateUniqueUsername('backforth');
-    await registerUser(page, username, TEST_PASSWORDS.VALID);
+    const username = getTestUsername(page);
 
     await createProject(page, 'Alpha Project', 'alpha');
     await page.goto('/');

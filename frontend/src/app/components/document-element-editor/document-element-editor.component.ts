@@ -96,21 +96,21 @@ import { type ResolvedTag } from '../tags/tag.model';
 export class DocumentElementEditorComponent
   implements OnInit, OnChanges, OnDestroy, AfterViewChecked
 {
-  private documentService = inject(DocumentService);
+  private readonly documentService = inject(DocumentService);
   protected projectState = inject(ProjectStateService);
-  private settingsService = inject(SettingsService);
-  private relationshipService = inject(RelationshipService);
-  private dialog = inject(MatDialog);
-  private dialogGateway = inject(DialogGatewayService);
-  private localStorage = inject(LocalStorageService);
-  private insertImageService = inject(InsertImageService);
+  private readonly settingsService = inject(SettingsService);
+  private readonly relationshipService = inject(RelationshipService);
+  private readonly dialog = inject(MatDialog);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly insertImageService = inject(InsertImageService);
   protected elementRefService = inject(ElementRefService);
   protected findService = inject(FindInDocumentService);
   private readonly tagService = inject(TagService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';
-  private documentIdSignal = signal<string>(this._documentId);
+  private readonly documentIdSignal = signal<string>(this._documentId);
   @Input() set documentId(id: string) {
     this._documentId = id;
     this.documentIdSignal.set(id);
@@ -162,8 +162,14 @@ export class DocumentElementEditorComponent
   private idFormatted = false;
   private collaborationSetup = false;
   private destroyed = false; // Track if component is destroyed to prevent stale async operations
+  private readonly lintAcceptListener: EventListener = (_event: Event) => {
+    // Suggestion accepted - could add analytics here
+  };
+  private readonly lintRejectListener: EventListener = (_event: Event) => {
+    // Suggestion rejected - could add analytics here
+  };
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
-  private cdr = inject(ChangeDetectorRef);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
@@ -443,6 +449,11 @@ export class DocumentElementEditorComponent
       this.documentService.disconnect(this.documentId);
     }
 
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('lint-accept', this.lintAcceptListener);
+      document.removeEventListener('lint-reject', this.lintRejectListener);
+    }
+
     // Remove our custom style element if it exists
     if (
       typeof document !== 'undefined' &&
@@ -450,9 +461,7 @@ export class DocumentElementEditorComponent
     ) {
       try {
         const styleElement = document.getElementById('inkweld-lint-styles');
-        if (styleElement && styleElement.parentNode) {
-          styleElement.parentNode.removeChild(styleElement);
-        }
+        styleElement?.remove();
       } catch {
         // Ignore errors when removing lint styles
       }
@@ -489,7 +498,7 @@ export class DocumentElementEditorComponent
   private addLintStyles(): void {
     // Check if we're running in a browser environment
     if (
-      typeof window === 'undefined' ||
+      globalThis.window === undefined ||
       typeof document === 'undefined' ||
       !document.head
     ) {
@@ -592,22 +601,13 @@ export class DocumentElementEditorComponent
     document.head.appendChild(style);
 
     // Add event handlers for accept/reject buttons (can be used for analytics later)
-    document.addEventListener('lint-accept', ((event: Event) => {
-      const customEvent = event as CustomEvent<unknown>;
-      // Suggestion accepted - could add analytics here
-      void customEvent;
-    }) as EventListener);
-
-    document.addEventListener('lint-reject', ((event: Event) => {
-      const customEvent = event as CustomEvent<unknown>;
-      // Suggestion rejected - could add analytics here
-      void customEvent;
-    }) as EventListener);
+    document.addEventListener('lint-accept', this.lintAcceptListener);
+    document.addEventListener('lint-reject', this.lintRejectListener);
   }
 
   // Check if the cursor is currently inside a lint suggestion
   isCursorInLintSuggestion(): boolean {
-    if (!this.editor || !this.editor.view) {
+    if (!this.editor?.view) {
       return false;
     }
 
