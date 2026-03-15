@@ -11,19 +11,25 @@
  */
 import { createProject, expect, type Page, test } from './fixtures';
 
-type AuthenticatedTestPage = Page & {
-  testCredentials: { username: string };
-};
+function getTestUsername(page: Page): string {
+  const testCredentials = (
+    page as Page & {
+      testCredentials?: { username?: string };
+    }
+  ).testCredentials;
 
-function getTestUsername(page: AuthenticatedTestPage): string {
-  return page.testCredentials.username;
+  if (!testCredentials?.username) {
+    throw new Error('authenticatedPage is missing test credentials');
+  }
+
+  return testCredentials.username;
 }
 
 test.describe('Project Switching Bug Prevention', () => {
   test('should not navigate to wrong project when switching', async ({
     authenticatedPage: page,
   }) => {
-    const username = getTestUsername(page as AuthenticatedTestPage);
+    const username = getTestUsername(page);
 
     // Create first project
     await createProject(page, 'Test Project One', 'test-one');
@@ -57,7 +63,7 @@ test.describe('Project Switching Bug Prevention', () => {
   test('should handle multiple project switches correctly', async ({
     authenticatedPage: page,
   }) => {
-    const username = getTestUsername(page as AuthenticatedTestPage);
+    const username = getTestUsername(page);
 
     // Create three projects
     for (let i = 1; i <= 3; i++) {
@@ -86,7 +92,7 @@ test.describe('Project Switching Bug Prevention', () => {
   test('should show correct project title after back-and-forth switching', async ({
     authenticatedPage: page,
   }) => {
-    const username = getTestUsername(page as AuthenticatedTestPage);
+    const username = getTestUsername(page);
 
     await createProject(page, 'Alpha Project', 'alpha');
     await page.goto('/');

@@ -162,6 +162,12 @@ export class DocumentElementEditorComponent
   private idFormatted = false;
   private collaborationSetup = false;
   private destroyed = false; // Track if component is destroyed to prevent stale async operations
+  private readonly lintAcceptListener: EventListener = (_event: Event) => {
+    // Suggestion accepted - could add analytics here
+  };
+  private readonly lintRejectListener: EventListener = (_event: Event) => {
+    // Suggestion rejected - could add analytics here
+  };
   protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -443,6 +449,11 @@ export class DocumentElementEditorComponent
       this.documentService.disconnect(this.documentId);
     }
 
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('lint-accept', this.lintAcceptListener);
+      document.removeEventListener('lint-reject', this.lintRejectListener);
+    }
+
     // Remove our custom style element if it exists
     if (
       typeof document !== 'undefined' &&
@@ -590,13 +601,8 @@ export class DocumentElementEditorComponent
     document.head.appendChild(style);
 
     // Add event handlers for accept/reject buttons (can be used for analytics later)
-    document.addEventListener('lint-accept', ((_event: Event) => {
-      // Suggestion accepted - could add analytics here
-    }) as EventListener);
-
-    document.addEventListener('lint-reject', ((_event: Event) => {
-      // Suggestion rejected - could add analytics here
-    }) as EventListener);
+    document.addEventListener('lint-accept', this.lintAcceptListener);
+    document.addEventListener('lint-reject', this.lintRejectListener);
   }
 
   // Check if the cursor is currently inside a lint suggestion

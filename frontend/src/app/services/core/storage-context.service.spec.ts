@@ -12,6 +12,7 @@ import {
 describe('StorageContextService', () => {
   let service: StorageContextService;
   let mockStorage: Record<string, string>;
+  let originalLocalStorageDescriptor: PropertyDescriptor | undefined;
 
   /**
    * Helper to create a fresh service instance with a clean localStorage mock.
@@ -28,6 +29,10 @@ describe('StorageContextService', () => {
   beforeEach(() => {
     // Reset mock storage to a fresh empty object
     mockStorage = {};
+    originalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'localStorage'
+    );
 
     // Mock localStorage by replacing window.localStorage
     const localStorageMock = {
@@ -65,6 +70,15 @@ describe('StorageContextService', () => {
   });
 
   afterEach(() => {
+    if (originalLocalStorageDescriptor) {
+      Object.defineProperty(
+        globalThis,
+        'localStorage',
+        originalLocalStorageDescriptor
+      );
+    } else {
+      delete (globalThis as { localStorage?: Storage }).localStorage;
+    }
     vi.clearAllMocks();
   });
 

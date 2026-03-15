@@ -16,12 +16,18 @@ vi.mock('@components/project-card/project-card.component', () => ({
 describe('BookshelfComponent', () => {
   let component: BookshelfComponent;
   let mockProjects: Project[];
+  let originalInnerWidthDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(() => {
     // Configure TestBed for injection context
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection()],
     });
+
+    originalInnerWidthDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'innerWidth'
+    );
 
     // Mock window object for the component
     Object.defineProperty(globalThis, 'innerWidth', {
@@ -100,6 +106,16 @@ describe('BookshelfComponent', () => {
     // Clean up component and cancel any pending debounced operations
     if (component) {
       component.ngOnDestroy();
+    }
+
+    if (originalInnerWidthDescriptor) {
+      Object.defineProperty(
+        globalThis,
+        'innerWidth',
+        originalInnerWidthDescriptor
+      );
+    } else {
+      delete (globalThis as { innerWidth?: number }).innerWidth;
     }
   });
 
@@ -608,25 +624,26 @@ describe('BookshelfComponent', () => {
 
       mutableComponent.debouncedWheelHandler = mockWheelHandler;
 
-      // Execute with positive delta (scroll right)
-      mutableComponent.debouncedWheelHandler(100);
+      try {
+        // Execute with positive delta (scroll right)
+        mutableComponent.debouncedWheelHandler(100);
 
-      // Assert
-      expect(component.scrollToNext).toHaveBeenCalled();
-      expect(component.scrollToPrevious).not.toHaveBeenCalled();
+        // Assert
+        expect(component.scrollToNext).toHaveBeenCalled();
+        expect(component.scrollToPrevious).not.toHaveBeenCalled();
 
-      // Reset spies
-      vi.clearAllMocks();
+        // Reset spies
+        vi.clearAllMocks();
 
-      // Execute with negative delta (scroll left)
-      mutableComponent.debouncedWheelHandler(-100);
+        // Execute with negative delta (scroll left)
+        mutableComponent.debouncedWheelHandler(-100);
 
-      // Assert
-      expect(component.scrollToPrevious).toHaveBeenCalled();
-      expect(component.scrollToNext).not.toHaveBeenCalled();
-
-      // Restore original debounced function
-      mutableComponent.debouncedWheelHandler = originalHandler;
+        // Assert
+        expect(component.scrollToPrevious).toHaveBeenCalled();
+        expect(component.scrollToNext).not.toHaveBeenCalled();
+      } finally {
+        mutableComponent.debouncedWheelHandler = originalHandler;
+      }
     });
 
     it('should update centered item in debounced handleScroll', () => {
