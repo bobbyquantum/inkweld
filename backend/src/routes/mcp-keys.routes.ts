@@ -5,8 +5,7 @@
  * These routes use session authentication (not API key auth).
  */
 
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { mcpKeyService } from '../services/mcp-key.service';

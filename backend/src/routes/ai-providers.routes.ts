@@ -4,8 +4,7 @@
  * Centralized routes for managing AI provider API keys.
  * These keys are shared across all AI features (image generation, text generation).
  */
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
 import { imageGenerationService } from '../services/image-generation.service';

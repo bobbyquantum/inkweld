@@ -1,5 +1,4 @@
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { openAILintService } from '../services/openai-lint.service';
 import { logger } from '../services/logger.service';
