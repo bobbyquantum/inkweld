@@ -14,13 +14,31 @@ export function decodeXmlEntities(text: string): string {
 
 /**
  * Strip HTML/XML tags from ProseMirror XML and decode entities, returning plain text.
- * Block-level closing tags become newlines; inline tags are removed entirely.
+ * Block-level closing tags become newlines; all other tags are removed.
+ * Uses a simple character scan to avoid regex on user-controlled content.
  */
 export function xmlContentToText(xmlContent: string): string {
-  return xmlContent
-    .replaceAll(/<\/(?:paragraph|heading|blockquote|listItem)>/gi, '\n')
-    .replaceAll(/<\/[^>]+>/g, '')
-    .replaceAll(/<[^>]+>/g, '')
+  // Replace known block-level closing tags with newlines (literal strings, no regex)
+  const withNewlines = xmlContent
+    .replaceAll('</paragraph>', '\n')
+    .replaceAll('</heading>', '\n')
+    .replaceAll('</blockquote>', '\n')
+    .replaceAll('</listItem>', '\n');
+
+  // Strip remaining tags with a character scan — avoids regex ReDoS on [^>]+
+  let stripped = '';
+  let inTag = false;
+  for (const ch of withNewlines) {
+    if (ch === '<') {
+      inTag = true;
+    } else if (ch === '>') {
+      inTag = false;
+    } else if (!inTag) {
+      stripped += ch;
+    }
+  }
+
+  return stripped
     .replaceAll('&amp;', '&')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
@@ -35,5 +53,16 @@ export function xmlContentToText(xmlContent: string): string {
  * replaces non-printable / non-ASCII characters with underscores.
  */
 export function sanitizeFilename(filename: string): string {
-  return filename.replaceAll(/["\\\r\n]/g, '').replaceAll(/[^\x20-\x7E]/g, '_');
+  let result = '';
+  for (const ch of filename) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (ch === '"' || ch === '\\' || ch === '\r' || ch === '\n') {
+      // strip header-injection characters
+    } else if (code < 0x20 || code > 0x7e) {
+      result += '_';
+    } else {
+      result += ch;
+    }
+  }
+  return result;
 }
