@@ -653,8 +653,8 @@ describe('TabInterfaceComponent', () => {
       expect(component.hasTabsToRight()).toBe(false);
     });
 
-    it('hasOtherTabs returns false when contextTabIndex is null', () => {
-      component.contextTabIndex = null;
+    it('hasOtherTabs returns false when only 2 tabs exist', () => {
+      (projectStateService.openTabs as any).set([mockTabs[0], mockTabs[1]]);
       expect(component.hasOtherTabs()).toBe(false);
     });
 

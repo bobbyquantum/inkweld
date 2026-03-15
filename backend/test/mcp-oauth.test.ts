@@ -614,7 +614,7 @@ describe('OAuthError', () => {
 });
 
 describe('MCP OAuth Service - cleanup and utility methods', () => {
-  it('cleanupExpiredCodes should delete expired codes and return count', async () => {
+  it('cleanupExpiredCodes should delete expired codes', async () => {
     const expiredHash = 'expired-hash-' + Date.now();
     await db.insert(mcpOAuthCodes).values({
       codeHash: expiredHash,
@@ -628,12 +628,16 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
       expiresAt: Date.now() - 5_000, // already expired
     });
 
-    const deleted = await mcpOAuthService.cleanupExpiredCodes(db);
-    expect(deleted).toBeGreaterThanOrEqual(1);
+    await mcpOAuthService.cleanupExpiredCodes(db);
+
+    const remaining = await db
+      .select()
+      .from(mcpOAuthCodes)
+      .where(eq(mcpOAuthCodes.codeHash, expiredHash));
+    expect(remaining.length).toBe(0);
   });
 
-  it('cleanupExpiredSessions should delete expired sessions and return count', async () => {
-    // Create a session that is already expired
+  it('cleanupExpiredSessions should delete expired sessions', async () => {
     const expiredSessionId = crypto.randomUUID();
     const now = Date.now();
     await db.insert(mcpOAuthSessions).values({
@@ -646,8 +650,13 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
       expiresAt: now - 50_000, // already expired
     });
 
-    const deleted = await mcpOAuthService.cleanupExpiredSessions(db);
-    expect(deleted).toBeGreaterThanOrEqual(1);
+    await mcpOAuthService.cleanupExpiredSessions(db);
+
+    const remaining = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, expiredSessionId));
+    expect(remaining.length).toBe(0);
   });
 
   it('getPublicClient should return null for unknown client', async () => {
