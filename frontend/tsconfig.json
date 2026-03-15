@@ -24,7 +24,9 @@
       "@services/*": ["app/services/*"],
       "@models/*": ["app/models/*"],
       "@themes/*": ["themes/*"],
-      "@package": ["../package.json"]
+      "@package": ["../package.json"],
+      "@frontend-package": ["./package.json"],
+      "@backend-package": ["../backend/package.json"]
     },
 
     "module": "preserve"
