@@ -559,4 +559,148 @@ describe('TabInterfaceComponent', () => {
       expect(() => component.scrollToActiveTab()).not.toThrow();
     });
   });
+
+  describe('getTabIcon', () => {
+    it('should return home icon for home system tab', () => {
+      const tab: AppTab = { id: 'home', name: 'Home', type: 'system', systemType: 'home' };
+      expect(component.getTabIcon(tab)).toBe('home');
+    });
+
+    it('should return list icon for documents-list system tab', () => {
+      const tab: AppTab = { id: 's', name: 'Docs', type: 'system', systemType: 'documents-list' };
+      expect(component.getTabIcon(tab)).toBe('list');
+    });
+
+    it('should return perm_media icon for media system tab', () => {
+      const tab: AppTab = { id: 's', name: 'Media', type: 'system', systemType: 'media' };
+      expect(component.getTabIcon(tab)).toBe('perm_media');
+    });
+
+    it('should return description icon for templates-list system tab', () => {
+      const tab: AppTab = { id: 's', name: 'Tpl', type: 'system', systemType: 'templates-list' };
+      expect(component.getTabIcon(tab)).toBe('description');
+    });
+
+    it('should return settings icon for settings system tab', () => {
+      const tab: AppTab = { id: 's', name: 'Settings', type: 'system', systemType: 'settings' };
+      expect(component.getTabIcon(tab)).toBe('settings');
+    });
+
+    it('should return article as fallback for unknown system tab type', () => {
+      const tab: AppTab = { id: 's', name: 'X', type: 'system', systemType: 'relationships-list' };
+      expect(component.getTabIcon(tab)).toBe('article');
+    });
+
+    it('should return publish icon for publishPlan tab', () => {
+      const tab: AppTab = { id: 'pp1', name: 'Plan', type: 'publishPlan' };
+      expect(component.getTabIcon(tab)).toBe('publish');
+    });
+
+    it('should return folder icon for folder tab', () => {
+      const tab: AppTab = { id: 'f1', name: 'Folder', type: 'folder', element: mockDocuments[1] };
+      expect(component.getTabIcon(tab)).toBe('folder');
+    });
+
+    it('should return hub icon for relationship-chart tab', () => {
+      const tab: AppTab = { id: 'rc1', name: 'Chart', type: 'relationship-chart' };
+      expect(component.getTabIcon(tab)).toBe('hub');
+    });
+
+    it('should return dashboard icon for canvas tab', () => {
+      const tab: AppTab = { id: 'c1', name: 'Canvas', type: 'canvas' };
+      expect(component.getTabIcon(tab)).toBe('dashboard');
+    });
+
+    it('should return category for worldbuilding tab with no schema', () => {
+      const tab: AppTab = {
+        id: 'wb1', name: 'WB', type: 'worldbuilding', element: mockDocuments[0],
+      };
+      expect(component.getTabIcon(tab)).toBe('category');
+    });
+
+    it('should return insert_drive_file for document tab', () => {
+      const tab: AppTab = { id: 'doc1', name: 'Doc', type: 'document', element: mockDocuments[0] };
+      expect(component.getTabIcon(tab)).toBe('insert_drive_file');
+    });
+  });
+
+  describe('context menu', () => {
+    it('should set contextTabIndex and contextTab on onTabContextMenu', () => {
+      component.onTabContextMenu(1, mockTabs[1]);
+      expect(component.contextTabIndex).toBe(1);
+      expect(component.contextTab).toBe(mockTabs[1]);
+    });
+
+    it('should clear context state on onContextMenuClose', () => {
+      component.onTabContextMenu(1, mockTabs[1]);
+      component.onContextMenuClose();
+      expect(component.contextTabIndex).toBeNull();
+      expect(component.contextTab).toBeNull();
+    });
+
+    it('hasTabsToRight returns false when contextTabIndex is null', () => {
+      component.contextTabIndex = null;
+      expect(component.hasTabsToRight()).toBe(false);
+    });
+
+    it('hasTabsToRight returns true when there are tabs to the right', () => {
+      component.contextTabIndex = 0;
+      expect(component.hasTabsToRight()).toBe(true);
+    });
+
+    it('hasTabsToRight returns false when context tab is the last one', () => {
+      component.contextTabIndex = mockTabs.length - 1;
+      expect(component.hasTabsToRight()).toBe(false);
+    });
+
+    it('hasOtherTabs returns false when contextTabIndex is null', () => {
+      component.contextTabIndex = null;
+      expect(component.hasOtherTabs()).toBe(false);
+    });
+
+    it('hasOtherTabs returns true when more than 2 tabs exist', () => {
+      expect(component.hasOtherTabs()).toBe(true); // mockTabs has 3
+    });
+
+    it('closeTabsToRight does nothing when contextTabIndex is null', () => {
+      component.contextTabIndex = null;
+      component.closeTabsToRight();
+      expect(projectStateService.closeTab).not.toHaveBeenCalled();
+    });
+
+    it('closeOtherTabs does nothing when contextTabIndex is null', () => {
+      component.contextTabIndex = null;
+      component.closeOtherTabs();
+      expect(projectStateService.closeTab).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('closeAllTabs', () => {
+    it('should close all non-home tabs and navigate to home', () => {
+      const tabs: AppTab[] = [
+        { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+        { id: 'doc1', name: 'Doc 1', type: 'document', element: mockDocuments[0] },
+        { id: 'doc2', name: 'Doc 2', type: 'document', element: mockDocuments[1] },
+      ];
+      (projectStateService.openTabs as any).set(tabs);
+      const onTabChangeSpy = vi.spyOn(component, 'onTabChange');
+
+      component.closeAllTabs();
+
+      expect(projectStateService.closeTab).toHaveBeenCalledTimes(2);
+      expect(onTabChangeSpy).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe('isProjectRoute', () => {
+    it('should return false for reserved paths', () => {
+      expect((component as any).isProjectRoute('/admin/dashboard')).toBe(false);
+      expect((component as any).isProjectRoute('/setup')).toBe(false);
+      expect((component as any).isProjectRoute('/api/something')).toBe(false);
+    });
+
+    it('should return true for project routes', () => {
+      expect((component as any).isProjectRoute('/username/project')).toBe(true);
+    });
+  });
 });
