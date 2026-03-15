@@ -513,6 +513,24 @@ function createEmbeddedSpaHandler(
   };
 }
 
+function findEmbeddedFile(
+  embeddedFiles: Map<string, string | Blob>,
+  relativePath: string
+): (string | Blob) | undefined {
+  const file = embeddedFiles.get(relativePath);
+  if (file) {
+    return file;
+  }
+
+  // Try without leading paths
+  const basename = relativePath.split('/').pop() || '';
+  const basenameFile = embeddedFiles.get(basename);
+  if (basenameFile) {
+    logger.debug('SPA', `Found by basename: "${basename}"`);
+  }
+  return basenameFile;
+}
+
 async function serveEmbeddedAsset(
   embeddedFiles: Map<string, string | Blob>,
   pathname: string,
@@ -523,32 +541,13 @@ async function serveEmbeddedAsset(
 
   // Check for pre-compressed Brotli asset if client supports it
   if (acceptEncoding?.includes('br')) {
-    const brPath = `${relativePath}.br`;
-    const brFile = embeddedFiles.get(brPath);
+    const brFile = embeddedFiles.get(`${relativePath}.br`);
     if (brFile) {
-      const headers = new Headers();
-      headers.set('Content-Type', guessMimeType(relativePath));
-      headers.set('Content-Encoding', 'br');
-      headers.set(
-        'Cache-Control',
-        relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
-      );
-      const content = typeof brFile === 'string' ? Bun.file(brFile) : brFile;
-      return new Response(content, { headers });
+      return buildAssetResponse(brFile, guessMimeType(relativePath), relativePath, 'br');
     }
   }
 
-  // Try exact match first
-  let file = embeddedFiles.get(relativePath);
-
-  if (!file) {
-    // Try without leading paths
-    const basename = relativePath.split('/').pop() || '';
-    file = embeddedFiles.get(basename);
-    if (file) {
-      logger.debug('SPA', `Found by basename: "${basename}"`);
-    }
-  }
+  const file = findEmbeddedFile(embeddedFiles, relativePath);
 
   if (!file) {
     logger.debug('SPA', 'Asset not found', {
@@ -557,19 +556,25 @@ async function serveEmbeddedAsset(
     return null;
   }
 
+  const encoding = relativePath.endsWith('.wasm') ? 'br' : undefined;
+  return buildAssetResponse(file, guessMimeType(relativePath), relativePath, encoding);
+}
+
+function buildAssetResponse(
+  file: string | Blob,
+  contentType: string,
+  relativePath: string,
+  encoding?: string
+): Response {
   const headers = new Headers();
-  headers.set('Content-Type', guessMimeType(relativePath));
-
-  // WASM files are pre-compressed with Brotli during build (see compress-wasm.js)
-  if (relativePath.endsWith('.wasm')) {
-    headers.set('Content-Encoding', 'br');
+  headers.set('Content-Type', contentType);
+  if (encoding) {
+    headers.set('Content-Encoding', encoding);
   }
-
   headers.set(
     'Cache-Control',
     relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
   );
-
   const content = typeof file === 'string' ? Bun.file(file) : file;
   return new Response(content, { headers });
 }
