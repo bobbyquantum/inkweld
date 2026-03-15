@@ -44,6 +44,18 @@ describe('spa-utils', () => {
     it('should trim whitespace from segments', () => {
       expect(sanitizeSpaPath('/ assets / main.js ')).toBe('assets/main.js');
     });
+
+    it('should block encoded dot-dot traversal segments', () => {
+      expect(sanitizeSpaPath('/%2e%2e/%2e%2e/etc/passwd')).toBe('etc/passwd');
+    });
+
+    it('should block traversal injected via encoded slashes', () => {
+      expect(sanitizeSpaPath('/%2e%2e%2fetc/passwd')).toBe('passwd');
+    });
+
+    it('should block mixed-case encoded traversal', () => {
+      expect(sanitizeSpaPath('/%2E%2E/%2E%2E/secret')).toBe('secret');
+    });
   });
 
   describe('shouldBypassSpa', () => {
@@ -82,17 +94,19 @@ describe('spa-utils', () => {
       ['assets/style.css', 'body {}'],
     ]);
 
-    it('should find file by exact path', () => {
+    it('should find file by exact path and return matchedPath', () => {
       const result = findEmbeddedFile(files, 'assets/main.js');
       expect(result).toBeDefined();
       expect(result!.file).toBe('console.log("hi")');
+      expect(result!.matchedPath).toBe('assets/main.js');
       expect(result!.foundByBasename).toBe(false);
     });
 
-    it('should find file by basename fallback', () => {
+    it('should find file by basename fallback and return matched basename', () => {
       const result = findEmbeddedFile(files, 'dist/assets/index.html');
       expect(result).toBeDefined();
       expect(result!.file).toBe('<html>');
+      expect(result!.matchedPath).toBe('index.html');
       expect(result!.foundByBasename).toBe(true);
     });
 
@@ -103,6 +117,7 @@ describe('spa-utils', () => {
     it('should prefer exact match over basename', () => {
       const result = findEmbeddedFile(files, 'index.html');
       expect(result).toBeDefined();
+      expect(result!.matchedPath).toBe('index.html');
       expect(result!.foundByBasename).toBe(false);
     });
   });
@@ -123,6 +138,7 @@ describe('spa-utils', () => {
       expect(guessMimeType('file.woff2')).toBe('font/woff2');
       expect(guessMimeType('file.ttf')).toBe('font/ttf');
       expect(guessMimeType('file.wasm')).toBe('application/wasm');
+      expect(guessMimeType('site.webmanifest')).toBe('application/manifest+json');
     });
 
     it('should return octet-stream for unknown extensions', () => {

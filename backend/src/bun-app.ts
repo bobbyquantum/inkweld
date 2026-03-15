@@ -510,11 +510,10 @@ async function serveEmbeddedAsset(
   }
 
   if (result.foundByBasename) {
-    logger.debug('SPA', `Found by basename: "${relativePath.split('/').pop() || ''}"`);
+    logger.debug('SPA', `Found by basename: "${result.matchedPath}"`);
   }
 
-  const encoding = relativePath.endsWith('.wasm') ? 'br' : undefined;
-  const headers = buildAssetHeaders(guessMimeType(relativePath), relativePath, encoding);
+  const headers = buildAssetHeaders(guessMimeType(result.matchedPath), result.matchedPath);
   const content = typeof result.file === 'string' ? Bun.file(result.file) : result.file;
   return new Response(content, { headers });
 }

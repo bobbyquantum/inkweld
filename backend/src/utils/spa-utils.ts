@@ -14,15 +14,22 @@ export function sanitizeSpaPath(pathname: string): string {
 
   const safeSegments = pathname
     .split('/')
-    .map((segment) => segment.trim())
-    .filter((segment) => segment && segment !== '.' && segment !== '..')
     .map((segment) => {
+      const trimmed = segment.trim();
       try {
-        return decodeURIComponent(segment);
+        return decodeURIComponent(trimmed).trim();
       } catch {
-        return segment;
+        return trimmed;
       }
-    });
+    })
+    .filter(
+      (segment) =>
+        segment &&
+        segment !== '.' &&
+        segment !== '..' &&
+        !segment.includes('/') &&
+        !segment.includes('\\')
+    );
 
   if (safeSegments.length === 0) {
     return 'index.html';
@@ -50,17 +57,17 @@ export function shouldBypassSpa(pathname: string, prefixes: string[]): boolean {
 export function findEmbeddedFile<T>(
   embeddedFiles: Map<string, T>,
   relativePath: string
-): { file: T; foundByBasename: boolean } | undefined {
+): { file: T; matchedPath: string; foundByBasename: boolean } | undefined {
   const file = embeddedFiles.get(relativePath);
-  if (file) {
-    return { file, foundByBasename: false };
+  if (file !== undefined) {
+    return { file, matchedPath: relativePath, foundByBasename: false };
   }
 
   // Try without leading paths
   const basename = relativePath.split('/').pop() || '';
   const basenameFile = embeddedFiles.get(basename);
-  if (basenameFile) {
-    return { file: basenameFile, foundByBasename: true };
+  if (basenameFile !== undefined) {
+    return { file: basenameFile, matchedPath: basename, foundByBasename: true };
   }
   return undefined;
 }
@@ -75,6 +82,7 @@ export function guessMimeType(path: string): string {
     css: 'text/css',
     js: 'application/javascript',
     json: 'application/json',
+    webmanifest: 'application/manifest+json',
     png: 'image/png',
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
