@@ -50,7 +50,9 @@
               <div class="library-info">
                 <div class="library-header">
                   <span class="library-name">{{ lib.name }}</span>
-                  <span class="library-version">v{{ lib.version }}</span>
+                  @if (lib.version) {
+                    <span class="library-version">v{{ lib.version }}</span>
+                  }
                 </div>
                 <span class="library-description">{{ lib.description }}</span>
               </div>

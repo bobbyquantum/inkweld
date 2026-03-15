@@ -12,9 +12,13 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 
 interface LibraryInfo {
   name: string;
-  version: string;
+  version?: string;
   description: string;
   url: string;
+}
+
+function stripSemverPrefix(version: string): string {
+  return version.replace(/^[^0-9]*/, '');
 }
 
 @Component({
@@ -44,38 +48,36 @@ export class AboutComponent {
   readonly keyLibraries: LibraryInfo[] = [
     {
       name: 'Angular',
-      version: '21.0.6',
+      version: stripSemverPrefix(packageJson.dependencies['@angular/core']),
       description:
         'A platform for building mobile and desktop web applications',
       url: 'https://angular.dev',
     },
     {
       name: 'Angular Material',
-      version: '21.0.5',
+      version: stripSemverPrefix(packageJson.dependencies['@angular/material']),
       description: 'Material Design components for Angular',
       url: 'https://material.angular.io',
     },
     {
       name: 'Yjs',
-      version: '13.6.29',
+      version: stripSemverPrefix(packageJson.dependencies['yjs']),
       description: 'A CRDT framework for building collaborative applications',
       url: 'https://yjs.dev',
     },
     {
       name: 'ProseMirror',
-      version: '1.41.4',
+      version: stripSemverPrefix(packageJson.dependencies['prosemirror-view']),
       description: 'A toolkit for building rich-text editors',
       url: 'https://prosemirror.net',
     },
     {
       name: 'Hono',
-      version: '4.x',
       description: 'A small, simple, and ultrafast web framework for the edge',
       url: 'https://hono.dev',
     },
     {
       name: 'Drizzle ORM',
-      version: '0.x',
       description: 'TypeScript ORM that is lightweight and performant',
       url: 'https://orm.drizzle.team',
     },
