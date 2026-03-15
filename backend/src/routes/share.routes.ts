@@ -6,6 +6,7 @@ import { publishedFiles, projects, users } from '../db/schema';
 import { getStorageService } from '../services/storage.service';
 import { PublishedFileErrorSchema } from '../schemas/published-file.schemas';
 import type { AppContext } from '../types/context';
+import { sanitizeFilename } from '../utils/xml-utils';
 
 const shareRoutes = new OpenAPIHono<AppContext>();
 
@@ -82,7 +83,7 @@ shareRoutes.openapi(getSharedFileRoute, async (c) => {
   }
 
   // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
-  const safeFilename = file.filename.replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
+  const safeFilename = sanitizeFilename(file.filename);
 
   return new Response(content, {
     headers: {

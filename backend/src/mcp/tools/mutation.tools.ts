@@ -48,6 +48,7 @@ import {
   getSubtree,
   findParentByPosition,
 } from './tree-helpers';
+import { xmlContentToText } from '../../utils/xml-utils';
 
 /**
  * Common project parameter schema for all mutation tools
@@ -1091,7 +1092,7 @@ registerTool({
 
       for (const [key, value] of Object.entries(fields)) {
         if (key.startsWith('identity.')) {
-          const identityKey = key.replace('identity.', '');
+          const identityKey = key.replaceAll('identity.', '');
           identityUpdates[identityKey] = value;
         } else if (IDENTITY_FIELDS.includes(key)) {
           identityUpdates[key] = value;
@@ -1253,16 +1254,7 @@ The content replaces the entire document. Use get_document_content first to read
       await runtimeUpdateDocumentContent(ctx, username, slug, elementId, xmlContent);
 
       // Calculate word count from the content
-      const textContent = xmlContent
-        .replace(/<\/(?:paragraph|heading|blockquote|listItem)>/gi, '\n')
-        .replace(/<\/[^>]+>/g, '')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        .trim();
+      const textContent = xmlContentToText(xmlContent);
 
       const wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
 
@@ -1296,7 +1288,7 @@ The content replaces the entire document. Use get_document_content first to read
  * Convert plain text to ProseMirror XML format.
  * Double newlines create paragraph breaks, single newlines are preserved as hard breaks.
  */
-function textToProseMirrorXml(text: string): string {
+export function textToProseMirrorXml(text: string): string {
   if (!text.trim()) {
     return '<paragraph></paragraph>';
   }
@@ -1311,14 +1303,14 @@ function textToProseMirrorXml(text: string): string {
 
       // Escape XML special characters
       const escaped = trimmed
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
 
       // Convert single newlines to hard_break elements
-      const withBreaks = escaped.replace(/\n/g, '<hard_break/>');
+      const withBreaks = escaped.replaceAll('\n', '<hard_break/>');
 
       return `<paragraph>${withBreaks}</paragraph>`;
     })

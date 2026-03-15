@@ -203,8 +203,8 @@ export async function performOAuthFlow(
   const hashArray = new Uint8Array(digest);
   const codeChallenge = Buffer.from(hashArray)
     .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
     .replace(/=+$/, '');
 
   // Step 3: Get authorization (using API directly since we have a session token)

@@ -640,22 +640,22 @@ ${content}
 
   private escapeHtml(str: string): string {
     return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
   }
 
   private countWords(html: string): number {
-    const text = html.replace(/<[^>]+>/g, ' ');
+    const text = html.replaceAll(/<[^>]+>/g, ' ');
     return text.split(/\s+/).filter(Boolean).length;
   }
 
   private generateFilename(title: string): string {
     const safeName = title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replaceAll(/[^a-z0-9]+/g, '-')
+      .replaceAll(/^-+|-+$/g, '');
     return `${safeName || 'document'}.html`;
   }
 }

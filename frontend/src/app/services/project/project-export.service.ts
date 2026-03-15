@@ -210,8 +210,8 @@ export class ProjectExportService {
       // Generate filename and trigger download
       const timestamp = new Date()
         .toISOString()
-        .replace(/[:.]/g, '-')
-        .replace('T', '_')
+        .replaceAll(/[:.]/g, '-')
+        .replaceAll('T', '_')
         .split('.')[0];
       const filename = `${slug}_${timestamp}.inkweld.zip`;
 

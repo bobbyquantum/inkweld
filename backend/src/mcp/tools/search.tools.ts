@@ -1054,19 +1054,19 @@ function extractTextFromXmlString(xmlString: string): string {
   // ProseMirror uses a simple XML format: <doc><paragraph>text</paragraph></doc>
   const text = xmlString
     // Replace paragraph/heading/blockquote boundaries with newlines
-    .replace(/<\/(paragraph|heading|blockquote|listItem)>/gi, '\n')
+    .replaceAll(/<\/(paragraph|heading|blockquote|listItem)>/gi, '\n')
     // Remove all other closing tags
-    .replace(/<\/[^>]+>/g, '')
+    .replaceAll(/<\/[^>]+>/g, '')
     // Remove all opening tags
-    .replace(/<[^>]+>/g, '')
+    .replaceAll(/<[^>]+>/g, '')
     // Decode common HTML entities
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
     // Clean up multiple newlines
-    .replace(/\n{3,}/g, '\n\n')
+    .replaceAll(/\n{3,}/g, '\n\n')
     .trim();
 
   return text;

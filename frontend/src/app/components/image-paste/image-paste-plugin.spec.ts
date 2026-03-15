@@ -168,7 +168,8 @@ describe('Image Paste Utility Functions', () => {
 
     it('should generate valid UUID format after prefix', () => {
       const id = generateMediaId();
-      const uuid = id.replace('img-', '');
+      expect(id.startsWith('img-')).toBe(true);
+      const uuid = id.slice('img-'.length);
       // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
       expect(uuid).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i

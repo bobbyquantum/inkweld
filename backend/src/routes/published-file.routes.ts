@@ -18,6 +18,7 @@ import {
   PublishedFileIdParamSchema,
 } from '../schemas/published-file.schemas';
 import type { AppContext } from '../types/context';
+import { sanitizeFilename } from '../utils/xml-utils';
 
 const publishedFileRoutes = new OpenAPIHono<AppContext>();
 
@@ -336,7 +337,7 @@ publishedFileRoutes.openapi(getPublishedFileRoute, async (c) => {
   }
 
   // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
-  const safeFilename = file.filename.replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
+  const safeFilename = sanitizeFilename(file.filename);
 
   return new Response(content, {
     headers: {

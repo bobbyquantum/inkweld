@@ -950,7 +950,7 @@ export class ProjectStateService implements OnDestroy {
     this.updatePublishPlans(updatedPlans);
 
     // Close any open tab for this plan
-    this.tabManager.closeTabById(`publishPlan-${planId}`);
+    this.tabManager.closeTabById(`publish-plan-${planId}`);
 
     this.logger.info('ProjectState', `Deleted publish plan: ${plan.name}`);
   }

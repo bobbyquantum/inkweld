@@ -39,17 +39,17 @@ export class MockApiRegistry {
     for (const [pattern, handler] of this.handlers.entries()) {
       // Convert glob-style patterns to proper regex
       // First, preserve $ at the end as a placeholder
-      const preservedPattern = pattern.replace(/\$$/, '__END_ANCHOR__');
+      const preservedPattern = pattern.replace(/\$$/, '__END_ANCHOR__'); // intentional: only replaces trailing $
 
       // Replace ** with a regex-safe placeholder (matches any characters including /)
       // Replace single * with another placeholder (matches any characters except /)
       const safePattern = preservedPattern
-        .replace(/\*\*/g, '__DOUBLE_STAR__')
-        .replace(/\*/g, '__SINGLE_STAR__')
-        .replace(/[.+?^{}()|[\]\\]/g, '\\$&') // Escape regex special chars (but not * or $)
-        .replace(/__DOUBLE_STAR__/g, '.*') // ** matches any characters including /
-        .replace(/__SINGLE_STAR__/g, '[^/]*') // * matches any characters except /
-        .replace(/__END_ANCHOR__/g, '$'); // Restore $ as regex anchor
+        .replaceAll('**', '__DOUBLE_STAR__')
+        .replaceAll('*', '__SINGLE_STAR__')
+        .replaceAll(/[.+?^{}()|[\]\\]/g, '\\$&') // Escape regex special chars (but not * or $)
+        .replaceAll('__DOUBLE_STAR__', '.*') // ** matches any characters including /
+        .replaceAll('__SINGLE_STAR__', '[^/]*') // * matches any characters except /
+        .replaceAll('__END_ANCHOR__', '$'); // Restore $ as regex anchor
 
       if (new RegExp(safePattern).test(url)) {
         await handler(route);

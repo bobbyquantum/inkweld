@@ -216,7 +216,7 @@ function log(
   if (isDev) {
     // Human-readable colored output for development
     const levelColor = colors[levelStr];
-    const timeStr = colors.dim + timestamp.split('T')[1].replace('Z', '') + colors.reset;
+    const timeStr = colors.dim + timestamp.split('T')[1].replaceAll('Z', '') + colors.reset;
     const levelLabel = levelColor + colors.bright + levelStr.toUpperCase().padEnd(5) + colors.reset;
     const contextStr = colors.context + `[${context}]` + colors.reset;
     const corrStr = correlationId

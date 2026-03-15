@@ -378,8 +378,8 @@ test.describe('Full OAuth Token Exchange', () => {
     const digest = await crypto.subtle.digest('SHA-256', data);
     const hashArray = new Uint8Array(digest);
     const codeChallenge = btoa(String.fromCharCode(...hashArray))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
       .replace(/=+$/, '');
 
     // Step 4: Navigate to consent screen
