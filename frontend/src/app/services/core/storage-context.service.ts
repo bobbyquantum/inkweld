@@ -312,10 +312,7 @@ export class StorageContextService {
   /**
    * Add local mode configuration
    */
-  addLocalConfig(userProfile?: {
-    name: string;
-    username: string;
-  }): ServerConfig {
+  addLocalConfig(userProfile?: { name: string; username: string }): void {
     const now = new Date().toISOString();
     const config: ServerConfig = {
       id: LOCAL_CONFIG_ID,
@@ -341,7 +338,7 @@ export class StorageContextService {
         updated.configurations[existingIndex] = config;
         this.saveConfig(updated);
         this.configSignal.set(updated);
-        return config;
+        return;
       }
 
       // Add new
@@ -361,8 +358,6 @@ export class StorageContextService {
       this.saveConfig(newConfig);
       this.configSignal.set(newConfig);
     }
-
-    return config;
   }
 
   /**
