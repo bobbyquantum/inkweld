@@ -18,7 +18,11 @@ export class UpdateService {
   /** Whether we're currently checking for updates */
   readonly checking = signal(false);
 
-  constructor() {
+  /**
+   * Initialize the update service. Must be called after construction
+   * to keep async operations outside the constructor.
+   */
+  initialize(): void {
     if (this.swUpdate?.isEnabled) {
       console.log('Service Worker Update Service initialized');
 
