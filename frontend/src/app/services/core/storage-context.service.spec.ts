@@ -184,10 +184,11 @@ describe('StorageContextService', () => {
   describe('configuration management', () => {
     describe('addLocalConfig', () => {
       it('should add local config as first config', () => {
-        const config = service.addLocalConfig({
+        service.addLocalConfig({
           name: 'Local User',
           username: 'localuser',
         });
+        const config = service.getConfigurations()[0];
 
         expect(config.id).toBe(LOCAL_CONFIG_ID);
         expect(config.type).toBe('local');
