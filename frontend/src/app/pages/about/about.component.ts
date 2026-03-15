@@ -8,7 +8,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterModule } from '@angular/router';
 import backendPackageJson from '@backend-package';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import frontendPackageJson from '@frontend-package';
 import packageJson from '@package';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
@@ -51,7 +50,7 @@ export class AboutComponent {
     {
       name: 'Angular',
       version: stripSemverPrefix(
-        frontendPackageJson.dependencies['@angular/core']
+        packageJson.dependencies['@angular/core']
       ),
       description:
         'A platform for building mobile and desktop web applications',
@@ -60,21 +59,21 @@ export class AboutComponent {
     {
       name: 'Angular Material',
       version: stripSemverPrefix(
-        frontendPackageJson.dependencies['@angular/material']
+        packageJson.dependencies['@angular/material']
       ),
       description: 'Material Design components for Angular',
       url: 'https://material.angular.io',
     },
     {
       name: 'Yjs',
-      version: stripSemverPrefix(frontendPackageJson.dependencies['yjs']),
+      version: stripSemverPrefix(packageJson.dependencies['yjs']),
       description: 'A CRDT framework for building collaborative applications',
       url: 'https://yjs.dev',
     },
     {
       name: 'ProseMirror',
       version: stripSemverPrefix(
-        frontendPackageJson.dependencies['prosemirror-view']
+        packageJson.dependencies['prosemirror-view']
       ),
       description: 'A toolkit for building rich-text editors',
       url: 'https://prosemirror.net',

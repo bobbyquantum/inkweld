@@ -12,7 +12,8 @@
       "@models/*": ["app/models/*"],
       "@services/*": ["app/services/*"],
       "@themes/*": ["themes/*"],
-      "@package": ["../package.json"]
+      "@package": ["../package.json"],
+      "@backend-package": ["../../backend/package.json"]
     }
   },
   "include": [
