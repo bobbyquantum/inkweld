@@ -32,9 +32,9 @@ function convertPathParameters(spec: Record<string, unknown>): Record<string, un
 
   for (const [pathKey, pathValue] of Object.entries(paths)) {
     // Convert :paramName to {paramName}
-    let convertedPath = pathKey.replaceAll(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    let convertedPath = pathKey.replaceAll(/:([a-zA-Z_]\w*)/g, '{$1}');
     // Normalize double slashes (e.g., //oauth/authorize -> /oauth/authorize)
-    convertedPath = convertedPath.replace(/\/+/g, '/');
+    convertedPath = convertedPath.replaceAll(/\/+/g, '/');
     convertedPaths[convertedPath] = pathValue;
   }
 
@@ -70,128 +70,124 @@ function ensureSecuritySchemes(spec: Record<string, unknown>): Record<string, un
   };
 }
 
-async function generateOpenAPIJson() {
-  let serverProcess: ChildProcess | null = null;
+let serverProcess: ChildProcess | null = null;
 
+try {
+  // Delete old openapi.json if it exists
+  const outputPath = path.resolve(process.cwd(), 'openapi.json');
   try {
-    // Delete old openapi.json if it exists
-    const outputPath = path.resolve(process.cwd(), 'openapi.json');
+    await unlink(outputPath);
+    console.log('🗑️  Deleted old openapi.json');
+  } catch {
+    // File doesn't exist, that's fine
+  }
+
+  console.log('🚀 Starting server...');
+
+  // Start the server process
+  serverProcess = spawn('bun', ['src/bun-runner.ts'], {
+    cwd: process.cwd(),
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  let serverReady = false;
+
+  // Listen for server output to know when it's ready
+  serverProcess.stdout?.on('data', (data: Buffer) => {
+    const output = data.toString();
+    console.log('STDOUT:', output);
+    if (
+      output.includes('ready on port') ||
+      output.includes('Server listening on') ||
+      output.includes('Inkweld backend ready')
+    ) {
+      serverReady = true;
+    }
+  });
+
+  serverProcess.stderr?.on('data', (data: Buffer) => {
+    const output = data.toString();
+    console.log('STDERR:', output);
+    if (
+      output.includes('ready on port') ||
+      output.includes('Server listening on') ||
+      output.includes('Inkweld backend ready')
+    ) {
+      serverReady = true;
+    }
+  });
+
+  // Wait for server to be ready (max 30 seconds)
+  const startTime = Date.now();
+  while (!serverReady && Date.now() - startTime < 30000) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Also try to connect to check if server is ready
     try {
-      await unlink(outputPath);
-      console.log('🗑️  Deleted old openapi.json');
+      const testResponse = await fetch('http://localhost:8333/api/v1/health');
+      if (testResponse.ok) {
+        serverReady = true;
+        break;
+      }
     } catch {
-      // File doesn't exist, that's fine
+      // Server not ready yet, continue waiting
     }
+  }
 
-    console.log('🚀 Starting server...');
+  if (!serverReady) {
+    throw new Error('Server failed to start within 30 seconds');
+  }
 
-    // Start the server process
-    serverProcess = spawn('bun', ['src/bun-runner.ts'], {
-      cwd: process.cwd(),
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+  console.log('✅ Server started');
+  console.log('⏳ Fetching OpenAPI specification...');
 
-    let serverReady = false;
+  // Give it one more second to be fully ready
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Listen for server output to know when it's ready
-    serverProcess.stdout?.on('data', (data: Buffer) => {
-      const output = data.toString();
-      console.log('STDOUT:', output);
-      if (
-        output.includes('ready on port') ||
-        output.includes('Server listening on') ||
-        output.includes('Inkweld backend ready')
-      ) {
-        serverReady = true;
-      }
-    });
+  // Fetch the OpenAPI spec from the doc endpoint
+  const response = await fetch('http://localhost:8333/api/openapi.json');
 
-    serverProcess.stderr?.on('data', (data: Buffer) => {
-      const output = data.toString();
-      console.log('STDERR:', output);
-      if (
-        output.includes('ready on port') ||
-        output.includes('Server listening on') ||
-        output.includes('Inkweld backend ready')
-      ) {
-        serverReady = true;
-      }
-    });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch OpenAPI spec: ${response.statusText}`);
+  }
 
-    // Wait for server to be ready (max 30 seconds)
-    const startTime = Date.now();
-    while (!serverReady && Date.now() - startTime < 30000) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+  const rawSpec = (await response.json()) as Record<string, unknown>;
 
-      // Also try to connect to check if server is ready
-      try {
-        const testResponse = await fetch('http://localhost:8333/api/v1/health');
-        if (testResponse.ok) {
-          serverReady = true;
-          break;
-        }
-      } catch {
-        // Server not ready yet, continue waiting
-      }
-    }
+  // Convert Express-style path parameters to OpenAPI-style
+  let spec = convertPathParameters(rawSpec);
 
-    if (!serverReady) {
-      throw new Error('Server failed to start within 30 seconds');
-    }
+  // Ensure securitySchemes is properly added
+  spec = ensureSecuritySchemes(spec);
 
-    console.log('✅ Server started');
-    console.log('⏳ Fetching OpenAPI specification...');
+  // Write to the same path we cleaned up earlier
+  await writeFile(outputPath, JSON.stringify(spec, null, 2));
 
-    // Give it one more second to be fully ready
+  const paths = spec.paths as Record<string, unknown> | undefined;
+  const components = spec.components as Record<string, Record<string, unknown>> | undefined;
+  console.log(`✅ OpenAPI JSON generated at: ${outputPath}`);
+  console.log(`   Paths: ${Object.keys(paths || {}).length}`);
+  console.log(`   Schemas: ${Object.keys(components?.schemas || {}).length}`);
+  console.log('');
+} catch (error) {
+  console.error('❌ Failed to generate OpenAPI spec:', error);
+  process.exit(1);
+} finally {
+  // Always stop the server
+  if (serverProcess) {
+    console.log('🛑 Stopping server...');
+    serverProcess.kill('SIGTERM');
+
+    // Wait a bit for graceful shutdown
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Fetch the OpenAPI spec from the doc endpoint
-    const response = await fetch('http://localhost:8333/api/openapi.json');
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch OpenAPI spec: ${response.statusText}`);
+    // Force kill if still running
+    try {
+      serverProcess.kill('SIGKILL');
+    } catch {
+      // Already dead, that's fine
     }
-
-    const rawSpec = (await response.json()) as Record<string, unknown>;
-
-    // Convert Express-style path parameters to OpenAPI-style
-    let spec = convertPathParameters(rawSpec);
-
-    // Ensure securitySchemes is properly added
-    spec = ensureSecuritySchemes(spec);
-
-    // Write to the same path we cleaned up earlier
-    await writeFile(outputPath, JSON.stringify(spec, null, 2));
-
-    const paths = spec.paths as Record<string, unknown> | undefined;
-    const components = spec.components as Record<string, Record<string, unknown>> | undefined;
-    console.log(`✅ OpenAPI JSON generated at: ${outputPath}`);
-    console.log(`   Paths: ${Object.keys(paths || {}).length}`);
-    console.log(`   Schemas: ${Object.keys(components?.schemas || {}).length}`);
-    console.log('');
-  } catch (error) {
-    console.error('❌ Failed to generate OpenAPI spec:', error);
-    process.exit(1);
-  } finally {
-    // Always stop the server
-    if (serverProcess) {
-      console.log('🛑 Stopping server...');
-      serverProcess.kill('SIGTERM');
-
-      // Wait a bit for graceful shutdown
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Force kill if still running
-      try {
-        serverProcess.kill('SIGKILL');
-      } catch {
-        // Already dead, that's fine
-      }
-    }
-
-    console.log('✅ Done!');
-    process.exit(0);
   }
-}
 
-generateOpenAPIJson();
+  console.log('✅ Done!');
+  process.exit(0);
+}

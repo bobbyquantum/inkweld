@@ -63,10 +63,7 @@ const imports = frontendFiles.map((file, idx) => {
 
 // Generate asset map entries
 const assetMap = frontendFiles.map((file, idx) => {
-  const relativePath = relative(join(PROJECT_ROOT, 'frontend/dist/browser'), file).replace(
-    /\\/g,
-    '/'
-  );
+  const relativePath = relative(join(PROJECT_ROOT, 'frontend/dist/browser'), file).replaceAll('\\', '/');
   return `  assets.set('${relativePath}', asset_${idx});`;
 });
 

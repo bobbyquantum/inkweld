@@ -35,7 +35,7 @@ function convertPathParameters(spec: Record<string, unknown>): Record<string, un
 
   for (const [pathKey, pathValue] of Object.entries(paths)) {
     // Convert :paramName to {paramName}
-    const convertedPath = pathKey.replaceAll(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    const convertedPath = pathKey.replaceAll(/:([a-zA-Z_]\w*)/g, '{$1}');
     convertedPaths[convertedPath] = pathValue;
   }
 
@@ -45,56 +45,52 @@ function convertPathParameters(spec: Record<string, unknown>): Record<string, un
   };
 }
 
-async function generateOpenAPISpec() {
-  try {
-    console.log('📜 Generating OpenAPI specification...');
+try {
+  console.log('📜 Generating OpenAPI specification...');
 
-    // Create an OpenAPIHono app and register routes
-    const app = new OpenAPIHono();
+  // Create an OpenAPIHono app and register routes
+  const app = new OpenAPIHono();
 
-    // Register routes
-    app.route('/api/v1/auth', authRoutes);
-    app.route('/api/v1/users', userRoutes);
-    app.route('/api/v1/projects', projectRoutes);
-    app.route('/api/v1/snapshots', snapshotRoutes);
-    app.route('/api/v1/images', imageRoutes);
-    app.route('/api/v1/health', healthRoutes);
-    app.route('/api/v1/config', configRoutes);
-    app.route('/api/v1/csrf', csrfRoutes);
+  // Register routes
+  app.route('/api/v1/auth', authRoutes);
+  app.route('/api/v1/users', userRoutes);
+  app.route('/api/v1/projects', projectRoutes);
+  app.route('/api/v1/snapshots', snapshotRoutes);
+  app.route('/api/v1/images', imageRoutes);
+  app.route('/api/v1/health', healthRoutes);
+  app.route('/api/v1/config', configRoutes);
+  app.route('/api/v1/csrf', csrfRoutes);
 
-    // Generate the spec using the built-in method
-    const rawSpec = app.getOpenAPIDocument({
-      openapi: '3.0.0',
-      info: {
-        title: 'Inkweld API',
-        version: '1.0.0',
-        description: 'Collaborative creative writing platform API',
+  // Generate the spec using the built-in method
+  const rawSpec = app.getOpenAPIDocument({
+    openapi: '3.0.0',
+    info: {
+      title: 'Inkweld API',
+      version: '1.0.0',
+      description: 'Collaborative creative writing platform API',
+    },
+    servers: [
+      {
+        url: 'http://localhost:8333',
+        description: 'Local development server',
       },
-      servers: [
-        {
-          url: 'http://localhost:8333',
-          description: 'Local development server',
-        },
-      ],
-    });
+    ],
+  });
 
-    // Convert Express-style path parameters to OpenAPI-style
-    const spec = convertPathParameters(rawSpec as unknown as Record<string, unknown>);
+  // Convert Express-style path parameters to OpenAPI-style
+  const spec = convertPathParameters(rawSpec as unknown as Record<string, unknown>);
 
-    const outputPath = path.resolve(process.cwd(), 'openapi.json');
-    await writeFile(outputPath, JSON.stringify(spec, null, 2));
+  const outputPath = path.resolve(process.cwd(), 'openapi.json');
+  await writeFile(outputPath, JSON.stringify(spec, null, 2));
 
-    const paths = spec.paths as Record<string, unknown> | undefined;
-    const components = spec.components as Record<string, Record<string, unknown>> | undefined;
-    console.log(`✅ OpenAPI JSON generated at: ${outputPath}`);
-    console.log(`   Paths: ${Object.keys(paths || {}).length}`);
-    console.log(`   Schemas: ${Object.keys(components?.schemas || {}).length}`);
-    console.log('');
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Failed to generate OpenAPI spec:', error);
-    process.exit(1);
-  }
+  const paths = spec.paths as Record<string, unknown> | undefined;
+  const components = spec.components as Record<string, Record<string, unknown>> | undefined;
+  console.log(`✅ OpenAPI JSON generated at: ${outputPath}`);
+  console.log(`   Paths: ${Object.keys(paths || {}).length}`);
+  console.log(`   Schemas: ${Object.keys(components?.schemas || {}).length}`);
+  console.log('');
+  process.exit(0);
+} catch (error) {
+  console.error('❌ Failed to generate OpenAPI spec:', error);
+  process.exit(1);
 }
-
-generateOpenAPISpec();
