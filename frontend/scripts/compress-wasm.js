@@ -86,6 +86,10 @@ function compressAssets() {
     if (!COMPRESS_EXTENSIONS.has(ext) || filePath.endsWith('.br')) {
       continue;
     }
+    // ngsw.json is handled separately after hash updates to avoid a stale sidecar
+    if (filePath === NGSW_PATH) {
+      continue;
+    }
 
     const stats = fs.statSync(filePath);
     const sizeMB = stats.size / (1024 * 1024);

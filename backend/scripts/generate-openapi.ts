@@ -189,6 +189,8 @@ try {
     }
   }
 
-  console.log('✅ Done!');
+  if (exitCode === 0) {
+    console.log('✅ Done!');
+  }
   process.exit(exitCode);
 }
