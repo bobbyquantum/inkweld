@@ -493,7 +493,9 @@ describe('ImageGenerationService', () => {
     it('should strip MODERATION_BLOCKED prefix and set Content blocked message', async () => {
       mockAiImageService.generateImage.mockImplementation(() => {
         const err = Object.assign(new Error('MODERATION_BLOCKED'), {
-          error: { error: 'MODERATION_BLOCKED: Content violates policy' },
+          error: {
+            error: 'MODERATION_BLOCKED: MODERATION_BLOCKED: Content violates policy',
+          },
         });
         throw err;
       });
@@ -507,6 +509,7 @@ describe('ImageGenerationService', () => {
       const job = service.getJob(jobId);
       expect(job?.status).toBe('failed');
       expect(job?.message).toBe('Content blocked');
+      // replaceAll strips all occurrences of the prefix
       expect(job?.error).not.toContain('MODERATION_BLOCKED:');
       expect(job?.error).toBe('Content violates policy');
     });

@@ -131,7 +131,7 @@ describe('CreateMcpKeyDialogComponent', () => {
 
     it('should select all permissions', () => {
       component.selectAllPermissions();
-      expect((component as any).selectedPermissions().size).toBeGreaterThan(0);
+      expect((component as any).selectedPermissions().size).toBe(6);
     });
 
     it('should clear all permissions', () => {
