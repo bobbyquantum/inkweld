@@ -9,8 +9,7 @@
  * - Revocation endpoint
  */
 
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import type { AppContext } from '../types/context';
 import { requireAuth } from '../middleware/auth';
