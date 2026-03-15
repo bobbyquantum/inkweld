@@ -312,9 +312,7 @@ export class ElementRefPopupComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Component cleanup handled by Angular
-    // Placeholder for future cleanup logic if needed
-    void 0; // Satisfy no-empty-lifecycle-method rule
+    this.query.set('');
   }
 
   onSearchInput(event: Event): void {

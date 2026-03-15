@@ -447,7 +447,7 @@ export class ProjectSyncService {
    * Sync assets (images, files) for elements
    */
   private async syncAssets(
-    allElements: Element[],
+    _allElements: Element[],
     elementIds: string[],
     _result: SyncResult
   ): Promise<void> {
@@ -465,9 +465,6 @@ export class ProjectSyncService {
       'ProjectSyncService',
       `Asset sync placeholder for ${elementIds.length} elements`
     );
-
-    // Suppress unused parameter warnings
-    void allElements;
   }
 
   /**

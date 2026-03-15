@@ -2,6 +2,22 @@ import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
+import {
+  type CanvasConfig,
+  type CanvasImage,
+  type CanvasPath,
+  type CanvasPin,
+  type CanvasShape,
+  type CanvasText,
+  createDefaultCanvasConfig,
+  createDefaultToolSettings,
+} from '@models/canvas.model';
+import { CanvasService } from '@services/canvas/canvas.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LoggerService } from '@services/core/logger.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship/relationship.service';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -14,22 +30,6 @@ import {
 } from 'vitest';
 
 import { type Element, ElementType } from '../../../../../api-client';
-import {
-  type CanvasConfig,
-  type CanvasImage,
-  type CanvasPath,
-  type CanvasPin,
-  type CanvasShape,
-  type CanvasText,
-  createDefaultCanvasConfig,
-  createDefaultToolSettings,
-} from '../../../../models/canvas.model';
-import { CanvasService } from '../../../../services/canvas/canvas.service';
-import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
-import { LoggerService } from '../../../../services/core/logger.service';
-import { LocalStorageService } from '../../../../services/local/local-storage.service';
-import { ProjectStateService } from '../../../../services/project/project-state.service';
-import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { CanvasTabComponent } from './canvas-tab.component';
 
 // Konva requires ResizeObserver which is not available in jsdom
@@ -151,9 +151,10 @@ describe('CanvasTabComponent', () => {
   };
 
   const mockRelationshipService = {
-    getOrCreateRelationshipType: vi.fn(() => 'canvas-pin'),
-    deleteRelationship: vi.fn(),
-    createRelationship: vi.fn(() => 'relationship-1'),
+    addRelationship: vi.fn(() => ({ id: 'relationship-1' })),
+    removeRelationship: vi.fn(() => true),
+    getTypeById: vi.fn(() => ({ id: 'canvas-pin' })),
+    addRawType: vi.fn(),
   };
 
   beforeEach(async () => {
