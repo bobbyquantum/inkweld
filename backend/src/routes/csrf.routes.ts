@@ -1,7 +1,7 @@
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { generateCSRFToken, getCSRFToken } from '../middleware/csrf';
 import { logger } from '../services/logger.service';
+import type { AppContext } from '../types/context';
 
 const csrfLog = logger.child('CSRF');
 
@@ -13,7 +13,7 @@ type CSRFBindings = {
   DATABASE_KEY?: string;
 };
 
-const csrfRoutes = new OpenAPIHono<{ Bindings: CSRFBindings }>();
+const csrfRoutes = new OpenAPIHono<AppContext & { Bindings: CSRFBindings }>();
 
 // Schema definitions
 const CSRFTokenResponseSchema = z
@@ -61,12 +61,12 @@ const tokenRoute = createRoute({
 
 csrfRoutes.openapi(tokenRoute, async (c) => {
   try {
-    const session = c.get('session') as { userId?: string } | undefined;
+    const user = c.get('user');
 
     // If authenticated, generate a stored token keyed by userId for validation.
     // If unauthenticated, return a standalone token (middleware only validates
     // on authenticated, mutating requests).
-    const token = session?.userId ? getCSRFToken(session.userId) : generateCSRFToken();
+    const token = user?.id ? getCSRFToken(user.id) : generateCSRFToken();
 
     return c.json({ token }, 200);
   } catch (error: unknown) {

@@ -322,8 +322,8 @@ export class ElementRefContextMenuComponent {
   @Output() action = new EventEmitter<ElementRefAction>();
 
   // Internal state
-  private _data = signal<ElementRefContextData | null>(null);
-  private _isEditing = signal(false);
+  private readonly _data = signal<ElementRefContextData | null>(null);
+  private readonly _isEditing = signal(false);
 
   /** Text being edited */
   editText = signal('');
