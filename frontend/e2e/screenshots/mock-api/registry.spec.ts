@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { Route } from '@playwright/test';
+import { describe, expect, it, vi } from 'vitest';
+
 import { MockApiRegistry } from './registry';
 
 function mockRoute(url: string): Route {
@@ -27,7 +28,9 @@ describe('MockApiRegistry', () => {
       const handler = vi.fn().mockResolvedValue(undefined);
       registry.addHandler('**/api/v1/projects/**', handler);
 
-      const route = mockRoute('https://example.com/api/v1/projects/user/slug/items');
+      const route = mockRoute(
+        'https://example.com/api/v1/projects/user/slug/items',
+      );
       const matched = await registry.tryHandleRoute(route);
 
       expect(matched).toBe(true);

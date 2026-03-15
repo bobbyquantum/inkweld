@@ -492,13 +492,16 @@ describe('ImageGenerationService', () => {
   describe('MODERATION_BLOCKED error handling', () => {
     it('should strip MODERATION_BLOCKED prefix and set Content blocked message', async () => {
       mockAiImageService.generateImage.mockImplementation(() => {
-        const err: Record<string, unknown> = {
+        const err = Object.assign(new Error('MODERATION_BLOCKED'), {
           error: { error: 'MODERATION_BLOCKED: Content violates policy' },
-        };
+        });
         throw err;
       });
 
-      const jobId = service.startGeneration('user/project', createMockRequest());
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+      );
       await flushPromises();
 
       const job = service.getJob(jobId);

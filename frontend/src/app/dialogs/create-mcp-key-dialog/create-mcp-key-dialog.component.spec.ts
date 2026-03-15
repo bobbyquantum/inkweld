@@ -3,12 +3,12 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of, throwError } from 'rxjs';
-import { type MockedObject, vi } from 'vitest';
-
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { McpPermission } from '@inkweld/index';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { of, throwError } from 'rxjs';
+import { type MockedObject, vi } from 'vitest';
+
 import { CreateMcpKeyDialogComponent } from './create-mcp-key-dialog.component';
 
 describe('CreateMcpKeyDialogComponent', () => {
@@ -115,14 +115,18 @@ describe('CreateMcpKeyDialogComponent', () => {
       component.selectAllReadPermissions();
       expect(component.hasPermission(McpPermission.ReadProject)).toBe(true);
       expect(component.hasPermission(McpPermission.ReadElements)).toBe(true);
-      expect(component.hasPermission(McpPermission.ReadWorldbuilding)).toBe(true);
+      expect(component.hasPermission(McpPermission.ReadWorldbuilding)).toBe(
+        true,
+      );
       expect(component.hasPermission(McpPermission.ReadSchemas)).toBe(true);
     });
 
     it('should select all write permissions', () => {
       component.selectAllWritePermissions();
       expect(component.hasPermission(McpPermission.WriteElements)).toBe(true);
-      expect(component.hasPermission(McpPermission.WriteWorldbuilding)).toBe(true);
+      expect(component.hasPermission(McpPermission.WriteWorldbuilding)).toBe(
+        true,
+      );
     });
 
     it('should select all permissions', () => {
