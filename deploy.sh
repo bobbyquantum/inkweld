@@ -11,7 +11,7 @@ IMAGE_TAG="${IMAGE_TAG:-latest}"
 PORT="${PORT:-8333}"
 
 # Check if required environment variables are set
-if [ -z "$GITHUB_REPOSITORY_OWNER" ]; then
+if [[ -z "$GITHUB_REPOSITORY_OWNER" ]]; then
     echo "Error: GITHUB_REPOSITORY_OWNER environment variable is required"
     echo "Example: export GITHUB_REPOSITORY_OWNER=bobbyquantum"
     exit 1
