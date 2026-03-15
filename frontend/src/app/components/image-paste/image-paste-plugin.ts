@@ -347,9 +347,14 @@ export class MediaImageNodeView {
     }
 
     this.dom.appendChild(this.img);
+  }
 
-    // Resolve the image source
-    void this.resolveImageSrc(attrs['src']);
+  /**
+   * Triggers async image source resolution.
+   * Called after construction to keep async operations outside the constructor.
+   */
+  init(src: string | undefined | null): void {
+    void this.resolveImageSrc(src);
   }
 
   private async resolveImageSrc(src: string | undefined | null): Promise<void> {
@@ -448,7 +453,11 @@ export function createMediaImageNodeViews(
   ) => MediaImageNodeView
 > {
   return {
-    image: (node, view, getPos) =>
-      new MediaImageNodeView(node, view, getPos, options),
+    image: (node, view, getPos) => {
+      const nodeView = new MediaImageNodeView(node, view, getPos, options);
+      const attrs = node.attrs as Record<string, string | null | undefined>;
+      nodeView.init(attrs['src']);
+      return nodeView;
+    },
   };
 }

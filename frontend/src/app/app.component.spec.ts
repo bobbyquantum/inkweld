@@ -87,7 +87,7 @@ describe('AppComponent', () => {
         },
         {
           provide: UpdateService,
-          useValue: {},
+          useValue: { initialize: vi.fn() },
         },
         {
           provide: SwUpdate,

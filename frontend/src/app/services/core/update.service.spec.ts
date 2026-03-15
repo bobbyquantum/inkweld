@@ -42,6 +42,7 @@ describe('UpdateService', () => {
     });
 
     service = TestBed.inject(UpdateService);
+    service.initialize();
   });
 
   it('should be created', () => {
