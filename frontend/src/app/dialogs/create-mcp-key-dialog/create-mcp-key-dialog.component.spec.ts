@@ -183,7 +183,7 @@ describe('CreateMcpKeyDialogComponent', () => {
           id: 'key-1',
           name: 'My Key',
           keyPrefix: 'mcp_prefix_',
-          permissions: [McpPermission.Read],
+          permissions: [McpPermission.ReadProject],
           expiresAt: null,
           lastUsedAt: null,
           createdAt: 1704067200000,
