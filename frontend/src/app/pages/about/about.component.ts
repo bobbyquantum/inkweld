@@ -6,7 +6,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterModule } from '@angular/router';
-import backendPackageJson from '@backend-package';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import packageJson from '@package';
 import { UnifiedUserService } from '@services/user/unified-user.service';
@@ -80,15 +79,13 @@ export class AboutComponent {
     },
     {
       name: 'Hono',
-      version: stripSemverPrefix(backendPackageJson.dependencies['hono']),
+      version: stripSemverPrefix(packageJson.backendLibraries['hono']),
       description: 'A small, simple, and ultrafast web framework for the edge',
       url: 'https://hono.dev',
     },
     {
       name: 'Drizzle ORM',
-      version: stripSemverPrefix(
-        backendPackageJson.dependencies['drizzle-orm']
-      ),
+      version: stripSemverPrefix(packageJson.backendLibraries['drizzle-orm']),
       description: 'TypeScript ORM that is lightweight and performant',
       url: 'https://orm.drizzle.team',
     },
