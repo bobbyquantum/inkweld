@@ -261,7 +261,7 @@ import { ElementRefService } from '../element-ref.service';
   ],
 })
 export class ElementRefPopupComponent implements AfterViewInit, OnDestroy {
-  private elementRefService = inject(ElementRefService);
+  private readonly elementRefService = inject(ElementRefService);
 
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
 
