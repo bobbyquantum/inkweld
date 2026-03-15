@@ -16,6 +16,7 @@ vi.mock('@components/project-card/project-card.component', () => ({
 describe('BookshelfComponent', () => {
   let component: BookshelfComponent;
   let mockProjects: Project[];
+  let originalInnerWidthDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(() => {
     // Configure TestBed for injection context
@@ -23,8 +24,13 @@ describe('BookshelfComponent', () => {
       providers: [provideZonelessChangeDetection()],
     });
 
+    originalInnerWidthDescriptor = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'innerWidth'
+    );
+
     // Mock window object for the component
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(globalThis, 'innerWidth', {
       writable: true,
       configurable: true,
       value: 1024,
@@ -100,6 +106,16 @@ describe('BookshelfComponent', () => {
     // Clean up component and cancel any pending debounced operations
     if (component) {
       component.ngOnDestroy();
+    }
+
+    if (originalInnerWidthDescriptor) {
+      Object.defineProperty(
+        globalThis,
+        'innerWidth',
+        originalInnerWidthDescriptor
+      );
+    } else {
+      delete (globalThis as { innerWidth?: number }).innerWidth;
     }
   });
 
@@ -590,7 +606,10 @@ describe('BookshelfComponent', () => {
 
       // Since we can't easily test the debounced function directly,
       // we'll replace it with a direct implementation for testing
-      const originalHandler = component['debouncedWheelHandler'];
+      const mutableComponent = component as unknown as {
+        debouncedWheelHandler: (typeof component)['debouncedWheelHandler'];
+      };
+      const originalHandler = mutableComponent.debouncedWheelHandler;
 
       // Create a proper mock function with the required DebouncedFunc properties
       const mockWheelHandler = function (deltaX: number) {
@@ -603,27 +622,28 @@ describe('BookshelfComponent', () => {
       mockWheelHandler.cancel = vi.fn();
       mockWheelHandler.flush = vi.fn();
 
-      component['debouncedWheelHandler'] = mockWheelHandler;
+      mutableComponent.debouncedWheelHandler = mockWheelHandler;
 
-      // Execute with positive delta (scroll right)
-      component['debouncedWheelHandler'](100);
+      try {
+        // Execute with positive delta (scroll right)
+        mutableComponent.debouncedWheelHandler(100);
 
-      // Assert
-      expect(component.scrollToNext).toHaveBeenCalled();
-      expect(component.scrollToPrevious).not.toHaveBeenCalled();
+        // Assert
+        expect(component.scrollToNext).toHaveBeenCalled();
+        expect(component.scrollToPrevious).not.toHaveBeenCalled();
 
-      // Reset spies
-      vi.clearAllMocks();
+        // Reset spies
+        vi.clearAllMocks();
 
-      // Execute with negative delta (scroll left)
-      component['debouncedWheelHandler'](-100);
+        // Execute with negative delta (scroll left)
+        mutableComponent.debouncedWheelHandler(-100);
 
-      // Assert
-      expect(component.scrollToPrevious).toHaveBeenCalled();
-      expect(component.scrollToNext).not.toHaveBeenCalled();
-
-      // Restore original debounced function
-      component['debouncedWheelHandler'] = originalHandler;
+        // Assert
+        expect(component.scrollToPrevious).toHaveBeenCalled();
+        expect(component.scrollToNext).not.toHaveBeenCalled();
+      } finally {
+        mutableComponent.debouncedWheelHandler = originalHandler;
+      }
     });
 
     it('should update centered item in debounced handleScroll', () => {
