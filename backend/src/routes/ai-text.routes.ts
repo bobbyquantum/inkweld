@@ -4,8 +4,7 @@
  * Unified routes for multi-provider text generation (text-to-text).
  * Supports OpenAI, OpenRouter, and Anthropic.
  */
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { configService } from '../services/config.service';
 import { logger } from '../services/logger.service';

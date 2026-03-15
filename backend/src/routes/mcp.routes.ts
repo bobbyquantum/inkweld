@@ -9,8 +9,7 @@
  * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http
  */
 
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import type { AppContext } from '../types/context';
 import { mcpAuth, handleMcpRequest } from '../mcp';
 

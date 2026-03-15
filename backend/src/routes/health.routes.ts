@@ -1,5 +1,4 @@
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { config } from '../config/env';
 import { PROTOCOL_VERSION, MIN_CLIENT_VERSION } from '../config/protocol';
 
