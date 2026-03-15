@@ -36,7 +36,7 @@ export interface MigrationResult {
   providedIn: 'root',
 })
 export class ProjectRenameMigrationService {
-  private logger = inject(LoggerService);
+  private readonly logger = inject(LoggerService);
 
   /**
    * Migrate all local IndexedDB data for a project from old slug to new slug.
@@ -140,8 +140,7 @@ export class ProjectRenameMigrationService {
         return allDatabases
           .map(db => db.name)
           .filter(
-            (name): name is string =>
-              name !== undefined && name.startsWith(projectPrefix)
+            (name): name is string => name?.startsWith(projectPrefix) === true
           );
       } catch (error) {
         this.logger.warn(
@@ -319,7 +318,7 @@ export class ProjectRenameMigrationService {
               cachedProject.slug = newSlug;
 
               // Save under new key
-              void store.put(cachedProject, newKey);
+              store.put(cachedProject, newKey);
 
               this.logger.debug(
                 'ProjectRenameMigration',

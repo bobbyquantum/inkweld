@@ -50,7 +50,7 @@ describe('StorageContextService', () => {
       }),
     };
 
-    Object.defineProperty(window, 'localStorage', {
+    Object.defineProperty(globalThis, 'localStorage', {
       value: localStorageMock,
       writable: true,
       configurable: true,
