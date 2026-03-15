@@ -5,8 +5,7 @@
  * Allows project owners to invite users and manage access.
  */
 
-import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { z } from '@hono/zod-openapi';
+import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
