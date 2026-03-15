@@ -69,6 +69,10 @@ try {
       version: '1.0.0',
       description: 'Collaborative creative writing platform API',
     },
+    // This servers block is intentional: generate-openapi-simple.ts constructs
+    // the spec statically (no running server) so the servers URL must be provided
+    // here explicitly. The full generate-openapi.ts script fetches from a live
+    // server whose URL is embedded by the server itself.
     servers: [
       {
         url: 'http://localhost:8333',

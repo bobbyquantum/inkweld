@@ -344,6 +344,51 @@ describe('TabInterfaceComponent', () => {
     expect(selectTabSpy).toHaveBeenCalled();
   });
 
+  it('should open publish-plan tab by ID when URL matches /publish-plan/:id', () => {
+    const planId = 'plan-abc-123';
+    const publishPlanTab: AppTab = {
+      id: `publish-plan-${planId}`,
+      name: 'My Plan',
+      type: 'publishPlan',
+      publishPlan: { id: planId, name: 'My Plan' } as any,
+    };
+
+    (projectStateService.openTabs as any).set([
+      { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+      publishPlanTab,
+    ]);
+
+    (router as any).url = `/testuser/test-project/publish-plan/${planId}`;
+
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
+    component.updateSelectedTabFromUrl();
+
+    expect(selectTabSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('should use publish-plan- prefix (not publishPlan-) when extracting plan ID from tab.id', () => {
+    const planId = 'plan-xyz';
+    // Tab has no publishPlan object, falls back to tab.id.replaceAll('publish-plan-', '')
+    const publishPlanTab: AppTab = {
+      id: `publish-plan-${planId}`,
+      name: 'My Plan',
+      type: 'publishPlan',
+      publishPlan: undefined,
+    };
+
+    (projectStateService.openTabs as any).set([
+      { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+      publishPlanTab,
+    ]);
+
+    (router as any).url = `/testuser/test-project/publish-plan/${planId}`;
+
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
+    component.updateSelectedTabFromUrl();
+
+    expect(selectTabSpy).toHaveBeenCalledWith(1);
+  });
+
   it('should open home tab when URL has no tabId and no home tab exists', () => {
     const mockRoute = {
       root: {

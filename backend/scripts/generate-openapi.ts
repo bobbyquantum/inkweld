@@ -71,6 +71,7 @@ function ensureSecuritySchemes(spec: Record<string, unknown>): Record<string, un
 }
 
 let serverProcess: ChildProcess | null = null;
+let exitCode = 0;
 
 try {
   // Delete old openapi.json if it exists
@@ -170,7 +171,7 @@ try {
   console.log('');
 } catch (error) {
   console.error('❌ Failed to generate OpenAPI spec:', error);
-  process.exit(1);
+  exitCode = 1;
 } finally {
   // Always stop the server
   if (serverProcess) {
@@ -189,5 +190,5 @@ try {
   }
 
   console.log('✅ Done!');
-  process.exit(0);
+  process.exit(exitCode);
 }

@@ -111,10 +111,17 @@ function compressAssets() {
     }
   }
 
-  // Save updated ngsw.json
+  // Save updated ngsw.json and re-compress it so the .br sidecar reflects the
+  // updated hash table (the sidecar written during the main loop used stale content)
   if (ngsw) {
-    fs.writeFileSync(NGSW_PATH, JSON.stringify(ngsw, null, 2));
+    const updatedNgswContent = JSON.stringify(ngsw, null, 2);
+    fs.writeFileSync(NGSW_PATH, updatedNgswContent);
     console.log('\n✅ Updated ngsw.json with new hashes');
+
+    const compressedNgsw = zlib.brotliCompressSync(Buffer.from(updatedNgswContent), {
+      params: { [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY },
+    });
+    fs.writeFileSync(`${NGSW_PATH}.br`, compressedNgsw);
   }
 
   console.log(`\n✅ Done!`);

@@ -156,7 +156,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
           project.username,
           project.slug,
           'publish-plan',
-          tab.publishPlan?.id || tab.id.replaceAll('publishPlan-', ''),
+          tab.publishPlan?.id || tab.id.replaceAll('publish-plan-', ''),
         ]);
       } else {
         // Document or folder tab
