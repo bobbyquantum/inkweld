@@ -45,10 +45,13 @@ describe('MockApiRegistry', () => {
       // Single segment - should match
       const routeMatch = mockRoute('https://example.com/api/v1/resource');
       expect(await registry.tryHandleRoute(routeMatch)).toBe(true);
+      expect(handlerSingle).toHaveBeenCalledWith(routeMatch);
 
       // Multiple segments - should NOT match with single *
+      handlerSingle.mockClear();
       const routeNoMatch = mockRoute('https://example.com/api/v1/v2/resource');
       expect(await registry.tryHandleRoute(routeNoMatch)).toBe(false);
+      expect(handlerSingle).not.toHaveBeenCalled();
     });
 
     it('should treat trailing $ as regex end anchor', async () => {
@@ -59,6 +62,7 @@ describe('MockApiRegistry', () => {
       // Exact match
       const routeExact = mockRoute('https://example.com/exact');
       expect(await registry.tryHandleRoute(routeExact)).toBe(true);
+      expect(handler).toHaveBeenCalledWith(routeExact);
 
       // Should NOT match with trailing path
       const routeExtra = mockRoute('https://example.com/exact/more');
@@ -74,6 +78,7 @@ describe('MockApiRegistry', () => {
       // Literal dot — should match
       const routeMatch = mockRoute('https://example.com/file.json');
       expect(await registry.tryHandleRoute(routeMatch)).toBe(true);
+      expect(handler).toHaveBeenCalledWith(routeMatch);
 
       // Non-literal (dot as any char) — should NOT match
       const routeNoMatch = mockRoute('https://example.com/fileXjson');
@@ -98,6 +103,7 @@ describe('MockApiRegistry', () => {
 
       const route = mockRoute('https://example.com/api/v1/health');
       expect(await registry.tryHandleRoute(route)).toBe(true);
+      expect(handler).toHaveBeenCalledWith(route);
     });
   });
 });

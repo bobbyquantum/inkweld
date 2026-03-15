@@ -389,6 +389,33 @@ describe('TabInterfaceComponent', () => {
     expect(selectTabSpy).toHaveBeenCalledWith(1);
   });
 
+  it('should navigate to publish-plan/:id URL using tab.id slice when publishPlan object is absent', () => {
+    const planId = 'plan-fallback-id';
+    const publishPlanTab: AppTab = {
+      id: `publish-plan-${planId}`,
+      name: 'Fallback Plan',
+      type: 'publishPlan',
+      publishPlan: undefined,
+    };
+
+    (projectStateService.openTabs as any).set([
+      { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+      publishPlanTab,
+    ]);
+
+    // Trigger the selected-tab effect by selecting the publishPlan tab
+    (projectStateService.selectedTabIndex as any).set(1);
+    fixture.detectChanges();
+
+    expect(router.navigate).toHaveBeenCalledWith([
+      '/',
+      'testuser',
+      'test-project',
+      'publish-plan',
+      planId,
+    ]);
+  });
+
   it('should open home tab when URL has no tabId and no home tab exists', () => {
     const mockRoute = {
       root: {

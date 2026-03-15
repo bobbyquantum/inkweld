@@ -35,7 +35,16 @@ describe('CreateMcpKeyDialogComponent', () => {
       createMcpKey: vi.fn().mockReturnValue(
         of({
           fullKey: 'mcp_full_key_value',
-          key: { id: 'key-1', name: 'My Key' },
+          key: {
+            id: 'key-1',
+            name: 'My Key',
+            keyPrefix: 'mcp_prefix_',
+            permissions: [McpPermission.Read],
+            expiresAt: null,
+            lastUsedAt: null,
+            createdAt: 1704067200000,
+            revoked: false,
+          },
         })
       ),
     } as unknown as MockedObject<MCPKeysService>;
@@ -170,7 +179,16 @@ describe('CreateMcpKeyDialogComponent', () => {
       expect(mcpKeysService.createMcpKey).toHaveBeenCalled();
       expect(dialogRef.close).toHaveBeenCalledWith({
         fullKey: 'mcp_full_key_value',
-        key: { id: 'key-1', name: 'My Key' },
+        key: {
+          id: 'key-1',
+          name: 'My Key',
+          keyPrefix: 'mcp_prefix_',
+          permissions: [McpPermission.Read],
+          expiresAt: null,
+          lastUsedAt: null,
+          createdAt: 1704067200000,
+          revoked: false,
+        },
       });
     });
 

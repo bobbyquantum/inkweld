@@ -191,6 +191,8 @@ try {
 
   if (exitCode === 0) {
     console.log('✅ Done!');
+  } else {
+    console.error(`❌ Failed with exit code ${exitCode}`);
   }
   process.exit(exitCode);
 }
