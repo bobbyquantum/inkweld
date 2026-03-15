@@ -1145,7 +1145,7 @@ describe('ImageGenerationDialogComponent', () => {
 
     it('should strip worldbuilding/ prefix before looking up icon', () => {
       expect(component.getElementIcon('worldbuilding/character')).toBe(
-        'person',
+        'person'
       );
       expect(component.getElementIcon('worldbuilding/location')).toBe('place');
       expect(component.getElementIcon('worldbuilding/creature')).toBe('pets');

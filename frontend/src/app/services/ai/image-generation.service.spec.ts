@@ -500,7 +500,7 @@ describe('ImageGenerationService', () => {
 
       const jobId = service.startGeneration(
         'user/project',
-        createMockRequest(),
+        createMockRequest()
       );
       await flushPromises();
 

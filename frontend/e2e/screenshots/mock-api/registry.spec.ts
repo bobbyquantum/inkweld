@@ -29,7 +29,7 @@ describe('MockApiRegistry', () => {
       registry.addHandler('**/api/v1/projects/**', handler);
 
       const route = mockRoute(
-        'https://example.com/api/v1/projects/user/slug/items',
+        'https://example.com/api/v1/projects/user/slug/items'
       );
       const matched = await registry.tryHandleRoute(route);
 
