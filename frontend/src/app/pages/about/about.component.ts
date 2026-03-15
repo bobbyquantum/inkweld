@@ -48,18 +48,14 @@ export class AboutComponent {
   readonly keyLibraries: LibraryInfo[] = [
     {
       name: 'Angular',
-      version: stripSemverPrefix(
-        packageJson.dependencies['@angular/core']
-      ),
+      version: stripSemverPrefix(packageJson.dependencies['@angular/core']),
       description:
         'A platform for building mobile and desktop web applications',
       url: 'https://angular.dev',
     },
     {
       name: 'Angular Material',
-      version: stripSemverPrefix(
-        packageJson.dependencies['@angular/material']
-      ),
+      version: stripSemverPrefix(packageJson.dependencies['@angular/material']),
       description: 'Material Design components for Angular',
       url: 'https://material.angular.io',
     },
@@ -71,9 +67,7 @@ export class AboutComponent {
     },
     {
       name: 'ProseMirror',
-      version: stripSemverPrefix(
-        packageJson.dependencies['prosemirror-view']
-      ),
+      version: stripSemverPrefix(packageJson.dependencies['prosemirror-view']),
       description: 'A toolkit for building rich-text editors',
       url: 'https://prosemirror.net',
     },
