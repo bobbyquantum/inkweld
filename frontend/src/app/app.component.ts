@@ -50,6 +50,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.themeService.initTheme();
+    this.updateService.initialize();
     void this.initializeApp();
   }
 
