@@ -12,7 +12,7 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 
 interface LibraryInfo {
   name: string;
-  version: string;
+  version?: string;
   description: string;
   url: string;
 }
@@ -79,13 +79,11 @@ export class AboutComponent {
     },
     {
       name: 'Hono',
-      version: stripSemverPrefix(packageJson.backendLibraries['hono']),
       description: 'A small, simple, and ultrafast web framework for the edge',
       url: 'https://hono.dev',
     },
     {
       name: 'Drizzle ORM',
-      version: stripSemverPrefix(packageJson.backendLibraries['drizzle-orm']),
       description: 'TypeScript ORM that is lightweight and performant',
       url: 'https://orm.drizzle.team',
     },
