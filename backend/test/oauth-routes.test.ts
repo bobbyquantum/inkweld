@@ -416,7 +416,7 @@ describe('OAuth Token Endpoint', () => {
     const data = (await json()) as Record<string, unknown>;
     const redirectUri = data.redirectUri as string;
     const url = new URL(redirectUri);
-    return url.searchParams.get('code')!;
+    return url.searchParams.get('code') as string;
   }
 
   it('POST /oauth/token exchanges authorization code for tokens (JSON)', async () => {
@@ -556,7 +556,7 @@ describe('OAuth Token Endpoint', () => {
     });
     const authData = (await authJson()) as Record<string, unknown>;
     const redirectUri = authData.redirectUri as string;
-    const code = new URL(redirectUri).searchParams.get('code')!;
+    const code = new URL(redirectUri).searchParams.get('code') as string;
 
     // Exchange with Basic auth
     const basicAuth = btoa(`${confClientId}:${confClientSecret}`);
@@ -636,7 +636,7 @@ describe('OAuth Revocation Endpoint', () => {
       }),
     });
     const authData = (await authJson()) as Record<string, unknown>;
-    const code = new URL(authData.redirectUri as string).searchParams.get('code')!;
+    const code = new URL(authData.redirectUri as string).searchParams.get('code') as string;
 
     const { json: tokenJson } = await unauthClient.request('/oauth/token', {
       method: 'POST',
@@ -718,7 +718,7 @@ describe('OAuth Session Management', () => {
       }),
     });
     const authData = (await authJson()) as Record<string, unknown>;
-    const code = new URL(authData.redirectUri as string).searchParams.get('code')!;
+    const code = new URL(authData.redirectUri as string).searchParams.get('code') as string;
 
     // Exchange for tokens (this creates the session)
     await unauthClient.request('/oauth/token', {
@@ -749,7 +749,7 @@ describe('OAuth Session Management', () => {
     // Find our session
     const session = data.find((s) => (s.client as Record<string, unknown>).id === sessionClientId);
     expect(session).toBeDefined();
-    sessionId = session!.id as string;
+    sessionId = (session as { id: string }).id;
   });
 
   it('GET /oauth/sessions/:sessionId returns session details', async () => {

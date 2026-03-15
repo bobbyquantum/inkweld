@@ -850,9 +850,11 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
       .replaceAll('&quot;', '"')
-      .replaceAll("&apos;", "'")
+      .replaceAll('&apos;', "'")
       .replaceAll(/&#(\d+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 10)))
-      .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code: string) => String.fromCharCode(parseInt(code, 16)));
+      .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code: string) =>
+        String.fromCharCode(parseInt(code, 16))
+      );
   }
 
   /**
