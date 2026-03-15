@@ -135,7 +135,7 @@
     "eslint-plugin-unused-imports": "4.4.1",
     "fake-indexeddb": "6.2.5",
     "http-server": "^14.1.1",
-    "jsdom": "^28.0.0",
+    "jsdom": "^29.0.0",
     "jszip": "^3.10.1",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.4.530",
