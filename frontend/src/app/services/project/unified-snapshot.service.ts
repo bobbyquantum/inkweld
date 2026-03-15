@@ -215,7 +215,7 @@ export class UnifiedSnapshotService {
     namePrefix: string
   ): Promise<StoredSnapshot[]> {
     const snapshots: StoredSnapshot[] = [];
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
 
     for (const docId of documentIds) {
       try {

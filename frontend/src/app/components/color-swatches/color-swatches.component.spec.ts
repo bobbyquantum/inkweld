@@ -32,6 +32,16 @@ describe('ColorSwatchesComponent', () => {
     expect(component.hexValue).toBe('FF5722');
   });
 
+  it('should strip all # characters including leading double hash', () => {
+    component.selectedColor = '##AABBCC';
+    expect(component.hexValue).toBe('AABBCC');
+  });
+
+  it('should strip embedded # characters', () => {
+    component.selectedColor = '#AAB#BCC';
+    expect(component.hexValue).toBe('AABBCC');
+  });
+
   it('should emit colorChange when a swatch is selected', () => {
     const spy = vi.spyOn(component.colorChange, 'emit');
     component.selectColor('#E53935');
