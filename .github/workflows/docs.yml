@@ -66,6 +66,7 @@ jobs:
       pages: write
       id-token: write
     environment:
+      # Configure the 15-minute wait timer on the existing github-pages environment.
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
