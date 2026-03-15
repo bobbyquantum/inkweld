@@ -15,6 +15,13 @@ import { join } from 'node:path';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import {
+  sanitizeSpaPath,
+  shouldBypassSpa,
+  findEmbeddedFile,
+  guessMimeType,
+  buildAssetHeaders,
+} from './utils/spa-utils';
+import {
   bunSqliteDatabaseMiddleware,
   type BunSqliteAppContext,
 } from './middleware/database.bun-sqlite.middleware';
@@ -390,13 +397,7 @@ async function serveSpaAsset(
     const brFilePath = `${filePath}.br`;
     const brFile = Bun.file(brFilePath);
     if (await brFile.exists()) {
-      const headers = new Headers();
-      headers.set('Content-Type', guessMimeType(relativePath));
-      headers.set('Content-Encoding', 'br');
-      headers.set(
-        'Cache-Control',
-        relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
-      );
+      const headers = buildAssetHeaders(guessMimeType(relativePath), relativePath, 'br');
       return new Response(brFile, { headers });
     }
   }
@@ -424,38 +425,6 @@ async function serveSpaAsset(
   );
 
   return new Response(file, { headers });
-}
-
-function sanitizeSpaPath(pathname: string): string {
-  if (!pathname || pathname === '/') {
-    return 'index.html';
-  }
-
-  const safeSegments = pathname
-    .split('/')
-    .map((segment) => segment.trim())
-    .filter((segment) => segment && segment !== '.' && segment !== '..')
-    .map((segment) => {
-      try {
-        return decodeURIComponent(segment);
-      } catch {
-        return segment;
-      }
-    });
-
-  if (safeSegments.length === 0) {
-    return 'index.html';
-  }
-
-  return safeSegments.join('/');
-}
-
-function shouldBypassSpa(pathname: string, prefixes: string[]): boolean {
-  // Normalize path by collapsing multiple slashes (e.g., "//api/v1/health" -> "/api/v1/health")
-  const normalizedPath = pathname.replace(/\/+/g, '/');
-  return prefixes.some(
-    (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
-  );
 }
 
 function createEmbeddedSpaHandler(
@@ -513,24 +482,6 @@ function createEmbeddedSpaHandler(
   };
 }
 
-function findEmbeddedFile(
-  embeddedFiles: Map<string, string | Blob>,
-  relativePath: string
-): (string | Blob) | undefined {
-  const file = embeddedFiles.get(relativePath);
-  if (file) {
-    return file;
-  }
-
-  // Try without leading paths
-  const basename = relativePath.split('/').pop() || '';
-  const basenameFile = embeddedFiles.get(basename);
-  if (basenameFile) {
-    logger.debug('SPA', `Found by basename: "${basename}"`);
-  }
-  return basenameFile;
-}
-
 async function serveEmbeddedAsset(
   embeddedFiles: Map<string, string | Blob>,
   pathname: string,
@@ -543,61 +494,29 @@ async function serveEmbeddedAsset(
   if (acceptEncoding?.includes('br')) {
     const brFile = embeddedFiles.get(`${relativePath}.br`);
     if (brFile) {
-      return buildAssetResponse(brFile, guessMimeType(relativePath), relativePath, 'br');
+      const headers = buildAssetHeaders(guessMimeType(relativePath), relativePath, 'br');
+      const content = typeof brFile === 'string' ? Bun.file(brFile) : brFile;
+      return new Response(content, { headers });
     }
   }
 
-  const file = findEmbeddedFile(embeddedFiles, relativePath);
+  const result = findEmbeddedFile(embeddedFiles, relativePath);
 
-  if (!file) {
+  if (!result) {
     logger.debug('SPA', 'Asset not found', {
       available: Array.from(embeddedFiles.keys()).slice(0, 10),
     });
     return null;
   }
 
-  const encoding = relativePath.endsWith('.wasm') ? 'br' : undefined;
-  return buildAssetResponse(file, guessMimeType(relativePath), relativePath, encoding);
-}
-
-function buildAssetResponse(
-  file: string | Blob,
-  contentType: string,
-  relativePath: string,
-  encoding?: string
-): Response {
-  const headers = new Headers();
-  headers.set('Content-Type', contentType);
-  if (encoding) {
-    headers.set('Content-Encoding', encoding);
+  if (result.foundByBasename) {
+    logger.debug('SPA', `Found by basename: "${relativePath.split('/').pop() || ''}"`);
   }
-  headers.set(
-    'Cache-Control',
-    relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
-  );
-  const content = typeof file === 'string' ? Bun.file(file) : file;
-  return new Response(content, { headers });
-}
 
-function guessMimeType(path: string): string {
-  const ext = path.split('.').pop()?.toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    html: 'text/html',
-    css: 'text/css',
-    js: 'application/javascript',
-    json: 'application/json',
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    svg: 'image/svg+xml',
-    ico: 'image/x-icon',
-    webp: 'image/webp',
-    woff: 'font/woff',
-    woff2: 'font/woff2',
-    ttf: 'font/ttf',
-    wasm: 'application/wasm',
-  };
-  return mimeTypes[ext || ''] || 'application/octet-stream';
+  const encoding = relativePath.endsWith('.wasm') ? 'br' : undefined;
+  const headers = buildAssetHeaders(guessMimeType(relativePath), relativePath, encoding);
+  const content = typeof result.file === 'string' ? Bun.file(result.file) : result.file;
+  return new Response(content, { headers });
 }
 
 // Function to create and initialize the app for testing
