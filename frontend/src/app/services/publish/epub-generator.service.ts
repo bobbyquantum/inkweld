@@ -1336,8 +1336,8 @@ ${content}
   private generateFilename(title: string): string {
     const slug = title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+      .replaceAll(/[^a-z0-9]+/g, '-')
+      .replaceAll(/^-|-$/g, '');
     return `${slug || 'book'}.epub`;
   }
 
@@ -1345,7 +1345,7 @@ ${content}
    * Count words in HTML content
    */
   private countWords(html: string): number {
-    const text = html.replace(/<[^>]*>/g, ' ');
+    const text = html.replaceAll(/<[^>]*>/g, ' ');
     const words = text.split(/\s+/).filter(w => w.length > 0);
     return words.length;
   }
@@ -1364,11 +1364,11 @@ ${content}
    */
   private escapeHtml(str: string): string {
     return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
   }
 
   /**

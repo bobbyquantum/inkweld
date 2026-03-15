@@ -226,7 +226,7 @@ export class CreateMcpKeyDialogComponent {
       return undefined;
     }
     const now = Date.now();
-    const days = parseInt(this.keyExpiration.replace('days', ''), 10);
+    const days = parseInt(this.keyExpiration.replaceAll('days', ''), 10);
     return now + days * 24 * 60 * 60 * 1000;
   }
 }

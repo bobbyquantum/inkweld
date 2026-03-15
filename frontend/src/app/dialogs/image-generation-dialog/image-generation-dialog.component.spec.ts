@@ -1129,4 +1129,30 @@ describe('ImageGenerationDialogComponent', () => {
       expect(prompt).toBe('A beautiful sunset over mountains');
     });
   });
+
+  describe('getElementIcon', () => {
+    beforeEach(async () => {
+      fixture.detectChanges();
+      await flushPromises();
+    });
+
+    it('should return icon for plain type', () => {
+      expect(component.getElementIcon('character')).toBe('person');
+      expect(component.getElementIcon('location')).toBe('place');
+      expect(component.getElementIcon('item')).toBe('inventory_2');
+      expect(component.getElementIcon('event')).toBe('event');
+    });
+
+    it('should strip worldbuilding/ prefix before looking up icon', () => {
+      expect(component.getElementIcon('worldbuilding/character')).toBe(
+        'person'
+      );
+      expect(component.getElementIcon('worldbuilding/location')).toBe('place');
+      expect(component.getElementIcon('worldbuilding/creature')).toBe('pets');
+    });
+
+    it('should return category for unknown type', () => {
+      expect(component.getElementIcon('unknown-type')).toBe('category');
+    });
+  });
 });

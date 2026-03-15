@@ -8,6 +8,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e/screenshots',
+  testIgnore: ['**/mock-api/registry.spec.ts'],
   fullyParallel: false, // Run sequentially for consistent screenshots
   forbidOnly: !!process.env['CI'],
   retries: 0, // No retries for screenshot generation

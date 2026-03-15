@@ -20,7 +20,7 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { type PublishPlan } from '../../models/publish-plan';
+import { PublishFormat, type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
@@ -35,6 +35,7 @@ import {
 } from '../sync/index';
 import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';
+import { TabManagerService } from './tab-manager.service';
 
 /**
  * Creates a mock IElementSyncProvider for testing.
@@ -850,6 +851,40 @@ describe('ProjectStateService', () => {
       service.ngOnDestroy();
 
       expect(mockSyncProvider.disconnect).toHaveBeenCalled();
+    });
+  });
+
+  describe('deletePublishPlan', () => {
+    const mockPlan = {
+      id: 'plan-abc',
+      name: 'My Plan',
+      format: PublishFormat.PDF_SIMPLE,
+    } as unknown as PublishPlan;
+
+    it('should remove plan from publishPlans and call closeTabById with publish-plan- prefix', async () => {
+      await service.loadProject('testuser', 'test-project');
+      service.createPublishPlan(mockPlan);
+
+      const tabManager = TestBed.inject(TabManagerService);
+      const closeSpy = vi.spyOn(tabManager, 'closeTabById');
+
+      service.deletePublishPlan('plan-abc');
+
+      expect(
+        service.publishPlans().find(p => p.id === 'plan-abc')
+      ).toBeUndefined();
+      expect(closeSpy).toHaveBeenCalledWith('publish-plan-plan-abc');
+    });
+
+    it('should warn and do nothing when plan not found', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      const tabManager = TestBed.inject(TabManagerService);
+      const closeSpy = vi.spyOn(tabManager, 'closeTabById');
+
+      service.deletePublishPlan('nonexistent-id');
+
+      expect(closeSpy).not.toHaveBeenCalled();
     });
   });
 });

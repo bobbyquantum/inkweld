@@ -5,7 +5,7 @@ import { Database as BunDatabase } from 'bun:sqlite';
 import { eq } from 'drizzle-orm';
 import { join } from 'path';
 import * as schema from '../src/db/schema';
-import { mcpOAuthService } from '../src/services/mcp-oauth.service';
+import { mcpOAuthService, OAuthError } from '../src/services/mcp-oauth.service';
 import { mcpOAuthClients } from '../src/db/schema/mcp-oauth-clients';
 import { mcpOAuthCodes } from '../src/db/schema/mcp-oauth-codes';
 import { mcpOAuthSessions } from '../src/db/schema/mcp-oauth-sessions';
@@ -589,5 +589,148 @@ describe('MCP OAuth Service - exchangeAuthorizationCode', () => {
 
     expect(tokens.accessToken).toBeDefined();
     expect(tokens.refreshToken).toBeDefined();
+  });
+});
+
+describe('OAuthError', () => {
+  it('should serialize to JSON correctly', () => {
+    const err = new OAuthError('invalid_request', 'Missing parameter');
+    expect(err.toJSON()).toEqual({
+      error: 'invalid_request',
+      error_description: 'Missing parameter',
+    });
+  });
+
+  it('should use default status 400', () => {
+    const err = new OAuthError('server_error', 'Oops');
+    expect(err.statusCode).toBe(400);
+    expect(err.name).toBe('OAuthError');
+  });
+
+  it('should accept custom status code', () => {
+    const err = new OAuthError('access_denied', 'Forbidden', 403);
+    expect(err.statusCode).toBe(403);
+  });
+});
+
+describe('MCP OAuth Service - cleanup and utility methods', () => {
+  it('cleanupExpiredCodes should delete expired codes', async () => {
+    const expiredHash = 'expired-hash-' + Date.now();
+    await db.insert(mcpOAuthCodes).values({
+      codeHash: expiredHash,
+      userId: testUserId,
+      clientId: testClientId,
+      codeChallenge: 'challenge',
+      codeChallengeMethod: 'S256',
+      redirectUri: 'http://localhost:3000/callback',
+      grants: '[]',
+      createdAt: Date.now() - 10_000,
+      expiresAt: Date.now() - 5_000, // already expired
+    });
+
+    await mcpOAuthService.cleanupExpiredCodes(db);
+
+    const remaining = await db
+      .select()
+      .from(mcpOAuthCodes)
+      .where(eq(mcpOAuthCodes.codeHash, expiredHash));
+    expect(remaining.length).toBe(0);
+  });
+
+  it('cleanupExpiredSessions should delete expired sessions', async () => {
+    const expiredSessionId = crypto.randomUUID();
+    const now = Date.now();
+    await db.insert(mcpOAuthSessions).values({
+      id: expiredSessionId,
+      userId: testUserId,
+      clientId: testClientId,
+      refreshTokenHash: 'expired-token-hash-' + now,
+      createdAt: now - 100_000,
+      lastUsedAt: now - 100_000,
+      expiresAt: now - 50_000, // already expired
+    });
+
+    await mcpOAuthService.cleanupExpiredSessions(db);
+
+    const remaining = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, expiredSessionId));
+    expect(remaining.length).toBe(0);
+  });
+
+  it('getPublicClient should return null for unknown client', async () => {
+    const result = await mcpOAuthService.getPublicClient(db, 'nonexistent-client-id');
+    expect(result).toBeNull();
+  });
+
+  it('getPublicClient should return public info for known client', async () => {
+    const result = await mcpOAuthService.getPublicClient(db, testClientId);
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe(testClientId);
+  });
+
+  it('getUserSessions should return active sessions for a user', async () => {
+    const { sessionId } = await mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      grants: [{ projectId: testProjectId, role: 'viewer' }],
+      issuer: 'http://localhost:8333',
+    });
+
+    const sessions = await mcpOAuthService.getUserSessions(db, testUserId);
+    expect(sessions.length).toBeGreaterThanOrEqual(1);
+    const found = sessions.find((s) => s.id === sessionId);
+    expect(found).toBeDefined();
+    expect(found?.client.id).toBe(testClientId);
+  });
+
+  it('getSessionDetails should return null for unknown session', async () => {
+    const result = await mcpOAuthService.getSessionDetails(db, 'nonexistent', testUserId);
+    expect(result).toBeNull();
+  });
+
+  it('getSessionDetails should return session and grants for known session', async () => {
+    const { sessionId } = await mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+      issuer: 'http://localhost:8333',
+    });
+
+    const result = await mcpOAuthService.getSessionDetails(db, sessionId, testUserId);
+    expect(result).not.toBeNull();
+    expect(result?.session.id).toBe(sessionId);
+    expect(result?.grants.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('isSessionRevoked should return false for active session', async () => {
+    const { sessionId } = await mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      grants: [],
+      issuer: 'http://localhost:8333',
+    });
+
+    const revoked = await mcpOAuthService.isSessionRevoked(db, sessionId);
+    expect(revoked).toBe(false);
+  });
+
+  it('isSessionRevoked should return true for revoked session', async () => {
+    const { sessionId } = await mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      grants: [],
+      issuer: 'http://localhost:8333',
+    });
+
+    await mcpOAuthService.revokeSession(db, sessionId);
+    const revoked = await mcpOAuthService.isSessionRevoked(db, sessionId);
+    expect(revoked).toBe(true);
+  });
+
+  it('isSessionRevoked should return true for nonexistent session', async () => {
+    const revoked = await mcpOAuthService.isSessionRevoked(db, 'nonexistent-id');
+    expect(revoked).toBe(true);
   });
 });

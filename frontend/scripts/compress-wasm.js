@@ -4,17 +4,17 @@
  * 1. For WASM files > 25MB: REPLACES the original with compressed version (for Cloudflare Pages limit).
  * 2. For other assets: Creates a .br sidecar file for servers that support pre-compressed assets.
  */
-const fs = require('fs');
-const path = require('path');
-const zlib = require('zlib');
-const crypto = require('crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const zlib = require('node:zlib');
+const crypto = require('node:crypto');
 
 const DIST_DIR = path.join(__dirname, '..', 'dist', 'browser');
 const NGSW_PATH = path.join(DIST_DIR, 'ngsw.json');
 const SIZE_LIMIT_MB = 25;
 
 // Extensions to compress
-const COMPRESS_EXTENSIONS = [
+const COMPRESS_EXTENSIONS = new Set([
   '.js',
   '.css',
   '.html',
@@ -23,7 +23,7 @@ const COMPRESS_EXTENSIONS = [
   '.svg',
   '.xml',
   '.webmanifest',
-];
+]);
 
 function findFiles(dir) {
   let results = [];
@@ -39,6 +39,27 @@ function findFiles(dir) {
   }
 
   return results;
+}
+
+function updateNgswHash(ngsw, filePath, compressed) {
+  if (!ngsw?.hashTable) return;
+  const relativePath = '/' + path.relative(DIST_DIR, filePath).replaceAll('\\', '/');
+  if (ngsw.hashTable[relativePath]) {
+    const newHash = crypto.createHash('sha1').update(compressed).digest('hex');
+    ngsw.hashTable[relativePath] = newHash;
+    console.log(`  Updated hash in ngsw.json for ${relativePath}`);
+  }
+}
+
+function compressWasm(filePath, sizeMB, compressed, ngsw) {
+  console.log(`\n${path.relative(DIST_DIR, filePath)}: ${sizeMB.toFixed(2)} MB`);
+  if (sizeMB > SIZE_LIMIT_MB) {
+    console.log(`  ⚠️  Exceeds ${SIZE_LIMIT_MB}MB limit - REPLACING original...`);
+  } else {
+    console.log(`  ✓ Compressing in-place...`);
+  }
+  fs.writeFileSync(filePath, compressed);
+  updateNgswHash(ngsw, filePath, compressed);
 }
 
 function compressAssets() {
@@ -62,7 +83,11 @@ function compressAssets() {
 
   for (const filePath of files) {
     const ext = path.extname(filePath).toLowerCase();
-    if (!COMPRESS_EXTENSIONS.includes(ext) || filePath.endsWith('.br')) {
+    if (!COMPRESS_EXTENSIONS.has(ext) || filePath.endsWith('.br')) {
+      continue;
+    }
+    // ngsw.json is handled separately after hash updates to avoid a stale sidecar
+    if (filePath === NGSW_PATH) {
       continue;
     }
 
@@ -81,36 +106,31 @@ function compressAssets() {
     // If it's a WASM file, we REPLACE it in-place
     // This ensures we stay under Cloudflare's 25MB limit and simplifies headers
     if (ext === '.wasm') {
-      console.log(`\n${path.relative(DIST_DIR, filePath)}: ${sizeMB.toFixed(2)} MB`);
-      if (sizeMB > SIZE_LIMIT_MB) {
-        console.log(`  ⚠️  Exceeds ${SIZE_LIMIT_MB}MB limit - REPLACING original...`);
-      } else {
-        console.log(`  ✓ Compressing in-place...`);
-      }
-      fs.writeFileSync(filePath, compressed);
+      compressWasm(filePath, sizeMB, compressed, ngsw);
       replacedCount++;
-
-      // Update hash in ngsw.json
-      if (ngsw && ngsw.hashTable) {
-        const relativePath = '/' + path.relative(DIST_DIR, filePath).replace(/\\/g, '/');
-        if (ngsw.hashTable[relativePath]) {
-          const newHash = crypto.createHash('sha1').update(compressed).digest('hex');
-          ngsw.hashTable[relativePath] = newHash;
-          console.log(`  Updated hash in ngsw.json for ${relativePath}`);
-        }
-      }
     } else {
       // Otherwise, create a .br sidecar file
-      const brPath = `${filePath}.br`;
-      fs.writeFileSync(brPath, compressed);
+      fs.writeFileSync(`${filePath}.br`, compressed);
       compressedCount++;
     }
   }
 
-  // Save updated ngsw.json
+  // Save updated ngsw.json and re-compress it so the .br sidecar reflects the
+  // updated hash table (the sidecar written during the main loop used stale content)
   if (ngsw) {
-    fs.writeFileSync(NGSW_PATH, JSON.stringify(ngsw, null, 2));
-    console.log('\n✅ Updated ngsw.json with new hashes');
+    try {
+      const updatedNgswContent = JSON.stringify(ngsw, null, 2);
+      fs.writeFileSync(NGSW_PATH, updatedNgswContent);
+      console.log('\n✅ Updated ngsw.json with new hashes');
+
+      const compressedNgsw = zlib.brotliCompressSync(Buffer.from(updatedNgswContent), {
+        params: { [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY },
+      });
+      fs.writeFileSync(`${NGSW_PATH}.br`, compressedNgsw);
+    } catch (err) {
+      console.error('❌ Failed to update ngsw.json or its .br sidecar:', err);
+      process.exit(1);
+    }
   }
 
   console.log(`\n✅ Done!`);

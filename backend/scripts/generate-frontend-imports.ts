@@ -56,15 +56,15 @@ console.log(`   Found ${frontendFiles.length} frontend files`);
 
 // Generate import statements
 const imports = frontendFiles.map((file, idx) => {
-  const relativePath = relative(join(PROJECT_ROOT, 'backend/src'), file).replace(/\\/g, '/');
+  const relativePath = relative(join(PROJECT_ROOT, 'backend/src'), file).replaceAll('\\', '/');
   const varName = `asset_${idx}`;
   return `import ${varName} from '${relativePath}' with { type: 'file' };`;
 });
 
 // Generate asset map entries
 const assetMap = frontendFiles.map((file, idx) => {
-  const relativePath = relative(join(PROJECT_ROOT, 'frontend/dist/browser'), file).replace(
-    /\\/g,
+  const relativePath = relative(join(PROJECT_ROOT, 'frontend/dist/browser'), file).replaceAll(
+    '\\',
     '/'
   );
   return `  assets.set('${relativePath}', asset_${idx});`;

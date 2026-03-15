@@ -342,7 +342,7 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
   const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
 
   // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
-  const safeFilename = filename.replace(/["\\\r\n]/g, '').replace(/[^\x20-\x7E]/g, '_');
+  const safeFilename = filename.replaceAll(/["\\\r\n]/g, '').replaceAll(/[^\x20-\x7E]/g, '_');
 
   // Serve potentially dangerous content types as attachment instead of inline
   const dangerousTypes = ['image/svg+xml', 'text/html', 'application/xhtml+xml', 'text/xml'];

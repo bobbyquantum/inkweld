@@ -457,7 +457,7 @@ function updateWranglerToml(
     // Cloudflare doesn't allow a variable to be both in [vars] and a secret
     const envVarsSectionRegex = /\[env\.[^.]+\.vars\]([\s\S]*?)(?=\n\[|$)/g;
     content = content.replace(envVarsSectionRegex, (section) => {
-      return section.replace(/\n?\s*SESSION_SECRET = "[^"]*".*/g, '');
+      return section.replaceAll(/\n?\s*SESSION_SECRET = "[^"]*".*/g, '');
     });
 
     // Ensure migrations_dir = "drizzle" is present in all D1 sections
@@ -651,10 +651,10 @@ function generateFrontendEnvironment(
         ? `${workerName}.${subdomain}.workers.dev`
         : `${workerName}.workers.dev`;
 
-    content = content.replace(/inkweld-backend-\w+\.YOUR_SUBDOMAIN\.workers\.dev/g, backendUrl);
+    content = content.replaceAll(/inkweld-backend-\w+\.YOUR_SUBDOMAIN\.workers\.dev/g, backendUrl);
 
     // Also handle cases where it might just be .workers.dev in the template
-    content = content.replace(/inkweld-backend-\w+\.workers\.dev/g, backendUrl);
+    content = content.replaceAll(/inkweld-backend-\w+\.workers\.dev/g, backendUrl);
 
     writeFileSync(filepath, content);
     success(`Generated ${filename}`);
@@ -745,8 +745,8 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     // Prefer email prefix if account name looks like a generic "X's Account"
     let suggestedSubdomain = '';
     if (accountInfo) {
-      const slugifiedAccount = accountInfo.accountName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-      const slugifiedPrefix = accountInfo.emailPrefix.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const slugifiedAccount = accountInfo.accountName.toLowerCase().replaceAll(/[^a-z0-9-]/g, '-');
+      const slugifiedPrefix = accountInfo.emailPrefix.toLowerCase().replaceAll(/[^a-z0-9-]/g, '-');
 
       // If account name is long or contains "account", prefer the email prefix
       if (slugifiedAccount.includes('account') || slugifiedAccount.length > 20) {
