@@ -18,6 +18,7 @@
         "@angular/router": "^21.1.0",
         "@angular/service-worker": "^21.1.0",
         "@bobbyquantum/ngx-editor": "^21.0.0",
+        "@fontsource/roboto": "5.2.10",
         "@myriaddreamin/typst-ts-renderer": "^0.7.0-rc2",
         "@myriaddreamin/typst-ts-web-compiler": "^0.7.0-rc2",
         "@myriaddreamin/typst.angular": "^0.7.0-rc2",
@@ -33,6 +34,8 @@
         "konva": "^10.2.0",
         "lodash-es": "4.17.23",
         "marked": "^17.0.1",
+        "material-icons": "1.13.14",
+        "material-symbols": "0.40.2",
         "nanoid": "5.1.6",
         "ngx-echarts": "^21.0.0",
         "ngx-image-cropper": "9.1.6",
@@ -370,6 +373,8 @@
     "@floating-ui/dom": ["@floating-ui/dom@1.7.5", "", { "dependencies": { "@floating-ui/core": "^1.7.4", "@floating-ui/utils": "^0.2.10" } }, "sha512-N0bD2kIPInNHUHehXhMke1rBGs1dwqvC9O9KYMyyjK7iXt7GAhnro7UlcuYcGdS/yYOlq0MAVgrow8IbWJwyqg=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
+
+    "@fontsource/roboto": ["@fontsource/roboto@5.2.10", "", {}, "sha512-8HlA5FtSfz//oFSr2eL7GFXAiE7eIkcGOtx7tjsLKq+as702x9+GU7K95iDeWFapHC4M2hv9RrpXKRTGGBI8Zg=="],
 
     "@hapi/address": ["@hapi/address@5.1.1", "", { "dependencies": { "@hapi/hoek": "^11.0.2" } }, "sha512-A+po2d/dVoY7cYajycYI43ZbYMXukuopIsqCjh5QzsBCipDtdofHntljDlpccMjIfTy6UOkg+5KPriwYch2bXA=="],
 
@@ -1478,6 +1483,10 @@
     "marked": ["marked@17.0.3", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-jt1v2ObpyOKR8p4XaUJVk3YWRJ5n+i4+rjQopxvV32rSndTJXvIzuUdWWIy/1pFQMkQmvTXawzDNqOH/CUmx6A=="],
 
     "matcher": ["matcher@3.0.0", "", { "dependencies": { "escape-string-regexp": "^4.0.0" } }, "sha512-OkeDaAZ/bQCxeFAozM55PKcKU0yJMPGifLwV4Qgjitu+5MoAfSQN4lsLJeXZ1b8w0x+/Emda6MZgXS1jvsapng=="],
+
+    "material-icons": ["material-icons@1.13.14", "", {}, "sha512-kZOfc7xCC0rAT8Q3DQixYAeT+tBqZnxkseQtp2bxBxz7q5pMAC+wmit7vJn1g/l7wRU+HEPq23gER4iPjGs5Cg=="],
+
+    "material-symbols": ["material-symbols@0.40.2", "", {}, "sha512-QUJF1HztvcpP8pXHPPNESK05Thq/Zy8ub17T2xBDf4+gqx4KBs353lKHuVzE/eCYOtiB9JBlFOU7cjAI6vVMTQ=="],
 
     "math-intrinsics": ["math-intrinsics@1.1.0", "", {}, "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="],
 
