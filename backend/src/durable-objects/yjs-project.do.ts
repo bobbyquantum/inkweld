@@ -27,6 +27,7 @@ import { encodeAwarenessUpdate } from 'y-protocols/awareness';
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
 import { logger } from '../services/logger.service';
+import { decodeXmlEntities } from '../utils/xml-utils';
 
 const projDOLog = logger.child('YjsProjectDO');
 
@@ -845,16 +846,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    * Decode standard XML entities.
    */
   private decodeXmlEntities(text: string): string {
-    return text
-      .replaceAll('&amp;', '&')
-      .replaceAll('&lt;', '<')
-      .replaceAll('&gt;', '>')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&apos;', "'")
-      .replaceAll(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 10)))
-      .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code: string) =>
-        String.fromCodePoint(Number.parseInt(code, 16))
-      );
+    return decodeXmlEntities(text);
   }
 
   /**

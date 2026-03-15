@@ -494,7 +494,8 @@ describe('ImageGenerationService', () => {
       mockAiImageService.generateImage.mockImplementation(() => {
         const err = Object.assign(new Error('MODERATION_BLOCKED'), {
           error: {
-            error: 'MODERATION_BLOCKED: MODERATION_BLOCKED: Content violates policy',
+            error:
+              'MODERATION_BLOCKED: MODERATION_BLOCKED: Content violates policy',
           },
         });
         throw err;

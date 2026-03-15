@@ -1296,7 +1296,7 @@ The content replaces the entire document. Use get_document_content first to read
  * Convert plain text to ProseMirror XML format.
  * Double newlines create paragraph breaks, single newlines are preserved as hard breaks.
  */
-function textToProseMirrorXml(text: string): string {
+export function textToProseMirrorXml(text: string): string {
   if (!text.trim()) {
     return '<paragraph></paragraph>';
   }

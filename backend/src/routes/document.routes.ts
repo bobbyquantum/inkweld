@@ -8,6 +8,14 @@ import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
+/** Escape user-controlled values to prevent reflected XSS */
+export const escapeHtml = (str: string) =>
+  str
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+
 const documentLog = logger.child('Documents');
 const documentRoutes = new OpenAPIHono<AppContext>();
 
@@ -256,14 +264,6 @@ documentRoutes.openapi(renderHtmlRoute, async (c) => {
   if (!access.canRead) {
     return c.json({ error: 'Access denied' }, 403);
   }
-
-  // Escape user-controlled values to prevent reflected XSS
-  const escapeHtml = (str: string) =>
-    str
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
 
   const safeDocId = escapeHtml(docId);
   const safeUsername = escapeHtml(username);
