@@ -459,6 +459,157 @@ describe('ElementRefPlugin', () => {
       // That only happens when query is extracted from document changes
       expect(pluginState!.query).toBe('joh');
     });
+
+    it('should keep state unchanged for non-active plugin with no action', () => {
+      const plugin = createElementRefPlugin(callbacks);
+      const state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello world')]),
+        ]),
+        plugins: [plugin],
+      });
+
+      // Apply a regular transaction with no plugin meta (not active)
+      const tr = state.tr.insertText('!', 12);
+      const newState = state.apply(tr);
+      const pluginState = elementRefPluginKey.getState(newState);
+
+      expect(pluginState!.active).toBe(false);
+      expect(pluginState!.triggerPos).toBeNull();
+    });
+
+    it('should map decorations when active and no doc/selection change', () => {
+      const plugin = createElementRefPlugin(callbacks);
+      let state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello @j')]),
+        ]),
+        plugins: [plugin],
+      });
+
+      // Activate
+      const activateTr = state.tr.setMeta(elementRefPluginKey, {
+        type: 'activate',
+        triggerPos: 7,
+        popupPosition: { x: 100, y: 200 },
+      });
+      state = state.apply(activateTr);
+
+      // Apply a metadata-only transaction (no doc change, no selection change)
+      const metaTr = state.tr.setMeta('someOtherPlugin', true);
+      const newState = state.apply(metaTr);
+      const pluginState = elementRefPluginKey.getState(newState);
+
+      expect(pluginState!.active).toBe(true);
+      expect(pluginState!.triggerPos).toBe(7);
+    });
+
+    it('should deactivate when newline is typed in query', () => {
+      const plugin = createElementRefPlugin(callbacks);
+      let state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello @john')]),
+          testSchema.node('paragraph', null, [testSchema.text('new line')]),
+        ]),
+        plugins: [plugin],
+      });
+
+      // Activate at position 7
+      const activateTr = state.tr.setMeta(elementRefPluginKey, {
+        type: 'activate',
+        triggerPos: 7,
+        popupPosition: { x: 100, y: 200 },
+      });
+      state = state.apply(activateTr);
+
+      // Insert a newline after @john by replacing with text containing \n
+      const nlDoc = testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [
+          testSchema.text('Hello @john\nnew'),
+        ]),
+      ]);
+      const nlTr = state.tr.replaceWith(
+        1,
+        state.doc.content.size - 1,
+        nlDoc.content
+      );
+      nlTr.setSelection(
+        TextSelection.near(nlTr.doc.resolve(nlTr.doc.content.size - 1))
+      );
+      state = state.apply(nlTr);
+      const pluginState = elementRefPluginKey.getState(state);
+
+      expect(pluginState!.active).toBe(false);
+      expect(callbacks.onClose).toHaveBeenCalled();
+    });
+
+    it('should call onQueryChange when query changes from document edits', () => {
+      const plugin = createElementRefPlugin(callbacks);
+      let state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello @j')]),
+        ]),
+        plugins: [plugin],
+      });
+
+      // Activate at position 7 (the @)
+      const activateTr = state.tr.setMeta(elementRefPluginKey, {
+        type: 'activate',
+        triggerPos: 7,
+        popupPosition: { x: 100, y: 200 },
+      });
+      state = state.apply(activateTr);
+
+      // Simulate typing 'o' after @j to make @jo
+      const typeTr = state.tr.insertText('o', 9);
+      typeTr.setSelection(TextSelection.near(typeTr.doc.resolve(10)));
+      state = state.apply(typeTr);
+      const pluginState = elementRefPluginKey.getState(state);
+
+      expect(pluginState!.query).toBe('jo');
+      expect(callbacks.onQueryChange).toHaveBeenCalledWith('jo');
+    });
+
+    it('should not update state when query has not changed', () => {
+      const plugin = createElementRefPlugin(callbacks);
+      let state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello @jo')]),
+        ]),
+        plugins: [plugin],
+      });
+
+      // Activate at position 7 (the @)
+      const activateTr = state.tr.setMeta(elementRefPluginKey, {
+        type: 'activate',
+        triggerPos: 7,
+        popupPosition: { x: 100, y: 200 },
+      });
+      state = state.apply(activateTr);
+
+      // Update query to 'jo'
+      const queryTr = state.tr.setMeta(elementRefPluginKey, {
+        type: 'updateQuery',
+        query: 'jo',
+      });
+      state = state.apply(queryTr);
+
+      // Now move selection to same position (query stays 'jo')
+      const selTr = state.tr.setSelection(
+        TextSelection.near(state.doc.resolve(10))
+      );
+      const newState = state.apply(selTr);
+      const pluginState = elementRefPluginKey.getState(newState);
+
+      // Query should remain the same, no extra onQueryChange calls
+      expect(pluginState!.query).toBe('jo');
+      expect(pluginState!.active).toBe(true);
+    });
   });
 });
 
@@ -819,6 +970,14 @@ describe('elementRefNodeSpec', () => {
           };
           return attrs[attr] || '';
         }),
+        dataset: {
+          elementId: 'parsed-id',
+          elementType: ElementType.Worldbuilding,
+          originalName: 'Castle',
+          relationshipId: 'rel-2',
+          relationshipType: 'contains',
+          relationshipNote: 'Setting',
+        },
         textContent: 'Castle Blackwood',
       } as unknown as HTMLElement;
 

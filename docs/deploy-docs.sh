@@ -17,7 +17,7 @@ echo "📚 Building docs for production..."
 cd "$PROJECT_ROOT"
 
 # Install dependencies if needed
-if [ ! -d "node_modules" ]; then
+if [[ ! -d "node_modules" ]]; then
   echo "📦 Installing dependencies..."
   bun install
 fi

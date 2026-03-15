@@ -31,32 +31,37 @@ const ELEMENT_TYPE_ICONS: Record<string, string> = {
   providedIn: 'root',
 })
 export class ElementRefService {
-  private logger = inject(LoggerService);
-  private projectState = inject(ProjectStateService);
-  private worldbuildingService = inject(WorldbuildingService);
+  private readonly logger = inject(LoggerService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   /** Current search query */
-  private searchQuerySignal = signal('');
+  private readonly searchQuerySignal = signal('');
   readonly searchQuery = this.searchQuerySignal.asReadonly();
 
   /** Whether the popup is currently open */
-  private isPopupOpenSignal = signal(false);
+  private readonly isPopupOpenSignal = signal(false);
   readonly isPopupOpen = this.isPopupOpenSignal.asReadonly();
 
   /** Current popup position */
-  private popupPositionSignal = signal<{ x: number; y: number } | null>(null);
+  private readonly popupPositionSignal = signal<{
+    x: number;
+    y: number;
+  } | null>(null);
   readonly popupPosition = this.popupPositionSignal.asReadonly();
 
   /** Current editor view for element ref operations */
-  private editorViewSignal = signal<EditorView | null>(null);
+  private readonly editorViewSignal = signal<EditorView | null>(null);
   readonly editorView = this.editorViewSignal.asReadonly();
 
   /** Current click event for context menu */
-  private clickEventSignal = signal<ElementRefClickEvent | null>(null);
+  private readonly clickEventSignal = signal<ElementRefClickEvent | null>(null);
   readonly clickEvent = this.clickEventSignal.asReadonly();
 
   /** Current tooltip data for hover display */
-  private tooltipDataSignal = signal<ElementRefTooltipData | null>(null);
+  private readonly tooltipDataSignal = signal<ElementRefTooltipData | null>(
+    null
+  );
   readonly tooltipData = this.tooltipDataSignal.asReadonly();
 
   /** Filtered search results */
@@ -239,8 +244,8 @@ export class ElementRefService {
       typeMap[type] ||
       String(type)
         .toLowerCase()
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase())
+        .replaceAll('_', ' ')
+        .replaceAll(/\b\w/g, c => c.toUpperCase())
     );
   }
 

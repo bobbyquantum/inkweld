@@ -430,9 +430,9 @@ export interface ElementPreviewContent {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ElementRefTooltipComponent {
-  private elementRefService = inject(ElementRefService);
-  private worldbuildingService = inject(WorldbuildingService);
-  private projectState = inject(ProjectStateService);
+  private readonly elementRefService = inject(ElementRefService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly projectState = inject(ProjectStateService);
   private readonly http = inject(HttpClient);
   private readonly localStorage = inject(LocalStorageService);
 
@@ -449,7 +449,7 @@ export class ElementRefTooltipComponent {
   }
 
   // Internal state
-  private _data = signal<ElementRefTooltipData | null>(null);
+  private readonly _data = signal<ElementRefTooltipData | null>(null);
   readonly data = this._data.asReadonly();
 
   /** Whether tooltip is visible */
