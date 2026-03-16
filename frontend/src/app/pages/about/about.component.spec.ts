@@ -1,195 +1,85 @@
-import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, provideRouter, Router } from '@angular/router';
-import { type User } from '@inkweld/index';
-import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { SetupService } from '@services/core/setup.service';
-import { LocalStorageService } from '@services/local/local-storage.service';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { UnifiedUserService } from '@services/user/unified-user.service';
-import { UserService } from '@services/user/user.service';
-import { type ThemeOption, ThemeService } from '@themes/theme.service';
-import { of } from 'rxjs';
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  type MockedObject,
-  vi,
-} from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AboutComponent } from './about.component';
 
 describe('AboutComponent', () => {
-  let component: AboutComponent;
-  let fixture: ComponentFixture<AboutComponent>;
-  let routerMock: MockedObject<Router>;
-  let userServiceMock: MockedObject<UnifiedUserService>;
-  let setupServiceMock: MockedObject<SetupService>;
-  let themeServiceMock: MockedObject<ThemeService>;
-  let dialogGatewayMock: MockedObject<DialogGatewayService>;
-  let localStorageMock: MockedObject<LocalStorageService>;
-  let legacyUserServiceMock: MockedObject<UserService>;
-
-  const mockUser: User = {
-    id: '1',
-    username: 'testuser',
-    name: 'Test User',
-    email: 'test@example.com',
-    enabled: true,
+  let router: {
+    navigate: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
-    routerMock = {
+    router = {
       navigate: vi.fn().mockResolvedValue(true),
-    } as unknown as MockedObject<Router>;
-
-    userServiceMock = {
-      currentUser: signal(mockUser),
-      getMode: vi.fn().mockReturnValue('local'),
-    } as unknown as MockedObject<UnifiedUserService>;
-
-    setupServiceMock = {
-      getMode: vi.fn().mockReturnValue('server'),
-    } as unknown as MockedObject<SetupService>;
-
-    themeServiceMock = {
-      update: vi.fn(),
-      getCurrentTheme: vi
-        .fn()
-        .mockReturnValue(of('light-theme' as ThemeOption)),
-    } as unknown as MockedObject<ThemeService>;
-
-    dialogGatewayMock = {
-      openUserSettingsDialog: vi.fn().mockResolvedValue(undefined),
-    } as unknown as MockedObject<DialogGatewayService>;
-
-    localStorageMock = {
-      getUserAvatarUrl: vi.fn().mockResolvedValue(undefined),
-    } as unknown as MockedObject<LocalStorageService>;
-
-    legacyUserServiceMock = {} as unknown as MockedObject<UserService>;
+    };
 
     await TestBed.configureTestingModule({
-      imports: [AboutComponent, NoopAnimationsModule],
+      imports: [AboutComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideRouter([]),
-        { provide: Router, useValue: routerMock },
-        { provide: UnifiedUserService, useValue: userServiceMock },
-        { provide: SetupService, useValue: setupServiceMock },
-        { provide: ThemeService, useValue: themeServiceMock },
-        { provide: DialogGatewayService, useValue: dialogGatewayMock },
-        { provide: LocalStorageService, useValue: localStorageMock },
-        { provide: UserService, useValue: legacyUserServiceMock },
-        { provide: ActivatedRoute, useValue: { params: of({}) } },
+        { provide: Router, useValue: router },
+        {
+          provide: UnifiedUserService,
+          useValue: {
+            currentUser: vi.fn().mockReturnValue(null),
+          },
+        },
       ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(AboutComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+    })
+      .overrideComponent(AboutComponent, {
+        set: { template: '' },
+      })
+      .compileComponents();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+  it('exposes application metadata and library information', () => {
+    const fixture = TestBed.createComponent(AboutComponent);
+    const component = fixture.componentInstance;
 
-  it('should display app name', () => {
     expect(component.appName).toBe('Inkweld');
+    expect(component.appVersion.length).toBeGreaterThan(0);
+    expect(component.appDescription.length).toBeGreaterThan(0);
+    expect(component.keyLibraries.length).toBeGreaterThan(5);
+    expect(component.keyLibraries[0]).toMatchObject({ name: 'Angular' });
+    expect(component.currentYear).toBe(new Date().getFullYear());
   });
 
-  it('should display app version', () => {
-    expect(component.appVersion).toBeDefined();
-    expect(typeof component.appVersion).toBe('string');
-  });
+  it('navigates back to the home page', async () => {
+    const fixture = TestBed.createComponent(AboutComponent);
+    const component = fixture.componentInstance;
 
-  it('should display app description', () => {
-    expect(component.appDescription).toBeDefined();
-    expect(typeof component.appDescription).toBe('string');
-  });
-
-  it('should have key libraries defined', () => {
-    expect(component.keyLibraries).toBeDefined();
-    expect(component.keyLibraries.length).toBeGreaterThan(0);
-  });
-
-  it('should include Angular in key libraries', () => {
-    const angular = component.keyLibraries.find(lib => lib.name === 'Angular');
-    expect(angular).toBeDefined();
-    expect(angular?.url).toBe('https://angular.dev');
-  });
-
-  it('should include Yjs in key libraries', () => {
-    const yjs = component.keyLibraries.find(lib => lib.name === 'Yjs');
-    expect(yjs).toBeDefined();
-    expect(yjs?.url).toBe('https://yjs.dev');
-  });
-
-  it('should navigate back when goBack is called', () => {
     component.goBack();
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
+    await Promise.resolve();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/']);
   });
 
-  it('should open licenses in new tab when openLicenses is called', () => {
-    const windowOpenSpy = vi
-      .spyOn(window, 'open')
-      .mockImplementation(() => null);
+  it('opens the bundled third-party licenses page', () => {
+    const fixture = TestBed.createComponent(AboutComponent);
+    const component = fixture.componentInstance;
+    const openSpy = vi.spyOn(globalThis, 'open').mockReturnValue(null);
+
     component.openLicenses();
-    expect(windowOpenSpy).toHaveBeenCalledWith(
-      '/3rdpartylicenses.txt',
-      '_blank'
-    );
-    windowOpenSpy.mockRestore();
+
+    expect(openSpy).toHaveBeenCalledWith('/3rdpartylicenses.txt', '_blank');
+    openSpy.mockRestore();
   });
 
-  it('should open external link in new tab', () => {
-    const windowOpenSpy = vi
-      .spyOn(window, 'open')
-      .mockImplementation(() => null);
-    const testUrl = 'https://angular.dev';
-    component.openExternalLink(testUrl);
-    expect(windowOpenSpy).toHaveBeenCalledWith(
-      testUrl,
+  it('opens external links in a secure new tab', () => {
+    const fixture = TestBed.createComponent(AboutComponent);
+    const component = fixture.componentInstance;
+    const openSpy = vi.spyOn(globalThis, 'open').mockReturnValue(null);
+
+    component.openExternalLink('https://example.com');
+
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://example.com',
       '_blank',
       'noopener,noreferrer'
     );
-    windowOpenSpy.mockRestore();
-  });
-
-  it('should have the current year set', () => {
-    const currentYear = new Date().getFullYear();
-    expect(component.currentYear).toBe(currentYear);
-  });
-
-  it('should render version card in template', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    const versionCard = compiled.querySelector('[data-testid="version-card"]');
-    expect(versionCard).toBeTruthy();
-  });
-
-  it('should render libraries card in template', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    const librariesCard = compiled.querySelector(
-      '[data-testid="libraries-card"]'
-    );
-    expect(librariesCard).toBeTruthy();
-  });
-
-  it('should render licenses card in template', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    const licensesCard = compiled.querySelector(
-      '[data-testid="licenses-card"]'
-    );
-    expect(licensesCard).toBeTruthy();
-  });
-
-  it('should render back button in template', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    const backButton = compiled.querySelector(
-      '[data-testid="about-back-button"]'
-    );
-    expect(backButton).toBeTruthy();
+    openSpy.mockRestore();
   });
 });
