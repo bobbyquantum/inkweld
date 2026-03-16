@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 
 import {
   type ElementRelationship,
+  RelationshipCategory,
   type RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import {
@@ -12,7 +13,11 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { type PublishPlan } from '../../models/publish-plan';
+import {
+  ChapterNumbering,
+  PublishFormat,
+  type PublishPlan,
+} from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
@@ -68,6 +73,74 @@ describe('LocalElementSyncProvider', () => {
     expandable: true,
     version: 0,
     metadata: {},
+  };
+  const mockPublishPlan: PublishPlan = {
+    id: 'plan-1',
+    name: 'Default Export',
+    format: PublishFormat.HTML,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2025-01-01T00:00:00.000Z',
+    metadata: {
+      title: 'Default Export',
+      author: 'Test Author',
+      language: 'en',
+    },
+    items: [],
+    options: {
+      chapterNumbering: ChapterNumbering.None,
+      sceneBreakText: '* * *',
+      includeWordCounts: false,
+      includeToc: true,
+      includeCover: false,
+      fontFamily: 'Georgia',
+      fontSize: 12,
+      lineHeight: 1.5,
+    },
+  };
+  const mockRelationship: ElementRelationship = {
+    id: 'relationship-1',
+    sourceElementId: 'elem-1',
+    targetElementId: 'elem-2',
+    relationshipTypeId: 'ally',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2025-01-01T00:00:00.000Z',
+  };
+  const mockRelationshipType: RelationshipTypeDefinition = {
+    id: 'ally',
+    name: 'Ally',
+    inverseLabel: 'Allied with',
+    showInverse: true,
+    category: RelationshipCategory.Social,
+    isBuiltIn: false,
+    sourceEndpoint: { allowedSchemas: [] },
+    targetEndpoint: { allowedSchemas: [] },
+  };
+  const mockSchema: ElementTypeSchema = {
+    id: 'schema-1',
+    name: 'Character',
+    icon: 'person',
+    description: 'Character schema',
+    version: 1,
+    isBuiltIn: false,
+    tabs: [],
+  };
+  const mockElementTag: ElementTag = {
+    id: 'element-tag-1',
+    elementId: 'elem-1',
+    tagId: 'tag-1',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  };
+  const mockCustomTag: TagDefinition = {
+    id: 'tag-1',
+    name: 'Important',
+    icon: 'label',
+    color: '#ff0000',
+  };
+  const mockProjectMeta: ProjectMeta = {
+    name: 'Project Title',
+    description: 'Project Description',
+    coverMediaId: 'cover-1',
+    updatedAt: '2025-01-01T00:00:00.000Z',
   };
 
   beforeEach(() => {
@@ -230,6 +303,17 @@ describe('LocalElementSyncProvider', () => {
 
       expect(provider.getElements()).toEqual([]);
     });
+
+    it('should close the active offline connection when disconnecting', async () => {
+      await provider.connect(config);
+
+      provider.disconnect();
+
+      expect(mockOfflineElementsService.closeConnection).toHaveBeenCalledWith(
+        'testuser',
+        'test-project'
+      );
+    });
   });
 
   describe('updateElements()', () => {
@@ -266,6 +350,30 @@ describe('LocalElementSyncProvider', () => {
 
       expect(mockLoggerService.warn).toHaveBeenCalled();
     });
+
+    it('should surface save errors when persisting elements fails', async () => {
+      const errors: string[] = [];
+      const subscription = provider.errors$.subscribe(error => {
+        errors.push(error);
+      });
+      mockOfflineElementsService.saveElements.mockRejectedValue(
+        new Error('elements failed')
+      );
+
+      await provider.connect(config);
+      provider.updateElements([mockElement]);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      subscription.unsubscribe();
+
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save elements',
+        expect.any(Error)
+      );
+      expect(errors).toContain('Failed to save elements offline');
+    });
   });
 
   describe('Observables', () => {
@@ -295,6 +403,186 @@ describe('LocalElementSyncProvider', () => {
       // Elements should be updated synchronously
       const elements = provider.getElements();
       expect(elements).toEqual([mockElement]);
+    });
+  });
+
+  describe('other update methods', () => {
+    const config = {
+      username: 'testuser',
+      slug: 'test-project',
+    };
+
+    beforeEach(async () => {
+      await provider.connect(config);
+    });
+
+    it('should save publish plans and update local state immediately', async () => {
+      provider.updatePublishPlans([mockPublishPlan]);
+      await Promise.resolve();
+
+      expect(provider.getPublishPlans()).toEqual([mockPublishPlan]);
+      expect(mockOfflineElementsService.savePublishPlans).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        [mockPublishPlan]
+      );
+    });
+
+    it('should save relationships and custom relationship types', async () => {
+      provider.updateRelationships([mockRelationship]);
+      provider.updateCustomRelationshipTypes([mockRelationshipType]);
+      await Promise.resolve();
+
+      expect(provider.getRelationships()).toEqual([mockRelationship]);
+      expect(provider.getCustomRelationshipTypes()).toEqual([
+        mockRelationshipType,
+      ]);
+      expect(mockOfflineElementsService.saveRelationships).toHaveBeenCalled();
+      expect(
+        mockOfflineElementsService.saveCustomRelationshipTypes
+      ).toHaveBeenCalled();
+    });
+
+    it('should save schemas, element tags, and custom tags', async () => {
+      provider.updateSchemas([mockSchema]);
+      provider.updateElementTags([mockElementTag]);
+      provider.updateCustomTags([mockCustomTag]);
+      await Promise.resolve();
+
+      expect(provider.getSchemas()).toEqual([mockSchema]);
+      expect(provider.getElementTags()).toEqual([mockElementTag]);
+      expect(provider.getCustomTags()).toEqual([mockCustomTag]);
+      expect(mockOfflineElementsService.saveSchemas).toHaveBeenCalled();
+      expect(mockOfflineElementsService.saveElementTags).toHaveBeenCalled();
+      expect(mockOfflineElementsService.saveCustomTags).toHaveBeenCalled();
+    });
+
+    it('should merge and save project metadata updates', async () => {
+      mockOfflineElementsService._projectMetaSubject.next(mockProjectMeta);
+      mockOfflineElementsService.projectMeta.mockReturnValue(mockProjectMeta);
+
+      await provider.connect(config);
+      provider.updateProjectMeta({ description: 'Updated Description' });
+      await Promise.resolve();
+
+      expect(provider.getProjectMeta()).toMatchObject({
+        name: 'Project Title',
+        description: 'Updated Description',
+        coverMediaId: 'cover-1',
+      });
+      expect(mockOfflineElementsService.saveProjectMeta).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        expect.objectContaining({
+          name: 'Project Title',
+          description: 'Updated Description',
+          coverMediaId: 'cover-1',
+        })
+      );
+    });
+  });
+
+  describe('error handling for update methods', () => {
+    it('should warn for each update path when disconnected', () => {
+      provider.updatePublishPlans([mockPublishPlan]);
+      provider.updateRelationships([mockRelationship]);
+      provider.updateCustomRelationshipTypes([mockRelationshipType]);
+      provider.updateSchemas([mockSchema]);
+      provider.updateElementTags([mockElementTag]);
+      provider.updateCustomTags([mockCustomTag]);
+      provider.updateProjectMeta({ name: 'Ignored' });
+
+      expect(mockLoggerService.warn).toHaveBeenCalledTimes(7);
+    });
+
+    it('should surface save errors for the remaining update methods', async () => {
+      const errors: string[] = [];
+      const subscription = provider.errors$.subscribe(error => {
+        errors.push(error);
+      });
+      mockOfflineElementsService.savePublishPlans.mockRejectedValue(
+        new Error('plans failed')
+      );
+      mockOfflineElementsService.saveRelationships.mockRejectedValue(
+        new Error('relationships failed')
+      );
+      mockOfflineElementsService.saveCustomRelationshipTypes.mockRejectedValue(
+        new Error('custom types failed')
+      );
+      mockOfflineElementsService.saveSchemas.mockRejectedValue(
+        new Error('schemas failed')
+      );
+      mockOfflineElementsService.saveElementTags.mockRejectedValue(
+        new Error('element tags failed')
+      );
+      mockOfflineElementsService.saveCustomTags.mockRejectedValue(
+        new Error('custom tags failed')
+      );
+      mockOfflineElementsService.saveProjectMeta.mockRejectedValue(
+        new Error('project meta failed')
+      );
+
+      await provider.connect({ username: 'testuser', slug: 'test-project' });
+
+      provider.updatePublishPlans([mockPublishPlan]);
+      provider.updateRelationships([mockRelationship]);
+      provider.updateCustomRelationshipTypes([mockRelationshipType]);
+      provider.updateSchemas([mockSchema]);
+      provider.updateElementTags([mockElementTag]);
+      provider.updateCustomTags([mockCustomTag]);
+      provider.updateProjectMeta({ name: 'Broken Save' });
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      subscription.unsubscribe();
+
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save publish plans',
+        expect.any(Error)
+      );
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save relationships',
+        expect.any(Error)
+      );
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save custom relationship types',
+        expect.any(Error)
+      );
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save schemas',
+        expect.any(Error)
+      );
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save element tags',
+        expect.any(Error)
+      );
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save custom tags',
+        expect.any(Error)
+      );
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Failed to save project metadata',
+        expect.any(Error)
+      );
+      expect(errors).toEqual(
+        expect.arrayContaining([
+          'Failed to save publish plans offline',
+          'Failed to save relationships offline',
+          'Failed to save custom relationship types offline',
+          'Failed to save schemas offline',
+          'Failed to save element tags offline',
+          'Failed to save custom tags offline',
+          'Failed to save project metadata offline',
+        ])
+      );
     });
   });
 });

@@ -30,8 +30,7 @@ import { UserService } from '@services/user/user.service';
 import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
 import {
-  afterAll,
-  beforeAll,
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -61,14 +60,6 @@ describe('HomeComponent', () => {
   let router: MockedObject<Router>;
   let matDialog: MockedObject<MatDialog>;
   let snackBar: MockedObject<MatSnackBar>;
-
-  beforeAll(() => {
-    vi.useFakeTimers();
-  });
-
-  afterAll(() => {
-    vi.useRealTimers();
-  });
 
   const mockLoadingSignal = signal(false);
   const mockProjectsSignal = signal<Project[]>([]);
@@ -250,6 +241,12 @@ describe('HomeComponent', () => {
     component = fixture.componentInstance;
   });
 
+  afterEach(() => {
+    fixture.destroy();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -314,14 +311,14 @@ describe('HomeComponent', () => {
 
   it('should navigate to create-project route when openNewProjectDialog is called', () => {
     // Call the method
-    void component.openNewProjectDialog();
+    component.openNewProjectDialog();
 
     // Verify that router.navigate was called with the correct route
     expect(router.navigate).toHaveBeenCalledWith(['/create-project']);
   });
 
   it('should open import project dialog when importProject is called', () => {
-    void component.importProject();
+    component.importProject();
     expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
       'testuser'
     );
@@ -332,7 +329,7 @@ describe('HomeComponent', () => {
       dialogGateway.openImportProjectDialog as ReturnType<typeof vi.fn>
     ).mockResolvedValueOnce({ success: true, slug: 'imported-project' });
 
-    void component.importProject();
+    component.importProject();
 
     // Wait for the promise to resolve
     await vi.waitFor(() => {
@@ -761,6 +758,7 @@ describe('HomeComponent', () => {
       });
 
       it('should filter projects by search term', () => {
+        vi.useFakeTimers();
         mockProjectsSignal.set(mockProjects);
         component.collaboratedProjects.set(mockCollaboratedProjects);
 

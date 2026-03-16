@@ -28,7 +28,8 @@ coveragePathIgnorePatterns = [
   # Yjs collaboration services (require LevelDB / Durable Objects)
   "**/yjs.service.ts",
   "**/yjs-worker.service.ts",
-  "**/yjs.routes.ts",
+  # Backend route handlers are mostly orchestration / transport wiring
+  "**/src/routes/**/*.routes.ts",
   # Image provider implementations (external API clients)
   "**/image-providers/falai-provider.ts",
   "**/image-providers/openai-provider.ts",
@@ -47,20 +48,6 @@ coveragePathIgnorePatterns = [
   "**/image-generation.service.ts",
   # OpenAI lint service (external API calls)
   "**/openai-lint.service.ts",
-  # AI text/image route handlers (external AI API dependent)
-  "**/ai-text.routes.ts",
-  "**/ai-image.routes.ts",
-  # MCP route handler (delegates to excluded mcp/ code)
-  "**/mcp.routes.ts",
-  # Routes dependent on Yjs runtime
-  "**/document.routes.ts",
-  "**/element.routes.ts",
-  # Routes dependent on excluded services (image processing, OpenAI, storage)
-  "**/image.routes.ts",
-  "**/image-audit.routes.ts",
-  "**/lint.routes.ts",
-  "**/published-file.routes.ts",
-  "**/share.routes.ts",
   # Database schema declarations (declarative table/relation definitions)
   "**/db/schema/*.ts",
   "**/db/bun-sqlite.ts",
