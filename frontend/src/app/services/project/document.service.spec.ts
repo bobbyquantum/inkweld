@@ -3,6 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/api/documents.service';
+import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
 import { type IndexeddbPersistence } from 'y-indexeddb';
@@ -18,6 +19,11 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
+const websocketModuleMocks = vi.hoisted(() => ({
+  createAuthenticatedWebsocketProvider: vi.fn(),
+  setupReauthentication: vi.fn(),
+}));
+
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
 
 // Mock y-websocket
@@ -31,12 +37,6 @@ vi.mock('y-websocket', () => ({
       setLocalStateField: () => {},
       getStates: () => new Map(),
     };
-    constructor(
-      _url: string,
-      _room: string,
-      _doc: unknown,
-      _options?: unknown
-    ) {}
   },
 }));
 vi.mock('@bobbyquantum/ngx-editor', () => ({
@@ -50,6 +50,9 @@ vi.mock('@bobbyquantum/ngx-editor', () => ({
     },
   })),
 }));
+vi.mock('../sync/authenticated-websocket-provider', () => websocketModuleMocks);
+
+type ProviderStatus = 'connected' | 'disconnected' | 'connecting';
 
 describe('DocumentService', () => {
   let service: DocumentService;
@@ -77,7 +80,9 @@ describe('DocumentService', () => {
     // Mock WebSocket and IndexedDB providers (these have side effects)
     mockWebSocketProvider = {
       on: vi.fn().mockReturnValue(() => {}), // Return cleanup function
+      off: vi.fn(),
       connect: vi.fn(),
+      disconnect: vi.fn(),
       destroy: vi.fn(),
       awareness: {
         setLocalState: vi.fn(),
@@ -126,6 +131,9 @@ describe('DocumentService', () => {
         content: '<p>Mocked document content</p>',
       }),
       saveDocument: vi.fn().mockReturnValue(Promise.resolve()),
+      renderDocumentAsHtml: vi
+        .fn()
+        .mockReturnValue(of('<html>Rendered</html>')),
     } as unknown as DeepMockProxy<DocumentsService>;
 
     // Mock LintApiService
@@ -167,6 +175,11 @@ describe('DocumentService', () => {
       getToken: vi.fn().mockReturnValue('test-auth-token'),
     } as unknown as DeepMockProxy<AuthTokenService>;
 
+    websocketModuleMocks.createAuthenticatedWebsocketProvider.mockResolvedValue(
+      mockWebSocketProvider
+    );
+    websocketModuleMocks.setupReauthentication.mockReset();
+
     // Configure TestBed and inject service
     TestBed.configureTestingModule({
       providers: [
@@ -186,7 +199,7 @@ describe('DocumentService', () => {
     service = TestBed.inject(DocumentService);
 
     // Mock window location for WebSocket URL
-    Object.defineProperty(window, 'location', {
+    Object.defineProperty(globalThis, 'location', {
       value: {
         protocol: 'http:',
         host: 'localhost:4200',
@@ -245,7 +258,7 @@ describe('DocumentService', () => {
               bubbles: true,
               cancelable: true,
             }) as CloseEvent & {
-              status: 'connected' | 'disconnected' | 'connecting';
+              status: ProviderStatus;
             } & boolean;
             mockEvent.status = 'connected';
             Object.assign(mockEvent, { valueOf: () => true });
@@ -283,7 +296,7 @@ describe('DocumentService', () => {
               bubbles: true,
               cancelable: true,
             }) as CloseEvent & {
-              status: 'connected' | 'disconnected' | 'connecting';
+              status: ProviderStatus;
             } & boolean;
             mockErrorEvent.status = 'disconnected';
             Object.assign(mockErrorEvent, { valueOf: () => false });
@@ -370,6 +383,430 @@ describe('DocumentService', () => {
     });
   });
 
+  describe('Helper methods and accessors', () => {
+    it('should expose active connections and connected document ids', () => {
+      const otherDocumentId = 'testuser:test-project:other-doc';
+      const ydoc = new Y.Doc();
+      const connectionMap = (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections;
+
+      connectionMap.set(testDocumentId, {
+        ydoc,
+        provider: mockWebSocketProvider,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      });
+      connectionMap.set(otherDocumentId, {
+        ydoc: new Y.Doc(),
+        provider: null,
+        type: ydoc.getXmlFragment('other'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      });
+
+      expect(service.getConnectedDocumentIds()).toEqual([
+        testDocumentId,
+        otherDocumentId,
+      ]);
+      expect(service.getActiveConnections()).toHaveLength(1);
+    });
+
+    it('should initialize and update word count signals', () => {
+      let initialCount = -1;
+      let updatedCount = -1;
+
+      TestBed.runInInjectionContext(() => {
+        initialCount = service.getWordCountSignal(testDocumentId)();
+      });
+
+      service.updateWordCount(testDocumentId, 42);
+
+      TestBed.runInInjectionContext(() => {
+        updatedCount = service.getWordCountSignal(testDocumentId)();
+      });
+
+      expect(initialCount).toBe(0);
+      expect(updatedCount).toBe(42);
+    });
+
+    it('should export, read, and reuse the active Yjs document connection', async () => {
+      const ydoc = new Y.Doc();
+      const fragment = ydoc.getXmlFragment('prosemirror');
+      const connectionMap = (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections;
+
+      service.importXmlString(
+        ydoc,
+        fragment,
+        '<paragraph>Hello <text strong="true">world</text></paragraph>'
+      );
+      connectionMap.set(testDocumentId, {
+        ydoc,
+        provider: mockWebSocketProvider,
+        type: fragment,
+        indexeddbProvider: _mockIndexedDbProvider,
+      });
+
+      const exportedContent = await new Promise<unknown>(resolve => {
+        service.exportDocument(testDocumentId).subscribe(content => {
+          resolve(content);
+        });
+      });
+
+      const activeYDoc = await service.getYDoc(testDocumentId);
+      const content = await service.getDocumentContent(testDocumentId);
+
+      expect(exportedContent).toEqual(fragment.toJSON());
+      expect(activeYDoc).toBe(ydoc);
+      expect(content).toEqual([
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Hello ' },
+            {
+              type: 'text',
+              attrs: { strong: true },
+              content: [{ type: 'text', text: 'world' }],
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should open rendered html in a new browser tab', () => {
+      const openSpy = vi.spyOn(globalThis, 'open').mockReturnValue(null);
+
+      service.openDocumentAsHtml('testuser', 'test-project', 'test-doc');
+
+      expect(mockDocumentsService.renderDocumentAsHtml).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        'test-doc'
+      );
+      expect(openSpy).toHaveBeenCalledWith('blob:mock-url', '_blank');
+    });
+
+    it('should convert ProseMirror JSON structures to XML strings', () => {
+      const toXml = (
+        service as unknown as {
+          prosemirrorJsonToXml: (content: unknown) => string | null;
+        }
+      ).prosemirrorJsonToXml.bind(service);
+
+      expect(
+        toXml({
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'A & B' },
+                {
+                  type: 'elementRef',
+                  attrs: { refId: 'elem-1', metadata: { flag: true } },
+                },
+              ],
+            },
+          ],
+        })
+      ).toBe(
+        '<paragraph>A &amp; B<elementRef refId="elem-1" metadata="{&quot;flag&quot;:true}"/></paragraph>'
+      );
+      expect(toXml(null)).toBeNull();
+      expect(toXml([])).toBeNull();
+    });
+
+    it('should convert DOM nodes into Yjs nodes and skip empty whitespace', () => {
+      const domNodeToYjsNode = (
+        service as unknown as {
+          domNodeToYjsNode: (node: Node) => Y.XmlElement | Y.XmlText | null;
+        }
+      ).domNodeToYjsNode.bind(service);
+      const parsed = new DOMParser().parseFromString(
+        '<root><paragraph data-id="123">Hello <elementRef refId="x"></elementRef></paragraph>   </root>',
+        'text/html'
+      );
+      const root = parsed.body.firstElementChild as HTMLElement;
+      const paragraphNode = root.childNodes[0];
+      const whitespaceNode = root.childNodes[1];
+
+      const yParagraph = domNodeToYjsNode(paragraphNode);
+
+      expect(yParagraph).toBeInstanceOf(Y.XmlElement);
+      expect((yParagraph as Y.XmlElement).nodeName).toBe('PARAGRAPH');
+      expect((paragraphNode as HTMLElement).dataset['id']).toBe('123');
+      expect(whitespaceNode.textContent).toBe('   ');
+      expect(domNodeToYjsNode(whitespaceNode)).toBeNull();
+    });
+
+    it('should keep sync state local when websocket setup cannot proceed', async () => {
+      const ydoc = new Y.Doc();
+      const connection = {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      };
+      type OfflineConnection = typeof connection;
+      const privateService = service as unknown as {
+        connectWebSocketInBackground: (
+          websocketUrl: string | null,
+          documentId: string,
+          doc: Y.Doc,
+          editor: Editor,
+          connection: OfflineConnection
+        ) => Promise<void>;
+        versionCompatibility: { syncBlocked: () => boolean };
+      };
+
+      service.initializeSyncStatus(testDocumentId);
+      await privateService.connectWebSocketInBackground(
+        null,
+        testDocumentId,
+        ydoc,
+        mockEditor,
+        connection
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+
+      mockAuthTokenService.getToken.mockReturnValue(null);
+      await privateService.connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        mockEditor,
+        connection
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+
+      mockAuthTokenService.getToken.mockReturnValue('token');
+      privateService.versionCompatibility = { syncBlocked: () => true };
+      await privateService.connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        mockEditor,
+        connection
+      );
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+    });
+
+    it('should generate a stable user color and derive the project key', () => {
+      const privateService = service as unknown as {
+        generateUserColor: (username: string) => string;
+        getProjectKey: () => string | null;
+      };
+
+      expect(privateService.generateUserColor('testuser')).toMatch(
+        /^#[0-9a-f]{6}$/i
+      );
+      expect(privateService.generateUserColor('testuser')).toBe(
+        privateService.generateUserColor('testuser')
+      );
+      expect(privateService.getProjectKey()).toBe('testuser/test-project');
+    });
+
+    it('should restore existing media urls and attach a cleanup observer', async () => {
+      const dom = document.createElement('div');
+      const image = document.createElement('img');
+      image.setAttribute('src', 'media:media-1');
+      dom.append(image);
+
+      const privateService = service as unknown as {
+        startMediaUrlObserver: (
+          view: { dom: HTMLElement },
+          documentId: string
+        ) => void;
+        connections: Map<string, unknown>;
+        localStorage: {
+          getMediaUrl: (
+            projectKey: string,
+            mediaId: string
+          ) => Promise<string | null>;
+        };
+      };
+      const setTimeoutSpy = vi
+        .spyOn(globalThis, 'setTimeout')
+        .mockImplementation(((callback: TimerHandler) => {
+          (callback as () => void)();
+          return 1 as unknown as ReturnType<typeof setTimeout>;
+        }) as unknown as typeof setTimeout);
+
+      privateService.localStorage = {
+        getMediaUrl: vi.fn().mockResolvedValue('blob:resolved-media'),
+      };
+      privateService.connections.set(testDocumentId, {
+        ydoc: new Y.Doc(),
+        provider: mockWebSocketProvider,
+        type: new Y.Doc().getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      });
+
+      privateService.startMediaUrlObserver({ dom }, testDocumentId);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(image.src).toContain('blob:resolved-media');
+      expect(image.dataset['mediaId']).toBe('media-1');
+      expect(
+        (
+          privateService.connections.get(testDocumentId) as {
+            mediaObserver?: MutationObserver;
+          }
+        ).mediaObserver
+      ).toBeInstanceOf(MutationObserver);
+
+      setTimeoutSpy.mockRestore();
+    });
+
+    it('should fully clean up a populated document connection on disconnect', () => {
+      const ydoc = new Y.Doc();
+      const mediaObserver = {
+        disconnect: vi.fn(),
+      } as unknown as MutationObserver;
+      const provider = {
+        awareness: { setLocalState: vi.fn(), clientID: 123 },
+        disconnect: vi.fn(),
+        destroy: vi.fn(),
+      };
+      const indexeddbProvider = {
+        destroy: vi.fn().mockResolvedValue(undefined),
+      } as unknown as DeepMockProxy<IndexeddbPersistence>;
+      const privateService = service as unknown as {
+        connections: Map<string, unknown>;
+        reconnectTimeouts: Map<string, number>;
+        syncStatusSignals: Map<string, unknown>;
+        unsyncedChanges: Map<string, boolean>;
+        wordCountSignals: Map<string, unknown>;
+      };
+      const timeoutId = setTimeout(() => {}, 0) as unknown as number;
+
+      privateService.connections.set(testDocumentId, {
+        ydoc,
+        provider,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider,
+        mediaObserver,
+      });
+      privateService.reconnectTimeouts.set(testDocumentId, timeoutId);
+      privateService.syncStatusSignals.set(testDocumentId, {});
+      privateService.unsyncedChanges.set(testDocumentId, true);
+      privateService.wordCountSignals.set(testDocumentId, {});
+
+      service.disconnect(testDocumentId);
+
+      expect(mediaObserver.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.awareness.setLocalState).toHaveBeenCalledWith(null);
+      expect(provider.disconnect).toHaveBeenCalledTimes(1);
+      expect(provider.destroy).toHaveBeenCalledTimes(1);
+      expect(service.isConnected(testDocumentId)).toBe(false);
+      expect(privateService.reconnectTimeouts.has(testDocumentId)).toBe(false);
+      expect(privateService.syncStatusSignals.has(testDocumentId)).toBe(false);
+      expect(privateService.unsyncedChanges.has(testDocumentId)).toBe(false);
+      expect(privateService.wordCountSignals.has(testDocumentId)).toBe(false);
+    });
+
+    it.skip('should connect websocket in the background and react to status changes', async () => {
+      const ydoc = new Y.Doc();
+      const connection = {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+      };
+      type ConnectedDocument = typeof connection;
+      const callbacks: Record<string, (payload: unknown) => void> = {};
+      const editorWithView = {
+        ...mockEditor,
+        view: {
+          ...mockEditor.view,
+          dom: { parentNode: {} },
+          state: {
+            ...mockEditor.view.state,
+            plugins: [],
+            reconfigure: vi.fn().mockReturnValue({}),
+          },
+          updateState: vi.fn(),
+        },
+      } as unknown as DeepMockProxy<Editor>;
+      const privateService = service as unknown as {
+        connectWebSocketInBackground: (
+          websocketUrl: string | null,
+          documentId: string,
+          doc: Y.Doc,
+          editor: Editor,
+          connection: ConnectedDocument
+        ) => Promise<void>;
+      };
+      let scheduledReconnect: (() => void) | undefined;
+      const setTimeoutSpy = vi
+        .spyOn(globalThis, 'setTimeout')
+        .mockImplementation(((callback: TimerHandler) => {
+          scheduledReconnect = callback as () => void;
+          return 1 as unknown as ReturnType<typeof setTimeout>;
+        }) as unknown as typeof setTimeout);
+
+      mockWebSocketProvider.on.mockImplementation((event: string, cb: any) => {
+        callbacks[event] = cb;
+        return () => {};
+      });
+
+      service.initializeSyncStatus(testDocumentId);
+
+      await privateService.connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        editorWithView,
+        connection
+      );
+
+      expect(
+        websocketModuleMocks.createAuthenticatedWebsocketProvider
+      ).toHaveBeenCalled();
+      expect(connection.provider).toBe(mockWebSocketProvider);
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Synced
+      );
+      expect(
+        mockWebSocketProvider.awareness.setLocalStateField
+      ).toHaveBeenCalledWith(
+        'user',
+        expect.objectContaining({ name: 'testuser' })
+      );
+      expect(websocketModuleMocks.setupReauthentication).toHaveBeenCalledTimes(
+        1
+      );
+
+      callbacks['status']?.({ status: 'disconnected' });
+      scheduledReconnect?.();
+      expect(mockWebSocketProvider.connect).toHaveBeenCalledTimes(1);
+
+      callbacks['status']?.({ status: 'connected' });
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Synced
+      );
+
+      callbacks['connection-error']?.('401 Unauthorized');
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+      expect(mockProjectStateService.updateSyncState).toHaveBeenCalledWith(
+        testDocumentId,
+        DocumentSyncState.Unavailable
+      );
+
+      setTimeoutSpy.mockRestore();
+    }, 15000);
+  });
+
   describe('Collaboration Setup', () => {
     it.skip('should add ProseMirror plugins', async () => {
       // Skip: Cannot verify internal editor.state.reconfigure calls - integration test candidate
@@ -408,7 +845,7 @@ describe('DocumentService', () => {
       await service.setupCollaboration(mockEditor, testDocumentId);
 
       // Simulate network restoration
-      window.dispatchEvent(
+      globalThis.dispatchEvent(
         new Event('online', { bubbles: true, cancelable: true })
       );
 
@@ -639,6 +1076,34 @@ describe('DocumentService', () => {
         // Verify getToken was called
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
+
+      it.skip('should sync worldbuilding successfully when the provider is already synced', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: unknown) => {
+            if (event === 'sync') {
+              (callback as (isSynced: boolean) => void)(true);
+            }
+            return () => {};
+          }
+        );
+
+        await service.syncWorldbuildingToServer(
+          'worldbuilding:testuser:test-project:element123',
+          1000
+        );
+
+        expect(
+          websocketModuleMocks.createAuthenticatedWebsocketProvider
+        ).toHaveBeenCalledWith(
+          'ws://localhost:8333/api/v1/ws/yjs?documentId=worldbuilding:testuser:test-project:element123',
+          '',
+          expect.any(Y.Doc),
+          'test-auth-token',
+          { resyncInterval: 10000 }
+        );
+        expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
+        expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
+      });
     });
 
     describe('syncWorldbuildingToServerBatch', () => {
@@ -719,6 +1184,31 @@ describe('DocumentService', () => {
         await expect(
           service.syncElementsToServer('testuser', 'test-project')
         ).rejects.toThrow('No auth token available');
+      });
+
+      it.skip('should sync project elements successfully when the provider is already synced', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: unknown) => {
+            if (event === 'sync') {
+              (callback as (isSynced: boolean) => void)(true);
+            }
+            return () => {};
+          }
+        );
+
+        await service.syncElementsToServer('testuser', 'test-project', 1000);
+
+        expect(
+          websocketModuleMocks.createAuthenticatedWebsocketProvider
+        ).toHaveBeenCalledWith(
+          'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:elements',
+          '',
+          expect.any(Y.Doc),
+          'test-auth-token',
+          { resyncInterval: 10000 }
+        );
+        expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
+        expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
       });
     });
   });

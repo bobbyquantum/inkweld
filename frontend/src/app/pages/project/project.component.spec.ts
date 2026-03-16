@@ -6,16 +6,19 @@ import {
   Input,
   NO_ERRORS_SCHEMA,
   Output,
+  provideZonelessChangeDetection,
   signal,
 } from '@angular/core';
-import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { ProjectSearchService } from '@services/core/project-search.service';
+import { QuickOpenService } from '@services/core/quick-open.service';
 import { SettingsService } from '@services/core/settings.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 import { DocumentService } from '@services/project/document.service';
@@ -25,7 +28,7 @@ import { RecentFilesService } from '@services/project/recent-files.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 import { type SplitGutterInteractionEvent } from 'angular-split';
 import { BehaviorSubject, of } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
@@ -79,6 +82,15 @@ describe('ProjectComponent', () => {
   let projectService: Partial<UnifiedProjectService>;
   let dialogGateway: Partial<DialogGatewayService>;
   let settingsService: Partial<SettingsService>;
+  let quickOpenService: {
+    initialize: ReturnType<typeof vi.fn>;
+    destroy: ReturnType<typeof vi.fn>;
+  };
+  let projectSearchService: {
+    initialize: ReturnType<typeof vi.fn>;
+    destroy: ReturnType<typeof vi.fn>;
+    open: ReturnType<typeof vi.fn>;
+  };
   let paramsSubject: BehaviorSubject<Record<string, string>>;
 
   const mockProject: Project = {
@@ -219,6 +231,15 @@ describe('ProjectComponent', () => {
     settingsService = {
       getSetting: vi.fn().mockReturnValue(true),
     };
+    quickOpenService = {
+      initialize: vi.fn(),
+      destroy: vi.fn(),
+    };
+    projectSearchService = {
+      initialize: vi.fn(),
+      destroy: vi.fn(),
+      open: vi.fn(),
+    };
 
     const autoSnapshotService = {
       createAutoSnapshots: vi.fn().mockResolvedValue(undefined),
@@ -231,7 +252,6 @@ describe('ProjectComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
-        provideAnimationsAsync(),
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: DocumentService, useValue: documentService },
         { provide: RecentFilesService, useValue: recentFilesService },
@@ -242,10 +262,17 @@ describe('ProjectComponent', () => {
           useValue: { params: paramsSubject.asObservable() },
         },
         { provide: Router, useValue: router },
+        { provide: Title, useValue: { setTitle: vi.fn() } },
         { provide: ProjectExportService, useValue: exportService },
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: SettingsService, useValue: settingsService },
+        { provide: QuickOpenService, useValue: quickOpenService },
+        { provide: ProjectSearchService, useValue: projectSearchService },
+        {
+          provide: StorageContextService,
+          useValue: { isLocalMode: signal(false) },
+        },
         { provide: AutoSnapshotService, useValue: autoSnapshotService },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         {
@@ -286,6 +313,11 @@ describe('ProjectComponent', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    fixture.destroy();
+    vi.restoreAllMocks();
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -302,6 +334,21 @@ describe('ProjectComponent', () => {
     it('should select home tab (0) on init', () => {
       component.ngOnInit();
       expect(projectStateService.selectTab).toHaveBeenCalledWith(0);
+    });
+
+    it('should initialize quick open and project search on init', () => {
+      const quickOpenCalls = quickOpenService.initialize.mock.calls.length;
+      const projectSearchCalls =
+        projectSearchService.initialize.mock.calls.length;
+
+      component.ngOnInit();
+
+      expect(quickOpenService.initialize).toHaveBeenCalledTimes(
+        quickOpenCalls + 1
+      );
+      expect(projectSearchService.initialize).toHaveBeenCalledTimes(
+        projectSearchCalls + 1
+      );
     });
   });
 
@@ -388,6 +435,12 @@ describe('ProjectComponent', () => {
         'testuser',
         'test-project',
       ]);
+    });
+
+    it('should open the project search dialog', () => {
+      component.openProjectSearch();
+
+      expect(projectSearchService.open).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -618,6 +671,41 @@ describe('ProjectComponent', () => {
     });
   });
 
+  describe('file export', () => {
+    it('should show a success snackbar when export completes', async () => {
+      await component.onExportClicked();
+
+      expect(exportService.exportProject).toHaveBeenCalledTimes(1);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Project exported successfully',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('should show an error snackbar when export fails', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      (
+        exportService.exportProject as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('export failed'));
+
+      await component.onExportClicked();
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Export failed:',
+        expect.any(Error)
+      );
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to export project',
+        'Close',
+        { duration: 5000 }
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('recent document', () => {
     it('should open recent document when clicked', () => {
       elementsSignal.set([mockElement]);
@@ -643,6 +731,14 @@ describe('ProjectComponent', () => {
       expect(projectStateService.openDocument).toHaveBeenCalledWith(
         mockElement
       );
+    });
+
+    it('should ignore unrelated keys for recent documents', () => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+
+      component.onRecentDocumentKeydown(event, mockElement.id);
+
+      expect(projectStateService.openDocument).not.toHaveBeenCalled();
     });
   });
 
@@ -701,12 +797,37 @@ describe('ProjectComponent', () => {
       const result = component.onBeforeUnload(event);
       expect(result).toBe(true);
     });
+
+    it('should block navigation when unsaved changes exist', () => {
+      const event = new Event('beforeunload') as BeforeUnloadEvent;
+      Object.defineProperty(event, 'preventDefault', { value: vi.fn() });
+      (
+        component as unknown as { hasUnsavedChanges: boolean }
+      ).hasUnsavedChanges = true;
+
+      const result = component.onBeforeUnload(event);
+
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(result).toBe('');
+    });
   });
 
   describe('canDeactivate guard', () => {
     it('should return true when no unsaved changes', async () => {
       const result = await component.canDeactivate();
       expect(result).toBe(true);
+    });
+
+    it('should ask for confirmation when unsynced changes exist', async () => {
+      (
+        component as unknown as { hasUnsavedChanges: boolean }
+      ).hasUnsavedChanges = true;
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(false);
+
+      await expect(component.canDeactivate()).resolves.toBe(false);
+      expect(dialogGateway.openConfirmationDialog).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -729,6 +850,63 @@ describe('ProjectComponent', () => {
 
       isLoadingSignal.set(false);
       expect(component.isLoading()).toBe(false);
+    });
+  });
+
+  describe('sync recovery', () => {
+    it('should retry sync by reloading the current project', async () => {
+      await component.onRetrySyncConnection();
+
+      expect(projectStateService.loadProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project'
+      );
+      expect(snackBar.open).toHaveBeenCalledWith('Reconnecting...', undefined, {
+        duration: 2000,
+      });
+    });
+
+    it('should surface a reconnect failure', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      (
+        projectStateService.loadProject as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('reconnect failed'));
+
+      await component.onRetrySyncConnection();
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to reconnect:',
+        expect.any(Error)
+      );
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to reconnect to server',
+        'Close',
+        { duration: 5000 }
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('miscellaneous actions', () => {
+    it('should open the new document dialog at the root level', () => {
+      component.onCreateNewDocument();
+
+      expect(projectStateService.showNewElementDialog).toHaveBeenCalledWith(
+        undefined
+      );
+    });
+
+    it('should detect the selected system tab', () => {
+      openTabsSignal.set([
+        { type: 'system', systemType: 'documents-list' },
+        { type: 'system', systemType: 'settings' },
+      ]);
+      selectedTabIndexSignal.set(1);
+
+      expect(component.isSystemTabSelected('settings')).toBe(true);
+      expect(component.isSystemTabSelected('media')).toBe(false);
     });
   });
 });

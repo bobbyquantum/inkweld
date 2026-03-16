@@ -8,6 +8,7 @@ import { Router } from '@angular/router';
 import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { createDefaultPublishPlan } from '@models/publish-plan';
 import { vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
@@ -61,6 +62,10 @@ describe('HomeTabComponent', () => {
 
   let projectsApi: ProjectsApiMock;
   let imagesApi: ImagesApiMock;
+  const originalClipboardDescriptor = Object.getOwnPropertyDescriptor(
+    navigator,
+    'clipboard'
+  );
 
   const setupMockServices = () => {
     // Initialize signals for ProjectStateService
@@ -90,6 +95,7 @@ describe('HomeTabComponent', () => {
       createPublishPlan: vi.fn(),
       openPublishPlan: vi.fn(),
       deletePublishPlan: vi.fn(),
+      updateProject: vi.fn(),
     };
 
     recentFilesService = {
@@ -107,6 +113,7 @@ describe('HomeTabComponent', () => {
         return new Promise(() => {});
       }),
       uploadProjectCover: vi.fn().mockResolvedValue(undefined),
+      getProjectByUsernameAndSlug: vi.fn().mockResolvedValue(mockProject),
     };
 
     // Use mockDeep for API services
@@ -120,6 +127,7 @@ describe('HomeTabComponent', () => {
         .mockResolvedValue({ approved: false, imageData: null }),
       openNewElementDialog: vi.fn().mockResolvedValue(undefined),
       openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
+      openConfirmationDialog: vi.fn().mockResolvedValue(false),
     };
 
     snackBar = {
@@ -155,6 +163,18 @@ describe('HomeTabComponent', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    fixture.destroy();
+    vi.restoreAllMocks();
+    if (originalClipboardDescriptor) {
+      Object.defineProperty(
+        navigator,
+        'clipboard',
+        originalClipboardDescriptor
+      );
+    }
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -186,6 +206,59 @@ describe('HomeTabComponent', () => {
     component.onRecentDocumentClick(document.id);
 
     expect(projectStateService.openDocument).toHaveBeenCalledWith(mockElement);
+  });
+
+  it('should navigate to a folder route for recent folders', () => {
+    const folderElement = {
+      id: 'folder-1',
+      name: 'Recent Folder',
+      type: ElementType.Folder,
+      level: 0,
+      order: 0,
+      expandable: true,
+      version: 1,
+      metadata: {},
+    } as Element;
+
+    (projectStateService.elements as any).set([folderElement]);
+
+    component.onRecentDocumentClick(folderElement.id);
+
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/',
+      mockProject.username,
+      mockProject.slug,
+      'folder',
+      folderElement.id,
+    ]);
+  });
+
+  it('should ignore recent document clicks when the element is missing', () => {
+    component.onRecentDocumentClick('missing-doc');
+
+    expect(projectStateService.openDocument).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+
+  it('should not navigate for recent document clicks when no project is loaded', () => {
+    const mockElement = {
+      id: 'doc1',
+      name: 'Recent Document 1',
+      type: ElementType.Item,
+      level: 0,
+      order: 0,
+      expandable: false,
+      version: 1,
+      metadata: {},
+    } as Element;
+
+    (projectStateService.project as any).set(undefined);
+    (projectStateService.elements as any).set([mockElement]);
+
+    component.onRecentDocumentClick(mockElement.id);
+
+    expect(projectStateService.openDocument).toHaveBeenCalledWith(mockElement);
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
   it('should handle recent document keydown event (Enter key)', () => {
@@ -246,6 +319,14 @@ describe('HomeTabComponent', () => {
   it('should export project when export button is clicked', () => {
     component.onExportClick();
     expect(exportService.exportProject).toHaveBeenCalled();
+  });
+
+  it('should not export project when no project is loaded', () => {
+    (projectStateService.project as any).set(undefined);
+
+    component.onExportClick();
+
+    expect(exportService.exportProject).not.toHaveBeenCalled();
   });
 
   it('should open import dialog when import button is clicked', () => {
@@ -310,6 +391,14 @@ describe('HomeTabComponent', () => {
     expect(dialogGateway.openNewElementDialog).toHaveBeenCalled();
   });
 
+  it('should not open the new file dialog when no project is loaded', () => {
+    (projectStateService.project as any).set(undefined);
+
+    component.onNewFileClick();
+
+    expect(dialogGateway.openNewElementDialog).not.toHaveBeenCalled();
+  });
+
   it('should open generate cover dialog when generate cover button is clicked', async () => {
     const mockResult = {
       approved: true,
@@ -328,6 +417,14 @@ describe('HomeTabComponent', () => {
     );
   });
 
+  it('should not open generate cover dialog when no project is loaded', () => {
+    (projectStateService.project as any).set(undefined);
+
+    component.onGenerateCoverClick();
+
+    expect(dialogGateway.openGenerateCoverDialog).not.toHaveBeenCalled();
+  });
+
   it('should save cover image when dialog approves with image data', async () => {
     const mockResult = {
       saved: true,
@@ -342,6 +439,103 @@ describe('HomeTabComponent', () => {
     await Promise.resolve();
 
     expect(projectService.uploadProjectCover).toHaveBeenCalled();
+  });
+
+  it('should refresh project state after saving a generated cover image', async () => {
+    const updatedProject = { ...mockProject, coverImage: 'cover.png' };
+    const mockResult = {
+      saved: true,
+      imageData: 'data:image/png;base64,dGVzdA==',
+    };
+
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
+      mockResult
+    );
+    (projectService.getProjectByUsernameAndSlug as any).mockResolvedValue(
+      updatedProject
+    );
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(projectService.uploadProjectCover).toHaveBeenCalledWith(
+      mockProject.username,
+      mockProject.slug,
+      expect.any(Blob)
+    );
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Cover image saved successfully',
+      'Close',
+      { duration: 3000 }
+    );
+    expect(projectService.getProjectByUsernameAndSlug).toHaveBeenCalledWith(
+      mockProject.username,
+      mockProject.slug
+    );
+    expect(projectStateService.updateProject).toHaveBeenCalledWith(
+      updatedProject
+    );
+  });
+
+  it('should report a refresh failure after saving a generated cover image', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const refreshError = new Error('refresh failed');
+    const mockResult = {
+      saved: true,
+      imageData: 'data:image/png;base64,dGVzdA==',
+    };
+
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
+      mockResult
+    );
+    (projectService.getProjectByUsernameAndSlug as any).mockRejectedValue(
+      refreshError
+    );
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to refresh project after cover upload:',
+      refreshError
+    );
+  });
+
+  it('should report a generated cover image upload failure', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const uploadError = new Error('upload failed');
+    const mockResult = {
+      saved: true,
+      imageData: 'data:image/png;base64,dGVzdA==',
+    };
+
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
+      mockResult
+    );
+    (projectService.uploadProjectCover as any).mockRejectedValue(uploadError);
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Error uploading cover image:',
+      uploadError
+    );
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Failed to save cover image',
+      'Close',
+      { duration: 5000 }
+    );
   });
 
   it('should not save cover image when dialog is cancelled', async () => {
@@ -368,6 +562,207 @@ describe('HomeTabComponent', () => {
     component.openMediaTab();
     expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
     expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
+  });
+
+  it('should open templates tab', () => {
+    component.openTemplatesTab();
+
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+      'templates-list'
+    );
+    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/',
+      mockProject.username,
+      mockProject.slug,
+      'templates-list',
+    ]);
+  });
+
+  it('should open settings tab', () => {
+    component.openSettingsTab();
+
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith('settings');
+    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/',
+      mockProject.username,
+      mockProject.slug,
+      'settings',
+    ]);
+  });
+
+  it('should create and open a publish plan from the home tab', () => {
+    const expectedPlan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+
+    component.createPublishPlan();
+
+    expect(projectStateService.createPublishPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: expectedPlan.name,
+        metadata: expect.objectContaining({
+          author: expectedPlan.metadata.author,
+        }),
+      })
+    );
+    expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: expectedPlan.name,
+        metadata: expect.objectContaining({
+          author: expectedPlan.metadata.author,
+        }),
+      })
+    );
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/',
+      mockProject.username,
+      mockProject.slug,
+      'publish-plan',
+      expect.any(String),
+    ]);
+  });
+
+  it('should not create a publish plan when no project is loaded', () => {
+    (projectStateService.project as any).set(undefined);
+
+    component.createPublishPlan();
+
+    expect(projectStateService.createPublishPlan).not.toHaveBeenCalled();
+    expect(projectStateService.openPublishPlan).not.toHaveBeenCalled();
+  });
+
+  it('should open a publish plan directly', () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+
+    component.openPublishPlan(plan);
+
+    expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(plan);
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/',
+      mockProject.username,
+      mockProject.slug,
+      'publish-plan',
+      plan.id,
+    ]);
+  });
+
+  it('should ignore publish-plan open requests when no project is loaded', () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+    (projectStateService.project as any).set(undefined);
+
+    component.openPublishPlan(plan);
+
+    expect(projectStateService.openPublishPlan).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+
+  it('should open publish plans from keyboard activation', () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+    const event = new KeyboardEvent('keydown', { key: 'Enter' });
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+    const openSpy = vi.spyOn(component, 'openPublishPlan');
+
+    component.onPublishPlanKeydown(event, plan);
+
+    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(openSpy).toHaveBeenCalledWith(plan);
+  });
+
+  it('should ignore unrelated publish-plan keyboard events', () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+    const event = new KeyboardEvent('keydown', { key: 'Escape' });
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+    const openSpy = vi.spyOn(component, 'openPublishPlan');
+
+    component.onPublishPlanKeydown(event, plan);
+
+    expect(preventDefaultSpy).not.toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it('should delete a publish plan after confirmation', async () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+    const event = new Event('click');
+    const stopPropagationSpy = vi.spyOn(event, 'stopPropagation');
+    (dialogGateway.openConfirmationDialog as any).mockResolvedValue(true);
+
+    await component.deletePublishPlan(event, plan);
+
+    expect(stopPropagationSpy).toHaveBeenCalled();
+    expect(projectStateService.deletePublishPlan).toHaveBeenCalledWith(plan.id);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      `Deleted "${plan.name}"`,
+      'Close',
+      {
+        duration: 3000,
+      }
+    );
+  });
+
+  it('should not delete a publish plan when confirmation is rejected', async () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+    const event = new Event('click');
+    const stopPropagationSpy = vi.spyOn(event, 'stopPropagation');
+
+    await component.deletePublishPlan(event, plan);
+
+    expect(stopPropagationSpy).toHaveBeenCalled();
+    expect(projectStateService.deletePublishPlan).not.toHaveBeenCalled();
+  });
+
+  it('should delete publish plans from keyboard activation', () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+    const event = new KeyboardEvent('keydown', { key: ' ' });
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+    const deleteSpy = vi
+      .spyOn(component, 'deletePublishPlan')
+      .mockResolvedValue(undefined);
+
+    component.onDeletePublishPlanKeydown(event, plan);
+
+    expect(preventDefaultSpy).toHaveBeenCalled();
+    expect(deleteSpy).toHaveBeenCalledWith(event, plan);
+  });
+
+  it('should ignore unrelated delete publish-plan keyboard events', () => {
+    const plan = createDefaultPublishPlan(
+      mockProject.title,
+      mockProject.username
+    );
+    const event = new KeyboardEvent('keydown', { key: 'Escape' });
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+    const deleteSpy = vi
+      .spyOn(component, 'deletePublishPlan')
+      .mockResolvedValue(undefined);
+
+    component.onDeletePublishPlanKeydown(event, plan);
+
+    expect(preventDefaultSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
   });
 
   describe.skip('cover image', () => {
