@@ -45,8 +45,6 @@ describe('MessagesComponent', () => {
 
   it('should load messages on init', async () => {
     fixture.detectChanges();
-
-    // Wait for async initialization
     await fixture.whenStable();
 
     expect(mockAnnouncementService.loadAnnouncements).toHaveBeenCalled();

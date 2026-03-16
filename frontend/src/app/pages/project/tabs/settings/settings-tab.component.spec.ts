@@ -29,12 +29,16 @@ import {
   McpPermission,
   type McpPublicKey,
 } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SettingsService } from '@services/core/settings.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
+import { UnifiedProjectService } from '@services/local/unified-project.service';
+import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
 import { TagsTabComponent } from '../tags/tags-tab.component';
@@ -65,10 +69,18 @@ describe('SettingsTabComponent', () => {
   let setupService: Partial<SetupService>;
   let systemConfigService: Partial<SystemConfigService>;
   let mediaSyncService: Partial<MediaSyncService>;
+  let dialogGateway: Partial<DialogGatewayService>;
+  let projectService: Partial<UnifiedProjectService>;
+  let exportService: Partial<ProjectExportService>;
+  let settingsService: Partial<SettingsService>;
   let mediaSyncStateSignal: ReturnType<typeof signal<any>>;
   let dialog: Partial<MatDialog>;
   let projectsService: Partial<ProjectsService>;
   let router: Partial<Router>;
+  const originalClipboardDescriptor = Object.getOwnPropertyDescriptor(
+    navigator,
+    'clipboard'
+  );
 
   const mockProject = {
     username: 'testuser',
@@ -198,11 +210,14 @@ describe('SettingsTabComponent', () => {
     };
 
     snackBar = {
-      open: vi.fn(),
+      open: vi.fn().mockReturnValue({
+        onAction: vi.fn().mockReturnValue(of(undefined)),
+      }),
     };
 
     setupService = {
       getMode: vi.fn().mockReturnValue('server'),
+      getServerUrl: vi.fn().mockReturnValue('https://inkweld.test'),
     };
 
     systemConfigService = {
@@ -232,6 +247,24 @@ describe('SettingsTabComponent', () => {
       getSyncState: vi.fn().mockReturnValue(mediaSyncStateSignal),
       downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
       uploadAllToServer: vi.fn().mockResolvedValue(undefined),
+    };
+
+    dialogGateway = {
+      openUserSettingsDialog: vi.fn().mockResolvedValue(undefined),
+      openConfirmationDialog: vi.fn().mockResolvedValue(false),
+      openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
+    };
+
+    projectService = {
+      deleteProject: vi.fn().mockResolvedValue(undefined),
+    };
+
+    exportService = {
+      exportProject: vi.fn().mockResolvedValue(undefined),
+    };
+
+    settingsService = {
+      getSetting: vi.fn().mockReturnValue(true),
     };
 
     dialog = {
@@ -269,9 +302,13 @@ describe('SettingsTabComponent', () => {
         { provide: MCPKeysService, useValue: mcpKeysService },
         { provide: CollaborationApiService, useValue: collaborationService },
         { provide: MatSnackBar, useValue: snackBar },
+        { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: SetupService, useValue: setupService },
         { provide: SystemConfigService, useValue: systemConfigService },
         { provide: MediaSyncService, useValue: mediaSyncService },
+        { provide: UnifiedProjectService, useValue: projectService },
+        { provide: ProjectExportService, useValue: exportService },
+        { provide: SettingsService, useValue: settingsService },
         { provide: MatDialog, useValue: dialog },
         { provide: ProjectsService, useValue: projectsService },
         { provide: Router, useValue: router },
@@ -298,6 +335,19 @@ describe('SettingsTabComponent', () => {
     fixture = TestBed.createComponent(SettingsTabComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    if (originalClipboardDescriptor) {
+      Object.defineProperty(
+        navigator,
+        'clipboard',
+        originalClipboardDescriptor
+      );
+    }
   });
 
   it('should create', () => {
@@ -433,6 +483,92 @@ describe('SettingsTabComponent', () => {
       component.dismissNewKey();
 
       expect(component['newlyCreatedKey']()).toBeNull();
+    });
+
+    it('should expose the MCP endpoint URL', () => {
+      expect(component.getMcpEndpointUrl()).toBe(
+        'https://inkweld.test/api/v1/ai/mcp'
+      );
+    });
+
+    it('should copy a key to the clipboard', async () => {
+      const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: writeTextSpy },
+        configurable: true,
+        writable: true,
+      });
+
+      component.copyKeyToClipboard('ink_secret');
+      await Promise.resolve();
+
+      expect(writeTextSpy).toHaveBeenCalledWith('ink_secret');
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'API key copied to clipboard',
+        'Close',
+        { duration: 2000 }
+      );
+    });
+
+    it('should handle key copy failures', async () => {
+      const writeTextSpy = vi
+        .fn()
+        .mockRejectedValue(new Error('clipboard unavailable'));
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: writeTextSpy },
+        configurable: true,
+        writable: true,
+      });
+
+      component.copyKeyToClipboard('ink_secret');
+      await Promise.resolve();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to copy to clipboard',
+        'Close',
+        { duration: 2000 }
+      );
+    });
+
+    it('should copy the MCP endpoint URL', async () => {
+      const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: writeTextSpy },
+        configurable: true,
+        writable: true,
+      });
+
+      component.copyMcpUrl();
+      await Promise.resolve();
+
+      expect(writeTextSpy).toHaveBeenCalledWith(
+        'https://inkweld.test/api/v1/ai/mcp'
+      );
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'MCP endpoint URL copied to clipboard',
+        'Close',
+        { duration: 2000 }
+      );
+    });
+
+    it('should handle MCP URL copy failures', async () => {
+      const writeTextSpy = vi
+        .fn()
+        .mockRejectedValue(new Error('clipboard unavailable'));
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: writeTextSpy },
+        configurable: true,
+        writable: true,
+      });
+
+      component.copyMcpUrl();
+      await Promise.resolve();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to copy to clipboard',
+        'Close',
+        { duration: 2000 }
+      );
     });
 
     it('should format date', () => {
@@ -579,6 +715,20 @@ describe('SettingsTabComponent', () => {
       (projectStateService.project as ReturnType<typeof signal>).set(undefined);
       await component.uploadAllMedia();
       expect(mediaSyncService.uploadAllToServer).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors when checking media sync status', async () => {
+      (
+        mediaSyncService.checkSyncStatus as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('sync check failed'));
+
+      await component.checkMediaSyncStatus();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to check media sync status',
+        'Close',
+        { duration: 3000 }
+      );
     });
   });
 
@@ -921,6 +1071,129 @@ describe('SettingsTabComponent', () => {
       await component.inviteCollaborator();
       expect(collaborationService.inviteCollaborator).not.toHaveBeenCalled();
     });
+
+    it('should open authorized apps settings and reload collaborators', async () => {
+      const reloadSpy = vi.spyOn(component, 'loadCollaborators');
+
+      await component.openAuthorizedAppsSettings();
+
+      expect(dialogGateway.openUserSettingsDialog).toHaveBeenCalledWith(
+        'authorized-apps'
+      );
+      expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('should return the default role icon for unknown roles', () => {
+      expect(component.getRoleIcon('unknown' as CollaboratorRole)).toBe(
+        'person'
+      );
+    });
+  });
+
+  describe('Navigation helpers', () => {
+    it('should update scroll state when the tab bar can scroll in both directions', () => {
+      component.tabNavBar = {
+        nativeElement: {
+          scrollLeft: 40,
+          scrollWidth: 500,
+          clientWidth: 200,
+          querySelector: vi.fn().mockReturnValue(null),
+        },
+      } as any;
+
+      component.updateScrollState();
+
+      expect(component['canScrollLeft']()).toBe(true);
+      expect(component['canScrollRight']()).toBe(true);
+    });
+
+    it('should do nothing when scroll helpers have no tab bar element', () => {
+      component.tabNavBar = undefined as any;
+
+      component.scrollLeft();
+      component.scrollRight();
+      component.scrollToActiveTab();
+
+      expect(component['canScrollLeft']()).toBe(false);
+      expect(component['canScrollRight']()).toBe(false);
+    });
+
+    it('should scroll the tab bar left and right', () => {
+      const scrollBy = vi.fn();
+      component.tabNavBar = {
+        nativeElement: {
+          scrollBy,
+          scrollLeft: 0,
+          scrollWidth: 300,
+          clientWidth: 200,
+          querySelector: vi.fn().mockReturnValue(null),
+        },
+      } as any;
+
+      component.scrollLeft();
+      component.scrollRight();
+
+      expect(scrollBy).toHaveBeenNthCalledWith(1, {
+        left: -150,
+        behavior: 'smooth',
+      });
+      expect(scrollBy).toHaveBeenNthCalledWith(2, {
+        left: 150,
+        behavior: 'smooth',
+      });
+    });
+
+    it('should scroll the active tab into view on the left', () => {
+      vi.useFakeTimers();
+      const scrollBy = vi.fn();
+      component.tabNavBar = {
+        nativeElement: {
+          querySelector: vi.fn().mockReturnValue({
+            getBoundingClientRect: () => ({ left: 20, right: 80 }),
+          }),
+          getBoundingClientRect: () => ({ left: 50, right: 250 }),
+          scrollBy,
+        },
+      } as any;
+
+      component.scrollToActiveTab();
+      vi.runAllTimers();
+
+      expect(scrollBy).toHaveBeenCalledWith({ left: -38, behavior: 'smooth' });
+      vi.useRealTimers();
+    });
+
+    it('should scroll the active tab into view on the right', () => {
+      vi.useFakeTimers();
+      const scrollBy = vi.fn();
+      component.tabNavBar = {
+        nativeElement: {
+          querySelector: vi.fn().mockReturnValue({
+            getBoundingClientRect: () => ({ left: 220, right: 320 }),
+          }),
+          getBoundingClientRect: () => ({ left: 50, right: 250 }),
+          scrollBy,
+        },
+      } as any;
+
+      component.scrollToActiveTab();
+      vi.runAllTimers();
+
+      expect(scrollBy).toHaveBeenCalledWith({ left: 78, behavior: 'smooth' });
+      vi.useRealTimers();
+    });
+
+    it('should update the selected tab when the tab changes', () => {
+      vi.useFakeTimers();
+      const scrollSpy = vi.spyOn(component, 'scrollToActiveTab');
+
+      component.onTabChange('collaboration');
+      vi.runAllTimers();
+
+      expect(component['selectedTab']()).toBe('collaboration');
+      expect(scrollSpy).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
   });
 
   describe('Project Rename', () => {
@@ -1039,17 +1312,159 @@ describe('SettingsTabComponent', () => {
         'A project with this slug may already exist'
       );
     });
+
+    it('should cancel local data reset when the user rejects confirmation', async () => {
+      const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(false);
+      const getDatabasesSpy = vi.spyOn(component as any, 'getProjectDatabases');
+
+      await component.resetLocalData();
+
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(getDatabasesSpy).not.toHaveBeenCalled();
+    });
+
+    it('should reset local data and schedule a reload', async () => {
+      vi.useFakeTimers();
+      const confirm = vi.fn().mockReturnValue(true);
+      vi.spyOn(component as any, 'getProjectDatabases').mockResolvedValue([
+        'db-one',
+        'db-two',
+      ]);
+      vi.spyOn(component as any, 'deleteDatabase').mockResolvedValue(undefined);
+
+      const reloadSpy = vi.fn();
+      const reloadWindow = {
+        ...globalThis.window,
+        confirm,
+        location: { reload: reloadSpy },
+      };
+      vi.stubGlobal('window', reloadWindow);
+
+      await component.resetLocalData();
+      vi.advanceTimersByTime(1000);
+
+      expect((component as any).deleteDatabase).toHaveBeenCalledTimes(2);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Local data cleared. Reloading project...',
+        'Close',
+        { duration: 3000 }
+      );
+      expect(reloadSpy).toHaveBeenCalled();
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('should handle local data reset failures', async () => {
+      const confirm = vi.fn().mockReturnValue(true);
+      vi.stubGlobal('window', { ...globalThis.window, confirm });
+      vi.spyOn(component as any, 'getProjectDatabases').mockRejectedValue(
+        new Error('db lookup failed')
+      );
+
+      await component.resetLocalData();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to reset local data',
+        'Close',
+        { duration: 5000 }
+      );
+      expect(component['isResettingLocalData']()).toBe(false);
+    });
+
+    it('should enumerate project databases from IndexedDB when supported', async () => {
+      vi.stubGlobal('indexedDB', {
+        databases: vi
+          .fn()
+          .mockResolvedValue([
+            { name: 'testuser:test-project:elements' },
+            { name: 'worldbuilding:testuser:test-project:char-1' },
+            { name: 'someone-else:other-project:elements' },
+          ]),
+      });
+
+      const databases = await (component as any).getProjectDatabases(
+        'testuser',
+        'test-project'
+      );
+
+      expect(databases).toEqual([
+        'testuser:test-project:elements',
+        'worldbuilding:testuser:test-project:char-1',
+      ]);
+    });
+
+    it('should fall back to known database patterns when IndexedDB enumeration is unavailable', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'doc-1' },
+        { id: 'doc-2' },
+      ] as any);
+      vi.stubGlobal('indexedDB', {
+        databases: vi.fn().mockResolvedValue([]),
+      });
+
+      const databases = await (component as any).getProjectDatabases(
+        'testuser',
+        'test-project'
+      );
+
+      expect(databases).toEqual([
+        'testuser:test-project:elements',
+        'testuser:test-project:elements/',
+        'testuser:test-project:doc:doc-1',
+        'worldbuilding:testuser:test-project:doc-1',
+        'testuser:test-project:doc:doc-2',
+        'worldbuilding:testuser:test-project:doc-2',
+      ]);
+    });
+
+    it('should resolve when deleting an IndexedDB database succeeds', async () => {
+      const request: Record<string, (() => void) | undefined> = {};
+      vi.stubGlobal('indexedDB', {
+        deleteDatabase: vi.fn().mockImplementation(() => request),
+      });
+
+      const promise = (component as any).deleteDatabase('test-db');
+      request['onsuccess']?.();
+
+      await expect(promise).resolves.toBeUndefined();
+    });
+
+    it('should reject when deleting an IndexedDB database fails', async () => {
+      const request: Record<string, (() => void) | undefined> = {};
+      vi.stubGlobal('indexedDB', {
+        deleteDatabase: vi.fn().mockImplementation(() => request),
+      });
+
+      const promise = (component as any).deleteDatabase('test-db');
+      request['onerror']?.();
+
+      await expect(promise).rejects.toThrow(
+        'Failed to delete database: test-db'
+      );
+    });
+
+    it('should resolve and warn when an IndexedDB delete is blocked', async () => {
+      const request: Record<string, (() => void) | undefined> = {};
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.stubGlobal('indexedDB', {
+        deleteDatabase: vi.fn().mockImplementation(() => request),
+      });
+
+      const promise = (component as any).deleteDatabase('test-db');
+      request['onblocked']?.();
+
+      await expect(promise).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Database test-db delete was blocked'
+      );
+    });
   });
 
   describe('Project Actions', () => {
     it('should export project successfully', async () => {
-      // Access the injected service and spy on it
-      const realExportService = component['exportService'];
-      vi.spyOn(realExportService, 'exportProject').mockResolvedValue(undefined);
-
       await component.exportProject();
 
-      expect(realExportService.exportProject).toHaveBeenCalled();
+      expect(exportService.exportProject).toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith(
         'Project exported successfully',
         'Close',
@@ -1058,10 +1473,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should handle export error', async () => {
-      const realExportService = component['exportService'];
-      vi.spyOn(realExportService, 'exportProject').mockRejectedValue(
-        new Error('Export failed')
-      );
+      (
+        exportService.exportProject as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('Export failed'));
 
       await component.exportProject();
 
@@ -1073,16 +1487,31 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should open import dialog', () => {
-      const realDialogGateway = component['dialogGateway'];
-      vi.spyOn(realDialogGateway, 'openImportProjectDialog').mockResolvedValue(
-        undefined
-      );
-
       component.importProject();
 
-      expect(realDialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
+      expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
         'testuser'
       );
+    });
+
+    it('should navigate to an imported project after snackbar action', async () => {
+      (
+        dialogGateway.openImportProjectDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({ success: true, slug: 'imported-project' });
+
+      component.importProject();
+      await Promise.resolve();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Project imported successfully!',
+        'View',
+        { duration: 5000 }
+      );
+      expect(router.navigate).toHaveBeenCalledWith([
+        '/',
+        'testuser',
+        'imported-project',
+      ]);
     });
 
     it('should open publish plan when plans exist', () => {
@@ -1109,6 +1538,26 @@ describe('SettingsTabComponent', () => {
       ]);
     });
 
+    it('should create a publish plan when none exist', () => {
+      (
+        projectStateService.getPublishPlans as ReturnType<typeof vi.fn>
+      ).mockReturnValue([]);
+
+      component.openPublishPlan();
+
+      expect(projectStateService.createPublishPlan).toHaveBeenCalled();
+      expect(projectStateService.openPublishPlan).toHaveBeenCalled();
+    });
+
+    it('should do nothing when opening publish plans without a project', () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+
+      component.openPublishPlan();
+
+      expect(projectStateService.createPublishPlan).not.toHaveBeenCalled();
+      expect(projectStateService.openPublishPlan).not.toHaveBeenCalled();
+    });
+
     it('should show document list', () => {
       (
         projectStateService.openSystemTab as ReturnType<typeof vi.fn>
@@ -1128,6 +1577,55 @@ describe('SettingsTabComponent', () => {
         'test-project',
         'documents-list',
       ]);
+    });
+
+    it('should not navigate document list when no project is loaded', () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
+
+      component.showDocumentList();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'documents-list'
+      );
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should delete a project after confirmation', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(true);
+
+      await component.deleteProject();
+
+      expect(projectService.deleteProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project'
+      );
+      expect(router.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('should not delete a project when confirmation is rejected', async () => {
+      await component.deleteProject();
+
+      expect(projectService.deleteProject).not.toHaveBeenCalled();
+    });
+
+    it('should handle project deletion failures', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(true);
+      (
+        projectService.deleteProject as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('delete failed'));
+
+      await component.deleteProject();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to delete project',
+        'Close',
+        { duration: 5000 }
+      );
+      expect(component['isDeleting']()).toBe(false);
     });
 
     it('should report zen mode cannot be enabled when no document tab is selected', () => {
@@ -1159,6 +1657,150 @@ describe('SettingsTabComponent', () => {
       component.toggleZenMode();
 
       expect(component['isZenMode']()).toBe(false);
+    });
+
+    it('should enable zen mode and request fullscreen when configured', async () => {
+      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
+        1
+      );
+      (projectStateService.openTabs as ReturnType<typeof signal>).set([
+        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
+      ]);
+
+      const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+      const originalRequestFullscreen =
+        document.documentElement.requestFullscreen;
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: requestFullscreen,
+        configurable: true,
+      });
+
+      component.toggleZenMode();
+      await Promise.resolve();
+
+      expect(component['isZenMode']()).toBe(true);
+      expect(requestFullscreen).toHaveBeenCalled();
+
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: originalRequestFullscreen,
+        configurable: true,
+      });
+    });
+
+    it('should exit fullscreen when disabling zen mode', async () => {
+      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
+        1
+      );
+      (projectStateService.openTabs as ReturnType<typeof signal>).set([
+        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
+      ]);
+
+      const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+      const exitFullscreen = vi.fn().mockResolvedValue(undefined);
+      const originalRequestFullscreen =
+        document.documentElement.requestFullscreen;
+      const originalExitFullscreen = document.exitFullscreen;
+      const fullscreenDescriptor = Object.getOwnPropertyDescriptor(
+        document,
+        'fullscreenElement'
+      );
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: requestFullscreen,
+        configurable: true,
+      });
+      Object.defineProperty(document, 'fullscreenElement', {
+        value: {},
+        configurable: true,
+      });
+      Object.defineProperty(document, 'exitFullscreen', {
+        value: exitFullscreen,
+        configurable: true,
+      });
+
+      component.toggleZenMode();
+      await Promise.resolve();
+      component.toggleZenMode();
+      await Promise.resolve();
+
+      expect(component['isZenMode']()).toBe(false);
+      expect(exitFullscreen).toHaveBeenCalled();
+
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: originalRequestFullscreen,
+        configurable: true,
+      });
+      Object.defineProperty(document, 'exitFullscreen', {
+        value: originalExitFullscreen,
+        configurable: true,
+      });
+      if (fullscreenDescriptor) {
+        Object.defineProperty(
+          document,
+          'fullscreenElement',
+          fullscreenDescriptor
+        );
+      } else {
+        delete (document as any).fullscreenElement;
+      }
+    });
+
+    it('should warn when fullscreen requests fail', async () => {
+      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
+        1
+      );
+      (projectStateService.openTabs as ReturnType<typeof signal>).set([
+        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
+      ]);
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const originalRequestFullscreen =
+        document.documentElement.requestFullscreen;
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: vi.fn().mockRejectedValue(new Error('fullscreen failed')),
+        configurable: true,
+      });
+
+      component.toggleZenMode();
+      await Promise.resolve();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        'Error attempting to enable fullscreen:',
+        expect.any(Error)
+      );
+
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: originalRequestFullscreen,
+        configurable: true,
+      });
+    });
+
+    it('should toggle zen mode without fullscreen when the setting is disabled', () => {
+      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
+        1
+      );
+      (projectStateService.openTabs as ReturnType<typeof signal>).set([
+        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
+      ]);
+      (settingsService.getSetting as ReturnType<typeof vi.fn>).mockReturnValue(
+        false
+      );
+      const requestFullscreen = vi.fn();
+      const originalRequestFullscreen =
+        document.documentElement.requestFullscreen;
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: requestFullscreen,
+        configurable: true,
+      });
+
+      component.toggleZenMode();
+
+      expect(component['isZenMode']()).toBe(true);
+      expect(requestFullscreen).not.toHaveBeenCalled();
+
+      Object.defineProperty(document.documentElement, 'requestFullscreen', {
+        value: originalRequestFullscreen,
+        configurable: true,
+      });
     });
   });
 });
