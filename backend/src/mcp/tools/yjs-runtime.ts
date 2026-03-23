@@ -555,7 +555,7 @@ function parseAttrValue(value: string): unknown {
   if (value === 'true') return true;
   if (value === 'false') return false;
   const num = Number(value);
-  if (!isNaN(num) && value !== '') return num;
+  if (!Number.isNaN(num) && value !== '') return num;
   return value;
 }
 
@@ -569,8 +569,8 @@ function decodeXmlEntities(text: string): string {
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
     .replaceAll('&apos;', "'")
-    .replaceAll(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
-    .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
+    .replaceAll(/&#(\d+);/g, (_, code) => String.fromCharCode(Number.parseInt(code, 10)))
+    .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)));
 }
 
 /**

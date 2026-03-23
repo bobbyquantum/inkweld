@@ -259,6 +259,71 @@ describe('VersionCompatibilityService', () => {
       expect(result.compatible).toBe(false);
       expect(result.message).toContain('500');
     });
+
+    it('should default protocolVersion to 1 for malformed string "2abc"', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            version: '0.1.0',
+            protocolVersion: '2abc',
+            minClientVersion: '0.1.0',
+          }),
+      });
+
+      const result = await service.checkServerCompatibility(
+        'http://localhost:8333'
+      );
+
+      // "2abc" does not match /^\d+$/, so serverProtocolVersion defaults to 1
+      if (CLIENT_PROTOCOL_VERSION === 1) {
+        expect(result.protocolCompatible).toBe(true);
+      } else {
+        expect(result.protocolCompatible).toBe(false);
+      }
+    });
+
+    it('should default protocolVersion to 1 for decimal string "1.5"', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            version: '0.1.0',
+            protocolVersion: '1.5',
+            minClientVersion: '0.1.0',
+          }),
+      });
+
+      const result = await service.checkServerCompatibility(
+        'http://localhost:8333'
+      );
+
+      // "1.5" does not match /^\d+$/, so serverProtocolVersion defaults to 1
+      if (CLIENT_PROTOCOL_VERSION === 1) {
+        expect(result.protocolCompatible).toBe(true);
+      } else {
+        expect(result.protocolCompatible).toBe(false);
+      }
+    });
+
+    it('should parse pure numeric string protocolVersion correctly', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            version: '0.1.0',
+            protocolVersion: '2',
+            minClientVersion: '0.1.0',
+          }),
+      });
+
+      const result = await service.checkServerCompatibility(
+        'http://localhost:8333'
+      );
+
+      // "2" matches /^\d+$/ and parses to 2
+      expect(result.serverInfo?.protocolVersion).toBe(2);
+    });
   });
 
   describe('isVersionInfoStale', () => {

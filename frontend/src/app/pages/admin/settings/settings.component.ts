@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
+import { firstValueFrom } from 'rxjs';
 
 import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-switch-dialog.component';
 
@@ -96,7 +97,7 @@ export class AdminSettingsComponent implements OnInit {
 
       // Password policy
       this.passwordMinLength.set(
-        parseInt(passwordMinLength?.value || '8', 10) || 8
+        Math.max(1, Number.parseInt(passwordMinLength?.value || '8', 10) || 8)
       );
       this.passwordRequireUppercase.set(
         passwordRequireUppercase?.value !== 'false'
@@ -169,7 +170,7 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   async savePasswordMinLength(value: string): Promise<void> {
-    const num = Math.max(1, parseInt(value, 10) || 8);
+    const num = Math.max(1, Number.parseInt(value, 10) || 8);
     this.isSaving.set(true);
 
     try {
@@ -237,15 +238,18 @@ export class AdminSettingsComponent implements OnInit {
   async toggleAiKillSwitch(enabled: boolean): Promise<void> {
     // If disabling the kill switch (enabling AI), show warning dialog
     if (!enabled) {
-      const dialogRef = this.dialog.open(AiKillSwitchDialogComponent, {
+      const dialogRef = this.dialog.open<
+        AiKillSwitchDialogComponent,
+        void,
+        boolean
+      >(AiKillSwitchDialogComponent, {
         width: '500px',
         disableClose: true,
       });
 
-      const confirmed = await dialogRef
-        .afterClosed()
-        .toPromise()
-        .then((result: boolean) => result);
+      const confirmed: boolean | undefined = await firstValueFrom(
+        dialogRef.afterClosed()
+      );
       if (!confirmed) {
         // User cancelled, revert the toggle
         return;

@@ -481,6 +481,33 @@ describe('User Routes', () => {
       // Should find admin user since we seeded it
       expect(data.users.some((u) => u.username.includes('admin'))).toBe(true);
     });
+
+    it('should clamp negative limit to 1 and negative offset to 0', async () => {
+      const { response, json } = await client.request('/api/v1/users?limit=-5&offset=-10');
+
+      expect(response.status).toBe(200);
+      const data = (await json()) as { users: Array<{ id: string }>; total: number };
+      // limit clamped to 1, so at most 1 user returned
+      expect(data.users.length).toBeLessThanOrEqual(1);
+    });
+
+    it('should cap limit at 100', async () => {
+      const { response, json } = await client.request('/api/v1/users?limit=500');
+
+      expect(response.status).toBe(200);
+      const data = (await json()) as { users: Array<{ id: string }> };
+      expect(data.users.length).toBeLessThanOrEqual(100);
+    });
+
+    it('should handle non-numeric limit and offset gracefully', async () => {
+      const { response, json } = await client.request('/api/v1/users?limit=abc&offset=xyz');
+
+      expect(response.status).toBe(200);
+      const data = (await json()) as { users: Array<{ id: string }>; total: number };
+      // Falls back to default limit=20, offset=0
+      expect(data.users).toBeDefined();
+      expect(Array.isArray(data.users)).toBe(true);
+    });
   });
 
   describe('GET /api/v1/users/search', () => {

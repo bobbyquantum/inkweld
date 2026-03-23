@@ -217,8 +217,8 @@ describe('CsrfInterceptor', () => {
     mockXsrfService.refreshToken.mockReturnValue(tokenPromise);
 
     // Start two concurrent requests that will both need a token
-    const request1 = httpClient.post(`${apiUrl}/data1`, {}).toPromise();
-    const request2 = httpClient.post(`${apiUrl}/data2`, {}).toPromise();
+    const request1 = firstValueFrom(httpClient.post(`${apiUrl}/data1`, {}));
+    const request2 = firstValueFrom(httpClient.post(`${apiUrl}/data2`, {}));
 
     // Wait for requests to be processed by the interceptor
     await Promise.resolve();

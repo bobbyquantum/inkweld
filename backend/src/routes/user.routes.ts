@@ -255,8 +255,10 @@ const getUsersRoute = createRoute({
 
 userRoutes.openapi(getUsersRoute, async (c) => {
   const search = c.req.query('search');
-  const limit = parseInt(c.req.query('limit') || '20', 10);
-  const offset = parseInt(c.req.query('offset') || '0', 10);
+  const rawLimit = Number.parseInt(c.req.query('limit') || '20', 10);
+  const rawOffset = Number.parseInt(c.req.query('offset') || '0', 10);
+  const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 100);
+  const offset = Math.max(Number.isFinite(rawOffset) ? rawOffset : 0, 0);
 
   const db = c.get('db');
   const currentUser = c.get('user');
@@ -331,8 +333,10 @@ const searchUsersRoute = createRoute({
 
 userRoutes.openapi(searchUsersRoute, async (c) => {
   const term = c.req.query('term') || '';
-  const limit = parseInt(c.req.query('limit') || '20', 10);
-  const offset = parseInt(c.req.query('offset') || '0', 10);
+  const rawLimit = Number.parseInt(c.req.query('limit') || '20', 10);
+  const rawOffset = Number.parseInt(c.req.query('offset') || '0', 10);
+  const limit = Math.min(Math.max(Number.isFinite(rawLimit) ? rawLimit : 20, 1), 100);
+  const offset = Math.max(Number.isFinite(rawOffset) ? rawOffset : 0, 0);
 
   const db = c.get('db');
   const currentUser = c.get('user');

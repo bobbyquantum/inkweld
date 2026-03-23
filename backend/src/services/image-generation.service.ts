@@ -10,8 +10,8 @@ import {
   StableDiffusionProvider,
   WorkersAIImageProvider,
 } from './image-providers/index';
-import type { IImageProvider } from '../types/image-generation';
 import type {
+  IImageProvider,
   ResolvedImageRequest,
   ImageGenerateResponse,
   ImageGenerationStatus,
@@ -27,7 +27,7 @@ const imgLog = logger.child('ImageGeneration');
  * Service for managing image generation across multiple providers.
  */
 class ImageGenerationService {
-  private providers: Map<ImageProviderType, IImageProvider> = new Map();
+  private readonly providers: Map<ImageProviderType, IImageProvider> = new Map();
   private initialized = false;
 
   constructor() {
@@ -263,7 +263,7 @@ class ImageGenerationService {
     // Get provider from the resolved request
     const provider = this.providers.get(request.provider);
 
-    if (!provider || !provider.isAvailable()) {
+    if (!provider?.isAvailable()) {
       throw new Error(
         `Image provider '${request.provider}' is not available. Please check provider configuration.`
       );
@@ -287,7 +287,7 @@ class ImageGenerationService {
     }
 
     const provider = this.providers.get(request.provider);
-    if (!provider || !provider.isAvailable()) {
+    if (!provider?.isAvailable()) {
       yield {
         type: 'error',
         error: `Image provider '${request.provider}' is not available.`,

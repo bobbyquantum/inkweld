@@ -107,7 +107,7 @@ export function requestLogger(options: RequestLoggerOptions = {}): MiddlewareHan
     // Get request info
     const userAgent = c.req.header('User-Agent');
     const contentLength = c.req.header('Content-Length');
-    const requestSize = contentLength ? parseInt(contentLength, 10) : 0;
+    const requestSize = contentLength ? Number.parseInt(contentLength, 10) : 0;
 
     // Log request start
     // OAuth/MCP routes log at INFO level for easier debugging of external clients
@@ -155,7 +155,7 @@ export function requestLogger(options: RequestLoggerOptions = {}): MiddlewareHan
 
       // Get response size if available
       const responseLength = c.res.headers.get('Content-Length');
-      const responseSize = responseLength ? parseInt(responseLength, 10) : 0;
+      const responseSize = responseLength ? Number.parseInt(responseLength, 10) : 0;
 
       // Determine log level based on status
       const isError = status >= 500;

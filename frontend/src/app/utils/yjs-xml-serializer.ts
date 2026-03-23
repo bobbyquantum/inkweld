@@ -143,7 +143,7 @@ function parseAttrValue(value: string): unknown {
   if (value === 'false') return false;
   // Handle numbers
   const num = Number(value);
-  if (!isNaN(num) && value !== '') return num;
+  if (!Number.isNaN(num) && value !== '') return num;
   // Return as string
   return value;
 }

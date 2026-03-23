@@ -12,6 +12,7 @@ import {
   type SimpleChanges,
 } from '@angular/core';
 import { type Project } from '@inkweld/index';
+import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';
 import { LocalStorageService } from '../../services/local/local-storage.service';
@@ -196,12 +197,12 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
     const url = `${baseUrl}/api/v1/projects/${project.username}/${project.slug}/cover`;
 
     try {
-      const blob = await this.http
-        .get(url, {
+      const blob = await firstValueFrom(
+        this.http.get(url, {
           responseType: 'blob',
           withCredentials: true,
         })
-        .toPromise();
+      );
       return blob ?? null;
     } catch {
       // 404 is expected if no cover exists
