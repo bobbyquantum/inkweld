@@ -68,7 +68,9 @@ class EmailService {
       return this.transporter;
     }
 
-    const portNum = Number.parseInt(port, 10);
+    const parsedPort = Number.parseInt(port, 10);
+    const portNum =
+      Number.isFinite(parsedPort) && parsedPort >= 1 && parsedPort <= 65535 ? parsedPort : 587;
     const secure = encryption === 'tls'; // port 465 / implicit TLS
 
     const transportOptions: nodemailer.TransportOptions & {

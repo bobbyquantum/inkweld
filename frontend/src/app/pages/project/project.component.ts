@@ -141,7 +141,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!this.isMobile()) {
       const storedSplitSize = localStorage.getItem('splitSize');
       if (storedSplitSize) {
-        this.splitSize = Number.parseInt(storedSplitSize, 10);
+        const parsed = Number.parseFloat(storedSplitSize);
+        if (Number.isFinite(parsed)) {
+          this.splitSize = parsed;
+        }
       }
       const storedCollapsed = localStorage.getItem('sidebarCollapsed');
       if (storedCollapsed === 'true') {
@@ -332,13 +335,16 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const sizeValue = event.sizes[0];
 
     // Convert to number regardless of whether it's a string or number
-    this.splitSize =
+    const parsed =
       typeof sizeValue === 'string'
         ? Number.parseFloat(sizeValue)
         : Number(sizeValue);
 
-    // Save to localStorage for persistence
-    localStorage.setItem('splitSize', this.splitSize.toString());
+    // Only persist valid finite values
+    if (Number.isFinite(parsed)) {
+      this.splitSize = parsed;
+      localStorage.setItem('splitSize', this.splitSize.toString());
+    }
   }
 
   onDocumentOpened = (element: Element) => {

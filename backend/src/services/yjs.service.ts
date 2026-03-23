@@ -148,7 +148,7 @@ export class YjsService {
           name: typeof elem.name === 'string' ? elem.name : String(elem.name ?? ''),
           type: (elem.type as ElementType) ?? 'ITEM',
           parentId:
-            elem.parentId != null
+            elem.parentId != null && String(elem.parentId).trim() !== ''
               ? typeof elem.parentId === 'string'
                 ? elem.parentId
                 : String(elem.parentId)
@@ -158,7 +158,7 @@ export class YjsService {
           expandable: Boolean(elem.expandable ?? false),
           version: Number(elem.version ?? 1),
           schemaId:
-            elem.schemaId != null
+            elem.schemaId != null && String(elem.schemaId).trim() !== ''
               ? typeof elem.schemaId === 'string'
                 ? elem.schemaId
                 : String(elem.schemaId)

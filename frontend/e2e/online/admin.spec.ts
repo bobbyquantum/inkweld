@@ -125,9 +125,9 @@ test.describe('Admin Dashboard', () => {
       await navigateToAdminViaMenu(adminPage);
       await waitForAdminPageLoaded(adminPage);
 
-      // Get the total user count from "All Users" tab label
-      const allUsersTab = adminPage.getByRole('tab', { name: /all users/i });
-      const totalUsersText = await allUsersTab.textContent();
+      // Get the total user count from the data-testid element
+      const totalUsersValue = adminPage.getByTestId('stat-total-users-value');
+      const totalUsersText = await totalUsersValue.textContent();
 
       // Should have at least 1 user (the e2e-admin user)
       // Text is like "All Users (1)"

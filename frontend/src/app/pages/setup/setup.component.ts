@@ -11,6 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { ConfigurationService } from '@inkweld/index';
+import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
@@ -78,8 +79,9 @@ export class SetupComponent implements OnInit {
 
   private async loadSystemConfig(): Promise<void> {
     try {
-      const systemFeatures =
-        await this.ConfigurationService.getAppConfiguration().toPromise();
+      const systemFeatures = await firstValueFrom(
+        this.ConfigurationService.getAppConfiguration()
+      );
 
       if (systemFeatures) {
         // Use type assertion to a safe interface

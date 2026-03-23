@@ -257,17 +257,15 @@ export class VersionCompatibilityService {
       let serverProtocolVersion: number;
       if (typeof rawProtocolVersion === 'number') {
         serverProtocolVersion = rawProtocolVersion;
-      } else if (typeof rawProtocolVersion === 'string') {
-        const parsedProtocolVersion = Number.parseInt(rawProtocolVersion, 10);
-        if (Number.isNaN(parsedProtocolVersion)) {
-          serverProtocolVersion = 1;
-        } else {
-          // Handle case where server returns a string like "1" instead of 1
-          serverProtocolVersion = parsedProtocolVersion;
-          console.warn(
-            `[VersionCompatibility] Server returned protocolVersion as string "${rawProtocolVersion}", parsed as ${serverProtocolVersion}`
-          );
-        }
+      } else if (
+        typeof rawProtocolVersion === 'string' &&
+        /^\d+$/.test(rawProtocolVersion)
+      ) {
+        // Only accept strings that are purely numeric integers
+        serverProtocolVersion = Number.parseInt(rawProtocolVersion, 10);
+        console.warn(
+          `[VersionCompatibility] Server returned protocolVersion as string "${rawProtocolVersion}", parsed as ${serverProtocolVersion}`
+        );
       } else {
         // Default to 1 if undefined, null, or invalid
         serverProtocolVersion = 1;

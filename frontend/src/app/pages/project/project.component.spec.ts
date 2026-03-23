@@ -626,6 +626,38 @@ describe('ProjectComponent', () => {
 
       expect(localStorage.getItem('splitSize')).toBeNull();
     });
+
+    it('should not persist NaN split size', () => {
+      component['isMobile'].set(false);
+      localStorage.setItem('splitSize', '25');
+      component['splitSize'] = 25;
+
+      const mockEvent: SplitGutterInteractionEvent = {
+        sizes: ['not-a-number' as unknown as number, 70],
+        gutterNum: 1,
+      };
+      component.onSplitDragEnd(mockEvent);
+
+      // Should retain previous value
+      expect(component['splitSize']).toBe(25);
+      expect(localStorage.getItem('splitSize')).toBe('25');
+    });
+
+    it('should not persist Infinity split size', () => {
+      component['isMobile'].set(false);
+      localStorage.setItem('splitSize', '25');
+      component['splitSize'] = 25;
+
+      const mockEvent: SplitGutterInteractionEvent = {
+        sizes: [Infinity, 70],
+        gutterNum: 1,
+      };
+      component.onSplitDragEnd(mockEvent);
+
+      // Should retain previous value
+      expect(component['splitSize']).toBe(25);
+      expect(localStorage.getItem('splitSize')).toBe('25');
+    });
   });
 
   describe('settings', () => {

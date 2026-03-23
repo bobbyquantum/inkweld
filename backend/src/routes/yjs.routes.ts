@@ -120,7 +120,7 @@ app.get(
                 project.id,
                 sessionData.userId
               );
-              if (!access) {
+              if (!access.canRead) {
                 wsLog.warn(
                   `User ${sessionData.username} attempted to access project ${projectOwner}/${slug}`
                 );
