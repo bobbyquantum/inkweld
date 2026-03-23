@@ -141,7 +141,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!this.isMobile()) {
       const storedSplitSize = localStorage.getItem('splitSize');
       if (storedSplitSize) {
-        this.splitSize = parseInt(storedSplitSize, 10);
+        this.splitSize = Number.parseInt(storedSplitSize, 10);
       }
       const storedCollapsed = localStorage.getItem('sidebarCollapsed');
       if (storedCollapsed === 'true') {
@@ -333,7 +333,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Convert to number regardless of whether it's a string or number
     this.splitSize =
-      typeof sizeValue === 'string' ? parseFloat(sizeValue) : Number(sizeValue);
+      typeof sizeValue === 'string'
+        ? Number.parseFloat(sizeValue)
+        : Number(sizeValue);
 
     // Save to localStorage for persistence
     localStorage.setItem('splitSize', this.splitSize.toString());

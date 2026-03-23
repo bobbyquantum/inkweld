@@ -96,7 +96,7 @@ export class AdminSettingsComponent implements OnInit {
 
       // Password policy
       this.passwordMinLength.set(
-        parseInt(passwordMinLength?.value || '8', 10) || 8
+        Number.parseInt(passwordMinLength?.value || '8', 10) || 8
       );
       this.passwordRequireUppercase.set(
         passwordRequireUppercase?.value !== 'false'
@@ -169,7 +169,7 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   async savePasswordMinLength(value: string): Promise<void> {
-    const num = Math.max(1, parseInt(value, 10) || 8);
+    const num = Math.max(1, Number.parseInt(value, 10) || 8);
     this.isSaving.set(true);
 
     try {

@@ -132,7 +132,7 @@ test.describe('Admin Dashboard', () => {
       // Should have at least 1 user (the e2e-admin user)
       // Text is like "All Users (1)"
       const match = totalUsersText?.match(/\((\d+)\)/);
-      const count = match ? parseInt(match[1]) : 0;
+      const count = match ? Number.parseInt(match[1], 10) : 0;
       expect(count).toBeGreaterThanOrEqual(1);
     });
 

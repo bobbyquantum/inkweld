@@ -702,14 +702,15 @@ export class SettingsTabComponent implements AfterViewInit {
       // - {username}:{slug}:elements/ (element tree with trailing slash)
       // - {username}:{slug}:doc:{elementId} (individual documents)
       // - worldbuilding:{username}:{slug}:{elementId} (worldbuilding data per element)
-      databases.push(`${projectPrefix}:elements`);
-      databases.push(`${projectPrefix}:elements/`);
+      databases.push(`${projectPrefix}:elements`, `${projectPrefix}:elements/`);
 
       // Try to get element IDs from current state
       const elements = this.projectState.elements();
       for (const element of elements) {
-        databases.push(`${projectPrefix}:doc:${element.id}`);
-        databases.push(`${worldbuildingPrefix}:${element.id}`);
+        databases.push(
+          `${projectPrefix}:doc:${element.id}`,
+          `${worldbuildingPrefix}:${element.id}`
+        );
       }
     }
 
@@ -796,7 +797,9 @@ export class SettingsTabComponent implements AfterViewInit {
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+    );
   }
 
   getServerTotalSize(): number {
@@ -841,7 +844,7 @@ export class SettingsTabComponent implements AfterViewInit {
 
     // Check it's different from current slug
     const project = this.projectState.project();
-    if (project && slug === project.slug) return false;
+    if (project?.slug === slug) return false;
 
     return true;
   }
@@ -1069,9 +1072,7 @@ export class SettingsTabComponent implements AfterViewInit {
 
     const currentTab = tabs[currentTabIndex - 1];
 
-    return (
-      currentTab && currentTab.type === 'document' && currentTab.element != null
-    );
+    return currentTab?.type === 'document' && currentTab.element != null;
   }
 
   /**

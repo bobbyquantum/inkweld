@@ -48,9 +48,9 @@ export function parseVersion(version: string): {
     return { major: 0, minor: 0, patch: 0 };
   }
   return {
-    major: parseInt(match[1], 10),
-    minor: parseInt(match[2], 10),
-    patch: parseInt(match[3], 10),
+    major: Number.parseInt(match[1], 10),
+    minor: Number.parseInt(match[2], 10),
+    patch: Number.parseInt(match[3], 10),
   };
 }
 
@@ -257,15 +257,17 @@ export class VersionCompatibilityService {
       let serverProtocolVersion: number;
       if (typeof rawProtocolVersion === 'number') {
         serverProtocolVersion = rawProtocolVersion;
-      } else if (
-        typeof rawProtocolVersion === 'string' &&
-        !isNaN(parseInt(rawProtocolVersion, 10))
-      ) {
-        // Handle case where server returns a string like "1" instead of 1
-        serverProtocolVersion = parseInt(rawProtocolVersion, 10);
-        console.warn(
-          `[VersionCompatibility] Server returned protocolVersion as string "${rawProtocolVersion}", parsed as ${serverProtocolVersion}`
-        );
+      } else if (typeof rawProtocolVersion === 'string') {
+        const parsedProtocolVersion = Number.parseInt(rawProtocolVersion, 10);
+        if (Number.isNaN(parsedProtocolVersion)) {
+          serverProtocolVersion = 1;
+        } else {
+          // Handle case where server returns a string like "1" instead of 1
+          serverProtocolVersion = parsedProtocolVersion;
+          console.warn(
+            `[VersionCompatibility] Server returned protocolVersion as string "${rawProtocolVersion}", parsed as ${serverProtocolVersion}`
+          );
+        }
       } else {
         // Default to 1 if undefined, null, or invalid
         serverProtocolVersion = 1;

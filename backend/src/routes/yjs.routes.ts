@@ -110,7 +110,10 @@ app.get(
             }
 
             // Check access - owner or collaborator
-            if (project.userId !== sessionData.userId) {
+            if (project.userId === sessionData.userId) {
+              // Owner always has write access
+              canWrite = true;
+            } else {
               // Not the owner, check if they're a collaborator
               const access = await collaborationService.checkAccess(
                 db,
@@ -130,9 +133,6 @@ app.get(
               wsLog.info(
                 `Collaborator ${sessionData.username} (${access.role}, canWrite: ${canWrite}) accessing project ${projectOwner}/${slug}`
               );
-            } else {
-              // Owner always has write access
-              canWrite = true;
             }
 
             // Authentication successful!

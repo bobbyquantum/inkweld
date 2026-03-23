@@ -724,7 +724,7 @@ describe('ImageGenerationDialogComponent', () => {
       expect(options[0].value).toBe('1234x5678');
       expect(options[0].label).toBe('1234×5678');
       // Megapixels: 1234 * 5678 = 7,006,652 ≈ 7.01 MP
-      expect(parseFloat(options[0].megapixels)).toBeCloseTo(7.01, 1);
+      expect(Number.parseFloat(options[0].megapixels)).toBeCloseTo(7.01, 1);
     });
   });
 

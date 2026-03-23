@@ -93,7 +93,7 @@ if (!isCloudflareWorkers) {
 
 export const config = {
   // Server
-  port: parseInt(process.env.PORT || '8333', 10),
+  port: Number.parseInt(process.env.PORT || '8333', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   version: process.env.INKWELD_VERSION || '0.1.0',
 
