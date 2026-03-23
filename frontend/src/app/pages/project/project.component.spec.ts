@@ -658,6 +658,20 @@ describe('ProjectComponent', () => {
       expect(component['splitSize']).toBe(25);
       expect(localStorage.getItem('splitSize')).toBe('25');
     });
+
+    it('should ignore invalid stored splitSize on construction', async () => {
+      // Set an invalid value BEFORE creating a new component instance
+      localStorage.setItem('splitSize', 'not-a-number');
+
+      const freshFixture = TestBed.createComponent(ProjectComponent);
+      const freshComponent = freshFixture.componentInstance;
+
+      // Should keep the default value of 25 since 'not-a-number' is not finite
+      expect(freshComponent['splitSize']).toBe(25);
+
+      localStorage.removeItem('splitSize');
+      freshFixture.destroy();
+    });
   });
 
   describe('settings', () => {

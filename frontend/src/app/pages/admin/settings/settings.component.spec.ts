@@ -226,6 +226,26 @@ describe('AdminSettingsComponent', () => {
       expect(component.passwordRequireSymbol()).toBe(true);
     });
 
+    it('should fall back to 8 when stored PASSWORD_MIN_LENGTH is non-numeric', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSWORD_MIN_LENGTH: 'abc' });
+
+      await flushMicrotasks();
+
+      // parseInt('abc') is NaN → NaN || 8 → Math.max(1, 8) → 8
+      expect(component.passwordMinLength()).toBe(8);
+    });
+
+    it('should fall back to 8 when stored PASSWORD_MIN_LENGTH is 0', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSWORD_MIN_LENGTH: '0' });
+
+      await flushMicrotasks();
+
+      // parseInt('0') is 0 → 0 || 8 → Math.max(1, 8) → 8
+      expect(component.passwordMinLength()).toBe(8);
+    });
+
     it('should save password min length', async () => {
       fixture.detectChanges();
       flushAllConfigRequests(httpMock);

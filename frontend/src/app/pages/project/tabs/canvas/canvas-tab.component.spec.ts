@@ -951,6 +951,153 @@ describe('CanvasTabComponent', () => {
       expect(stage.scale).toHaveBeenCalledWith({ x: 1, y: 1 });
       expect(component['zoomLevel']()).toBe(1);
     });
+
+    it('should return early when objects exist but no layers have content', () => {
+      const stage = createStageStub();
+      component['stage'] = stage as never;
+
+      // Config has objects, so it won't take the empty early-return path
+      const configWithObjects = {
+        ...defaultConfig,
+        objects: [
+          {
+            id: 'obj-1',
+            layerId: 'some-layer',
+            type: 'shape' as const,
+            shapeType: 'rect' as const,
+            x: 10,
+            y: 10,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            locked: false,
+            stroke: '#000',
+            strokeWidth: 1,
+          },
+        ],
+      };
+      mockCanvasService.activeConfig.set(configWithObjects);
+
+      // konvaLayers is empty → minX stays Infinity → !Number.isFinite(minX) → return
+      component['konvaLayers'] = new Map();
+
+      component['onFitAll']();
+
+      // Should not have called position/scale because it returned early
+      expect(stage.position).not.toHaveBeenCalled();
+      expect(stage.scale).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('exportAsSvg', () => {
+    let clickSpy: ReturnType<typeof vi.fn>;
+    let createObjectURLSpy: ReturnType<typeof vi.spyOn>;
+    let revokeObjectURLSpy: ReturnType<typeof vi.spyOn>;
+    let createElementSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      clickSpy = vi.fn();
+      const originalCreateElement = document.createElement.bind(document);
+      createElementSpy = vi
+        .spyOn(document, 'createElement')
+        .mockImplementation(
+          (tagName: string, options?: ElementCreationOptions) => {
+            if (tagName === 'a') {
+              return {
+                href: '',
+                download: '',
+                click: clickSpy,
+              } as unknown as HTMLAnchorElement;
+            }
+            return originalCreateElement(tagName, options);
+          }
+        );
+      createObjectURLSpy = vi
+        .spyOn(URL, 'createObjectURL')
+        .mockReturnValue('blob:test');
+      revokeObjectURLSpy = vi
+        .spyOn(URL, 'revokeObjectURL')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      createElementSpy.mockRestore();
+      createObjectURLSpy.mockRestore();
+      revokeObjectURLSpy.mockRestore();
+    });
+
+    it('should use default viewBox when no visible objects exist', () => {
+      const layerId = defaultConfig.layers[0].id;
+      // Objects exist but none are visible → bounds stay at Infinity
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [
+          {
+            id: 'hidden-obj',
+            layerId,
+            type: 'shape' as const,
+            shapeType: 'rect' as const,
+            x: 10,
+            y: 20,
+            width: 100,
+            height: 50,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: false,
+            locked: false,
+            stroke: '#000',
+            strokeWidth: 1,
+          },
+        ],
+      });
+
+      component['exportAsSvg']();
+
+      expect(createObjectURLSpy).toHaveBeenCalled();
+      const blob = createObjectURLSpy.mock.calls[0][0] as Blob;
+      expect(blob.type).toBe('image/svg+xml');
+      expect(clickSpy).toHaveBeenCalled();
+      expect(revokeObjectURLSpy).toHaveBeenCalled();
+    });
+
+    it('should compute correct viewBox from visible objects', () => {
+      const layerId = defaultConfig.layers[0].id;
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [
+          {
+            id: 'rect-1',
+            layerId,
+            type: 'shape' as const,
+            shapeType: 'rect' as const,
+            x: 50,
+            y: 100,
+            width: 200,
+            height: 150,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            locked: false,
+            stroke: '#000',
+            strokeWidth: 1,
+          },
+        ],
+      });
+
+      component['exportAsSvg']();
+
+      expect(createObjectURLSpy).toHaveBeenCalled();
+      // vX = 50 - 20 = 30, vY = 100 - 20 = 80
+      // vW = (250 - 50) + 40 = 240, vH = (250 - 100) + 40 = 190
+      const blob = createObjectURLSpy.mock.calls[0][0] as Blob;
+      expect(blob.type).toBe('image/svg+xml');
+      expect(clickSpy).toHaveBeenCalled();
+    });
   });
 
   describe('resolveImageSrc', () => {

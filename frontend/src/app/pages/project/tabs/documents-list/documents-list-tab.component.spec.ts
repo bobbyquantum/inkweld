@@ -145,6 +145,10 @@ describe('DocumentsListTabComponent', () => {
     expect(component.formatDate(undefined)).toBe('N/A');
   });
 
+  it('should handle invalid date string', () => {
+    expect(component.formatDate('not-a-real-date')).toBe('Invalid date');
+  });
+
   it('should get sync status icon', () => {
     expect(component.getSyncStatusIcon('doc1')).toBe('cloud_done');
   });
