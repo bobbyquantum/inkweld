@@ -7,7 +7,7 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import { type WebSocket } from 'ws';
 import { fileStorageService } from './file-storage.service';
-import * as path from 'path';
+import * as path from 'node:path';
 import { type Element, type ElementType } from '../schemas/element.schemas';
 import { logger } from './logger.service';
 
@@ -24,9 +24,9 @@ interface WSSharedDoc {
 }
 
 export class YjsService {
-  private docs = new Map<string, WSSharedDoc>();
+  private readonly docs = new Map<string, WSSharedDoc>();
   // Map by project key (username:projectSlug) instead of documentId
-  private persistences = new Map<string, LeveldbPersistence>();
+  private readonly persistences = new Map<string, LeveldbPersistence>();
 
   /**
    * Get project key from documentId
@@ -92,7 +92,7 @@ export class YjsService {
     try {
       const persistedState = await persistence.getYDoc(documentId);
 
-      if (persistedState && persistedState.store && persistedState.store.clients.size > 0) {
+      if (persistedState?.store?.clients.size > 0) {
         // Apply persisted state to the document
         const stateVector = Y.encodeStateVector(ydoc);
         const diff = Y.encodeStateAsUpdate(persistedState, stateVector);
@@ -144,15 +144,25 @@ export class YjsService {
       if (value && typeof value === 'object') {
         const elem = value as Record<string, unknown>;
         elements.push({
-          id: String(elem.id ?? ''),
-          name: String(elem.name ?? ''),
+          id: typeof elem.id === 'string' ? elem.id : String(elem.id ?? ''),
+          name: typeof elem.name === 'string' ? elem.name : String(elem.name ?? ''),
           type: (elem.type as ElementType) ?? 'ITEM',
-          parentId: elem.parentId ? String(elem.parentId) : null,
+          parentId:
+            elem.parentId != null && String(elem.parentId).trim() !== ''
+              ? typeof elem.parentId === 'string'
+                ? elem.parentId
+                : String(elem.parentId)
+              : null,
           order: Number(elem.order ?? 0),
           level: Number(elem.level ?? 0),
           expandable: Boolean(elem.expandable ?? false),
           version: Number(elem.version ?? 1),
-          schemaId: elem.schemaId ? String(elem.schemaId) : undefined,
+          schemaId:
+            elem.schemaId != null && String(elem.schemaId).trim() !== ''
+              ? typeof elem.schemaId === 'string'
+                ? elem.schemaId
+                : String(elem.schemaId)
+              : undefined,
           metadata: (elem.metadata as Record<string, string>) ?? {},
         });
       }

@@ -359,9 +359,9 @@ export class AdminAiSettingsComponent implements OnInit {
   /** Load custom image sizes from the API */
   private async loadCustomSizes(): Promise<void> {
     try {
-      const response = await this.imageService
-        .getCustomImageSizes()
-        .toPromise();
+      const response = await firstValueFrom(
+        this.imageService.getCustomImageSizes()
+      );
       this.customSizes.set(response?.sizes || []);
       this.customSizesModified.set(false);
     } catch (err) {
@@ -1072,11 +1072,11 @@ export class AdminAiSettingsComponent implements OnInit {
   async saveCustomSizes(): Promise<void> {
     this.isSaving.set(true);
     try {
-      await this.imageService
-        .updateCustomImageSizes({
+      await firstValueFrom(
+        this.imageService.updateCustomImageSizes({
           sizes: this.customSizes(),
         })
-        .toPromise();
+      );
       this.customSizesModified.set(false);
       this.snackBar.open('Custom sizes saved', 'Close', { duration: 2000 });
     } catch (err) {

@@ -386,12 +386,8 @@ aiTextRoutes.openapi(optimizeImagePromptRoute, async (c) => {
 
   // Try to infer provider from model ID if not explicitly set
   if (model.includes('/')) {
-    // OpenRouter models typically have a slash
-    if (model.startsWith('anthropic/')) {
-      provider = 'openrouter'; // Use OpenRouter for Anthropic models via OR
-    } else {
-      provider = 'openrouter';
-    }
+    // OpenRouter models typically have a slash (including anthropic/ prefixed models)
+    provider = 'openrouter';
   } else if (model.startsWith('claude')) {
     provider = 'anthropic';
   } else if (model.startsWith('gpt') || model.startsWith('o1')) {
@@ -428,9 +424,9 @@ Guidelines:
 - If the input is about a character, focus on their appearance, pose, and setting
 - Output ONLY the optimized prompt, nothing else
 
-${body.targetStyle ? `Target style: ${body.targetStyle}` : ''}
-${body.context ? `Context: ${body.context}` : ''}
-${body.maxLength ? `Maximum length: approximately ${body.maxLength} characters` : ''}`;
+${body.targetStyle ? 'Target style: ' + body.targetStyle : ''}
+${body.context ? 'Context: ' + body.context : ''}
+${body.maxLength ? 'Maximum length: approximately ' + body.maxLength + ' characters' : ''}`;
 
   const systemPrompt = customTemplate || defaultTemplate;
 

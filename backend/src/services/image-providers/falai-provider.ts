@@ -295,8 +295,8 @@ export class FalAiImageProvider extends BaseImageProvider {
     const match = size.match(/^(\d+)x(\d+)$/);
     if (match) {
       return {
-        width: parseInt(match[1], 10),
-        height: parseInt(match[2], 10),
+        width: Number.parseInt(match[1], 10),
+        height: Number.parseInt(match[2], 10),
       };
     }
     // Default to 1024x1024
@@ -332,8 +332,8 @@ export class FalAiImageProvider extends BaseImageProvider {
       // Fallback: if given dimensions, try to convert to aspect ratio
       const dimMatch = size.match(/^(\d+)x(\d+)$/);
       if (dimMatch) {
-        const w = parseInt(dimMatch[1], 10);
-        const h = parseInt(dimMatch[2], 10);
+        const w = Number.parseInt(dimMatch[1], 10);
+        const h = Number.parseInt(dimMatch[2], 10);
         const ratio = this.dimensionsToAspectRatio(w, h);
         return {
           aspect_ratio: ratio,

@@ -88,7 +88,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     try {
       const dateObject = new Date(date);
       // Ensure it's a valid date
-      if (isNaN(dateObject.getTime())) {
+      if (Number.isNaN(dateObject.getTime())) {
         return 'Invalid date';
       }
       return format(dateObject, 'MMM d, yyyy h:mm a');

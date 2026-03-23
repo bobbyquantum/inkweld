@@ -224,6 +224,15 @@ describe('yjs-xml-serializer', () => {
       const data = child.getAttribute('data') as unknown as { key: string };
       expect(data).toEqual({ key: 'value' });
     });
+
+    it('should keep empty attribute value as string, not parse as number 0', () => {
+      applyXmlToFragment(ydoc, fragment, '<custom tag=""/>');
+
+      const child = fragment.get(0) as Y.XmlElement;
+      // Number('') === 0 (not NaN), but the value !== '' guard should prevent it
+      // from being returned as a number
+      expect(child.getAttribute('tag')).toBe('');
+    });
   });
 
   describe('roundtrip', () => {

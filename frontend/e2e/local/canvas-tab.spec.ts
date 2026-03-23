@@ -426,7 +426,7 @@ test.describe('Canvas Tab', () => {
 
     // Zoom label should now show a value > 100%
     const text = await zoomLabel.textContent();
-    const value = parseInt(text?.replaceAll('%', '') ?? '100', 10);
+    const value = Number.parseInt(text?.replaceAll('%', '') ?? '100', 10);
     expect(value).toBeGreaterThan(100);
   });
 
@@ -445,7 +445,7 @@ test.describe('Canvas Tab', () => {
 
     // Zoom label should now show a value < 100%
     const text = await zoomLabel.textContent();
-    const value = parseInt(text?.replaceAll('%', '') ?? '100', 10);
+    const value = Number.parseInt(text?.replaceAll('%', '') ?? '100', 10);
     expect(value).toBeLessThan(100);
   });
 

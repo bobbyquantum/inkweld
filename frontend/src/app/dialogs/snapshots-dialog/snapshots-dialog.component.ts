@@ -15,6 +15,7 @@ import {
   type UnifiedSnapshot,
   UnifiedSnapshotService,
 } from '@services/project/unified-snapshot.service';
+import { firstValueFrom } from 'rxjs';
 
 import {
   ConfirmationDialogComponent,
@@ -118,7 +119,7 @@ export class SnapshotsDialogComponent implements OnInit {
       },
     });
 
-    const result = await dialogRef.afterClosed().toPromise();
+    const result = await firstValueFrom(dialogRef.afterClosed());
     if (result) {
       this.loading.set(true);
       try {
@@ -159,7 +160,7 @@ export class SnapshotsDialogComponent implements OnInit {
       },
     });
 
-    const confirmed = await dialogRef.afterClosed().toPromise();
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
     if (confirmed) {
       this.loading.set(true);
       try {
@@ -209,7 +210,7 @@ export class SnapshotsDialogComponent implements OnInit {
       },
     });
 
-    const confirmed = await dialogRef.afterClosed().toPromise();
+    const confirmed = await firstValueFrom(dialogRef.afterClosed());
     if (!confirmed) {
       return;
     }
