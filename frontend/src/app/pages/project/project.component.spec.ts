@@ -659,7 +659,7 @@ describe('ProjectComponent', () => {
       expect(localStorage.getItem('splitSize')).toBe('25');
     });
 
-    it('should ignore invalid stored splitSize on construction', async () => {
+    it('should ignore invalid stored splitSize on construction', () => {
       // Set an invalid value BEFORE creating a new component instance
       localStorage.setItem('splitSize', 'not-a-number');
 
