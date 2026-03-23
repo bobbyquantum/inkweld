@@ -626,6 +626,52 @@ describe('ProjectComponent', () => {
 
       expect(localStorage.getItem('splitSize')).toBeNull();
     });
+
+    it('should not persist NaN split size', () => {
+      component['isMobile'].set(false);
+      localStorage.setItem('splitSize', '25');
+      component['splitSize'] = 25;
+
+      const mockEvent: SplitGutterInteractionEvent = {
+        sizes: ['not-a-number' as unknown as number, 70],
+        gutterNum: 1,
+      };
+      component.onSplitDragEnd(mockEvent);
+
+      // Should retain previous value
+      expect(component['splitSize']).toBe(25);
+      expect(localStorage.getItem('splitSize')).toBe('25');
+    });
+
+    it('should not persist Infinity split size', () => {
+      component['isMobile'].set(false);
+      localStorage.setItem('splitSize', '25');
+      component['splitSize'] = 25;
+
+      const mockEvent: SplitGutterInteractionEvent = {
+        sizes: [Infinity, 70],
+        gutterNum: 1,
+      };
+      component.onSplitDragEnd(mockEvent);
+
+      // Should retain previous value
+      expect(component['splitSize']).toBe(25);
+      expect(localStorage.getItem('splitSize')).toBe('25');
+    });
+
+    it('should ignore invalid stored splitSize on construction', () => {
+      // Set an invalid value BEFORE creating a new component instance
+      localStorage.setItem('splitSize', 'not-a-number');
+
+      const freshFixture = TestBed.createComponent(ProjectComponent);
+      const freshComponent = freshFixture.componentInstance;
+
+      // Should keep the default value of 25 since 'not-a-number' is not finite
+      expect(freshComponent['splitSize']).toBe(25);
+
+      localStorage.removeItem('splitSize');
+      freshFixture.destroy();
+    });
   });
 
   describe('settings', () => {

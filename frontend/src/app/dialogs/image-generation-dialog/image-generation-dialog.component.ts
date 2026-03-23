@@ -331,24 +331,24 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     // First check if it's a plain ratio like "16:9"
     const plainMatch = sizeValue.match(/^(\d+):(\d+)$/);
     if (plainMatch) {
-      const w = parseInt(plainMatch[1], 10);
-      const h = parseInt(plainMatch[2], 10);
+      const w = Number.parseInt(plainMatch[1], 10);
+      const h = Number.parseInt(plainMatch[2], 10);
       return this.normalizeToViewbox(w, h, 16);
     }
 
     // Check if it's a ratio with resolution like "16:9@4K"
     const withResMatch = sizeValue.match(/^(\d+):(\d+)@/);
     if (withResMatch) {
-      const w = parseInt(withResMatch[1], 10);
-      const h = parseInt(withResMatch[2], 10);
+      const w = Number.parseInt(withResMatch[1], 10);
+      const h = Number.parseInt(withResMatch[2], 10);
       return this.normalizeToViewbox(w, h, 16);
     }
 
     // Check if it's a dimension format like "1920x1080"
     const dimMatch = sizeValue.match(/^(\d+)x(\d+)$/);
     if (dimMatch) {
-      const w = parseInt(dimMatch[1], 10);
-      const h = parseInt(dimMatch[2], 10);
+      const w = Number.parseInt(dimMatch[1], 10);
+      const h = Number.parseInt(dimMatch[2], 10);
       return this.normalizeToViewbox(w, h, 16);
     }
 
@@ -434,8 +434,8 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
           // Parse dimensions
           const match = size.match(/^(\d+)x(\d+)$/);
           if (match) {
-            const w = parseInt(match[1], 10);
-            const h = parseInt(match[2], 10);
+            const w = Number.parseInt(match[1], 10);
+            const h = Number.parseInt(match[2], 10);
             const mp = (w * h) / 1_000_000;
             options.push({
               value: size as ImageSize,

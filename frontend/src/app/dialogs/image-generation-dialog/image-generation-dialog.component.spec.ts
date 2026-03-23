@@ -724,7 +724,7 @@ describe('ImageGenerationDialogComponent', () => {
       expect(options[0].value).toBe('1234x5678');
       expect(options[0].label).toBe('1234×5678');
       // Megapixels: 1234 * 5678 = 7,006,652 ≈ 7.01 MP
-      expect(parseFloat(options[0].megapixels)).toBeCloseTo(7.01, 1);
+      expect(Number.parseFloat(options[0].megapixels)).toBeCloseTo(7.01, 1);
     });
   });
 
@@ -1153,6 +1153,47 @@ describe('ImageGenerationDialogComponent', () => {
 
     it('should return category for unknown type', () => {
       expect(component.getElementIcon('unknown-type')).toBe('category');
+    });
+  });
+
+  describe('getAspectRatioPreview', () => {
+    beforeEach(async () => {
+      fixture.detectChanges();
+      await flushPromises();
+    });
+
+    it('should parse a plain ratio like "16:9"', () => {
+      const result = component.getAspectRatioPreview('16:9');
+      // ratio = 16/9 ≈ 1.78, >= 1 → width=16, height=Math.round(16/1.78) = 9
+      expect(result).toEqual({ width: 16, height: 9 });
+    });
+
+    it('should parse a square ratio "1:1"', () => {
+      const result = component.getAspectRatioPreview('1:1');
+      // ratio = 1, >= 1 → width=16, height=Math.round(16/1) = 16
+      expect(result).toEqual({ width: 16, height: 16 });
+    });
+
+    it('should parse a portrait ratio "9:16"', () => {
+      const result = component.getAspectRatioPreview('9:16');
+      // ratio = 9/16 = 0.5625, < 1 → width=Math.round(16*0.5625)=9, height=16
+      expect(result).toEqual({ width: 9, height: 16 });
+    });
+
+    it('should parse a ratio with resolution like "16:9@4K"', () => {
+      const result = component.getAspectRatioPreview('16:9@4K');
+      expect(result).toEqual({ width: 16, height: 9 });
+    });
+
+    it('should parse a dimension format like "1920x1080"', () => {
+      const result = component.getAspectRatioPreview('1920x1080');
+      // ratio = 1920/1080 ≈ 1.78, >= 1 → width=16, height=Math.round(16/1.78)=9
+      expect(result).toEqual({ width: 16, height: 9 });
+    });
+
+    it('should return square for unknown format', () => {
+      const result = component.getAspectRatioPreview('unknown');
+      expect(result).toEqual({ width: 16, height: 16 });
     });
   });
 });

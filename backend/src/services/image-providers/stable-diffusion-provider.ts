@@ -224,6 +224,6 @@ export class StableDiffusionProvider extends BaseImageProvider {
     if (parts.length !== 2) {
       return [1024, 1024];
     }
-    return [parseInt(parts[0], 10), parseInt(parts[1], 10)];
+    return [Number.parseInt(parts[0], 10), Number.parseInt(parts[1], 10)];
   }
 }
