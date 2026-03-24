@@ -97,17 +97,17 @@ describe('spa-utils', () => {
     it('should find file by exact path and return matchedPath', () => {
       const result = findEmbeddedFile(files, 'assets/main.js');
       expect(result).toBeDefined();
-      expect(result!.file).toBe('console.log("hi")');
-      expect(result!.matchedPath).toBe('assets/main.js');
-      expect(result!.foundByBasename).toBe(false);
+      expect(result?.file).toBe('console.log("hi")');
+      expect(result?.matchedPath).toBe('assets/main.js');
+      expect(result?.foundByBasename).toBe(false);
     });
 
     it('should find file by basename fallback and return matched basename', () => {
       const result = findEmbeddedFile(files, 'dist/assets/index.html');
       expect(result).toBeDefined();
-      expect(result!.file).toBe('<html>');
-      expect(result!.matchedPath).toBe('index.html');
-      expect(result!.foundByBasename).toBe(true);
+      expect(result?.file).toBe('<html>');
+      expect(result?.matchedPath).toBe('index.html');
+      expect(result?.foundByBasename).toBe(true);
     });
 
     it('should return undefined for non-existent file', () => {
@@ -117,8 +117,8 @@ describe('spa-utils', () => {
     it('should prefer exact match over basename', () => {
       const result = findEmbeddedFile(files, 'index.html');
       expect(result).toBeDefined();
-      expect(result!.matchedPath).toBe('index.html');
-      expect(result!.foundByBasename).toBe(false);
+      expect(result?.matchedPath).toBe('index.html');
+      expect(result?.foundByBasename).toBe(false);
     });
   });
 
