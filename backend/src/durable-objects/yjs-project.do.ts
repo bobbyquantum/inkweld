@@ -27,6 +27,7 @@ import { encodeAwarenessUpdate } from 'y-protocols/awareness';
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
 import { logger } from '../services/logger.service';
+import { stripTrailingSlashes } from '../utils/string-utils';
 import { decodeXmlEntities } from '../utils/xml-utils';
 
 const projDOLog = logger.child('YjsProjectDO');
@@ -215,7 +216,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     }
 
     // Normalize documentId
-    documentId = documentId.replace(/\/+$/, '');
+    documentId = stripTrailingSlashes(documentId);
     console.log('[DO-HTTP] documentId:', documentId);
 
     // Extract projectId
@@ -916,7 +917,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     }
 
     // Remove trailing slashes if present
-    documentId = documentId.replace(/\/+$/, '');
+    documentId = stripTrailingSlashes(documentId);
 
     // Extract projectId from documentId (username:slug)
     const parts = documentId.split(':');

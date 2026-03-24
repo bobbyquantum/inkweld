@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 
 import { environment } from '../../../environments/environment';
+import { stripTrailingSlashes } from '../../utils/string-utils';
 import {
   type ServerConfig,
   type ServerVersionInfo,
@@ -235,7 +236,7 @@ export class VersionCompatibilityService {
     this.checking.set(true);
     try {
       // Strip trailing slashes to prevent double-slash URLs (e.g., "https://example.com//api/v1/...")
-      const normalizedUrl = serverUrl.replace(/\/+$/, '');
+      const normalizedUrl = stripTrailingSlashes(serverUrl);
       const response = await fetch(`${normalizedUrl}/api/v1/health`);
       if (!response.ok) {
         console.warn(
