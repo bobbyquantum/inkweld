@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
 
 @Injectable()
 export class MockDocumentService {
-  private connectedDocuments = new Set<string>();
+  private readonly connectedDocuments = new Set<string>();
 
   setupCollaboration(editor: any, documentId: string): Promise<void> {
     if (this.connectedDocuments.has(documentId)) {
-      return Promise.reject('Document already connected');
+      return Promise.reject(new Error('Document already connected'));
     }
     this.connectedDocuments.add(documentId);
     return Promise.resolve();
@@ -21,7 +20,3 @@ export class MockDocumentService {
     return this.connectedDocuments.has(documentId);
   }
 }
-
-
-
-

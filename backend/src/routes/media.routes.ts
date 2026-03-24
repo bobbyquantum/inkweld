@@ -338,7 +338,7 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
   // Determine content type
   const contentType = lookup(filename) || 'application/octet-stream';
 
-  const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
+  const uint8Array = new Uint8Array(data);
 
   // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
   const safeFilename = filename.replaceAll(/["\\\r\n]/g, '').replaceAll(/[^\x20-\x7E]/g, '_');

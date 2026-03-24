@@ -63,8 +63,8 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
   styleUrls: ['./project-tree.component.scss'],
 })
 export class ProjectTreeComponent implements OnDestroy {
-  private dialogGateway = inject(DialogGatewayService);
-  private logger = inject(LoggerService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly logger = inject(LoggerService);
   private readonly projectSearchService = inject(ProjectSearchService);
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
@@ -146,7 +146,7 @@ export class ProjectTreeComponent implements OnDestroy {
 
   contextItem: ProjectElement | null = null;
   private recentTouchNodeId: string | null = null;
-  private touchTimeout: number | null = null;
+  private touchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   @Output() documentOpened = new EventEmitter<Element>();
 
@@ -174,13 +174,14 @@ export class ProjectTreeComponent implements OnDestroy {
           elemId = tab.element.id;
         }
         // Clear selectedItem when on home tab, otherwise find matching element
-        this.selectedItem = isHome
-          ? null
-          : elemId
-            ? this.projectStateService
-                .visibleElements()
-                .find(el => el.id === elemId) || null
-            : null;
+        if (isHome || !elemId) {
+          this.selectedItem = null;
+        } else {
+          this.selectedItem =
+            this.projectStateService
+              .visibleElements()
+              .find(el => el.id === elemId) || null;
+        }
       }
     });
   }
@@ -214,7 +215,7 @@ export class ProjectTreeComponent implements OnDestroy {
     this.projectStateService.toggleExpanded(node.id);
 
     // Clear the recent touch flag after a short delay
-    this.touchTimeout = window.setTimeout(() => {
+    this.touchTimeout = globalThis.setTimeout(() => {
       this.recentTouchNodeId = null;
       this.touchTimeout = null;
     }, 300);
@@ -326,10 +327,12 @@ export class ProjectTreeComponent implements OnDestroy {
     const intendedLevel = Math.floor(relativeX / indentPerLevel);
     const validLevels = this.validLevelsArray;
 
-    const selectedLevel = validLevels.reduce((prev, curr) =>
-      Math.abs(curr - intendedLevel) < Math.abs(prev - intendedLevel)
-        ? curr
-        : prev
+    const selectedLevel = validLevels.reduce(
+      (prev, curr) =>
+        Math.abs(curr - intendedLevel) < Math.abs(prev - intendedLevel)
+          ? curr
+          : prev,
+      validLevels[0]
     );
 
     this.currentDropLevel = selectedLevel;
@@ -469,7 +472,7 @@ export class ProjectTreeComponent implements OnDestroy {
     // Capture the target folder ID before resetting state
     const targetFolderId = this.targetParentFolderId();
 
-    void this.projectStateService.moveElement(
+    this.projectStateService.moveElement(
       node.id,
       insertIndex,
       this.currentDropLevel
@@ -501,7 +504,7 @@ export class ProjectTreeComponent implements OnDestroy {
     });
 
     if (newName) {
-      void this.projectStateService.renameNode(node, newName);
+      this.projectStateService.renameNode(node, newName);
     }
   }
 
@@ -521,7 +524,7 @@ export class ProjectTreeComponent implements OnDestroy {
     if (result) {
       // Close any open editor tab for this file before deleting
       this.projectStateService.closeTabByElementId(node.id);
-      void this.projectStateService.deleteElement(node.id);
+      this.projectStateService.deleteElement(node.id);
     }
   }
 
@@ -554,7 +557,7 @@ export class ProjectTreeComponent implements OnDestroy {
       id: node.id ?? '',
       name: node.name,
       type: node.type,
-      parentId: null, // TODO: Get actual parentId from node if available
+      parentId: node.parentId ?? null,
       level: node.level,
       order: node.order,
       version: 0,

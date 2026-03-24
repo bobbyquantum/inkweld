@@ -31,7 +31,7 @@
         (keydown.enter)="selectCategory('authorized-apps')"
         [attr.aria-selected]="selectedCategory === 'authorized-apps'"
         [class.active]="selectedCategory === 'authorized-apps'"
-        tabindex="1"
+        tabindex="0"
         aria-label="Authorized Apps settings">
         <mat-icon matListItemIcon>apps</mat-icon>
         <span matListItemTitle>Authorized Apps</span>
@@ -43,7 +43,7 @@
         (keydown.enter)="selectCategory('project-tree')"
         [attr.aria-selected]="selectedCategory === 'project-tree'"
         [class.active]="selectedCategory === 'project-tree'"
-        tabindex="2"
+        tabindex="0"
         aria-label="Project Tree settings">
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <span matListItemTitle>Project Tree</span>
@@ -55,7 +55,7 @@
         (keydown.enter)="selectCategory('project')"
         [attr.aria-selected]="selectedCategory === 'project'"
         [class.active]="selectedCategory === 'project'"
-        tabindex="3"
+        tabindex="0"
         aria-label="Project settings">
         <mat-icon matListItemIcon>description</mat-icon>
         <span matListItemTitle>Project</span>

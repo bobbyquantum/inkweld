@@ -31,6 +31,24 @@ const mcpImageLog = logger.child('MCP-Image');
 // Helper functions
 // ============================================
 
+/** Safely extract a string from an unknown MCP argument, avoiding Object.toString() */
+function stringArg(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value.trim() : fallback;
+}
+
+/** Safely extract an optional string from an unknown MCP argument */
+function optionalStringArg(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+/** Resolve the output mode based on detected MIME type */
+function resolveOutputMode(mode: string, mimeType: string): string {
+  if (mode !== 'auto') return mode;
+  if (mimeType.startsWith('image/')) return 'image';
+  if (isTextLikeMime(mimeType)) return 'text';
+  return 'base64';
+}
+
 /**
  * Property schema for project parameter (reused across all tools)
  */
@@ -48,7 +66,7 @@ function parseProjectParam(
   projectArg: unknown,
   permission: string
 ): { project: ActiveProjectContext } | { error: McpToolResult } {
-  const projectStr = String(projectArg ?? '').trim();
+  const projectStr = stringArg(projectArg);
 
   if (!projectStr) {
     return {
@@ -179,6 +197,370 @@ function getStorageServiceForContext(ctx: McpContext) {
   return getStorageService(storageBinding);
 }
 
+interface GenerationMeta {
+  revisedPrompt?: string;
+  profileId?: string;
+  provider?: string;
+  model?: string;
+}
+
+interface AcquiredImage {
+  buffer: Buffer;
+  mimeType: string;
+  meta: GenerationMeta;
+}
+
+interface ImageContext {
+  db: unknown;
+  ctx: McpContext;
+  storageService: ReturnType<typeof getStorageService>;
+  username: string;
+  slug: string;
+}
+
+type AcquireResult = { image: AcquiredImage } | { error: McpToolResult };
+
+async function acquireFromGenerate(
+  args: Record<string, unknown>,
+  db: unknown,
+  target: string
+): Promise<AcquireResult> {
+  const prompt = stringArg(args.prompt);
+  const profileId = stringArg(args.profileId);
+
+  if (!prompt) {
+    return {
+      error: {
+        content: [{ type: 'text', text: 'Error: prompt is required for source "generate"' }],
+        isError: true,
+      },
+    };
+  }
+  if (!profileId) {
+    return {
+      error: {
+        content: [{ type: 'text', text: 'Error: profileId is required for source "generate"' }],
+        isError: true,
+      },
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isAvailable = await imageGenerationService.isAvailable(db as any);
+  if (!isAvailable) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: No image generation provider is available. Please configure an AI image provider.',
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const profile = await resolveImageProfile(db as DatabaseInstance, profileId);
+  if (!profile) {
+    return {
+      error: {
+        content: [{ type: 'text', text: 'Error: No enabled image profile found.' }],
+        isError: true,
+      },
+    };
+  }
+
+  // defaultSize is text() in schema → string | null; cast needed to narrow to ImageSize union
+  const size: ImageSize =
+    target === 'projectCover' ? '1248x832' : ((profile.defaultSize || '1024x1024') as ImageSize);
+
+  const request: ResolvedImageRequest = {
+    prompt,
+    profileId: profile.id,
+    provider: profile.provider as ImageProviderType,
+    model: profile.modelId,
+    size,
+    n: 1,
+    options: profile.modelConfig || undefined,
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const genResult = await imageGenerationService.generate(db as any, request);
+
+  if (!genResult.data || genResult.data.length === 0) {
+    return {
+      error: {
+        content: [{ type: 'text', text: 'Error: No images were generated' }],
+        isError: true,
+      },
+    };
+  }
+
+  const image = genResult.data[0];
+  if (!image.b64Json) {
+    return {
+      error: {
+        content: [{ type: 'text', text: 'Error: No base64 image data returned' }],
+        isError: true,
+      },
+    };
+  }
+
+  return {
+    image: {
+      buffer: Buffer.from(image.b64Json, 'base64'),
+      mimeType: 'image/png',
+      meta: {
+        revisedPrompt: image.revisedPrompt,
+        profileId: profile.id,
+        provider: genResult.provider,
+        model: genResult.model,
+      },
+    },
+  };
+}
+
+function acquireFromUpload(args: Record<string, unknown>): AcquireResult {
+  let rawBase64 = stringArg(args.base64Data);
+
+  if (!rawBase64) {
+    return {
+      error: {
+        content: [{ type: 'text', text: 'Error: base64Data is required for source "upload"' }],
+        isError: true,
+      },
+    };
+  }
+
+  let mimeType = 'image/png';
+  if (rawBase64.startsWith('data:')) {
+    const matches = /^data:(image\/[^;]+);base64,(.+)$/.exec(rawBase64);
+    if (matches) {
+      mimeType = matches[1];
+      rawBase64 = matches[2];
+    } else {
+      const commaIndex = rawBase64.indexOf(',');
+      if (commaIndex > 0) {
+        rawBase64 = rawBase64.substring(commaIndex + 1);
+      }
+    }
+  }
+
+  return { image: { buffer: Buffer.from(rawBase64, 'base64'), mimeType, meta: {} } };
+}
+
+async function acquireFromMedia(
+  args: Record<string, unknown>,
+  storageService: ReturnType<typeof getStorageService>,
+  username: string,
+  slug: string
+): Promise<AcquireResult> {
+  const mediaUrlArg = stringArg(args.mediaUrl);
+  const filename = parseMediaFilename(mediaUrlArg, undefined);
+
+  if (!filename) {
+    return {
+      error: {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: mediaUrl is required for source "media" (e.g. media://cover.jpg)',
+          },
+        ],
+        isError: true,
+      },
+    };
+  }
+
+  const exists = await storageService.projectFileExists(username, slug, filename);
+  if (!exists) {
+    return {
+      error: {
+        content: [{ type: 'text', text: `Error: media file not found: ${filename}` }],
+        isError: true,
+      },
+    };
+  }
+
+  const data = await storageService.readProjectFile(username, slug, filename);
+  if (!data) {
+    return {
+      error: {
+        content: [{ type: 'text', text: `Error: media file is empty: ${filename}` }],
+        isError: true,
+      },
+    };
+  }
+
+  return {
+    image: {
+      buffer: toBuffer(data),
+      mimeType: String(lookup(filename) || 'image/png'),
+      meta: {},
+    },
+  };
+}
+
+async function applyToProjectCover(
+  ic: ImageContext,
+  projectId: string,
+  imageBuffer: Buffer,
+  source: string,
+  generationMeta: GenerationMeta
+): Promise<McpToolResult> {
+  const validation = await imageService.validateImage(imageBuffer);
+  if (!validation.valid) {
+    return {
+      content: [{ type: 'text', text: `Error: Invalid image - ${validation.error}` }],
+      isError: true,
+    };
+  }
+
+  const processedImage = await imageService.processCoverImage(imageBuffer);
+  const savedFilename = `cover-${Date.now()}.jpg`;
+  const savedMediaUrl = `media://${savedFilename}`;
+
+  // Delete old cover file if it exists
+  const project = await projectService.findByUsernameAndSlug(
+    ic.db as DatabaseInstance,
+    ic.username,
+    ic.slug
+  );
+  if (project?.coverImage && project.coverImage !== savedFilename) {
+    try {
+      await ic.storageService.deleteProjectFile(ic.username, ic.slug, project.coverImage);
+    } catch {
+      // Old file may not exist, that's fine
+    }
+  }
+
+  await ic.storageService.saveProjectFile(
+    ic.username,
+    ic.slug,
+    savedFilename,
+    processedImage,
+    'image/jpeg'
+  );
+  await projectService.update(ic.db as DatabaseInstance, projectId, { coverImage: savedFilename });
+
+  // Update Yjs projectMeta so connected clients see the new cover immediately
+  const coverMediaId = savedFilename.replace(/\.[^.]+$/, '');
+  try {
+    await updateProjectMetaCoverMediaId(ic.ctx, ic.username, ic.slug, coverMediaId);
+  } catch {
+    mcpImageLog.warn('Failed to update Yjs coverMediaId (cover saved successfully)');
+  }
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Set project cover image: ${savedFilename} (${Math.round(processedImage.length / 1024)}KB)`,
+      },
+    ],
+    structuredContent: {
+      success: true,
+      source,
+      target: 'projectCover',
+      filename: savedFilename,
+      mediaUrl: savedMediaUrl,
+      sizeBytes: processedImage.length,
+      ...generationMeta,
+    },
+  };
+}
+
+async function applyToElementImage(
+  ic: ImageContext,
+  elementId: string,
+  imageBuffer: Buffer,
+  imageMimeType: string,
+  source: string,
+  generationMeta: GenerationMeta
+): Promise<McpToolResult> {
+  const extension = imageMimeType === 'image/jpeg' ? 'jpg' : 'png';
+  const savedFilename = `element-${elementId}.${extension}`;
+  const savedMediaUrl = `media://${savedFilename}`;
+
+  await ic.storageService.saveProjectFile(
+    ic.username,
+    ic.slug,
+    savedFilename,
+    imageBuffer,
+    imageMimeType
+  );
+  await updateWorldbuilding(
+    ic.ctx,
+    ic.username,
+    ic.slug,
+    elementId,
+    { image: savedMediaUrl },
+    'identity'
+  );
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Set image for element "${elementId}": ${savedFilename} (${Math.round(imageBuffer.length / 1024)}KB)`,
+      },
+    ],
+    structuredContent: {
+      success: true,
+      source,
+      target: 'elementImage',
+      elementId,
+      filename: savedFilename,
+      mediaUrl: savedMediaUrl,
+      sizeBytes: imageBuffer.length,
+      ...generationMeta,
+    },
+  };
+}
+
+async function saveAndReturnImage(
+  ic: ImageContext,
+  imageBuffer: Buffer,
+  imageMimeType: string,
+  source: string,
+  generationMeta: GenerationMeta
+): Promise<McpToolResult> {
+  const extension = imageMimeType === 'image/jpeg' ? 'jpg' : 'png';
+  const savedFilename = `generated-${Date.now()}.${extension}`;
+  const savedMediaUrl = `media://${savedFilename}`;
+
+  await ic.storageService.saveProjectFile(
+    ic.username,
+    ic.slug,
+    savedFilename,
+    imageBuffer,
+    imageMimeType
+  );
+  const base64 = imageBuffer.toString('base64');
+
+  return {
+    content: [
+      {
+        type: 'text',
+        text: `Image ready: ${savedFilename} (${Math.round(imageBuffer.length / 1024)}KB)`,
+      },
+      ...(imageMimeType.startsWith('image/')
+        ? [{ type: 'image' as const, data: base64, mimeType: imageMimeType }]
+        : []),
+    ],
+    structuredContent: {
+      success: true,
+      source,
+      target: 'none',
+      filename: savedFilename,
+      mediaUrl: savedMediaUrl,
+      sizeBytes: imageBuffer.length,
+      ...generationMeta,
+    },
+  };
+}
+
 async function resolveImageProfile(
   db: DatabaseInstance,
   profileId: string
@@ -229,7 +611,7 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const prefix = args.prefix !== undefined ? String(args.prefix) : undefined;
+    const prefix = optionalStringArg(args.prefix);
     const includeNonMedia = Boolean(args.includeNonMedia);
 
     try {
@@ -308,10 +690,10 @@ registerTool({
 
       const summary = profiles
         .slice(0, 20)
-        .map(
-          (profile) =>
-            `- ${profile.id}: ${profile.name} (${profile.provider}/${profile.modelId}${profile.defaultSize ? `, default ${profile.defaultSize}` : ''})`
-        )
+        .map((profile) => {
+          const sizeInfo = profile.defaultSize ? `, default ${profile.defaultSize}` : '';
+          return `- ${profile.id}: ${profile.name} (${profile.provider}/${profile.modelId}${sizeInfo})`;
+        })
         .join('\n');
 
       return {
@@ -384,9 +766,9 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const mediaUrl = args.mediaUrl !== undefined ? String(args.mediaUrl) : undefined;
-    const filenameArg = args.filename !== undefined ? String(args.filename) : undefined;
-    const outputMode = String(args.as ?? 'auto');
+    const mediaUrl = optionalStringArg(args.mediaUrl);
+    const filenameArg = optionalStringArg(args.filename);
+    const outputMode = stringArg(args.as, 'auto');
     const maxBytes = Number(args.maxBytes ?? 262144);
 
     const filename = parseMediaFilename(mediaUrl, filenameArg);
@@ -449,14 +831,7 @@ registerTool({
 
       const mimeType = String(lookup(filename) || 'application/octet-stream');
       const base64 = buffer.toString('base64');
-      const resolvedMode =
-        outputMode === 'auto'
-          ? mimeType.startsWith('image/')
-            ? 'image'
-            : isTextLikeMime(mimeType)
-              ? 'text'
-              : 'base64'
-          : outputMode;
+      const resolvedMode = resolveOutputMode(outputMode, mimeType);
 
       if (resolvedMode === 'image') {
         if (!mimeType.startsWith('image/')) {
@@ -614,9 +989,9 @@ registerTool({
     db: unknown,
     args: Record<string, unknown>
   ): Promise<McpToolResult> {
-    const source = String(args.source ?? '').trim();
-    const target = String(args.target ?? 'none').trim();
-    const elementId = args.elementId ? String(args.elementId).trim() : undefined;
+    const source = stringArg(args.source);
+    const target = stringArg(args.target, 'none');
+    const elementId = optionalStringArg(args.elementId);
 
     // --- Validate source ---
     if (!['generate', 'upload', 'media'].includes(source)) {
@@ -645,338 +1020,55 @@ registerTool({
       };
     }
 
-    // --- Determine permission needed ---
-    const permission =
-      target === 'projectCover'
-        ? MCP_PERMISSIONS.WRITE_WORLDBUILDING
-        : target === 'elementImage'
-          ? MCP_PERMISSIONS.WRITE_WORLDBUILDING
-          : MCP_PERMISSIONS.WRITE_WORLDBUILDING;
-
-    const result = parseProjectParam(ctx, args.project, permission);
+    const result = parseProjectParam(ctx, args.project, MCP_PERMISSIONS.WRITE_WORLDBUILDING);
     if ('error' in result) return result.error;
     const { username, slug, projectId } = result.project;
 
     try {
       const storageService = getStorageServiceForContext(ctx);
 
-      // ==============================
+      const ic: ImageContext = { db, ctx, storageService, username, slug };
+
       // Step 1: Acquire image buffer
-      // ==============================
-      let imageBuffer: Buffer;
-      let imageMimeType = 'image/png';
-      let generationMeta: {
-        revisedPrompt?: string;
-        profileId?: string;
-        provider?: string;
-        model?: string;
-      } = {};
-
+      let acquireResult: AcquireResult;
       if (source === 'generate') {
-        const prompt = String(args.prompt ?? '').trim();
-        const profileId = String(args.profileId ?? '').trim();
-
-        if (!prompt) {
-          return {
-            content: [{ type: 'text', text: 'Error: prompt is required for source "generate"' }],
-            isError: true,
-          };
-        }
-        if (!profileId) {
-          return {
-            content: [{ type: 'text', text: 'Error: profileId is required for source "generate"' }],
-            isError: true,
-          };
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isAvailable = await imageGenerationService.isAvailable(db as any);
-        if (!isAvailable) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Error: No image generation provider is available. Please configure an AI image provider.',
-              },
-            ],
-            isError: true,
-          };
-        }
-
-        const profile = await resolveImageProfile(db as DatabaseInstance, profileId);
-        if (!profile) {
-          return {
-            content: [{ type: 'text', text: 'Error: No enabled image profile found.' }],
-            isError: true,
-          };
-        }
-
-        // Use landscape size for project covers, profile default otherwise
-        const size =
-          target === 'projectCover'
-            ? '1248x832'
-            : ((profile.defaultSize || '1024x1024') as ImageSize);
-
-        const request: ResolvedImageRequest = {
-          prompt,
-          profileId: profile.id,
-          provider: profile.provider as ImageProviderType,
-          model: profile.modelId,
-          size,
-          n: 1,
-          options: profile.modelConfig || undefined,
-        };
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const genResult = await imageGenerationService.generate(db as any, request);
-
-        if (!genResult.data || genResult.data.length === 0) {
-          return {
-            content: [{ type: 'text', text: 'Error: No images were generated' }],
-            isError: true,
-          };
-        }
-
-        const image = genResult.data[0];
-        if (!image.b64Json) {
-          return {
-            content: [{ type: 'text', text: 'Error: No base64 image data returned' }],
-            isError: true,
-          };
-        }
-
-        imageBuffer = Buffer.from(image.b64Json, 'base64');
-        imageMimeType = 'image/png';
-        generationMeta = {
-          revisedPrompt: image.revisedPrompt,
-          profileId: profile.id,
-          provider: genResult.provider,
-          model: genResult.model,
-        };
+        acquireResult = await acquireFromGenerate(args, db, target);
       } else if (source === 'upload') {
-        let rawBase64 = String(args.base64Data ?? '').trim();
-
-        if (!rawBase64) {
-          return {
-            content: [{ type: 'text', text: 'Error: base64Data is required for source "upload"' }],
-            isError: true,
-          };
-        }
-
-        // Parse data: URL if provided
-        if (rawBase64.startsWith('data:')) {
-          const matches = rawBase64.match(/^data:(image\/[^;]+);base64,(.+)$/);
-          if (matches) {
-            imageMimeType = matches[1];
-            rawBase64 = matches[2];
-          } else {
-            const commaIndex = rawBase64.indexOf(',');
-            if (commaIndex > 0) {
-              rawBase64 = rawBase64.substring(commaIndex + 1);
-            }
-          }
-        }
-
-        imageBuffer = Buffer.from(rawBase64, 'base64');
+        acquireResult = acquireFromUpload(args);
       } else {
-        // source === 'media'
-        const mediaUrlArg = String(args.mediaUrl ?? '').trim();
-        const filename = parseMediaFilename(mediaUrlArg, undefined);
-
-        if (!filename) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Error: mediaUrl is required for source "media" (e.g. media://cover.jpg)',
-              },
-            ],
-            isError: true,
-          };
-        }
-
-        const exists = await storageService.projectFileExists(username, slug, filename);
-        if (!exists) {
-          return {
-            content: [{ type: 'text', text: `Error: media file not found: ${filename}` }],
-            isError: true,
-          };
-        }
-
-        const data = await storageService.readProjectFile(username, slug, filename);
-        if (!data) {
-          return {
-            content: [{ type: 'text', text: `Error: media file is empty: ${filename}` }],
-            isError: true,
-          };
-        }
-
-        imageBuffer = toBuffer(data);
-        imageMimeType = String(lookup(filename) || 'image/png');
+        acquireResult = await acquireFromMedia(args, storageService, username, slug);
       }
+      if ('error' in acquireResult) return acquireResult.error;
 
-      // ==============================
+      const {
+        buffer: imageBuffer,
+        mimeType: imageMimeType,
+        meta: generationMeta,
+      } = acquireResult.image;
+
       // Step 2: Apply to target
-      // ==============================
-      let savedFilename: string;
-      let savedMediaUrl: string;
-
       if (target === 'projectCover') {
-        // Validate image
-        const validation = await imageService.validateImage(imageBuffer);
-        if (!validation.valid) {
-          return {
-            content: [{ type: 'text', text: `Error: Invalid image - ${validation.error}` }],
-            isError: true,
-          };
-        }
-
-        // Process as cover image (resize/crop to standard cover dimensions)
-        const processedImage = await imageService.processCoverImage(imageBuffer);
-
-        // Generate unique cover filename
-        savedFilename = `cover-${Date.now()}.jpg`;
-        savedMediaUrl = `media://${savedFilename}`;
-
-        // Delete old cover file if it exists
-        const project = await projectService.findByUsernameAndSlug(
-          db as DatabaseInstance,
-          username,
-          slug
-        );
-        if (project?.coverImage && project.coverImage !== savedFilename) {
-          try {
-            await storageService.deleteProjectFile(username, slug, project.coverImage);
-          } catch {
-            // Old file may not exist, that's fine
-          }
-        }
-
-        await storageService.saveProjectFile(
-          username,
-          slug,
-          savedFilename,
-          processedImage,
-          'image/jpeg'
-        );
-
-        // Update database
-        await projectService.update(db as DatabaseInstance, projectId, {
-          coverImage: savedFilename,
-        });
-
-        // Update Yjs projectMeta so connected clients see the new cover immediately
-        const coverMediaId = savedFilename.replace(/\.[^.]+$/, '');
-        try {
-          await updateProjectMetaCoverMediaId(ctx, username, slug, coverMediaId);
-        } catch {
-          mcpImageLog.warn('Failed to update Yjs coverMediaId (cover saved successfully)');
-        }
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Set project cover image: ${savedFilename} (${Math.round(processedImage.length / 1024)}KB)`,
-            },
-          ],
-          structuredContent: {
-            success: true,
-            source,
-            target,
-            filename: savedFilename,
-            mediaUrl: savedMediaUrl,
-            sizeBytes: processedImage.length,
-            ...generationMeta,
-          },
-        };
+        return applyToProjectCover(ic, projectId, imageBuffer, source, generationMeta);
       }
 
       if (target === 'elementImage') {
-        const extension = imageMimeType === 'image/jpeg' ? 'jpg' : 'png';
-        savedFilename = `element-${elementId}.${extension}`;
-        savedMediaUrl = `media://${savedFilename}`;
-
-        await storageService.saveProjectFile(
-          username,
-          slug,
-          savedFilename,
-          imageBuffer,
-          imageMimeType
-        );
-
-        // Store media URL reference in Yjs identity map (runtime-aware)
-        await updateWorldbuilding(
-          ctx,
-          username,
-          slug,
+        return applyToElementImage(
+          ic,
           elementId as string,
-          { image: savedMediaUrl },
-          'identity'
+          imageBuffer,
+          imageMimeType,
+          source,
+          generationMeta
         );
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Set image for element "${elementId}": ${savedFilename} (${Math.round(imageBuffer.length / 1024)}KB)`,
-            },
-          ],
-          structuredContent: {
-            success: true,
-            source,
-            target,
-            elementId,
-            filename: savedFilename,
-            mediaUrl: savedMediaUrl,
-            sizeBytes: imageBuffer.length,
-            ...generationMeta,
-          },
-        };
       }
 
-      // target === 'none' — just return the image without assigning
+      // target === 'none'
       if (source === 'upload' || source === 'generate') {
-        // Save to storage so it's accessible later
-        const extension = imageMimeType === 'image/jpeg' ? 'jpg' : 'png';
-        const timestamp = Date.now();
-        savedFilename = `generated-${timestamp}.${extension}`;
-        savedMediaUrl = `media://${savedFilename}`;
-
-        await storageService.saveProjectFile(
-          username,
-          slug,
-          savedFilename,
-          imageBuffer,
-          imageMimeType
-        );
-
-        const base64 = imageBuffer.toString('base64');
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Image ready: ${savedFilename} (${Math.round(imageBuffer.length / 1024)}KB)`,
-            },
-            ...(imageMimeType.startsWith('image/')
-              ? [{ type: 'image' as const, data: base64, mimeType: imageMimeType }]
-              : []),
-          ],
-          structuredContent: {
-            success: true,
-            source,
-            target: 'none',
-            filename: savedFilename,
-            mediaUrl: savedMediaUrl,
-            sizeBytes: imageBuffer.length,
-            ...generationMeta,
-          },
-        };
+        return saveAndReturnImage(ic, imageBuffer, imageMimeType, source, generationMeta);
       }
 
       // source === 'media' + target === 'none': just confirm the media exists
-      const mediaUrlArg = String(args.mediaUrl ?? '').trim();
+      const mediaUrlArg = stringArg(args.mediaUrl);
       return {
         content: [
           {
@@ -994,10 +1086,7 @@ registerTool({
       };
     } catch (err) {
       mcpImageLog.error('Error in apply_image', err);
-      return {
-        content: [{ type: 'text', text: `Error in apply_image: ${err}` }],
-        isError: true,
-      };
+      return { content: [{ type: 'text', text: `Error in apply_image: ${err}` }], isError: true };
     }
   },
 });
