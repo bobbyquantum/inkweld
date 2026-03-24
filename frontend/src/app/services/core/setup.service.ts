@@ -2,6 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { type User } from '@inkweld/index';
 
 import { environment } from '../../../environments/environment';
+import { stripTrailingSlashes } from '../../utils/string-utils';
 import {
   LOCAL_CONFIG_ID,
   type ServerConfig,
@@ -119,7 +120,7 @@ export class SetupService {
     this.isLoading.set(true);
     try {
       // Strip trailing slashes to prevent double-slash URLs
-      const normalizedUrl = serverUrl.replace(/\/+$/, '');
+      const normalizedUrl = stripTrailingSlashes(serverUrl);
 
       // Validate server connection
       const response = await fetch(`${normalizedUrl}/api/v1/health`);

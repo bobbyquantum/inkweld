@@ -29,6 +29,7 @@ import {
 } from '../../models/project-archive';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectService } from '../local/local-project.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
@@ -950,11 +951,11 @@ export class ProjectImportService {
    * Convert a string to a URL-friendly slug.
    */
   private slugify(text: string): string {
-    return text
-      .toLowerCase()
-      .replaceAll(/[^\w\s-]/g, '')
-      .replaceAll(/[\s_-]+/g, '-')
-      .replaceAll(/^-+|-+$/g, '')
-      .slice(0, 50);
+    return trimHyphens(
+      text
+        .toLowerCase()
+        .replaceAll(/[^\w\s-]/g, '')
+        .replaceAll(/[\s_-]+/g, '-')
+    ).slice(0, 50);
   }
 }

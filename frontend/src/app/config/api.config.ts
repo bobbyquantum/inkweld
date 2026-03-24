@@ -11,6 +11,7 @@ import {
 
 import { environment } from '../../environments/environment';
 import { SetupService } from '../services/core/setup.service';
+import { stripTrailingSlashes } from '../utils/string-utils';
 
 /**
  * Creates a dynamic Configuration that reads basePath from SetupService
@@ -29,7 +30,7 @@ function createDynamicConfiguration(setupService: SetupService): Configuration {
       const serverUrl = setupService.getServerUrl();
       const result = serverUrl || environment.apiUrl;
       // Strip trailing slashes to prevent double-slash URLs (e.g., "https://example.com//api/v1/...")
-      return result.replace(/\/+$/, '');
+      return stripTrailingSlashes(result);
     },
     set: function (value: string) {
       // Ignore setter - we always use the getter
