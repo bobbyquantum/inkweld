@@ -5,8 +5,8 @@ import {
   type StorageService,
 } from '../src/services/storage.service';
 import { config } from '../src/config/env';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 describe('Storage Service', () => {
   const actualDataPath = config.dataPath;

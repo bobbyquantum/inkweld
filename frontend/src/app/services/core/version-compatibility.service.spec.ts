@@ -175,7 +175,7 @@ describe('VersionCompatibilityService', () => {
 
   describe('checkServerCompatibility', () => {
     it('should return compatible for a healthy server with matching versions', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -196,7 +196,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should return incompatible for protocol mismatch', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -216,7 +216,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should return incompatible for client version too old', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -236,7 +236,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should return incompatible when server is unreachable', async () => {
-      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
       const result = await service.checkServerCompatibility(
         'http://localhost:8333'
@@ -247,7 +247,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should return incompatible when server returns error status', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
       });
@@ -261,7 +261,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should default protocolVersion to 1 for malformed string "2abc"', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -284,7 +284,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should default protocolVersion to 1 for decimal string "1.5"', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -307,7 +307,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should parse pure numeric string protocolVersion correctly', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
@@ -388,7 +388,7 @@ describe('VersionCompatibilityService', () => {
     });
 
     it('should check server compatibility and update version info', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
