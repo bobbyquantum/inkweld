@@ -44,7 +44,9 @@ describe('ProjectTreeComponent', () => {
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
   let selectedTabIndexSignal: WritableSignal<number>;
-  let openTabsSignal: WritableSignal<{ systemType?: string }[]>;
+  let openTabsSignal: WritableSignal<
+    { systemType?: string; type?: string; element?: { id: string } }[]
+  >;
   let dialogGatewayService: MockedObject<DialogGatewayService>;
 
   const mockDto: ProjectElement = {
@@ -704,6 +706,33 @@ describe('ProjectTreeComponent', () => {
     });
   });
 
+  describe('Selected Item from Tab', () => {
+    it('should set selectedItem when switching to a document tab with matching element', async () => {
+      // Switch to a document tab whose element.id matches a visible element
+      openTabsSignal.set([
+        { systemType: 'home' },
+        { type: 'document', element: { id: '1' } },
+      ]);
+      selectedTabIndexSignal.set(1);
+      await fixture.whenStable();
+
+      expect(component.selectedItem).toEqual(
+        expect.objectContaining({ id: '1' })
+      );
+    });
+
+    it('should set selectedItem to null when element is not found in visible elements', async () => {
+      openTabsSignal.set([
+        { systemType: 'home' },
+        { type: 'document', element: { id: 'nonexistent' } },
+      ]);
+      selectedTabIndexSignal.set(1);
+      await fixture.whenStable();
+
+      expect(component.selectedItem).toBeNull();
+    });
+  });
+
   describe('Rename Handling', () => {
     it('should handle successful rename', async () => {
       const node = mockDto;
@@ -783,6 +812,18 @@ describe('ProjectTreeComponent', () => {
           level: node.level,
           visible: undefined,
         });
+      });
+
+      it('should pass parentId when opening document with a parent', () => {
+        const childNode: ProjectElement = {
+          ...fileNode,
+          parentId: 'parent-folder-id',
+        };
+
+        component.onOpenDocument(childNode);
+        expect(projectStateService.openDocument).toHaveBeenCalledWith(
+          expect.objectContaining({ parentId: 'parent-folder-id' })
+        );
       });
     });
   });
