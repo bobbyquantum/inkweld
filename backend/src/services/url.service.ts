@@ -1,5 +1,6 @@
 import { configService } from './config.service';
 import type { DatabaseInstance } from '../types/context';
+import { stripTrailingSlashes } from '../utils/string-utils';
 
 /**
  * Resolve the public base URL for constructing email links and other external URLs.
@@ -15,7 +16,7 @@ export async function getBaseUrl(db: DatabaseInstance): Promise<string> {
   try {
     const siteUrl = await configService.get(db, 'SITE_URL');
     if (siteUrl.value && siteUrl.source !== 'default') {
-      return siteUrl.value.replace(/\/+$/, ''); // strip trailing slashes
+      return stripTrailingSlashes(siteUrl.value);
     }
   } catch {
     // Key might not exist yet — fall through
@@ -23,12 +24,12 @@ export async function getBaseUrl(db: DatabaseInstance): Promise<string> {
 
   // 2. Check DEFAULT_SERVER_NAME environment variable
   const defaultServerName = process.env.DEFAULT_SERVER_NAME?.trim();
-  if (defaultServerName) return defaultServerName.replace(/\/+$/, '');
+  if (defaultServerName) return stripTrailingSlashes(defaultServerName);
 
   // 3. Fall back to first allowed origin
   const origins = process.env.ALLOWED_ORIGINS?.split(',');
   if (origins && origins.length > 0 && origins[0].trim()) {
-    return origins[0].trim().replace(/\/+$/, '');
+    return stripTrailingSlashes(origins[0].trim());
   }
 
   // 4. Last resort

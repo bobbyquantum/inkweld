@@ -16,6 +16,7 @@ import {
   type SeparatorItem,
   SeparatorStyle,
 } from '../../models/publish-plan';
+import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
@@ -652,10 +653,9 @@ ${content}
   }
 
   private generateFilename(title: string): string {
-    const safeName = title
-      .toLowerCase()
-      .replaceAll(/[^a-z0-9]+/g, '-')
-      .replaceAll(/^-+|-+$/g, '');
+    const safeName = trimHyphens(
+      title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
+    );
     return `${safeName || 'document'}.html`;
   }
 }

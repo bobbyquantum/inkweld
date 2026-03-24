@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, Injector } from '@angular/core';
 import { type Element, type Project } from '@inkweld/index';
 
+import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentService } from '../project/document.service';
@@ -276,11 +277,10 @@ export class UnifiedProjectService {
    */
   private generateSlug(title: string): string {
     return (
-      title
-        .toLowerCase()
-        .replaceAll(/[^a-z0-9]+/g, '-')
-        .replaceAll(/^-+|-+$/g, '')
-        .substring(0, 50) || 'untitled-project'
+      trimHyphens(title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')).substring(
+        0,
+        50
+      ) || 'untitled-project'
     );
   }
 

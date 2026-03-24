@@ -11,6 +11,7 @@
 import type { DurableObjectNamespace, DurableObjectStub } from '../types/cloudflare';
 import { type Element } from '../schemas/element.schemas';
 import { logger } from './logger.service';
+import { stripTrailingSlashes } from '../utils/string-utils';
 
 const log = logger.child('YjsWorkerService');
 
@@ -111,7 +112,7 @@ export class YjsWorkerService {
    */
   async getDocument(docId: string): Promise<WorkerYjsDocument> {
     // Parse docId to get project
-    const parts = docId.replace(/\/+$/, '').split(':');
+    const parts = stripTrailingSlashes(docId).split(':');
     if (parts.length < 2) {
       throw new Error(`Invalid docId format: ${docId}`);
     }
@@ -153,7 +154,7 @@ export class YjsWorkerService {
     docId: string,
     updates: Array<{ path: string; value: unknown }>
   ): Promise<void> {
-    const parts = docId.replace(/\/+$/, '').split(':');
+    const parts = stripTrailingSlashes(docId).split(':');
     if (parts.length < 2) {
       throw new Error(`Invalid docId format: ${docId}`);
     }
@@ -185,7 +186,7 @@ export class YjsWorkerService {
    * expressed as simple path-based updates.
    */
   async applyYjsUpdate(docId: string, base64Update: string): Promise<void> {
-    const parts = docId.replace(/\/+$/, '').split(':');
+    const parts = stripTrailingSlashes(docId).split(':');
     if (parts.length < 2) {
       throw new Error(`Invalid docId format: ${docId}`);
     }
@@ -216,7 +217,7 @@ export class YjsWorkerService {
    * Sends the XML string to the DO which handles the Yjs operations directly.
    */
   async updateProsemirrorContent(docId: string, xmlContent: string): Promise<void> {
-    const parts = docId.replace(/\/+$/, '').split(':');
+    const parts = stripTrailingSlashes(docId).split(':');
     if (parts.length < 2) {
       throw new Error(`Invalid docId format: ${docId}`);
     }
@@ -251,7 +252,7 @@ export class YjsWorkerService {
     action: 'replace' | 'add',
     items: unknown[]
   ): Promise<void> {
-    const parts = docId.replace(/\/+$/, '').split(':');
+    const parts = stripTrailingSlashes(docId).split(':');
     if (parts.length < 2) {
       throw new Error(`Invalid docId format: ${docId}`);
     }
