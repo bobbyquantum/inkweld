@@ -49,7 +49,7 @@
   </div>
 
   <!-- Project Tree with ARIA attributes for accessibility -->
-  <ul
+  <div
     role="tree"
     class="aria-tree"
     cdkDropList
@@ -57,7 +57,7 @@
     (cdkDropListSorted)="sorted($event)"
     (cdkDropListDropped)="drop($event)">
     @for (node of treeElements(); track node.id) {
-      <li
+      <div
         role="treeitem"
         [attr.aria-expanded]="node.expandable ? node.expanded : null"
         [attr.aria-level]="node.level + 1"
@@ -163,12 +163,12 @@
           </app-tree-node-icon>
           <div class="node-title">{{ node.name }}</div>
         </div>
-      </li>
+      </div>
     }
 
     <!-- Create new element button at the end of the tree (only for users with write access) -->
     @if (projectStateService.canWrite()) {
-      <li
+      <div
         role="treeitem"
         aria-level="1"
         aria-selected="false"
@@ -179,9 +179,9 @@
         (keyup.enter)="onCreateNewElement()">
         <mat-icon>add</mat-icon>
         <div class="node-title">Create</div>
-      </li>
+      </div>
     }
-  </ul>
+  </div>
 </div>
 
 <!-- Context menu -->

@@ -27,7 +27,7 @@ beforeAll(async () => {
 
   // Run migrations
   const migrationsFolder = join(__dirname, '../drizzle');
-  await migrate(db, { migrationsFolder });
+  migrate(db, { migrationsFolder });
 });
 
 afterAll(() => {

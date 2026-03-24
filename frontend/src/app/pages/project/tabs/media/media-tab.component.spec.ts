@@ -76,12 +76,14 @@ describe('MediaTabComponent', () => {
         .fn()
         .mockResolvedValue(new Blob(['test'], { type: 'image/jpeg' })),
       deleteMedia: vi.fn().mockResolvedValue(undefined),
+      saveMedia: vi.fn().mockResolvedValue(undefined),
       revokeProjectUrls: vi.fn(),
     };
 
     dialogGateway = {
       openImageViewerDialog: vi.fn(),
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
+      openImageGenerationDialog: vi.fn().mockResolvedValue(undefined),
     };
 
     mediaSyncService = {
@@ -316,5 +318,32 @@ describe('MediaTabComponent', () => {
     expect(localStorage.revokeProjectUrls).toHaveBeenCalledWith(
       'testuser/test-project'
     );
+  });
+
+  it('should save generated image from openImageGenerator', async () => {
+    const mockBlob = new Blob(['image-data'], { type: 'image/png' });
+    const mockResponse = { blob: () => Promise.resolve(mockBlob) } as Response;
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(mockResponse);
+
+    (
+      dialogGateway.openImageGenerationDialog as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      saved: true,
+      imageData: 'data:image/png;base64,abc123',
+    });
+
+    await component.openImageGenerator();
+
+    expect(fetchSpy).toHaveBeenCalledWith('data:image/png;base64,abc123');
+    expect(localStorage.saveMedia).toHaveBeenCalledWith(
+      'testuser/test-project',
+      expect.stringMatching(/^generated-\d+$/),
+      mockBlob,
+      expect.stringMatching(/^ai-generated-\d+\.png$/)
+    );
+
+    fetchSpy.mockRestore();
   });
 });
