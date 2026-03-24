@@ -10,6 +10,7 @@
 
 import type { McpContext } from '../mcp.types';
 import { type Element } from '../../schemas/element.schemas';
+import { decodeXmlEntities } from '../../utils/xml-utils';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 
 /**
@@ -557,22 +558,6 @@ function parseAttrValue(value: string): unknown {
   const num = Number(value);
   if (!Number.isNaN(num) && value !== '') return num;
   return value;
-}
-
-/**
- * Decode standard XML entities in text content.
- */
-function decodeXmlEntities(text: string): string {
-  return text
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&apos;', "'")
-    .replaceAll(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 10)))
-    .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code) =>
-      String.fromCodePoint(Number.parseInt(code, 16))
-    );
 }
 
 /**
