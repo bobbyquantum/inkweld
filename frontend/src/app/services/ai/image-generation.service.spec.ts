@@ -445,7 +445,7 @@ describe('ImageGenerationService', () => {
   describe('Image URL Handling', () => {
     it('should handle images with URL instead of base64', async () => {
       // Mock fetch for URL-based images
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         blob: () =>
           Promise.resolve(new Blob(['image-data'], { type: 'image/png' })),
       });
@@ -464,7 +464,7 @@ describe('ImageGenerationService', () => {
       await flushPromises();
       await flushPromises();
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         'https://example.com/image.png'
       );
       expect(mockOfflineStorage.saveMedia).toHaveBeenCalled();

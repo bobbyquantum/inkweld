@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { FileStorageService } from '../src/services/file-storage.service';
 import { config } from '../src/config/env';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 describe('FileStorageService', () => {
   let service: FileStorageService;

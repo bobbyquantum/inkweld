@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test'
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
-import { join } from 'path';
+import { join } from 'node:path';
 import * as schema from '../src/db/schema';
 import { announcementService } from '../src/services/announcement.service';
 import { announcements, announcementReads } from '../src/db/schema';
