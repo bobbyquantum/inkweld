@@ -186,7 +186,7 @@ export class StorageContextService {
     // Simple djb2 hash for synchronous operation
     let hash = 5381;
     for (let i = 0; i < normalized.length; i++) {
-      hash = (hash << 5) + hash + normalized.charCodeAt(i);
+      hash = (hash << 5) + hash + normalized.codePointAt(i)!;
       hash = hash & hash; // Convert to 32-bit integer
     }
     // Convert to positive hex string and take first 8 chars

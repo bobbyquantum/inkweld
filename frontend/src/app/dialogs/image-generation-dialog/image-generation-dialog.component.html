@@ -103,7 +103,7 @@
                         <span class="image-preview-tooltip">
                           <img
                             [src]="el.imageUrl"
-                            alt="{{ el.name }} reference image"
+                            alt="{{ el.name }} reference"
                             class="preview-image" />
                         </span>
                       </span>
@@ -441,7 +441,7 @@
                   <div class="selected-preview">
                     <img
                       [src]="getImageUrl(getSelectedImage()!)"
-                      alt="Selected image" />
+                      alt="Selected preview" />
                   </div>
                 }
 
@@ -460,7 +460,7 @@
                       role="button">
                       <img
                         [src]="getImageUrl(image)"
-                        alt="Generated image {{ $index + 1 }}" />
+                        alt="Generated result {{ $index + 1 }}" />
                       @if (selectedImageIndex() === $index) {
                         <div class="selected-indicator">
                           <mat-icon>check_circle</mat-icon>

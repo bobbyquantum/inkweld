@@ -27,7 +27,10 @@
               class="type-card"
               [class.selected]="selectedType() === option.type"
               [attr.data-testid]="'element-type-' + option.type.toLowerCase()"
-              (click)="selectType(option)">
+              (click)="selectType(option)"
+              (keydown.enter)="selectType(option)"
+              (keydown.space)="selectType(option); $event.preventDefault()"
+              tabindex="0">
               <mat-icon
                 class="type-icon"
                 [style.color]="
@@ -59,7 +62,10 @@
                 selectedSchemaId() === option.schemaId
               "
               [attr.data-testid]="'element-type-' + option.schemaId"
-              (click)="selectType(option)">
+              (click)="selectType(option)"
+              (keydown.enter)="selectType(option)"
+              (keydown.space)="selectType(option); $event.preventDefault()"
+              tabindex="0">
               <mat-icon class="type-icon" [style.color]="'#9C27B0'">
                 {{ option.icon }}
               </mat-icon>
@@ -84,7 +90,10 @@
               class="type-card"
               [class.selected]="selectedType() === option.type"
               [attr.data-testid]="'element-type-' + option.type.toLowerCase()"
-              (click)="selectType(option)">
+              (click)="selectType(option)"
+              (keydown.enter)="selectType(option)"
+              (keydown.space)="selectType(option); $event.preventDefault()"
+              tabindex="0">
               <mat-icon class="type-icon" [style.color]="'#FF9800'">
                 {{ option.icon }}
               </mat-icon>

@@ -533,7 +533,7 @@ export class ImageGenerationService {
           const binaryString = atob(image.b64Json);
           const bytes = new Uint8Array(binaryString.length);
           for (let j = 0; j < binaryString.length; j++) {
-            bytes[j] = binaryString.charCodeAt(j);
+            bytes[j] = binaryString.codePointAt(j)!;
           }
           blob = new Blob([bytes], { type: 'image/png' });
         } else if (image.url) {
