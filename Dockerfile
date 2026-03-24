@@ -21,7 +21,7 @@ ARG FRONTEND_PREBUILT=false
 
 # Install git for dependencies that need to be cloned
 RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
-  apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*; \
+  apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*; \
   fi
 
 COPY frontend/bun.lock frontend/package.json ./
@@ -47,7 +47,7 @@ FROM oven/bun:1.3.11 AS backend-builder
 WORKDIR /app/backend
 
 # Install git for dependencies that need to be cloned
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
 # No build tools needed - we use bun:sqlite (native to Bun), not better-sqlite3
 # better-sqlite3 is only needed for the Node.js runner (node-runner.ts)
