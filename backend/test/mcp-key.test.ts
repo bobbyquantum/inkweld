@@ -33,7 +33,7 @@ beforeAll(async () => {
 
   // Run migrations
   const migrationsFolder = join(__dirname, '../drizzle');
-  await migrate(db, { migrationsFolder });
+  migrate(db, { migrationsFolder });
 
   // Create test user
   testUserId = crypto.randomUUID();
@@ -41,7 +41,7 @@ beforeAll(async () => {
     id: testUserId,
     username: 'testuser',
     email: 'test@example.com',
-    passwordHash: 'hash',
+    password: 'hash',
     approved: true,
     enabled: true,
     isAdmin: false,
@@ -164,7 +164,10 @@ describe('MCP Key Service - Utility Functions', () => {
 
     it('should return false if key has none of the permissions', () => {
       expect(
-        hasAnyPermission(mockKey, [MCP_PERMISSIONS.WRITE_ELEMENTS, MCP_PERMISSIONS.GENERATE_IMAGES])
+        hasAnyPermission(mockKey, [
+          MCP_PERMISSIONS.WRITE_ELEMENTS,
+          MCP_PERMISSIONS.WRITE_WORLDBUILDING,
+        ])
       ).toBe(false);
     });
   });
@@ -197,7 +200,10 @@ describe('MCP Key Service - Utility Functions', () => {
 
     it('should return false if key is missing any permission', () => {
       expect(
-        hasAllPermissions(mockKey, [MCP_PERMISSIONS.READ_PROJECT, MCP_PERMISSIONS.GENERATE_IMAGES])
+        hasAllPermissions(mockKey, [
+          MCP_PERMISSIONS.READ_PROJECT,
+          MCP_PERMISSIONS.WRITE_WORLDBUILDING,
+        ])
       ).toBe(false);
     });
   });
@@ -365,7 +371,10 @@ describe('MCP Key Service - Database Operations', () => {
       const keys = await mcpKeyService.getKeysForProject(db, testProjectId);
 
       expect(keys.length).toBe(2);
-      expect(keys.map((k) => k.name).sort()).toEqual(['Key 1', 'Key 2']);
+      expect(keys.map((k) => k.name).sort((a, b) => a.localeCompare(b))).toEqual([
+        'Key 1',
+        'Key 2',
+      ]);
     });
   });
 

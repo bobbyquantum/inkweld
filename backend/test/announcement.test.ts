@@ -20,7 +20,7 @@ beforeAll(async () => {
 
   // Run migrations
   const migrationsFolder = join(__dirname, '../drizzle');
-  await migrate(db, { migrationsFolder });
+  migrate(db, { migrationsFolder });
 
   // Create test users
   testUserId = crypto.randomUUID();
@@ -28,7 +28,7 @@ beforeAll(async () => {
     id: testUserId,
     username: 'testuser',
     email: 'test@example.com',
-    passwordHash: 'hash',
+    password: 'hash',
     approved: true,
     enabled: true,
     isAdmin: false,
@@ -39,7 +39,7 @@ beforeAll(async () => {
     id: testAdminId,
     username: 'admin',
     email: 'admin@example.com',
-    passwordHash: 'hash',
+    password: 'hash',
     approved: true,
     enabled: true,
     isAdmin: true,
@@ -99,12 +99,10 @@ describe('AnnouncementService', () => {
       // SQLite stores timestamps with second precision, so compare within 1 second
       expect(announcement.publishedAt).toBeDefined();
       expect(announcement.expiresAt).toBeDefined();
-      expect(Math.abs((announcement.publishedAt as Date).getTime() - now.getTime())).toBeLessThan(
-        1000
-      );
-      expect(Math.abs((announcement.expiresAt as Date).getTime() - expires.getTime())).toBeLessThan(
-        1000
-      );
+      const publishedAt = announcement.publishedAt as Date;
+      const expiresAt = announcement.expiresAt as Date;
+      expect(Math.abs(publishedAt.getTime() - now.getTime())).toBeLessThan(1000);
+      expect(Math.abs(expiresAt.getTime() - expires.getTime())).toBeLessThan(1000);
     });
   });
 

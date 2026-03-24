@@ -379,7 +379,9 @@
   .editor-section {
     height: var(--visual-viewport-height-48) !important;
     max-height: var(--visual-viewport-height-48) !important;
-    transition: height 0.15s ease-out, max-height 0.15s ease-out;
+    transition:
+      height 0.15s ease-out,
+      max-height 0.15s ease-out;
   }
 
   .editor-section.no-tabs {
@@ -450,7 +452,7 @@
 
 /* Icon before the text */
 ::ng-deep .element-ref::before {
-  font-family: 'Material Icons';
+  font-family: 'Material Icons', sans-serif;
   font-size: 14px;
   margin-right: 3px;
   vertical-align: middle;

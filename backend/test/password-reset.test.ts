@@ -25,7 +25,7 @@ beforeAll(async () => {
 
   // Run migrations
   const migrationsFolder = join(__dirname, '../drizzle');
-  await migrate(db, { migrationsFolder });
+  migrate(db, { migrationsFolder });
 });
 
 afterAll(() => {
@@ -134,7 +134,7 @@ describe('Password Reset Config', () => {
 
 describe('Password Reset Integration', () => {
   it('should hash tokens with SHA-256', async () => {
-    const { createHash } = await import('crypto');
+    const { createHash } = await import('node:crypto');
     const rawToken = 'test-token-value-12345';
     const hash = createHash('sha256').update(rawToken).digest('hex');
 
@@ -151,7 +151,7 @@ describe('Password Reset Integration', () => {
   });
 
   it('should store and look up a hashed token', async () => {
-    const { createHash, randomBytes } = await import('crypto');
+    const { createHash, randomBytes } = await import('node:crypto');
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
     const now = Math.floor(Date.now() / 1000);
@@ -177,7 +177,7 @@ describe('Password Reset Integration', () => {
   });
 
   it('should not find an expired token in a validity check', async () => {
-    const { createHash, randomBytes } = await import('crypto');
+    const { createHash, randomBytes } = await import('node:crypto');
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
     const now = Math.floor(Date.now() / 1000);
@@ -202,7 +202,7 @@ describe('Password Reset Integration', () => {
   });
 
   it('should not allow reuse of a used token', async () => {
-    const { createHash, randomBytes } = await import('crypto');
+    const { createHash, randomBytes } = await import('node:crypto');
     const rawToken = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
     const now = Math.floor(Date.now() / 1000);

@@ -21,7 +21,7 @@ let sqlite: BunDatabase;
 beforeAll(async () => {
   sqlite = new BunDatabase(':memory:');
   db = drizzle(sqlite, { schema });
-  await migrate(db, { migrationsFolder: join(__dirname, '../drizzle') });
+  migrate(db, { migrationsFolder: join(__dirname, '../drizzle') });
 });
 
 afterAll(() => {

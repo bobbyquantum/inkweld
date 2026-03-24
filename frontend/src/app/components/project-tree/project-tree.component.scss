@@ -5,11 +5,8 @@
   background-color: var(--sys-surface-container-lowest);
   padding: 0;
   margin: 0;
-  list-style: none;
-  li {
+  [role='treeitem'] {
     cursor: pointer;
-    list-style: none;
-    text-decoration: none;
     display: flex;
     align-items: center;
     min-height: 36px;

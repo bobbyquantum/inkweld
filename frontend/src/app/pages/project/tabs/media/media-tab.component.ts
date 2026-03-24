@@ -33,6 +33,13 @@ import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 
+export type MediaCategory =
+  | 'cover'
+  | 'generated'
+  | 'inline'
+  | 'published'
+  | 'other';
+
 /**
  * Media item with additional display properties
  */
@@ -42,7 +49,7 @@ export interface MediaItem extends MediaInfo {
   /** Whether this is an image */
   isImage: boolean;
   /** Display category */
-  category: 'cover' | 'generated' | 'inline' | 'published' | 'other';
+  category: MediaCategory;
   /** Human-readable category name */
   categoryLabel: string;
 }
@@ -377,7 +384,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
         item.filename || `${item.mediaId}.${this.getExtension(item.mimeType)}`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     }
   }
@@ -462,9 +469,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     return mimeType.startsWith('image/');
   }
 
-  private categorizeMedia(
-    mediaId: string
-  ): 'cover' | 'generated' | 'inline' | 'published' | 'other' {
+  private categorizeMedia(mediaId: string): MediaCategory {
     if (mediaId === 'cover' || mediaId.startsWith('cover-')) return 'cover';
     if (mediaId.startsWith('generated-')) return 'generated';
     if (mediaId.startsWith('img-')) return 'inline';
@@ -472,9 +477,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     return 'other';
   }
 
-  private getCategoryLabel(
-    category: 'cover' | 'generated' | 'inline' | 'published' | 'other'
-  ): string {
+  private getCategoryLabel(category: MediaCategory): string {
     switch (category) {
       case 'cover':
         return 'Cover Image';
@@ -527,16 +530,8 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
       try {
         // Convert base64/URL to blob
-        let blob: Blob;
-        if (result.imageData.startsWith('data:')) {
-          // Base64 data URL
-          const response = await fetch(result.imageData);
-          blob = await response.blob();
-        } else {
-          // Regular URL - fetch it
-          const response = await fetch(result.imageData);
-          blob = await response.blob();
-        }
+        const response = await fetch(result.imageData);
+        const blob = await response.blob();
 
         // Generate a unique ID for the media
         const timestamp = Date.now();

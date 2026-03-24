@@ -208,7 +208,7 @@ imageRoutes.openapi(getCoverRoute, async (c) => {
     throw new NotFoundError('Cover image not found');
   }
 
-  const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
+  const uint8Array = new Uint8Array(data);
 
   return c.body(uint8Array, 200, {
     'Content-Type': 'image/jpeg',

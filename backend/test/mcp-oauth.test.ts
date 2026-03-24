@@ -28,7 +28,7 @@ beforeAll(async () => {
   db = drizzle(sqlite, { schema });
 
   const migrationsFolder = join(__dirname, '../drizzle');
-  await migrate(db, { migrationsFolder });
+  migrate(db, { migrationsFolder });
 
   // Create test user
   testUserId = crypto.randomUUID();
@@ -36,7 +36,7 @@ beforeAll(async () => {
     id: testUserId,
     username: 'oauthtest',
     email: 'oauthtest@example.com',
-    passwordHash: 'hash',
+    password: 'hash',
     approved: true,
     enabled: true,
     isAdmin: false,
@@ -163,8 +163,10 @@ describe('MCP OAuth Service - Session Management', () => {
         .where(eq(projectCollaborators.mcpSessionId, sessionId));
       expect(collabs.length).toBe(2);
 
-      const projectIds = collabs.map((c) => c.projectId).sort();
-      expect(projectIds).toEqual([testProjectId, testProject2Id].sort());
+      const projectIds = collabs.map((c) => c.projectId).sort((a, b) => a.localeCompare(b));
+      expect(projectIds).toEqual(
+        [testProjectId, testProject2Id].sort((a, b) => a.localeCompare(b))
+      );
     });
 
     it('should revoke previous sessions for the same user+client on relink', async () => {
