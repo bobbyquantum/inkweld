@@ -23,6 +23,7 @@ import {
   type PublishPlan,
 } from '../../../../models/publish-plan';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
+import { base64ToBlob } from '../../../../utils/base64-utils';
 
 @Component({
   selector: 'app-home-tab',
@@ -111,35 +112,6 @@ export class HomeTabComponent {
   }
 
   /**
-   * Converts a base64 or data URL string to a Blob
-   */
-  private base64ToBlob(base64Data: string): Blob {
-    // Remove the data URL prefix if present (e.g., "data:image/png;base64,")
-    const base64String = base64Data.includes(',')
-      ? base64Data.split(',')[1]
-      : base64Data;
-
-    // Decode base64
-    const byteCharacters = atob(base64String);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.codePointAt(i)!;
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-
-    // Determine MIME type from data URL or default to image/png
-    let mimeType = 'image/png';
-    if (base64Data.startsWith('data:')) {
-      const mimeMatch = base64Data.match(/data:([^;]+);/);
-      if (mimeMatch) {
-        mimeType = mimeMatch[1];
-      }
-    }
-
-    return new Blob([byteArray], { type: mimeType });
-  }
-
-  /**
    * Saves the generated cover image to the project
    */
   private saveCoverImage(
@@ -150,7 +122,7 @@ export class HomeTabComponent {
     console.log('Saving cover image for project:', username, slug);
 
     // Convert base64 to Blob
-    const imageBlob = this.base64ToBlob(imageData);
+    const imageBlob = base64ToBlob(imageData);
 
     // Upload the cover image
     this.projectService

@@ -28,6 +28,8 @@ import {
   type LoadedImage,
 } from 'ngx-image-cropper';
 
+import { base64ToBlob } from '../../utils/base64-utils';
+
 /**
  * Data passed to the dialog
  */
@@ -262,7 +264,7 @@ export class WorldbuildingImageDialogComponent implements OnInit {
           result.imageData.startsWith('blob:')
         ) {
           // It's already a data URL, extract and convert to blob
-          blob = this.base64ToBlob(result.imageData);
+          blob = base64ToBlob(result.imageData);
         } else if (
           result.imageData.startsWith('http://') ||
           result.imageData.startsWith('https://') ||
@@ -273,7 +275,7 @@ export class WorldbuildingImageDialogComponent implements OnInit {
           blob = await fetchResponse.blob();
         } else {
           // Assume it's raw base64
-          blob = this.base64ToBlob(result.imageData);
+          blob = base64ToBlob(result.imageData);
         }
 
         // Return the result directly (no cropping for AI-generated images)
@@ -370,19 +372,6 @@ export class WorldbuildingImageDialogComponent implements OnInit {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  }
-
-  private base64ToBlob(base64Data: string): Blob {
-    const base64String = base64Data.includes(',')
-      ? base64Data.split(',')[1]
-      : base64Data;
-    const byteCharacters = atob(base64String);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.codePointAt(i)!;
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: 'image/png' });
   }
 
   private showError(message: string): void {

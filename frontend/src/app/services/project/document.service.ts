@@ -1432,8 +1432,8 @@ export class DocumentService {
   private generateUserColor(username: string): string {
     // Simple hash function to generate a consistent color from username
     let hash = 0;
-    for (let i = 0; i < username.length; i++) {
-      hash = username.codePointAt(i)! + ((hash << 5) - hash);
+    for (const char of username) {
+      hash = char.codePointAt(0)! + ((hash << 5) - hash);
     }
 
     // Convert to a pleasant color (avoid too dark or too light)

@@ -6,10 +6,14 @@ export function decodeXmlEntities(text: string): string {
     .replaceAll('&gt;', '>')
     .replaceAll('&quot;', '"')
     .replaceAll('&apos;', "'")
-    .replaceAll(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 10)))
-    .replaceAll(/&#x([0-9a-fA-F]+);/g, (_, code: string) =>
-      String.fromCodePoint(Number.parseInt(code, 16))
-    );
+    .replaceAll(/&#(\d+);/g, (match, code: string) => {
+      const cp = Number.parseInt(code, 10);
+      return Number.isInteger(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : match;
+    })
+    .replaceAll(/&#x([0-9a-fA-F]+);/g, (match, code: string) => {
+      const cp = Number.parseInt(code, 16);
+      return Number.isInteger(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : match;
+    });
 }
 
 /**
