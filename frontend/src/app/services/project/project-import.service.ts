@@ -1,8 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, type Project, ProjectsService } from '@inkweld/index';
-
-import { trimHyphens } from '../../utils/string-utils';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
@@ -31,6 +29,7 @@ import {
 } from '../../models/project-archive';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectService } from '../local/local-project.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';

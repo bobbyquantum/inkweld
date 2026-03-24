@@ -28,8 +28,8 @@ import {
   MigrationStatus,
 } from '@services/local/migration.service';
 import { firstValueFrom } from 'rxjs';
-import { stripTrailingSlashes } from '../../utils/string-utils';
 
+import { stripTrailingSlashes } from '../../utils/string-utils';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,

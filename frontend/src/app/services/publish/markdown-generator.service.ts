@@ -2,8 +2,6 @@ import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
-import { trimHyphens } from '../../utils/string-utils';
-
 import {
   ChapterNumbering,
   type ElementItem,
@@ -18,6 +16,7 @@ import {
   type SeparatorItem,
   SeparatorStyle,
 } from '../../models/publish-plan';
+import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';

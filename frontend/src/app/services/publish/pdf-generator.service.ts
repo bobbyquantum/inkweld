@@ -3,8 +3,6 @@ import { type Element, ElementType } from '@inkweld/index';
 import { $typst } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
-import { trimHyphens } from '../../utils/string-utils';
-
 import {
   ChapterNumbering,
   type ElementItem,
@@ -19,6 +17,7 @@ import {
   type SeparatorItem,
   SeparatorStyle,
 } from '../../models/publish-plan';
+import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
