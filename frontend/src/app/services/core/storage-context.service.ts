@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { stripTrailingSlashes } from '../../utils/string-utils';
 
 /**
  * Server version information for compatibility checking
@@ -212,7 +213,7 @@ export class StorageContextService {
       return normalized.toLowerCase();
     } catch {
       // If URL parsing fails, just lowercase and trim
-      return url.toLowerCase().replace(/\/+$/, '');
+      return stripTrailingSlashes(url.toLowerCase());
     }
   }
 
@@ -369,7 +370,7 @@ export class StorageContextService {
     userProfile?: { name: string; username: string }
   ): ServerConfig {
     // Normalize server URL: remove trailing slashes
-    const normalizedUrl = serverUrl.replace(/\/+$/, '');
+    const normalizedUrl = stripTrailingSlashes(serverUrl);
     const now = new Date().toISOString();
     const id = this.hashServerUrl(normalizedUrl);
     const config: ServerConfig = {

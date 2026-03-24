@@ -1,6 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, type Project, ProjectsService } from '@inkweld/index';
+
+import { trimHyphens } from '../../utils/string-utils';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
@@ -950,11 +952,11 @@ export class ProjectImportService {
    * Convert a string to a URL-friendly slug.
    */
   private slugify(text: string): string {
-    return text
-      .toLowerCase()
-      .replaceAll(/[^\w\s-]/g, '')
-      .replaceAll(/[\s_-]+/g, '-')
-      .replaceAll(/^-+|-+$/g, '')
-      .slice(0, 50);
+    return trimHyphens(
+      text
+        .toLowerCase()
+        .replaceAll(/[^\w\s-]/g, '')
+        .replaceAll(/[\s_-]+/g, '-')
+    ).slice(0, 50);
   }
 }

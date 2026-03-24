@@ -28,6 +28,7 @@ import {
   MigrationStatus,
 } from '@services/local/migration.service';
 import { firstValueFrom } from 'rxjs';
+import { stripTrailingSlashes } from '../../utils/string-utils';
 
 import {
   ConfirmationDialogComponent,
@@ -190,7 +191,7 @@ export class ProfileManagerDialogComponent {
    * @returns The normalized URL with protocol
    */
   private normalizeServerUrl(url: string): string {
-    const trimmed = url.trim().replace(/\/+$/, ''); // Remove trailing slashes
+    const trimmed = stripTrailingSlashes(url.trim());
     if (!trimmed) return trimmed;
 
     // If URL already has a protocol, return as-is
@@ -519,7 +520,7 @@ export class ProfileManagerDialogComponent {
 
     // Switch to the new server
     const configs = this.storageContext.getConfigurations();
-    const normalizedUrl = this.pendingServerUrl.replace(/\/+$/, '');
+    const normalizedUrl = stripTrailingSlashes(this.pendingServerUrl);
     const newConfig = configs.find(
       c => c.type === 'server' && c.serverUrl === normalizedUrl
     );

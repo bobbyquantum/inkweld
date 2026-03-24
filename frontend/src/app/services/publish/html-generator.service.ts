@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
+import { trimHyphens } from '../../utils/string-utils';
+
 import {
   ChapterNumbering,
   type ElementItem,
@@ -652,10 +654,9 @@ ${content}
   }
 
   private generateFilename(title: string): string {
-    const safeName = title
-      .toLowerCase()
-      .replaceAll(/[^a-z0-9]+/g, '-')
-      .replaceAll(/^-+|-+$/g, '');
+    const safeName = trimHyphens(
+      title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
+    );
     return `${safeName || 'document'}.html`;
   }
 }

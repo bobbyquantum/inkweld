@@ -2,6 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
+import { trimHyphens } from '../../utils/string-utils';
+
 import {
   ChapterNumbering,
   type ElementItem,
@@ -687,10 +689,9 @@ export class MarkdownGeneratorService {
   }
 
   private generateFilename(title: string): string {
-    const safeName = title
-      .toLowerCase()
-      .replaceAll(/[^a-z0-9]+/g, '-')
-      .replaceAll(/^-+|-+$/g, '');
+    const safeName = trimHyphens(
+      title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
+    );
     return `${safeName || 'document'}.md`;
   }
 
@@ -739,11 +740,14 @@ export class MarkdownGeneratorService {
    * Rules: lowercase, spaces -> hyphens, strip non-alphanumeric/hyphen chars.
    */
   private headingToAnchor(heading: string): string {
-    return heading
-      .toLowerCase()
-      .replaceAll(/[^\w\s-]/g, '')
-      .replaceAll(/\s+/g, '-')
-      .replaceAll(/-{2,}/g, '-')
-      .replaceAll(/^-+|-+$/g, '');
+    return trimHyphens(
+      heading
+        .toLowerCase()
+        .replaceAll(/[^\w\s-]/g, '')
+        .replaceAll(/\s+/g, '-')
+        .split('-')
+        .filter(Boolean)
+        .join('-')
+    );
   }
 }

@@ -9,6 +9,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { logger } from '../services/logger.service';
+import { stripTrailingSlashes } from '../utils/string-utils';
 
 const docDOLog = logger.child('YjsDocumentDO');
 
@@ -131,7 +132,7 @@ export class YjsDocument extends DurableObject {
     }
 
     // Normalize documentId by removing trailing slash
-    this.documentId = rawDocumentId.replace(/\/+$/, '');
+    this.documentId = stripTrailingSlashes(rawDocumentId);
 
     // Handle WebSocket upgrade
     if (request.headers.get('Upgrade') === 'websocket') {
