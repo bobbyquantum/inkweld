@@ -16,6 +16,10 @@ if (!globalThis.structuredClone) {
   globalThis.structuredClone = createStructuredClone;
 }
 
+// Capture real URL methods at module load time, before any beforeAll can overwrite them (isolate: false)
+const nativeCreateObjectURL = globalThis.URL.createObjectURL;
+const nativeRevokeObjectURL = globalThis.URL.revokeObjectURL;
+
 describe('LocalStorageService', () => {
   let service: LocalStorageService;
   let storageService: StorageService;
@@ -30,6 +34,10 @@ describe('LocalStorageService', () => {
   }
 
   beforeEach(() => {
+    // Restore real URL methods — other tests directly overwrite them (not spies, so vi.restoreAllMocks won't help)
+    globalThis.URL.createObjectURL = nativeCreateObjectURL;
+    globalThis.URL.revokeObjectURL = nativeRevokeObjectURL;
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),

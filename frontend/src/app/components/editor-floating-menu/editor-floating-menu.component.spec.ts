@@ -36,7 +36,13 @@ describe('EditorFloatingMenuComponent', () => {
   let mockEditorView: {
     state: {
       schema: { marks: Record<string, unknown> };
-      selection: { from: number; to: number; $from: unknown; empty: boolean };
+      selection: {
+        from: number;
+        to: number;
+        $from: unknown;
+        empty: boolean;
+        ranges: unknown[];
+      };
       tr: { addMark: Mock; removeMark: Mock };
       doc: { rangeHasMark: Mock };
       storedMarks: null;
@@ -73,6 +79,7 @@ describe('EditorFloatingMenuComponent', () => {
           to: 5,
           $from: { marks: () => [] },
           empty: false,
+          ranges: [],
         },
         tr: {
           addMark: vi.fn().mockReturnThis(),

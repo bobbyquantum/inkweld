@@ -78,8 +78,13 @@ export class ProjectRenameMigrationService {
       // Migrate each database
       for (const dbName of databases) {
         try {
-          await this.migrateDatabase(dbName, username, oldSlug, newSlug);
-          result.documentsMigrated++;
+          const migrated = await this.migrateDatabase(
+            dbName,
+            username,
+            oldSlug,
+            newSlug
+          );
+          if (migrated) result.documentsMigrated++;
         } catch (error) {
           result.documentsFailed++;
           const errorMsg =
@@ -210,13 +215,14 @@ export class ProjectRenameMigrationService {
    * @param username - Project owner username
    * @param oldSlug - Original project slug
    * @param newSlug - New project slug
+   * @returns true if migration was performed, false if skipped (empty document)
    */
   private async migrateDatabase(
     dbName: string,
     username: string,
     oldSlug: string,
     newSlug: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     // Calculate the new database name
     const oldPrefix = `${username}:${oldSlug}:`;
     if (!dbName.startsWith(oldPrefix)) {
@@ -247,7 +253,7 @@ export class ProjectRenameMigrationService {
         `Skipping empty document: ${dbName}`
       );
       void oldProvider.destroy();
-      return;
+      return false;
     }
 
     // Create new document and apply old state
@@ -269,6 +275,8 @@ export class ProjectRenameMigrationService {
       'ProjectRenameMigration',
       `Successfully migrated ${dbName} -> ${newDbName}`
     );
+
+    return true;
   }
 
   /**

@@ -441,7 +441,7 @@ export class DocumentElementEditorComponent
 
     // Destroy editor FIRST before disconnecting
     // This prevents awareness cleanup from trying to update a destroyed editor
-    this.editor.destroy();
+    this.editor?.destroy();
 
     // Now disconnect from Yjs - this will trigger awareness cleanup
     // but the editor is already destroyed so it won't crash

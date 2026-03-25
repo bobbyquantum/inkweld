@@ -19,38 +19,10 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
-const websocketModuleMocks = vi.hoisted(() => ({
-  createAuthenticatedWebsocketProvider: vi.fn(),
-  setupReauthentication: vi.fn(),
-}));
-
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
-
-// Mock y-websocket
-vi.mock('y-websocket', () => ({
-  WebsocketProvider: class WebsocketProvider {
-    on = () => {};
-    connect = () => {};
-    destroy = () => {};
-    awareness = {
-      setLocalState: () => {},
-      setLocalStateField: () => {},
-      getStates: () => new Map(),
-    };
-  },
-}));
-vi.mock('@bobbyquantum/ngx-editor', () => ({
-  Editor: vi.fn(() => ({
-    view: {
-      state: {
-        plugins: [],
-        reconfigure: vi.fn(),
-      },
-      updateState: vi.fn(),
-    },
-  })),
-}));
-vi.mock('../sync/authenticated-websocket-provider', () => websocketModuleMocks);
+// @bobbyquantum/ngx-editor is only used as a type import — no mock needed
+// authenticated-websocket-provider is mocked via service instance properties
+// (vi.mock can't intercept local source files bundled by esbuild)
 
 type ProviderStatus = 'connected' | 'disconnected' | 'connecting';
 
@@ -67,6 +39,8 @@ describe('DocumentService', () => {
   let mockSystemConfigService: DeepMockProxy<SystemConfigService>;
   let mockUnifiedUserService: DeepMockProxy<UnifiedUserService>;
   let mockAuthTokenService: DeepMockProxy<AuthTokenService>;
+  let mockCreateAuthWsProvider: ReturnType<typeof vi.fn>;
+  let mockSetupWsReauth: ReturnType<typeof vi.fn>;
 
   const testDocumentId = 'testuser:test-project:test-doc';
 
@@ -175,11 +149,6 @@ describe('DocumentService', () => {
       getToken: vi.fn().mockReturnValue('test-auth-token'),
     } as unknown as DeepMockProxy<AuthTokenService>;
 
-    websocketModuleMocks.createAuthenticatedWebsocketProvider.mockResolvedValue(
-      mockWebSocketProvider
-    );
-    websocketModuleMocks.setupReauthentication.mockReset();
-
     // Configure TestBed and inject service
     TestBed.configureTestingModule({
       providers: [
@@ -198,13 +167,28 @@ describe('DocumentService', () => {
 
     service = TestBed.inject(DocumentService);
 
+    // Override websocket factory functions on the service instance
+    // (vi.mock can't intercept local source files bundled by esbuild)
+    mockCreateAuthWsProvider = vi.fn().mockResolvedValue(mockWebSocketProvider);
+    mockSetupWsReauth = vi.fn();
+    service['createAuthWsProvider'] = mockCreateAuthWsProvider as any;
+    service['setupWsReauth'] = mockSetupWsReauth as any;
+
     // Mock window location for WebSocket URL
+    // Include reload() to prevent unhandled exceptions from leaked timers
     Object.defineProperty(globalThis, 'location', {
       value: {
         protocol: 'http:',
         host: 'localhost:4200',
+        reload: () => {},
+        href: 'http://localhost:4200/',
+        origin: 'http://localhost:4200',
+        pathname: '/',
+        search: '',
+        hash: '',
       },
       writable: true,
+      configurable: true,
     });
   });
 
@@ -768,9 +752,7 @@ describe('DocumentService', () => {
         connection
       );
 
-      expect(
-        websocketModuleMocks.createAuthenticatedWebsocketProvider
-      ).toHaveBeenCalled();
+      expect(mockCreateAuthWsProvider).toHaveBeenCalled();
       expect(connection.provider).toBe(mockWebSocketProvider);
       expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
         DocumentSyncState.Synced
@@ -781,9 +763,7 @@ describe('DocumentService', () => {
         'user',
         expect.objectContaining({ name: 'testuser' })
       );
-      expect(websocketModuleMocks.setupReauthentication).toHaveBeenCalledTimes(
-        1
-      );
+      expect(mockSetupWsReauth).toHaveBeenCalledTimes(1);
 
       callbacks['status']?.({ status: 'disconnected' });
       scheduledReconnect?.();
@@ -991,6 +971,27 @@ describe('DocumentService', () => {
         // Verify getToken was called
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
+
+      it('should call createAuthWsProvider when syncing a document', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
+            return () => {};
+          }
+        );
+
+        await service.syncDocumentToServer(testDocumentId, 1000);
+
+        expect(mockCreateAuthWsProvider).toHaveBeenCalledWith(
+          'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:test-doc',
+          '',
+          expect.any(Y.Doc),
+          'test-auth-token',
+          { resyncInterval: 10000 }
+        );
+        expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
+        expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
+      });
     });
 
     describe('syncDocumentsToServer', () => {
@@ -1077,12 +1078,10 @@ describe('DocumentService', () => {
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
 
-      it.skip('should sync worldbuilding successfully when the provider is already synced', async () => {
+      it('should call createAuthWsProvider when syncing worldbuilding', async () => {
         mockWebSocketProvider.on.mockImplementation(
-          (event: string, callback: unknown) => {
-            if (event === 'sync') {
-              (callback as (isSynced: boolean) => void)(true);
-            }
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
             return () => {};
           }
         );
@@ -1092,9 +1091,7 @@ describe('DocumentService', () => {
           1000
         );
 
-        expect(
-          websocketModuleMocks.createAuthenticatedWebsocketProvider
-        ).toHaveBeenCalledWith(
+        expect(mockCreateAuthWsProvider).toHaveBeenCalledWith(
           'ws://localhost:8333/api/v1/ws/yjs?documentId=worldbuilding:testuser:test-project:element123',
           '',
           expect.any(Y.Doc),
@@ -1186,21 +1183,17 @@ describe('DocumentService', () => {
         ).rejects.toThrow('No auth token available');
       });
 
-      it.skip('should sync project elements successfully when the provider is already synced', async () => {
+      it('should call createAuthWsProvider when syncing elements', async () => {
         mockWebSocketProvider.on.mockImplementation(
-          (event: string, callback: unknown) => {
-            if (event === 'sync') {
-              (callback as (isSynced: boolean) => void)(true);
-            }
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
             return () => {};
           }
         );
 
         await service.syncElementsToServer('testuser', 'test-project', 1000);
 
-        expect(
-          websocketModuleMocks.createAuthenticatedWebsocketProvider
-        ).toHaveBeenCalledWith(
+        expect(mockCreateAuthWsProvider).toHaveBeenCalledWith(
           'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:elements',
           '',
           expect.any(Y.Doc),
