@@ -277,6 +277,7 @@ const MARK_TAGS: Record<string, string> = {
   strikethrough: 's',
   del: 's',
   code: 'code',
+  a: 'link',
 };
 
 /**
