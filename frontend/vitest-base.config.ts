@@ -7,24 +7,11 @@
  * Note: The Angular CLI overrides certain properties (test.projects, test.include).
  * See: https://angular.dev/guide/testing/migrating-to-vitest
  */
-import path from 'path';
 import { defineConfig } from 'vitest/config';
 
 const isCI = process.env['CI'] === 'true';
 
 export default defineConfig({
-  // Resolve path aliases so vitest can handle vi.mock() specifiers
-  // (esbuild resolves these for imports, but vitest needs them for mocks)
-  resolve: {
-    alias: {
-      '@services': path.resolve(__dirname, 'src/app/services'),
-      '@components': path.resolve(__dirname, 'src/app/components'),
-      '@dialogs': path.resolve(__dirname, 'src/app/dialogs'),
-      '@models': path.resolve(__dirname, 'src/app/models'),
-      '@themes': path.resolve(__dirname, 'src/themes'),
-      '@inkweld': path.resolve(__dirname, 'src/api-client'),
-    },
-  },
   test: {
     // This prevents hanging tests from blocking CI for too long
     testTimeout: 4000,

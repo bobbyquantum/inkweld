@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
@@ -30,6 +30,9 @@ describe('LocalStorageService', () => {
   }
 
   beforeEach(() => {
+    // Restore URL methods that may be mocked by other tests (isolate: false)
+    vi.restoreAllMocks();
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),

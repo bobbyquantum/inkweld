@@ -109,6 +109,11 @@ export class DocumentService {
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
 
+  /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
+  private createAuthWsProvider = createAuthenticatedWebsocketProvider;
+  /** @internal */
+  private setupWsReauth = setupReauthentication;
+
   private connections: Map<string, DocumentConnection> = new Map();
 
   private unsyncedChanges = new Map<string, boolean>();
@@ -1018,7 +1023,7 @@ export class DocumentService {
     let provider: WebsocketProvider | null;
 
     try {
-      provider = await createAuthenticatedWebsocketProvider(
+      provider = await this.createAuthWsProvider(
         wsUrl,
         '', // Empty room name - documentId is already in URL
         ydoc,
@@ -1035,7 +1040,7 @@ export class DocumentService {
       this.updateSyncStatus(documentId, DocumentSyncState.Synced);
 
       // Set up re-authentication for reconnections
-      setupReauthentication(
+      this.setupWsReauth(
         provider,
         () => this.authTokenService.getToken(),
         error => {
@@ -1747,13 +1752,9 @@ export class DocumentService {
 
     try {
       // Connect to WebSocket with authentication
-      provider = await createAuthenticatedWebsocketProvider(
-        wsUrl,
-        '',
-        ydoc,
-        authToken,
-        { resyncInterval: 10000 }
-      );
+      provider = await this.createAuthWsProvider(wsUrl, '', ydoc, authToken, {
+        resyncInterval: 10000,
+      });
 
       // Wait for the document to be synced
       await new Promise<void>((resolve, reject) => {
@@ -1939,13 +1940,9 @@ export class DocumentService {
 
     try {
       // Connect to WebSocket with authentication
-      provider = await createAuthenticatedWebsocketProvider(
-        wsUrl,
-        '',
-        ydoc,
-        authToken,
-        { resyncInterval: 10000 }
-      );
+      provider = await this.createAuthWsProvider(wsUrl, '', ydoc, authToken, {
+        resyncInterval: 10000,
+      });
 
       // Wait for the document to be synced
       await new Promise<void>((resolve, reject) => {
@@ -2135,13 +2132,9 @@ export class DocumentService {
 
     try {
       // Connect to WebSocket with authentication
-      provider = await createAuthenticatedWebsocketProvider(
-        wsUrl,
-        '',
-        ydoc,
-        authToken,
-        { resyncInterval: 10000 }
-      );
+      provider = await this.createAuthWsProvider(wsUrl, '', ydoc, authToken, {
+        resyncInterval: 10000,
+      });
 
       // Wait for the document to be synced
       await new Promise<void>((resolve, reject) => {
