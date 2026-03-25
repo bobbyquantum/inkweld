@@ -12,6 +12,7 @@ import {
   type WritableSignal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { ElementType } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
@@ -134,6 +135,7 @@ describe('ProjectTreeComponent', () => {
       imports: [ProjectTreeComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([{ path: '**', children: [] }]),
         { provide: SettingsService, useValue: settingsService },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectsService, useValue: projectServiceMock },
