@@ -1,0 +1,74 @@
+# ========================================
+# Inkweld — Loki Tail Worker Configuration
+# ========================================
+#
+# This worker receives tail events from the main inkweld Worker and
+# forwards them to Grafana Loki for persistent log storage.
+#
+# SETUP:
+#
+# 1. Copy this file:
+#    cp wrangler.loki-tail.toml.example wrangler.loki-tail.toml
+#
+# 2. Set the required secrets for each environment:
+#
+#    # Preview
+#    npx wrangler secret put LOKI_URL      --config wrangler.loki-tail.toml --env preview
+#    npx wrangler secret put LOKI_USERNAME --config wrangler.loki-tail.toml --env preview
+#    npx wrangler secret put LOKI_API_KEY  --config wrangler.loki-tail.toml --env preview
+#
+#    # Production
+#    npx wrangler secret put LOKI_URL      --config wrangler.loki-tail.toml --env production
+#    npx wrangler secret put LOKI_USERNAME --config wrangler.loki-tail.toml --env production
+#    npx wrangler secret put LOKI_API_KEY  --config wrangler.loki-tail.toml --env production
+#
+#    Grafana Cloud values:
+#      LOKI_URL      = https://logs-prod-us-central1.grafana.net
+#                      (check your stack's Loki "Connection" page for the correct region)
+#      LOKI_USERNAME = <numeric tenant/user ID shown on the Loki details page>
+#      LOKI_API_KEY  = <Grafana Cloud API key with "logs:write" scope>
+#
+#    Self-hosted Loki values:
+#      LOKI_URL      = http(s)://your-loki-host:3100
+#      LOKI_USERNAME = admin  (or your configured username)
+#      LOKI_API_KEY  = <password>
+#
+# 3. Deploy the tail worker for each environment (from the backend directory):
+#    npx wrangler deploy --config wrangler.loki-tail.toml --env preview
+#    npx wrangler deploy --config wrangler.loki-tail.toml --env production
+#
+# 4. Ensure the main wrangler.toml has [[tail_consumers]] pointing to this
+#    worker's name for each environment (already included in wrangler.toml.example).
+#
+# SECRETS reference:
+#   LOKI_URL      - Loki HTTP push API base URL (no trailing slash)
+#   LOKI_USERNAME - Basic-auth username (Grafana Cloud tenant ID or "admin")
+#   LOKI_API_KEY  - Basic-auth password / API key
+#
+# OPTIONAL vars (configured in [vars] below, not secrets):
+#   LOKI_ENVIRONMENT - Value for the "environment" stream label in Loki
+# ========================================
+
+name = "inkweld-loki-tail"
+main = "src/loki-tail-worker.ts"
+compatibility_date = "2025-01-01"
+
+# ========================================
+# PREVIEW ENVIRONMENT (--env preview)
+# ========================================
+
+[env.preview]
+name = "inkweld-loki-tail-preview"
+
+[env.preview.vars]
+LOKI_ENVIRONMENT = "preview"
+
+# ========================================
+# PRODUCTION ENVIRONMENT (--env production)
+# ========================================
+
+[env.production]
+name = "inkweld-loki-tail-prod"
+
+[env.production.vars]
+LOKI_ENVIRONMENT = "production"

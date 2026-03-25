@@ -122,6 +122,12 @@ name = "YJS_PROJECTS"
 class_name = "YjsProject"
 script_name = "inkweld-backend-preview"
 
+# Loki Tail Worker — receives tail events and forwards logs to Grafana Loki.
+# Deploy inkweld-loki-tail-preview first (see wrangler.loki-tail.toml.example).
+# Remove or comment out if Loki is not used.
+[[env.preview.tail_consumers]]
+service = "inkweld-loki-tail-preview"
+
 # ========================================
 # PRODUCTION ENVIRONMENT (--env production)
 # ========================================
@@ -163,6 +169,12 @@ bucket_name = "inkweld-storage"
 name = "YJS_PROJECTS"
 class_name = "YjsProject"
 script_name = "inkweld-backend-prod"
+
+# Loki Tail Worker — receives tail events and forwards logs to Grafana Loki.
+# Deploy inkweld-loki-tail-prod first (see wrangler.loki-tail.toml.example).
+# Remove or comment out if Loki is not used.
+[[env.production.tail_consumers]]
+service = "inkweld-loki-tail-prod"
 
 # ========================================
 # SECRETS (set via wrangler secret put)

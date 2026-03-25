@@ -190,7 +190,7 @@ log.error('Operation failed', error, { context: 'save' });
 For production deployments, consider forwarding logs to a centralized system:
 
 - **Docker**: Use logging drivers (json-file, syslog, fluentd)
-- **Cloudflare**: Use Logpush to R2, S3, or external services
+- **Cloudflare**: Use the built-in Loki Tail Worker (see below)
 - **Self-hosted**: ELK Stack, Loki+Grafana, or Datadog
 
 Example Docker Compose with JSON logging:
@@ -205,3 +205,125 @@ services:
         max-size: "10m"
         max-file: "3"
 ```
+
+## Grafana Loki (Cloudflare deployment)
+
+Inkweld ships a [Cloudflare Tail Worker](https://developers.cloudflare.com/workers/observability/logs/tail-workers/)
+(`backend/src/loki-tail-worker.ts`) that receives log events from the main
+Worker in real-time and pushes them to Grafana Loki via its HTTP push API.
+This works with both **Grafana Cloud** and **self-hosted Loki**.
+
+### How it works
+
+```
+inkweld Worker  →  tail events  →  inkweld-loki-tail Worker  →  HTTP push  →  Loki
+```
+
+The tail worker receives every `console.log` / `console.error` call from the
+main worker, including the structured JSON lines emitted by the logger service,
+and forwards them to Loki labelled by `job`, `environment`, `level`, and
+`source`.
+
+### Setup
+
+#### 1. Copy the tail worker wrangler config
+
+```bash
+cp backend/wrangler.loki-tail.toml.example backend/wrangler.loki-tail.toml
+```
+
+#### 2. Set secrets
+
+**Grafana Cloud:**
+
+```bash
+# Find your Loki URL and tenant ID on the Grafana Cloud portal under
+# your stack → Loki → "Connection details".
+
+npx wrangler secret put LOKI_URL      --config backend/wrangler.loki-tail.toml --env preview
+# e.g. https://logs-prod-us-central1.grafana.net
+
+npx wrangler secret put LOKI_USERNAME --config backend/wrangler.loki-tail.toml --env preview
+# e.g. 123456 (numeric tenant ID)
+
+npx wrangler secret put LOKI_API_KEY  --config backend/wrangler.loki-tail.toml --env preview
+# Grafana Cloud API key with "logs:write" (MetricsPublisher) scope
+```
+
+**Self-hosted Loki:**
+
+```bash
+npx wrangler secret put LOKI_URL      --config backend/wrangler.loki-tail.toml --env preview
+# e.g. https://loki.yourdomain.com
+
+npx wrangler secret put LOKI_USERNAME --config backend/wrangler.loki-tail.toml --env preview
+# e.g. admin
+
+npx wrangler secret put LOKI_API_KEY  --config backend/wrangler.loki-tail.toml --env preview
+# your Loki password
+```
+
+Repeat for `--env production`.
+
+#### 3. Deploy the tail worker
+
+The tail worker **must be deployed before** the main worker because the main
+worker registers it as a tail consumer on startup.
+
+```bash
+cd backend
+
+# Preview
+npx wrangler deploy --config wrangler.loki-tail.toml --env preview
+
+# Production
+npx wrangler deploy --config wrangler.loki-tail.toml --env production
+```
+
+#### 4. Deploy the main worker
+
+The main `wrangler.toml` already has `[[tail_consumers]]` pointing to the tail
+worker for each environment. Just deploy as normal:
+
+```bash
+npm run cloudflare:preview:deploy
+npm run cloudflare:prod:deploy
+```
+
+#### 5. (CI/CD) Add the `LOKI_TAIL_WRANGLER_TOML` secret
+
+The GitHub Actions workflow checks for an optional
+`LOKI_TAIL_WRANGLER_TOML` repository secret. When present it writes the file
+and deploys the tail worker automatically before the main worker. Add it the
+same way as `BACKEND_WRANGLER_TOML`:
+
+```
+Settings → Secrets → Actions → New repository secret
+Name: LOKI_TAIL_WRANGLER_TOML
+Value: <contents of your wrangler.loki-tail.toml>
+```
+
+### Querying logs in Grafana
+
+Once logs are flowing, use LogQL in Grafana Explore to query them:
+
+```logql
+# All logs from the production worker
+{job="inkweld-backend-prod", environment="production"}
+
+# Error logs only
+{job="inkweld-backend-prod", level="error"}
+
+# Trace a specific request by correlation ID
+{job="inkweld-backend-prod"} |= "f0077963"
+
+# Parse structured JSON and filter by HTTP status
+{job="inkweld-backend-prod"} | json | data_status >= 500
+```
+
+### Skipping Loki
+
+The tail worker is entirely optional. If `LOKI_URL`, `LOKI_USERNAME`, or
+`LOKI_API_KEY` are not set the tail worker silently exits without error.
+To remove the integration entirely, comment out the `[[tail_consumers]]`
+blocks in `wrangler.toml` and skip deploying `wrangler.loki-tail.toml`.
