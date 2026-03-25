@@ -57,6 +57,20 @@ const config: Config = {
   ],
 
   plugins: [
+    function nodePolyfillPlugin() {
+      return {
+        name: 'node-polyfill-plugin',
+        configureWebpack() {
+          return {
+            resolve: {
+              fallback: {
+                path: require.resolve('path-browserify'),
+              },
+            },
+          };
+        },
+      };
+    },
     [
       '@docusaurus/plugin-content-docs',
       {
@@ -64,8 +78,7 @@ const config: Config = {
         path: 'docs-user-guide',
         routeBasePath: 'user-guide',
         sidebarPath: './sidebars-user-guide.ts',
-        editUrl:
-          'https://github.com/bobbyquantum/inkweld/edit/main/docs/site/',
+        editUrl: 'https://github.com/bobbyquantum/inkweld/edit/main/docs/site/',
       },
     ],
     [
