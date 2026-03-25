@@ -44,6 +44,7 @@
           [checked]="isSelected(element)"
           [disabled]="!isSelected(element) && !canSelectMore()"
           (click)="$event.stopPropagation()"
+          (keydown)="$event.stopPropagation()"
           (change)="toggleSelection(element)">
         </mat-checkbox>
         <span class="material-symbols-outlined type-icon">

@@ -172,7 +172,6 @@ src/
   - Branches: 60%
 - **Run**: `npm test` (frontend) or `bun test` (backend)
 - Use `vitest-mock-extended` for deep mocking
-- Use `@ngneat/spectator` for Angular component testing
 
 ### E2E Tests (Playwright - Frontend)
 

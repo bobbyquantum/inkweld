@@ -44,7 +44,7 @@ export function sanitizeSpaPath(pathname: string): string {
  */
 export function shouldBypassSpa(pathname: string, prefixes: string[]): boolean {
   // Normalize path by collapsing multiple slashes (e.g., "//api/v1/health" -> "/api/v1/health")
-  const normalizedPath = pathname.replace(/\/+/g, '/');
+  const normalizedPath = pathname.replaceAll(/\/+/g, '/');
   return prefixes.some(
     (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
   );

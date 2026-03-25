@@ -73,19 +73,7 @@ export function extractMimeType(dataUrl: string): string {
 /**
  * Convert a base64 data URL to a Blob
  */
-export function base64ToBlob(dataUrl: string): Blob {
-  const mimeType = extractMimeType(dataUrl);
-  const base64 = dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
-
-  const byteCharacters = atob(base64);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  const byteArray = new Uint8Array(byteNumbers);
-
-  return new Blob([byteArray], { type: mimeType });
-}
+export { base64ToBlob } from '../../utils/base64-utils';
 
 /**
  * Generate a unique media ID for an image

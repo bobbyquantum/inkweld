@@ -121,7 +121,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       const sigB64 = parts[2].replaceAll('-', '+').replaceAll('_', '/');
       // Pad if needed
       const padded = sigB64 + '='.repeat((4 - (sigB64.length % 4)) % 4);
-      const sigBytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+      const sigBytes = Uint8Array.from(atob(padded), (c) => c.codePointAt(0)!);
 
       const valid = await crypto.subtle.verify('HMAC', key, sigBytes, data);
       if (!valid) {
@@ -519,7 +519,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       });
     } else if (body.yUpdate) {
       // Apply raw Yjs update (base64 encoded)
-      const update = Uint8Array.from(atob(body.yUpdate), (c) => c.charCodeAt(0));
+      const update = Uint8Array.from(atob(body.yUpdate), (c) => c.codePointAt(0)!);
       sharedDoc.update(update);
     } else if (body.relationships) {
       // Apply relationship array mutations

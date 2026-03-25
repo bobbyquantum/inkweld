@@ -185,6 +185,40 @@ describe('NewElementDialogComponent', () => {
     });
   });
 
+  describe('onTypeCardKeydown', () => {
+    const option = {
+      type: ElementType.Item,
+      label: 'Document',
+      icon: 'description',
+      description: 'A document',
+      category: 'document' as const,
+    };
+
+    it('should select type on Enter key', () => {
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      vi.spyOn(event, 'preventDefault');
+      component.onTypeCardKeydown(event, option);
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.selectedType()).toBe(ElementType.Item);
+    });
+
+    it('should select type on Space key', () => {
+      const event = new KeyboardEvent('keydown', { key: ' ' });
+      vi.spyOn(event, 'preventDefault');
+      component.onTypeCardKeydown(event, option);
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.selectedType()).toBe(ElementType.Item);
+    });
+
+    it('should not select type on other keys', () => {
+      const event = new KeyboardEvent('keydown', { key: 'Tab' });
+      vi.spyOn(event, 'preventDefault');
+      component.onTypeCardKeydown(event, option);
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(component.currentStep()).toBe(1);
+    });
+  });
+
   describe('type filtering', () => {
     it('should return all options when search is empty', () => {
       component.searchQuery.set('');
