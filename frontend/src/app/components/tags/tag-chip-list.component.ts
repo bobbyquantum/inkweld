@@ -152,7 +152,7 @@ type TagAutocompleteValue = TagDefinition | { name: string; isNew: true };
   ],
 })
 export class TagChipListComponent {
-  private tagService = inject(TagService);
+  private readonly tagService = inject(TagService);
 
   /** Element ID to manage tags for */
   elementId = input.required<string>();

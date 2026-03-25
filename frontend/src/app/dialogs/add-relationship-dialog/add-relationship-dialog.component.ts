@@ -79,10 +79,12 @@ export interface AddRelationshipDialogResult {
   styleUrl: './add-relationship-dialog.component.scss',
 })
 export class AddRelationshipDialogComponent implements OnInit {
-  private dialogRef = inject(MatDialogRef<AddRelationshipDialogComponent>);
+  private readonly dialogRef = inject(
+    MatDialogRef<AddRelationshipDialogComponent>
+  );
   private data = inject<AddRelationshipDialogData>(MAT_DIALOG_DATA);
-  private projectState = inject(ProjectStateService);
-  private relationshipService = inject(RelationshipService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly relationshipService = inject(RelationshipService);
 
   /** Form control for element search */
   elementSearchControl = new FormControl('');

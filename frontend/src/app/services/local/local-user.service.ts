@@ -10,8 +10,8 @@ const LOCAL_USER_BASE_KEY = 'inkweld-local-user';
   providedIn: 'root',
 })
 export class LocalUserService {
-  private setupService = inject(SetupService);
-  private storageContext = inject(StorageContextService);
+  private readonly setupService = inject(SetupService);
+  private readonly storageContext = inject(StorageContextService);
 
   readonly currentUser = signal<User>({
     id: '',

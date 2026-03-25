@@ -14,7 +14,7 @@ export interface ChangelogVersion {
   providedIn: 'root',
 })
 export class ChangelogService {
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
 
   getChangelog(): Observable<ChangelogVersion[]> {
     return this.http

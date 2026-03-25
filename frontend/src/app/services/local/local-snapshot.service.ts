@@ -112,9 +112,9 @@ const STORE_NAME = 'snapshots';
   providedIn: 'root',
 })
 export class LocalSnapshotService {
-  private storageService = inject(StorageService);
-  private storageContext = inject(StorageContextService);
-  private logger = inject(LoggerService);
+  private readonly storageService = inject(StorageService);
+  private readonly storageContext = inject(StorageContextService);
+  private readonly logger = inject(LoggerService);
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
 

@@ -55,7 +55,7 @@ import { type ExtendedCorrectionDto } from './correction-dto.extension';
   ],
 })
 export class LintOverlayComponent implements OnInit, OnChanges {
-  private elementRef = inject(ElementRef);
+  private readonly elementRef = inject(ElementRef);
 
   @Input() recommendations: ExtendedCorrectionDto[] = [];
   @Input() position: TooltipPosition = 'below';

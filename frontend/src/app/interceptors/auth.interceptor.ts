@@ -24,9 +24,9 @@ import { SetupService } from '../services/core/setup.service';
  */
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  private router = inject(Router);
-  private setupService = inject(SetupService);
-  private authTokenService = inject(AuthTokenService);
+  private readonly router = inject(Router);
+  private readonly setupService = inject(SetupService);
+  private readonly authTokenService = inject(AuthTokenService);
 
   intercept(
     request: HttpRequest<unknown>,

@@ -29,10 +29,10 @@ import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factor
   providedIn: 'root',
 })
 export class RelationshipService {
-  private logger = inject(LoggerService);
-  private projectState = inject(ProjectStateService);
-  private syncProviderFactory = inject(ElementSyncProviderFactory);
-  private ngZone = inject(NgZone);
+  private readonly logger = inject(LoggerService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
+  private readonly ngZone = inject(NgZone);
 
   /** Get the active sync provider */
   private get syncProvider() {

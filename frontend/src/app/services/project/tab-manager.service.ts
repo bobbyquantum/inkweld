@@ -67,7 +67,7 @@ export interface OpenTabResult {
   providedIn: 'root',
 })
 export class TabManagerService {
-  private logger = inject(LoggerService);
+  private readonly logger = inject(LoggerService);
 
   // State signals
   readonly openTabs = signal<AppTab[]>([]);

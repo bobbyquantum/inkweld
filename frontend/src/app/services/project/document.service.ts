@@ -93,21 +93,21 @@ interface ProseMirrorNode {
   providedIn: 'root',
 })
 export class DocumentService {
-  private documentsService = inject(DocumentsService);
-  private authTokenService = inject(AuthTokenService);
-  private setupService = inject(SetupService);
-  private ngZone = inject(NgZone);
-  private systemConfigService = inject(SystemConfigService);
-  private projectStateService = inject(ProjectStateService);
-  private lintApiService = inject(LintApiService);
-  private elementRefService = inject(ElementRefService);
-  private findInDocumentService = inject(FindInDocumentService);
-  private insertImageService = inject(InsertImageService);
-  private logger = inject(LoggerService);
-  private userService = inject(UnifiedUserService);
-  private localStorage = inject(LocalStorageService);
-  private storageContext = inject(StorageContextService);
-  private versionCompatibility = inject(VersionCompatibilityService);
+  private readonly documentsService = inject(DocumentsService);
+  private readonly authTokenService = inject(AuthTokenService);
+  private readonly setupService = inject(SetupService);
+  private readonly ngZone = inject(NgZone);
+  private readonly systemConfigService = inject(SystemConfigService);
+  private readonly projectStateService = inject(ProjectStateService);
+  private readonly lintApiService = inject(LintApiService);
+  private readonly elementRefService = inject(ElementRefService);
+  private readonly findInDocumentService = inject(FindInDocumentService);
+  private readonly insertImageService = inject(InsertImageService);
+  private readonly logger = inject(LoggerService);
+  private readonly userService = inject(UnifiedUserService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly storageContext = inject(StorageContextService);
+  private readonly versionCompatibility = inject(VersionCompatibilityService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 

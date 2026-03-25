@@ -71,11 +71,13 @@ export interface PublishCompleteDialogResult {
   styleUrl: './publish-complete-dialog.component.scss',
 })
 export class PublishCompleteDialogComponent {
-  private dialogRef = inject(MatDialogRef<PublishCompleteDialogComponent>);
+  private readonly dialogRef = inject(
+    MatDialogRef<PublishCompleteDialogComponent>
+  );
   private data = inject<PublishCompleteDialogData>(MAT_DIALOG_DATA);
-  private publishedFilesService = inject(PublishedFilesService);
-  private setupService = inject(SetupService);
-  private snackBar = inject(MatSnackBar);
+  private readonly publishedFilesService = inject(PublishedFilesService);
+  private readonly setupService = inject(SetupService);
+  private readonly snackBar = inject(MatSnackBar);
 
   /** The published file */
   file = signal(this.data.file);

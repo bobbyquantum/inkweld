@@ -28,11 +28,11 @@ import { UserService, UserServiceError } from '@services/user/user.service';
   styleUrl: './login-dialog.component.scss',
 })
 export class LoginDialogComponent {
-  private dialogRef = inject(MatDialogRef<LoginDialogComponent>);
-  private snackBar = inject(MatSnackBar);
-  private userService = inject(UserService);
-  private router = inject(Router);
-  private systemConfig = inject(SystemConfigService);
+  private readonly dialogRef = inject(MatDialogRef<LoginDialogComponent>);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly userService = inject(UserService);
+  private readonly router = inject(Router);
+  private readonly systemConfig = inject(SystemConfigService);
 
   readonly isEmailEnabled = this.systemConfig.isEmailEnabled;
 

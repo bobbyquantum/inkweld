@@ -80,15 +80,15 @@ export interface ImportOptions {
   providedIn: 'root',
 })
 export class ProjectImportService {
-  private logger = inject(LoggerService);
-  private http = inject(HttpClient);
-  private syncFactory = inject(ElementSyncProviderFactory);
-  private localProject = inject(LocalProjectService);
-  private localElements = inject(LocalProjectElementsService);
-  private localStorage = inject(LocalStorageService);
-  private localSnapshots = inject(LocalSnapshotService);
-  private projectsService = inject(ProjectsService);
-  private documentImport = inject(DocumentImportService);
+  private readonly logger = inject(LoggerService);
+  private readonly http = inject(HttpClient);
+  private readonly syncFactory = inject(ElementSyncProviderFactory);
+  private readonly localProject = inject(LocalProjectService);
+  private readonly localElements = inject(LocalProjectElementsService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly localSnapshots = inject(LocalSnapshotService);
+  private readonly projectsService = inject(ProjectsService);
+  private readonly documentImport = inject(DocumentImportService);
 
   /** Current import progress */
   readonly progress = signal<ArchiveProgress>({

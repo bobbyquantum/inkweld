@@ -60,11 +60,11 @@ export interface SnapshotsDialogData {
   styleUrl: './snapshots-dialog.component.scss',
 })
 export class SnapshotsDialogComponent implements OnInit {
-  private dialogRef = inject(MatDialogRef<SnapshotsDialogComponent>);
+  private readonly dialogRef = inject(MatDialogRef<SnapshotsDialogComponent>);
   private data = inject<SnapshotsDialogData>(MAT_DIALOG_DATA);
-  private snapshotService = inject(UnifiedSnapshotService);
-  private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private readonly snapshotService = inject(UnifiedSnapshotService);
+  private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
   /** Loading state */
   loading = signal(false);
