@@ -627,6 +627,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     strikethrough: 's',
     del: 's',
     code: 'code',
+    a: 'link',
   };
 
   /** Alternative tag names mapped to their correct ProseMirror node names */
@@ -716,26 +717,45 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     marks: Record<string, unknown> = {}
   ): { nodes: any[]; pos: number } {
     const tagMatch = xml.substring(pos).match(/^<([a-zA-Z_][a-zA-Z0-9_-]*)/);
-    if (!tagMatch) {
-      // Not a valid tag, treat as text
-      let end = xml.indexOf('<', pos + 1);
-      if (end === -1) end = xml.length;
-      const text = this.decodeXmlEntities(xml.substring(pos, end));
-      const yText = new Y.XmlText();
-      const hasMarks = Object.keys(marks).length > 0;
-      yText.insert(0, text, hasMarks ? { ...marks } : undefined);
-      return { nodes: [yText], pos: end };
-    }
+    if (!tagMatch) return this.parseFallbackText(Y, xml, pos, marks);
 
     const rawTagName = tagMatch[1].toLowerCase();
     let cursor = pos + tagMatch[0].length;
+    const { attrs, cursor: afterAttrs } = this.parseAttributes(xml, cursor);
+    cursor = afterAttrs;
 
-    // Parse attributes
+    const markName = YjsProject.MARK_TAGS[rawTagName];
+    if (markName) return this.parseMarkElement(Y, xml, cursor, rawTagName, markName, attrs, marks);
+
+    return this.parseNodeElement(Y, xml, cursor, rawTagName, attrs);
+  }
+
+  /** Fallback: treat a non-tag position as a text node (defensive path). */
+  private parseFallbackText(
+    Y: any,
+    xml: string,
+    pos: number,
+    marks: Record<string, unknown>
+  ): { nodes: any[]; pos: number } {
+    let end = xml.indexOf('<', pos + 1);
+    if (end === -1) end = xml.length;
+    const text = this.decodeXmlEntities(xml.substring(pos, end));
+    const yText = new Y.XmlText();
+    const hasMarks = Object.keys(marks).length > 0;
+    yText.insert(0, text, hasMarks ? { ...marks } : undefined);
+    return { nodes: [yText], pos: end };
+  }
+
+  /** Parse tag attributes, returning updated attrs map and cursor position. */
+  private parseAttributes(
+    xml: string,
+    start: number
+  ): { attrs: Record<string, string>; cursor: number } {
     const attrs: Record<string, string> = {};
+    let cursor = start;
     while (cursor < xml.length) {
       while (cursor < xml.length && /\s/.test(xml[cursor])) cursor++;
       if (xml[cursor] === '>' || (xml[cursor] === '/' && xml[cursor + 1] === '>')) break;
-
       const attrMatch = xml
         .substring(cursor)
         .match(/^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/);
@@ -746,67 +766,26 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         cursor++;
       }
     }
+    return { attrs, cursor };
+  }
 
-    // Check if this is an inline mark tag
-    const markName = YjsProject.MARK_TAGS[rawTagName];
-    if (markName) {
-      const markValue =
-        rawTagName === 'a' || markName === 'link'
-          ? { href: attrs.href || '', ...(attrs.title ? { title: attrs.title } : {}) }
-          : {};
-      const newMarks = { ...marks, [markName]: markValue };
-
-      // Self-closing mark (unusual)
-      if (xml[cursor] === '/' && xml[cursor + 1] === '>') {
-        return { nodes: [], pos: cursor + 2 };
-      }
-      if (xml[cursor] === '>') cursor++;
-
-      // Parse children with accumulated marks
-      const children: any[] = [];
-      const closingTag = `</${rawTagName}>`;
-      while (cursor < xml.length) {
-        if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
-          cursor += closingTag.length;
-          break;
-        }
-        const childResult = this.parseXmlNode(Y, xml, cursor, newMarks);
-        if (!childResult) {
-          const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
-          if (closeMatch) cursor += closeMatch[0].length;
-          break;
-        }
-        for (const node of childResult.nodes) children.push(node);
-        if (childResult.pos <= cursor) break;
-        cursor = childResult.pos;
-      }
-      return { nodes: children, pos: cursor };
-    }
-
-    // Regular element — apply node tag aliases
-    const tagName = YjsProject.NODE_TAG_ALIASES[rawTagName] ?? rawTagName;
-
-    // Self-closing tag
-    if (xml[cursor] === '/' && xml[cursor + 1] === '>') {
-      const yElement = new Y.XmlElement(tagName);
-      for (const [key, value] of Object.entries(attrs)) {
-        yElement.setAttribute(key, this.parseXmlAttrValue(value));
-      }
-      return { nodes: [yElement], pos: cursor + 2 };
-    }
-
-    if (xml[cursor] === '>') cursor++;
-
-    // Parse children
+  /** Parse children until the closing tag, returning child nodes and updated cursor. */
+  private parseChildren(
+    Y: any,
+    xml: string,
+    start: number,
+    rawTagName: string,
+    marks?: Record<string, unknown>
+  ): { children: any[]; cursor: number } {
     const children: any[] = [];
     const closingTag = `</${rawTagName}>`;
-
+    let cursor = start;
     while (cursor < xml.length) {
       if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
         cursor += closingTag.length;
         break;
       }
-      const childResult = this.parseXmlNode(Y, xml, cursor);
+      const childResult = this.parseXmlNode(Y, xml, cursor, marks);
       if (!childResult) {
         const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
         if (closeMatch) cursor += closeMatch[0].length;
@@ -816,13 +795,53 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       if (childResult.pos <= cursor) break;
       cursor = childResult.pos;
     }
+    return { children, cursor };
+  }
 
+  /** Handle an inline mark tag (bold, italic, link, etc.). */
+  private parseMarkElement(
+    Y: any,
+    xml: string,
+    cursor: number,
+    rawTagName: string,
+    markName: string,
+    attrs: Record<string, string>,
+    marks: Record<string, unknown>
+  ): { nodes: any[]; pos: number } {
+    if (xml[cursor] === '/' && xml[cursor + 1] === '>') return { nodes: [], pos: cursor + 2 };
+
+    const isLink = rawTagName === 'a' || markName === 'link';
+    const markValue = isLink
+      ? { href: attrs.href || '', ...(attrs.title ? { title: attrs.title } : {}) }
+      : {};
+    const newMarks = { ...marks, [markName]: markValue };
+
+    if (xml[cursor] === '>') cursor++;
+    const { children, cursor: end } = this.parseChildren(Y, xml, cursor, rawTagName, newMarks);
+    return { nodes: children, pos: end };
+  }
+
+  /** Handle a regular (non-mark) XML element. */
+  private parseNodeElement(
+    Y: any,
+    xml: string,
+    cursor: number,
+    rawTagName: string,
+    attrs: Record<string, string>
+  ): { nodes: any[]; pos: number } {
+    const tagName = YjsProject.NODE_TAG_ALIASES[rawTagName] ?? rawTagName;
     const yElement = new Y.XmlElement(tagName);
     for (const [key, value] of Object.entries(attrs)) {
       yElement.setAttribute(key, this.parseXmlAttrValue(value));
     }
+
+    if (xml[cursor] === '/' && xml[cursor + 1] === '>')
+      return { nodes: [yElement], pos: cursor + 2 };
+
+    if (xml[cursor] === '>') cursor++;
+    const { children, cursor: end } = this.parseChildren(Y, xml, cursor, rawTagName);
     if (children.length > 0) yElement.insert(0, children);
-    return { nodes: [yElement], pos: cursor };
+    return { nodes: [yElement], pos: end };
   }
 
   /**
