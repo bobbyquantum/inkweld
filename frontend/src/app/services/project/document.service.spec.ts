@@ -175,12 +175,20 @@ describe('DocumentService', () => {
     service['setupWsReauth'] = mockSetupWsReauth as any;
 
     // Mock window location for WebSocket URL
+    // Include reload() to prevent unhandled exceptions from leaked timers
     Object.defineProperty(globalThis, 'location', {
       value: {
         protocol: 'http:',
         host: 'localhost:4200',
+        reload: () => {},
+        href: 'http://localhost:4200/',
+        origin: 'http://localhost:4200',
+        pathname: '/',
+        search: '',
+        hash: '',
       },
       writable: true,
+      configurable: true,
     });
   });
 

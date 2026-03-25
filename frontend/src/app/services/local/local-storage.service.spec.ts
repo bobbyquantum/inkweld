@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
