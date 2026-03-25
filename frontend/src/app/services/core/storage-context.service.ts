@@ -185,9 +185,9 @@ export class StorageContextService {
     const normalized = this.normalizeUrl(url);
     // Simple djb2 hash for synchronous operation
     let hash = 5381;
-    for (let i = 0; i < normalized.length; i++) {
-      hash = (hash << 5) + hash + normalized.charCodeAt(i);
-      hash = hash & hash; // Convert to 32-bit integer
+    for (const char of normalized) {
+      hash = (hash << 5) + hash + char.codePointAt(0)!;
+      hash = Math.trunc(hash); // Convert to 32-bit integer
     }
     // Convert to positive hex string and take first 8 chars
     const hex = Math.abs(hash).toString(16).padStart(8, '0');
