@@ -292,7 +292,11 @@
 
     <!-- Chart Area -->
     @if (hasData()) {
-      <div class="chart-area" data-testid="chart-area" #chartContainer></div>
+      <div
+        class="chart-area"
+        data-testid="chart-area"
+        [attr.data-node-images-loaded]="nodeImages().size"
+        #chartContainer></div>
     } @else {
       <div class="empty-state" data-testid="chart-empty-state">
         <mat-icon class="empty-icon">hub</mat-icon>
