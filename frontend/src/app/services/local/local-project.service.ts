@@ -24,10 +24,10 @@ export interface MigratedProjectInfo {
   providedIn: 'root',
 })
 export class LocalProjectService {
-  private setupService = inject(SetupService);
-  private storageContext = inject(StorageContextService);
-  private localElementsService = inject(LocalProjectElementsService);
-  private projectSyncService = inject(ProjectSyncService);
+  private readonly setupService = inject(SetupService);
+  private readonly storageContext = inject(StorageContextService);
+  private readonly localElementsService = inject(LocalProjectElementsService);
+  private readonly projectSyncService = inject(ProjectSyncService);
 
   readonly projects = signal<Project[]>([]);
   readonly migratedProjects = signal<MigratedProjectInfo[]>([]);

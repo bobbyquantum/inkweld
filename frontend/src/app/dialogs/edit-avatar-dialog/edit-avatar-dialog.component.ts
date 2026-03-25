@@ -30,11 +30,11 @@ import { firstValueFrom } from 'rxjs';
 })
 export class EditAvatarDialogComponent {
   protected dialogRef = inject(MatDialogRef<EditAvatarDialogComponent>);
-  private userService = inject(UserService);
-  private unifiedUserService = inject(UnifiedUserService);
-  private setupService = inject(SetupService);
-  private localStorage = inject(LocalStorageService);
-  private sanitizer = inject(DomSanitizer);
+  private readonly userService = inject(UserService);
+  private readonly unifiedUserService = inject(UnifiedUserService);
+  private readonly setupService = inject(SetupService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   imageChangedEvent: Event | null = null;
   croppedImage: SafeUrl | null = null;

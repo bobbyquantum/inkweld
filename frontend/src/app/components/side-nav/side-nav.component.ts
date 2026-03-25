@@ -51,8 +51,8 @@ export interface UnifiedProjectItem {
 })
 export class SideNavComponent {
   protected router = inject(Router);
-  private userService = inject(UnifiedUserService);
-  private syncQueueService = inject(SyncQueueService);
+  private readonly userService = inject(UnifiedUserService);
+  private readonly syncQueueService = inject(SyncQueueService);
 
   @Input() isOpen = signal(false);
   @Input() isMobile = false;

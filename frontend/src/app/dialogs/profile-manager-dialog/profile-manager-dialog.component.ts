@@ -67,15 +67,15 @@ import {
   styleUrl: './profile-manager-dialog.component.scss',
 })
 export class ProfileManagerDialogComponent {
-  private storageContext = inject(StorageContextService);
-  private authTokenService = inject(AuthTokenService);
-  private setupService = inject(SetupService);
-  private migrationService = inject(MigrationService);
-  private projectsService = inject(ProjectsService);
-  private backgroundSyncService = inject(BackgroundSyncService);
-  private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
-  private dialog = inject(MatDialog);
+  private readonly storageContext = inject(StorageContextService);
+  private readonly authTokenService = inject(AuthTokenService);
+  private readonly setupService = inject(SetupService);
+  private readonly migrationService = inject(MigrationService);
+  private readonly projectsService = inject(ProjectsService);
+  private readonly backgroundSyncService = inject(BackgroundSyncService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
 
   // View state
   protected currentView = signal<'list' | 'add' | 'add-local' | 'migrate'>(

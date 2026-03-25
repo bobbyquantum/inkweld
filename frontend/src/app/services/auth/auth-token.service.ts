@@ -18,7 +18,7 @@ import { StorageContextService } from '../core/storage-context.service';
 })
 export class AuthTokenService {
   private readonly TOKEN_KEY = 'auth_token';
-  private storageContext = inject(StorageContextService);
+  private readonly storageContext = inject(StorageContextService);
 
   /**
    * Get the prefixed token key for current context

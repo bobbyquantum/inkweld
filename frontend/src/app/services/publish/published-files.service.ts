@@ -39,9 +39,9 @@ const PUBLISHED_BLOB_PREFIX = 'published-';
   providedIn: 'root',
 })
 export class PublishedFilesService {
-  private localStorage = inject(LocalStorageService);
-  private logger = inject(LoggerService);
-  private setupService = inject(SetupService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly logger = inject(LoggerService);
+  private readonly setupService = inject(SetupService);
 
   /** Current project's published files (reactive) */
   private filesSubject = new BehaviorSubject<PublishedFile[]>([]);

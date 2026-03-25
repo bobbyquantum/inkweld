@@ -120,8 +120,8 @@ export interface ProjectCompatibilityResult {
   providedIn: 'root',
 })
 export class VersionCompatibilityService {
-  private storageContext = inject(StorageContextService);
-  private updateService = inject(UpdateService);
+  private readonly storageContext = inject(StorageContextService);
+  private readonly updateService = inject(UpdateService);
 
   /** Signal indicating if a compatibility check is in progress */
   readonly checking = signal(false);

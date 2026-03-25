@@ -21,7 +21,7 @@ import { Router } from '@angular/router';
   ],
 })
 export class ResetComponent {
-  private router = inject(Router);
+  private readonly router = inject(Router);
 
   readonly isClearing = signal(false);
   readonly error = signal<string | null>(null);

@@ -24,11 +24,11 @@ import { type Subscription } from 'rxjs';
   styleUrls: ['./user-avatar.component.scss'],
 })
 export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
-  private unifiedUserService = inject(UnifiedUserService);
-  private userService = inject(UserService);
-  private localStorage = inject(LocalStorageService);
-  private sanitizer = inject(DomSanitizer);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly unifiedUserService = inject(UnifiedUserService);
+  private readonly userService = inject(UserService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @Input() username!: string;
   @Input() size: 'small' | 'medium' | 'large' = 'medium';

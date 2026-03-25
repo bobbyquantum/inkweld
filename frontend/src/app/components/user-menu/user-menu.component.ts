@@ -48,8 +48,8 @@ export class UserMenuComponent implements OnInit {
   protected announcementService = inject(AnnouncementService);
   protected storageContext = inject(StorageContextService);
   protected authTokenService = inject(AuthTokenService);
-  private dialogGateway = inject(DialogGatewayService);
-  private themeService = inject(ThemeService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly themeService = inject(ThemeService);
 
   @Input() user: User | undefined = undefined;
   @Input() miniMode = false;

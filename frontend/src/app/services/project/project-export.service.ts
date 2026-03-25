@@ -64,15 +64,15 @@ function isWorldbuildingType(type: ElementType): boolean {
   providedIn: 'root',
 })
 export class ProjectExportService {
-  private logger = inject(LoggerService);
-  private projectState = inject(ProjectStateService);
-  private documentService = inject(DocumentService);
-  private worldbuildingService = inject(WorldbuildingService);
-  private localElements = inject(LocalProjectElementsService);
-  private localStorage = inject(LocalStorageService);
-  private localSnapshots = inject(LocalSnapshotService);
-  private syncFactory = inject(ElementSyncProviderFactory);
-  private imagesService = inject(ImagesService);
+  private readonly logger = inject(LoggerService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly documentService = inject(DocumentService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly localElements = inject(LocalProjectElementsService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly localSnapshots = inject(LocalSnapshotService);
+  private readonly syncFactory = inject(ElementSyncProviderFactory);
+  private readonly imagesService = inject(ImagesService);
 
   /** Current export progress */
   readonly progress = signal<ArchiveProgress>({

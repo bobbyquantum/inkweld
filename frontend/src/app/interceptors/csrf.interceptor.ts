@@ -14,8 +14,8 @@ import { XsrfService } from '../services/auth/xsrf.service';
 
 @Injectable()
 export class CsrfInterceptor implements HttpInterceptor {
-  private xsrfService = inject(XsrfService);
-  private document = inject(DOCUMENT);
+  private readonly xsrfService = inject(XsrfService);
+  private readonly document = inject(DOCUMENT);
   private refreshingToken = false;
   private tokenRefreshPromise: Promise<string> | null = null;
 

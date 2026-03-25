@@ -60,9 +60,9 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
   ],
 })
 export class AccountSettingsComponent implements OnInit {
-  private oauthApiService = inject(OAuthApiService);
-  private snackBar = inject(MatSnackBar);
-  private dialogGateway = inject(DialogGatewayService);
+  private readonly oauthApiService = inject(OAuthApiService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialogGateway = inject(DialogGatewayService);
 
   /** Connected OAuth sessions */
   sessions = signal<PublicOAuthSession[]>([]);

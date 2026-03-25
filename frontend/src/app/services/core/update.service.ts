@@ -9,8 +9,8 @@ import { filter } from 'rxjs/operators';
 })
 export class UpdateService {
   // SwUpdate is optional - may not be available in tests or when service worker is disabled
-  private swUpdate = inject(SwUpdate, { optional: true });
-  private dialog = inject(MatDialog);
+  private readonly swUpdate = inject(SwUpdate, { optional: true });
+  private readonly dialog = inject(MatDialog);
 
   /** Whether an update is available and waiting to be applied */
   readonly updateAvailable = signal(false);

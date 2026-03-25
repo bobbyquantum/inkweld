@@ -85,8 +85,8 @@ const STORE_NAME = 'media';
   providedIn: 'root',
 })
 export class LocalStorageService {
-  private storageService = inject(StorageService);
-  private storageContext = inject(StorageContextService);
+  private readonly storageService = inject(StorageService);
+  private readonly storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;
 

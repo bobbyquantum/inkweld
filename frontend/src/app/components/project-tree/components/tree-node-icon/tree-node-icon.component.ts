@@ -18,7 +18,7 @@ import { WorldbuildingService } from '../../../../services/worldbuilding/worldbu
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TreeNodeIconComponent {
-  private worldbuildingService = inject(WorldbuildingService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   @Input() type!: string;
   @Input() schemaId?: string | null;

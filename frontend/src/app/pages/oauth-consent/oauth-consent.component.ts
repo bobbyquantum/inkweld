@@ -64,10 +64,10 @@ interface OAuthApiError {
   ],
 })
 export class OAuthConsentComponent implements OnInit {
-  private oauthApiService = inject(OAuthApiService);
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private readonly oauthApiService = inject(OAuthApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly snackBar = inject(MatSnackBar);
 
   /** Authorization info from the backend */
   authInfo = signal<AuthorizationInfo | null>(null);

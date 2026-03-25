@@ -21,8 +21,8 @@ import { ProjectStateService } from '../../../../services/project/project-state.
   imports: [WorldbuildingEditorComponent],
 })
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
-  private projectState = inject(ProjectStateService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly projectState = inject(ProjectStateService);
   private paramSubscription: Subscription | null = null;
 
   protected elementId = signal<string>('');

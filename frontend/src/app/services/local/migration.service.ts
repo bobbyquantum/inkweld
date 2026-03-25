@@ -88,15 +88,15 @@ export interface MigrationState {
   providedIn: 'root',
 })
 export class MigrationService {
-  private storageContextService = inject(StorageContextService);
-  private localProjectService = inject(LocalProjectService);
-  private localStorage = inject(LocalStorageService);
-  private projectSyncService = inject(ProjectSyncService);
-  private logger = inject(LoggerService);
-  private authenticationService = inject(AuthenticationService);
-  private authTokenService = inject(AuthTokenService);
-  private userService = inject(UserService);
-  private projectsApi = inject(ProjectsService);
+  private readonly storageContextService = inject(StorageContextService);
+  private readonly localProjectService = inject(LocalProjectService);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly projectSyncService = inject(ProjectSyncService);
+  private readonly logger = inject(LoggerService);
+  private readonly authenticationService = inject(AuthenticationService);
+  private readonly authTokenService = inject(AuthTokenService);
+  private readonly userService = inject(UserService);
+  private readonly projectsApi = inject(ProjectsService);
 
   readonly migrationState = signal<MigrationState>({
     status: MigrationStatus.NotStarted,

@@ -68,8 +68,10 @@ interface BasicForm {
   ],
 })
 export class TemplateEditorDialogComponent implements AfterViewInit {
-  private dialogRef = inject(MatDialogRef<TemplateEditorDialogComponent>);
-  private fb = inject(FormBuilder).nonNullable;
+  private readonly dialogRef = inject(
+    MatDialogRef<TemplateEditorDialogComponent>
+  );
+  private readonly fb = inject(FormBuilder).nonNullable;
   readonly data = inject<TemplateEditorDialogData>(MAT_DIALOG_DATA);
 
   @ViewChildren(MatExpansionPanel)

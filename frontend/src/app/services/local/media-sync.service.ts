@@ -109,9 +109,9 @@ const DEFAULT_STATE: MediaSyncState = {
   providedIn: 'root',
 })
 export class MediaSyncService {
-  private http = inject(HttpClient);
-  private localStorage = inject(LocalStorageService);
-  private projectSync = inject(ProjectSyncService);
+  private readonly http = inject(HttpClient);
+  private readonly localStorage = inject(LocalStorageService);
+  private readonly projectSync = inject(ProjectSyncService);
 
   /** Cache of sync states per project */
   private syncStates = new Map<

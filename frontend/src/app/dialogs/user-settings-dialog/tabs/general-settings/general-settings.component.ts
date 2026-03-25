@@ -12,7 +12,7 @@ import { type Subscription } from 'rxjs';
   styleUrl: './general-settings.component.scss',
 })
 export class GeneralSettingsComponent implements OnInit, OnDestroy {
-  private themeService = inject(ThemeService);
+  private readonly themeService = inject(ThemeService);
 
   selectedTheme!: ThemeOption;
 
