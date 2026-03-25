@@ -59,7 +59,7 @@ import {
   providedIn: 'root',
 })
 export class DialogGatewayService {
-  private dialog = inject(MatDialog);
+  private readonly dialog = inject(MatDialog);
 
   openConfirmationDialog(data: ConfirmationDialogData): Promise<boolean> {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {

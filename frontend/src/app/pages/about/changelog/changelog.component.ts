@@ -24,8 +24,8 @@ export interface SafeChangelogVersion extends Omit<
   styleUrl: './changelog.component.scss',
 })
 export class ChangelogComponent implements OnInit {
-  private changelogService = inject(ChangelogService);
-  private sanitizer = inject(DomSanitizer);
+  private readonly changelogService = inject(ChangelogService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   versions = signal<SafeChangelogVersion[]>([]);
   loading = signal<boolean>(true);

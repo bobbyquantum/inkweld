@@ -65,14 +65,14 @@ export interface InsertImageDialogResult {
   styleUrls: ['./insert-image-dialog.component.scss'],
 })
 export class InsertImageDialogComponent implements OnInit {
-  private dialogRef = inject(MatDialogRef<InsertImageDialogComponent>);
+  private readonly dialogRef = inject(MatDialogRef<InsertImageDialogComponent>);
   private dialogData = inject<InsertImageDialogData>(MAT_DIALOG_DATA);
-  private dialogGateway = inject(DialogGatewayService);
-  private snackBar = inject(MatSnackBar);
-  private sanitizer = inject(DomSanitizer);
-  private cdr = inject(ChangeDetectorRef);
-  private systemConfig = inject(SystemConfigService);
-  private projectState = inject(ProjectStateService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly systemConfig = inject(SystemConfigService);
+  private readonly projectState = inject(ProjectStateService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 

@@ -48,11 +48,11 @@ interface SystemFeaturesResponse {
   styleUrl: './setup.component.scss',
 })
 export class SetupComponent implements OnInit {
-  private setupService = inject(SetupService);
-  private unifiedUserService = inject(UnifiedUserService);
-  private ConfigurationService = inject(ConfigurationService);
-  private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
+  private readonly setupService = inject(SetupService);
+  private readonly unifiedUserService = inject(UnifiedUserService);
+  private readonly ConfigurationService = inject(ConfigurationService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
 
   protected readonly isLoading = this.setupService.isLoading;
   protected readonly showServerSetup = signal(false);

@@ -21,8 +21,8 @@ import { SystemConfigService } from '@services/core/system-config.service';
   styleUrl: './approval-pending.component.scss',
 })
 export class ApprovalPendingComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private systemConfigService = inject(SystemConfigService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly systemConfigService = inject(SystemConfigService);
 
   username = '';
   name = '';

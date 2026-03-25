@@ -57,10 +57,10 @@ export interface SyncQueueState {
   providedIn: 'root',
 })
 export class SyncQueueService {
-  private logger = inject(LoggerService);
-  private setupService = inject(SetupService);
-  private projectsApi = inject(ProjectsService);
-  private mediaSyncService = inject(MediaSyncService);
+  private readonly logger = inject(LoggerService);
+  private readonly setupService = inject(SetupService);
+  private readonly projectsApi = inject(ProjectsService);
+  private readonly mediaSyncService = inject(MediaSyncService);
 
   /** Queue of project keys waiting to be synced */
   private queue: string[] = [];

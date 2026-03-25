@@ -98,18 +98,18 @@ export interface RegistrationResult {
   styleUrl: './registration-form.component.scss',
 })
 export class RegistrationFormComponent implements OnInit, OnDestroy {
-  private httpClient = inject(HttpClient);
-  private authService = inject(AuthenticationService);
-  private authTokenService = inject(AuthTokenService);
-  private userService = inject(UserService);
-  private snackBar = inject(MatSnackBar);
-  private fb = inject(FormBuilder).nonNullable;
-  private setupService = inject(SetupService);
-  private overlay = inject(Overlay);
-  private overlayPositionBuilder = inject(OverlayPositionBuilder);
-  private viewContainerRef = inject(ViewContainerRef);
-  private changeDetectorRef = inject(ChangeDetectorRef);
-  private systemConfig = inject(SystemConfigService);
+  private readonly httpClient = inject(HttpClient);
+  private readonly authService = inject(AuthenticationService);
+  private readonly authTokenService = inject(AuthTokenService);
+  private readonly userService = inject(UserService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly fb = inject(FormBuilder).nonNullable;
+  private readonly setupService = inject(SetupService);
+  private readonly overlay = inject(Overlay);
+  private readonly overlayPositionBuilder = inject(OverlayPositionBuilder);
+  private readonly viewContainerRef = inject(ViewContainerRef);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly systemConfig = inject(SystemConfigService);
 
   readonly isRequireEmail = this.systemConfig.isRequireEmailEnabled;
   private readonly policy = this.systemConfig.passwordPolicy;

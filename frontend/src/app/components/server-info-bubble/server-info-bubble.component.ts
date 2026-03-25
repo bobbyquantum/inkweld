@@ -22,8 +22,8 @@ import {
   styleUrl: './server-info-bubble.component.scss',
 })
 export class ServerInfoBubbleComponent {
-  private storageContext = inject(StorageContextService);
-  private authTokenService = inject(AuthTokenService);
+  private readonly storageContext = inject(StorageContextService);
+  private readonly authTokenService = inject(AuthTokenService);
 
   /** All available profiles/configurations */
   readonly profiles = computed(() => this.storageContext.getConfigurations());

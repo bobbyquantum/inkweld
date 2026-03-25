@@ -92,11 +92,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   username = input.required<string>();
   slug = input.required<string>();
 
-  private worldbuildingService = inject(WorldbuildingService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
   protected readonly projectState = inject(ProjectStateService);
-  private dialogGateway = inject(DialogGatewayService);
-  private dialog = inject(MatDialog);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly dialog = inject(MatDialog);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly tagService = inject(TagService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
 

@@ -15,7 +15,7 @@ import { LoggerService } from '../core/logger.service';
   providedIn: 'root',
 })
 export class DocumentImportService {
-  private logger = inject(LoggerService);
+  private readonly logger = inject(LoggerService);
 
   /**
    * Write document content to IndexedDB using Yjs.

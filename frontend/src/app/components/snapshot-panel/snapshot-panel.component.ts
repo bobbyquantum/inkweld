@@ -63,9 +63,9 @@ export class SnapshotPanelComponent implements OnInit {
   /** Error message */
   error = signal<string | null>(null);
 
-  private snapshotService = inject(UnifiedSnapshotService);
-  private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private readonly snapshotService = inject(UnifiedSnapshotService);
+  private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
   ngOnInit() {
     void this.loadSnapshots();

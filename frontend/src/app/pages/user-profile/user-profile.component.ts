@@ -38,13 +38,13 @@ import { debounceTime } from 'rxjs/operators';
   styleUrls: ['./user-profile.component.scss'],
 })
 export class UserProfileComponent implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   protected router = inject(Router);
   protected userService = inject(UnifiedUserService);
   protected projectService = inject(UnifiedProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
-  private dialogGateway = inject(DialogGatewayService);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild(UserAvatarComponent) private avatarComponent!: UserAvatarComponent;
 

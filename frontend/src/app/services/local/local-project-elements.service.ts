@@ -69,8 +69,8 @@ interface YjsProjectConnection {
   providedIn: 'root',
 })
 export class LocalProjectElementsService {
-  private logger = inject(LoggerService);
-  private storageContext = inject(StorageContextService);
+  private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   readonly elements = signal<Element[]>([]);
   readonly publishPlans = signal<PublishPlan[]>([]);

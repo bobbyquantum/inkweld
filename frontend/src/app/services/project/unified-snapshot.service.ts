@@ -80,13 +80,13 @@ export interface UnifiedSnapshot {
   providedIn: 'root',
 })
 export class UnifiedSnapshotService {
-  private logger = inject(LoggerService);
-  private projectState = inject(ProjectStateService);
-  private syncFactory = inject(ElementSyncProviderFactory);
-  private localSnapshots = inject(LocalSnapshotService);
-  private snapshotsApi = inject(SnapshotsService);
-  private documentService = inject(DocumentService);
-  private worldbuildingService = inject(WorldbuildingService);
+  private readonly logger = inject(LoggerService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly syncFactory = inject(ElementSyncProviderFactory);
+  private readonly localSnapshots = inject(LocalSnapshotService);
+  private readonly snapshotsApi = inject(SnapshotsService);
+  private readonly documentService = inject(DocumentService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   /** Whether a sync operation is in progress */
   readonly isSyncing = signal(false);

@@ -72,13 +72,13 @@ import { WorldbuildingService } from '../../../../services/worldbuilding/worldbu
   ],
 })
 export class PublishPlanTabComponent implements OnInit, OnDestroy {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
   protected projectState = inject(ProjectStateService);
-  private publishService = inject(PublishService);
-  private snackBar = inject(MatSnackBar);
-  private worldbuildingService = inject(WorldbuildingService);
+  private readonly publishService = inject(PublishService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly worldbuildingService = inject(WorldbuildingService);
   private paramSubscription: Subscription | null = null;
 
   /** Expose ElementType for template */

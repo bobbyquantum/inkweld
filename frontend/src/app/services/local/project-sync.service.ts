@@ -80,8 +80,8 @@ export interface LocalTombstone {
   providedIn: 'root',
 })
 export class ProjectSyncService {
-  private storageService = inject(StorageService);
-  private storageContext = inject(StorageContextService);
+  private readonly storageService = inject(StorageService);
+  private readonly storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
   private currentDbName: string | null = null;
   private initPromise: Promise<IDBDatabase> | null = null;

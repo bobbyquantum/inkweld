@@ -20,16 +20,16 @@ import { ProjectSyncService } from './project-sync.service';
   providedIn: 'root',
 })
 export class UnifiedProjectService {
-  private setupService = inject(SetupService);
-  private projectService = inject(ProjectService);
-  private localProjectService = inject(LocalProjectService);
-  private localElements = inject(LocalProjectElementsService);
-  private templateService = inject(ProjectTemplateService);
-  private documentImport = inject(DocumentImportService);
-  private injector = inject(Injector);
-  private projectSync = inject(ProjectSyncService);
-  private userService = inject(UnifiedUserService);
-  private logger = inject(LoggerService);
+  private readonly setupService = inject(SetupService);
+  private readonly projectService = inject(ProjectService);
+  private readonly localProjectService = inject(LocalProjectService);
+  private readonly localElements = inject(LocalProjectElementsService);
+  private readonly templateService = inject(ProjectTemplateService);
+  private readonly documentImport = inject(DocumentImportService);
+  private readonly injector = inject(Injector);
+  private readonly projectSync = inject(ProjectSyncService);
+  private readonly userService = inject(UnifiedUserService);
+  private readonly logger = inject(LoggerService);
 
   // Lazily injected to break circular dependency:
   // ProjectStateService -> UnifiedProjectService -> DocumentService -> ProjectStateService

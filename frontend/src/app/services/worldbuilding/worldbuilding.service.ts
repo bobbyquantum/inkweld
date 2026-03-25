@@ -41,10 +41,10 @@ export interface WorldbuildingIdentity {
   providedIn: 'root',
 })
 export class WorldbuildingService {
-  private setupService = inject(SetupService);
-  private syncProviderFactory = inject(ElementSyncProviderFactory);
-  private authTokenService = inject(AuthTokenService);
-  private versionCompatibility = inject(VersionCompatibilityService);
+  private readonly setupService = inject(SetupService);
+  private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
+  private readonly authTokenService = inject(AuthTokenService);
+  private readonly versionCompatibility = inject(VersionCompatibilityService);
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private connections = new Map<string, WorldbuildingConnection>();

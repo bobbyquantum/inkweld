@@ -13,8 +13,8 @@ import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
   styleUrl: './project-settings.component.scss',
 })
 export class ProjectSettingsComponent {
-  private settingsService = inject(SettingsService);
-  private autoSnapshotService = inject(AutoSnapshotService);
+  private readonly settingsService = inject(SettingsService);
+  private readonly autoSnapshotService = inject(AutoSnapshotService);
 
   get zenModeFullscreen(): boolean {
     return this.settingsService.getSetting<boolean>('zenModeFullscreen', true);

@@ -32,7 +32,9 @@ export interface ConfirmationDialogData {
 })
 export class ConfirmationDialogComponent {
   protected data = inject<ConfirmationDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<ConfirmationDialogComponent>);
+  private readonly dialogRef = inject(
+    MatDialogRef<ConfirmationDialogComponent>
+  );
   protected confirmationInput = '';
 
   onCancel(): void {

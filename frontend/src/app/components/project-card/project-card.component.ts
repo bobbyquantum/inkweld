@@ -26,7 +26,7 @@ import { ProjectCoverComponent } from '../project-cover/project-cover.component'
   styleUrl: './project-card.component.scss',
 })
 export class ProjectCardComponent {
-  private syncQueueService = inject(SyncQueueService);
+  private readonly syncQueueService = inject(SyncQueueService);
 
   @Input()
   public project!: Project;

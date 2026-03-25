@@ -12,7 +12,7 @@ import { SettingsService } from '@services/core/settings.service';
   styleUrl: './project-tree-settings.component.scss',
 })
 export class ProjectTreeSettingsComponent {
-  private settingsService = inject(SettingsService);
+  private readonly settingsService = inject(SettingsService);
 
   get confirmElementMoves(): boolean {
     return this.settingsService.getSetting<boolean>(

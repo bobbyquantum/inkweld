@@ -56,18 +56,18 @@ import {
   ],
 })
 export class EditProjectDialogComponent implements OnInit {
-  private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
-  private ProjectsService = inject(ProjectsService);
-  private dialogGateway = inject(DialogGatewayService);
-  private projectService = inject(ProjectService);
-  private unifiedProjectService = inject(UnifiedProjectService);
+  private readonly dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
+  private readonly ProjectsService = inject(ProjectsService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly projectService = inject(ProjectService);
+  private readonly unifiedProjectService = inject(UnifiedProjectService);
   private dialogData = inject<Project>(MAT_DIALOG_DATA);
-  private snackBar = inject(MatSnackBar);
-  private sanitizer = inject(DomSanitizer);
-  private cdr = inject(ChangeDetectorRef);
-  private systemConfig = inject(SystemConfigService);
-  private projectState = inject(ProjectStateService);
-  private localStorage = inject(LocalStorageService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly systemConfig = inject(SystemConfigService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly localStorage = inject(LocalStorageService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;

@@ -110,9 +110,9 @@ import { environment } from '../../../environments/environment';
   ],
 })
 export class OAuthProviderListComponent implements OnInit {
-  private AuthenticationService = inject(AuthenticationService);
-  private snackBar = inject(MatSnackBar);
-  private ngZone = inject(NgZone);
+  private readonly AuthenticationService = inject(AuthenticationService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly ngZone = inject(NgZone);
 
   /**
    * Whether this component is being used in the register context.
