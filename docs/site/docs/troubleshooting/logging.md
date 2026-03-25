@@ -206,6 +206,91 @@ services:
         max-file: "3"
 ```
 
+## Grafana Loki (Docker / Bun deployment)
+
+Two approaches are available for non-Cloudflare deployments. You can use either
+or both — they are independent.
+
+### Option A: In-process transport (Docker + Bun, recommended)
+
+The logger service has a built-in Loki HTTP transport that is activated by
+environment variables. It works for any runtime — Docker, Bun standalone,
+Node.js — without any external tools.
+
+Set the following in your `.env` file (or as Docker environment variables):
+
+```bash
+LOKI_URL=https://logs-prod-us-central1.grafana.net   # Grafana Cloud
+# or
+LOKI_URL=http://loki.yourdomain.com:3100             # Self-hosted
+
+LOKI_USERNAME=123456          # Grafana Cloud tenant ID, or "admin"
+LOKI_API_KEY=glc_...          # API key with logs:write scope
+
+LOKI_ENVIRONMENT=production   # Added as a stream label in Loki
+```
+
+The transport batches log entries and flushes them to Loki every 5 seconds
+(or immediately when 50 entries accumulate). It flushes on `SIGTERM`/`SIGINT`
+to avoid losing logs on graceful shutdown. If Loki is unreachable, errors are
+silently dropped — they will not affect the application.
+
+For Docker Compose, add those variables to your `compose.deploy.yaml` or pass
+them in a `.env` file alongside the compose file.
+
+### Option B: Promtail sidecar (Docker only)
+
+For Docker deployments, a [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/)
+sidecar container can be added as a Compose overlay. Promtail reads the Docker
+JSON log files written to disk and ships them to Loki, keeping log shipping
+completely out of the application process.
+
+**Setup:**
+
+```bash
+# 1. Copy the Promtail configuration template
+cp promtail-config.yaml.example promtail-config.yaml
+
+# 2. Add Loki credentials to your .env
+echo "LOKI_URL=https://logs-prod-us-central1.grafana.net" >> .env
+echo "LOKI_USERNAME=123456" >> .env
+echo "LOKI_API_KEY=glc_..." >> .env
+
+# 3. Run with the Loki overlay
+docker compose -f compose.deploy.yaml -f compose.loki.yaml up -d
+# or for a local build:
+docker compose -f compose.yaml -f compose.loki.yaml up -d
+```
+
+**Note:** Promtail needs read access to `/var/lib/docker/containers` on the
+Docker host. On Docker Desktop (Mac/Windows) the path lives inside the VM — in
+that case Option A (in-process transport) is simpler.
+
+The `promtail-config.yaml` template parses inkweld's structured JSON lines and
+promotes `level` and `context` as Loki stream labels, enabling efficient
+filtering without full-text scans.
+
+### Querying logs in Grafana (Docker / Bun)
+
+```logql
+# All logs from the production instance
+{job="inkweld", environment="production"}
+
+# Error logs only
+{job="inkweld", level="error"}
+
+# Logs from a specific component
+{job="inkweld", context="HTTP"}
+
+# Trace a specific request by correlation ID
+{job="inkweld"} |= "f0077963"
+
+# Parse JSON and filter by HTTP status >= 500
+{job="inkweld"} | json | data_status >= 500
+```
+
+---
+
 ## Grafana Loki (Cloudflare deployment)
 
 Inkweld ships a [Cloudflare Tail Worker](https://developers.cloudflare.com/workers/observability/logs/tail-workers/)

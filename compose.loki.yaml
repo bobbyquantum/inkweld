@@ -1,0 +1,51 @@
+# Grafana Loki — Docker Compose sidecar override
+#
+# Adds a Promtail sidecar that reads inkweld's stdout/stderr from the Docker
+# JSON log file and ships them to a Loki instance.
+#
+# Usage (with compose.deploy.yaml):
+#   docker compose -f compose.deploy.yaml -f compose.loki.yaml up -d
+#
+# Usage (with local build):
+#   docker compose -f compose.yaml -f compose.loki.yaml up -d
+#
+# Required environment variables (add to your .env file):
+#   LOKI_URL       - Loki push API base URL
+#                    Grafana Cloud: https://logs-prod-us-central1.grafana.net
+#                    Self-hosted:   http://your-loki-host:3100
+#   LOKI_USERNAME  - Basic-auth username (Grafana Cloud tenant ID or "admin")
+#   LOKI_API_KEY   - Basic-auth password / API key
+#
+# Promtail reads the Docker JSON log file written by the json-file driver and
+# ships each line to Loki, preserving the structured JSON emitted by the
+# inkweld logger service in production mode.
+#
+# NOTE: Promtail requires read access to /var/lib/docker/containers on the
+# host. On Docker Desktop (Mac/Windows), the path inside the VM differs;
+# consider using the in-process transport (LOKI_URL env var on the inkweld
+# container) instead.
+
+services:
+  inkweld:
+    # Use the json-file driver so Promtail can read the log file.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  promtail:
+    image: grafana/promtail:3.4.1
+    container_name: inkweld-promtail
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yaml
+    environment:
+      - LOKI_URL=${LOKI_URL:?LOKI_URL is required}
+      - LOKI_USERNAME=${LOKI_USERNAME:?LOKI_USERNAME is required}
+      - LOKI_API_KEY=${LOKI_API_KEY:?LOKI_API_KEY is required}
+    restart: unless-stopped
+    depends_on:
+      - inkweld

@@ -1,0 +1,78 @@
+# Promtail configuration for Inkweld → Grafana Loki log shipping
+#
+# Copy this file to promtail-config.yaml in the project root before running
+# the compose.loki.yaml overlay.
+#
+# This config tells Promtail to:
+#   1. Discover the inkweld Docker container's log file automatically
+#   2. Parse Docker's outer JSON envelope to extract the log line and stream
+#   3. Parse inkweld's inner structured JSON to promote level/context as labels
+#   4. Ship entries to Loki with Basic-auth credentials from environment variables
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  # Promtail stores its read position here so it can resume after restarts.
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: ${LOKI_URL}/loki/api/v1/push
+    basic_auth:
+      username: ${LOKI_USERNAME}
+      password: ${LOKI_API_KEY}
+
+scrape_configs:
+  - job_name: inkweld
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: name
+            values: ["inkweld"]
+
+    relabel_configs:
+      # Use the container name as the job label
+      - source_labels: [__meta_docker_container_name]
+        regex: /(.*)
+        target_label: job
+
+      # Carry the Docker log stream (stdout / stderr) as a label
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream
+
+      # Static labels
+      - target_label: source
+        replacement: docker
+
+    pipeline_stages:
+      # Docker wraps each log line in a JSON envelope:
+      # {"log":"<actual line>\n","stream":"stdout","time":"..."}
+      - json:
+          expressions:
+            output: log
+            stream: stream
+
+      # Replace the raw line with the unwrapped log content
+      - output:
+          source: output
+
+      # Parse inkweld's structured JSON log lines (production mode only)
+      - json:
+          expressions:
+            level: level
+            context: context
+            correlationId: correlationId
+
+      # Promote level and context to Loki stream labels so you can filter
+      # efficiently without a full-text scan:
+      #   {job="inkweld", level="error"}
+      #   {job="inkweld", context="HTTP"}
+      - labels:
+          level:
+          context:
+
+      # Drop health-check noise (optional — comment out to keep them)
+      - drop:
+          expression: '.*GET /api/v1/health.*'

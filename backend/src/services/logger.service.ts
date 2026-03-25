@@ -192,6 +192,131 @@ export function withCorrelationId<T>(correlationId: string, fn: () => T): T {
   return fn();
 }
 
+// ---------------------------------------------------------------------------
+// In-process Loki transport (Node.js / Bun only)
+//
+// Activated by setting LOKI_URL, LOKI_USERNAME, and LOKI_API_KEY env vars.
+// Not used in Cloudflare Workers — the loki-tail-worker handles that path.
+//
+// Logs are buffered and flushed to Loki every LOKI_FLUSH_INTERVAL_MS ms
+// (default 5 s) or whenever the buffer reaches LOKI_BATCH_SIZE entries
+// (default 50). On SIGTERM / SIGINT the buffer is flushed synchronously
+// (best-effort) before the process exits.
+// ---------------------------------------------------------------------------
+
+const LOKI_BATCH_SIZE = 50;
+const LOKI_FLUSH_INTERVAL_MS = 5_000;
+
+interface LokiStreamValues {
+  stream: Record<string, string>;
+  values: [string, string][];
+}
+
+/** Convert a millisecond timestamp to the nanosecond string Loki expects. */
+function msToNsStr(ms: number): string {
+  return String(BigInt(Math.floor(ms)) * 1_000_000n);
+}
+
+class LokiTransport {
+  private readonly pushUrl: string;
+  private readonly authHeader: string;
+  private readonly environment: string;
+  private buffer: LogEntry[] = [];
+  private readonly timer: ReturnType<typeof setInterval>;
+
+  constructor(url: string, username: string, apiKey: string, environment: string) {
+    this.pushUrl = `${url.replace(/\/$/, '')}/loki/api/v1/push`;
+    this.authHeader = `Basic ${btoa(`${username}:${apiKey}`)}`;
+    this.environment = environment;
+
+    this.timer = setInterval(() => {
+      this.flush().catch(() => {});
+    }, LOKI_FLUSH_INTERVAL_MS);
+
+    // Keep the timer from preventing process exit
+    if (typeof this.timer === 'object' && this.timer !== null && 'unref' in this.timer) {
+      (this.timer as { unref: () => void }).unref();
+    }
+
+    // Flush on graceful shutdown
+    process.on('SIGTERM', () => {
+      this.flush().catch(() => {});
+    });
+    process.on('SIGINT', () => {
+      this.flush().catch(() => {});
+    });
+  }
+
+  enqueue(entry: LogEntry): void {
+    this.buffer.push(entry);
+    if (this.buffer.length >= LOKI_BATCH_SIZE) {
+      this.flush().catch(() => {});
+    }
+  }
+
+  async flush(): Promise<void> {
+    if (this.buffer.length === 0) return;
+    const batch = this.buffer.splice(0);
+
+    // Group entries into Loki streams by level
+    const streamMap = new Map<string, [string, string][]>();
+    for (const entry of batch) {
+      if (!streamMap.has(entry.level)) streamMap.set(entry.level, []);
+      const nsTs = msToNsStr(new Date(entry.timestamp).getTime());
+      streamMap.get(entry.level)!.push([nsTs, JSON.stringify(entry)]);
+    }
+
+    const payload: { streams: LokiStreamValues[] } = {
+      streams: Array.from(streamMap.entries()).map(([level, values]) => ({
+        stream: { job: 'inkweld', environment: this.environment, level, source: 'bun' },
+        values,
+      })),
+    };
+
+    try {
+      await fetch(this.pushUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: this.authHeader },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      // Silently ignore — Loki push failures must not cause log loops
+    }
+  }
+
+  destroy(): void {
+    clearInterval(this.timer);
+  }
+}
+
+/** Lazily initialised Loki transport singleton (null when Loki is not configured). */
+let _lokiTransport: LokiTransport | null = null;
+let _lokiTransportChecked = false;
+
+function getLokiTransport(): LokiTransport | null {
+  if (_lokiTransportChecked) return _lokiTransport;
+  _lokiTransportChecked = true;
+
+  // Workers use the tail worker instead — skip in-process transport there.
+  const { isWorkers } = detectEnvironment();
+  if (isWorkers || typeof process === 'undefined') return null;
+
+  const url = process.env.LOKI_URL;
+  const username = process.env.LOKI_USERNAME;
+  const apiKey = process.env.LOKI_API_KEY;
+
+  if (url && username && apiKey) {
+    _lokiTransport = new LokiTransport(
+      url,
+      username,
+      apiKey,
+      process.env.LOKI_ENVIRONMENT ?? 'unknown'
+    );
+  }
+
+  return _lokiTransport;
+}
+
 /**
  * Core logging function
  */
@@ -267,6 +392,9 @@ function log(
     } else {
       console.log(jsonLine);
     }
+
+    // Forward to Loki if the in-process transport is configured
+    getLokiTransport()?.enqueue(entry);
   }
 }
 
