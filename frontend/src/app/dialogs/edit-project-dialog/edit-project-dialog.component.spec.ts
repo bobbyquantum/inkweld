@@ -10,6 +10,7 @@ import { type Project, type User } from '@inkweld/index';
 import { type LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
+  afterAll,
   afterEach,
   beforeAll,
   beforeEach,
@@ -64,11 +65,16 @@ describe('EditProjectDialogComponent', () => {
   const mockCoverFile = createMockFile('cover.png', 'image/png', 1024);
 
   // Mock URL.createObjectURL which isn't available in Jest environment
+  const savedCreateObjectURL = globalThis.URL.createObjectURL;
   beforeAll(() => {
     // Only mock if not already defined
     if (!globalThis.URL.createObjectURL) {
       globalThis.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
     }
+  });
+
+  afterAll(() => {
+    globalThis.URL.createObjectURL = savedCreateObjectURL;
   });
 
   beforeEach(async () => {

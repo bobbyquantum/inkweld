@@ -6,8 +6,8 @@ import { TestBed } from '@angular/core/testing';
 import { ElementType, type Project, ProjectsService } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, type MockedObject } from 'vitest';
-import { mockDeep } from 'vitest-mock-extended';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import {
   ARCHIVE_VERSION,
@@ -69,15 +69,15 @@ async function createCustomZip(files: Record<string, string>): Promise<File> {
 
 describe('ProjectImportService', () => {
   let service: ProjectImportService;
-  let logger: MockedObject<LoggerService>;
-  let http: MockedObject<HttpClient>;
-  let syncFactory: MockedObject<ElementSyncProviderFactory>;
-  let localProject: MockedObject<LocalProjectService>;
-  let localElements: MockedObject<LocalProjectElementsService>;
-  let localStorage: MockedObject<LocalStorageService>;
-  let localSnapshots: MockedObject<LocalSnapshotService>;
-  let projectsService: MockedObject<ProjectsService>;
-  let documentImport: MockedObject<DocumentImportService>;
+  let logger: DeepMockProxy<LoggerService>;
+  let http: DeepMockProxy<HttpClient>;
+  let syncFactory: DeepMockProxy<ElementSyncProviderFactory>;
+  let localProject: DeepMockProxy<LocalProjectService>;
+  let localElements: DeepMockProxy<LocalProjectElementsService>;
+  let localStorage: DeepMockProxy<LocalStorageService>;
+  let localSnapshots: DeepMockProxy<LocalSnapshotService>;
+  let projectsService: DeepMockProxy<ProjectsService>;
+  let documentImport: DeepMockProxy<DocumentImportService>;
 
   const mockManifest: ArchiveManifest = {
     version: ARCHIVE_VERSION,

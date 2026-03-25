@@ -9,7 +9,7 @@ import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { createDefaultPublishPlan } from '@models/publish-plan';
-import { vi } from 'vitest';
+import { afterAll, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
@@ -54,8 +54,13 @@ describe('HomeTabComponent', () => {
   ];
 
   // Mock URL.createObjectURL which isn't available in Jest environment
+  const savedCreateObjectURL = globalThis.URL.createObjectURL;
   beforeAll(() => {
     globalThis.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
+  });
+
+  afterAll(() => {
+    globalThis.URL.createObjectURL = savedCreateObjectURL;
   });
 
   let mockRouter: Partial<Router>;
