@@ -187,7 +187,7 @@ export class StorageContextService {
     let hash = 5381;
     for (const char of normalized) {
       hash = (hash << 5) + hash + char.codePointAt(0)!;
-      hash |= 0; // Convert to 32-bit integer
+      hash = Math.trunc(hash); // Convert to 32-bit integer
     }
     // Convert to positive hex string and take first 8 chars
     const hex = Math.abs(hash).toString(16).padStart(8, '0');
