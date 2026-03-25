@@ -151,6 +151,31 @@ export class StorageService {
     });
   }
 
+  async getAll<T>(db: IDBDatabase, storeName: string): Promise<T[]> {
+    return new Promise<T[]>((resolve, reject) => {
+      const transaction = db.transaction(storeName, 'readonly');
+      const store = transaction.objectStore(storeName);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result as T[]);
+      request.onerror = () =>
+        reject(
+          new StorageError(
+            `Failed to get all values: ${request.error?.message}`,
+            'REQUEST_ERROR'
+          )
+        );
+
+      transaction.onerror = () =>
+        reject(
+          new StorageError(
+            `Transaction failed: ${transaction.error?.message}`,
+            'TRANSACTION_ERROR'
+          )
+        );
+    });
+  }
+
   async clear(db: IDBDatabase, storeName: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(storeName, 'readwrite');
