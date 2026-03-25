@@ -32,10 +32,10 @@ import { Subject } from 'rxjs';
   styleUrl: './register-dialog.component.scss',
 })
 export class RegisterDialogComponent implements OnInit, OnDestroy {
-  private dialogRef = inject(MatDialogRef<RegisterDialogComponent>);
-  private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
-  private changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly dialogRef = inject(MatDialogRef<RegisterDialogComponent>);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
   @ViewChild(RegistrationFormComponent)
   registrationForm?: RegistrationFormComponent;

@@ -75,7 +75,7 @@ declare global {
   providedIn: 'root',
 })
 export class ElectronService {
-  private ngZone = inject(NgZone);
+  private readonly ngZone = inject(NgZone);
 
   /**
    * Check if the app is running in Electron

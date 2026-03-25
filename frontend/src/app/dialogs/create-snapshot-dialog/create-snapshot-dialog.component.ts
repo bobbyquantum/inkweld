@@ -59,10 +59,12 @@ interface CreateSnapshotForm {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateSnapshotDialogComponent {
-  private dialogRef = inject(MatDialogRef<CreateSnapshotDialogComponent>);
+  private readonly dialogRef = inject(
+    MatDialogRef<CreateSnapshotDialogComponent>
+  );
   data = inject<CreateSnapshotDialogData>(MAT_DIALOG_DATA);
-  private fb = inject(FormBuilder).nonNullable;
-  private cdr = inject(ChangeDetectorRef);
+  private readonly fb = inject(FormBuilder).nonNullable;
+  private readonly cdr = inject(ChangeDetectorRef);
 
   form = this.fb.group<CreateSnapshotForm>({
     name: this.fb.control('', { validators: [Validators.maxLength(100)] }),

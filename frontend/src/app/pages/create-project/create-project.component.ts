@@ -57,13 +57,13 @@ interface ProjectForm {
   ],
 })
 export class CreateProjectComponent implements OnInit {
-  private unifiedProjectService = inject(UnifiedProjectService);
-  private templateService = inject(ProjectTemplateService);
-  private electronService = inject(ElectronService);
+  private readonly unifiedProjectService = inject(UnifiedProjectService);
+  private readonly templateService = inject(ProjectTemplateService);
+  private readonly electronService = inject(ElectronService);
   protected unifiedUserService = inject(UnifiedUserService);
-  private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
-  private fb = inject(FormBuilder).nonNullable;
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly fb = inject(FormBuilder).nonNullable;
 
   /** Current step (1: template selection, 2: project details) */
   step = signal<1 | 2>(1);

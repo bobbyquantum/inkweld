@@ -87,11 +87,11 @@ export class MetaPanelComponent {
   /** Whether the panel is expanded (showing full content) vs collapsed (showing icons) */
   isExpanded = signal(false);
 
-  private relationshipService = inject(RelationshipService);
-  private projectState = inject(ProjectStateService);
-  private elementRefService = inject(ElementRefService);
-  private worldbuildingService = inject(WorldbuildingService);
-  private dialog = inject(MatDialog);
+  private readonly relationshipService = inject(RelationshipService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly elementRefService = inject(ElementRefService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly dialog = inject(MatDialog);
 
   /** The effective element ID (elementId or documentId) */
   private effectiveElementId = computed(() => {

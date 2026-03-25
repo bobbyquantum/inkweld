@@ -34,7 +34,7 @@ export interface AppConfig {
   providedIn: 'root',
 })
 export class SetupService {
-  private storageContext = inject(StorageContextService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Whether the app is configured (has at least one config) */
   readonly isConfigured = computed(() => this.storageContext.isConfigured());

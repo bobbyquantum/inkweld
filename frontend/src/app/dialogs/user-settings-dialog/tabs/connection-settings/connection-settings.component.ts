@@ -40,13 +40,13 @@ import {
   styleUrl: './connection-settings.component.scss',
 })
 export class ConnectionSettingsComponent {
-  private setupService = inject(SetupService);
-  private migrationService = inject(MigrationService);
-  private userService = inject(UserService);
-  private authTokenService = inject(AuthTokenService);
-  private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
-  private dialog = inject(MatDialog);
+  private readonly setupService = inject(SetupService);
+  private readonly migrationService = inject(MigrationService);
+  private readonly userService = inject(UserService);
+  private readonly authTokenService = inject(AuthTokenService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly dialog = inject(MatDialog);
 
   protected currentMode = this.setupService.getMode();
   protected currentServerUrl = this.setupService.getServerUrl() || '';

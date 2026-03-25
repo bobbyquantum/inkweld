@@ -29,9 +29,9 @@ import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factor
   providedIn: 'root',
 })
 export class TagService {
-  private logger = inject(LoggerService);
-  private projectState = inject(ProjectStateService);
-  private syncProviderFactory = inject(ElementSyncProviderFactory);
+  private readonly logger = inject(LoggerService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
 
   /** Get the active sync provider */
   private get syncProvider() {

@@ -12,7 +12,7 @@ import { type ThemeOption, ThemeService } from '@themes/theme.service';
   styleUrl: './theme-toggle.component.scss',
 })
 export class ThemeToggleComponent {
-  private themeService = inject(ThemeService);
+  private readonly themeService = inject(ThemeService);
 
   onThemeChange(theme: ThemeOption): void {
     this.themeService.update(theme);
