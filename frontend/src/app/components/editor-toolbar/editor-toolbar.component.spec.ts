@@ -123,7 +123,7 @@ describe('EditorToolbarComponent', () => {
             depth: 0,
             marks: () => [],
             node: () => ({ type: { name: 'paragraph' } }),
-            blockRange: vi.fn().mockReturnValue({ depth: 0 }),
+            blockRange: vi.fn().mockReturnValue(null),
           },
           $to: {},
           empty: true,

@@ -12,6 +12,7 @@ import {
 describe('SetupService', () => {
   let service: SetupService;
   let mockLocalStorage: { [key: string]: string };
+  const originalLocalStorage = window.localStorage;
 
   beforeEach(() => {
     // Mock localStorage
@@ -51,6 +52,11 @@ describe('SetupService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    // Restore original localStorage to prevent leaking mock to other tests (isolate: false)
+    Object.defineProperty(window, 'localStorage', {
+      value: originalLocalStorage,
+      writable: true,
+    });
   });
 
   it('should be created', () => {

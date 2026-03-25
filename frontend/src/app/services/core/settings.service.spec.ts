@@ -5,6 +5,7 @@ import { SettingsService } from './settings.service';
 describe('SettingsService', () => {
   let service: SettingsService;
   let localStorageMock: { [key: string]: string };
+  const originalLocalStorage = window.localStorage;
 
   beforeEach(() => {
     localStorageMock = {};
@@ -27,6 +28,14 @@ describe('SettingsService', () => {
     });
 
     service = new SettingsService();
+  });
+
+  afterEach(() => {
+    // Restore original localStorage to prevent leaking mock to other tests (isolate: false)
+    Object.defineProperty(window, 'localStorage', {
+      value: originalLocalStorage,
+      writable: true,
+    });
   });
 
   it('should be created', () => {

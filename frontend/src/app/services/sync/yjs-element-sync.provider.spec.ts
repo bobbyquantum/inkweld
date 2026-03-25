@@ -27,7 +27,10 @@ const websocketModuleMocks = vi.hoisted(() => ({
   setupReauthentication: vi.fn(),
 }));
 
-vi.mock('./authenticated-websocket-provider', () => websocketModuleMocks);
+vi.mock(
+  '@services/sync/authenticated-websocket-provider',
+  () => websocketModuleMocks
+);
 
 describe('YjsElementSyncProvider', () => {
   let provider: YjsElementSyncProvider;

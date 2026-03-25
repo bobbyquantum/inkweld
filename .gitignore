@@ -18,3 +18,4 @@ frontend/wrangler.toml
 .actrc
 .vscode
 .cscode
+nohup.out

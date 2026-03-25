@@ -432,7 +432,11 @@ describe('RelationshipChartTabComponent', () => {
   it('should export PNG when cytoscape instance is available', () => {
     fixture.detectChanges();
     const mockPng = vi.fn(() => 'data:image/png;base64,abc');
-    component['cy'] = { png: mockPng, destroy: vi.fn() } as any;
+    component['cy'] = {
+      png: mockPng,
+      destroy: vi.fn(),
+      nodes: vi.fn(() => ({ forEach: vi.fn() })),
+    } as any;
     expect(() => component['exportAsPng']()).not.toThrow();
     expect(mockPng).toHaveBeenCalledWith(
       expect.objectContaining({ full: true, scale: 2 })
@@ -442,7 +446,11 @@ describe('RelationshipChartTabComponent', () => {
   it('should export high-res PNG when cytoscape instance is available', () => {
     fixture.detectChanges();
     const mockPng = vi.fn(() => 'data:image/png;base64,abc');
-    component['cy'] = { png: mockPng, destroy: vi.fn() } as any;
+    component['cy'] = {
+      png: mockPng,
+      destroy: vi.fn(),
+      nodes: vi.fn(() => ({ forEach: vi.fn() })),
+    } as any;
     expect(() => component['exportAsHighResPng']()).not.toThrow();
     expect(mockPng).toHaveBeenCalledWith(
       expect.objectContaining({ full: true, scale: 3 })

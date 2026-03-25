@@ -279,27 +279,29 @@ Object.defineProperty(globalThis, 'sessionStorage', {
 
 // Mock matchMedia for Angular CDK BreakpointObserver
 // This is required for components using BreakpointObserver (dialogs, responsive components)
+// Uses plain functions (not vi.fn()) so vi.restoreAllMocks() doesn't clear them
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
+  value: (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+    addListener: () => {}, // deprecated
+    removeListener: () => {}, // deprecated
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
 });
 
 // Mock window.location.reload for tests that trigger page reloads
 // (e.g., connection-settings component after server mode switch)
+// Uses plain functions so vi.restoreAllMocks() doesn't clear them
 Object.defineProperty(window, 'location', {
   writable: true,
   value: {
     ...window.location,
-    reload: vi.fn(),
+    reload: () => {},
     href: window.location?.href || 'http://localhost/',
     origin: window.location?.origin || 'http://localhost',
     pathname: window.location?.pathname || '/',
