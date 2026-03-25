@@ -1,3 +1,18 @@
+/**
+ * Check whether a code point is a valid XML 1.0 character.
+ * @see https://www.w3.org/TR/xml/#charsets
+ */
+function isValidXmlCodePoint(cp: number): boolean {
+  return (
+    cp === 0x9 ||
+    cp === 0xa ||
+    cp === 0xd ||
+    (cp >= 0x20 && cp <= 0xd7ff) ||
+    (cp >= 0xe000 && cp <= 0xfffd) ||
+    (cp >= 0x10000 && cp <= 0x10ffff)
+  );
+}
+
 /** Decode standard XML entities back to their character equivalents. */
 export function decodeXmlEntities(text: string): string {
   return text
@@ -8,11 +23,11 @@ export function decodeXmlEntities(text: string): string {
     .replaceAll('&apos;', "'")
     .replaceAll(/&#(\d+);/g, (match, code: string) => {
       const cp = Number.parseInt(code, 10);
-      return Number.isInteger(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : match;
+      return Number.isInteger(cp) && isValidXmlCodePoint(cp) ? String.fromCodePoint(cp) : match;
     })
     .replaceAll(/&#x([0-9a-fA-F]+);/g, (match, code: string) => {
       const cp = Number.parseInt(code, 16);
-      return Number.isInteger(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : match;
+      return Number.isInteger(cp) && isValidXmlCodePoint(cp) ? String.fromCodePoint(cp) : match;
     });
 }
 
