@@ -110,9 +110,9 @@ export class DocumentService {
   private readonly versionCompatibility = inject(VersionCompatibilityService);
 
   /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
-  private createAuthWsProvider = createAuthenticatedWebsocketProvider;
+  private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
   /** @internal */
-  private setupWsReauth = setupReauthentication;
+  private setupWsReauth = setupReauthentication; // NOSONAR - writable for test overrides
 
   private connections: Map<string, DocumentConnection> = new Map();
 
