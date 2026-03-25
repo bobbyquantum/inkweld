@@ -22,7 +22,10 @@ export interface LintState {
 export const pluginKey = new PluginKey<LintState>('lint');
 
 /** Preserve leading/trailing whitespace from original text in a suggestion */
-function preserveWhitespace(originalText: string, suggestion: string): string {
+export function preserveWhitespace(
+  originalText: string,
+  suggestion: string
+): string {
   let result = suggestion;
 
   const leadingLen = originalText.length - originalText.trimStart().length;
