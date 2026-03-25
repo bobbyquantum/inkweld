@@ -25,18 +25,8 @@ const websocketModuleMocks = vi.hoisted(() => ({
 }));
 
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
+// @bobbyquantum/ngx-editor is only used as a type import — no mock needed
 
-vi.mock('@bobbyquantum/ngx-editor', () => ({
-  Editor: vi.fn(() => ({
-    view: {
-      state: {
-        plugins: [],
-        reconfigure: vi.fn(),
-      },
-      updateState: vi.fn(),
-    },
-  })),
-}));
 vi.mock(
   '@services/sync/authenticated-websocket-provider',
   () => websocketModuleMocks

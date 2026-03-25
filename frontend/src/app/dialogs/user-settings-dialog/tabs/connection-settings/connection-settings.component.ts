@@ -320,7 +320,7 @@ export class ConnectionSettingsComponent {
         // This ensures Angular picks up the new mode from localStorage
         setTimeout(() => {
           console.log('[Migration] About to reload...');
-          window.location.reload();
+          window.location?.reload();
         }, 1000);
       } else if (state.status === MigrationStatus.Failed) {
         this.snackBar.open(
