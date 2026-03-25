@@ -24,6 +24,8 @@ describe('LocalProjectElementsService', () => {
     clear: vi.fn(),
   };
 
+  const originalLocalStorage = window.localStorage;
+
   beforeEach(() => {
     // Setup localStorage mock
     Object.defineProperty(window, 'localStorage', {
@@ -47,6 +49,11 @@ describe('LocalProjectElementsService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    // Restore original localStorage to prevent leaking mock to other tests (isolate: false)
+    Object.defineProperty(window, 'localStorage', {
+      value: originalLocalStorage,
+      writable: true,
+    });
     // Reset IndexedDB between tests to prevent data leakage
     indexedDB = new IDBFactory();
   });
