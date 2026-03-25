@@ -627,6 +627,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     strikethrough: 's',
     del: 's',
     code: 'code',
+    a: 'link',
   };
 
   /** Alternative tag names mapped to their correct ProseMirror node names */
