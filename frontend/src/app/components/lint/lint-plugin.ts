@@ -25,14 +25,14 @@ export const pluginKey = new PluginKey<LintState>('lint');
 function preserveWhitespace(originalText: string, suggestion: string): string {
   let result = suggestion;
 
-  const leadingMatch = originalText.match(/^\s+/);
-  if (leadingMatch && !/^\s/.test(result)) {
-    result = leadingMatch[0] + result;
+  const leadingLen = originalText.length - originalText.trimStart().length;
+  if (leadingLen > 0 && !/^\s/.test(result)) {
+    result = originalText.slice(0, leadingLen) + result;
   }
 
-  const trailingMatch = originalText.match(/\s+$/);
-  if (trailingMatch && !/\s$/.test(result)) {
-    result = result + trailingMatch[0];
+  const trailingLen = originalText.length - originalText.trimEnd().length;
+  if (trailingLen > 0 && !/\s$/.test(result)) {
+    result = result + originalText.slice(originalText.length - trailingLen);
   }
 
   return result;
