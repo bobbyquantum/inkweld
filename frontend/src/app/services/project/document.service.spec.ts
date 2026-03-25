@@ -26,19 +26,6 @@ const websocketModuleMocks = vi.hoisted(() => ({
 
 // y-indexeddb and y-websocket are mocked globally in setup-vitest.ts
 
-// Mock y-websocket
-vi.mock('y-websocket', () => ({
-  WebsocketProvider: class WebsocketProvider {
-    on = () => {};
-    connect = () => {};
-    destroy = () => {};
-    awareness = {
-      setLocalState: () => {},
-      setLocalStateField: () => {},
-      getStates: () => new Map(),
-    };
-  },
-}));
 vi.mock('@bobbyquantum/ngx-editor', () => ({
   Editor: vi.fn(() => ({
     view: {
@@ -50,7 +37,10 @@ vi.mock('@bobbyquantum/ngx-editor', () => ({
     },
   })),
 }));
-vi.mock('../sync/authenticated-websocket-provider', () => websocketModuleMocks);
+vi.mock(
+  '@services/sync/authenticated-websocket-provider',
+  () => websocketModuleMocks
+);
 
 type ProviderStatus = 'connected' | 'disconnected' | 'connecting';
 
