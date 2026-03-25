@@ -834,7 +834,8 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       yElement.setAttribute(key, this.parseXmlAttrValue(value));
     }
 
-    if (xml[cursor] === '/' && xml[cursor + 1] === '>') return { nodes: [yElement], pos: cursor + 2 };
+    if (xml[cursor] === '/' && xml[cursor + 1] === '>')
+      return { nodes: [yElement], pos: cursor + 2 };
 
     if (xml[cursor] === '>') cursor++;
     const { children, cursor: end } = this.parseChildren(Y, xml, cursor, rawTagName);
