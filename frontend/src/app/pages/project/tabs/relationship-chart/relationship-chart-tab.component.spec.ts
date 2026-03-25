@@ -19,6 +19,7 @@ import { MediaSyncService } from '../../../../services/local/media-sync.service'
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
+import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { RelationshipChartTabComponent } from './relationship-chart-tab.component';
 
 // Cytoscape requires ResizeObserver which is not available in jsdom
@@ -104,6 +105,10 @@ describe('RelationshipChartTabComponent', () => {
     getMode: vi.fn().mockReturnValue('server'),
   };
 
+  const mockWorldbuildingService = {
+    getIdentityData: vi.fn().mockResolvedValue({}),
+  };
+
   const mockRelationshipService = {
     allTypes: signal([
       { id: 'friend', name: 'Friend', color: '#5B8FF9' },
@@ -146,6 +151,7 @@ describe('RelationshipChartTabComponent', () => {
         { provide: MediaSyncService, useValue: mockMediaSyncService },
         { provide: SetupService, useValue: mockSetupService },
         { provide: RelationshipService, useValue: mockRelationshipService },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
     })
       // RelationshipChartService is now a component-level provider; override it
@@ -748,5 +754,204 @@ describe('RelationshipChartTabComponent', () => {
       'testuser/test-project',
       'noextension'
     );
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // loadNodeImages – mode routing
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const worldbuildingGraphData: ChartGraphData = {
+    nodes: [
+      {
+        id: 'el-1',
+        name: 'Alice',
+        type: ElementType.Worldbuilding,
+        category: 'Character',
+        relationshipCount: 1,
+      },
+      {
+        id: 'el-2',
+        name: 'Mordor',
+        type: ElementType.Worldbuilding,
+        category: 'Location',
+        relationshipCount: 1,
+      },
+    ],
+    edges: [],
+  };
+
+  it('should use Yjs path when in local mode', async () => {
+    fixture.detectChanges();
+    mockSetupService.getMode.mockReturnValue('local');
+    mockWorldbuildingService.getIdentityData
+      .mockResolvedValueOnce({ image: 'data:image/png;base64,aaa' })
+      .mockResolvedValueOnce({ image: undefined });
+
+    await component['loadNodeImages'](worldbuildingGraphData);
+
+    expect(mockWorldbuildingService.getIdentityData).toHaveBeenCalledTimes(2);
+    expect(mockWorldbuildingService.getIdentityData).toHaveBeenCalledWith(
+      'el-1',
+      'testuser',
+      'test-project'
+    );
+    expect(mockElementsService.getElementImages).not.toHaveBeenCalled();
+    expect(component['nodeImages']().size).toBe(1);
+    expect(component['nodeImages']().get('el-1')).toBe(
+      'data:image/png;base64,aaa'
+    );
+  });
+
+  it('should use API path when in server mode', async () => {
+    fixture.detectChanges();
+    mockSetupService.getMode.mockReturnValue('server');
+    mockElementsService.getElementImages.mockReturnValue(
+      of({
+        images: {
+          'el-1': 'data:image/png;base64,bbb',
+          'el-2': null,
+        },
+      })
+    );
+
+    await component['loadNodeImages'](worldbuildingGraphData);
+
+    expect(mockElementsService.getElementImages).toHaveBeenCalledTimes(1);
+    expect(mockWorldbuildingService.getIdentityData).not.toHaveBeenCalled();
+    expect(component['nodeImages']().size).toBe(1);
+    expect(component['nodeImages']().get('el-1')).toBe(
+      'data:image/png;base64,bbb'
+    );
+  });
+
+  it('should skip loading when there are no worldbuilding nodes', async () => {
+    fixture.detectChanges();
+    const nonWbData: ChartGraphData = {
+      nodes: [
+        {
+          id: 'doc-1',
+          name: 'Chapter 1',
+          type: ElementType.Item,
+          category: 'Document',
+          relationshipCount: 0,
+        },
+      ],
+      edges: [],
+    };
+
+    await component['loadNodeImages'](nonWbData);
+
+    expect(mockElementsService.getElementImages).not.toHaveBeenCalled();
+    expect(mockWorldbuildingService.getIdentityData).not.toHaveBeenCalled();
+  });
+
+  it('should skip loading when project is null', async () => {
+    fixture.detectChanges();
+    mockProjectState.project.set(null as never);
+
+    await component['loadNodeImages'](worldbuildingGraphData);
+
+    expect(mockElementsService.getElementImages).not.toHaveBeenCalled();
+    expect(mockWorldbuildingService.getIdentityData).not.toHaveBeenCalled();
+  });
+
+  it('should not crash when image loading fails (best-effort)', async () => {
+    fixture.detectChanges();
+    mockSetupService.getMode.mockReturnValue('server');
+    mockElementsService.getElementImages.mockImplementation(() => {
+      throw new Error('Network error');
+    });
+
+    // Should not throw
+    await expect(
+      component['loadNodeImages'](worldbuildingGraphData)
+    ).resolves.toBeUndefined();
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // loadNodeImagesFromYjs
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('should collect images from WorldbuildingService for each element', async () => {
+    fixture.detectChanges();
+    mockWorldbuildingService.getIdentityData
+      .mockResolvedValueOnce({ image: 'data:image/png;base64,x' })
+      .mockResolvedValueOnce({ image: 'data:image/png;base64,y' });
+
+    const result = await component['loadNodeImagesFromYjs'](
+      ['el-1', 'el-2'],
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toEqual({
+      'el-1': 'data:image/png;base64,x',
+      'el-2': 'data:image/png;base64,y',
+    });
+    expect(mockWorldbuildingService.getIdentityData).toHaveBeenCalledWith(
+      'el-1',
+      'testuser',
+      'test-project'
+    );
+    expect(mockWorldbuildingService.getIdentityData).toHaveBeenCalledWith(
+      'el-2',
+      'testuser',
+      'test-project'
+    );
+  });
+
+  it('should return null for elements without identity images', async () => {
+    fixture.detectChanges();
+    mockWorldbuildingService.getIdentityData.mockResolvedValue({});
+
+    const result = await component['loadNodeImagesFromYjs'](
+      ['el-1'],
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toEqual({ 'el-1': null });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // loadNodeImagesFromApi
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('should call API and merge batch responses', async () => {
+    fixture.detectChanges();
+    mockElementsService.getElementImages.mockReturnValue(
+      of({ images: { 'el-1': 'data:image/png;base64,z', 'el-2': null } })
+    );
+
+    const result = await component['loadNodeImagesFromApi'](
+      ['el-1', 'el-2'],
+      'testuser',
+      'test-project'
+    );
+
+    expect(result).toEqual({
+      'el-1': 'data:image/png;base64,z',
+      'el-2': null,
+    });
+    expect(mockElementsService.getElementImages).toHaveBeenCalledWith(
+      'testuser',
+      'test-project',
+      { elementIds: ['el-1', 'el-2'] }
+    );
+  });
+
+  it('should batch API requests when exceeding 200 IDs', async () => {
+    fixture.detectChanges();
+    const ids = Array.from({ length: 250 }, (_, i) => `el-${i}`);
+    mockElementsService.getElementImages.mockReturnValue(of({ images: {} }));
+
+    await component['loadNodeImagesFromApi'](ids, 'testuser', 'test-project');
+
+    expect(mockElementsService.getElementImages).toHaveBeenCalledTimes(2);
+    // First batch: 200 IDs
+    const calls = mockElementsService.getElementImages.mock.calls as any[][];
+    expect(calls[0][2].elementIds).toHaveLength(200);
+    // Second batch: 50 IDs
+    expect(calls[1][2].elementIds).toHaveLength(50);
   });
 });
