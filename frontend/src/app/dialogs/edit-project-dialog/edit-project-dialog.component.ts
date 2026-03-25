@@ -333,19 +333,6 @@ export class EditProjectDialogComponent implements OnInit {
     }
   }
 
-  private base64ToBlob(base64Data: string): Blob {
-    const base64String = base64Data.includes(',')
-      ? base64Data.split(',')[1]
-      : base64Data;
-    const byteCharacters = atob(base64String);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: 'image/png' });
-  }
-
   async removeCoverImage(): Promise<void> {
     if (!this.project.username || !this.project.slug) return;
 

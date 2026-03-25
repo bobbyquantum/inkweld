@@ -277,6 +277,13 @@ export class NewElementDialogComponent {
     this.nextStep();
   }
 
+  onTypeCardKeydown(event: KeyboardEvent, option: ElementTypeOption): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.selectType(option);
+    }
+  }
+
   // Navigation
   nextStep(): void {
     if (this.currentStep() === 1 && this.selectedType()) {

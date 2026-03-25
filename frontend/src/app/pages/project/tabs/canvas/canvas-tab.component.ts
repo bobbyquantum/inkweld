@@ -2565,7 +2565,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   private svgEsc(s: string): string {
-    return s.replace(
+    return s.replaceAll(
       /[&<>"']/g,
       c =>
         ({

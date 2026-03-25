@@ -174,7 +174,8 @@
                             <mat-icon
                               class="drag-handle"
                               cdkDragHandle
-                              (click)="$event.stopPropagation()">
+                              (click)="$event.stopPropagation()"
+                              (keydown)="$event.stopPropagation()">
                               drag_indicator
                             </mat-icon>
                             <mat-icon>input</mat-icon>
