@@ -971,6 +971,27 @@ describe('DocumentService', () => {
         // Verify getToken was called
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
+
+      it('should call createAuthWsProvider when syncing a document', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
+            return () => {};
+          }
+        );
+
+        await service.syncDocumentToServer(testDocumentId, 1000);
+
+        expect(mockCreateAuthWsProvider).toHaveBeenCalledWith(
+          'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:test-doc',
+          '',
+          expect.any(Y.Doc),
+          'test-auth-token',
+          { resyncInterval: 10000 }
+        );
+        expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
+        expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
+      });
     });
 
     describe('syncDocumentsToServer', () => {
@@ -1057,12 +1078,10 @@ describe('DocumentService', () => {
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
 
-      it.skip('should sync worldbuilding successfully when the provider is already synced', async () => {
+      it('should call createAuthWsProvider when syncing worldbuilding', async () => {
         mockWebSocketProvider.on.mockImplementation(
-          (event: string, callback: unknown) => {
-            if (event === 'sync') {
-              (callback as (isSynced: boolean) => void)(true);
-            }
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
             return () => {};
           }
         );
@@ -1164,12 +1183,10 @@ describe('DocumentService', () => {
         ).rejects.toThrow('No auth token available');
       });
 
-      it.skip('should sync project elements successfully when the provider is already synced', async () => {
+      it('should call createAuthWsProvider when syncing elements', async () => {
         mockWebSocketProvider.on.mockImplementation(
-          (event: string, callback: unknown) => {
-            if (event === 'sync') {
-              (callback as (isSynced: boolean) => void)(true);
-            }
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
             return () => {};
           }
         );
