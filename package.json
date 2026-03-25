@@ -85,7 +85,8 @@
       "prettier --write --config frontend/.prettierrc.json"
     ],
     "backend/src/**/*.ts": [
-      "prettier --write --config backend/.prettierrc"
+      "prettier --write --config backend/.prettierrc",
+      "eslint --fix --no-warn-ignored"
     ],
     "docs/site/**/*.{ts,md,mdx}": [
       "prettier --write --config docs/site/.prettierrc"
