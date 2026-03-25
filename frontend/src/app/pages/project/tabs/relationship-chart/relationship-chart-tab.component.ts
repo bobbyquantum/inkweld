@@ -51,6 +51,7 @@ import { MediaSyncService } from '../../../../services/local/media-sync.service'
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RelationshipService } from '../../../../services/relationship/relationship.service';
 import { RelationshipChartService } from '../../../../services/relationship-chart/relationship-chart.service';
+import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 
 /** Color palette for node categories */
 const CATEGORY_COLORS: Record<string, string> = {
@@ -104,6 +105,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   private readonly localStorageService = inject(LocalStorageService);
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly setupService = inject(SetupService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   /** Reference to the chart container <div> */
   private readonly chartContainer =
@@ -923,7 +925,9 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Load identity images for worldbuilding nodes via the batch endpoint.
+   * Load identity images for worldbuilding nodes.
+   * In local mode, reads directly from the local Yjs identity maps.
+   * In online mode, uses the batch API endpoint.
    * Uses a generation counter so a stale async result never overwrites
    * a newer one when the graph changes while images are still loading.
    */
@@ -939,28 +943,18 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     if (worldbuildingIds.length === 0) return;
 
     try {
-      // Chunk requests to respect the backend 200-ID limit
-      const BATCH_SIZE = 200;
-      const batches: string[][] = [];
-      for (let i = 0; i < worldbuildingIds.length; i += BATCH_SIZE) {
-        batches.push(worldbuildingIds.slice(i, i + BATCH_SIZE));
-      }
-      const responses = await Promise.all(
-        batches.map(ids =>
-          firstValueFrom(
-            this.elementsService.getElementImages(
+      const images: Record<string, string | null> =
+        this.setupService.getMode() === 'local'
+          ? await this.loadNodeImagesFromYjs(
+              worldbuildingIds,
               project.username,
-              project.slug,
-              { elementIds: ids }
+              project.slug
             )
-          )
-        )
-      );
-      const images: Record<string, string | null> = {};
-      for (const r of responses) {
-        Object.assign(images, r.images);
-      }
-      const response = { images };
+          : await this.loadNodeImagesFromApi(
+              worldbuildingIds,
+              project.username,
+              project.slug
+            );
 
       // Bail if a newer graph render has already started loading its own images
       if (generation !== this.imageLoadGeneration) return;
@@ -968,7 +962,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       const resolved = new Map<string, string>();
 
       await Promise.all(
-        Object.entries(response.images).map(async ([elementId, rawUrl]) => {
+        Object.entries(images).map(async ([elementId, rawUrl]) => {
           if (!rawUrl) return;
           const displayUrl = await this.resolveImageUrl(
             rawUrl,
@@ -989,6 +983,57 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       // Image loading is best-effort; chart still works without images
       console.warn('[RelationshipChart] Failed to load node images:', err);
     }
+  }
+
+  /**
+   * Load identity images from local Yjs stores (for local/offline mode).
+   */
+  private async loadNodeImagesFromYjs(
+    elementIds: string[],
+    username: string,
+    slug: string
+  ): Promise<Record<string, string | null>> {
+    const images: Record<string, string | null> = {};
+    await Promise.all(
+      elementIds.map(async elementId => {
+        const identity = await this.worldbuildingService.getIdentityData(
+          elementId,
+          username,
+          slug
+        );
+        images[elementId] = identity.image ?? null;
+      })
+    );
+    return images;
+  }
+
+  /**
+   * Load identity images from the batch API endpoint (for online mode).
+   */
+  private async loadNodeImagesFromApi(
+    elementIds: string[],
+    username: string,
+    slug: string
+  ): Promise<Record<string, string | null>> {
+    const BATCH_SIZE = 200;
+    const batches: string[][] = [];
+    for (let i = 0; i < elementIds.length; i += BATCH_SIZE) {
+      batches.push(elementIds.slice(i, i + BATCH_SIZE));
+    }
+    const responses = await Promise.all(
+      batches.map(ids =>
+        firstValueFrom(
+          this.elementsService.getElementImages(username, slug, {
+            elementIds: ids,
+          })
+        )
+      )
+    );
+    const images: Record<string, string | null> = {};
+    for (const r of responses) {
+      Object.assign(images, r.images);
+    }
+    return images;
   }
 
   /**
