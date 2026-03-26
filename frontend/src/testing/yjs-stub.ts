@@ -7,7 +7,9 @@ export class Doc {
   getXmlFragment(_name: string): XmlFragment {
     return new XmlFragment();
   }
-  destroy(): void {}
+  destroy(): void {
+    // Intentional no-op: stub for testing
+  }
   on(_event: string, _callback: (...args: any[]) => void): void {}
   off(_event: string, _callback: (...args: any[]) => void): void {}
 }
@@ -36,7 +38,3 @@ export function transact(_doc: Doc, _fn: () => void): void {
 // Export everything the real yjs exports that might be used
 export const applyUpdate = (_doc: Doc, _update: Uint8Array): void => {};
 export const encodeStateAsUpdate = (_doc: Doc): Uint8Array => new Uint8Array();
-
-
-
-

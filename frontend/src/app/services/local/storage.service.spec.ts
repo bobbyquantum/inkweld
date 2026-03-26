@@ -99,6 +99,22 @@ describe('StorageService', () => {
       expect(result).toBeUndefined();
     });
 
+    it('should get all values from a store', async () => {
+      await service.put(db, STORE_NAME, { data: 'one' }, 'key1');
+      await service.put(db, STORE_NAME, { data: 'two' }, 'key2');
+      await service.put(db, STORE_NAME, { data: 'three' }, 'key3');
+
+      const results = await service.getAll<{ data: string }>(db, STORE_NAME);
+
+      expect(results).toHaveLength(3);
+      expect(results.map(r => r.data).sort()).toEqual(['one', 'three', 'two']);
+    });
+
+    it('should return empty array when store has no values', async () => {
+      const results = await service.getAll(db, STORE_NAME);
+      expect(results).toEqual([]);
+    });
+
     it('should handle non-existent keys', async () => {
       const result = await service.get(db, STORE_NAME, 'nonexistent');
       expect(result).toBeUndefined();

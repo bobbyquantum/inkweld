@@ -73,30 +73,7 @@ describe('LocalSnapshotService', () => {
   describe('createSnapshot', () => {
     it('should create a new snapshot and store it', async () => {
       storageService.put.mockResolvedValue(undefined);
-
-      // Mock getAll for updatePendingSync
-      const mockStore = {
-        getAll: vi.fn(() => ({
-          onsuccess: null as ((ev: Event) => void) | null,
-          onerror: null as ((ev: Event) => void) | null,
-          result: [],
-        })),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
-
-      // Trigger the async success handler
-      setTimeout(() => {
-        const req = mockStore.getAll();
-        if (req.onsuccess) {
-          req.onsuccess({} as Event);
-        }
-      }, 0);
+      storageService.getAll.mockResolvedValue([]);
 
       const result = await service.createSnapshot(
         'testuser/test-project',
@@ -166,29 +143,7 @@ describe('LocalSnapshotService', () => {
   describe('deleteSnapshot', () => {
     it('should delete a snapshot by composite key', async () => {
       storageService.delete.mockResolvedValue(undefined);
-
-      // Mock for updatePendingSync
-      const mockStore = {
-        getAll: vi.fn(() => ({
-          onsuccess: null as ((ev: Event) => void) | null,
-          onerror: null as ((ev: Event) => void) | null,
-          result: [],
-        })),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
-
-      setTimeout(() => {
-        const req = mockStore.getAll();
-        if (req.onsuccess) {
-          req.onsuccess({} as Event);
-        }
-      }, 0);
+      storageService.getAll.mockResolvedValue([]);
 
       await service.deleteSnapshot(
         'testuser/test-project',
@@ -207,29 +162,7 @@ describe('LocalSnapshotService', () => {
   describe('importSnapshot', () => {
     it('should import a snapshot from archive data', async () => {
       storageService.put.mockResolvedValue(undefined);
-
-      // Mock for updatePendingSync
-      const mockStore = {
-        getAll: vi.fn(() => ({
-          onsuccess: null as ((ev: Event) => void) | null,
-          onerror: null as ((ev: Event) => void) | null,
-          result: [],
-        })),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
-
-      setTimeout(() => {
-        const req = mockStore.getAll();
-        if (req.onsuccess) {
-          req.onsuccess({} as Event);
-        }
-      }, 0);
+      storageService.getAll.mockResolvedValue([]);
 
       const result = await service.importSnapshot('testuser/test-project', {
         documentId: 'doc-1',
@@ -249,29 +182,7 @@ describe('LocalSnapshotService', () => {
     it('should mark a snapshot as synced with server ID', async () => {
       storageService.get.mockResolvedValue(mockSnapshot);
       storageService.put.mockResolvedValue(undefined);
-
-      // Mock for updatePendingSync
-      const mockStore = {
-        getAll: vi.fn(() => ({
-          onsuccess: null as ((ev: Event) => void) | null,
-          onerror: null as ((ev: Event) => void) | null,
-          result: [],
-        })),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
-
-      setTimeout(() => {
-        const req = mockStore.getAll();
-        if (req.onsuccess) {
-          req.onsuccess({} as Event);
-        }
-      }, 0);
+      storageService.getAll.mockResolvedValue([]);
 
       await service.markSynced(mockSnapshot.id, 'server-id-123');
 
@@ -311,35 +222,12 @@ describe('LocalSnapshotService', () => {
         },
       ];
 
-      const mockRequest = {
-        onsuccess: null as ((ev: Event) => void) | null,
-        onerror: null as ((ev: Event) => void) | null,
-        result: snapshots,
-      };
-      const mockStore = {
-        getAll: vi.fn(() => mockRequest),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
+      storageService.getAll.mockResolvedValue(snapshots);
 
-      const promise = service.listSnapshotsForDocument(
+      const result = await service.listSnapshotsForDocument(
         'testuser/test-project',
         'doc-1'
       );
-
-      // Trigger success handler
-      setTimeout(() => {
-        if (mockRequest.onsuccess) {
-          mockRequest.onsuccess({} as Event);
-        }
-      }, 0);
-
-      const result = await promise;
 
       expect(result).toHaveLength(2);
       expect(result[0].id).toContain('doc-1');
@@ -347,34 +235,11 @@ describe('LocalSnapshotService', () => {
     });
 
     it('should handle request errors', async () => {
-      const mockRequest = {
-        onsuccess: null as ((ev: Event) => void) | null,
-        onerror: null as ((ev: Event) => void) | null,
-        error: { message: 'Test error' },
-      };
-      const mockStore = {
-        getAll: vi.fn(() => mockRequest),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
+      storageService.getAll.mockRejectedValue(new Error('Test error'));
 
-      const promise = service.listSnapshotsForDocument(
-        'testuser/test-project',
-        'doc-1'
-      );
-
-      setTimeout(() => {
-        if (mockRequest.onerror) {
-          mockRequest.onerror({} as Event);
-        }
-      }, 0);
-
-      await expect(promise).rejects.toThrow('Test error');
+      await expect(
+        service.listSnapshotsForDocument('testuser/test-project', 'doc-1')
+      ).rejects.toThrow('Test error');
     });
   });
 
@@ -386,31 +251,11 @@ describe('LocalSnapshotService', () => {
         { ...mockSnapshot, id: 'other/project:doc-1:snap-3' },
       ];
 
-      const mockRequest = {
-        onsuccess: null as ((ev: Event) => void) | null,
-        onerror: null as ((ev: Event) => void) | null,
-        result: snapshots,
-      };
-      const mockStore = {
-        getAll: vi.fn(() => mockRequest),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
+      storageService.getAll.mockResolvedValue(snapshots);
+
+      const result = await service.listSnapshotsForProject(
+        'testuser/test-project'
       );
-
-      const promise = service.listSnapshotsForProject('testuser/test-project');
-
-      setTimeout(() => {
-        if (mockRequest.onsuccess) {
-          mockRequest.onsuccess({} as Event);
-        }
-      }, 0);
-
-      const result = await promise;
 
       expect(result).toHaveLength(2);
       expect(result.every(s => s.id.startsWith('testuser/test-project:'))).toBe(
@@ -427,31 +272,9 @@ describe('LocalSnapshotService', () => {
         { ...mockSnapshot, id: 'snap-3', synced: false },
       ];
 
-      const mockRequest = {
-        onsuccess: null as ((ev: Event) => void) | null,
-        onerror: null as ((ev: Event) => void) | null,
-        result: snapshots,
-      };
-      const mockStore = {
-        getAll: vi.fn(() => mockRequest),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
+      storageService.getAll.mockResolvedValue(snapshots);
 
-      const promise = service.getUnsyncedSnapshots();
-
-      setTimeout(() => {
-        if (mockRequest.onsuccess) {
-          mockRequest.onsuccess({} as Event);
-        }
-      }, 0);
-
-      const result = await promise;
+      const result = await service.getUnsyncedSnapshots();
 
       expect(result).toHaveLength(2);
       expect(result.every(s => !s.synced)).toBe(true);
@@ -461,29 +284,7 @@ describe('LocalSnapshotService', () => {
   describe('deleteSnapshotById', () => {
     it('should delete a snapshot by its ID', async () => {
       storageService.delete.mockResolvedValue(undefined);
-
-      // Mock for updatePendingSync
-      const mockStore = {
-        getAll: vi.fn(() => ({
-          onsuccess: null as ((ev: Event) => void) | null,
-          onerror: null as ((ev: Event) => void) | null,
-          result: [],
-        })),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
-
-      setTimeout(() => {
-        const req = mockStore.getAll();
-        if (req.onsuccess) {
-          req.onsuccess({} as Event);
-        }
-      }, 0);
+      storageService.getAll.mockResolvedValue([]);
 
       await service.deleteSnapshotById('testuser/test-project:doc-1:snap-uuid');
 
@@ -607,34 +408,12 @@ describe('LocalSnapshotService', () => {
       storageService.put.mockResolvedValue(undefined);
 
       const unsyncedSnapshot = { ...mockSnapshot, synced: false };
-      const mockRequest = {
-        onsuccess: null as ((ev: Event) => void) | null,
-        onerror: null as ((ev: Event) => void) | null,
-        result: [unsyncedSnapshot],
-      };
-      const mockStore = {
-        getAll: vi.fn(() => mockRequest),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
+      storageService.getAll.mockResolvedValue([unsyncedSnapshot]);
 
-      const promise = service.createSnapshot('testuser/test-project', 'doc-1', {
+      await service.createSnapshot('testuser/test-project', 'doc-1', {
         name: 'Test',
         xmlContent: '<doc></doc>',
       });
-
-      setTimeout(() => {
-        if (mockRequest.onsuccess) {
-          mockRequest.onsuccess({} as Event);
-        }
-      }, 0);
-
-      await promise;
 
       // Wait a tick for updatePendingSync to complete
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -644,35 +423,12 @@ describe('LocalSnapshotService', () => {
 
     it('should handle updatePendingSync errors gracefully', async () => {
       storageService.put.mockResolvedValue(undefined);
+      storageService.getAll.mockRejectedValue(new Error('Test error'));
 
-      const mockRequest = {
-        onsuccess: null as ((ev: Event) => void) | null,
-        onerror: null as ((ev: Event) => void) | null,
-        error: { message: 'Test error' },
-      };
-      const mockStore = {
-        getAll: vi.fn(() => mockRequest),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
-
-      const promise = service.createSnapshot('testuser/test-project', 'doc-1', {
+      await service.createSnapshot('testuser/test-project', 'doc-1', {
         name: 'Test',
         xmlContent: '<doc></doc>',
       });
-
-      setTimeout(() => {
-        if (mockRequest.onerror) {
-          mockRequest.onerror({} as Event);
-        }
-      }, 0);
-
-      await promise;
 
       // Wait for updatePendingSync error handling
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -688,28 +444,7 @@ describe('LocalSnapshotService', () => {
   describe('importSnapshot with legacy format', () => {
     it('should import a snapshot with xmlContent', async () => {
       storageService.put.mockResolvedValue(undefined);
-
-      const mockStore = {
-        getAll: vi.fn(() => ({
-          onsuccess: null as ((ev: Event) => void) | null,
-          onerror: null as ((ev: Event) => void) | null,
-          result: [],
-        })),
-      };
-      const mockTransaction = {
-        objectStore: vi.fn(() => mockStore),
-        onerror: null as ((ev: Event) => void) | null,
-      };
-      (mockDb.transaction as ReturnType<typeof vi.fn>).mockReturnValue(
-        mockTransaction
-      );
-
-      setTimeout(() => {
-        const req = mockStore.getAll();
-        if (req.onsuccess) {
-          req.onsuccess({} as Event);
-        }
-      }, 0);
+      storageService.getAll.mockResolvedValue([]);
 
       const xmlContent = '<doc><p>Test content</p></doc>';
       const result = await service.importSnapshot('testuser/test-project', {
