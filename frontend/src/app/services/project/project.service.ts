@@ -155,56 +155,7 @@ export class ProjectService {
         }
       }
 
-      // Always fetch from API to get fresh data
-      try {
-        const projects = await firstValueFrom(
-          this.projectApi.listUserProjects().pipe(
-            retry(MAX_RETRIES),
-            catchError((error: unknown) => {
-              // Check if this error can be recovered using cache
-              if (
-                isRecoverableWithCache(error) &&
-                cachedProjects &&
-                cachedProjects.length > 0
-              ) {
-                console.warn(
-                  'Network/server error, using cached projects:',
-                  error instanceof HttpErrorResponse
-                    ? `${error.status} ${error.statusText}`
-                    : error
-                );
-                // Return a specific error to signal we should use cache
-                return throwError(
-                  () => new Error('Refresh failed, using cache')
-                );
-              }
-
-              // For auth errors (401/403), don't catch - let it propagate
-              // The AuthInterceptor will handle the redirect
-              const projectError = this.formatError(error);
-              this.error.set(projectError);
-              return throwError(() => projectError);
-            })
-          )
-        );
-
-        if (projects) {
-          // Assume projects is Project[]
-          await this.setProjects(projects);
-        }
-      } catch (err) {
-        // Only use cache for recoverable errors (network/server issues)
-        const canRecover =
-          err instanceof Error && err.message === 'Refresh failed, using cache';
-
-        if (canRecover && cachedProjects && cachedProjects.length > 0) {
-          console.info('Using cached projects due to network/server error');
-          // Projects already set from cache above, just continue
-        } else if (!canRecover) {
-          // Re-throw auth errors and other non-recoverable errors
-          throw err;
-        }
-      }
+      await this.fetchAndCacheProjects(cachedProjects);
     } catch (err) {
       const error =
         err instanceof ProjectServiceError
@@ -218,6 +169,53 @@ export class ProjectService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Fetch projects from the API and fall back to cache on recoverable errors.
+   */
+  private async fetchAndCacheProjects(
+    cachedProjects: Project[] | undefined
+  ): Promise<void> {
+    try {
+      const projects = await firstValueFrom(
+        this.projectApi.listUserProjects().pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            if (
+              isRecoverableWithCache(error) &&
+              cachedProjects &&
+              cachedProjects.length > 0
+            ) {
+              console.warn(
+                'Network/server error, using cached projects:',
+                error instanceof HttpErrorResponse
+                  ? `${error.status} ${error.statusText}`
+                  : error
+              );
+              return throwError(() => new Error('Refresh failed, using cache'));
+            }
+
+            const projectError = this.formatError(error);
+            this.error.set(projectError);
+            return throwError(() => projectError);
+          })
+        )
+      );
+
+      if (projects) {
+        await this.setProjects(projects);
+      }
+    } catch (err) {
+      const canRecover =
+        err instanceof Error && err.message === 'Refresh failed, using cache';
+
+      if (canRecover && cachedProjects && cachedProjects.length > 0) {
+        console.info('Using cached projects due to network/server error');
+      } else if (!canRecover) {
+        throw err;
+      }
     }
   }
 

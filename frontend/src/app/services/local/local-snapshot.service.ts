@@ -78,6 +78,23 @@ const SNAPSHOT_DB_BASE_NAME = 'inkweld-snapshots';
 
 const STORE_NAME = 'snapshots';
 
+function toSnapshotInfo(s: StoredSnapshot): SnapshotInfo {
+  return {
+    id: s.id,
+    documentId: s.documentId,
+    name: s.name,
+    description: s.description,
+    wordCount: s.wordCount,
+    createdAt: s.createdAt,
+    synced: s.synced,
+    serverId: s.serverId,
+  };
+}
+
+function byCreatedAtDesc(a: SnapshotInfo, b: SnapshotInfo): number {
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
 /**
  * Service for storing and retrieving document snapshots in IndexedDB.
  *
@@ -249,41 +266,16 @@ export class LocalSnapshotService {
     documentId: string
   ): Promise<SnapshotInfo[]> {
     const db = await this.ensureDb();
+    const all = await this.storageService.getAll<StoredSnapshot>(
+      db,
+      STORE_NAME
+    );
+    const prefix = `${projectKey}:${documentId}:`;
 
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const all = request.result as StoredSnapshot[];
-        const prefix = `${projectKey}:${documentId}:`;
-
-        const filtered = all
-          .filter(s => s.id.startsWith(prefix))
-          .map(s => ({
-            id: s.id,
-            documentId: s.documentId,
-            name: s.name,
-            description: s.description,
-            wordCount: s.wordCount,
-            createdAt: s.createdAt,
-            synced: s.synced,
-            serverId: s.serverId,
-          }))
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-
-        resolve(filtered);
-      };
-
-      request.onerror = () =>
-        reject(new Error(request.error?.message ?? 'Request failed'));
-      transaction.onerror = () =>
-        reject(new Error(transaction.error?.message ?? 'Transaction failed'));
-    });
+    return all
+      .filter(s => s.id.startsWith(prefix))
+      .map(toSnapshotInfo)
+      .sort(byCreatedAtDesc);
   }
 
   /**
@@ -294,41 +286,16 @@ export class LocalSnapshotService {
    */
   async listSnapshotsForProject(projectKey: string): Promise<SnapshotInfo[]> {
     const db = await this.ensureDb();
+    const all = await this.storageService.getAll<StoredSnapshot>(
+      db,
+      STORE_NAME
+    );
+    const prefix = `${projectKey}:`;
 
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const all = request.result as StoredSnapshot[];
-        const prefix = `${projectKey}:`;
-
-        const filtered = all
-          .filter(s => s.id.startsWith(prefix))
-          .map(s => ({
-            id: s.id,
-            documentId: s.documentId,
-            name: s.name,
-            description: s.description,
-            wordCount: s.wordCount,
-            createdAt: s.createdAt,
-            synced: s.synced,
-            serverId: s.serverId,
-          }))
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-
-        resolve(filtered);
-      };
-
-      request.onerror = () =>
-        reject(new Error(request.error?.message ?? 'Request failed'));
-      transaction.onerror = () =>
-        reject(new Error(transaction.error?.message ?? 'Transaction failed'));
-    });
+    return all
+      .filter(s => s.id.startsWith(prefix))
+      .map(toSnapshotInfo)
+      .sort(byCreatedAtDesc);
   }
 
   /**
@@ -338,22 +305,11 @@ export class LocalSnapshotService {
    */
   async getUnsyncedSnapshots(): Promise<StoredSnapshot[]> {
     const db = await this.ensureDb();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const all = request.result as StoredSnapshot[];
-        resolve(all.filter(s => !s.synced));
-      };
-
-      request.onerror = () =>
-        reject(new Error(request.error?.message ?? 'Request failed'));
-      transaction.onerror = () =>
-        reject(new Error(transaction.error?.message ?? 'Transaction failed'));
-    });
+    const all = await this.storageService.getAll<StoredSnapshot>(
+      db,
+      STORE_NAME
+    );
+    return all.filter(s => !s.synced);
   }
 
   /**

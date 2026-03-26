@@ -21,6 +21,26 @@ export interface LintState {
 // Export the plugin key for testing and state access
 export const pluginKey = new PluginKey<LintState>('lint');
 
+/** Preserve leading/trailing whitespace from original text in a suggestion */
+export function preserveWhitespace(
+  originalText: string,
+  suggestion: string
+): string {
+  let result = suggestion;
+
+  const leadingLen = originalText.length - originalText.trimStart().length;
+  if (leadingLen > 0 && !/^\s/.test(result)) {
+    result = originalText.slice(0, leadingLen) + result;
+  }
+
+  const trailingLen = originalText.length - originalText.trimEnd().length;
+  if (trailingLen > 0 && !/\s$/.test(result)) {
+    result = result + originalText.slice(originalText.length - trailingLen);
+  }
+
+  return result;
+}
+
 /**
  * Create a ProseMirror plugin for linting paragraphs
  * @param lintApi The API service for linting
@@ -131,36 +151,10 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     // Check if we need to preserve leading or trailing whitespace
     const originalText = correction.text || '';
-    let suggestion = correction.correctedText;
-
-    // Count leading whitespace in original text
-    let leadingWhitespace = '';
-    for (let i = 0; i < originalText.length; i++) {
-      if (/\s/.test(originalText[i])) {
-        leadingWhitespace += originalText[i];
-      } else {
-        break;
-      }
-    }
-
-    // Count trailing whitespace in original text
-    let trailingWhitespace = '';
-    for (let i = originalText.length - 1; i >= 0; i--) {
-      if (/\s/.test(originalText[i])) {
-        trailingWhitespace = originalText[i] + trailingWhitespace;
-      } else {
-        break;
-      }
-    }
-
-    // Preserve whitespace in the suggestion
-    if (leadingWhitespace && !/^\s/.test(suggestion)) {
-      suggestion = leadingWhitespace + suggestion;
-    }
-
-    if (trailingWhitespace && !/\s$/.test(suggestion)) {
-      suggestion = suggestion + trailingWhitespace;
-    }
+    const suggestion = preserveWhitespace(
+      originalText,
+      correction.correctedText
+    );
 
     console.log(`[LintPlugin] Modified suggestion: "${suggestion}"`);
 
