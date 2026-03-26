@@ -198,49 +198,13 @@ export class WorldbuildingService {
     }
 
     // Setup WebSocket provider if not in offline mode
-    const mode = this.setupService.getMode();
-    const wsUrl = this.setupService.getWebSocketUrl();
-    let provider: WebsocketProvider | undefined;
-
-    if (mode !== 'local' && wsUrl && username && slug) {
-      // Build full document ID in format: username:slug:elementId/
-      // Note: trailing slash is required to match backend document ID format
-      const fullDocId = `${username}:${slug}:${elementId}/`;
-      const formattedId = fullDocId.replace(/^\/+/, '');
-
-      // Get auth token for WebSocket authentication
-      const authToken = this.authTokenService.getToken();
-      // Check version compatibility before connecting to WebSocket
-      const syncBlocked = this.versionCompatibility.syncBlocked();
-      if (authToken && !syncBlocked) {
-        // Use authenticated WebSocket provider (sends auth token on connect)
-        const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
-        try {
-          provider = await createAuthenticatedWebsocketProvider(
-            fullWsUrl,
-            '', // Empty room name - documentId is already in URL
-            ydoc,
-            authToken,
-            {
-              resyncInterval: WEBSOCKET_RESYNC_INTERVAL,
-            }
-          );
-
-          // Debug: log when sync happens
-          provider.on('sync', (isSynced: boolean) => {
-            console.log(
-              `[WorldbuildingService] WebSocket sync event for ${elementId}: synced=${isSynced}, dataMap size=${dataMap.size}`
-            );
-          });
-        } catch (error) {
-          console.error(
-            '[WorldbuildingService] Failed to create authenticated WebSocket:',
-            error
-          );
-          // Continue without provider - will work in offline mode
-        }
-      }
-    }
+    const provider = await this.tryCreateWebSocketProvider(
+      elementId,
+      username,
+      slug,
+      ydoc,
+      dataMap
+    );
 
     const connection: WorldbuildingConnection = {
       ydoc,
@@ -253,6 +217,55 @@ export class WorldbuildingService {
     this.connections.set(connectionKey, connection);
 
     return dataMap;
+  }
+
+  private async tryCreateWebSocketProvider(
+    elementId: string,
+    username: string,
+    slug: string,
+    ydoc: Y.Doc,
+    dataMap: Y.Map<unknown>
+  ): Promise<WebsocketProvider | undefined> {
+    const mode = this.setupService.getMode();
+    const wsUrl = this.setupService.getWebSocketUrl();
+    if (mode === 'local' || !wsUrl || !username || !slug) {
+      return undefined;
+    }
+
+    const authToken = this.authTokenService.getToken();
+    const syncBlocked = this.versionCompatibility.syncBlocked();
+    if (!authToken || syncBlocked) {
+      return undefined;
+    }
+
+    // Build full document ID in format: username:slug:elementId/
+    // Note: trailing slash is required to match backend document ID format
+    const formattedId = `${username}:${slug}:${elementId}/`.replace(/^\/+/, '');
+    const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
+
+    try {
+      const provider = await createAuthenticatedWebsocketProvider(
+        fullWsUrl,
+        '', // Empty room name - documentId is already in URL
+        ydoc,
+        authToken,
+        { resyncInterval: WEBSOCKET_RESYNC_INTERVAL }
+      );
+
+      provider.on('sync', (isSynced: boolean) => {
+        console.log(
+          `[WorldbuildingService] WebSocket sync event for ${elementId}: synced=${isSynced}, dataMap size=${dataMap.size}`
+        );
+      });
+
+      return provider;
+    } catch (error) {
+      console.error(
+        '[WorldbuildingService] Failed to create authenticated WebSocket:',
+        error
+      );
+      return undefined;
+    }
   }
 
   /**

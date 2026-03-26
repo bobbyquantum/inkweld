@@ -11,7 +11,7 @@ import { EditorView } from 'prosemirror-view';
 import { type MockedObject, vi } from 'vitest';
 
 import { type LintApiService } from './lint-api.service';
-import { createLintPlugin, pluginKey } from './lint-plugin';
+import { createLintPlugin, pluginKey, preserveWhitespace } from './lint-plugin';
 
 // Test timeout configuration is handled by vitest.config.ts
 
@@ -243,6 +243,32 @@ describe('LintPlugin', () => {
 
     // Note: Decoration checks skipped in mock environment as the decoration system
     // would require complex ProseMirror state setup to work properly
+  });
+
+  describe('preserveWhitespace', () => {
+    it('should preserve leading whitespace', () => {
+      expect(preserveWhitespace('  hello', 'world')).toBe('  world');
+    });
+
+    it('should preserve trailing whitespace', () => {
+      expect(preserveWhitespace('hello  ', 'world')).toBe('world  ');
+    });
+
+    it('should preserve both leading and trailing whitespace', () => {
+      expect(preserveWhitespace('  hello  ', 'world')).toBe('  world  ');
+    });
+
+    it('should not add whitespace if suggestion already has it', () => {
+      expect(preserveWhitespace('  hello  ', '  world  ')).toBe('  world  ');
+    });
+
+    it('should return suggestion unchanged when no whitespace in original', () => {
+      expect(preserveWhitespace('hello', 'world')).toBe('world');
+    });
+
+    it('should handle empty original text', () => {
+      expect(preserveWhitespace('', 'world')).toBe('world');
+    });
   });
 
   it('should clean up on destroy', () => {

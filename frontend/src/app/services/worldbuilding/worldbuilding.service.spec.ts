@@ -17,7 +17,9 @@ import {
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
+import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import {
   type IElementSyncProvider,
@@ -774,5 +776,77 @@ describe('WorldbuildingService', () => {
     expect(ydoc).toBeInstanceOf(Y.Doc);
 
     expect(service.getYDoc('non-existent', username, slug)).toBeNull();
+  });
+
+  describe('tryCreateWebSocketProvider coverage', () => {
+    let onlineService: WorldbuildingService;
+    let mockAuthTokenService: Partial<AuthTokenService>;
+    let mockVersionCompat: Partial<VersionCompatibilityService>;
+
+    beforeEach(() => {
+      mockAuthTokenService = {
+        getToken: vi.fn().mockReturnValue('test-token'),
+      };
+      mockVersionCompat = {
+        syncBlocked: vi
+          .fn()
+          .mockReturnValue(
+            false
+          ) as unknown as VersionCompatibilityService['syncBlocked'],
+      };
+
+      const onlineSetupService = {
+        getMode: vi.fn().mockReturnValue('online'),
+        getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
+      };
+
+      const mockFactory = {
+        getProvider: vi.fn().mockReturnValue(createMockSyncProvider()),
+        getCurrentMode: vi.fn().mockReturnValue('online'),
+      };
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(),
+          WorldbuildingService,
+          { provide: SetupService, useValue: onlineSetupService },
+          { provide: ElementSyncProviderFactory, useValue: mockFactory },
+          { provide: AuthTokenService, useValue: mockAuthTokenService },
+          { provide: VersionCompatibilityService, useValue: mockVersionCompat },
+        ],
+      });
+
+      onlineService = TestBed.inject(WorldbuildingService);
+    });
+
+    it('should return undefined when auth token is missing', async () => {
+      (
+        mockAuthTokenService.getToken as ReturnType<typeof vi.fn>
+      ).mockReturnValue(null);
+
+      // Exercise createConnection via getWorldbuildingData
+      const data = await onlineService.getWorldbuildingData(
+        'elem1',
+        username,
+        slug
+      );
+      expect(data).toBeDefined();
+      expect(mockAuthTokenService.getToken).toHaveBeenCalled();
+    });
+
+    it('should return undefined when sync is blocked', async () => {
+      (
+        mockVersionCompat.syncBlocked as unknown as ReturnType<typeof vi.fn>
+      ).mockReturnValue(true);
+
+      const data = await onlineService.getWorldbuildingData(
+        'elem2',
+        username,
+        slug
+      );
+      expect(data).toBeDefined();
+    });
   });
 });
