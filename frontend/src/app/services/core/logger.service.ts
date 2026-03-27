@@ -11,21 +11,41 @@ export enum LogLevel {
   NONE = 4,
 }
 
+const DEBUG_STORAGE_KEY = 'inkweld-debug';
+
 /**
  * Centralized logging service that respects environment configuration
  * and provides consistent logging across the application.
  *
  * In production, only WARN and ERROR messages are logged by default.
  * In development, all log levels are available.
+ *
+ * To enable debug logging in any environment, run in the browser console:
+ *   localStorage.setItem('inkweld-debug', 'true')
+ * then reload the page. To disable:
+ *   localStorage.removeItem('inkweld-debug')
  */
 @Injectable({
   providedIn: 'root',
 })
 export class LoggerService {
   private readonly isDev = isDevMode();
-  private readonly minLevel: LogLevel = this.isDev
-    ? LogLevel.DEBUG
-    : LogLevel.WARN;
+  private readonly minLevel: LogLevel = this.resolveMinLevel();
+
+  private resolveMinLevel(): LogLevel {
+    if (this.isDev) return LogLevel.DEBUG;
+    try {
+      if (
+        typeof localStorage !== 'undefined' &&
+        localStorage.getItem(DEBUG_STORAGE_KEY) === 'true'
+      ) {
+        return LogLevel.DEBUG;
+      }
+    } catch {
+      // localStorage may be unavailable (SSR, restrictive CSP)
+    }
+    return LogLevel.WARN;
+  }
 
   /**
    * Logs a debug message (development only)
