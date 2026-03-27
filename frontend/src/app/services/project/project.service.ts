@@ -570,8 +570,6 @@ export class ProjectService {
   async getProjectCover(username: string, slug: string): Promise<Blob> {
     this.error.set(undefined);
 
-    const projectKey = `${username}/${slug}`;
-
     // Offline-first: if we have a cached cover, return it immediately
     const cachedCover = await this.localStorage.getProjectCover(username, slug);
     if (cachedCover) {
@@ -625,45 +623,44 @@ export class ProjectService {
 
       return blob;
     } catch (err: unknown) {
-      // For cover images, a 404 is expected when no cover image exists yet
-      // So we should handle it specially
-      if (
-        err instanceof ProjectServiceError &&
-        err.code === 'PROJECT_NOT_FOUND'
-      ) {
-        // Create a more specific error
-        const coverError = new ProjectServiceError(
-          'PROJECT_NOT_FOUND',
-          'Cover image not found'
-        );
-        this.error.set(coverError);
-        console.warn('Project cover image not found:', coverError);
-        throw coverError;
-      } else {
-        // If server error but we have cached cover, return cache
-        const offlineBlob = await this.localStorage.getProjectCover(
-          username,
-          slug
-        );
-        if (offlineBlob) {
-          console.warn(
-            `Server unavailable, using cached cover for ${projectKey}`
-          );
-          return offlineBlob;
-        }
-
-        const error =
-          err instanceof ProjectServiceError
-            ? err
-            : new ProjectServiceError(
-                'SERVER_ERROR',
-                'Failed to get project cover image'
-              );
-        this.error.set(error);
-        console.error('Project cover image loading error:', error);
-        throw error;
-      }
+      return await this.handleCoverFetchError(err, username, slug);
     }
+  }
+
+  /** Handle errors from cover image fetching with offline fallback. */
+  private async handleCoverFetchError(
+    err: unknown,
+    username: string,
+    slug: string
+  ): Promise<Blob> {
+    if (
+      err instanceof ProjectServiceError &&
+      err.code === 'PROJECT_NOT_FOUND'
+    ) {
+      this.error.set(err);
+      console.warn('Project cover image not found:', err);
+      throw err;
+    }
+
+    // If server error but we have cached cover, return cache
+    const offlineBlob = await this.localStorage.getProjectCover(username, slug);
+    if (offlineBlob) {
+      console.warn(
+        `Server unavailable, using cached cover for ${username}/${slug}`
+      );
+      return offlineBlob;
+    }
+
+    const error =
+      err instanceof ProjectServiceError
+        ? err
+        : new ProjectServiceError(
+            'SERVER_ERROR',
+            'Failed to get project cover image'
+          );
+    this.error.set(error);
+    console.error('Project cover image loading error:', error);
+    throw error;
   }
 
   async deleteProjectCover(username: string, slug: string): Promise<void> {

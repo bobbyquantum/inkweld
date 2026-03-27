@@ -1000,23 +1000,8 @@ export class MigrationService {
     }
 
     if (err instanceof HttpErrorResponse) {
-      // Try to extract error message from response body
-      const body: unknown = err.error;
-      if (typeof body === 'string') {
-        return new Error(body);
-      }
-      if (body !== null && typeof body === 'object') {
-        // Common error response formats
-        const bodyObj = body as Record<string, unknown>;
-        if ('message' in bodyObj && typeof bodyObj['message'] === 'string') {
-          return new Error(bodyObj['message']);
-        }
-        if ('error' in bodyObj && typeof bodyObj['error'] === 'string') {
-          return new Error(bodyObj['error']);
-        }
-      }
-      // Fallback to status text
-      return new Error(err.message || `HTTP error ${err.status}`);
+      const message = this.extractHttpBodyMessage(err.error);
+      return new Error((message ?? err.message) || `HTTP error ${err.status}`);
     }
 
     // Unknown error type
@@ -1025,5 +1010,18 @@ export class MigrationService {
     }
 
     return new Error('An unknown error occurred');
+  }
+
+  /** Try to extract a human-readable message from an HTTP response body. */
+  private extractHttpBodyMessage(body: unknown): string | null {
+    if (typeof body === 'string') return body;
+    if (body !== null && typeof body === 'object') {
+      const obj = body as Record<string, unknown>;
+      if ('message' in obj && typeof obj['message'] === 'string')
+        return obj['message'];
+      if ('error' in obj && typeof obj['error'] === 'string')
+        return obj['error'];
+    }
+    return null;
   }
 }

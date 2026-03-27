@@ -27,7 +27,11 @@
       [class.active]="showFilters() || activeFilterCount() > 0"
       (click)="toggleFilters()"
       [matTooltip]="showFilters() ? 'Hide filters' : 'Show filters'"
-      aria-label="Toggle search filters"
+      [attr.aria-label]="
+        activeFilterCount() > 0
+          ? 'Toggle search filters, ' + activeFilterCount() + ' active'
+          : 'Toggle search filters'
+      "
       data-testid="project-search-filter-toggle">
       <mat-icon>tune</mat-icon>
       @if (activeFilterCount() > 0) {

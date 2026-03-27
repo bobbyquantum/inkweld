@@ -238,32 +238,14 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       this.schema.set(loadedSchema);
 
       if (!loadedSchema && username && slug) {
-        // Only allow initialization for users with write access
-        // Viewers should never initialize elements - just display what exists
-        if (this.projectState.canWrite()) {
-          const elements = this.projectState.elements();
-          const element: ApiElement | undefined = elements.find(
-            (el: ApiElement) => el.id === elementId
-          );
-          if (element) {
-            await this.worldbuildingService.initializeWorldbuildingElement(
-              element,
-              username,
-              slug
-            );
-
-            // Re-fetch the schema after initialization
-            const reinitializedSchema =
-              await this.worldbuildingService.getSchemaForElement(
-                elementId,
-                username,
-                slug
-              );
-            this.schema.set(reinitializedSchema);
-            if (reinitializedSchema) {
-              this.buildFormFromSchema(reinitializedSchema);
-            }
-          }
+        const reinitializedSchema = await this.initializeIfNeeded(
+          elementId,
+          username,
+          slug
+        );
+        if (reinitializedSchema) {
+          this.schema.set(reinitializedSchema);
+          this.buildFormFromSchema(reinitializedSchema);
         }
       } else if (loadedSchema) {
         this.buildFormFromSchema(loadedSchema);
@@ -285,6 +267,35 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     } catch (error) {
       console.error('[WorldbuildingEditor] Error loading element data:', error);
     }
+  }
+
+  /**
+   * Initialize a worldbuilding element if possible (write access required).
+   * Returns the schema after initialization, or null if not applicable.
+   */
+  private async initializeIfNeeded(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<ElementTypeSchema | null> {
+    if (!this.projectState.canWrite()) return null;
+
+    const element: ApiElement | undefined = this.projectState
+      .elements()
+      .find((el: ApiElement) => el.id === elementId);
+    if (!element) return null;
+
+    await this.worldbuildingService.initializeWorldbuildingElement(
+      element,
+      username,
+      slug
+    );
+
+    return this.worldbuildingService.getSchemaForElement(
+      elementId,
+      username,
+      slug
+    );
   }
 
   private buildFormFromSchema(schema: ElementTypeSchema): void {
