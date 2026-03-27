@@ -549,12 +549,7 @@ export class ImageGenerationService {
         // Generate unique ID
         const timestamp = Date.now();
         const mediaId = `generated-${timestamp}-${i}`;
-        const ext =
-          mimeType === 'image/jpeg'
-            ? 'jpg'
-            : mimeType === 'image/webp'
-              ? 'webp'
-              : 'png';
+        const ext = this.getExtensionForMimeType(mimeType);
 
         // Build generation metadata
         const generation: GenerationMetadata = {
@@ -581,6 +576,17 @@ export class ImageGenerationService {
     }
 
     return savedMediaIds;
+  }
+
+  private getExtensionForMimeType(mimeType: string): string {
+    switch (mimeType) {
+      case 'image/jpeg':
+        return 'jpg';
+      case 'image/webp':
+        return 'webp';
+      default:
+        return 'png';
+    }
   }
 
   /**

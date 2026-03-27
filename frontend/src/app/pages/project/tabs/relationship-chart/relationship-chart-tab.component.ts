@@ -1229,63 +1229,87 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     }
 
     if (imageUrl.startsWith('media://')) {
-      const filename = imageUrl.substring('media://'.length);
-      const lastDot = filename.lastIndexOf('.');
-      const mediaId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
-      const projectKey = `${username}/${slug}`;
+      return this.resolveMediaUrl(imageUrl, username, slug);
+    }
 
-      // Try local IndexedDB first
-      const localUrl = await this.localStorageService.getMediaUrl(
+    // Regular HTTP URL
+    return imageUrl;
+  }
+
+  /**
+   * Resolve a media:// URL by looking up in local IndexedDB.
+   * On cache miss, triggers a server sync and retries once.
+   */
+  private async resolveMediaUrl(
+    imageUrl: string,
+    username: string,
+    slug: string
+  ): Promise<string | null> {
+    const filename = imageUrl.substring('media://'.length);
+    const lastDot = filename.lastIndexOf('.');
+    const mediaId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+    const projectKey = `${username}/${slug}`;
+
+    // Try local IndexedDB first
+    const localUrl = await this.localStorageService.getMediaUrl(
+      projectKey,
+      mediaId
+    );
+    if (localUrl) {
+      this.blobUrls.push(localUrl);
+      return localUrl;
+    }
+
+    this.logDebug('Media image missing from local cache, attempting sync', {
+      tabId: this.elementId(),
+      project: projectKey,
+      mediaId,
+      filename,
+    });
+
+    // Not found locally — trigger a sync and retry once
+    if (this.setupService.getMode() !== 'local') {
+      return this.resolveMediaUrlWithSync(projectKey, mediaId, filename);
+    }
+
+    return null;
+  }
+
+  /**
+   * Attempt to resolve a media URL by syncing from the server and retrying.
+   */
+  private async resolveMediaUrlWithSync(
+    projectKey: string,
+    mediaId: string,
+    filename: string
+  ): Promise<string | null> {
+    try {
+      await this.mediaSyncService.downloadAllFromServer(projectKey);
+      const retryUrl = await this.localStorageService.getMediaUrl(
         projectKey,
         mediaId
       );
-      if (localUrl) {
-        this.blobUrls.push(localUrl);
-        return localUrl;
+      if (retryUrl) {
+        this.blobUrls.push(retryUrl);
+        return retryUrl;
       }
 
-      this.logDebug('Media image missing from local cache, attempting sync', {
+      this.logDebug('Media image still missing after sync', {
         tabId: this.elementId(),
         project: projectKey,
         mediaId,
         filename,
       });
-
-      // Not found locally — trigger a sync and retry once
-      if (this.setupService.getMode() !== 'local') {
-        try {
-          await this.mediaSyncService.downloadAllFromServer(projectKey);
-          const retryUrl = await this.localStorageService.getMediaUrl(
-            projectKey,
-            mediaId
-          );
-          if (retryUrl) {
-            this.blobUrls.push(retryUrl);
-            return retryUrl;
-          }
-
-          this.logDebug('Media image still missing after sync', {
-            tabId: this.elementId(),
-            project: projectKey,
-            mediaId,
-            filename,
-          });
-        } catch (error) {
-          if (isDevMode()) {
-            console.warn(
-              '[RelationshipChart] Media sync failed while resolving node image',
-              error
-            );
-          }
-          // Sync failed — fall through
-        }
+    } catch (error) {
+      if (isDevMode()) {
+        console.warn(
+          '[RelationshipChart] Media sync failed while resolving node image',
+          error
+        );
       }
-
-      return null;
     }
 
-    // Regular HTTP URL
-    return imageUrl;
+    return null;
   }
 
   /** Save node positions and persist to localStorage via the service */

@@ -915,5 +915,19 @@ describe('ImageGenerationService', () => {
 
       expect(mockOfflineStorage.saveMedia).not.toHaveBeenCalled();
     });
+
+    it('should handle saveMedia failure gracefully', async () => {
+      mockOfflineStorage.saveMedia.mockRejectedValue(
+        new Error('IndexedDB full')
+      );
+
+      service.startGeneration('user/project', createMockRequest());
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.jobs()[0];
+      // Job should complete even if individual saves fail
+      expect(job.status).toBe('completed');
+    });
   });
 });
