@@ -86,7 +86,7 @@
     ],
     "backend/src/**/*.ts": [
       "prettier --write --config backend/.prettierrc",
-      "eslint --fix --no-warn-ignored"
+      "./backend/node_modules/.bin/eslint --fix --no-warn-ignored"
     ],
     "docs/site/**/*.{ts,md,mdx}": [
       "prettier --write --config docs/site/.prettierrc"
