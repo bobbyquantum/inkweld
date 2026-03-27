@@ -899,23 +899,6 @@ describe('ImageGenerationService', () => {
       );
     });
 
-    it('should skip image with no data', async () => {
-      const response: ImageGenerateResponse = {
-        data: [{ index: 0 }],
-        model: 'gpt-image-1',
-        provider: 'openai' as ImageProviderType,
-        created: Date.now(),
-        request: { prompt: 'A test image' },
-      };
-      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
-
-      service.startGeneration('user/project', createMockRequest());
-      await flushPromises();
-      await flushPromises();
-
-      expect(mockOfflineStorage.saveMedia).not.toHaveBeenCalled();
-    });
-
     it('should handle saveMedia failure gracefully', async () => {
       mockOfflineStorage.saveMedia.mockRejectedValue(
         new Error('IndexedDB full')

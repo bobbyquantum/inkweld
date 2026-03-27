@@ -217,12 +217,14 @@ describe('ProjectTemplateService', () => {
           filename: 'hero.png',
           archivePath: 'media/hero.png',
           mimeType: 'image/png',
+          size: 1024,
         },
         {
           mediaId: 'img-villain',
           filename: 'villain.jpg',
           archivePath: 'media/villain.jpg',
           mimeType: 'image/jpeg',
+          size: 2048,
         },
       ],
     };
@@ -326,6 +328,7 @@ describe('ProjectTemplateService', () => {
             filename: 'broken.png',
             archivePath: 'media/broken.png',
             mimeType: 'image/png',
+            size: 512,
           },
         ],
       };
@@ -393,12 +396,14 @@ describe('ProjectTemplateService', () => {
             filename: 'shared.png',
             archivePath: 'media/shared.png',
             mimeType: 'image/png',
+            size: 1024,
           },
           {
             mediaId: 'img-b',
             filename: 'shared.png',
             archivePath: 'media/shared.png',
             mimeType: 'image/png',
+            size: 1024,
           },
         ],
       };
