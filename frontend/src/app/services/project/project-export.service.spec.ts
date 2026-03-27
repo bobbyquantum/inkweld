@@ -175,6 +175,7 @@ describe('ProjectExportService', () => {
     localSnapshots.getSnapshotsForExport.mockResolvedValue([]);
     documentService.getDocumentContent.mockResolvedValue(null);
     worldbuildingService.getWorldbuildingData.mockResolvedValue(null);
+    worldbuildingService.getIdentityData.mockResolvedValue({});
 
     // Mock DOM methods to capture the generated blob
     vi.spyOn(URL, 'createObjectURL').mockImplementation(
