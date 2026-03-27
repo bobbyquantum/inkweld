@@ -6,7 +6,6 @@ import {
   effect,
   type ElementRef,
   inject,
-  isDevMode,
   type OnDestroy,
   type OnInit,
   signal,
@@ -46,6 +45,7 @@ import {
   type ChartLayout,
   type ChartMode,
 } from '../../../../models/relationship-chart.model';
+import { LoggerService } from '../../../../services/core/logger.service';
 import { SetupService } from '../../../../services/core/setup.service';
 import { LocalStorageService } from '../../../../services/local/local-storage.service';
 import { MediaSyncService } from '../../../../services/local/media-sync.service';
@@ -106,6 +106,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   private readonly localStorageService = inject(LocalStorageService);
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly setupService = inject(SetupService);
+  private readonly logger = inject(LoggerService);
   private readonly worldbuildingService = inject(WorldbuildingService);
 
   /** Reference to the chart container <div> */
@@ -836,7 +837,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     } catch (e) {
       // Cytoscape requires a real canvas renderer; degrade gracefully in
       // environments where canvas is unavailable (e.g. jsdom/unit tests).
-      console.warn('[RelationshipChart] Cytoscape initialization failed', {
+      this.logger.warn('RelationshipChart', 'Cytoscape initialization failed', {
         tabId: this.elementId(),
         nodes: data.nodes.length,
         edges: data.edges.length,
@@ -983,10 +984,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   }
 
   private logDebug(event: string, details: Record<string, unknown> = {}): void {
-    if (!isDevMode()) {
-      return;
-    }
-    console.info(`[RelationshipChart] ${event}`, details);
+    this.logger.debug('RelationshipChart', event, details);
   }
 
   private getImageSourceKind(imageUrl: string | null | undefined): string {
@@ -1143,7 +1141,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       this.nodeImages.set(resolved);
     } catch (err) {
       // Image loading is best-effort; chart still works without images
-      console.warn('[RelationshipChart] Failed to load node images:', err);
+      this.logger.warn('RelationshipChart', 'Failed to load node images', err);
     }
   }
 
@@ -1301,12 +1299,11 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         filename,
       });
     } catch (error) {
-      if (isDevMode()) {
-        console.warn(
-          '[RelationshipChart] Media sync failed while resolving node image',
-          error
-        );
-      }
+      this.logger.warn(
+        'RelationshipChart',
+        'Media sync failed while resolving node image',
+        error
+      );
     }
 
     return null;
