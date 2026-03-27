@@ -168,7 +168,7 @@ export class YjsService {
     };
   }
 
-  /** Coerce a raw value to a trimmed string, returning null for empty/missing values. */
+  /** Coerce a raw value to string, returning null for empty/whitespace-only values. */
   private coerceNullableString(value: unknown): string | null {
     if (value == null || String(value).trim() === '') return null;
     return typeof value === 'string' ? value : String(value);
