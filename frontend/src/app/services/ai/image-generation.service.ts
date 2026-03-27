@@ -529,13 +529,14 @@ export class ImageGenerationService {
       try {
         // Convert image to blob
         let blob: Blob;
+        const mimeType = image.mimeType || 'image/png';
         if (image.b64Json) {
           const binaryString = atob(image.b64Json);
           const bytes = new Uint8Array(binaryString.length);
           for (let j = 0; j < binaryString.length; j++) {
             bytes[j] = binaryString.codePointAt(j)!;
           }
-          blob = new Blob([bytes], { type: 'image/png' });
+          blob = new Blob([bytes], { type: mimeType });
         } else if (image.url) {
           const fetchResponse = await fetch(image.url);
           blob = await fetchResponse.blob();
@@ -547,6 +548,7 @@ export class ImageGenerationService {
         // Generate unique ID
         const timestamp = Date.now();
         const mediaId = `generated-${timestamp}-${i}`;
+        const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
 
         // Build generation metadata
         const generation: GenerationMetadata = {
@@ -562,7 +564,7 @@ export class ImageGenerationService {
           job.projectKey,
           mediaId,
           blob,
-          `ai-generated-${timestamp}-${i}.png`,
+          `ai-generated-${timestamp}-${i}.${ext}`,
           generation
         );
 

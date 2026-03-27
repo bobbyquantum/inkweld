@@ -203,6 +203,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       const images: Array<{
         b64Json?: string;
         url?: string;
+        mimeType?: string;
         revisedPrompt?: string;
         index: number;
       }> = [];
@@ -215,11 +216,12 @@ export class OpenRouterImageProvider extends BaseImageProvider {
           const imageUrl = img.image_url?.url || img.url;
           if (imageUrl) {
             if (imageUrl.startsWith('data:image/')) {
-              // Extract base64 from data URL
-              const base64Match = imageUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+              // Extract base64 and mime type from data URL
+              const base64Match = imageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
               if (base64Match) {
                 images.push({
-                  b64Json: base64Match[1],
+                  b64Json: base64Match[2],
+                  mimeType: base64Match[1],
                   index: i,
                 });
               } else {
@@ -245,10 +247,11 @@ export class OpenRouterImageProvider extends BaseImageProvider {
           if (item.type === 'image_url' && item.image_url?.url) {
             const imageUrl = item.image_url.url;
             if (imageUrl.startsWith('data:image/')) {
-              const base64Match = imageUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+              const base64Match = imageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
               if (base64Match) {
                 images.push({
-                  b64Json: base64Match[1],
+                  b64Json: base64Match[2],
+                  mimeType: base64Match[1],
                   index: i,
                 });
               } else {

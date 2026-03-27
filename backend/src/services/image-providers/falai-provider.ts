@@ -450,6 +450,7 @@ export class FalAiImageProvider extends BaseImageProvider {
       const images: Array<{
         url?: string;
         b64Json?: string;
+        mimeType?: string;
         revisedPrompt?: string;
         index: number;
       }> = [];
@@ -460,6 +461,7 @@ export class FalAiImageProvider extends BaseImageProvider {
           const img = result.data.images[i];
           images.push({
             url: img.url,
+            mimeType: img.content_type || 'image/png',
             revisedPrompt: result.data.prompt || undefined,
             index: i,
           });
@@ -469,6 +471,7 @@ export class FalAiImageProvider extends BaseImageProvider {
       else if (result.data.image) {
         images.push({
           url: result.data.image.url,
+          mimeType: result.data.image.content_type || 'image/png',
           revisedPrompt: result.data.prompt || undefined,
           index: 0,
         });

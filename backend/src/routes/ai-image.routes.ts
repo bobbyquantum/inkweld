@@ -144,6 +144,10 @@ const GeneratedImageSchema = z
   .object({
     b64Json: z.string().optional().openapi({ description: 'Base64-encoded image data' }),
     url: z.string().optional().openapi({ description: 'URL to the image' }),
+    mimeType: z
+      .string()
+      .optional()
+      .openapi({ description: 'MIME type of the image (e.g. image/png, image/jpeg)' }),
     revisedPrompt: z.string().optional().openapi({ description: 'Revised prompt if modified' }),
     index: z.number().openapi({ description: 'Image index in batch' }),
     textContent: z.string().optional().openapi({
@@ -434,7 +438,7 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
     // Extract output image URLs for audit
     const outputImageUrls = result.data
       .filter((d) => d.url || d.b64Json)
-      .map((d) => d.url || 'data:image/png;base64,[generated-image]');
+      .map((d) => d.url || `data:${d.mimeType || 'image/png'};base64,[generated-image]`);
 
     // Record audit (for both success and moderated - not for general errors)
     // Note: user is guaranteed to exist here due to auth middleware
@@ -753,7 +757,9 @@ aiImageRoutes.post('/generate-stream', async (c) => {
                 );
                 const outputImageUrls = result.data
                   .filter((d) => d.url || d.b64Json)
-                  .map((d) => d.url || 'data:image/png;base64,[generated-image]');
+                  .map(
+                    (d) => d.url || `data:${d.mimeType || 'image/png'};base64,[generated-image]`
+                  );
 
                 try {
                   await imageAuditService.create(db, {
