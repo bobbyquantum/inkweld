@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "mediaId": "img-elara",
+    "mimeType": "image/jpeg",
+    "size": 208434,
+    "filename": "elara.jpg",
+    "archivePath": "media/elara.jpg"
+  },
+  {
+    "mediaId": "img-theron",
+    "mimeType": "image/jpeg",
+    "size": 211365,
+    "filename": "thereon.jpg",
+    "archivePath": "media/thereon.jpg"
+  },
+  {
+    "mediaId": "img-mira",
+    "mimeType": "image/jpeg",
+    "size": 207713,
+    "filename": "mira.jpg",
+    "archivePath": "media/mira.jpg"
+  },
+  {
+    "mediaId": "img-silverhollow",
+    "mimeType": "image/jpeg",
+    "size": 247520,
+    "filename": "silverhollow.jpg",
+    "archivePath": "media/silverhollow.jpg"
+  },
+  {
+    "mediaId": "img-thornwood",
+    "mimeType": "image/jpeg",
+    "size": 234634,
+    "filename": "thornwood.jpg",
+    "archivePath": "media/thornwood.jpg"
+  },
+  {
+    "mediaId": "img-cloudspire",
+    "mimeType": "image/jpeg",
+    "size": 186461,
+    "filename": "cloudspire.jpg",
+    "archivePath": "media/cloudspire.jpg"
+  }
+]

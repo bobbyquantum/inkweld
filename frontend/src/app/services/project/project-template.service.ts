@@ -167,7 +167,7 @@ export class ProjectTemplateService {
       elementTags,
       publishPlans,
       snapshots,
-      media,
+      media: await this.loadMediaBlobs(basePath, media),
     };
   }
 
@@ -204,5 +204,46 @@ export class ProjectTemplateService {
       }
       throw new Error(`Failed to load template file: ${filename}`);
     }
+  }
+
+  /**
+   * Load media blobs from the template folder and attach them to the media manifest.
+   * Deduplicates fetches for entries sharing the same archivePath.
+   */
+  private async loadMediaBlobs(
+    basePath: string,
+    media: ArchiveMediaFile[]
+  ): Promise<ArchiveMediaFile[]> {
+    if (media.length === 0) {
+      return media;
+    }
+
+    // Deduplicate blob fetches by archivePath
+    const uniquePaths = [...new Set(media.map(m => m.archivePath))];
+    const blobMap = new Map<string, Blob>();
+
+    await Promise.all(
+      uniquePaths.map(async archivePath => {
+        try {
+          const blob = await firstValueFrom(
+            this.http.get(`${basePath}${archivePath}`, {
+              responseType: 'blob',
+            })
+          );
+          blobMap.set(archivePath, blob);
+        } catch (error) {
+          this.logger.warn(
+            'ProjectTemplateService',
+            `Failed to load template media: ${archivePath}`,
+            error
+          );
+        }
+      })
+    );
+
+    return media.map(m => ({
+      ...m,
+      blob: blobMap.get(m.archivePath),
+    }));
   }
 }

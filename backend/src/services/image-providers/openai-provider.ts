@@ -163,6 +163,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
         data: (response.data ?? []).map((img, index) => ({
           b64Json: img.b64_json,
           url: img.url,
+          mimeType: 'image/png',
           revisedPrompt: img.revised_prompt,
           index,
         })),
@@ -253,6 +254,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
             data: [
               {
                 b64Json: event.b64_json,
+                mimeType: 'image/png',
                 index: 0,
               },
             ],

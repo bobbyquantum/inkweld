@@ -152,6 +152,8 @@ export interface ArchiveMediaFile {
   filename?: string;
   /** Path within the archive (e.g., 'media/cover.jpg') */
   archivePath: string;
+  /** Pre-loaded blob data (present when loaded from templates, not from ZIP archives) */
+  blob?: Blob;
 }
 
 /**

@@ -427,10 +427,33 @@ export class ProjectExportService {
         );
         if (data) {
           const schemaId = (data['schemaId'] as string) || elem.schemaId || '';
+          const flatData = this.flattenYjsData(data);
+
+          // Merge identity fields (image, description) which are stored in a separate Yjs map
+          try {
+            const identity = await this.worldbuildingService.getIdentityData(
+              elem.id,
+              username,
+              slug
+            );
+            if (identity.image) {
+              flatData['image'] = identity.image;
+            }
+            if (identity.description && !flatData['description']) {
+              flatData['description'] = identity.description;
+            }
+          } catch (identityErr) {
+            this.logger.warn(
+              'ProjectExport',
+              `Failed to get identity data for ${elem.id}`,
+              identityErr
+            );
+          }
+
           worldbuilding.push({
             elementId: elem.id,
             schemaId,
-            data: this.flattenYjsData(data),
+            data: flatData,
           });
         }
       } catch (err) {

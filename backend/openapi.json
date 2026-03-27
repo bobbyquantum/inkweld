@@ -289,6 +289,49 @@
           "message"
         ]
       },
+      "SystemStats": {
+        "type": "object",
+        "properties": {
+          "userCount": {
+            "type": "number",
+            "example": 42,
+            "description": "Total registered users"
+          },
+          "projectCount": {
+            "type": "number",
+            "example": 100,
+            "description": "Total projects"
+          },
+          "pendingUserCount": {
+            "type": "number",
+            "example": 3,
+            "description": "Users awaiting approval"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.1.0",
+            "description": "Server version"
+          },
+          "uptime": {
+            "type": "number",
+            "example": 86400,
+            "description": "Server uptime in seconds"
+          },
+          "runtime": {
+            "type": "string",
+            "example": "bun",
+            "description": "Runtime environment"
+          }
+        },
+        "required": [
+          "userCount",
+          "projectCount",
+          "pendingUserCount",
+          "version",
+          "uptime",
+          "runtime"
+        ]
+      },
       "Project": {
         "type": "object",
         "properties": {
@@ -1460,6 +1503,10 @@
           "url": {
             "type": "string",
             "description": "URL to the image"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "MIME type of the image (e.g. image/png, image/jpeg)"
           },
           "revisedPrompt": {
             "type": "string",
@@ -5662,6 +5709,48 @@
         }
       }
     },
+    "/api/v1/admin/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get system statistics",
+        "description": "Returns aggregate system health statistics (admin only)",
+        "operationId": "adminGetSystemStats",
+        "responses": {
+          "200": {
+            "description": "System statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects": {
       "get": {
         "tags": [
@@ -6170,6 +6259,16 @@
           },
           "401": {
             "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
             "content": {
               "application/json": {
                 "schema": {
