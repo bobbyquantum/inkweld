@@ -3,6 +3,7 @@
     "elementId": "char-elara",
     "schemaId": "character-v1",
     "data": {
+      "image": "media://img-elara",
       "description": "A brilliant half-elf scholar who studies ancient magical artifacts. She keeps her true age and origins carefully hidden.",
       "fullName": "Elara Nightwhisper",
       "age": "127 (appears mid-20s)",
@@ -36,6 +37,7 @@
     "elementId": "char-theron",
     "schemaId": "character-v1",
     "data": {
+      "image": "media://img-theron",
       "description": "A seasoned ranger who serves as guardian of Thornwood Forest. Gruff and solitary, he knows every path in the ancient wood.",
       "fullName": "Theron Blackwood",
       "age": "34",
@@ -69,6 +71,7 @@
     "elementId": "char-mira",
     "schemaId": "character-v1",
     "data": {
+      "image": "media://img-mira",
       "description": "A talented dwarf blacksmith who runs the finest forge in Silverhollow. She crafts both mundane tools and magical weapons.",
       "fullName": "Mira Stonehart",
       "age": "28",
@@ -102,6 +105,7 @@
     "elementId": "loc-silverhollow",
     "schemaId": "location-v1",
     "data": {
+      "image": "media://img-silverhollow",
       "description": "A prosperous trade town at the border of Thornwood Forest. Known for quality craftsmanship and as a waypoint for travelers.",
       "name": "Silverhollow",
       "type": "Town",
@@ -126,6 +130,7 @@
     "elementId": "loc-thornwood",
     "schemaId": "location-v1",
     "data": {
+      "image": "media://img-thornwood",
       "description": "An ancient, sprawling forest that predates human memory. Beautiful and dangerous in equal measure, it holds secrets from ages past.",
       "name": "Thornwood Forest",
       "type": "Natural Feature",
@@ -150,6 +155,7 @@
     "elementId": "loc-cloudspire",
     "schemaId": "location-v1",
     "data": {
+      "image": "media://img-cloudspire",
       "description": "The most prestigious magical academy in the realm. Built on a massive floating platform above the Starfall Mountains.",
       "name": "Cloudspire Academy",
       "type": "Building",

@@ -23,25 +23,27 @@ import {
 } from './epub-generator.service';
 
 // Mock JSZip - epub generator uses file() and generateAsync() methods
-vi.mock('@progress/jszip-esm', () => ({
-  default: class MockJSZip {
-    private files: Map<string, string | Blob> = new Map();
+vi.mock('@progress/jszip-esm', () => {
+  return {
+    default: class MockJSZip {
+      private readonly files: Map<string, string | Blob> = new Map();
 
-    file(path: string, content: string | Blob): this {
-      this.files.set(path, content);
-      return this;
-    }
+      file(path: string, content: string | Blob): this {
+        this.files.set(path, content);
+        return this;
+      }
 
-    generateAsync(_options: {
-      type: string;
-      mimeType?: string;
-    }): Promise<Blob> {
-      return Promise.resolve(
-        new Blob(['epub content'], { type: 'application/epub+zip' })
-      );
-    }
-  },
-}));
+      generateAsync(_options: {
+        type: string;
+        mimeType?: string;
+      }): Promise<Blob> {
+        return Promise.resolve(
+          new Blob(['epub content'], { type: 'application/epub+zip' })
+        );
+      }
+    },
+  };
+});
 
 describe('EpubGeneratorService', () => {
   let service: EpubGeneratorService;
@@ -358,7 +360,7 @@ describe('EpubGeneratorService', () => {
       await service.generateEpub(mockPlan);
 
       expect(results.length).toBeGreaterThan(0);
-      expect(results[results.length - 1].success).toBe(true);
+      expect(results.at(-1)?.success).toBe(true);
     });
 
     it('should emit result on error', async () => {
@@ -372,7 +374,7 @@ describe('EpubGeneratorService', () => {
       await service.generateEpub(mockPlan);
 
       expect(results.length).toBeGreaterThan(0);
-      expect(results[results.length - 1].success).toBe(false);
+      expect(results.at(-1)?.success).toBe(false);
     });
   });
 

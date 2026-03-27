@@ -7,11 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookshelfComponent } from './bookshelf.component';
 
 // Mock the ProjectCardComponent
-vi.mock('@components/project-card/project-card.component', () => ({
-  ProjectCardComponent: class {
-    project: any;
-  },
-}));
+vi.mock('@components/project-card/project-card.component', () => {
+  return {
+    ProjectCardComponent: class {
+      project: any;
+    },
+  };
+});
 
 describe('BookshelfComponent', () => {
   let component: BookshelfComponent;

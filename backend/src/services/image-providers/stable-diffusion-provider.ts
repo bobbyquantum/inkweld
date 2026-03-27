@@ -196,6 +196,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
         created: Math.floor(Date.now() / 1000),
         data: data.images.map((b64, index) => ({
           b64Json: b64,
+          mimeType: 'image/png',
           index,
         })),
         provider: this.type,
