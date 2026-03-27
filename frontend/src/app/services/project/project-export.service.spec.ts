@@ -675,4 +675,73 @@ describe('ProjectExportService', () => {
       expect(plans[0].id).toBe('plan-1');
     });
   });
+
+  describe('identity merge error handling', () => {
+    it('should still export worldbuilding data when getIdentityData fails', async () => {
+      const wbData = { name: 'Hero', traits: ['brave'] };
+      worldbuildingService.getWorldbuildingData.mockResolvedValue(wbData);
+      worldbuildingService.getIdentityData.mockRejectedValue(
+        new Error('Identity fetch failed')
+      );
+
+      await service.exportProject();
+
+      const worldbuilding =
+        await readJsonFromZip<
+          Array<{ elementId: string; data: Record<string, unknown> }>
+        >('worldbuilding.json');
+      expect(worldbuilding).toHaveLength(1);
+      expect(worldbuilding[0].elementId).toBe('elem-3');
+      expect(worldbuilding[0].data).toHaveProperty('name', 'Hero');
+      expect(logger.warn).toHaveBeenCalledWith(
+        'ProjectExport',
+        expect.stringContaining('Failed to get identity data'),
+        expect.any(Error)
+      );
+    });
+
+    it('should merge identity image into worldbuilding data when available', async () => {
+      const wbData = { name: 'Hero' };
+      worldbuildingService.getWorldbuildingData.mockResolvedValue(wbData);
+      worldbuildingService.getIdentityData.mockResolvedValue({
+        image: 'media://hero-portrait',
+        description: 'A brave hero',
+      });
+
+      await service.exportProject();
+
+      const worldbuilding =
+        await readJsonFromZip<
+          Array<{ elementId: string; data: Record<string, unknown> }>
+        >('worldbuilding.json');
+      expect(worldbuilding).toHaveLength(1);
+      expect(worldbuilding[0].data).toHaveProperty(
+        'image',
+        'media://hero-portrait'
+      );
+      expect(worldbuilding[0].data).toHaveProperty(
+        'description',
+        'A brave hero'
+      );
+    });
+
+    it('should not overwrite existing description from worldbuilding data', async () => {
+      const wbData = { name: 'Hero', description: 'Original description' };
+      worldbuildingService.getWorldbuildingData.mockResolvedValue(wbData);
+      worldbuildingService.getIdentityData.mockResolvedValue({
+        description: 'Identity description',
+      });
+
+      await service.exportProject();
+
+      const worldbuilding =
+        await readJsonFromZip<
+          Array<{ elementId: string; data: Record<string, unknown> }>
+        >('worldbuilding.json');
+      expect(worldbuilding[0].data).toHaveProperty(
+        'description',
+        'Original description'
+      );
+    });
+  });
 });

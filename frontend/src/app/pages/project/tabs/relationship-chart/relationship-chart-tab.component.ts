@@ -6,6 +6,7 @@ import {
   effect,
   type ElementRef,
   inject,
+  isDevMode,
   type OnDestroy,
   type OnInit,
   signal,
@@ -982,6 +983,9 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   }
 
   private logDebug(event: string, details: Record<string, unknown> = {}): void {
+    if (!isDevMode()) {
+      return;
+    }
     console.info(`[RelationshipChart] ${event}`, details);
   }
 
@@ -1266,16 +1270,13 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
             mediaId,
             filename,
           });
-        } catch {
-          console.warn(
-            '[RelationshipChart] Media sync failed while resolving node image',
-            {
-              tabId: this.elementId(),
-              project: projectKey,
-              mediaId,
-              filename,
-            }
-          );
+        } catch (error) {
+          if (isDevMode()) {
+            console.warn(
+              '[RelationshipChart] Media sync failed while resolving node image',
+              error
+            );
+          }
           // Sync failed — fall through
         }
       }

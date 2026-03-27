@@ -780,4 +780,140 @@ describe('ImageGenerationService', () => {
       );
     });
   });
+
+  describe('saveGeneratedImages mimeType handling', () => {
+    it('should save with default png extension when mimeType is absent', async () => {
+      const response = createMockResponse();
+      // Default createMockImage has no mimeType
+      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+
+      service.startGeneration('user/project', createMockRequest());
+      await flushPromises();
+      await flushPromises();
+
+      expect(mockOfflineStorage.saveMedia).toHaveBeenCalledWith(
+        'user/project',
+        expect.any(String),
+        expect.any(Blob),
+        expect.stringMatching(/\.png$/),
+        expect.any(Object)
+      );
+    });
+
+    it('should save with jpg extension when mimeType is image/jpeg', async () => {
+      const response: ImageGenerateResponse = {
+        data: [
+          { b64Json: btoa('jpeg-data'), mimeType: 'image/jpeg', index: 0 },
+        ],
+        model: 'gpt-image-1',
+        provider: 'openai' as ImageProviderType,
+        created: Date.now(),
+        request: { prompt: 'A test image' },
+      };
+      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+
+      service.startGeneration('user/project', createMockRequest());
+      await flushPromises();
+      await flushPromises();
+
+      expect(mockOfflineStorage.saveMedia).toHaveBeenCalledWith(
+        'user/project',
+        expect.any(String),
+        expect.any(Blob),
+        expect.stringMatching(/\.jpg$/),
+        expect.any(Object)
+      );
+    });
+
+    it('should save with webp extension when mimeType is image/webp', async () => {
+      const response: ImageGenerateResponse = {
+        data: [
+          { b64Json: btoa('webp-data'), mimeType: 'image/webp', index: 0 },
+        ],
+        model: 'gpt-image-1',
+        provider: 'openai' as ImageProviderType,
+        created: Date.now(),
+        request: { prompt: 'A test image' },
+      };
+      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+
+      service.startGeneration('user/project', createMockRequest());
+      await flushPromises();
+      await flushPromises();
+
+      expect(mockOfflineStorage.saveMedia).toHaveBeenCalledWith(
+        'user/project',
+        expect.any(String),
+        expect.any(Blob),
+        expect.stringMatching(/\.webp$/),
+        expect.any(Object)
+      );
+    });
+
+    it('should create blob with correct mimeType', async () => {
+      const response: ImageGenerateResponse = {
+        data: [
+          { b64Json: btoa('jpeg-data'), mimeType: 'image/jpeg', index: 0 },
+        ],
+        model: 'gpt-image-1',
+        provider: 'openai' as ImageProviderType,
+        created: Date.now(),
+        request: { prompt: 'A test image' },
+      };
+      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+
+      service.startGeneration('user/project', createMockRequest());
+      await flushPromises();
+      await flushPromises();
+
+      const savedBlob = mockOfflineStorage.saveMedia.mock.calls[0][2];
+      expect(savedBlob.type).toBe('image/jpeg');
+    });
+
+    it('should use blob.type when fetching from URL', async () => {
+      const mockBlob = new Blob(['url-image-data'], { type: 'image/webp' });
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(mockBlob),
+      } as unknown as Response);
+
+      const response: ImageGenerateResponse = {
+        data: [{ url: 'https://example.com/image.webp', index: 0 }],
+        model: 'gpt-image-1',
+        provider: 'openai' as ImageProviderType,
+        created: Date.now(),
+        request: { prompt: 'A test image' },
+      };
+      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+
+      service.startGeneration('user/project', createMockRequest());
+      await flushPromises();
+      await flushPromises();
+
+      expect(mockOfflineStorage.saveMedia).toHaveBeenCalledWith(
+        'user/project',
+        expect.any(String),
+        expect.any(Blob),
+        expect.stringMatching(/\.webp$/),
+        expect.any(Object)
+      );
+    });
+
+    it('should skip image with no data', async () => {
+      const response: ImageGenerateResponse = {
+        data: [{ index: 0 }],
+        model: 'gpt-image-1',
+        provider: 'openai' as ImageProviderType,
+        created: Date.now(),
+        request: { prompt: 'A test image' },
+      };
+      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+
+      service.startGeneration('user/project', createMockRequest());
+      await flushPromises();
+      await flushPromises();
+
+      expect(mockOfflineStorage.saveMedia).not.toHaveBeenCalled();
+    });
+  });
 });

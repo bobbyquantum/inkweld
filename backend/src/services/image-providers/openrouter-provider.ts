@@ -217,7 +217,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
           if (imageUrl) {
             if (imageUrl.startsWith('data:image/')) {
               // Extract base64 and mime type from data URL
-              const base64Match = imageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+              const base64Match = /^data:(image\/[^;]+);base64,(.+)$/.exec(imageUrl);
               if (base64Match) {
                 images.push({
                   b64Json: base64Match[2],
@@ -247,7 +247,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
           if (item.type === 'image_url' && item.image_url?.url) {
             const imageUrl = item.image_url.url;
             if (imageUrl.startsWith('data:image/')) {
-              const base64Match = imageUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
+              const base64Match = /^data:(image\/[^;]+);base64,(.+)$/.exec(imageUrl);
               if (base64Match) {
                 images.push({
                   b64Json: base64Match[2],

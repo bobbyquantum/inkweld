@@ -207,4 +207,114 @@ describe('ProjectTemplateService', () => {
       expect(templates1).toEqual(templates2);
     });
   });
+
+  describe('loadMediaBlobs', () => {
+    const mockTemplateWithMedia = {
+      ...mockEmptyTemplate,
+      media: [
+        {
+          mediaId: 'img-hero',
+          filename: 'hero.png',
+          archivePath: 'media/hero.png',
+          mimeType: 'image/png',
+        },
+        {
+          mediaId: 'img-villain',
+          filename: 'villain.jpg',
+          archivePath: 'media/villain.jpg',
+          mimeType: 'image/jpeg',
+        },
+      ],
+    };
+
+    it('should load media blobs and attach them to entries', async () => {
+      const worldbuildingTemplate = {
+        ...mockTemplateIndex,
+        templates: [
+          ...mockTemplateIndex.templates,
+          {
+            id: 'with-media',
+            name: 'With Media',
+            description: 'Has media',
+            icon: 'image',
+            folder: 'with-media',
+          } as ProjectTemplateInfo,
+        ],
+      };
+
+      const promise = service.loadTemplate('with-media');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(worldbuildingTemplate);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(mockTemplateWithMedia.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockTemplateWithMedia.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockTemplateWithMedia.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockTemplateWithMedia.documents);
+        } else if (req.request.url.includes('media.json')) {
+          req.flush(mockTemplateWithMedia.media);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      // Wait for media.json to be resolved, then flush blob requests
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const mediaRequests = httpMock.match(() => true);
+      for (const req of mediaRequests) {
+        if (req.request.url.includes('media/hero.png')) {
+          req.flush(new Blob(['hero-data'], { type: 'image/png' }));
+        } else if (req.request.url.includes('media/villain.jpg')) {
+          req.flush(new Blob(['villain-data'], { type: 'image/jpeg' }));
+        } else {
+          req.flush(new Blob());
+        }
+      }
+
+      const archive = await promise;
+      expect(archive.media).toHaveLength(2);
+      expect(archive.media[0].blob).toBeInstanceOf(Blob);
+      expect(archive.media[1].blob).toBeInstanceOf(Blob);
+    });
+
+    it('should return empty media array when no media is present', async () => {
+      const promise = service.loadTemplate('empty');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(mockTemplateIndex);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(mockEmptyTemplate.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockEmptyTemplate.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockEmptyTemplate.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockEmptyTemplate.documents);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      const archive = await promise;
+      expect(archive.media).toHaveLength(0);
+    });
+  });
 });

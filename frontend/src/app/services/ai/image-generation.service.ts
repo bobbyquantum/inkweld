@@ -529,7 +529,7 @@ export class ImageGenerationService {
       try {
         // Convert image to blob
         let blob: Blob;
-        const mimeType = image.mimeType || 'image/png';
+        let mimeType = image.mimeType || 'image/png';
         if (image.b64Json) {
           const binaryString = atob(image.b64Json);
           const bytes = new Uint8Array(binaryString.length);
@@ -540,6 +540,7 @@ export class ImageGenerationService {
         } else if (image.url) {
           const fetchResponse = await fetch(image.url);
           blob = await fetchResponse.blob();
+          mimeType = blob.type || mimeType;
         } else {
           console.warn(`Image ${i} has no data, skipping`);
           continue;
@@ -548,7 +549,12 @@ export class ImageGenerationService {
         // Generate unique ID
         const timestamp = Date.now();
         const mediaId = `generated-${timestamp}-${i}`;
-        const ext = mimeType === 'image/jpeg' ? 'jpg' : 'png';
+        const ext =
+          mimeType === 'image/jpeg'
+            ? 'jpg'
+            : mimeType === 'image/webp'
+              ? 'webp'
+              : 'png';
 
         // Build generation metadata
         const generation: GenerationMetadata = {
