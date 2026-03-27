@@ -13,9 +13,13 @@ import {
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentService } from '../project/document.service';
+import { DocumentImportService } from '../project/document-import.service';
 import { ProjectService } from '../project/project.service';
+import { ProjectTemplateService } from '../project/project-template.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { LocalProjectService } from './local-project.service';
+import { LocalProjectElementsService } from './local-project-elements.service';
+import { LocalStorageService } from './local-storage.service';
 import { ProjectSyncService } from './project-sync.service';
 import { UnifiedProjectService } from './unified-project.service';
 
@@ -114,6 +118,46 @@ describe('UnifiedProjectService', () => {
       syncDocumentsToServer: vi
         .fn()
         .mockResolvedValue({ success: [], failed: [] }),
+      syncWorldbuildingToServerBatch: vi
+        .fn()
+        .mockResolvedValue({ success: [], failed: [] }),
+    };
+
+    const mockTemplateService = {
+      loadTemplate: vi.fn().mockResolvedValue({
+        manifest: {},
+        project: {},
+        elements: [],
+        documents: [],
+        worldbuilding: [],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        tags: [],
+        elementTags: [],
+        publishPlans: [],
+        snapshots: [],
+        media: [],
+      }),
+    };
+
+    const mockDocumentImportService = {
+      writeDocumentContent: vi.fn().mockResolvedValue(undefined),
+      writeWorldbuildingData: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const mockLocalElements = {
+      saveElements: vi.fn().mockResolvedValue(undefined),
+      saveSchemas: vi.fn().mockResolvedValue(undefined),
+      saveRelationships: vi.fn().mockResolvedValue(undefined),
+      saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
+      savePublishPlans: vi.fn().mockResolvedValue(undefined),
+      saveCustomTags: vi.fn().mockResolvedValue(undefined),
+      saveElementTags: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const mockLocalStorage = {
+      saveMedia: vi.fn().mockResolvedValue(undefined),
     };
 
     TestBed.configureTestingModule({
@@ -127,6 +171,13 @@ describe('UnifiedProjectService', () => {
         { provide: ProjectSyncService, useValue: mockProjectSyncService },
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: DocumentService, useValue: mockDocumentService },
+        { provide: ProjectTemplateService, useValue: mockTemplateService },
+        { provide: DocumentImportService, useValue: mockDocumentImportService },
+        {
+          provide: LocalProjectElementsService,
+          useValue: mockLocalElements,
+        },
+        { provide: LocalStorageService, useValue: mockLocalStorage },
       ],
     });
 
@@ -366,6 +417,82 @@ describe('UnifiedProjectService', () => {
 
       setupService.getMode.mockReturnValue(null);
       expect(service.getMode()).toBeNull();
+    });
+  });
+
+  describe('applyTemplate with media', () => {
+    it('should save media blobs to local storage', async () => {
+      setupService.getMode.mockReturnValue('local');
+
+      const mockBlob = new Blob(['image-data'], { type: 'image/png' });
+      const mockTemplateService = TestBed.inject(
+        ProjectTemplateService
+      ) as unknown as MockedObject<ProjectTemplateService>;
+      (
+        mockTemplateService.loadTemplate as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
+        manifest: {},
+        project: {},
+        elements: [],
+        documents: [],
+        worldbuilding: [],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        tags: [],
+        elementTags: [],
+        publishPlans: [],
+        snapshots: [],
+        media: [
+          {
+            mediaId: 'img-hero',
+            filename: 'hero.png',
+            archivePath: 'media/hero.png',
+            mimeType: 'image/png',
+            blob: mockBlob,
+          },
+          {
+            mediaId: 'img-villain',
+            filename: 'villain.jpg',
+            archivePath: 'media/villain.jpg',
+            mimeType: 'image/jpeg',
+            // No blob - should be skipped
+          },
+        ],
+      });
+
+      const mockLocalStorage = TestBed.inject(
+        LocalStorageService
+      ) as unknown as MockedObject<LocalStorageService>;
+
+      await service.createProject(
+        { title: 'New Project', slug: 'new-project' },
+        'worldbuilding-demo'
+      );
+
+      // Only the entry with a blob should be saved
+      expect(mockLocalStorage.saveMedia).toHaveBeenCalledTimes(1);
+      expect(mockLocalStorage.saveMedia).toHaveBeenCalledWith(
+        'offlineuser/offline-project',
+        'img-hero',
+        mockBlob,
+        'hero.png'
+      );
+    });
+
+    it('should not call saveMedia when template has no media', async () => {
+      setupService.getMode.mockReturnValue('local');
+
+      const mockLocalStorage = TestBed.inject(
+        LocalStorageService
+      ) as unknown as MockedObject<LocalStorageService>;
+
+      await service.createProject(
+        { title: 'New Project', slug: 'new-project' },
+        'worldbuilding-empty'
+      );
+
+      expect(mockLocalStorage.saveMedia).not.toHaveBeenCalled();
     });
   });
 });

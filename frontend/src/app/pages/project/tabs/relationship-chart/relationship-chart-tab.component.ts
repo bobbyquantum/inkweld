@@ -6,6 +6,7 @@ import {
   effect,
   type ElementRef,
   inject,
+  isDevMode,
   type OnDestroy,
   type OnInit,
   signal,
@@ -310,17 +311,44 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       const images = this.nodeImages();
       const showLabels = this.effectiveShowLabels();
 
-      if (graphData && container) {
-        const id = this.elementId();
-        const saved = id ? this.chartService.loadLocalState(id) : null;
-        this.renderGraph(
-          graphData,
-          currentLayout,
-          images,
-          showLabels,
-          saved?.nodePositions ?? {}
-        );
+      if (!graphData) {
+        return;
       }
+
+      if (!container) {
+        this.logDebug(
+          'Graph data is ready but chart container is not mounted yet',
+          {
+            tabId: this.elementId(),
+            nodes: graphData.nodes.length,
+            edges: graphData.edges.length,
+            layout: currentLayout,
+          }
+        );
+        return;
+      }
+
+      const id = this.elementId();
+      const saved = id ? this.chartService.loadLocalState(id) : null;
+      const savedPositionCount = Object.keys(saved?.nodePositions ?? {}).length;
+
+      this.logDebug('Rendering chart graph', {
+        tabId: id,
+        layout: currentLayout,
+        nodes: graphData.nodes.length,
+        edges: graphData.edges.length,
+        nodeImages: images.size,
+        showLabels,
+        savedPositions: savedPositionCount,
+      });
+
+      this.renderGraph(
+        graphData,
+        currentLayout,
+        images,
+        showLabels,
+        saved?.nodePositions ?? {}
+      );
     });
 
     // Load element images when graph data changes
@@ -363,9 +391,28 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
           this.elementName.set(element.name);
         }
 
+        this.logDebug('Initializing relationship chart tab', {
+          tabId,
+          mode: this.setupService.getMode(),
+          elementFound: Boolean(element),
+          elementName: element?.name ?? null,
+          availableElements: this.projectState.elements().length,
+        });
+
         // Load chart config
         const config = this.chartService.loadConfig(tabId);
         this.layout.set(config.layout);
+
+        this.logDebug('Loaded relationship chart config', {
+          tabId,
+          layout: config.layout,
+          mode: config.filters.mode,
+          includedElements: config.filters.includedElementIds.length,
+          relationshipTypeFilters: config.filters.relationshipTypeIds.length,
+          schemaFilters: config.filters.schemaIds.length,
+          showOrphans: config.filters.showOrphans,
+          hasSavedFocus: Boolean(config.filters.focusElementId),
+        });
 
         // Sync focus state from persisted config
         if (config.filters.focusElementId) {
@@ -789,9 +836,24 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     } catch (e) {
       // Cytoscape requires a real canvas renderer; degrade gracefully in
       // environments where canvas is unavailable (e.g. jsdom/unit tests).
-      console.warn('Cytoscape initialization failed:', e);
+      console.warn('[RelationshipChart] Cytoscape initialization failed', {
+        tabId: this.elementId(),
+        nodes: data.nodes.length,
+        edges: data.edges.length,
+        layout,
+        error: e,
+      });
       return;
     }
+
+    this.logDebug('Cytoscape initialized', {
+      tabId: this.elementId(),
+      nodes: data.nodes.length,
+      edges: data.edges.length,
+      layout,
+      hasSavedPositions,
+      nodeImages: images.size,
+    });
 
     // Run layout (unless restoring saved positions)
     if (hasSavedPositions) {
@@ -920,6 +982,44 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     }
   }
 
+  private logDebug(event: string, details: Record<string, unknown> = {}): void {
+    if (!isDevMode()) {
+      return;
+    }
+    console.info(`[RelationshipChart] ${event}`, details);
+  }
+
+  private getImageSourceKind(imageUrl: string | null | undefined): string {
+    if (!imageUrl) {
+      return 'none';
+    }
+
+    if (imageUrl.startsWith('data:')) {
+      return 'data';
+    }
+
+    if (imageUrl.startsWith('media://')) {
+      return 'media';
+    }
+
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return 'http';
+    }
+
+    return 'other';
+  }
+
+  private summarizeImageSources(
+    images: Record<string, string | null>
+  ): Record<string, number> {
+    const summary: Record<string, number> = {};
+    for (const imageUrl of Object.values(images)) {
+      const kind = this.getImageSourceKind(imageUrl);
+      summary[kind] = (summary[kind] ?? 0) + 1;
+    }
+    return summary;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Node Image Loading
   // ─────────────────────────────────────────────────────────────────────────
@@ -934,17 +1034,43 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   private async loadNodeImages(data: ChartGraphData): Promise<void> {
     const generation = ++this.imageLoadGeneration;
     const project = this.projectState.project();
-    if (!project) return;
+    if (!project) {
+      this.logDebug('Skipping node image load because project state is empty', {
+        generation,
+        tabId: this.elementId(),
+      });
+      return;
+    }
 
     const worldbuildingIds = data.nodes
       .filter(n => n.type === ElementType.Worldbuilding)
       .map(n => n.id);
 
-    if (worldbuildingIds.length === 0) return;
+    if (worldbuildingIds.length === 0) {
+      this.logDebug(
+        'Skipping node image load because graph has no worldbuilding nodes',
+        {
+          generation,
+          tabId: this.elementId(),
+          totalNodes: data.nodes.length,
+        }
+      );
+      return;
+    }
+
+    const mode = this.setupService.getMode();
+    this.logDebug('Starting node image load', {
+      generation,
+      tabId: this.elementId(),
+      mode,
+      project: `${project.username}/${project.slug}`,
+      totalNodes: data.nodes.length,
+      worldbuildingNodes: worldbuildingIds.length,
+    });
 
     try {
       const images: Record<string, string | null> =
-        this.setupService.getMode() === 'local'
+        mode === 'local'
           ? await this.loadNodeImagesFromYjs(
               worldbuildingIds,
               project.username,
@@ -956,8 +1082,29 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
               project.slug
             );
 
+      const imageIds = Object.entries(images)
+        .filter(([, rawUrl]) => Boolean(rawUrl))
+        .map(([elementId]) => elementId);
+
+      this.logDebug('Fetched raw node image references', {
+        generation,
+        tabId: this.elementId(),
+        mode,
+        requestedNodes: worldbuildingIds.length,
+        imagesFound: imageIds.length,
+        imageSourceKinds: this.summarizeImageSources(images),
+        imageIds,
+      });
+
       // Bail if a newer graph render has already started loading its own images
-      if (generation !== this.imageLoadGeneration) return;
+      if (generation !== this.imageLoadGeneration) {
+        this.logDebug('Discarding stale raw node image results', {
+          generation,
+          latestGeneration: this.imageLoadGeneration,
+          tabId: this.elementId(),
+        });
+        return;
+      }
 
       const resolved = new Map<string, string>();
 
@@ -976,7 +1123,22 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       );
 
       // One final staleness check after the parallel image fetches
-      if (generation !== this.imageLoadGeneration) return;
+      if (generation !== this.imageLoadGeneration) {
+        this.logDebug('Discarding stale resolved node image results', {
+          generation,
+          latestGeneration: this.imageLoadGeneration,
+          tabId: this.elementId(),
+          resolvedImages: resolved.size,
+        });
+        return;
+      }
+
+      this.logDebug('Resolved node images', {
+        generation,
+        tabId: this.elementId(),
+        resolvedImages: resolved.size,
+        resolvedIds: Array.from(resolved.keys()),
+      });
 
       this.nodeImages.set(resolved);
     } catch (err) {
@@ -993,6 +1155,13 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     username: string,
     slug: string
   ): Promise<Record<string, string | null>> {
+    this.logDebug('Loading node images from Yjs identity data', {
+      tabId: this.elementId(),
+      project: `${username}/${slug}`,
+      elementCount: elementIds.length,
+      elementIds,
+    });
+
     const images: Record<string, string | null> = {};
     await Promise.all(
       elementIds.map(async elementId => {
@@ -1020,6 +1189,15 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     for (let i = 0; i < elementIds.length; i += BATCH_SIZE) {
       batches.push(elementIds.slice(i, i + BATCH_SIZE));
     }
+
+    this.logDebug('Loading node images from API', {
+      tabId: this.elementId(),
+      project: `${username}/${slug}`,
+      elementCount: elementIds.length,
+      batchCount: batches.length,
+      batchSizes: batches.map(batch => batch.length),
+    });
+
     const responses = await Promise.all(
       batches.map(ids =>
         firstValueFrom(
@@ -1051,43 +1229,87 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     }
 
     if (imageUrl.startsWith('media://')) {
-      const filename = imageUrl.substring('media://'.length);
-      const lastDot = filename.lastIndexOf('.');
-      const mediaId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
-      const projectKey = `${username}/${slug}`;
-
-      // Try local IndexedDB first
-      const localUrl = await this.localStorageService.getMediaUrl(
-        projectKey,
-        mediaId
-      );
-      if (localUrl) {
-        this.blobUrls.push(localUrl);
-        return localUrl;
-      }
-
-      // Not found locally — trigger a sync and retry once
-      if (this.setupService.getMode() !== 'local') {
-        try {
-          await this.mediaSyncService.downloadAllFromServer(projectKey);
-          const retryUrl = await this.localStorageService.getMediaUrl(
-            projectKey,
-            mediaId
-          );
-          if (retryUrl) {
-            this.blobUrls.push(retryUrl);
-            return retryUrl;
-          }
-        } catch {
-          // Sync failed — fall through
-        }
-      }
-
-      return null;
+      return this.resolveMediaUrl(imageUrl, username, slug);
     }
 
     // Regular HTTP URL
     return imageUrl;
+  }
+
+  /**
+   * Resolve a media:// URL by looking up in local IndexedDB.
+   * On cache miss, triggers a server sync and retries once.
+   */
+  private async resolveMediaUrl(
+    imageUrl: string,
+    username: string,
+    slug: string
+  ): Promise<string | null> {
+    const filename = imageUrl.substring('media://'.length);
+    const lastDot = filename.lastIndexOf('.');
+    const mediaId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+    const projectKey = `${username}/${slug}`;
+
+    // Try local IndexedDB first
+    const localUrl = await this.localStorageService.getMediaUrl(
+      projectKey,
+      mediaId
+    );
+    if (localUrl) {
+      this.blobUrls.push(localUrl);
+      return localUrl;
+    }
+
+    this.logDebug('Media image missing from local cache, attempting sync', {
+      tabId: this.elementId(),
+      project: projectKey,
+      mediaId,
+      filename,
+    });
+
+    // Not found locally — trigger a sync and retry once
+    if (this.setupService.getMode() !== 'local') {
+      return this.resolveMediaUrlWithSync(projectKey, mediaId, filename);
+    }
+
+    return null;
+  }
+
+  /**
+   * Attempt to resolve a media URL by syncing from the server and retrying.
+   */
+  private async resolveMediaUrlWithSync(
+    projectKey: string,
+    mediaId: string,
+    filename: string
+  ): Promise<string | null> {
+    try {
+      await this.mediaSyncService.downloadAllFromServer(projectKey);
+      const retryUrl = await this.localStorageService.getMediaUrl(
+        projectKey,
+        mediaId
+      );
+      if (retryUrl) {
+        this.blobUrls.push(retryUrl);
+        return retryUrl;
+      }
+
+      this.logDebug('Media image still missing after sync', {
+        tabId: this.elementId(),
+        project: projectKey,
+        mediaId,
+        filename,
+      });
+    } catch (error) {
+      if (isDevMode()) {
+        console.warn(
+          '[RelationshipChart] Media sync failed while resolving node image',
+          error
+        );
+      }
+    }
+
+    return null;
   }
 
   /** Save node positions and persist to localStorage via the service */

@@ -19,6 +19,10 @@ export interface GeneratedImage {
      */
     url?: string;
     /**
+     * MIME type of the image (e.g. image/png, image/jpeg)
+     */
+    mimeType?: string;
+    /**
      * Revised prompt if modified
      */
     revisedPrompt?: string;

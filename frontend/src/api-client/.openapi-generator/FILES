@@ -184,6 +184,7 @@ model/snapshot-with-content.ts
 model/style-recommendation.ts
 model/system-features-password-policy.ts
 model/system-features.ts
+model/system-stats.ts
 model/test-email-response.ts
 model/text-generation-error.ts
 model/text-generation-status.ts

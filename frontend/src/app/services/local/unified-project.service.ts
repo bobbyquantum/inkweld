@@ -14,6 +14,7 @@ import { ProjectTemplateService } from '../project/project-template.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
+import { LocalStorageService } from './local-storage.service';
 import { ProjectSyncService } from './project-sync.service';
 
 @Injectable({
@@ -26,6 +27,7 @@ export class UnifiedProjectService {
   private readonly localElements = inject(LocalProjectElementsService);
   private readonly templateService = inject(ProjectTemplateService);
   private readonly documentImport = inject(DocumentImportService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly injector = inject(Injector);
   private readonly projectSync = inject(ProjectSyncService);
   private readonly userService = inject(UnifiedUserService);
@@ -36,10 +38,8 @@ export class UnifiedProjectService {
   private _documentService: DocumentService | null = null;
 
   private getDocumentService(): DocumentService {
-    if (!this._documentService) {
-      // Lazy inject at runtime to break constructor-time circular dependency
-      this._documentService = this.injector.get(DocumentService);
-    }
+    // Lazy inject at runtime to break constructor-time circular dependency
+    this._documentService ??= this.injector.get(DocumentService);
     return this._documentService;
   }
 
@@ -81,7 +81,6 @@ export class UnifiedProjectService {
     const mode = this.setupService.getMode();
     if (mode === 'local') {
       this.localProjectService.loadProjects();
-      return Promise.resolve();
     } else if (mode === 'server') {
       return this.projectService.loadAllProjects();
     }
@@ -375,6 +374,21 @@ export class UnifiedProjectService {
         slug,
         archive.elementTags
       );
+    }
+
+    // Import media files from template
+    if (archive.media.length > 0) {
+      const projectKey = `${username}/${slug}`;
+      for (const media of archive.media) {
+        if (media.blob) {
+          await this.localStorage.saveMedia(
+            projectKey,
+            media.mediaId,
+            media.blob,
+            media.filename
+          );
+        }
+      }
     }
 
     return { documentIds, worldbuildingIds };

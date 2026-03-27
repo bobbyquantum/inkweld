@@ -207,4 +207,259 @@ describe('ProjectTemplateService', () => {
       expect(templates1).toEqual(templates2);
     });
   });
+
+  describe('loadMediaBlobs', () => {
+    const mockTemplateWithMedia = {
+      ...mockEmptyTemplate,
+      media: [
+        {
+          mediaId: 'img-hero',
+          filename: 'hero.png',
+          archivePath: 'media/hero.png',
+          mimeType: 'image/png',
+          size: 1024,
+        },
+        {
+          mediaId: 'img-villain',
+          filename: 'villain.jpg',
+          archivePath: 'media/villain.jpg',
+          mimeType: 'image/jpeg',
+          size: 2048,
+        },
+      ],
+    };
+
+    it('should load media blobs and attach them to entries', async () => {
+      const worldbuildingTemplate = {
+        ...mockTemplateIndex,
+        templates: [
+          ...mockTemplateIndex.templates,
+          {
+            id: 'with-media',
+            name: 'With Media',
+            description: 'Has media',
+            icon: 'image',
+            folder: 'with-media',
+          } as ProjectTemplateInfo,
+        ],
+      };
+
+      const promise = service.loadTemplate('with-media');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(worldbuildingTemplate);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(mockTemplateWithMedia.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockTemplateWithMedia.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockTemplateWithMedia.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockTemplateWithMedia.documents);
+        } else if (req.request.url.includes('media.json')) {
+          req.flush(mockTemplateWithMedia.media);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      // Wait for media.json to be resolved, then flush blob requests
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const mediaRequests = httpMock.match(() => true);
+      for (const req of mediaRequests) {
+        if (req.request.url.includes('media/hero.png')) {
+          req.flush(new Blob(['hero-data'], { type: 'image/png' }));
+        } else if (req.request.url.includes('media/villain.jpg')) {
+          req.flush(new Blob(['villain-data'], { type: 'image/jpeg' }));
+        } else {
+          req.flush(new Blob());
+        }
+      }
+
+      const archive = await promise;
+      expect(archive.media).toHaveLength(2);
+      expect(archive.media[0].blob).toBeInstanceOf(Blob);
+      expect(archive.media[1].blob).toBeInstanceOf(Blob);
+    });
+
+    it('should return empty media array when no media is present', async () => {
+      const promise = service.loadTemplate('empty');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(mockTemplateIndex);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(mockEmptyTemplate.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockEmptyTemplate.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockEmptyTemplate.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockEmptyTemplate.documents);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      const archive = await promise;
+      expect(archive.media).toHaveLength(0);
+    });
+
+    it('should handle failed media blob fetch gracefully', async () => {
+      const templateWithOneMedia = {
+        ...mockEmptyTemplate,
+        media: [
+          {
+            mediaId: 'img-broken',
+            filename: 'broken.png',
+            archivePath: 'media/broken.png',
+            mimeType: 'image/png',
+            size: 512,
+          },
+        ],
+      };
+
+      const indexWithMedia = {
+        ...mockTemplateIndex,
+        templates: [
+          ...mockTemplateIndex.templates,
+          {
+            id: 'broken-media',
+            name: 'Broken Media',
+            description: 'Has broken media',
+            icon: 'image',
+            folder: 'broken-media',
+          } as ProjectTemplateInfo,
+        ],
+      };
+
+      const promise = service.loadTemplate('broken-media');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(indexWithMedia);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(templateWithOneMedia.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(templateWithOneMedia.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(templateWithOneMedia.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(templateWithOneMedia.documents);
+        } else if (req.request.url.includes('media.json')) {
+          req.flush(templateWithOneMedia.media);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Fail the media blob request
+      const mediaRequests = httpMock.match(() => true);
+      for (const req of mediaRequests) {
+        req.error(new ProgressEvent('error'));
+      }
+
+      const archive = await promise;
+      // Media entry exists but blob is undefined because fetch failed
+      expect(archive.media).toHaveLength(1);
+      expect(archive.media[0].blob).toBeUndefined();
+    });
+
+    it('should deduplicate fetches for shared archivePaths', async () => {
+      const templateWithDuplicateMedia = {
+        ...mockEmptyTemplate,
+        media: [
+          {
+            mediaId: 'img-a',
+            filename: 'shared.png',
+            archivePath: 'media/shared.png',
+            mimeType: 'image/png',
+            size: 1024,
+          },
+          {
+            mediaId: 'img-b',
+            filename: 'shared.png',
+            archivePath: 'media/shared.png',
+            mimeType: 'image/png',
+            size: 1024,
+          },
+        ],
+      };
+
+      const indexWithDupes = {
+        ...mockTemplateIndex,
+        templates: [
+          ...mockTemplateIndex.templates,
+          {
+            id: 'dupe-media',
+            name: 'Dupe Media',
+            description: 'Shared archive paths',
+            icon: 'image',
+            folder: 'dupe-media',
+          } as ProjectTemplateInfo,
+        ],
+      };
+
+      const promise = service.loadTemplate('dupe-media');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(indexWithDupes);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(templateWithDuplicateMedia.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(templateWithDuplicateMedia.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(templateWithDuplicateMedia.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(templateWithDuplicateMedia.documents);
+        } else if (req.request.url.includes('media.json')) {
+          req.flush(templateWithDuplicateMedia.media);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Only one blob fetch should occur for the shared archivePath
+      const mediaRequests = httpMock.match(() => true);
+      expect(mediaRequests).toHaveLength(1);
+      mediaRequests[0].flush(new Blob(['shared-data'], { type: 'image/png' }));
+
+      const archive = await promise;
+      expect(archive.media).toHaveLength(2);
+      // Both entries share the same blob
+      expect(archive.media[0].blob).toBeInstanceOf(Blob);
+      expect(archive.media[1].blob).toBeInstanceOf(Blob);
+    });
+  });
 });

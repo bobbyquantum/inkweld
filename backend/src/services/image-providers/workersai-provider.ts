@@ -463,6 +463,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
       data: [
         {
           b64Json,
+          mimeType: 'image/png',
           index: 0,
         },
       ],

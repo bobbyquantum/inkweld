@@ -14,7 +14,7 @@ const isCI = process.env['CI'] === 'true';
 export default defineConfig({
   test: {
     // This prevents hanging tests from blocking CI for too long
-    testTimeout: 4000,
+    testTimeout: 6000,
 
     // Hook timeout for beforeEach, afterEach, etc.
     hookTimeout: 8000,

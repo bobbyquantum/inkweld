@@ -376,6 +376,8 @@ export interface GeneratedImageData {
   b64Json?: string;
   /** URL to the image */
   url?: string;
+  /** MIME type of the image (e.g. 'image/png', 'image/jpeg') */
+  mimeType?: string;
   /** Revised prompt (if provider modified it) */
   revisedPrompt?: string;
   /** Image index in batch */
