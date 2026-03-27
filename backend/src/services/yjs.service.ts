@@ -142,34 +142,42 @@ export class YjsService {
     const elements: Element[] = [];
     elementsArray.forEach((value) => {
       if (value && typeof value === 'object') {
-        const elem = value as Record<string, unknown>;
-        elements.push({
-          id: typeof elem.id === 'string' ? elem.id : String(elem.id ?? ''),
-          name: typeof elem.name === 'string' ? elem.name : String(elem.name ?? ''),
-          type: (elem.type as ElementType) ?? 'ITEM',
-          parentId:
-            elem.parentId != null && String(elem.parentId).trim() !== ''
-              ? typeof elem.parentId === 'string'
-                ? elem.parentId
-                : String(elem.parentId)
-              : null,
-          order: Number(elem.order ?? 0),
-          level: Number(elem.level ?? 0),
-          expandable: Boolean(elem.expandable ?? false),
-          version: Number(elem.version ?? 1),
-          schemaId:
-            elem.schemaId != null && String(elem.schemaId).trim() !== ''
-              ? typeof elem.schemaId === 'string'
-                ? elem.schemaId
-                : String(elem.schemaId)
-              : undefined,
-          metadata: (elem.metadata as Record<string, string>) ?? {},
-        });
+        elements.push(this.normalizeElement(value as Record<string, unknown>));
       }
     });
 
     // Sort by order
     return elements.sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Normalize a raw Yjs record into a typed Element with coercion and fallbacks.
+   */
+  private normalizeElement(elem: Record<string, unknown>): Element {
+    return {
+      id: typeof elem.id === 'string' ? elem.id : String(elem.id ?? ''),
+      name: typeof elem.name === 'string' ? elem.name : String(elem.name ?? ''),
+      type: (elem.type as ElementType) ?? 'ITEM',
+      parentId: this.coerceNullableString(elem.parentId),
+      order: Number(elem.order ?? 0),
+      level: Number(elem.level ?? 0),
+      expandable: Boolean(elem.expandable ?? false),
+      version: Number(elem.version ?? 1),
+      schemaId: this.coerceOptionalString(elem.schemaId),
+      metadata: (elem.metadata as Record<string, string>) ?? {},
+    };
+  }
+
+  /** Coerce a raw value to string, returning null for empty/whitespace-only values. */
+  private coerceNullableString(value: unknown): string | null {
+    if (value == null || String(value).trim() === '') return null;
+    return typeof value === 'string' ? value : String(value);
+  }
+
+  /** Coerce a raw value to a trimmed string, returning undefined for empty/missing values. */
+  private coerceOptionalString(value: unknown): string | undefined {
+    if (value == null || String(value).trim() === '') return undefined;
+    return typeof value === 'string' ? value : String(value);
   }
 
   /**
