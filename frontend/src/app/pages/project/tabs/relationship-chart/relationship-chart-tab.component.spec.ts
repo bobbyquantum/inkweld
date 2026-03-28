@@ -4,11 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type Element,
-  ElementsService,
-  ElementType,
-} from '../../../../../api-client';
+import { type Element, ElementType } from '../../../../../api-client';
 import {
   type ChartGraphData,
   createDefaultChartConfig,
@@ -89,10 +85,6 @@ describe('RelationshipChartTabComponent', () => {
     paramMap: of(new Map([['tabId', 'test-chart']])),
   };
 
-  const mockElementsService = {
-    getElementImages: vi.fn(() => of({ images: {} })),
-  };
-
   const mockLocalStorageService = {
     getMediaUrl: vi.fn().mockResolvedValue(null),
   };
@@ -146,7 +138,6 @@ describe('RelationshipChartTabComponent', () => {
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: ActivatedRoute, useValue: mockRoute },
-        { provide: ElementsService, useValue: mockElementsService },
         { provide: LocalStorageService, useValue: mockLocalStorageService },
         { provide: MediaSyncService, useValue: mockMediaSyncService },
         { provide: SetupService, useValue: mockSetupService },
@@ -780,9 +771,9 @@ describe('RelationshipChartTabComponent', () => {
     edges: [],
   };
 
-  it('should use Yjs path when in local mode', async () => {
+  it('should always use Yjs path regardless of mode', async () => {
     fixture.detectChanges();
-    mockSetupService.getMode.mockReturnValue('local');
+    mockSetupService.getMode.mockReturnValue('server');
     mockWorldbuildingService.getIdentityData
       .mockResolvedValueOnce({ image: 'data:image/png;base64,aaa' })
       .mockResolvedValueOnce({ image: undefined });
@@ -795,32 +786,9 @@ describe('RelationshipChartTabComponent', () => {
       'testuser',
       'test-project'
     );
-    expect(mockElementsService.getElementImages).not.toHaveBeenCalled();
     expect(component['nodeImages']().size).toBe(1);
     expect(component['nodeImages']().get('el-1')).toBe(
       'data:image/png;base64,aaa'
-    );
-  });
-
-  it('should use API path when in server mode', async () => {
-    fixture.detectChanges();
-    mockSetupService.getMode.mockReturnValue('server');
-    mockElementsService.getElementImages.mockReturnValue(
-      of({
-        images: {
-          'el-1': 'data:image/png;base64,bbb',
-          'el-2': null,
-        },
-      })
-    );
-
-    await component['loadNodeImages'](worldbuildingGraphData);
-
-    expect(mockElementsService.getElementImages).toHaveBeenCalledTimes(1);
-    expect(mockWorldbuildingService.getIdentityData).not.toHaveBeenCalled();
-    expect(component['nodeImages']().size).toBe(1);
-    expect(component['nodeImages']().get('el-1')).toBe(
-      'data:image/png;base64,bbb'
     );
   });
 
@@ -841,7 +809,6 @@ describe('RelationshipChartTabComponent', () => {
 
     await component['loadNodeImages'](nonWbData);
 
-    expect(mockElementsService.getElementImages).not.toHaveBeenCalled();
     expect(mockWorldbuildingService.getIdentityData).not.toHaveBeenCalled();
   });
 
@@ -851,16 +818,14 @@ describe('RelationshipChartTabComponent', () => {
 
     await component['loadNodeImages'](worldbuildingGraphData);
 
-    expect(mockElementsService.getElementImages).not.toHaveBeenCalled();
     expect(mockWorldbuildingService.getIdentityData).not.toHaveBeenCalled();
   });
 
   it('should not crash when image loading fails (best-effort)', async () => {
     fixture.detectChanges();
-    mockSetupService.getMode.mockReturnValue('server');
-    mockElementsService.getElementImages.mockImplementation(() => {
-      throw new Error('Network error');
-    });
+    mockWorldbuildingService.getIdentityData.mockRejectedValue(
+      new Error('Network error')
+    );
 
     // Should not throw
     await expect(
@@ -911,47 +876,5 @@ describe('RelationshipChartTabComponent', () => {
     );
 
     expect(result).toEqual({ 'el-1': null });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // loadNodeImagesFromApi
-  // ─────────────────────────────────────────────────────────────────────────
-
-  it('should call API and merge batch responses', async () => {
-    fixture.detectChanges();
-    mockElementsService.getElementImages.mockReturnValue(
-      of({ images: { 'el-1': 'data:image/png;base64,z', 'el-2': null } })
-    );
-
-    const result = await component['loadNodeImagesFromApi'](
-      ['el-1', 'el-2'],
-      'testuser',
-      'test-project'
-    );
-
-    expect(result).toEqual({
-      'el-1': 'data:image/png;base64,z',
-      'el-2': null,
-    });
-    expect(mockElementsService.getElementImages).toHaveBeenCalledWith(
-      'testuser',
-      'test-project',
-      { elementIds: ['el-1', 'el-2'] }
-    );
-  });
-
-  it('should batch API requests when exceeding 200 IDs', async () => {
-    fixture.detectChanges();
-    const ids = Array.from({ length: 250 }, (_, i) => `el-${i}`);
-    mockElementsService.getElementImages.mockReturnValue(of({ images: {} }));
-
-    await component['loadNodeImagesFromApi'](ids, 'testuser', 'test-project');
-
-    expect(mockElementsService.getElementImages).toHaveBeenCalledTimes(2);
-    // First batch: 200 IDs
-    const calls = mockElementsService.getElementImages.mock.calls as any[][];
-    expect(calls[0][2].elementIds).toHaveLength(200);
-    // Second batch: 50 IDs
-    expect(calls[1][2].elementIds).toHaveLength(50);
   });
 });
