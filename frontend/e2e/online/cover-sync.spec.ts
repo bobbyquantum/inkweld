@@ -6,6 +6,8 @@
  * - Already-cached covers are not re-downloaded
  * - Projects without covers are handled gracefully
  */
+import { readFileSync } from 'fs';
+
 import { DEMO_ASSETS, generateUniqueSlug, getDemoAssetPath } from '../common';
 import { expect, test } from './fixtures';
 
@@ -34,7 +36,7 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
           file: {
             name: 'cover.png',
             mimeType: 'image/png',
-            buffer: require('fs').readFileSync(coverPath),
+            buffer: readFileSync(coverPath),
           },
         },
       }
