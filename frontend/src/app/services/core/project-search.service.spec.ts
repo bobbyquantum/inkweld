@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { RelationshipService } from '../relationship/relationship.service';
+import { TagService } from '../tag/tag.service';
 import {
   type ProjectSearchProgress,
   ProjectSearchService,
@@ -23,6 +25,12 @@ describe('ProjectSearchService', () => {
     getDocumentContent: ReturnType<
       typeof vi.fn<(documentId: string) => Promise<unknown>>
     >;
+  };
+  let mockTagService: {
+    getElementsWithTag: ReturnType<typeof vi.fn>;
+  };
+  let mockRelationshipService: {
+    getRelationshipView: ReturnType<typeof vi.fn>;
   };
   let mockDialogRef: {
     close: ReturnType<typeof vi.fn>;
@@ -75,6 +83,7 @@ describe('ProjectSearchService', () => {
       id: 'wb-1',
       name: 'Hero Character',
       type: ElementType.Worldbuilding,
+      schemaId: 'character',
       level: 0,
       parentId: null,
       expandable: false,
@@ -114,6 +123,17 @@ describe('ProjectSearchService', () => {
         .mockResolvedValue([]),
     };
 
+    mockTagService = {
+      getElementsWithTag: vi.fn().mockReturnValue([]),
+    };
+
+    mockRelationshipService = {
+      getRelationshipView: vi.fn().mockReturnValue({
+        outgoing: [],
+        incoming: [],
+      }),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -121,6 +141,8 @@ describe('ProjectSearchService', () => {
         { provide: MatDialog, useValue: mockDialog },
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: DocumentService, useValue: mockDocumentService },
+        { provide: TagService, useValue: mockTagService },
+        { provide: RelationshipService, useValue: mockRelationshipService },
       ],
     });
 
@@ -239,7 +261,7 @@ describe('ProjectSearchService', () => {
       const updates = await collectProgress('a');
       // Single-char query now runs a normal text search rather than early-exit
       expect(updates.length).toBeGreaterThan(0);
-      const last = updates[updates.length - 1];
+      const last = updates.at(-1)!;
       expect(last.done).toBe(true);
     });
 
@@ -248,6 +270,34 @@ describe('ProjectSearchService', () => {
       expect(updates).toHaveLength(1);
       expect(updates[0].done).toBe(true);
       expect(updates[0].results.length).toBeGreaterThan(0);
+    });
+
+    it('applies combined browse filters before returning results', async () => {
+      mockTagService.getElementsWithTag.mockReturnValue(['wb-1']);
+      mockRelationshipService.getRelationshipView.mockReturnValue({
+        outgoing: [{ targetElementId: 'wb-1' }],
+        incoming: [],
+      });
+
+      const updates: ProjectSearchProgress[] = [];
+      await service.search(
+        '',
+        p => updates.push(p),
+        new AbortController().signal,
+        {
+          tagIds: ['tag-1'],
+          relatedToElementId: 'doc-1',
+          schemaIds: ['character'],
+          elementTypes: [ElementType.Worldbuilding],
+        }
+      );
+
+      const final = updates.at(-1)!;
+      expect(final.results.map(result => result.element.id)).toEqual(['wb-1']);
+      expect(mockTagService.getElementsWithTag).toHaveBeenCalledWith('tag-1');
+      expect(mockRelationshipService.getRelationshipView).toHaveBeenCalledWith(
+        'doc-1'
+      );
     });
 
     it('emits done immediately when no project is loaded', async () => {
@@ -292,12 +342,42 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('hero');
-      const final = updates[updates.length - 1];
+      const final = updates.at(-1)!;
 
       expect(final.done).toBe(true);
       expect(final.results).toHaveLength(1);
       expect(final.results[0].element.id).toBe('doc-1');
       expect(final.results[0].matchCount).toBe(1);
+    });
+
+    it('filters text search candidates before loading document content', async () => {
+      mockTagService.getElementsWithTag.mockReturnValue(['doc-2']);
+      mockRelationshipService.getRelationshipView.mockReturnValue({
+        outgoing: [{ targetElementId: 'doc-2' }],
+        incoming: [],
+      });
+      mockDocumentService.getDocumentContent.mockImplementation((id: string) =>
+        Promise.resolve(makeDoc(`${id} contains hero text`))
+      );
+
+      const updates: ProjectSearchProgress[] = [];
+      await service.search(
+        'hero',
+        p => updates.push(p),
+        new AbortController().signal,
+        {
+          tagIds: ['tag-2'],
+          relatedToElementId: 'doc-1',
+          elementTypes: [ElementType.Item],
+        }
+      );
+
+      const final = updates.at(-1)!;
+      expect(mockDocumentService.getDocumentContent).toHaveBeenCalledTimes(1);
+      expect(mockDocumentService.getDocumentContent).toHaveBeenCalledWith(
+        'testuser:test-project:doc-2'
+      );
+      expect(final.results.map(result => result.element.id)).toEqual(['doc-2']);
     });
 
     it('counts multiple matches within the same document', async () => {
@@ -313,7 +393,7 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('hero');
-      const final = updates[updates.length - 1];
+      const final = updates.at(-1)!;
       expect(final.results[0].matchCount).toBe(3);
     });
 
@@ -330,7 +410,7 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('hero');
-      const final = updates[updates.length - 1];
+      const final = updates.at(-1)!;
       expect(final.results[0].snippets.length).toBeLessThanOrEqual(3);
     });
 
@@ -345,7 +425,7 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('hero');
-      const snippet = updates[updates.length - 1].results[0].snippets[0];
+      const snippet = updates.at(-1)!.results[0].snippets[0];
 
       expect(snippet.match.toLowerCase()).toBe('hero');
       expect(typeof snippet.before).toBe('string');
@@ -363,7 +443,7 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('hero');
-      expect(updates[updates.length - 1].results).toHaveLength(1);
+      expect(updates.at(-1)!.results).toHaveLength(1);
     });
 
     it('builds correct breadcrumb path for a nested element', async () => {
@@ -377,7 +457,7 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('hero');
-      const result = updates[updates.length - 1].results[0];
+      const result = updates.at(-1)!.results[0];
       // doc-1 is a child of folder-1 ("Chapter One")
       expect(result.path).toBe('Chapter One');
     });
@@ -393,9 +473,9 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('adventure');
-      const result = updates[updates.length - 1].results.find(
-        r => r.element.id === 'doc-2'
-      );
+      const result = updates
+        .at(-1)!
+        .results.find(r => r.element.id === 'doc-2');
       expect(result).toBeTruthy();
       expect(result!.path).toBe('');
     });
@@ -461,7 +541,7 @@ describe('ProjectSearchService', () => {
       );
 
       const updates = await collectProgress('hero');
-      const final = updates[updates.length - 1];
+      const final = updates.at(-1)!;
       expect(final.done).toBe(true);
       // doc-1 errored but doc-2 should still produce a result
       expect(final.results.some(r => r.element.id === 'doc-2')).toBe(true);

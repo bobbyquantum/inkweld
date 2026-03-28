@@ -236,9 +236,9 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
   private stage: Konva.Stage | null = null;
   /** Map from CanvasLayer.id → Konva.Layer */
-  private konvaLayers = new Map<string, Konva.Layer>();
+  private readonly konvaLayers = new Map<string, Konva.Layer>();
   /** Map from CanvasObject.id → Konva.Node */
-  private konvaNodes = new Map<string, Konva.Node>();
+  private readonly konvaNodes = new Map<string, Konva.Node>();
   /** Konva Transformer for selection handles */
   private transformer: Konva.Transformer | null = null;
   /** Top-level layer for the transformer and selection */
@@ -1704,7 +1704,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Keyboard Shortcuts
   // ─────────────────────────────────────────────────────────────────────────
 
-  private keyHandler = (e: KeyboardEvent) => {
+  private readonly keyHandler = (e: KeyboardEvent) => {
     // Don't handle shortcuts when typing in an input
     if (
       e.target instanceof HTMLInputElement ||
