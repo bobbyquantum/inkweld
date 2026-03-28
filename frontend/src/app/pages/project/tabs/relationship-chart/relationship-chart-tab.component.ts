@@ -24,17 +24,12 @@ import { ActivatedRoute } from '@angular/router';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 import fcose from 'cytoscape-fcose';
-import { firstValueFrom } from 'rxjs';
 
 // Register Cytoscape layout extensions
 cytoscape.use(fcose);
 cytoscape.use(dagre);
 
-import {
-  type Element,
-  ElementsService,
-  ElementType,
-} from '../../../../../api-client';
+import { type Element, ElementType } from '../../../../../api-client';
 import { type RelationshipTypeDefinition } from '../../../../components/element-ref/element-ref.model';
 import {
   ElementPickerDialogComponent,
@@ -100,7 +95,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   private readonly projectState = inject(ProjectStateService);
   private readonly chartService = inject(RelationshipChartService);
   private readonly relationshipService = inject(RelationshipService);
-  private readonly elementsService = inject(ElementsService);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
   private readonly localStorageService = inject(LocalStorageService);
@@ -1068,17 +1062,11 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
     try {
       const images: Record<string, string | null> =
-        mode === 'local'
-          ? await this.loadNodeImagesFromYjs(
-              worldbuildingIds,
-              project.username,
-              project.slug
-            )
-          : await this.loadNodeImagesFromApi(
-              worldbuildingIds,
-              project.username,
-              project.slug
-            );
+        await this.loadNodeImagesFromYjs(
+          worldbuildingIds,
+          project.username,
+          project.slug
+        );
 
       const imageIds = Object.entries(images)
         .filter(([, rawUrl]) => Boolean(rawUrl))
@@ -1171,44 +1159,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         images[elementId] = identity.image ?? null;
       })
     );
-    return images;
-  }
-
-  /**
-   * Load identity images from the batch API endpoint (for online mode).
-   */
-  private async loadNodeImagesFromApi(
-    elementIds: string[],
-    username: string,
-    slug: string
-  ): Promise<Record<string, string | null>> {
-    const BATCH_SIZE = 200;
-    const batches: string[][] = [];
-    for (let i = 0; i < elementIds.length; i += BATCH_SIZE) {
-      batches.push(elementIds.slice(i, i + BATCH_SIZE));
-    }
-
-    this.logDebug('Loading node images from API', {
-      tabId: this.elementId(),
-      project: `${username}/${slug}`,
-      elementCount: elementIds.length,
-      batchCount: batches.length,
-      batchSizes: batches.map(batch => batch.length),
-    });
-
-    const responses = await Promise.all(
-      batches.map(ids =>
-        firstValueFrom(
-          this.elementsService.getElementImages(username, slug, {
-            elementIds: ids,
-          })
-        )
-      )
-    );
-    const images: Record<string, string | null> = {};
-    for (const r of responses) {
-      Object.assign(images, r.images);
-    }
     return images;
   }
 
