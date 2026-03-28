@@ -474,6 +474,64 @@ export class ProjectSearchService {
     await new Promise<void>(resolve => setTimeout(resolve, 0));
   }
 
+  private collectSearchMatches(
+    text: string,
+    normalizedQuery: string
+  ): { matchCount: number; snippets: SearchSnippet[] } {
+    const textLower = text.toLowerCase();
+    const snippets: SearchSnippet[] = [];
+    let matchCount = 0;
+    let searchFrom = 0;
+
+    while (searchFrom < textLower.length) {
+      const idx = textLower.indexOf(normalizedQuery, searchFrom);
+      if (idx === -1) break;
+
+      matchCount++;
+      if (snippets.length < MAX_SNIPPETS) {
+        snippets.push(this.buildSnippet(text, idx, normalizedQuery.length));
+      }
+
+      searchFrom = idx + normalizedQuery.length;
+    }
+
+    return { matchCount, snippets };
+  }
+
+  private buildSnippet(
+    text: string,
+    startIndex: number,
+    queryLength: number
+  ): SearchSnippet {
+    const start = Math.max(0, startIndex - SNIPPET_CONTEXT);
+    const end = Math.min(
+      text.length,
+      startIndex + queryLength + SNIPPET_CONTEXT
+    );
+
+    return {
+      before: (start > 0 ? '…' : '') + text.slice(start, startIndex),
+      match: text.slice(startIndex, startIndex + queryLength),
+      after:
+        text.slice(startIndex + queryLength, end) +
+        (end < text.length ? '…' : ''),
+    };
+  }
+
+  private emitProgress(
+    onProgress: (progress: ProjectSearchProgress) => void,
+    scanned: number,
+    total: number,
+    results: ProjectSearchResult[],
+    done: boolean
+  ): void {
+    onProgress({ scanned, total, results, done });
+  }
+
+  private async yieldToUiThread(): Promise<void> {
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  }
+
   /**
    * Build a breadcrumb path string for an element by walking its parent chain.
    */
