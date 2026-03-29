@@ -667,16 +667,19 @@ adminAnnouncementRoutes.openapi(adminUpdateAnnouncementRoute, async (c) => {
     return c.json({ error: 'Announcement not found' }, 404);
   }
 
+  const publishedAt =
+    data.publishedAt !== undefined
+      ? data.publishedAt
+        ? new Date(data.publishedAt)
+        : null
+      : undefined;
+  const expiresAt =
+    data.expiresAt !== undefined ? (data.expiresAt ? new Date(data.expiresAt) : null) : undefined;
+
   const announcement = await announcementService.update(db, announcementId, {
     ...data,
-    publishedAt:
-      data.publishedAt !== undefined
-        ? data.publishedAt
-          ? new Date(data.publishedAt)
-          : null
-        : undefined,
-    expiresAt:
-      data.expiresAt !== undefined ? (data.expiresAt ? new Date(data.expiresAt) : null) : undefined,
+    publishedAt,
+    expiresAt,
   });
   return c.json(formatAnnouncementResponse(announcement), 200);
 });

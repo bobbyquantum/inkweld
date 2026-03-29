@@ -86,7 +86,7 @@ export class OAuthConsentComponent implements OnInit {
   error = signal<string | null>(null);
 
   /** Query parameters from the URL */
-  private queryParams = signal<{
+  private readonly queryParams = signal<{
     clientId: string;
     redirectUri: string;
     responseType: string;

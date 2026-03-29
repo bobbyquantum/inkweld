@@ -288,7 +288,7 @@ mcpKeyRoutes.openapi(revokeKeyRoute, async (c) => {
 
   // Verify key belongs to project
   const key = await mcpKeyService.getKeyById(db, keyId);
-  if (!key || key.projectId !== projectId) {
+  if (key?.projectId !== projectId) {
     throw new NotFoundError('Key not found');
   }
 
@@ -338,7 +338,7 @@ mcpKeyRoutes.openapi(deleteKeyRoute, async (c) => {
 
   // Verify key belongs to project
   const key = await mcpKeyService.getKeyById(db, keyId);
-  if (!key || key.projectId !== projectId) {
+  if (key?.projectId !== projectId) {
     throw new NotFoundError('Key not found');
   }
 

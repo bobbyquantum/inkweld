@@ -113,7 +113,7 @@ export class ElementPickerDialogComponent {
     return elements.filter(
       el =>
         el.name.toLowerCase().includes(search) ||
-        (el.schemaId && el.schemaId.toLowerCase().includes(search))
+        el.schemaId?.toLowerCase().includes(search)
     );
   });
 

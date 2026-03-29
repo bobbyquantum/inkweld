@@ -128,18 +128,16 @@ export class DocumentImportService {
                 nestedMap.set(childKey, value);
               }
             }
-          } else {
+          } else if (Array.isArray(value)) {
             // Simple key: set directly on dataMap
-            if (Array.isArray(value)) {
-              const yArray = new Y.Array<unknown>();
-              yArray.push(value);
-              dataMap.set(key, yArray);
-            } else if (typeof value === 'object' && value !== null) {
-              // Skip nested objects - they're created from dot-notation keys
-              // or not used in new format
-            } else {
-              dataMap.set(key, value);
-            }
+            const yArray = new Y.Array<unknown>();
+            yArray.push(value);
+            dataMap.set(key, yArray);
+          } else if (typeof value === 'object' && value !== null) {
+            // Skip nested objects - they're created from dot-notation keys
+            // or not used in new format
+          } else {
+            dataMap.set(key, value);
           }
         }
 

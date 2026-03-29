@@ -94,12 +94,14 @@ async function loadElementImage(
     }
 
     // Convert to base64 - handle both Buffer and ArrayBuffer
-    const buffer =
-      data instanceof Buffer
-        ? data
-        : data instanceof ArrayBuffer
-          ? Buffer.from(new Uint8Array(data))
-          : Buffer.from(data as unknown as Uint8Array);
+    let buffer: Buffer;
+    if (data instanceof Buffer) {
+      buffer = data;
+    } else if (data instanceof ArrayBuffer) {
+      buffer = Buffer.from(new Uint8Array(data));
+    } else {
+      buffer = Buffer.from(data as unknown as Uint8Array);
+    }
     const base64 = buffer.toString('base64');
     const mimeType = getMimeTypeFromFilename(filename);
 

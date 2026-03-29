@@ -241,7 +241,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     },
   };
 
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor() {
     // Sync password requirement enabled flags when policy signal changes

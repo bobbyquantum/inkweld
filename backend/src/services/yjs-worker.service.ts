@@ -70,7 +70,7 @@ function getDoStub(
  * Yjs Worker Service - calls Durable Object HTTP API for document access
  */
 export class YjsWorkerService {
-  private ctx: YjsWorkerContext;
+  private readonly ctx: YjsWorkerContext;
 
   constructor(ctx: YjsWorkerContext) {
     this.ctx = ctx;

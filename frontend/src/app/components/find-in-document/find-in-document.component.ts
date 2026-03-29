@@ -316,7 +316,7 @@ export class FindInDocumentComponent implements OnInit, OnDestroy {
   private searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   /** Track if we should focus on open */
-  private focusOnOpen = signal(false);
+  private readonly focusOnOpen = signal(false);
 
   constructor() {
     // Auto-focus when bar opens

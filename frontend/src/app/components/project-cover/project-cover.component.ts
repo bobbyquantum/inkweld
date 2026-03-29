@@ -48,7 +48,9 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   private coverBlobUrl = signal<string | null>(null);
 
   /** Whether we're in offline mode */
-  private isOffline = computed(() => this.setupService.getMode() === 'local');
+  private readonly isOffline = computed(
+    () => this.setupService.getMode() === 'local'
+  );
 
   /** Track current project key for cleanup */
   private currentProjectKey: string | null = null;

@@ -268,10 +268,11 @@ export class MigrationService {
     newSlug?: string
   ): Promise<void> {
     const targetSlug = newSlug ?? project.slug;
+    const migrationTarget = newSlug ? ` -> ${targetUsername}/${newSlug}` : '';
 
     this.logger.debug(
       'MigrationService',
-      `Migrating project: ${project.username}/${project.slug}${newSlug ? ` -> ${targetUsername}/${newSlug}` : ''}`
+      `Migrating project: ${project.username}/${project.slug}${migrationTarget}`
     );
 
     // Update status to in progress

@@ -75,7 +75,7 @@ export class UserService {
   );
   readonly initialized = signal(false);
 
-  private db: Promise<IDBDatabase | null>;
+  private readonly db: Promise<IDBDatabase | null>;
 
   constructor() {
     this.db = this.storage
