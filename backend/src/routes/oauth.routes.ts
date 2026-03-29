@@ -171,7 +171,7 @@ const protectedResourceMetadataRoute = createRoute({
   operationId: 'getProtectedResourceMetadata',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'Protected resource metadata',
     },
   },
@@ -217,7 +217,7 @@ const pathSpecificProtectedResourceRoute = createRoute({
   operationId: 'getPathSpecificProtectedResourceMetadata',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'Protected resource metadata for specific path',
     },
   },
@@ -259,7 +259,7 @@ const authServerMetadataRoute = createRoute({
   operationId: 'getAuthServerMetadata',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'Authorization server metadata',
     },
   },
@@ -316,7 +316,7 @@ const openidConfigurationRoute = createRoute({
   operationId: 'getOpenIdConfiguration',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'OpenID Connect discovery document',
     },
   },
