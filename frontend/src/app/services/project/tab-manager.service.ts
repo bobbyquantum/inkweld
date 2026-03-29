@@ -374,9 +374,7 @@ export class TabManagerService {
    */
   closeTabByElementId(elementId: string): boolean {
     const tabs = this.openTabs();
-    const tabIndex = tabs.findIndex(
-      tab => tab.element && tab.element.id === elementId
-    );
+    const tabIndex = tabs.findIndex(tab => tab.element?.id === elementId);
 
     if (tabIndex !== -1) {
       return this.closeTab(tabIndex);

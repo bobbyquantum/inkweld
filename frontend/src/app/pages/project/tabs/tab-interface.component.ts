@@ -185,7 +185,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
       // For document/folder tabs, we need elements to be loaded first
       // Check if the URL contains a document/folder path that needs elements
-      const urlParts = currentUrl.split('/').filter(p => p);
+      const urlParts = currentUrl.split('/').filter(Boolean);
       const tabType = urlParts[2]; // 'document', 'folder', etc.
       const needsElements =
         tabType === 'document' ||
@@ -236,7 +236,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Check if a URL path is a project route (not a reserved path) */
   private isProjectRoute(url: string): boolean {
-    const urlParts = url.split('/').filter(p => p);
+    const urlParts = url.split('/').filter(Boolean);
     const firstSegment = urlParts[0] || '';
     return !this.reservedPaths.has(firstSegment);
   }
@@ -256,7 +256,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         }
 
         // Extract project info from URL to detect project changes
-        const urlParts = event.url.split('/').filter(p => p);
+        const urlParts = event.url.split('/').filter(Boolean);
         const urlUsername = urlParts[0];
         const urlSlug = urlParts[1];
         const currentProject = this.projectState.project();
@@ -398,9 +398,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       } else if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
         // Extract publish plan ID from URL
         const urlParts = url.split('/');
-        publishPlanId = urlParts[urlParts.length - 1];
+        publishPlanId = urlParts.at(-1) ?? null;
         // Remove any query params
-        if (publishPlanId.includes('?')) {
+        if (publishPlanId?.includes('?')) {
           publishPlanId = publishPlanId.split('?')[0];
         }
       }
@@ -715,7 +715,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       }
 
       // Fallback to metadata icon if available
-      if (tab.element?.metadata && tab.element.metadata['icon']) {
+      if (tab.element?.metadata?.['icon']) {
         return tab.element.metadata['icon'];
       }
 

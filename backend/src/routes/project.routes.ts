@@ -262,7 +262,7 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
   const userId = contextUser.id;
 
   const user = await userService.findById(db, userId);
-  if (!user || !user.username) {
+  if (!user?.username) {
     throw new NotFoundError('User not found');
   }
 

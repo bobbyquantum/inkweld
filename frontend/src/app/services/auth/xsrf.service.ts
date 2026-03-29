@@ -40,7 +40,7 @@ export class XsrfService {
         this.SecurityService.getCSRFToken()
       );
 
-      if (!response || !response.token || typeof response.token !== 'string') {
+      if (!response?.token || typeof response.token !== 'string') {
         throw new Error('Invalid token format received from server');
       }
 

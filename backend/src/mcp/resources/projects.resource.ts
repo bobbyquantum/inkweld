@@ -46,7 +46,7 @@ const projectsResourceHandler = {
         mimeType: 'application/json',
         annotations: {
           audience: ['assistant'],
-          priority: 1.0, // High priority - projects are important context
+          priority: 1, // High priority - projects are important context
         },
       });
     }
