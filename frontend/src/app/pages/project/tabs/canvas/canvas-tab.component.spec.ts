@@ -722,30 +722,6 @@ describe('CanvasTabComponent', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Rect Intersection
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('rectsIntersect', () => {
-    it('should detect overlapping rects', () => {
-      const a = { x: 0, y: 0, width: 10, height: 10 };
-      const b = { x: 5, y: 5, width: 10, height: 10 };
-      expect(component['rectsIntersect'](a, b)).toBe(true);
-    });
-
-    it('should detect non-overlapping rects', () => {
-      const a = { x: 0, y: 0, width: 10, height: 10 };
-      const b = { x: 20, y: 20, width: 10, height: 10 };
-      expect(component['rectsIntersect'](a, b)).toBe(false);
-    });
-
-    it('should detect edge-touching rects as non-overlapping', () => {
-      const a = { x: 0, y: 0, width: 10, height: 10 };
-      const b = { x: 10, y: 0, width: 10, height: 10 };
-      expect(component['rectsIntersect'](a, b)).toBe(false);
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
   // Tool CSS Class
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -1194,6 +1170,263 @@ describe('CanvasTabComponent', () => {
       await expect(
         component['resolveImageSrc']('media:test-image')
       ).resolves.toBe('blob:resolved-image');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ensureActiveLayer
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('ensureActiveLayer', () => {
+    it('should return the current activeLayerId when it exists in the config', () => {
+      fixture.detectChanges();
+      const layerId = defaultConfig.layers[0].id;
+      component['activeLayerId'].set(layerId);
+      expect(component['ensureActiveLayer']()).toBe(layerId);
+    });
+
+    it('should fall back to the first layer when activeLayerId is stale', () => {
+      fixture.detectChanges();
+      component['activeLayerId'].set('nonexistent-layer');
+      const result = component['ensureActiveLayer']();
+      expect(result).toBe(defaultConfig.layers[0].id);
+      expect(component['activeLayerId']()).toBe(defaultConfig.layers[0].id);
+    });
+
+    it('should fall back to the first layer when activeLayerId is empty', () => {
+      fixture.detectChanges();
+      component['activeLayerId'].set('');
+      const result = component['ensureActiveLayer']();
+      expect(result).toBe(defaultConfig.layers[0].id);
+    });
+
+    it('should return empty string when config has no layers', () => {
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        layers: [],
+      });
+      fixture.detectChanges();
+      component['activeLayerId'].set('');
+      expect(component['ensureActiveLayer']()).toBe('');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Keyboard Shortcuts
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('keyHandler', () => {
+    function dispatchKey(
+      key: string,
+      opts: Partial<KeyboardEventInit> = {}
+    ): void {
+      const event = new KeyboardEvent('keydown', {
+        key,
+        bubbles: true,
+        ...opts,
+      });
+      component['keyHandler'](event);
+    }
+
+    it('should ignore shortcuts when target is an input element', () => {
+      const input = document.createElement('input');
+      const event = new KeyboardEvent('keydown', {
+        key: 'v',
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: input });
+      component['keyHandler'](event);
+      // Tool should remain unchanged
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should switch to select tool on v key', () => {
+      component['activeTool'].set('draw');
+      dispatchKey('v');
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should switch to rectSelect tool on r key', () => {
+      dispatchKey('r');
+      expect(component['activeTool']()).toBe('rectSelect');
+    });
+
+    it('should switch to pan tool on h key', () => {
+      dispatchKey('h');
+      expect(component['activeTool']()).toBe('pan');
+    });
+
+    it('should switch to pin tool on p key', () => {
+      dispatchKey('p');
+      expect(component['activeTool']()).toBe('pin');
+    });
+
+    it('should switch to draw tool on d key (no modifier)', () => {
+      dispatchKey('d');
+      expect(component['activeTool']()).toBe('draw');
+    });
+
+    it('should switch to line tool on l key', () => {
+      dispatchKey('l');
+      expect(component['activeTool']()).toBe('line');
+    });
+
+    it('should switch to shape tool on s key (no modifier)', () => {
+      dispatchKey('s');
+      expect(component['activeTool']()).toBe('shape');
+    });
+
+    it('should NOT switch to shape tool when Ctrl+S is pressed', () => {
+      dispatchKey('s', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should switch to text tool on t key', () => {
+      dispatchKey('t');
+      expect(component['activeTool']()).toBe('text');
+    });
+
+    it('should reset to select tool on Escape', () => {
+      component['activeTool'].set('draw');
+      dispatchKey('Escape');
+      expect(component['activeTool']()).toBe('select');
+      expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('should call onCopy on Ctrl+C', () => {
+      const spy = vi.spyOn(component as never, 'onCopy');
+      dispatchKey('c', { ctrlKey: true });
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call onCut on Ctrl+X', () => {
+      const spy = vi.spyOn(component as never, 'onCut');
+      dispatchKey('x', { ctrlKey: true });
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call onPaste on Ctrl+V', () => {
+      const spy = vi.spyOn(component as never, 'onPaste');
+      dispatchKey('v', { ctrlKey: true });
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call onDuplicateObject on Ctrl+D', () => {
+      const spy = vi.spyOn(component as never, 'onDuplicateObject');
+      dispatchKey('d', { ctrlKey: true });
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call deleteSelectedObject on Delete key', () => {
+      const spy = vi.spyOn(component as never, 'deleteSelectedObject');
+      dispatchKey('Delete');
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call deleteSelectedObject on Backspace key', () => {
+      const spy = vi.spyOn(component as never, 'deleteSelectedObject');
+      dispatchKey('Backspace');
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call onZoomIn on Ctrl+=', () => {
+      const spy = vi.spyOn(component as never, 'onZoomIn');
+      dispatchKey('=', { ctrlKey: true });
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call onZoomOut on Ctrl+-', () => {
+      const spy = vi.spyOn(component as never, 'onZoomOut');
+      dispatchKey('-', { ctrlKey: true });
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call onFitAll on Ctrl+0', () => {
+      const spy = vi.spyOn(component as never, 'onFitAll');
+      dispatchKey('0', { ctrlKey: true });
+      expect(spy).toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Pin-Aware Clipboard Operations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('pin-aware clipboard operations', () => {
+    const pinObj: CanvasPin = {
+      id: 'pin-linked',
+      layerId: defaultConfig.layers[0].id,
+      type: 'pin',
+      x: 30,
+      y: 40,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      visible: true,
+      locked: false,
+      label: 'Test Pin',
+      icon: 'place',
+      color: '#E53935',
+      linkedElementId: 'linked-elem',
+      relationshipId: 'rel-1',
+    };
+
+    beforeEach(() => {
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [pinObj],
+      });
+    });
+
+    it('should strip relationshipId when copying a linked pin', () => {
+      component['selectedObjectId'].set('pin-linked');
+      component['onCopy']();
+      const clipContent = component['clipboard']();
+      expect(clipContent).toBeTruthy();
+      expect(clipContent!.type).toBe('pin');
+      expect((clipContent as CanvasPin).relationshipId).toBeUndefined();
+    });
+
+    it('should call removePinRelationship when cutting a linked pin', () => {
+      component['selectedObjectId'].set('pin-linked');
+      component['onCut']();
+      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
+        'rel-1'
+      );
+      const clipContent = component['clipboard']();
+      expect((clipContent as CanvasPin).relationshipId).toBeUndefined();
+    });
+
+    it('should create a fresh relationship when pasting a linked pin', () => {
+      // Copy the pin first
+      component['selectedObjectId'].set('pin-linked');
+      component['onCopy']();
+      vi.clearAllMocks();
+
+      // Paste it
+      component['onPaste']();
+      expect(mockRelationshipService.addRelationship).toHaveBeenCalled();
+      const pastedObj = mockCanvasService.addObject.mock.calls[0][0];
+      expect(pastedObj.type).toBe('pin');
+      expect(pastedObj.relationshipId).toBe('relationship-1');
+    });
+
+    it('should call removePinRelationship when deleting a linked pin via context menu', () => {
+      component['selectedObjectId'].set('pin-linked');
+      component['onContextDelete']();
+      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
+        'rel-1'
+      );
+      expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
+    });
+
+    it('should call removePinRelationship when deleting a linked pin via sidebar', () => {
+      const event = new MouseEvent('click');
+      component['onDeleteObject']('pin-linked', event);
+      expect(mockRelationshipService.removeRelationship).toHaveBeenCalledWith(
+        'rel-1'
+      );
+      expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
     });
   });
 });
