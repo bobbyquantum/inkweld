@@ -38,6 +38,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
+import { CoverSyncService } from '@services/sync/cover-sync.service';
 import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { firstValueFrom, Subject } from 'rxjs';
@@ -79,6 +80,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly setupService = inject(SetupService);
   readonly syncQueueService = inject(SyncQueueService);
+  private readonly coverSyncService = inject(CoverSyncService);
 
   // Component state
   loadError = false;
@@ -217,6 +219,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.isInitializing.set(false);
       // Always reload collaboration data when returning to home
       await this.loadCollaborationData();
+      this.triggerCoverSync();
       return;
     }
 
@@ -243,6 +246,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       await this.projectService.loadProjects();
       // Also load collaboration data
       await this.loadCollaborationData();
+      this.triggerCoverSync();
     } catch (error: unknown) {
       // Check if this is a session expired error
       if (
@@ -286,6 +290,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Clear search when closing
     if (!this.mobileSearchActive()) {
       this.searchControl.setValue('');
+    }
+  }
+
+  /**
+   * Trigger background sync of project cover images.
+   * Only syncs covers that are not already cached in IndexedDB.
+   */
+  private triggerCoverSync(): void {
+    if (this.isServerMode() && this.isAuthenticated()) {
+      void this.coverSyncService.syncCovers(this.projectService.projects());
     }
   }
 

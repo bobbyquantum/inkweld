@@ -25,6 +25,7 @@ import { SetupService } from '@services/core/setup.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
+import { CoverSyncService } from '@services/sync/cover-sync.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { ThemeService } from '@themes/theme.service';
@@ -60,6 +61,7 @@ describe('HomeComponent', () => {
   let router: MockedObject<Router>;
   let matDialog: MockedObject<MatDialog>;
   let snackBar: MockedObject<MatSnackBar>;
+  let coverSyncService: { syncCovers: ReturnType<typeof vi.fn> };
 
   const mockLoadingSignal = signal(false);
   const mockProjectsSignal = signal<Project[]>([]);
@@ -206,6 +208,11 @@ describe('HomeComponent', () => {
       openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
     };
 
+    // Setup mock cover sync service
+    coverSyncService = {
+      syncCovers: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
@@ -228,6 +235,7 @@ describe('HomeComponent', () => {
         { provide: Router, useValue: router },
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
+        { provide: CoverSyncService, useValue: coverSyncService },
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(convertToParamMap({ id: '123' })) },
@@ -771,6 +779,48 @@ describe('HomeComponent', () => {
         expect(filtered.length).toBe(1);
         expect(filtered[0].project.title).toBe('Another Project');
       });
+    });
+  });
+
+  describe('cover sync', () => {
+    it('should trigger cover sync after loading projects', async () => {
+      mockProjectsSignal.set(mockProjects);
+      userService.initialize = vi.fn().mockResolvedValue(undefined);
+
+      await component.loadProjects();
+
+      expect(coverSyncService.syncCovers).toHaveBeenCalledWith(mockProjects);
+    });
+
+    it('should trigger cover sync when returning to home with cached projects', async () => {
+      mockProjectsSignal.set(mockProjects);
+      mockProjectInitialized.set(true);
+
+      await component.loadProjects();
+
+      expect(coverSyncService.syncCovers).toHaveBeenCalledWith(mockProjects);
+    });
+
+    it('should not trigger cover sync in local mode', async () => {
+      mockProjectsSignal.set(mockProjects);
+      mockProjectInitialized.set(true);
+      (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+        'local'
+      );
+
+      await component.loadProjects();
+
+      expect(coverSyncService.syncCovers).not.toHaveBeenCalled();
+    });
+
+    it('should not trigger cover sync when not authenticated', async () => {
+      mockProjectsSignal.set(mockProjects);
+      mockProjectInitialized.set(true);
+      mockIsAuthenticated.set(false);
+
+      await component.loadProjects();
+
+      expect(coverSyncService.syncCovers).not.toHaveBeenCalled();
     });
   });
 });
