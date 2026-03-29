@@ -112,7 +112,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
     view: EditorView,
     correction: ExtendedCorrectionDto
   ): void {
-    if (!correction || !correction.correctedText) return;
+    if (!correction?.correctedText) return;
 
     console.log(
       `[LintPlugin] Applying correction: ${correction.correctedText}`

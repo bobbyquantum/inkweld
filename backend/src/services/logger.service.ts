@@ -85,8 +85,8 @@ function detectEnvironment(): { isDev: boolean; isWorkers: boolean } {
 
   // Detect Cloudflare Workers
   const isWorkers =
-    typeof (globalThis as Record<string, unknown>).caches !== 'undefined' &&
-    typeof (globalThis as Record<string, unknown>).WebSocketPair !== 'undefined';
+    (globalThis as Record<string, unknown>).caches !== undefined &&
+    (globalThis as Record<string, unknown>).WebSocketPair !== undefined;
 
   return { isDev, isWorkers };
 }

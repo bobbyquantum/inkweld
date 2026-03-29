@@ -457,8 +457,7 @@ export class FalAiImageProvider extends BaseImageProvider {
 
       // Check for images array (common format)
       if (result.data.images && Array.isArray(result.data.images)) {
-        for (let i = 0; i < result.data.images.length; i++) {
-          const img = result.data.images[i];
+        for (const [i, img] of result.data.images.entries()) {
           images.push({
             url: img.url,
             mimeType: img.content_type || 'image/png',

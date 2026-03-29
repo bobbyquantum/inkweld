@@ -193,14 +193,12 @@ describe('ProjectExportService', () => {
       href: '',
       download: '',
       click: vi.fn(),
+      remove: vi.fn(),
     };
     vi.spyOn(document, 'createElement').mockReturnValue(
       mockAnchor as unknown as HTMLElement
     );
     vi.spyOn(document.body, 'appendChild').mockImplementation(
-      () => null as unknown as Node
-    );
-    vi.spyOn(document.body, 'removeChild').mockImplementation(
       () => null as unknown as Node
     );
 
