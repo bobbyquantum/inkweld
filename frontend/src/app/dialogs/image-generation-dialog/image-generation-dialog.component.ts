@@ -54,6 +54,7 @@ import { ImageGenerationService } from '../../services/ai/image-generation.servi
 import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
+import { formatWorldbuildingFields } from '../../utils/worldbuilding.utils';
 
 export interface ImageGenerationDialogData {
   /** Pre-fill prompt */
@@ -812,38 +813,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
    * Format worldbuilding data into a prompt-friendly string
    */
   private formatWorldbuildingData(data: Record<string, unknown>): string {
-    const fieldParts: string[] = [];
-
-    for (const [key, value] of Object.entries(data)) {
-      // Skip empty values, internal fields, and timestamps
-      if (
-        value === null ||
-        value === undefined ||
-        value === '' ||
-        key === 'lastModified' ||
-        key.startsWith('_')
-      ) {
-        continue;
-      }
-
-      let formattedValue: string;
-      if (Array.isArray(value)) {
-        formattedValue = value.filter(Boolean).join(', ');
-        if (!formattedValue) continue;
-      } else if (typeof value === 'object') {
-        continue; // Skip nested objects
-      } else if (typeof value === 'string') {
-        formattedValue = value;
-      } else if (typeof value === 'number' || typeof value === 'boolean') {
-        formattedValue = String(value);
-      } else {
-        continue;
-      }
-
-      fieldParts.push(`${key}: ${formattedValue}`);
-    }
-
-    return fieldParts.join(', ');
+    return formatWorldbuildingFields(data);
   }
 
   /**
