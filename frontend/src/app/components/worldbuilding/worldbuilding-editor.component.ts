@@ -151,16 +151,17 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   mobileDrillInSection = signal<string | null>(null);
 
   private unsubscribeObserver: (() => void) | null = null;
-  private resizeCleanup: (() => void) | null = null;
+  private readonly resizeCleanup: (() => void) | null = null;
   private formSubscription: (() => void) | null = null;
   private isUpdatingFromRemote = false;
   private popstateHandler: ((event: PopStateEvent) => void) | null = null;
 
   constructor() {
     // Mobile detection via resize listener
-    if (typeof window !== 'undefined') {
+    const browserWindow = globalThis.window;
+    if (browserWindow) {
       const updateMobile = () => {
-        const nowMobile = window.innerWidth < 760;
+        const nowMobile = browserWindow.innerWidth < 760;
         if (this.isMobile() !== nowMobile) {
           this.isMobile.set(nowMobile);
           if (!nowMobile) {
@@ -169,9 +170,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         }
       };
       updateMobile();
-      window.addEventListener('resize', updateMobile);
+      browserWindow.addEventListener('resize', updateMobile);
       this.resizeCleanup = () =>
-        window.removeEventListener('resize', updateMobile);
+        browserWindow.removeEventListener('resize', updateMobile);
     }
 
     // Reset drill-in when navigating to a different element
@@ -535,9 +536,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
    * back button returns to the overview instead of leaving the page.
    */
   private pushDrillInHistoryState(section: string): void {
-    if (typeof history === 'undefined' || typeof window === 'undefined') return;
+    const browserWindow = globalThis.window;
+    const browserHistory = globalThis.history;
+    if (!browserWindow || !browserHistory) return;
+
     this.removePopstateListener();
-    history.pushState({ wbDrillIn: section }, '');
+    browserHistory.pushState({ wbDrillIn: section }, '');
     this.popstateHandler = (_event: PopStateEvent) => {
       // Popstate fired = browser already popped the entry.
       // Remove listener first so drillBack doesn't call history.back() again.
@@ -548,13 +552,14 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       }
       this.mobileDrillInSection.set(null);
     };
-    window.addEventListener('popstate', this.popstateHandler);
+    browserWindow.addEventListener('popstate', this.popstateHandler);
   }
 
   /** Remove the popstate listener if active */
   private removePopstateListener(): void {
-    if (this.popstateHandler && typeof window !== 'undefined') {
-      window.removeEventListener('popstate', this.popstateHandler);
+    const browserWindow = globalThis.window;
+    if (this.popstateHandler && browserWindow) {
+      browserWindow.removeEventListener('popstate', this.popstateHandler);
       this.popstateHandler = null;
     }
   }
@@ -644,7 +649,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     });
 
     if (newName) {
-      void this.projectState.renameNode(element, newName);
+      this.projectState.renameNode(element, newName);
     }
   }
 

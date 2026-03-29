@@ -982,7 +982,7 @@ describe('CanvasTabComponent', () => {
       mockCanvasService.activeConfig.set(configWithObjects);
 
       // konvaLayers is empty → minX stays Infinity → !Number.isFinite(minX) → return
-      component['konvaLayers'] = new Map();
+      (component['konvaLayers'] as Map<string, unknown>).clear();
 
       component['onFitAll']();
 

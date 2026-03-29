@@ -6,6 +6,7 @@ dist
 coverage
 .DS_Store
 data
+test-data
 dist-worker
 
 # Auto-generated files
