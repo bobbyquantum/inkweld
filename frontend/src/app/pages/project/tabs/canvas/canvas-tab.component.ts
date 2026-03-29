@@ -20,7 +20,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, type MatMenuTrigger } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import { type RelationshipCategory } from '@components/element-ref/element-ref.model';
 import {
   createMediaUrl,
   extractMediaId,
@@ -49,7 +48,6 @@ import {
   type RenameDialogData,
 } from '@dialogs/rename-dialog/rename-dialog.component';
 import {
-  CANVAS_PIN_RELATIONSHIP_TYPE,
   type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
@@ -71,6 +69,14 @@ import { RelationshipService } from '@services/relationship/relationship.service
 import Konva from 'konva';
 import { nanoid } from 'nanoid';
 import { firstValueFrom, type Observable } from 'rxjs';
+
+import {
+  cleanupPinRelationships,
+  createPinRelationship,
+  removePinRelationship,
+} from './canvas-pin-helpers';
+import { downloadSvg } from './canvas-svg-export';
+import { getObjectIcon, getObjectLabel, rectsIntersect } from './canvas-utils';
 
 /** Delay (ms) after sidebar toggle before telling Konva to resize */
 const SIDEBAR_RESIZE_DELAY_MS = 250;
@@ -922,69 +928,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Pin–Element Relationship Helpers
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Create a formal ElementRelationship linking this canvas element to the
-   * target element. Returns the relationship ID for storage on the pin.
-   * The canvas element (source) → linked element (target).
-   */
-  private createPinRelationship(targetElementId: string): string {
-    this.ensureCanvasPinRelationshipType();
-    const rel = this.relationshipService.addRelationship(
-      this.elementId(),
-      targetElementId,
-      CANVAS_PIN_RELATIONSHIP_TYPE
-    );
-    return rel.id;
-  }
-
-  /** Remove the ElementRelationship backing a pin link, if it exists. */
-  private removePinRelationship(pin: CanvasPin): void {
-    if (pin.relationshipId) {
-      this.relationshipService.removeRelationship(pin.relationshipId);
-    }
-  }
-
-  /**
-   * Ensure the "canvas-pin" relationship type exists in the project.
-   * If it's missing (e.g. older project created before this feature),
-   * add it as a custom type.
-   */
-  private ensureCanvasPinRelationshipType(): void {
-    const existing = this.relationshipService.getTypeById(
-      CANVAS_PIN_RELATIONSHIP_TYPE
-    );
-    if (!existing) {
-      this.relationshipService.addRawType({
-        id: CANVAS_PIN_RELATIONSHIP_TYPE,
-        name: 'Pinned on canvas',
-        inverseLabel: 'Has pin',
-        showInverse: true,
-        // Use capitalized string to match existing template conventions
-        category: 'Spatial' as RelationshipCategory,
-        icon: 'push_pin',
-        isBuiltIn: false,
-        sourceEndpoint: { allowedSchemas: [] },
-        targetEndpoint: { allowedSchemas: [] },
-      });
-    }
-  }
-
-  /**
-   * Clean up relationships for all linked pins in a set of objects.
-   * Used when deleting a layer or bulk-removing objects.
-   */
-  private cleanupPinRelationships(objects: CanvasObject[]): void {
-    for (const obj of objects) {
-      if (obj.type === 'pin') {
-        this.removePinRelationship(obj);
-      }
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   // Stage Event Handlers
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -1432,7 +1375,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         // Create formal relationship if linking to an element
         let relationshipId: string | undefined;
         if (result.linkedElementId) {
-          relationshipId = this.createPinRelationship(result.linkedElementId);
+          relationshipId = createPinRelationship(
+            this.relationshipService,
+            this.elementId(),
+            result.linkedElementId
+          );
         }
 
         const pin = this.canvasService.createPin(
@@ -1597,12 +1544,16 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         if (oldLink !== newLink) {
           // Remove old relationship if it existed
           if (oldLink && relationshipId) {
-            this.removePinRelationship(obj);
+            removePinRelationship(this.relationshipService, obj);
             relationshipId = undefined;
           }
           // Create new relationship if linking to an element
           if (newLink) {
-            relationshipId = this.createPinRelationship(newLink);
+            relationshipId = createPinRelationship(
+              this.relationshipService,
+              this.elementId(),
+              newLink
+            );
           }
         }
 
@@ -1667,7 +1618,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     for (const [, kLayer] of this.konvaLayers) {
       kLayer.getChildren().forEach(child => {
         const box = child.getClientRect({ relativeTo: kLayer });
-        if (this.rectsIntersect(rect, box)) {
+        if (rectsIntersect(rect, box)) {
           selected.push(child);
         }
       });
@@ -1685,19 +1636,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       // Multi-select → clear single object selection
       this.selectedObjectId.set(null);
     }
-  }
-
-  /** Check if two axis-aligned bounding boxes overlap. */
-  private rectsIntersect(
-    a: { x: number; y: number; width: number; height: number },
-    b: { x: number; y: number; width: number; height: number }
-  ): boolean {
-    return (
-      a.x < b.x + b.width &&
-      a.x + a.width > b.x &&
-      a.y < b.y + b.height &&
-      a.y + a.height > b.y
-    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -2201,7 +2139,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     );
     if (confirmed) {
       // Clean up relationships for any linked pins on this layer
-      this.cleanupPinRelationships(
+      cleanupPinRelationships(
+        this.relationshipService,
         this.canvasService.getObjectsForLayer(layerId)
       );
       this.canvasService.removeLayer(layerId);
@@ -2233,7 +2172,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     const obj = this.canvasService
       .activeConfig()
       ?.objects.find(o => o.id === objectId);
-    if (obj?.type === 'pin') this.removePinRelationship(obj);
+    if (obj?.type === 'pin')
+      removePinRelationship(this.relationshipService, obj);
     this.canvasService.removeObject(objectId);
     if (this.selectedObjectId() === objectId) {
       this.selectedObjectId.set(null);
@@ -2249,7 +2189,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       const obj = this.canvasService
         .activeConfig()
         ?.objects.find(o => o.id === id);
-      if (obj?.type === 'pin') this.removePinRelationship(obj);
+      if (obj?.type === 'pin')
+        removePinRelationship(this.relationshipService, obj);
       this.canvasService.removeObject(id);
       this.selectedObjectId.set(null);
       this.transformer?.nodes([]);
@@ -2258,40 +2199,10 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   }
 
   /** Get icon for an object type */
-  protected getObjectIcon(obj: CanvasObject): string {
-    switch (obj.type) {
-      case 'image':
-        return 'image';
-      case 'text':
-        return 'title';
-      case 'path':
-        return 'draw';
-      case 'shape':
-        return 'crop_square';
-      case 'pin':
-        return 'place';
-      default:
-        return 'category';
-    }
-  }
+  protected readonly getObjectIcon = getObjectIcon;
 
   /** Get a display label for an unnamed object */
-  protected getObjectLabel(obj: CanvasObject): string {
-    switch (obj.type) {
-      case 'image':
-        return 'Image';
-      case 'text':
-        return obj.text.substring(0, 30) || 'Text';
-      case 'path':
-        return `Path (${Math.floor(obj.points.length / 2)} pts)`;
-      case 'shape':
-        return obj.shapeType;
-      case 'pin':
-        return obj.label;
-      default:
-        return 'Object';
-    }
-  }
+  protected readonly getObjectLabel = getObjectLabel;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Context Menu & Clipboard
@@ -2358,7 +2269,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     const obj = config.objects.find(o => o.id === id);
     if (obj) {
       // Clean up relationship if cutting a linked pin
-      if (obj.type === 'pin') this.removePinRelationship(obj);
+      if (obj.type === 'pin')
+        removePinRelationship(this.relationshipService, obj);
       // Strip stale relationship ID from clipboard
       const copy =
         obj.type === 'pin' ? { ...obj, relationshipId: undefined } : { ...obj };
@@ -2393,7 +2305,9 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
     // Create a fresh relationship for pasted linked pins
     if (newObj.type === 'pin' && newObj.linkedElementId) {
-      newObj.relationshipId = this.createPinRelationship(
+      newObj.relationshipId = createPinRelationship(
+        this.relationshipService,
+        this.elementId(),
         newObj.linkedElementId
       );
     }
@@ -2478,204 +2392,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   protected exportAsSvg(): void {
     const config = this.canvasService.activeConfig();
     if (!config) return;
-
-    const visibleLayers = [...config.layers]
-      .sort((a, b) => a.order - b.order)
-      .filter(l => l.visible);
-
-    // Compute bounding box across all visible objects
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-    for (const layer of visibleLayers) {
-      for (const obj of config.objects.filter(
-        o => o.layerId === layer.id && o.visible
-      )) {
-        if (obj.type === 'path') {
-          // Paths store absolute canvas coordinates in points (x=0, y=0 for paths)
-          const pts = obj.points;
-          for (let i = 0; i < pts.length - 1; i += 2) {
-            minX = Math.min(minX, obj.x + (pts[i] ?? 0));
-            minY = Math.min(minY, obj.y + (pts[i + 1] ?? 0));
-            maxX = Math.max(maxX, obj.x + (pts[i] ?? 0));
-            maxY = Math.max(maxY, obj.y + (pts[i + 1] ?? 0));
-          }
-        } else if (
-          obj.type === 'shape' &&
-          (obj.shapeType === 'line' || obj.shapeType === 'arrow') &&
-          obj.points?.length
-        ) {
-          // Line/arrow: x,y = start; points are local coords [0, 0, dx, dy]
-          const pts = obj.points;
-          for (let i = 0; i < pts.length - 1; i += 2) {
-            const px = obj.x + (pts[i] ?? 0) * (obj.scaleX || 1);
-            const py = obj.y + (pts[i + 1] ?? 0) * (obj.scaleY || 1);
-            minX = Math.min(minX, px);
-            minY = Math.min(minY, py);
-            maxX = Math.max(maxX, px);
-            maxY = Math.max(maxY, py);
-          }
-        } else {
-          const w = ('width' in obj ? obj.width : 30) * (obj.scaleX || 1);
-          const h = ('height' in obj ? obj.height : 30) * (obj.scaleY || 1);
-          minX = Math.min(minX, obj.x);
-          minY = Math.min(minY, obj.y);
-          maxX = Math.max(maxX, obj.x + w);
-          maxY = Math.max(maxY, obj.y + h);
-        }
-      }
-    }
-
-    const PAD = 20;
-    const vX = (Number.isFinite(minX) ? minX : 0) - PAD;
-    const vY = (Number.isFinite(minY) ? minY : 0) - PAD;
-    const vW =
-      (Number.isFinite(maxX) && maxX > minX ? maxX - minX : 800) + PAD * 2;
-    const vH =
-      (Number.isFinite(maxY) && maxY > minY ? maxY - minY : 600) + PAD * 2;
-
-    const lines: string[] = [
-      `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`,
-      `  width="${vW}" height="${vH}" viewBox="${vX} ${vY} ${vW} ${vH}">`,
-    ];
-
-    for (const layer of visibleLayers) {
-      const objs = config.objects.filter(
-        o => o.layerId === layer.id && o.visible
-      );
-      if (!objs.length) continue;
-      lines.push(
-        `  <g id="${this.svgEsc(layer.id)}" opacity="${layer.opacity}">`
-      );
-      for (const obj of objs) {
-        lines.push('    ' + this.canvasObjectToSvgElement(obj));
-      }
-      lines.push('  </g>');
-    }
-
-    lines.push('</svg>');
-    const blob = new Blob([lines.join('\n')], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${this.elementName()}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  private svgEsc(s: string): string {
-    return s.replaceAll(
-      /[&<>"']/g,
-      c =>
-        ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;',
-        })[c] ?? c
-    );
-  }
-
-  private canvasObjectToSvgElement(obj: CanvasObject): string {
-    const transforms: string[] = [`translate(${obj.x},${obj.y})`];
-    if (obj.rotation) transforms.push(`rotate(${obj.rotation})`);
-    if (obj.scaleX !== 1 || obj.scaleY !== 1)
-      transforms.push(`scale(${obj.scaleX},${obj.scaleY})`);
-    const tf = `transform="${transforms.join(' ')}"`;
-
-    switch (obj.type) {
-      case 'shape':
-        return this.canvasShapeToSvg(obj, tf);
-      case 'text':
-        return this.canvasTextToSvg(obj, tf);
-      case 'path':
-        return this.canvasPathToSvg(obj, tf);
-      case 'image':
-        return this.canvasImageToSvg(obj, tf);
-      case 'pin':
-        return this.canvasPinToSvg(obj, tf);
-      default:
-        return '';
-    }
-  }
-
-  private canvasShapeToSvg(obj: CanvasShape, tf: string): string {
-    const fill = obj.fill ?? 'none';
-    const base = `fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"`;
-    const dash = obj.dash?.length
-      ? ` stroke-dasharray="${obj.dash.join(',')}"`
-      : '';
-
-    switch (obj.shapeType) {
-      case 'rect': {
-        const cr = obj.cornerRadius ? ` rx="${obj.cornerRadius}"` : '';
-        return `<rect ${tf} width="${obj.width}" height="${obj.height}" ${base}${dash}${cr}/>`;
-      }
-      case 'ellipse': {
-        const rx = obj.width / 2;
-        const ry = obj.height / 2;
-        return `<ellipse ${tf} cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" ${base}${dash}/>`;
-      }
-      case 'line': {
-        const pts: number[] = obj.points ?? [0, 0, obj.width, 0];
-        return `<line ${tf} x1="${pts[0]}" y1="${pts[1]}" x2="${pts[2]}" y2="${pts[3]}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"${dash}/>`;
-      }
-      case 'arrow': {
-        const pts: number[] = obj.points ?? [0, 0, obj.width, 0];
-        const mid = `arrow-${Math.random().toString(36).slice(2)}`;
-        const marker = `<defs><marker id="${mid}" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="${obj.stroke}"/></marker></defs>`;
-        const line = `<line ${tf} x1="${pts[0]}" y1="${pts[1]}" x2="${pts[2]}" y2="${pts[3]}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}" marker-end="url(#${mid})"${dash}/>`;
-        return marker + line;
-      }
-      case 'polygon': {
-        const pts: number[] = obj.points ?? [];
-        const ptStr: string[] = [];
-        for (let i = 0; i < pts.length; i += 2)
-          ptStr.push(`${pts[i]},${pts[i + 1]}`);
-        return `<polygon ${tf} points="${ptStr.join(' ')}" ${base}${dash}/>`;
-      }
-      default:
-        return '';
-    }
-  }
-
-  private canvasTextToSvg(obj: CanvasText, tf: string): string {
-    const bold = obj.fontStyle.includes('bold') ? 'bold' : 'normal';
-    const italic = obj.fontStyle.includes('italic') ? 'italic' : 'normal';
-    const anchorMap: Record<string, string> = {
-      center: 'middle',
-      right: 'end',
-    };
-    const anchor = anchorMap[obj.align] ?? 'start';
-    const style = `font-size:${obj.fontSize}px;font-family:${obj.fontFamily};font-weight:${bold};font-style:${italic}`;
-    return `<text ${tf} fill="${obj.fill}" style="${style}" text-anchor="${anchor}" dominant-baseline="text-before-edge">${this.svgEsc(obj.text)}</text>`;
-  }
-
-  private canvasPathToSvg(obj: CanvasPath, tf: string): string {
-    const pts = obj.points;
-    if (pts.length < 4) return '';
-    const d: string[] = [`M ${pts[0]},${pts[1]}`];
-    for (let i = 2; i < pts.length; i += 2) d.push(`L ${pts[i]},${pts[i + 1]}`);
-    if (obj.closed) d.push('Z');
-    const fill = obj.closed && obj.fill ? obj.fill : 'none';
-    return `<path ${tf} d="${d.join(' ')}" fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"/>`;
-  }
-
-  private canvasImageToSvg(obj: CanvasImage, tf: string): string {
-    if (obj.src.startsWith('media:')) {
-      // Media assets can't be embedded in SVG — render a placeholder
-      return `<rect ${tf} width="${obj.width}" height="${obj.height}" fill="#ccc" stroke="#999" stroke-width="1"/>`;
-    }
-    return `<image ${tf} href="${obj.src}" width="${obj.width}" height="${obj.height}"/>`;
-  }
-
-  private canvasPinToSvg(obj: CanvasPin, tf: string): string {
-    const label = obj.label
-      ? `<text y="24" text-anchor="middle" font-size="12" fill="${obj.color}">${this.svgEsc(obj.label)}</text>`
-      : '';
-    return `<g ${tf}><circle r="12" fill="${obj.color}" stroke="#fff" stroke-width="2"/>${label}</g>`;
+    downloadSvg(config, this.elementName());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
