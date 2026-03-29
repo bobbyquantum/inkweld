@@ -36,7 +36,6 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
  */
 @Component({
   selector: 'app-quick-open-dialog',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

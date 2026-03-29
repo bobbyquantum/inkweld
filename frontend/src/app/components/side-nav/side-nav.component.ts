@@ -35,7 +35,6 @@ export interface UnifiedProjectItem {
 
 @Component({
   selector: 'app-side-nav',
-  standalone: true,
   imports: [
     MatSidenavModule,
     MatListModule,

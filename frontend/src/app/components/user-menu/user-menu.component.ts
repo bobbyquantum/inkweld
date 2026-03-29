@@ -28,7 +28,6 @@ interface AdminUser extends User {
 
 @Component({
   selector: 'app-user-menu',
-  standalone: true,
   imports: [
     MatBadgeModule,
     MatButtonModule,

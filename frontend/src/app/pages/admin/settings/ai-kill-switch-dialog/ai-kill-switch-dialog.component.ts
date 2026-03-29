@@ -5,7 +5,6 @@ import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-ai-kill-switch-dialog',
-  standalone: true,
   imports: [MatButtonModule, MatDialogModule, MatIconModule],
   templateUrl: './ai-kill-switch-dialog.component.html',
   styleUrl: './ai-kill-switch-dialog.component.scss',

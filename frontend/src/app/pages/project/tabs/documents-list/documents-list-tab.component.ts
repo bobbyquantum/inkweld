@@ -24,7 +24,6 @@ import { DocumentSyncState } from '../../../../models/document-sync-state';
   selector: 'app-documents-list-tab',
   templateUrl: './documents-list-tab.component.html',
   styleUrls: ['./documents-list-tab.component.scss'],
-  standalone: true,
   imports: [
     MatTableModule,
     MatButtonModule,

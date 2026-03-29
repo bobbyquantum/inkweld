@@ -64,7 +64,6 @@ interface UnifiedModel {
 
 @Component({
   selector: 'app-admin-ai-text-settings',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

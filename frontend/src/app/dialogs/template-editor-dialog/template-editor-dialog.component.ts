@@ -52,7 +52,6 @@ interface BasicForm {
   selector: 'app-template-editor-dialog',
   templateUrl: './template-editor-dialog.component.html',
   styleUrls: ['./template-editor-dialog.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,

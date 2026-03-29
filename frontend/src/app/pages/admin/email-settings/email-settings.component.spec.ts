@@ -2,7 +2,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { AdminEmailService } from '@services/admin/admin-email.service';
@@ -51,7 +50,6 @@ describe('AdminEmailSettingsComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
-        provideNoopAnimations(),
         { provide: AdminConfigService, useValue: mockConfigService },
         { provide: AdminEmailService, useValue: mockEmailService },
         {

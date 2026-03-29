@@ -58,7 +58,6 @@ export interface MediaItem extends MediaInfo {
   selector: 'app-media-tab',
   templateUrl: './media-tab.component.html',
   styleUrls: ['./media-tab.component.scss'],
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

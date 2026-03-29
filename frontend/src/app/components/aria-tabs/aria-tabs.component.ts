@@ -33,7 +33,6 @@ export interface AriaTabConfig {
 
 @Component({
   selector: 'app-aria-tabs',
-  standalone: true,
   imports: [CommonModule, Tabs, TabList, Tab, MatIconModule, MatButtonModule],
   templateUrl: './aria-tabs.component.html',
   styleUrl: './aria-tabs.component.scss',

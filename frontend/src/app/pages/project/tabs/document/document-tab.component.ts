@@ -8,7 +8,6 @@ import { ProjectStateService } from '@services/project/project-state.service';
   selector: 'app-document-tab',
   templateUrl: './document-tab.component.html',
   styleUrls: ['./document-tab.component.scss'],
-  standalone: true,
   imports: [DocumentElementEditorComponent, MatIconModule],
 })
 export class DocumentTabComponent {

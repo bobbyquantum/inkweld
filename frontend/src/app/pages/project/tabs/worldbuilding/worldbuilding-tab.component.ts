@@ -17,7 +17,6 @@ import { ProjectStateService } from '../../../../services/project/project-state.
   selector: 'app-worldbuilding-tab',
   templateUrl: './worldbuilding-tab.component.html',
   styleUrls: ['./worldbuilding-tab.component.scss'],
-  standalone: true,
   imports: [WorldbuildingEditorComponent],
 })
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {

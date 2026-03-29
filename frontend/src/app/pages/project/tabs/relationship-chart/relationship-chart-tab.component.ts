@@ -72,7 +72,6 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
   selector: 'app-relationship-chart-tab',
   templateUrl: './relationship-chart-tab.component.html',
   styleUrls: ['./relationship-chart-tab.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,

@@ -26,7 +26,6 @@ export interface TagEditorDialogData {
  */
 @Component({
   selector: 'app-tag-editor-dialog',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

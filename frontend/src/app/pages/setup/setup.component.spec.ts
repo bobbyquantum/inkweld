@@ -8,7 +8,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideAnimations } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { ConfigurationService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
@@ -64,7 +63,6 @@ describe('SetupComponent', () => {
         MatProgressBarModule,
       ],
       providers: [
-        provideAnimations(),
         { provide: SetupService, useValue: mockSetupService },
         { provide: UnifiedUserService, useValue: mockUnifiedUserService },
         { provide: ConfigurationService, useValue: mockConfigurationService },

@@ -93,8 +93,8 @@ const PublicProfileSchema = z
 
 const AdminProfileSchema = PublicProfileSchema.extend({
   modelConfig: z.record(z.string(), z.unknown()).nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
 }).openapi('AdminImageModelProfile');
 
 const CreateProfileRequestSchema = z

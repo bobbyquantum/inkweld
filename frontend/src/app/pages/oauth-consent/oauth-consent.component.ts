@@ -48,7 +48,6 @@ interface OAuthApiError {
   selector: 'app-oauth-consent',
   templateUrl: './oauth-consent.component.html',
   styleUrls: ['./oauth-consent.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

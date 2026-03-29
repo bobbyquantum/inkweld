@@ -18,7 +18,6 @@ import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-swi
 
 @Component({
   selector: 'app-admin-settings',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

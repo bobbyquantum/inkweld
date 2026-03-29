@@ -50,7 +50,6 @@ export interface PublishingProgressDialogResult {
   selector: 'app-publishing-progress-dialog',
   templateUrl: './publishing-progress-dialog.component.html',
   styleUrls: ['./publishing-progress-dialog.component.scss'],
-  standalone: true,
   imports: [
     AsyncPipe,
     DecimalPipe,

@@ -15,7 +15,7 @@ export const DocumentSnapshotSchema = z
     description: z.string().nullable().optional(),
     wordCount: z.number().nullable().optional(),
     metadata: z.record(z.string(), z.unknown()).nullable().optional(),
-    createdAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
   })
   .openapi('DocumentSnapshot');
 
@@ -55,7 +55,7 @@ export const SnapshotWithContentSchema = z
     description: z.string().nullable().optional(),
     wordCount: z.number().nullable().optional(),
     metadata: z.record(z.string(), z.unknown()).nullable().optional(),
-    createdAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
     xmlContent: z.string().nullable().optional(),
     worldbuildingData: z.record(z.string(), z.unknown()).nullable().optional(),
   })

@@ -89,7 +89,7 @@ export const UpdatePublishedFileRequestSchema = z
 export const ShareLinkResponseSchema = z
   .object({
     shareToken: z.string().openapi({ example: 'abc123xyz', description: 'Share token' }),
-    shareUrl: z.string().url().openapi({
+    shareUrl: z.url().openapi({
       example: 'https://inkweld.app/share/abc123xyz',
       description: 'Full share URL',
     }),

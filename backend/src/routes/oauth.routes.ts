@@ -35,12 +35,12 @@ const OAuthErrorSchema = z
 const ClientRegistrationRequestSchema = z
   .object({
     client_name: z.string().min(1).max(100),
-    redirect_uris: z.array(z.string().url()).min(1),
-    client_uri: z.string().url().optional(),
-    logo_uri: z.string().url().optional(),
-    contacts: z.array(z.string().email()).optional(),
-    policy_uri: z.string().url().optional(),
-    tos_uri: z.string().url().optional(),
+    redirect_uris: z.array(z.url()).min(1),
+    client_uri: z.url().optional(),
+    logo_uri: z.url().optional(),
+    contacts: z.array(z.email()).optional(),
+    policy_uri: z.url().optional(),
+    tos_uri: z.url().optional(),
     token_endpoint_auth_method: z
       .enum(['none', 'client_secret_basic', 'client_secret_post'])
       .optional(),
@@ -58,10 +58,10 @@ const ClientRegistrationResponseSchema = z
     client_name: z.string(),
     redirect_uris: z.array(z.string()),
     // Optional fields - only included if provided in request (never null/empty)
-    client_uri: z.string().url().optional(),
-    logo_uri: z.string().url().optional(),
-    policy_uri: z.string().url().optional(),
-    tos_uri: z.string().url().optional(),
+    client_uri: z.url().optional(),
+    logo_uri: z.url().optional(),
+    policy_uri: z.url().optional(),
+    tos_uri: z.url().optional(),
     token_endpoint_auth_method: z.enum(['none', 'client_secret_basic', 'client_secret_post']),
   })
   .openapi('ClientRegistrationResponse');
@@ -171,7 +171,7 @@ const protectedResourceMetadataRoute = createRoute({
   operationId: 'getProtectedResourceMetadata',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'Protected resource metadata',
     },
   },
@@ -217,7 +217,7 @@ const pathSpecificProtectedResourceRoute = createRoute({
   operationId: 'getPathSpecificProtectedResourceMetadata',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'Protected resource metadata for specific path',
     },
   },
@@ -259,7 +259,7 @@ const authServerMetadataRoute = createRoute({
   operationId: 'getAuthServerMetadata',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'Authorization server metadata',
     },
   },
@@ -316,7 +316,7 @@ const openidConfigurationRoute = createRoute({
   operationId: 'getOpenIdConfiguration',
   responses: {
     200: {
-      content: { 'application/json': { schema: z.object({}).passthrough() } },
+      content: { 'application/json': { schema: z.looseObject({}) } },
       description: 'OpenID Connect discovery document',
     },
   },

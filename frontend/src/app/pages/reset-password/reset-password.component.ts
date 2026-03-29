@@ -19,7 +19,6 @@ interface PasswordRequirement {
 
 @Component({
   selector: 'app-reset-password',
-  standalone: true,
   imports: [
     FormsModule,
     KeyValuePipe,

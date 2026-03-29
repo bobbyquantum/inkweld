@@ -83,7 +83,6 @@ export interface CanvasTextDialogResult {
       }
     `,
   ],
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

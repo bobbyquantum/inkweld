@@ -16,7 +16,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import {
   type AdminImageModelProfile,
   AdminImageModelProfileProvider,
@@ -123,7 +122,6 @@ describe('ImageProfileDialogComponent', () => {
       ],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: AIImageGenerationService, useValue: mockAiImageService },

@@ -48,7 +48,6 @@ export interface CreateMcpKeyDialogResult {
   selector: 'app-create-mcp-key-dialog',
   templateUrl: './create-mcp-key-dialog.component.html',
   styleUrls: ['./create-mcp-key-dialog.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,

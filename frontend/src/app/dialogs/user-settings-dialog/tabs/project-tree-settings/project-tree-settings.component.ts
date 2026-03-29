@@ -6,7 +6,6 @@ import { SettingsService } from '@services/core/settings.service';
 
 @Component({
   selector: 'app-project-tree-settings',
-  standalone: true,
   imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
   templateUrl: './project-tree-settings.component.html',
   styleUrl: './project-tree-settings.component.scss',

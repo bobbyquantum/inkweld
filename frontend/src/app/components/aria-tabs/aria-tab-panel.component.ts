@@ -18,7 +18,6 @@ import { Component, Input, type TemplateRef, ViewChild } from '@angular/core';
  */
 @Component({
   selector: 'app-aria-tab-panel',
-  standalone: true,
   template: `
     <ng-template #content>
       <ng-content></ng-content>

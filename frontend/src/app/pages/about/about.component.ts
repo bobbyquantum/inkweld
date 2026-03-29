@@ -23,7 +23,6 @@ function stripSemverPrefix(version: string): string {
 
 @Component({
   selector: 'app-about',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatCardModule,

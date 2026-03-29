@@ -65,7 +65,6 @@ export interface WorldbuildingImageDialogResult {
 
 @Component({
   selector: 'app-worldbuilding-image-dialog',
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

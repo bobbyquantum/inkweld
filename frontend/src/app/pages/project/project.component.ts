@@ -80,7 +80,6 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     AngularSplitModule,
     SplitGutterDirective,
   ],
-  standalone: true,
 })
 export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly projectState = inject(ProjectStateService);

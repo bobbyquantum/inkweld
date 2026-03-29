@@ -46,7 +46,6 @@ export const RegisterRequestSchema = z
       .min(6)
       .openapi({ description: 'Password (minimum 6 characters)', example: 'password123' }),
     email: z
-      .string()
       .email()
       .optional()
       .openapi({ description: 'Email address (optional)', example: 'john@example.com' }),

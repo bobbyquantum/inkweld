@@ -20,7 +20,6 @@ import { debounce } from 'lodash-es';
 
 @Component({
   selector: 'app-bookshelf',
-  standalone: true,
   imports: [ProjectCardComponent, MatIconModule, MatButtonModule, CdkDrag],
   templateUrl: './bookshelf.component.html',
   styleUrls: ['./bookshelf.component.scss'],

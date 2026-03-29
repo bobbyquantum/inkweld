@@ -29,7 +29,6 @@ type Command = (
  */
 @Component({
   selector: 'app-editor-floating-menu',
-  standalone: true,
   imports: [MatIconModule, MatTooltipModule, Toolbar, ToolbarWidget],
   templateUrl: './editor-floating-menu.component.html',
   styleUrl: './editor-floating-menu.component.scss',

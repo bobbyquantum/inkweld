@@ -16,7 +16,6 @@ import {
  */
 @Component({
   selector: 'app-server-info-bubble',
-  standalone: true,
   imports: [MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule],
   templateUrl: './server-info-bubble.component.html',
   styleUrl: './server-info-bubble.component.scss',

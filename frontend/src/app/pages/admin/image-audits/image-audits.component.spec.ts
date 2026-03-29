@@ -1,7 +1,6 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideAnimations } from '@angular/platform-browser/animations';
 import {
   AdminImageAuditsService,
   type ImageGenerationAudit,
@@ -75,7 +74,6 @@ describe('AdminImageAuditsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AdminImageAuditsComponent],
       providers: [
-        provideAnimations(),
         { provide: AdminImageAuditsService, useValue: mockAuditService },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: MatDialog, useValue: mockDialog },

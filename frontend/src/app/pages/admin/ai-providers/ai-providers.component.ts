@@ -26,7 +26,6 @@ interface ProviderUIState extends ProviderStatus {
 
 @Component({
   selector: 'app-admin-ai-providers',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

@@ -49,7 +49,6 @@ type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
  */
 @Component({
   selector: 'app-editor-toolbar',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatIconModule,

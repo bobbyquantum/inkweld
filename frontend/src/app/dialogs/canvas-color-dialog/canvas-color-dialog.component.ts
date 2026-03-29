@@ -89,7 +89,6 @@ export interface CanvasColorDialogResult {
       }
     `,
   ],
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

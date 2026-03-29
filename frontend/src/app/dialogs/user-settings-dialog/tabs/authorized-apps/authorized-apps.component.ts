@@ -23,7 +23,6 @@ import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-authorized-apps',
-  standalone: true,
   imports: [
     TitleCasePipe,
     MatButtonModule,

@@ -56,7 +56,6 @@ import { WorldbuildingService } from '../../../../services/worldbuilding/worldbu
   selector: 'app-publish-plan-tab',
   templateUrl: './publish-plan-tab.component.html',
   styleUrls: ['./publish-plan-tab.component.scss'],
-  standalone: true,
   imports: [
     FormsModule,
     DragDropModule,

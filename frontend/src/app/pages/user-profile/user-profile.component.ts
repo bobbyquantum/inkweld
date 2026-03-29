@@ -24,7 +24,6 @@ import { debounceTime } from 'rxjs/operators';
 
 @Component({
   selector: 'app-user-profile',
-  standalone: true,
   imports: [
     RouterModule,
     MatButtonModule,

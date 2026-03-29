@@ -15,7 +15,6 @@ import { SystemConfigService } from '@services/core/system-config.service';
 
 @Component({
   selector: 'app-admin-email-settings',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

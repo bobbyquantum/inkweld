@@ -18,7 +18,6 @@ interface SystemStats {
 
 @Component({
   selector: 'app-admin-system-health',
-  standalone: true,
   imports: [
     MatCardModule,
     MatIconModule,

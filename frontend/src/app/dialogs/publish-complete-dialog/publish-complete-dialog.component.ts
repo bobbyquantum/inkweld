@@ -54,7 +54,6 @@ export interface PublishCompleteDialogResult {
  */
 @Component({
   selector: 'app-publish-complete-dialog',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

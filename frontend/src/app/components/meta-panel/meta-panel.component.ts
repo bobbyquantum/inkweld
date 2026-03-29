@@ -56,7 +56,6 @@ interface RelationshipGroup {
  */
 @Component({
   selector: 'app-meta-panel',
-  standalone: true,
   imports: [
     AccordionGroup,
     AccordionTrigger,
