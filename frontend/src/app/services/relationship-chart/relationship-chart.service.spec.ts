@@ -641,6 +641,57 @@ describe('RelationshipChartService', () => {
       );
     });
 
+    it('should use default filters when saved config has no filters property', () => {
+      const savedConfig = {
+        layout: 'circular',
+      };
+
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: { chartConfig: JSON.stringify(savedConfig) },
+        }),
+      ]);
+
+      const config = service.loadConfig('chart-1');
+      expect(config.layout).toBe('circular');
+      // Should use default filters since none were saved
+      expect(config.filters.mode).toBe('curated');
+      expect(config.filters.includedElementIds).toEqual([]);
+      expect(config.filters.showOrphans).toBe(true);
+    });
+
+    it('should pass through non-array filter values in sanitizeFilters', () => {
+      const savedConfig = {
+        layout: 'force',
+        filters: {
+          mode: 'all',
+          showOrphans: false,
+          includedElementIds: ['a', 'b'],
+          relationshipTypeIds: ['friend'],
+          schemaIds: [],
+          elementTypes: [],
+        },
+      };
+
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: { chartConfig: JSON.stringify(savedConfig) },
+        }),
+      ]);
+
+      const config = service.loadConfig('chart-1');
+      // Non-array values should be passed through
+      expect(config.filters.mode).toBe('all');
+      expect(config.filters.showOrphans).toBe(false);
+      // Array values that are valid arrays should be kept
+      expect(config.filters.includedElementIds).toEqual(['a', 'b']);
+      expect(config.filters.relationshipTypeIds).toEqual(['friend']);
+    });
+
     it('should fallback to default array when saved value is not an array', () => {
       const savedConfig = {
         layout: 'force',

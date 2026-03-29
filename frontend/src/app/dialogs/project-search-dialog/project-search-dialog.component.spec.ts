@@ -529,4 +529,97 @@ describe('ProjectSearchDialogComponent', () => {
       expect(component.getIcon(result)).toBe('category');
     });
   });
+
+  describe('runSearch progress callback', () => {
+    it('should auto-select first result when results arrive with no selection', () => {
+      const result = makeResult('e1', 'Element 1');
+      mockProjectSearchService.search.mockImplementation(
+        (_query, onProgress) => {
+          onProgress({
+            scanned: 1,
+            total: 1,
+            results: [result],
+            done: true,
+          });
+          return Promise.resolve();
+        }
+      );
+
+      component['runSearch']('test');
+
+      expect(component.selectedIndex()).toBe(0);
+    });
+
+    it('should reset selectedIndex when it exceeds shrinking results', () => {
+      const results = [makeResult('e1', 'E1'), makeResult('e2', 'E2')];
+      // First emit: two results, auto-selects index 0
+      // Second emit: reduced to one result while selectedIndex was 1
+      mockProjectSearchService.search.mockImplementation(
+        (_query, onProgress) => {
+          onProgress({
+            scanned: 1,
+            total: 2,
+            results,
+            done: false,
+          });
+          return Promise.resolve();
+        }
+      );
+
+      component['runSearch']('test');
+      // selectedIndex is now 0 from first progress; set it to 1
+      component.selectedIndex.set(1);
+
+      // Emit progress with only 1 result — selectedIndex 1 >= length 1
+      mockProjectSearchService.search.mockImplementation(
+        (_query, onProgress) => {
+          onProgress({
+            scanned: 2,
+            total: 2,
+            results: [results[0]],
+            done: true,
+          });
+          return Promise.resolve();
+        }
+      );
+
+      component['runSearch']('test again');
+      // runSearch resets selectedIndex to -1, then progress fires with 1 result
+      // so (length > 0 && index < 0) triggers set(0)
+      expect(component.selectedIndex()).toBe(0);
+    });
+
+    it('should not reset selectedIndex when current selection is valid', () => {
+      const results = [makeResult('e1', 'E1'), makeResult('e2', 'E2')];
+      let progressFn: ((p: ProjectSearchProgress) => void) | null = null;
+      mockProjectSearchService.search.mockImplementation(
+        (_query, onProgress) => {
+          progressFn = onProgress;
+          // Initial progress auto-selects
+          onProgress({
+            scanned: 1,
+            total: 2,
+            results,
+            done: false,
+          });
+          return Promise.resolve();
+        }
+      );
+
+      component['runSearch']('test');
+      // Set a valid selectedIndex
+      component.selectedIndex.set(1);
+
+      // Fire another progress with same results — index is still valid
+      progressFn!({
+        scanned: 2,
+        total: 2,
+        results,
+        done: true,
+      });
+
+      // selectedIndex should remain at 1 (not reset to 0)
+      expect(component.selectedIndex()).toBe(1);
+    });
+  });
 });
