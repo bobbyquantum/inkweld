@@ -93,14 +93,17 @@ async function loadElementImage(
       return null;
     }
 
-    // Convert to base64 - handle both Buffer and ArrayBuffer
+    // Convert to base64 - handle Buffer, ArrayBuffer, and ArrayBufferView
     let buffer: Buffer;
-    if (data instanceof Buffer) {
+    if (Buffer.isBuffer(data)) {
       buffer = data;
     } else if (data instanceof ArrayBuffer) {
       buffer = Buffer.from(new Uint8Array(data));
+    } else if (ArrayBuffer.isView(data)) {
+      const view: ArrayBufferView = data;
+      buffer = Buffer.from(view.buffer, view.byteOffset, view.byteLength);
     } else {
-      buffer = Buffer.from(data as unknown as Uint8Array);
+      throw new TypeError(`Unexpected data type from readProjectFile: ${typeof data}`);
     }
     const base64 = buffer.toString('base64');
     const mimeType = getMimeTypeFromFilename(filename);

@@ -471,35 +471,58 @@ export class ImageGenerationService {
 
     while (true) {
       const { done, value } = await reader.read();
+
       if (done) {
-        return false;
+        buffer += decoder.decode();
+        return this.processRemainingBuffer(jobId, buffer);
       }
 
       buffer += decoder.decode(value, { stream: true });
       const { eventBlocks, remainingBuffer } = this.extractEventBlocks(buffer);
       buffer = remainingBuffer;
 
-      for (const eventBlock of eventBlocks) {
-        const handledTerminalEvent = await this.handleStreamEventBlock(
-          jobId,
-          eventBlock
-        );
-        if (handledTerminalEvent) {
-          return true;
-        }
+      const terminated = await this.processEventBlocks(jobId, eventBlocks);
+      if (terminated) {
+        return true;
       }
     }
+  }
+
+  private async processRemainingBuffer(
+    jobId: string,
+    buffer: string
+  ): Promise<boolean> {
+    if (!buffer.trim()) {
+      return false;
+    }
+    const { eventBlocks } = this.extractEventBlocks(buffer);
+    return this.processEventBlocks(jobId, eventBlocks);
+  }
+
+  private async processEventBlocks(
+    jobId: string,
+    eventBlocks: string[]
+  ): Promise<boolean> {
+    for (const eventBlock of eventBlocks) {
+      const handledTerminalEvent = await this.handleStreamEventBlock(
+        jobId,
+        eventBlock
+      );
+      if (handledTerminalEvent) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private extractEventBlocks(buffer: string): {
     eventBlocks: string[];
     remainingBuffer: string;
   } {
-    const eventBlocks = buffer.split('\n\n');
-    return {
-      eventBlocks,
-      remainingBuffer: eventBlocks.pop() || '',
-    };
+    // Split on standard SSE blank-line variants
+    const eventBlocks = buffer.split(/\r\n\r\n|\n\n|\r\r/);
+    const remainingBuffer = eventBlocks.pop() || '';
+    return { eventBlocks, remainingBuffer };
   }
 
   private async handleStreamEventBlock(
@@ -585,6 +608,23 @@ export class ImageGenerationService {
     jobId: string,
     response: ImageGenerateResponse
   ): Promise<void> {
+    // Guard: text-only response with no renderable images
+    if (!this.hasRenderableImage(response)) {
+      const textContent =
+        response.textContent ??
+        response.data.find(image => image.textContent)?.textContent ??
+        'The model returned no image data.';
+      this.updateJob(jobId, {
+        status: 'failed',
+        message: 'Generation failed',
+        error: this.getTextOnlyResponseError(textContent),
+        response,
+        partialImageUrl: undefined,
+      });
+      this.updateActiveJobs();
+      return;
+    }
+
     this.markJobSaving(jobId, response, { clearPartialImageUrl: true });
 
     const currentJob = this.getJob(jobId);

@@ -432,13 +432,12 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
     const elapsed = Date.now() - startTime;
     mcpLog.error('MCP', `[ERROR] (${elapsed}ms)`, { error: err });
 
-    // Handle structured errors
-    if (err && typeof err === 'object' && 'code' in err && 'message' in err) {
-      const error = err as { code: number; message: string };
-      return c.json(createErrorResponse(requestId ?? 0, error.code, error.message));
+    // Handle canonical MCP RPC errors (thrown by handlers)
+    if (err instanceof McpRpcError) {
+      return c.json(createErrorResponse(requestId ?? 0, err.code, err.message));
     }
 
-    // Handle unexpected errors
+    // Handle unexpected errors — sanitize message to avoid leaking internals
     return c.json(
       createErrorResponse(
         requestId ?? 0,

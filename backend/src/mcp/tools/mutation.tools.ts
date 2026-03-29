@@ -1716,6 +1716,20 @@ registerTool({
         } catch (err: unknown) {
           mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
         }
+
+        // Skip persisting blank snapshots for ITEM documents on Workers
+        // (no XML/word data can be extracted in this environment)
+        if (element.type === 'ITEM' && !xmlContent && wordCount === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Cannot create snapshot for document "${element.name}" on Cloudflare Workers: content extraction is not supported in this environment.`,
+              },
+            ],
+            isError: true,
+          };
+        }
       } else {
         // Bun: use LevelDB service for full access
         try {

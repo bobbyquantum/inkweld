@@ -1,9 +1,8 @@
 import { inject, Injectable } from '@angular/core';
+import { type ArchiveWorldbuildingData } from '@models/project-archive';
+import { LoggerService } from '@services/core/logger.service';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
-
-import { type ArchiveWorldbuildingData } from '../../models/project-archive';
-import { LoggerService } from '../core/logger.service';
 
 /**
  * Service for importing document content into Yjs/IndexedDB.

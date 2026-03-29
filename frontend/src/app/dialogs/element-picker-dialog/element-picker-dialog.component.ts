@@ -18,10 +18,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
-import { type Element } from '../../../api-client/model/element';
-import { type ElementType } from '../../../api-client/model/element-type';
-import { ProjectStateService } from '../../services/project/project-state.service';
+import { type Element } from '@inkweld/model/element';
+import { type ElementType } from '@inkweld/model/element-type';
+import { ProjectStateService } from '@services/project/project-state.service';
 
 /**
  * Dialog data for element picker
