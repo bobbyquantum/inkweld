@@ -41,7 +41,7 @@ export class ImageViewerDialogComponent {
   panY = signal(0);
 
   // Pointer tracking for pan/pinch
-  private activePointers = new Map<
+  private readonly activePointers = new Map<
     number,
     { x: number; y: number; startX: number; startY: number }
   >();

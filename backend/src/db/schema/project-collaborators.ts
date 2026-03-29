@@ -117,14 +117,6 @@ export function roleToMcpPermissions(role: CollaboratorRole): string[] {
     case 'viewer':
       return ['read:project', 'read:elements', 'read:worldbuilding', 'read:schemas'];
     case 'editor':
-      return [
-        'read:project',
-        'read:elements',
-        'read:worldbuilding',
-        'read:schemas',
-        'write:elements',
-        'write:worldbuilding',
-      ];
     case 'admin':
       return [
         'read:project',

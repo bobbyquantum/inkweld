@@ -275,6 +275,23 @@ describe('SyncQueueService', () => {
         'Cancelling sync'
       );
     });
+
+    it('should skip status update for projects with no status entry', () => {
+      const projects = [
+        createMockProject('1', 'project-1'),
+        createMockProject('2', 'project-2'),
+      ];
+
+      // Start sync but don't wait
+      void service.syncAllProjects(projects);
+
+      // Remove status for one project to simulate missing entry
+      (service as any).projectStatuses.delete('testuser/project-2');
+
+      // Cancel should not throw despite missing status
+      expect(() => service.cancelSync()).not.toThrow();
+      expect(service.queueState().isActive).toBe(false);
+    });
   });
 
   describe('getProjectStatus', () => {

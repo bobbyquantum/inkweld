@@ -554,12 +554,18 @@ export class MarkdownGeneratorService {
           const typeVal = markObj['type'];
           // ProseMirror serialises mark type as a string; ngx-editor may also
           // produce objects with a `name` field depending on the version.
-          const type =
-            typeof typeVal === 'object' && typeVal !== null && 'name' in typeVal
-              ? String((typeVal as Record<string, unknown>)['name'])
-              : typeof typeVal === 'string'
-                ? typeVal
-                : '';
+          let type: string;
+          if (
+            typeof typeVal === 'object' &&
+            typeVal !== null &&
+            'name' in typeVal
+          ) {
+            type = String((typeVal as Record<string, unknown>)['name']);
+          } else if (typeof typeVal === 'string') {
+            type = typeVal;
+          } else {
+            type = '';
+          }
           const attrs = markObj['attrs'] as Record<string, unknown> | undefined;
           return { type, attrs };
         }

@@ -61,7 +61,7 @@ export interface SnapshotsDialogData {
 })
 export class SnapshotsDialogComponent implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<SnapshotsDialogComponent>);
-  private data = inject<SnapshotsDialogData>(MAT_DIALOG_DATA);
+  private readonly data = inject<SnapshotsDialogData>(MAT_DIALOG_DATA);
   private readonly snapshotService = inject(UnifiedSnapshotService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);

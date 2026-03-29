@@ -88,9 +88,8 @@ export class SetupService {
     // we should update it. This ensures that if a user moves between preview/prod
     // or if the worker URL changes, the app stays in sync with its build.
     if (
-      !activeConfig ||
-      activeConfig.type !== 'server' ||
-      activeConfig.serverUrl !== preConfiguredUrl
+      activeConfig?.type !== 'server' ||
+      activeConfig?.serverUrl !== preConfiguredUrl
     ) {
       console.log(
         '[SetupService] Auto-configuring for hosted deployment:',

@@ -97,7 +97,7 @@ vi.mock('y-indexeddb', () => {
     IndexeddbPersistence: class IndexeddbPersistence {
       whenSynced = Promise.resolve();
       synced = true;
-      private _listeners = new Map<string, Set<(...args: any[]) => void>>();
+      private readonly _listeners = new Map<string, Set<(...args: any[]) => void>>();
 
       constructor(_name: string, _doc: any) {}
 
@@ -138,7 +138,7 @@ vi.mock('y-websocket', () => {
         getStates: () => new Map(),
         clientID: 123,
       };
-      private _listeners = new Map<string, Set<(...args: any[]) => void>>();
+      private readonly _listeners = new Map<string, Set<(...args: any[]) => void>>();
 
       constructor(_url: string, _room: string, _doc: any, _options?: any) {}
 

@@ -294,7 +294,7 @@ class ImageProfileService {
     defaultSize: string | null;
   } | null> {
     const profile = await this.getById(db, profileId);
-    if (!profile || !profile.enabled) {
+    if (!profile?.enabled) {
       return null;
     }
 
