@@ -68,22 +68,22 @@ export class AutoSnapshotService implements OnDestroy {
    * Set of element IDs that have been modified during this session.
    * Cleared when auto-snapshots are created or when the project changes.
    */
-  private dirtyDocuments = new Set<string>();
+  private readonly dirtyDocuments = new Set<string>();
 
   /**
    * Timestamps of last auto-snapshot per element ID, for throttling.
    */
-  private lastAutoSnapshotTime = new Map<string, number>();
+  private readonly lastAutoSnapshotTime = new Map<string, number>();
 
   /**
    * Subscription to DocumentService's local edit events.
    */
-  private editSubscription: Subscription;
+  private readonly editSubscription: Subscription;
 
   /**
    * Subscription to TabManagerService's tab close events.
    */
-  private tabCloseSubscription: Subscription;
+  private readonly tabCloseSubscription: Subscription;
 
   constructor() {
     this.editSubscription = this.documentService.localEdit$.subscribe(

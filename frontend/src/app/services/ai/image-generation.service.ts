@@ -228,112 +228,158 @@ export class ImageGenerationService {
       const job = this.getJob(jobId);
       if (!job) return;
 
-      // Call the API (3-minute timeout to handle slow models / Workers limits)
-      const response = await firstValueFrom(
-        this.aiImageService.generateImage(job.request).pipe(timeout(180_000))
-      );
-
-      // Check if the model returned text instead of images
-      // This happens when the model refuses or explains why it can't generate
-      if (response.data.length === 0 && response.textContent) {
-        // Determine if this is a refusal or just an explanation
-        const lowerContent = response.textContent.toLowerCase();
-        const isRefusal =
-          lowerContent.includes('cannot') ||
-          lowerContent.includes("can't") ||
-          lowerContent.includes('unable') ||
-          lowerContent.includes('sorry') ||
-          lowerContent.includes('policy') ||
-          lowerContent.includes('inappropriate') ||
-          lowerContent.includes('violat');
-
-        const errorMessage = isRefusal
-          ? `Image generation was refused: ${response.textContent}`
-          : `The model returned text instead of an image: ${response.textContent}`;
-
-        this.updateJob(jobId, {
-          status: 'failed',
-          message: 'Generation failed',
-          error: errorMessage,
-          response, // Still include the response for debugging
-        });
-        this.updateActiveJobs();
+      const response = await this.requestImageGeneration(job.request);
+      if (this.handleTextOnlyResponse(jobId, response)) {
         return;
       }
 
-      this.updateJob(jobId, {
-        status: 'saving',
-        message: 'Saving to media library...',
-        images: response.data,
-        response,
-      });
-
-      // Save all generated images to IndexedDB
-      const savedMediaIds = await this.saveGeneratedImages(job, response);
-
-      // Note: For cover generation (forCover: true), the image is saved to
-      // the media library, but we do NOT auto-set it as the project cover.
-      // The user should crop the image first via the cropper in the
-      // edit-project-dialog. The cropped version becomes the actual cover.
-
-      this.updateJob(jobId, {
-        status: 'completed',
-        message: job.forCover
-          ? 'Image saved to library. Crop to set as cover.'
-          : `Generated ${response.data.length} image${response.data.length > 1 ? 's' : ''}`,
-        savedMediaIds,
-      });
+      await this.completeJob(jobId, job, response);
     } catch (err) {
       console.error('Generation failed:', err);
-
-      // Extract error message from various error formats
-      let errorMessage = 'Generation failed';
-      if (err instanceof TimeoutError) {
-        errorMessage =
-          'Image generation timed out. The model may be overloaded — please try again.';
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      // Handle Angular HttpErrorResponse (from API calls)
-      // HttpErrorResponse has an `error` property that can be an object or string
-      if (
-        err !== null &&
-        typeof err === 'object' &&
-        'error' in err &&
-        err.error !== null
-      ) {
-        const errorBody = err.error as Record<string, unknown>;
-        if (typeof errorBody === 'object') {
-          if (typeof errorBody['error'] === 'string') {
-            // API returns { error: "message" }
-            errorMessage = errorBody['error'];
-          } else if (typeof errorBody['message'] === 'string') {
-            // API returns { message: "message" }
-            errorMessage = errorBody['message'];
-          }
-        } else if (typeof errorBody === 'string') {
-          // API returns plain string error
-          errorMessage = errorBody;
-        }
-      }
-
-      // Check for moderation block (special prefix from backend)
-      const isModerationBlock = errorMessage.includes('MODERATION_BLOCKED:');
-      if (isModerationBlock) {
-        // Strip the prefix for display
-        errorMessage = errorMessage
-          .replaceAll('MODERATION_BLOCKED:', '')
-          .trim();
-      }
+      const failure = this.extractGenerationFailure(err);
 
       this.updateJob(jobId, {
         status: 'failed',
-        message: isModerationBlock ? 'Content blocked' : 'Generation failed',
-        error: errorMessage,
+        message: failure.statusMessage,
+        error: failure.errorMessage,
       });
     }
 
     this.updateActiveJobs();
+  }
+
+  private async requestImageGeneration(
+    request: ImageGenerateRequest
+  ): Promise<ImageGenerateResponse> {
+    return firstValueFrom(
+      this.aiImageService.generateImage(request).pipe(timeout(180_000))
+    );
+  }
+
+  private handleTextOnlyResponse(
+    jobId: string,
+    response: ImageGenerateResponse
+  ): boolean {
+    if (this.hasRenderableImage(response)) {
+      return false;
+    }
+
+    const textContent =
+      response.textContent ??
+      response.data.find(image => image.textContent)?.textContent ??
+      'The model returned no image data.';
+
+    this.updateJob(jobId, {
+      status: 'failed',
+      message: 'Generation failed',
+      error: this.getTextOnlyResponseError(textContent),
+      response,
+    });
+    this.updateActiveJobs();
+    return true;
+  }
+
+  private hasRenderableImage(response: ImageGenerateResponse): boolean {
+    return response.data.some(image => !!image.b64Json || !!image.url);
+  }
+
+  private getTextOnlyResponseError(textContent: string): string {
+    const prefix = this.isGenerationRefusal(textContent)
+      ? 'Image generation was refused'
+      : 'The model returned text instead of an image';
+    return `${prefix}: ${textContent}`;
+  }
+
+  private isGenerationRefusal(textContent: string): boolean {
+    const lowerContent = textContent.toLowerCase();
+    return [
+      'cannot',
+      "can't",
+      'unable',
+      'sorry',
+      'policy',
+      'inappropriate',
+      'violat',
+    ].some(keyword => lowerContent.includes(keyword));
+  }
+
+  private async completeJob(
+    jobId: string,
+    job: GenerationJob,
+    response: ImageGenerateResponse
+  ): Promise<void> {
+    this.markJobSaving(jobId, response);
+    const savedMediaIds = await this.saveGeneratedImages(job, response);
+
+    this.updateJob(jobId, {
+      status: 'completed',
+      message: this.getCompletionMessage(job.forCover, response.data.length),
+      savedMediaIds,
+    });
+  }
+
+  private markJobSaving(
+    jobId: string,
+    response: ImageGenerateResponse,
+    options?: { clearPartialImageUrl?: boolean }
+  ): void {
+    this.updateJob(jobId, {
+      status: 'saving',
+      message: 'Saving to media library...',
+      images: response.data,
+      response,
+      ...(options?.clearPartialImageUrl ? { partialImageUrl: undefined } : {}),
+    });
+  }
+
+  private getCompletionMessage(
+    forCover: boolean | undefined,
+    imageCount: number
+  ): string {
+    if (forCover) {
+      return 'Image saved to library. Crop to set as cover.';
+    }
+
+    return `Generated ${imageCount} ${imageCount === 1 ? 'image' : 'images'}`;
+  }
+
+  private extractGenerationFailure(err: unknown): {
+    statusMessage: string;
+    errorMessage: string;
+  } {
+    let errorMessage = 'Generation failed';
+
+    if (err instanceof TimeoutError) {
+      errorMessage =
+        'Image generation timed out. The model may be overloaded — please try again.';
+    } else if (err instanceof Error) {
+      errorMessage = err.message;
+    }
+
+    if (err !== null && typeof err === 'object' && 'error' in err) {
+      const errorBody = err.error;
+
+      if (typeof errorBody === 'string') {
+        errorMessage = errorBody;
+      } else if (typeof errorBody === 'object' && errorBody !== null) {
+        const structuredError = errorBody as Record<string, unknown>;
+        if (typeof structuredError['error'] === 'string') {
+          errorMessage = structuredError['error'];
+        } else if (typeof structuredError['message'] === 'string') {
+          errorMessage = structuredError['message'];
+        }
+      }
+    }
+
+    const isModerationBlock = errorMessage.includes('MODERATION_BLOCKED:');
+    return {
+      statusMessage: isModerationBlock
+        ? 'Content blocked'
+        : 'Generation failed',
+      errorMessage: isModerationBlock
+        ? errorMessage.replaceAll('MODERATION_BLOCKED:', '').trim()
+        : errorMessage,
+    };
   }
 
   /**
@@ -350,43 +396,13 @@ export class ImageGenerationService {
       const job = this.getJob(jobId);
       if (!job) return;
 
-      // Build request headers matching what the interceptors would add
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
-      };
-
-      const token = this.authTokenService.getToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const csrfToken = this.xsrfService.getXsrfToken();
-      if (csrfToken) {
-        headers['X-CSRF-TOKEN'] = csrfToken;
-      }
-
-      const response = await fetch(
-        `${environment.apiUrl}/api/v1/ai/image/generate-stream`,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(job.request),
-          credentials: 'include',
-        }
-      );
+      const response = await this.openStreamingResponse(job.request);
 
       if (!response.ok) {
-        const errorBody = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        const errorMsg = errorBody?.error || `Server error: ${response.status}`;
-        this.updateJob(jobId, {
-          status: 'failed',
-          message: 'Generation failed',
-          error: errorMsg,
-        });
-        this.updateActiveJobs();
+        this.failStreamingJob(
+          jobId,
+          await this.getStreamingErrorMessage(response)
+        );
         return;
       }
 
@@ -395,122 +411,207 @@ export class ImageGenerationService {
         throw new Error('Response body is not readable');
       }
 
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Parse SSE events from buffer
-        const events = buffer.split('\n\n');
-        // Keep the last (possibly incomplete) chunk in the buffer
-        buffer = events.pop() || '';
-
-        for (const eventBlock of events) {
-          if (!eventBlock.trim()) continue;
-
-          let eventType = '';
-          let eventData = '';
-
-          for (const line of eventBlock.split('\n')) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7).trim();
-            } else if (line.startsWith('data: ')) {
-              eventData = line.slice(6);
-            }
-          }
-
-          if (!eventType || !eventData) continue;
-
-          try {
-            const parsed = JSON.parse(eventData) as StreamEvent;
-
-            if (
-              parsed.type === 'partial_image' &&
-              eventType === 'partial_image'
-            ) {
-              // Update partial image preview
-              this.updateJob(jobId, {
-                partialImageUrl: `data:image/png;base64,${parsed.b64Json}`,
-                message: `Rendering preview ${parsed.partialImageIndex + 1}...`,
-              });
-            } else if (
-              parsed.type === 'completed' &&
-              eventType === 'completed'
-            ) {
-              // Generation complete — transition to saving
-              const result = parsed.result;
-              this.updateJob(jobId, {
-                status: 'saving',
-                message: 'Saving to media library...',
-                images: result.data,
-                response: result,
-                partialImageUrl: undefined, // Clear partial preview
-              });
-
-              // Save images
-              const currentJob = this.getJob(jobId);
-              if (currentJob) {
-                const savedMediaIds = await this.saveGeneratedImages(
-                  currentJob,
-                  result
-                );
-                this.updateJob(jobId, {
-                  status: 'completed',
-                  message: currentJob.forCover
-                    ? 'Image saved to library. Crop to set as cover.'
-                    : `Generated ${result.data.length} image${result.data.length > 1 ? 's' : ''}`,
-                  savedMediaIds,
-                });
-              }
-
-              this.updateActiveJobs();
-              return;
-            } else if (parsed.type === 'error' && eventType === 'error') {
-              this.updateJob(jobId, {
-                status: 'failed',
-                message: 'Generation failed',
-                error: parsed.error || 'Unknown streaming error',
-                partialImageUrl: undefined,
-              });
-              this.updateActiveJobs();
-              return;
-            }
-          } catch {
-            // Skip malformed JSON events
-          }
-        }
-      }
-
-      // If we reach here without a completed event, something went wrong
-      const currentJob = this.getJob(jobId);
-      if (
-        currentJob &&
-        currentJob.status !== 'completed' &&
-        currentJob.status !== 'failed'
-      ) {
-        this.updateJob(jobId, {
-          status: 'failed',
-          message: 'Generation failed',
-          error: 'Stream ended unexpectedly',
-          partialImageUrl: undefined,
-        });
+      const streamCompleted = await this.processStream(jobId, reader);
+      if (!streamCompleted) {
+        this.failStreamingJob(jobId, 'Stream ended unexpectedly');
       }
     } catch (err) {
       console.error('Streaming generation failed:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Streaming generation failed';
-      this.updateJob(jobId, {
-        status: 'failed',
-        message: 'Generation failed',
-        error: errorMessage,
-        partialImageUrl: undefined,
-      });
+      this.failStreamingJob(
+        jobId,
+        err instanceof Error ? err.message : 'Streaming generation failed'
+      );
+    }
+  }
+
+  private createStreamingHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    };
+
+    const token = this.authTokenService.getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const csrfToken = this.xsrfService.getXsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+
+    return headers;
+  }
+
+  private openStreamingResponse(
+    request: ImageGenerateRequest
+  ): Promise<Response> {
+    return fetch(`${environment.apiUrl}/api/v1/ai/image/generate-stream`, {
+      method: 'POST',
+      headers: this.createStreamingHeaders(),
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
+  }
+
+  private async getStreamingErrorMessage(response: Response): Promise<string> {
+    const errorBody = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+
+    return errorBody?.error || `Server error: ${response.status}`;
+  }
+
+  private async processStream(
+    jobId: string,
+    reader: ReadableStreamDefaultReader<Uint8Array>
+  ): Promise<boolean> {
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        return false;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const { eventBlocks, remainingBuffer } = this.extractEventBlocks(buffer);
+      buffer = remainingBuffer;
+
+      for (const eventBlock of eventBlocks) {
+        const handledTerminalEvent = await this.handleStreamEventBlock(
+          jobId,
+          eventBlock
+        );
+        if (handledTerminalEvent) {
+          return true;
+        }
+      }
+    }
+  }
+
+  private extractEventBlocks(buffer: string): {
+    eventBlocks: string[];
+    remainingBuffer: string;
+  } {
+    const eventBlocks = buffer.split('\n\n');
+    return {
+      eventBlocks,
+      remainingBuffer: eventBlocks.pop() || '',
+    };
+  }
+
+  private async handleStreamEventBlock(
+    jobId: string,
+    eventBlock: string
+  ): Promise<boolean> {
+    if (!eventBlock.trim()) {
+      return false;
+    }
+
+    try {
+      const parsedEvent = this.parseStreamEventBlock(eventBlock);
+      if (!parsedEvent) {
+        return false;
+      }
+
+      return this.handleParsedStreamEvent(jobId, parsedEvent);
+    } catch {
+      return false;
+    }
+  }
+
+  private parseStreamEventBlock(eventBlock: string): {
+    eventType: string;
+    event: StreamEvent;
+  } | null {
+    let eventType = '';
+    let eventData = '';
+
+    for (const line of eventBlock.split('\n')) {
+      if (line.startsWith('event: ')) {
+        eventType = line.slice(7).trim();
+      } else if (line.startsWith('data: ')) {
+        eventData = line.slice(6);
+      }
+    }
+
+    if (!eventType || !eventData) {
+      return null;
+    }
+
+    return {
+      eventType,
+      event: JSON.parse(eventData) as StreamEvent,
+    };
+  }
+
+  private async handleParsedStreamEvent(
+    jobId: string,
+    parsedEvent: { eventType: string; event: StreamEvent }
+  ): Promise<boolean> {
+    const { eventType, event } = parsedEvent;
+
+    if (event.type === 'partial_image' && eventType === 'partial_image') {
+      this.updatePartialImagePreview(jobId, event);
+      return false;
+    }
+
+    if (event.type === 'completed' && eventType === 'completed') {
+      await this.completeStreamingJob(jobId, event.result);
+      return true;
+    }
+
+    if (event.type === 'error' && eventType === 'error') {
+      this.failStreamingJob(jobId, event.error || 'Unknown streaming error');
+      return true;
+    }
+
+    return false;
+  }
+
+  private updatePartialImagePreview(
+    jobId: string,
+    event: StreamPartialImageEvent
+  ): void {
+    this.updateJob(jobId, {
+      partialImageUrl: `data:image/png;base64,${event.b64Json}`,
+      message: `Rendering preview ${event.partialImageIndex + 1}...`,
+    });
+  }
+
+  private async completeStreamingJob(
+    jobId: string,
+    response: ImageGenerateResponse
+  ): Promise<void> {
+    this.markJobSaving(jobId, response, { clearPartialImageUrl: true });
+
+    const currentJob = this.getJob(jobId);
+    if (!currentJob) {
+      this.updateActiveJobs();
+      return;
+    }
+
+    const savedMediaIds = await this.saveGeneratedImages(currentJob, response);
+    this.updateJob(jobId, {
+      status: 'completed',
+      message: this.getCompletionMessage(
+        currentJob.forCover,
+        response.data.length
+      ),
+      savedMediaIds,
+    });
+    this.updateActiveJobs();
+  }
+
+  private failStreamingJob(jobId: string, error: string): void {
+    this.updateJob(jobId, {
+      status: 'failed',
+      message: 'Generation failed',
+      error,
+      partialImageUrl: undefined,
+    });
     this.updateActiveJobs();
   }
 
