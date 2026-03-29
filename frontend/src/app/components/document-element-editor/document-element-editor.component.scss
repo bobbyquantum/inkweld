@@ -80,13 +80,6 @@
   flex: 1;
   min-height: 0;
 
-  &.with-snapshot-panel {
-    .scaled-content {
-      flex: 1;
-      min-width: 0; // Allow flex shrinking
-    }
-  }
-
   &.zen-mode-container {
     height: var(--app-height);
     padding: 0;
