@@ -1098,6 +1098,63 @@ describe('CanvasTabComponent', () => {
       expect(blob.type).toBe('image/svg+xml');
       expect(clickSpy).toHaveBeenCalled();
     });
+
+    it('should convert text objects with correct text-anchor mapping', async () => {
+      const layerId = defaultConfig.layers[0].id;
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [
+          {
+            id: 'txt-center',
+            layerId,
+            type: 'text' as const,
+            x: 10,
+            y: 20,
+            width: 200,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            locked: false,
+            text: 'Centered',
+            fontSize: 16,
+            fontFamily: 'Arial',
+            fontStyle: 'normal' as const,
+            fill: '#000',
+            align: 'center' as const,
+          },
+          {
+            id: 'txt-left',
+            layerId,
+            type: 'text' as const,
+            x: 10,
+            y: 60,
+            width: 200,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            visible: true,
+            locked: false,
+            text: 'Left',
+            fontSize: 16,
+            fontFamily: 'Arial',
+            fontStyle: 'bold italic' as const,
+            fill: '#333',
+            align: 'left' as const,
+          },
+        ],
+      });
+
+      component['exportAsSvg']();
+
+      expect(createObjectURLSpy).toHaveBeenCalled();
+      const blob = createObjectURLSpy.mock.calls[0][0] as Blob;
+      const svgText = await blob.text();
+      // 'center' maps to 'middle'
+      expect(svgText).toContain('text-anchor="middle"');
+      // 'left' falls back to 'start' via ?? operator
+      expect(svgText).toContain('text-anchor="start"');
+    });
   });
 
   describe('resolveImageSrc', () => {

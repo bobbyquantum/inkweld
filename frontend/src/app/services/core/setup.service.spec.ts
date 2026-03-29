@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
+import { environment } from '../../../environments/environment';
 import { SetupService } from './setup.service';
 import {
   APP_CONFIG_STORAGE_KEY,
@@ -472,6 +473,44 @@ describe('SetupService', () => {
         const context = service.getStorageContext();
         expect(context).toBeInstanceOf(StorageContextService);
       });
+    });
+  });
+
+  describe('autoConfigureIfNeeded', () => {
+    const originalApiUrl = environment.apiUrl;
+
+    afterEach(() => {
+      environment.apiUrl = originalApiUrl;
+    });
+
+    it('should auto-configure when no active config exists (null config)', () => {
+      // Service already created with no config → mode is null (unconfigured)
+      expect(service.getMode()).toBeNull();
+
+      // Set a hosted URL and invoke the private method directly
+      environment.apiUrl = 'https://production.example.com';
+      (service as any)['autoConfigureIfNeeded']();
+
+      // Should have switched to server mode
+      expect(service.getMode()).toBe('server');
+      expect(service.getServerUrl()).toBe('https://production.example.com');
+    });
+
+    it('should skip auto-configure when already matching server config', () => {
+      // First, configure the service to server mode with the hosted URL
+      environment.apiUrl = 'https://production.example.com';
+      (service as any)['autoConfigureIfNeeded']();
+      expect(service.getMode()).toBe('server');
+
+      // Spy on storageContext to verify no new config is added on second call
+      const storageContext = (service as any)
+        .storageContext as StorageContextService;
+      const addSpy = vi.spyOn(storageContext, 'addServerConfig');
+
+      // Call again — should skip since active config already matches
+      (service as any)['autoConfigureIfNeeded']();
+
+      expect(addSpy).not.toHaveBeenCalled();
     });
   });
 });

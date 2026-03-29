@@ -153,7 +153,7 @@ export class ColorSwatchesComponent {
   readonly testId = 'color-swatches';
 
   @ViewChild('hexInputEl')
-  private hexInputRef!: ElementRef<HTMLInputElement>;
+  private readonly hexInputRef!: ElementRef<HTMLInputElement>;
 
   /** Curated palette — Material Design inspired */
   readonly colors: string[] = [

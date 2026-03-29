@@ -80,7 +80,8 @@ export class WorldbuildingImageDialogComponent implements OnInit {
   private readonly dialogRef = inject(
     MatDialogRef<WorldbuildingImageDialogComponent>
   );
-  private dialogData = inject<WorldbuildingImageDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogData =
+    inject<WorldbuildingImageDialogData>(MAT_DIALOG_DATA);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly sanitizer = inject(DomSanitizer);

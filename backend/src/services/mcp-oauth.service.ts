@@ -329,7 +329,7 @@ class McpOAuthService {
     clientSecret: string
   ): Promise<boolean> {
     const client = await this.lookupClient(db, clientId);
-    if (!client || client.clientType !== 'confidential' || !client.clientSecretHash) {
+    if (client?.clientType !== 'confidential' || !client?.clientSecretHash) {
       return false;
     }
 
@@ -539,7 +539,7 @@ class McpOAuthService {
     // Get user info
     const [user] = await db.select().from(users).where(eq(users.id, authCode.userId)).limit(1);
 
-    if (!user || !user.username) {
+    if (!user?.username) {
       throw new OAuthError('server_error', 'User not found');
     }
 
@@ -779,7 +779,7 @@ class McpOAuthService {
     // Get user info
     const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
 
-    if (!user || !user.username) {
+    if (!user?.username) {
       throw new OAuthError('server_error', 'User not found');
     }
 
@@ -877,7 +877,7 @@ class McpOAuthService {
       .limit(1);
 
     // Session not found or has been revoked
-    return !session || session.revokedAt !== null;
+    return session?.revokedAt !== null;
   }
 
   /**

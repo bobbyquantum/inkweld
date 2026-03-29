@@ -797,7 +797,7 @@ export class DocumentService {
     connection: DocumentConnection
   ): void {
     const view = editor.view;
-    if (!view || !view.dom || !connection.type) {
+    if (!view?.dom || !connection.type) {
       this.logger.error(
         'DocumentService',
         'Cannot add plugins - editor view, DOM, or Yjs type not initialized'
@@ -922,7 +922,7 @@ export class DocumentService {
 
     // Check if view DOM is still attached before updating state
     // This prevents crashes when editor is destroyed during async operations
-    if (!view.dom || !view.dom.parentNode) {
+    if (!view.dom?.parentNode) {
       this.logger.warn(
         'DocumentService',
         'Editor DOM detached before updateState - skipping'
@@ -1171,12 +1171,14 @@ export class DocumentService {
 
       // Handle connection errors with enhanced debugging
       provider.on('connection-error', (error: Error | string | Event) => {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : typeof error === 'string'
-              ? error
-              : error.type;
+        let errorMessage: string;
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else {
+          errorMessage = error.type;
+        }
 
         this.logger.warn(
           'DocumentService',
@@ -1661,10 +1663,13 @@ export class DocumentService {
     // NOTE: Documents are stored in IndexedDB WITHOUT a prefix (unlike elements which use prefixDocumentId).
     // The sourceConfigId parameter is kept for API compatibility but not used for documents.
     const localDocId = sourceDocumentId ?? documentId;
+    const sourceSuffix = sourceDocumentId
+      ? ` (source: ${sourceDocumentId})`
+      : '';
 
     this.logger.info(
       'DocumentService',
-      `syncDocumentToServer: Starting headless sync for ${documentId}${sourceDocumentId ? ` (source: ${sourceDocumentId})` : ''}`
+      `syncDocumentToServer: Starting headless sync for ${documentId}${sourceSuffix}`
     );
 
     // Validate documentId format (must be username:slug:docId)
@@ -1880,14 +1885,17 @@ export class DocumentService {
     // NOTE: Worldbuilding data is stored in IndexedDB WITHOUT a prefix (like documents, unlike elements).
     // The sourceConfigId parameter is kept for API compatibility but not used for worldbuilding.
     const localDocId = sourceWorldbuildingId ?? worldbuildingId;
+    const wbSourceSuffix = sourceWorldbuildingId
+      ? ` (source: ${sourceWorldbuildingId})`
+      : '';
 
     this.logger.info(
       'DocumentService',
-      `syncWorldbuildingToServer: Starting headless sync for ${worldbuildingId}${sourceWorldbuildingId ? ` (source: ${sourceWorldbuildingId})` : ''}`
+      `syncWorldbuildingToServer: Starting headless sync for ${worldbuildingId}${wbSourceSuffix}`
     );
 
     // Validate worldbuildingId format (must be worldbuilding:username:slug:elementId)
-    if (!worldbuildingId || !worldbuildingId.startsWith('worldbuilding:')) {
+    if (!worldbuildingId?.startsWith('worldbuilding:')) {
       throw new Error(`Invalid worldbuildingId format: ${worldbuildingId}`);
     }
 

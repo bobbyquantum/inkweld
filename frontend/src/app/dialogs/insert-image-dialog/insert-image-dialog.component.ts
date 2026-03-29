@@ -68,7 +68,7 @@ export interface InsertImageDialogResult {
 })
 export class InsertImageDialogComponent implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<InsertImageDialogComponent>);
-  private dialogData = inject<InsertImageDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogData = inject<InsertImageDialogData>(MAT_DIALOG_DATA);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly sanitizer = inject(DomSanitizer);

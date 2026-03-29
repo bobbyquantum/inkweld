@@ -25,8 +25,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
-import { FindInDocumentService } from '../../services/core/find-in-document.service';
+import { FindInDocumentService } from '@services/core/find-in-document.service';
 
 @Component({
   selector: 'app-find-in-document',
@@ -316,7 +315,7 @@ export class FindInDocumentComponent implements OnInit, OnDestroy {
   private searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   /** Track if we should focus on open */
-  private focusOnOpen = signal(false);
+  private readonly focusOnOpen = signal(false);
 
   constructor() {
     // Auto-focus when bar opens

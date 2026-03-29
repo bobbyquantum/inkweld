@@ -492,7 +492,7 @@ class CollaborationService {
 
     // Check if user is collaborator
     const collaborator = await this.getCollaborator(db, projectId, userId);
-    if (!collaborator || collaborator.status !== 'accepted') {
+    if (collaborator?.status !== 'accepted') {
       return {
         isOwner: false,
         isCollaborator: false,

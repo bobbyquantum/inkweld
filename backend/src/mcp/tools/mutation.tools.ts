@@ -715,11 +715,13 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
 
       await runtimeReplaceAllElements(ctx, username, slug, currentElements);
 
+      const errorSuffix = errors.length > 0 ? ` (errors: ${errors.join(', ')})` : '';
+
       return {
         content: [
           {
             type: 'text',
-            text: `Moved ${movedElements.length} elements to ${newParentId || 'root'}: ${movedElements.join(', ')}${errors.length > 0 ? ` (errors: ${errors.join(', ')})` : ''}`,
+            text: `Moved ${movedElements.length} elements to ${newParentId || 'root'}: ${movedElements.join(', ')}${errorSuffix}`,
           },
         ],
         structuredContent: {
@@ -1704,9 +1706,8 @@ registerTool({
           const docData = wbDoc.toJSON();
 
           // For now, we can't easily get ProseMirror XML on Workers
-          // since it requires XmlFragment parsing. Store empty for Workers.
-          xmlContent = '';
-          wordCount = 0;
+          // since it requires XmlFragment parsing.
+          // xmlContent and wordCount keep their initialized defaults.
 
           // Get worldbuilding data if applicable
           if (element.type === 'WORLDBUILDING' && Object.keys(docData).length > 0) {
@@ -1714,6 +1715,20 @@ registerTool({
           }
         } catch (err: unknown) {
           mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+        }
+
+        // Skip persisting blank snapshots for ITEM documents on Workers
+        // (no XML/word data can be extracted in this environment)
+        if (element.type === 'ITEM' && !xmlContent && wordCount === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Cannot create snapshot for document "${element.name}" on Cloudflare Workers: content extraction is not supported in this environment.`,
+              },
+            ],
+            isError: true,
+          };
         }
       } else {
         // Bun: use LevelDB service for full access

@@ -593,12 +593,10 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     const finalKey = parts[parts.length - 1];
     if (parts.length > 1) {
       container.set(finalKey, value);
-    } else {
-      // Root level - value should be an object to merge
-      if (typeof value === 'object' && value !== null) {
-        for (const [k, v] of Object.entries(value)) {
-          container.set(k, v);
-        }
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Root level - value should be a plain object to merge
+      for (const [k, v] of Object.entries(value)) {
+        container.set(k, v);
       }
     }
   }

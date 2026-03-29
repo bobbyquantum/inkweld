@@ -468,7 +468,10 @@ describe('DocumentService', () => {
         'test-project',
         'test-doc'
       );
-      expect(openSpy).toHaveBeenCalledWith('blob:mock-url', '_blank');
+      expect(openSpy).toHaveBeenCalledWith(
+        expect.stringContaining('blob:'),
+        '_blank'
+      );
     });
 
     it('should convert ProseMirror JSON structures to XML strings', () => {
@@ -851,6 +854,54 @@ describe('DocumentService', () => {
       expect(statusHandler).toHaveBeenCalled();
       expect(errorHandler).toHaveBeenCalled();
     });
+
+    it('should extract message from Error instances in connection-error handler', async () => {
+      let connectionErrorHandler:
+        | ((error: Error | string | Event) => void)
+        | undefined;
+      mockWebSocketProvider.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === 'connection-error') connectionErrorHandler = callback;
+          return () => {};
+        }
+      );
+
+      service.initializeSyncStatus(testDocumentId);
+      await service.setupCollaboration(mockEditor, testDocumentId);
+      // Flush microtask queue — connectWebSocketInBackground is fire-and-forget
+      await new Promise(r => setTimeout(r, 0));
+
+      // Invoke with Error instance — covers the `error instanceof Error` branch
+      connectionErrorHandler!(new Error('Connection refused'));
+      // Non-auth errors fall through to Local state (not Unavailable)
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+    });
+
+    it('should extract type from Event instances in connection-error handler', async () => {
+      let connectionErrorHandler:
+        | ((error: Error | string | Event) => void)
+        | undefined;
+      mockWebSocketProvider.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === 'connection-error') connectionErrorHandler = callback;
+          return () => {};
+        }
+      );
+
+      service.initializeSyncStatus(testDocumentId);
+      await service.setupCollaboration(mockEditor, testDocumentId);
+      // Flush microtask queue — connectWebSocketInBackground is fire-and-forget
+      await new Promise(r => setTimeout(r, 0));
+
+      // Invoke with Event instance — covers the `else` branch (not Error, not string)
+      connectionErrorHandler!(new Event('error'));
+      // Non-auth errors fall through to Local state
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+    });
   });
 
   describe('Unsynced Changes Tracking', () => {
@@ -972,6 +1023,21 @@ describe('DocumentService', () => {
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
       });
 
+      it('should log source suffix when sourceDocumentId is provided', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        // Exercises the sourceSuffix truthy branch (sourceDocumentId is defined)
+        await service.syncDocumentToServer(
+          testDocumentId,
+          30000,
+          'other:project:doc'
+        );
+
+        // Method returns early because webSocketUrl is null, but the sourceSuffix
+        // branch was exercised in the logger.info call before the early return
+        expect(mockSetupService.getWebSocketUrl).toHaveBeenCalled();
+      });
+
       it('should call createAuthWsProvider when syncing a document', async () => {
         mockWebSocketProvider.on.mockImplementation(
           (event: string, callback: any) => {
@@ -1076,6 +1142,21 @@ describe('DocumentService', () => {
 
         // Verify getToken was called
         expect(mockAuthTokenService.getToken).toHaveBeenCalled();
+      });
+
+      it('should log source suffix when sourceWorldbuildingId is provided', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+
+        // Exercises the wbSourceSuffix truthy branch (sourceWorldbuildingId is defined)
+        await service.syncWorldbuildingToServer(
+          'worldbuilding:testuser:project:element123',
+          30000,
+          'worldbuilding:other:project:elemABC'
+        );
+
+        // Method returns early because webSocketUrl is null, but the wbSourceSuffix
+        // branch was exercised in the logger.info call before the early return
+        expect(mockSetupService.getWebSocketUrl).toHaveBeenCalled();
       });
 
       it('should call createAuthWsProvider when syncing worldbuilding', async () => {

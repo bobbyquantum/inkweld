@@ -2644,12 +2644,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private canvasTextToSvg(obj: CanvasText, tf: string): string {
     const bold = obj.fontStyle.includes('bold') ? 'bold' : 'normal';
     const italic = obj.fontStyle.includes('italic') ? 'italic' : 'normal';
-    const anchor =
-      obj.align === 'center'
-        ? 'middle'
-        : obj.align === 'right'
-          ? 'end'
-          : 'start';
+    const anchorMap: Record<string, string> = {
+      center: 'middle',
+      right: 'end',
+    };
+    const anchor = anchorMap[obj.align] ?? 'start';
     const style = `font-size:${obj.fontSize}px;font-family:${obj.fontFamily};font-weight:${bold};font-style:${italic}`;
     return `<text ${tf} fill="${obj.fill}" style="${style}" text-anchor="${anchor}" dominant-baseline="text-before-edge">${this.svgEsc(obj.text)}</text>`;
   }

@@ -43,6 +43,18 @@ export const JSON_RPC_ERRORS = {
   RESOURCE_NOT_FOUND: -32002,
 } as const;
 
+/**
+ * Error class for JSON-RPC errors that preserves the `code` property
+ * required by the MCP error handling pipeline.
+ */
+export class McpRpcError extends Error {
+  code: number;
+  constructor(code: number, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 // ============================================
 // MCP Protocol Types
 // ============================================
