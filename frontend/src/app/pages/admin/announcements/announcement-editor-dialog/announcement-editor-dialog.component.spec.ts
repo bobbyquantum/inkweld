@@ -6,7 +6,6 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideAnimations } from '@angular/platform-browser/animations';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,7 +41,6 @@ describe('AnnouncementEditorDialogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AnnouncementEditorDialogComponent, MatDialogModule],
       providers: [
-        provideAnimations(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: AnnouncementService, useValue: mockAnnouncementService },

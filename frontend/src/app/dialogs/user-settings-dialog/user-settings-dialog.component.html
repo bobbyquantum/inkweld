@@ -62,23 +62,39 @@
       </a>
     </mat-nav-list>
 
-    <div
-      class="settings-content"
-      [class.mobile]="isMobile"
-      role="tabpanel"
-      [@slideAnimation]="getAnimationState()">
+    <div class="settings-content" [class.mobile]="isMobile" role="tabpanel">
       @switch (selectedCategory) {
         @case ('account') {
-          <app-account-settings />
+          <div
+            class="tab-panel"
+            [animate.enter]="getEnterAnimationClass()"
+            [animate.leave]="getLeaveAnimationClass()">
+            <app-account-settings />
+          </div>
         }
         @case ('authorized-apps') {
-          <app-authorized-apps />
+          <div
+            class="tab-panel"
+            [animate.enter]="getEnterAnimationClass()"
+            [animate.leave]="getLeaveAnimationClass()">
+            <app-authorized-apps />
+          </div>
         }
         @case ('project-tree') {
-          <app-project-tree-settings />
+          <div
+            class="tab-panel"
+            [animate.enter]="getEnterAnimationClass()"
+            [animate.leave]="getLeaveAnimationClass()">
+            <app-project-tree-settings />
+          </div>
         }
         @case ('project') {
-          <app-project-settings />
+          <div
+            class="tab-panel"
+            [animate.enter]="getEnterAnimationClass()"
+            [animate.leave]="getLeaveAnimationClass()">
+            <app-project-settings />
+          </div>
         }
       }
     </div>

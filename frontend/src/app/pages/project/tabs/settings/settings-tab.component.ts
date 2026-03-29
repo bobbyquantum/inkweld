@@ -68,7 +68,6 @@ import { TemplatesTabComponent } from '../templates/templates-tab.component';
   selector: 'app-settings-tab',
   templateUrl: './settings-tab.component.html',
   styleUrls: ['./settings-tab.component.scss'],
-  standalone: true,
   imports: [
     DatePipe,
     FormsModule,

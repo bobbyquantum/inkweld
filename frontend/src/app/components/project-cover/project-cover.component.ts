@@ -22,7 +22,6 @@ export type ProjectCoverVariant = 'card' | 'list' | 'small';
 
 @Component({
   selector: 'app-project-cover',
-  standalone: true,
   imports: [],
   templateUrl: './project-cover.component.html',
   styleUrls: ['./project-cover.component.scss'],

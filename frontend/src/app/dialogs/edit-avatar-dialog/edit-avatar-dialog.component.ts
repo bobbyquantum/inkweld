@@ -17,7 +17,6 @@ import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-edit-avatar-dialog',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

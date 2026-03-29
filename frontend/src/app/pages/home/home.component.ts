@@ -46,7 +46,6 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-home',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatCardModule,

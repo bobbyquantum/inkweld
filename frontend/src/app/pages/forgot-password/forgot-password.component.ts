@@ -11,7 +11,6 @@ import { PasswordResetService } from '@services/auth/password-reset.service';
 
 @Component({
   selector: 'app-forgot-password',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

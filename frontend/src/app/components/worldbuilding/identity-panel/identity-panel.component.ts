@@ -34,7 +34,6 @@ import { TagChipListComponent } from '../../tags/tag-chip-list.component';
  */
 @Component({
   selector: 'app-identity-panel',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

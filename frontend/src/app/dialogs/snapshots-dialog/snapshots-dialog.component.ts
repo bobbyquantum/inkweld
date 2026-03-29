@@ -47,7 +47,6 @@ export interface SnapshotsDialogData {
  */
 @Component({
   selector: 'app-snapshots-dialog',
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

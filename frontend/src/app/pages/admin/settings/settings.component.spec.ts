@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { BASE_PATH } from '@inkweld/variables';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { of } from 'rxjs';
@@ -75,7 +74,6 @@ describe('AdminSettingsComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         { provide: BASE_PATH, useValue: '' },
         { provide: SystemConfigService, useValue: mockSystemConfigService },
       ],

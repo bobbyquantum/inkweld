@@ -82,7 +82,6 @@ export interface RegistrationResult {
  */
 @Component({
   selector: 'app-registration-form',
-  standalone: true,
   imports: [
     FormsModule,
     ReactiveFormsModule,

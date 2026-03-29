@@ -62,7 +62,6 @@ interface NewElementForm {
   selector: 'app-new-element-dialog',
   templateUrl: './new-element-dialog.component.html',
   styleUrls: ['./new-element-dialog.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,

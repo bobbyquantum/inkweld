@@ -16,7 +16,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import {
   AdminConfigService,
@@ -295,7 +294,6 @@ describe('AdminAiSettingsComponent', () => {
       ],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([]),
         { provide: AdminConfigService, useValue: mockConfigService },
         { provide: AIImageGenerationService, useValue: mockImageService },

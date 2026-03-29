@@ -16,7 +16,6 @@ import { FolderElementEditorComponent } from '../../../../components/folder-elem
   selector: 'app-folder-tab',
   templateUrl: './folder-tab.component.html',
   styleUrls: ['./folder-tab.component.scss'],
-  standalone: true,
   imports: [FolderElementEditorComponent],
 })
 export class FolderTabComponent implements OnInit, OnDestroy {

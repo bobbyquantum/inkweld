@@ -28,7 +28,6 @@ import {
 
 @Component({
   selector: 'app-admin-announcements',
-  standalone: true,
   imports: [
     DatePipe,
     FormsModule,

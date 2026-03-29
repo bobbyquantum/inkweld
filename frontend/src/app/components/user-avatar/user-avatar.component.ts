@@ -18,7 +18,6 @@ import { type Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-user-avatar',
-  standalone: true,
   imports: [],
   templateUrl: './user-avatar.component.html',
   styleUrls: ['./user-avatar.component.scss'],

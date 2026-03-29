@@ -7,7 +7,6 @@ import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
 @Component({
   selector: 'app-project-settings',
-  standalone: true,
   imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
   templateUrl: './project-settings.component.html',
   styleUrl: './project-settings.component.scss',

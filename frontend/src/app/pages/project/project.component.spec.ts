@@ -39,7 +39,7 @@ import { ProjectComponent } from './project.component';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 // Mock child components to avoid their dependencies
-@Component({ selector: 'app-project-tree', template: '', standalone: true })
+@Component({ selector: 'app-project-tree', template: '' })
 class MockProjectTreeComponent {
   @Input() showCollapseButton?: boolean;
 }
@@ -47,7 +47,6 @@ class MockProjectTreeComponent {
 @Component({
   selector: 'app-user-menu',
   template: '',
-  standalone: true,
 })
 class MockUserMenuComponent {
   @Input() miniMode?: boolean;
@@ -56,7 +55,6 @@ class MockUserMenuComponent {
 @Component({
   selector: 'app-document-element-editor',
   template: '',
-  standalone: true,
 })
 class MockDocumentElementEditorComponent {
   @Input() documentId?: string;
@@ -64,7 +62,7 @@ class MockDocumentElementEditorComponent {
   @Input() zenMode?: boolean;
 }
 
-@Component({ selector: 'app-tab-interface', template: '', standalone: true })
+@Component({ selector: 'app-tab-interface', template: '' })
 class MockTabInterfaceComponent {
   @Output() importRequested = new EventEmitter<void>();
 }

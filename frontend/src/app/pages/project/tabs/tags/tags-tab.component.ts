@@ -43,7 +43,6 @@ interface TagView {
   selector: 'app-tags-tab',
   templateUrl: './tags-tab.component.html',
   styleUrls: ['./tags-tab.component.scss'],
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

@@ -9,7 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { SetupService } from '@services/core/setup.service';
 import { vi } from 'vitest';
 
@@ -43,7 +42,6 @@ function createComponent() {
     ],
     providers: [
       provideZonelessChangeDetection(),
-      provideNoopAnimations(),
       provideHttpClient(),
       provideHttpClientTesting(),
       { provide: SetupService, useValue: mockSetupService },

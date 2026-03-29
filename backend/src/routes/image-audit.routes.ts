@@ -27,7 +27,7 @@ const AuditRecordSchema = z
     creditCost: z.number(),
     status: z.enum(['success', 'moderated']),
     message: z.string().nullable(),
-    createdAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
   })
   .openapi('ImageGenerationAudit');
 
