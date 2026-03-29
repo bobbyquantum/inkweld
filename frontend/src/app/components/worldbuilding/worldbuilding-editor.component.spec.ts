@@ -562,7 +562,7 @@ describe('WorldbuildingEditorComponent', () => {
         expect(component.mobileDrillInSection()).toBe('identity');
 
         // Simulate device back button
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        globalThis.dispatchEvent(new PopStateEvent('popstate'));
         expect(component.mobileDrillInSection()).toBeNull();
       });
 
@@ -577,7 +577,7 @@ describe('WorldbuildingEditorComponent', () => {
       it('should not call history.back when popstate already popped', () => {
         component.drillInto('identity');
         // Simulate device back button (popstate already popped the entry)
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        globalThis.dispatchEvent(new PopStateEvent('popstate'));
         const backSpy = vi.spyOn(history, 'back');
         // drillBack was already called by popstate, so calling again should be a no-op
         component.drillBack();
@@ -586,7 +586,7 @@ describe('WorldbuildingEditorComponent', () => {
       });
 
       it('should clean up popstate listener on destroy', () => {
-        const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
+        const removeListenerSpy = vi.spyOn(globalThis, 'removeEventListener');
         component.drillInto('identity');
         component.ngOnDestroy();
         expect(
@@ -669,7 +669,10 @@ describe('WorldbuildingEditorComponent', () => {
     describe('resize cleanup', () => {
       it('should clean up resize listener on destroy', () => {
         const mockResizeCleanup = vi.fn();
-        component['resizeCleanup'] = mockResizeCleanup;
+        const mutableComponent = component as unknown as {
+          resizeCleanup: (() => void) | null;
+        };
+        mutableComponent.resizeCleanup = mockResizeCleanup;
 
         component.ngOnDestroy();
 
@@ -677,7 +680,10 @@ describe('WorldbuildingEditorComponent', () => {
       });
 
       it('should handle destroy when no resize cleanup exists', () => {
-        component['resizeCleanup'] = null;
+        const mutableComponent = component as unknown as {
+          resizeCleanup: (() => void) | null;
+        };
+        mutableComponent.resizeCleanup = null;
         expect(() => component.ngOnDestroy()).not.toThrow();
       });
     });

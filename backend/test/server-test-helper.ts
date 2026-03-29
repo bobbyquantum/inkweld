@@ -6,39 +6,65 @@
 import { serve, type Server } from 'bun';
 import { createBunApp } from '../src/bun-app';
 
-let testServer: Server | null = null;
+let testServer: Server<undefined> | null = null;
 let testPort: number = 0;
-let app: ReturnType<typeof createBunApp> | null = null;
+let app: Awaited<ReturnType<typeof createBunApp>> | null = null;
+const TEST_HOST = '127.0.0.1';
+
+async function waitForServer(baseUrl: string, timeoutMs = 2_000): Promise<void> {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetch(baseUrl, {
+        method: 'HEAD',
+      });
+
+      // Any HTTP response means the socket is accepting connections.
+      if (response.status >= 200 || response.status === 404 || response.status === 405) {
+        return;
+      }
+    } catch {
+      // Server is not accepting connections yet.
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  throw new Error(`Timed out waiting for test server at ${baseUrl}`);
+}
 
 /**
  * Start a test server on a random available port
  */
 export async function startTestServer(): Promise<{ port: number; baseUrl: string }> {
+  const baseUrl = () => `http://${TEST_HOST}:${testPort}`;
+
   if (testServer) {
-    return { port: testPort, baseUrl: `http://localhost:${testPort}` };
+    await waitForServer(baseUrl());
+    return { port: testPort, baseUrl: baseUrl() };
   }
 
   // Ensure tests don't require admin approval for new users
   // This makes registration + login flow work for integration tests
-  if (process.env.USER_APPROVAL_REQUIRED === undefined) {
-    process.env.USER_APPROVAL_REQUIRED = 'false';
-  }
+  process.env.USER_APPROVAL_REQUIRED ??= 'false';
 
   // Try to find an available port
   testPort = 18333 + Math.floor(Math.random() * 1000);
 
   // Create app instance if not exists
-  if (!app) {
-    app = await createBunApp();
-  }
+  app ??= await createBunApp();
 
   testServer = serve({
+    hostname: TEST_HOST,
     port: testPort,
     fetch: app.fetch,
   });
 
+  await waitForServer(baseUrl());
+
   console.log(`✅ Test server started on port ${testPort}`);
-  return { port: testPort, baseUrl: `http://localhost:${testPort}` };
+  return { port: testPort, baseUrl: baseUrl() };
 }
 
 /**
@@ -58,7 +84,7 @@ export async function stopTestServer(): Promise<void> {
  */
 export class TestClient {
   private token: string | null = null;
-  private baseUrl: string;
+  private readonly baseUrl: string;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;

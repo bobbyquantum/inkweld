@@ -17,6 +17,7 @@ if (isCompiled && isInteractive) {
 const { config } = await import('./config/env');
 const { logger } = await import('./services/logger.service');
 const bunAppModule = await import('./bun-app');
+await bunAppModule.bootstrap();
 
 logger.info('BunRunner', `Server starting on port ${config.port}`, {
   nodeEnv: config.nodeEnv,

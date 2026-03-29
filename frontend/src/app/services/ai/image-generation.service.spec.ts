@@ -21,6 +21,39 @@ async function flushPromises(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0));
 }
 
+/**
+ * Helper to create a ReadableStream that yields SSE-formatted text.
+ */
+function createSSEStream(
+  events: { event: string; data: object }[]
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  let index = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (index < events.length) {
+        const e = events[index++];
+        const chunk = `event: ${e.event}\ndata: ${JSON.stringify(e.data)}\n\n`;
+        controller.enqueue(encoder.encode(chunk));
+      } else {
+        controller.close();
+      }
+    },
+  });
+}
+
+function mockFetchResponse(
+  events: { event: string; data: object }[],
+  status = 200
+): void {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    body: createSSEStream(events),
+    json: () => Promise.resolve({}),
+  } as unknown as Response);
+}
+
 describe('ImageGenerationService', () => {
   let service: ImageGenerationService;
   let mockAiImageService: MockedObject<AIImageGenerationService>;
@@ -233,6 +266,51 @@ describe('ImageGenerationService', () => {
       const job = service.jobs()[0];
       expect(job.status).toBe('failed');
       expect(job.error).toBe('Generation failed');
+    });
+
+    it('should fail with a refusal message when the model returns refusal text', async () => {
+      mockAiImageService.generateImage.mockReturnValue(
+        of({
+          ...createMockResponse(0),
+          textContent: 'Sorry, I cannot generate that image.',
+        } as ImageGenerateResponse) as any
+      );
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest()
+      );
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('failed');
+      expect(job?.error).toBe(
+        'Image generation was refused: Sorry, I cannot generate that image.'
+      );
+      expect(job?.response?.textContent).toBe(
+        'Sorry, I cannot generate that image.'
+      );
+    });
+
+    it('should fail with an explanatory message when the model returns non-refusal text', async () => {
+      mockAiImageService.generateImage.mockReturnValue(
+        of({
+          ...createMockResponse(0),
+          textContent: 'Generated prompt guidance instead of an image.',
+        } as ImageGenerateResponse) as any
+      );
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest()
+      );
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('failed');
+      expect(job?.error).toBe(
+        'The model returned text instead of an image: Generated prompt guidance instead of an image.'
+      );
     });
   });
 
@@ -534,39 +612,6 @@ describe('ImageGenerationService', () => {
   });
 
   describe('Streaming Generation', () => {
-    /**
-     * Helper to create a ReadableStream that yields SSE-formatted text.
-     */
-    function createSSEStream(
-      events: { event: string; data: object }[]
-    ): ReadableStream<Uint8Array> {
-      const encoder = new TextEncoder();
-      let index = 0;
-      return new ReadableStream({
-        pull(controller) {
-          if (index < events.length) {
-            const e = events[index++];
-            const chunk = `event: ${e.event}\ndata: ${JSON.stringify(e.data)}\n\n`;
-            controller.enqueue(encoder.encode(chunk));
-          } else {
-            controller.close();
-          }
-        },
-      });
-    }
-
-    function mockFetchResponse(
-      events: { event: string; data: object }[],
-      status = 200
-    ): void {
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-        ok: status >= 200 && status < 300,
-        status,
-        body: createSSEStream(events),
-        json: () => Promise.resolve({}),
-      } as unknown as Response);
-    }
-
     afterEach(() => {
       vi.restoreAllMocks();
     });

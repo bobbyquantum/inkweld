@@ -88,10 +88,12 @@ export class RelationshipChartService {
         const config: ChartConfig = {
           ...defaults,
           ...parsed,
-          filters: {
-            ...defaults.filters,
-            ...(parsed.filters ?? {}),
-          },
+          filters: parsed.filters
+            ? {
+                ...defaults.filters,
+                ...parsed.filters,
+              }
+            : defaults.filters,
           elementId, // Ensure elementId is always correct
         };
         this.logger.debug(
@@ -230,7 +232,7 @@ export class RelationshipChartService {
     this.setFilters({
       ...config.filters,
       focusElementId: elementId ?? undefined,
-      maxDepth: elementId != null ? maxDepth : undefined,
+      maxDepth: elementId == null ? undefined : maxDepth,
     });
   }
 
@@ -286,131 +288,209 @@ export class RelationshipChartService {
     filters: ChartFilters
   ): ChartGraphData {
     const typeMap = new Map(types.map(t => [t.id, t]));
-
-    // 1. Filter relationships by type
-    let filteredRelationships = relationships;
-    if (filters.relationshipTypeIds.length > 0) {
-      const typeIdSet = new Set(filters.relationshipTypeIds);
-      filteredRelationships = filteredRelationships.filter(r =>
-        typeIdSet.has(r.relationshipTypeId)
-      );
-    }
-
-    // 2. Collect element IDs that participate in relationships
-    const relatedIds = new Set<string>();
-    for (const rel of filteredRelationships) {
-      relatedIds.add(rel.sourceElementId);
-      relatedIds.add(rel.targetElementId);
-    }
-
-    // 3. Filter elements
-    const isCurated =
-      filters.mode === 'curated' && !!filters.includedElementIds?.length;
-    const includedIdSet = isCurated
-      ? new Set(filters.includedElementIds)
-      : null;
-
-    let filteredElements = elements.filter(e => {
-      // Skip folders — they're structural, not content
-      if (e.type === ElementType.Folder) return false;
-
-      // Skip other chart/canvas elements
-      if (e.type === ElementType.RelationshipChart) return false;
-      if (e.type === ElementType.Canvas) return false;
-
-      // In curated mode, only include explicitly selected elements
-      if (includedIdSet) {
-        return includedIdSet.has(e.id);
-      }
-
-      // --- 'all' mode filters below ---
-
-      // Apply element type filter
-      if (
-        filters.elementTypes.length > 0 &&
-        !filters.elementTypes.includes(e.type)
-      ) {
-        return false;
-      }
-
-      // Apply schema filter (for worldbuilding elements)
-      if (filters.schemaIds.length > 0) {
-        if (e.type === ElementType.Worldbuilding && e.schemaId) {
-          if (!filters.schemaIds.includes(e.schemaId)) return false;
-        }
-      }
-
-      // Include orphans only if showOrphans is true
-      if (!filters.showOrphans && !relatedIds.has(e.id)) {
-        return false;
-      }
-
-      return true;
-    });
-
-    // 4. Apply focus mode (BFS from focus element)
-    if (filters.focusElementId) {
-      filteredElements = this.filterByFocus(
-        filteredElements,
-        filteredRelationships,
-        filters.focusElementId,
-        filters.maxDepth ?? 3
-      );
-    }
-
-    // 5. Build element ID set for edge filtering
+    const filteredRelationships = this.filterRelationshipsByType(
+      relationships,
+      filters.relationshipTypeIds
+    );
+    const relatedIds = this.collectRelatedIds(filteredRelationships);
+    const filteredElements = this.filterElements(
+      elements,
+      filteredRelationships,
+      relatedIds,
+      filters
+    );
     const elementIdSet = new Set(filteredElements.map(e => e.id));
-
-    // 5b. Pre-compute relationship counts from visible edges only (both endpoints in set)
-    const relationshipCountMap = new Map<string, number>();
-    for (const r of filteredRelationships) {
-      if (
-        elementIdSet.has(r.sourceElementId) &&
-        elementIdSet.has(r.targetElementId)
-      ) {
-        relationshipCountMap.set(
-          r.sourceElementId,
-          (relationshipCountMap.get(r.sourceElementId) ?? 0) + 1
-        );
-        relationshipCountMap.set(
-          r.targetElementId,
-          (relationshipCountMap.get(r.targetElementId) ?? 0) + 1
-        );
-      }
-    }
-
-    // 6. Build nodes
-    const nodes: ChartNode[] = filteredElements.map(e => ({
-      id: e.id,
-      name: e.name,
-      type: e.type,
-      schemaId: e.schemaId,
-      icon: e.metadata?.['icon'],
-      relationshipCount: relationshipCountMap.get(e.id) ?? 0,
-      category: this.getCategoryLabel(e),
-    }));
-
-    // 7. Build edges (only between included nodes)
-    const edges: ChartEdge[] = filteredRelationships
-      .filter(
-        r =>
-          elementIdSet.has(r.sourceElementId) &&
-          elementIdSet.has(r.targetElementId)
-      )
-      .map(r => {
-        const type = typeMap.get(r.relationshipTypeId);
-        return {
-          source: r.sourceElementId,
-          target: r.targetElementId,
-          relationshipTypeId: r.relationshipTypeId,
-          label: type?.name ?? r.relationshipTypeId,
-          color: type?.color,
-          note: r.note,
-          relationshipId: r.id,
-        };
-      });
+    const relationshipCountMap = this.buildRelationshipCountMap(
+      filteredRelationships,
+      elementIdSet
+    );
+    const nodes = this.buildNodes(filteredElements, relationshipCountMap);
+    const edges = this.buildEdges(filteredRelationships, elementIdSet, typeMap);
 
     return { nodes, edges };
+  }
+
+  private filterRelationshipsByType(
+    relationships: ReturnType<RelationshipService['getAllRelationships']>,
+    relationshipTypeIds: string[]
+  ): ReturnType<RelationshipService['getAllRelationships']> {
+    if (relationshipTypeIds.length === 0) {
+      return relationships;
+    }
+
+    const typeIdSet = new Set(relationshipTypeIds);
+    return relationships.filter(relationship =>
+      typeIdSet.has(relationship.relationshipTypeId)
+    );
+  }
+
+  private collectRelatedIds(
+    relationships: ReturnType<RelationshipService['getAllRelationships']>
+  ): Set<string> {
+    const relatedIds = new Set<string>();
+    for (const relationship of relationships) {
+      relatedIds.add(relationship.sourceElementId);
+      relatedIds.add(relationship.targetElementId);
+    }
+    return relatedIds;
+  }
+
+  private filterElements(
+    elements: Element[],
+    relationships: ReturnType<RelationshipService['getAllRelationships']>,
+    relatedIds: Set<string>,
+    filters: ChartFilters
+  ): Element[] {
+    const filteredElements = elements.filter(
+      element =>
+        element.id === filters.focusElementId ||
+        this.shouldIncludeElement(element, relatedIds, filters)
+    );
+
+    if (!filters.focusElementId) {
+      return filteredElements;
+    }
+
+    const filteredElementIds = new Set(
+      filteredElements.map(element => element.id)
+    );
+    const visibleRelationships = relationships.filter(
+      relationship =>
+        filteredElementIds.has(relationship.sourceElementId) &&
+        filteredElementIds.has(relationship.targetElementId)
+    );
+
+    return this.filterByFocus(
+      filteredElements,
+      visibleRelationships,
+      filters.focusElementId,
+      filters.maxDepth ?? 3
+    );
+  }
+
+  private shouldIncludeElement(
+    element: Element,
+    relatedIds: Set<string>,
+    filters: ChartFilters
+  ): boolean {
+    if (this.isNonGraphElement(element)) {
+      return false;
+    }
+
+    if (this.hasCuratedSelection(filters)) {
+      return new Set(filters.includedElementIds).has(element.id);
+    }
+
+    if (
+      filters.elementTypes.length > 0 &&
+      !filters.elementTypes.includes(element.type)
+    ) {
+      return false;
+    }
+
+    if (!this.matchesSchemaFilter(element, filters.schemaIds)) {
+      return false;
+    }
+
+    return filters.showOrphans || relatedIds.has(element.id);
+  }
+
+  private isNonGraphElement(element: Element): boolean {
+    return (
+      element.type === ElementType.Folder ||
+      element.type === ElementType.RelationshipChart ||
+      element.type === ElementType.Canvas
+    );
+  }
+
+  private hasCuratedSelection(filters: ChartFilters): boolean {
+    return filters.mode === 'curated' && !!filters.includedElementIds?.length;
+  }
+
+  private matchesSchemaFilter(element: Element, schemaIds: string[]): boolean {
+    if (schemaIds.length === 0) {
+      return true;
+    }
+
+    if (element.type !== ElementType.Worldbuilding || !element.schemaId) {
+      return true;
+    }
+
+    return schemaIds.includes(element.schemaId);
+  }
+
+  private buildRelationshipCountMap(
+    relationships: ReturnType<RelationshipService['getAllRelationships']>,
+    elementIdSet: Set<string>
+  ): Map<string, number> {
+    const relationshipCountMap = new Map<string, number>();
+
+    for (const relationship of relationships) {
+      if (!this.isVisibleRelationship(relationship, elementIdSet)) {
+        continue;
+      }
+
+      relationshipCountMap.set(
+        relationship.sourceElementId,
+        (relationshipCountMap.get(relationship.sourceElementId) ?? 0) + 1
+      );
+      relationshipCountMap.set(
+        relationship.targetElementId,
+        (relationshipCountMap.get(relationship.targetElementId) ?? 0) + 1
+      );
+    }
+
+    return relationshipCountMap;
+  }
+
+  private buildNodes(
+    elements: Element[],
+    relationshipCountMap: Map<string, number>
+  ): ChartNode[] {
+    return elements.map(element => ({
+      id: element.id,
+      name: element.name,
+      type: element.type,
+      schemaId: element.schemaId,
+      icon: element.metadata?.['icon'],
+      relationshipCount: relationshipCountMap.get(element.id) ?? 0,
+      category: this.getCategoryLabel(element),
+    }));
+  }
+
+  private buildEdges(
+    relationships: ReturnType<RelationshipService['getAllRelationships']>,
+    elementIdSet: Set<string>,
+    typeMap: Map<string, RelationshipTypeDefinition>
+  ): ChartEdge[] {
+    return relationships
+      .filter(relationship =>
+        this.isVisibleRelationship(relationship, elementIdSet)
+      )
+      .map(relationship => {
+        const type = typeMap.get(relationship.relationshipTypeId);
+        return {
+          source: relationship.sourceElementId,
+          target: relationship.targetElementId,
+          relationshipTypeId: relationship.relationshipTypeId,
+          label: type?.name ?? relationship.relationshipTypeId,
+          color: type?.color,
+          note: relationship.note,
+          relationshipId: relationship.id,
+        };
+      });
+  }
+
+  private isVisibleRelationship(
+    relationship: ReturnType<
+      RelationshipService['getAllRelationships']
+    >[number],
+    elementIdSet: Set<string>
+  ): boolean {
+    return (
+      elementIdSet.has(relationship.sourceElementId) &&
+      elementIdSet.has(relationship.targetElementId)
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -437,19 +517,29 @@ export class RelationshipChartService {
       visited.add(id);
 
       if (depth < maxDepth) {
-        // Find neighbors (both directions)
-        for (const rel of relationships) {
-          if (rel.sourceElementId === id && !visited.has(rel.targetElementId)) {
-            queue.push({ id: rel.targetElementId, depth: depth + 1 });
-          }
-          if (rel.targetElementId === id && !visited.has(rel.sourceElementId)) {
-            queue.push({ id: rel.sourceElementId, depth: depth + 1 });
-          }
-        }
+        this.enqueueNeighbors(id, depth, relationships, visited, queue);
       }
     }
 
     return elements.filter(e => visited.has(e.id));
+  }
+
+  /** Enqueue unvisited neighbors of a node in both relationship directions. */
+  private enqueueNeighbors(
+    id: string,
+    depth: number,
+    relationships: ReturnType<RelationshipService['getAllRelationships']>,
+    visited: Set<string>,
+    queue: Array<{ id: string; depth: number }>
+  ): void {
+    for (const rel of relationships) {
+      if (rel.sourceElementId === id && !visited.has(rel.targetElementId)) {
+        queue.push({ id: rel.targetElementId, depth: depth + 1 });
+      }
+      if (rel.targetElementId === id && !visited.has(rel.sourceElementId)) {
+        queue.push({ id: rel.sourceElementId, depth: depth + 1 });
+      }
+    }
   }
 
   /**

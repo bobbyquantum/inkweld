@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
-import { type Element, ElementType } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 
 import { ProjectSearchDialogComponent } from '../../dialogs/project-search-dialog/project-search-dialog.component';
 import { flattenToPlainText } from '../../utils/prosemirror-text';
@@ -97,7 +97,7 @@ export class ProjectSearchService {
     if (this.keydownListener) return;
 
     this.keydownListener = (event: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      const isMac = this.isMacPlatform();
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 
       if (modifierKey && event.shiftKey && event.key.toLowerCase() === 'f') {
@@ -175,168 +175,303 @@ export class ProjectSearchService {
     filters?: ProjectSearchFilters
   ): Promise<void> {
     const project = this.projectState.project();
-    const elements = this.projectState.elements();
-    const trimmed = query.trim();
 
     if (!project) {
-      onProgress({ scanned: 0, total: 0, results: [], done: true });
+      this.emitProgress(onProgress, 0, 0, [], true);
       return;
     }
 
-    const normalizedQuery = trimmed.toLowerCase();
-
-    // Build set of related element IDs if filtering by relationship
-    let relatedElementIds: Set<string> | undefined;
-    if (filters?.relatedToElementId) {
-      const view = this.relationshipService.getRelationshipView(
-        filters.relatedToElementId
-      );
-      relatedElementIds = new Set([
-        ...view.outgoing.map(r => r.targetElementId),
-        ...view.incoming.map(r => r.sourceElementId),
-      ]);
-    }
-
-    // Build set of element IDs matching tag filter
-    let taggedElementIds: Set<string> | undefined;
-    if (filters?.tagIds && filters.tagIds.length > 0) {
-      taggedElementIds = new Set<string>();
-      for (const tagId of filters.tagIds) {
-        for (const elId of this.tagService.getElementsWithTag(tagId)) {
-          taggedElementIds.add(elId);
-        }
-      }
-    }
-
-    // Build set of schema IDs if filtering by worldbuilding schema
-    const schemaIdSet =
-      filters?.schemaIds && filters.schemaIds.length > 0
-        ? new Set(filters.schemaIds)
-        : undefined;
-
-    const searchableElements = elements.filter(el => {
-      if (el.type === ElementType.Folder) return false;
-      if (
-        filters?.elementTypes &&
-        filters.elementTypes.length > 0 &&
-        !filters.elementTypes.includes(el.type)
-      ) {
-        return false;
-      }
-      if (taggedElementIds && !taggedElementIds.has(el.id)) return false;
-      if (relatedElementIds && !relatedElementIds.has(el.id)) return false;
-      if (schemaIdSet && (!el.schemaId || !schemaIdSet.has(el.schemaId))) {
-        return false;
-      }
-      return true;
-    });
+    const elements = this.projectState.elements();
+    const normalizedQuery = query.trim().toLowerCase();
     const elementMap = new Map(elements.map(el => [el.id, el]));
-    const results: ProjectSearchResult[] = [];
-    let scanned = 0;
+    const searchableElements = this.buildSearchableElements(elements, filters);
 
     // ─── Browse mode (no query) ──────────────────────────────────────────
     // Return all matching elements without loading document content.
     if (!normalizedQuery) {
-      const browseResults: ProjectSearchResult[] = searchableElements.map(
-        el => ({
-          element: el,
-          documentId: `${project.username}:${project.slug}:${el.id}`,
-          matchCount: 0,
-          snippets: [],
-          path: this.buildPath(el, elementMap),
-        })
+      this.emitProgress(
+        onProgress,
+        searchableElements.length,
+        searchableElements.length,
+        this.buildBrowseResults(project, searchableElements, elementMap),
+        true
       );
-      onProgress({
-        scanned: searchableElements.length,
-        total: searchableElements.length,
-        results: browseResults,
-        done: true,
-      });
       return;
     }
 
     // ─── Text search mode ────────────────────────────────────────────────
-    onProgress({
-      scanned: 0,
-      total: searchableElements.length,
-      results: [],
-      done: false,
-    });
+    this.emitProgress(onProgress, 0, searchableElements.length, [], false);
+
+    const results = await this.searchDocuments(
+      project,
+      searchableElements,
+      elementMap,
+      normalizedQuery,
+      onProgress,
+      abortSignal
+    );
+
+    if (!abortSignal.aborted) {
+      this.emitProgress(
+        onProgress,
+        searchableElements.length,
+        searchableElements.length,
+        results,
+        true
+      );
+    }
+  }
+
+  private isMacPlatform(): boolean {
+    return (
+      typeof navigator !== 'undefined' &&
+      navigator.platform.toUpperCase().includes('MAC')
+    );
+  }
+
+  private buildSearchableElements(
+    elements: Element[],
+    filters?: ProjectSearchFilters
+  ): Element[] {
+    const relatedElementIds = this.getRelatedElementIds(filters);
+    const taggedElementIds = this.getTaggedElementIds(filters);
+    const schemaIdSet = this.getSchemaIdSet(filters);
+
+    return elements.filter(element =>
+      this.matchesFilters(
+        element,
+        filters,
+        relatedElementIds,
+        taggedElementIds,
+        schemaIdSet
+      )
+    );
+  }
+
+  private getRelatedElementIds(
+    filters?: ProjectSearchFilters
+  ): Set<string> | undefined {
+    if (!filters?.relatedToElementId) return undefined;
+
+    const view = this.relationshipService.getRelationshipView(
+      filters.relatedToElementId
+    );
+
+    return new Set([
+      ...view.outgoing.map(r => r.targetElementId),
+      ...view.incoming.map(r => r.sourceElementId),
+    ]);
+  }
+
+  private getTaggedElementIds(
+    filters?: ProjectSearchFilters
+  ): Set<string> | undefined {
+    if (!filters?.tagIds?.length) return undefined;
+
+    const taggedElementIds = new Set<string>();
+    for (const tagId of filters.tagIds) {
+      for (const elementId of this.tagService.getElementsWithTag(tagId)) {
+        taggedElementIds.add(elementId);
+      }
+    }
+
+    return taggedElementIds;
+  }
+
+  private getSchemaIdSet(
+    filters?: ProjectSearchFilters
+  ): Set<string> | undefined {
+    if (!filters?.schemaIds?.length) return undefined;
+    return new Set(filters.schemaIds);
+  }
+
+  private matchesFilters(
+    element: Element,
+    filters: ProjectSearchFilters | undefined,
+    relatedElementIds: Set<string> | undefined,
+    taggedElementIds: Set<string> | undefined,
+    schemaIdSet: Set<string> | undefined
+  ): boolean {
+    if (element.type === ElementType.Folder) return false;
+
+    if (
+      filters?.elementTypes?.length &&
+      !filters.elementTypes.includes(element.type)
+    ) {
+      return false;
+    }
+
+    if (taggedElementIds && !taggedElementIds.has(element.id)) {
+      return false;
+    }
+
+    if (relatedElementIds && !relatedElementIds.has(element.id)) {
+      return false;
+    }
+
+    if (schemaIdSet) {
+      return !!element.schemaId && schemaIdSet.has(element.schemaId);
+    }
+
+    return true;
+  }
+
+  private buildBrowseResults(
+    project: Project,
+    searchableElements: Element[],
+    elementMap: Map<string, Element>
+  ): ProjectSearchResult[] {
+    return searchableElements.map(element => ({
+      element,
+      documentId: `${project.username}:${project.slug}:${element.id}`,
+      matchCount: 0,
+      snippets: [],
+      path: this.buildPath(element, elementMap),
+    }));
+  }
+
+  private async searchDocuments(
+    project: Project,
+    searchableElements: Element[],
+    elementMap: Map<string, Element>,
+    normalizedQuery: string,
+    onProgress: (progress: ProjectSearchProgress) => void,
+    abortSignal: AbortSignal
+  ): Promise<ProjectSearchResult[]> {
+    const results: ProjectSearchResult[] = [];
+    let scanned = 0;
 
     for (const element of searchableElements) {
-      if (abortSignal.aborted) return;
+      if (abortSignal.aborted) return results;
 
-      const documentId = `${project.username}:${project.slug}:${element.id}`;
-
-      try {
-        const content =
-          await this.documentService.getDocumentContent(documentId);
-        const nodes = Array.isArray(content) ? content : [];
-        const text = flattenToPlainText(nodes);
-        const textLower = text.toLowerCase();
-
-        const snippets: SearchSnippet[] = [];
-        let matchCount = 0;
-        let searchFrom = 0;
-
-        while (searchFrom < textLower.length) {
-          const idx = textLower.indexOf(normalizedQuery, searchFrom);
-          if (idx === -1) break;
-
-          matchCount++;
-
-          if (snippets.length < MAX_SNIPPETS) {
-            const start = Math.max(0, idx - SNIPPET_CONTEXT);
-            const end = Math.min(
-              text.length,
-              idx + normalizedQuery.length + SNIPPET_CONTEXT
-            );
-            snippets.push({
-              before: (start > 0 ? '…' : '') + text.slice(start, idx),
-              match: text.slice(idx, idx + normalizedQuery.length),
-              after:
-                text.slice(idx + normalizedQuery.length, end) +
-                (end < text.length ? '…' : ''),
-            });
-          }
-
-          searchFrom = idx + normalizedQuery.length;
-        }
-
-        if (matchCount > 0) {
-          results.push({
-            element,
-            documentId,
-            matchCount,
-            snippets,
-            path: this.buildPath(element, elementMap),
-          });
-        }
-      } catch {
-        // Skip documents that can't be read (empty, corrupt, etc.)
+      const result = await this.searchElementDocument(
+        project,
+        element,
+        elementMap,
+        normalizedQuery
+      );
+      if (result) {
+        results.push(result);
       }
 
       scanned++;
-
-      // Yield to the UI thread between documents to keep the interface responsive
-      await new Promise<void>(resolve => setTimeout(resolve, 0));
-
-      onProgress({
+      await this.yieldToUiThread();
+      this.emitProgress(
+        onProgress,
         scanned,
-        total: searchableElements.length,
-        results: [...results],
-        done: false,
-      });
+        searchableElements.length,
+        [...results],
+        false
+      );
     }
 
-    if (!abortSignal.aborted) {
-      onProgress({
-        scanned,
-        total: searchableElements.length,
-        results,
-        done: true,
-      });
+    return results;
+  }
+
+  private extractContentNodes(content: unknown): unknown[] {
+    if (Array.isArray(content)) {
+      return content;
     }
+    if (
+      content !== null &&
+      typeof content === 'object' &&
+      'content' in content &&
+      Array.isArray((content as { content?: unknown }).content)
+    ) {
+      return (content as { content: unknown[] }).content;
+    }
+    return [];
+  }
+
+  private async searchElementDocument(
+    project: Project,
+    element: Element,
+    elementMap: Map<string, Element>,
+    normalizedQuery: string
+  ): Promise<ProjectSearchResult | null> {
+    const documentId = `${project.username}:${project.slug}:${element.id}`;
+
+    try {
+      const content = await this.documentService.getDocumentContent(documentId);
+      const nodes = this.extractContentNodes(content);
+      const text = flattenToPlainText(nodes);
+      const { matchCount, snippets } = this.collectSearchMatches(
+        text,
+        normalizedQuery
+      );
+
+      if (matchCount === 0) {
+        return null;
+      }
+
+      return {
+        element,
+        documentId,
+        matchCount,
+        snippets,
+        path: this.buildPath(element, elementMap),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private collectSearchMatches(
+    text: string,
+    normalizedQuery: string
+  ): { matchCount: number; snippets: SearchSnippet[] } {
+    const textLower = text.toLowerCase();
+    const snippets: SearchSnippet[] = [];
+    let matchCount = 0;
+    let searchFrom = 0;
+
+    while (searchFrom < textLower.length) {
+      const idx = textLower.indexOf(normalizedQuery, searchFrom);
+      if (idx === -1) break;
+
+      matchCount++;
+      if (snippets.length < MAX_SNIPPETS) {
+        snippets.push(this.buildSnippet(text, idx, normalizedQuery.length));
+      }
+
+      searchFrom = idx + normalizedQuery.length;
+    }
+
+    return { matchCount, snippets };
+  }
+
+  private buildSnippet(
+    text: string,
+    startIndex: number,
+    queryLength: number
+  ): SearchSnippet {
+    const start = Math.max(0, startIndex - SNIPPET_CONTEXT);
+    const end = Math.min(
+      text.length,
+      startIndex + queryLength + SNIPPET_CONTEXT
+    );
+
+    return {
+      before: (start > 0 ? '…' : '') + text.slice(start, startIndex),
+      match: text.slice(startIndex, startIndex + queryLength),
+      after:
+        text.slice(startIndex + queryLength, end) +
+        (end < text.length ? '…' : ''),
+    };
+  }
+
+  private emitProgress(
+    onProgress: (progress: ProjectSearchProgress) => void,
+    scanned: number,
+    total: number,
+    results: ProjectSearchResult[],
+    done: boolean
+  ): void {
+    onProgress({ scanned, total, results, done });
+  }
+
+  private async yieldToUiThread(): Promise<void> {
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
   }
 
   /**

@@ -75,7 +75,8 @@ if (isCompiled) {
   }
 
   // Then, add any additional assets from Bun.embeddedFiles
-  const bunEmbedded = (Bun.embeddedFiles || [])
+  // Bun types embeddedFiles as Blob[], but they're BunFile at runtime (which has .name)
+  const bunEmbedded = ((Bun.embeddedFiles || []) as import('bun').BunFile[])
     .filter((f) => {
       const name = f.name || '';
       // Include files that look like frontend assets
@@ -97,13 +98,13 @@ if (isCompiled) {
         name.endsWith('.wasm')
       );
     })
-    .map((f) => [f.name, f] as [string, Blob]);
+    .map((f) => [f.name ?? '', f] as [string, Blob]);
 
   if (bunEmbedded.length > 0) {
     if (!embeddedFrontendFiles) {
       embeddedFrontendFiles = new Map();
     }
-    bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles.set(name, blob));
+    bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles?.set(name, blob));
     logger.info('SPA', `Added ${bunEmbedded.length} files from Bun.embeddedFiles`);
   }
 
@@ -232,6 +233,15 @@ app.get('/api', (c) => {
 });
 
 // OpenAPI documentation - must be registered AFTER all routes
+// Register security scheme so it appears in generated OpenAPI output
+app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+  description:
+    'JWT token obtained from POST /api/v1/auth/login. Include as: Authorization: Bearer <token>',
+});
+
 app.get('/api/openapi.json', (c) => {
   return c.json(
     app.getOpenAPIDocument({
@@ -248,17 +258,6 @@ app.get('/api/openapi.json', (c) => {
         },
       ],
       security: [{ bearerAuth: [] }],
-      components: {
-        securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
-            description:
-              'JWT token obtained from POST /api/v1/auth/login. Include as: Authorization: Bearer <token>',
-          },
-        },
-      },
     })
   );
 });
@@ -307,9 +306,14 @@ async function bootstrap() {
       logger.info('Server', `Opening browser: ${url}`);
 
       // Use platform-specific open command
-      const { spawn } = await import('child_process');
+      const { spawn } = await import('node:child_process');
       const platform = process.platform;
-      const command = platform === 'darwin' ? 'open' : platform === 'win32' ? 'start' : 'xdg-open';
+      let command = 'xdg-open';
+      if (platform === 'darwin') {
+        command = 'open';
+      } else if (platform === 'win32') {
+        command = 'start';
+      }
 
       spawn(command, [url], { detached: true, stdio: 'ignore' }).unref();
     }
@@ -319,8 +323,9 @@ async function bootstrap() {
   }
 }
 
-// Always initialize database (including in test mode)
-bootstrap();
+// bootstrap() is called by the runtime entrypoint (bun-runner.ts), not at import time,
+// so that test imports don't trigger server startup side-effects.
+export { bootstrap };
 
 // Build the server config with optional TLS
 const serverConfig: {
