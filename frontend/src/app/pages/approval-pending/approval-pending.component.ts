@@ -42,9 +42,9 @@ export class ApprovalPendingComponent implements OnInit {
   }
 
   get displayName(): string {
-    if (this.name && this.name.trim()) {
+    if (this.name?.trim()) {
       return this.name.trim();
-    } else if (this.username && this.username.trim()) {
+    } else if (this.username?.trim()) {
       return this.username.trim();
     } else {
       return 'User';

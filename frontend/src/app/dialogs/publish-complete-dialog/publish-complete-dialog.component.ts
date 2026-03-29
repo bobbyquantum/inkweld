@@ -147,7 +147,7 @@ export class PublishCompleteDialogComponent {
     a.download = this.file().filename;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
     URL.revokeObjectURL(url);
 
     this.snackBar.open('File downloaded', 'Dismiss', { duration: 2000 });

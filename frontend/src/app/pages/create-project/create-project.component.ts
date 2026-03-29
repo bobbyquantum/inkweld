@@ -205,7 +205,7 @@ export class CreateProjectComponent implements OnInit {
       });
 
       // Navigate to the new project
-      if (response && response.username && response.slug) {
+      if (response?.username && response?.slug) {
         void this.router.navigate(['/', response.username, response.slug]);
       } else {
         void this.router.navigate(['/']);

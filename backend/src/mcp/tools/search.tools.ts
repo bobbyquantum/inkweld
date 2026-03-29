@@ -215,13 +215,13 @@ function matchText(text: string, query: string): number {
   if (!text || !query) return 0;
 
   // Wildcard matches everything
-  if (query === '*') return 1.0;
+  if (query === '*') return 1;
 
   const lowerText = text.toLowerCase();
   const lowerQuery = query.toLowerCase();
 
   // Exact match
-  if (lowerText === lowerQuery) return 1.0;
+  if (lowerText === lowerQuery) return 1;
 
   // Contains query
   if (lowerText.includes(lowerQuery)) return 0.8;

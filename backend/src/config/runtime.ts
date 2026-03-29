@@ -21,7 +21,7 @@ export function detectRuntime(): RuntimePlatform {
   }
 
   // Check for Bun
-  if (typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
+  if ((globalThis as { Bun?: unknown }).Bun !== undefined) {
     return RuntimePlatform.BUN;
   }
 

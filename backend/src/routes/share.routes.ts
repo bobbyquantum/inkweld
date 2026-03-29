@@ -66,7 +66,7 @@ shareRoutes.openapi(getSharedFileRoute, async (c) => {
   // Get owner username
   const [owner] = await db.select().from(users).where(eq(users.id, project.userId));
 
-  if (!owner || !owner.username) {
+  if (!owner?.username) {
     return c.json({ error: 'File not found' }, 404);
   }
 

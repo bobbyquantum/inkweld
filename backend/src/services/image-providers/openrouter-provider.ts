@@ -211,8 +211,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       const message = data.choices?.[0]?.message;
       if (message?.images && Array.isArray(message.images)) {
         // Images returned in message.images array
-        for (let i = 0; i < message.images.length; i++) {
-          const img = message.images[i];
+        for (const [i, img] of message.images.entries()) {
           const imageUrl = img.image_url?.url || img.url;
           if (imageUrl) {
             if (imageUrl.startsWith('data:image/')) {
@@ -242,8 +241,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
 
       // Also check for images in content array (alternative format)
       if (images.length === 0 && message?.content && Array.isArray(message.content)) {
-        for (let i = 0; i < message.content.length; i++) {
-          const item = message.content[i];
+        for (const [i, item] of message.content.entries()) {
           if (item.type === 'image_url' && item.image_url?.url) {
             const imageUrl = item.image_url.url;
             if (imageUrl.startsWith('data:image/')) {

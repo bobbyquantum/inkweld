@@ -828,7 +828,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
       let formattedValue: string;
       if (Array.isArray(value)) {
-        formattedValue = value.filter(v => v).join(', ');
+        formattedValue = value.filter(Boolean).join(', ');
         if (!formattedValue) continue;
       } else if (typeof value === 'object') {
         continue; // Skip nested objects

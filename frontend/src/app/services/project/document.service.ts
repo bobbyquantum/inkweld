@@ -667,7 +667,7 @@ export class DocumentService {
     }
 
     // Check if editor is properly initialized
-    if (!editor || !editor.view) {
+    if (!editor?.view) {
       throw new Error('Editor Yjs not properly initialized');
     }
 

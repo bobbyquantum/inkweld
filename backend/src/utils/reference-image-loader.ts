@@ -65,7 +65,7 @@ async function loadElementImage(
         data: base64Data,
         mimeType,
         role: 'reference',
-        weight: 1.0,
+        weight: 1,
       };
     }
 
@@ -116,7 +116,7 @@ async function loadElementImage(
       data: base64,
       mimeType,
       role: 'reference',
-      weight: 1.0,
+      weight: 1,
     };
   } catch (err) {
     refImgLog.error(`Failed to load image for element ${elementId}:`, err);
