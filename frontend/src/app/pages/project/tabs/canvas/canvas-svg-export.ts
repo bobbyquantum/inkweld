@@ -190,12 +190,11 @@ export function canvasTextToSvg(obj: CanvasText, tf: string): string {
     right: 'end',
   };
   const anchor = anchorMap[obj.align] ?? 'start';
-  const textX =
-    obj.align === 'center'
-      ? obj.width / 2
-      : obj.align === 'right'
-        ? obj.width
-        : 0;
+  const textXMap: Record<string, number> = {
+    center: obj.width / 2,
+    right: obj.width,
+  };
+  const textX = textXMap[obj.align] ?? 0;
   const style = `font-size:${obj.fontSize}px;font-family:${obj.fontFamily};font-weight:${bold};font-style:${italic}`;
   return `<text ${tf} x="${textX}" fill="${obj.fill}" style="${style}" text-anchor="${anchor}" dominant-baseline="text-before-edge">${svgEsc(obj.text)}</text>`;
 }
