@@ -46,7 +46,6 @@ interface CreateSnapshotForm {
  */
 @Component({
   selector: 'app-create-snapshot-dialog',
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     MatDialogModule,

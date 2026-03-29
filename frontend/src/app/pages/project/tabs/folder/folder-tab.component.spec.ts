@@ -15,7 +15,6 @@ import { FolderTabComponent } from './folder-tab.component';
 @Component({
   selector: 'app-folder-element-editor',
   template: '<div>Mock Folder Editor</div>',
-  standalone: true,
 })
 class MockFolderElementEditorComponent implements OnInit, OnDestroy {
   @Input() elementId: string = '';

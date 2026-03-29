@@ -313,7 +313,6 @@ const COLOR_OPTIONS = [
       }
     `,
   ],
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

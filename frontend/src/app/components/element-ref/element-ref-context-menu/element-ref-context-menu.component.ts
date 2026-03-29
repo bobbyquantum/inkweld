@@ -57,7 +57,6 @@ export type ElementRefAction =
 
 @Component({
   selector: 'app-element-ref-context-menu',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

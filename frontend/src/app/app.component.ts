@@ -14,7 +14,6 @@ import { UnifiedUserService } from './services/user/unified-user.service';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [
     RouterOutlet,
     MatProgressSpinnerModule,

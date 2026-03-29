@@ -20,7 +20,7 @@ const forgotPasswordRoute = createRoute({
         'application/json': {
           schema: z
             .object({
-              email: z.string().email().openapi({
+              email: z.email().openapi({
                 description: 'Email address associated with the account',
                 example: 'user@example.com',
               }),

@@ -207,7 +207,6 @@ export interface CanvasPinDialogResult {
       }
     `,
   ],
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

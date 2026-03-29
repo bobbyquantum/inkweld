@@ -40,7 +40,6 @@ export interface PresenceUser {
  */
 @Component({
   selector: 'app-presence-indicator',
-  standalone: true,
   imports: [MatIconModule, MatTooltipModule],
   template: `
     @if (activeUsers().length > 0) {

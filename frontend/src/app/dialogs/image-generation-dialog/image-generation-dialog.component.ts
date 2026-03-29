@@ -80,7 +80,6 @@ type DialogStage = 'select-elements' | 'edit-prompt' | 'generating';
   selector: 'app-image-generation-dialog',
   templateUrl: './image-generation-dialog.component.html',
   styleUrls: ['./image-generation-dialog.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

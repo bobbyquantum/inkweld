@@ -12,7 +12,6 @@ import type {
 
 @Component({
   selector: 'app-announcement-card',
-  standalone: true,
   imports: [
     DatePipe,
     MatButtonModule,

@@ -67,6 +67,71 @@ h2 {
   }
 }
 
+.tab-panel {
+  width: 100%;
+}
+
+// Directional slide animations for tab transitions
+.slide-from-bottom {
+  position: absolute;
+  width: 100%;
+  animation: slideFromBottom 300ms ease-out;
+}
+
+.slide-from-top {
+  position: absolute;
+  width: 100%;
+  animation: slideFromTop 300ms ease-out;
+}
+
+.slide-to-top {
+  position: absolute;
+  width: 100%;
+  animation: slideToTop 300ms ease-out forwards;
+}
+
+.slide-to-bottom {
+  position: absolute;
+  width: 100%;
+  animation: slideToBottom 300ms ease-out forwards;
+}
+
+@keyframes slideFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideFromTop {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideToTop {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes slideToBottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
 .mat-mdc-list-item {
   border-radius: 24px;
   margin-bottom: 4px;

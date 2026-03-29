@@ -66,7 +66,6 @@ export interface ElementPreviewContent {
 
 @Component({
   selector: 'app-element-ref-tooltip',
-  standalone: true,
   imports: [CommonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
     @if (isVisible()) {

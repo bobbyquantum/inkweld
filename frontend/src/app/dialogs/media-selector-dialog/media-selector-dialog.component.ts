@@ -56,7 +56,6 @@ interface MediaItem extends MediaInfo {
   selector: 'app-media-selector-dialog',
   templateUrl: './media-selector-dialog.component.html',
   styleUrls: ['./media-selector-dialog.component.scss'],
-  standalone: true,
   imports: [
     FormsModule,
     MatDialogModule,

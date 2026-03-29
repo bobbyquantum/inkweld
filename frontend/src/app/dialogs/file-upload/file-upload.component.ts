@@ -7,7 +7,6 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
 
 @Component({
   selector: 'app-file-upload-dialog',
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

@@ -30,7 +30,6 @@ type ViewMode = 'grid' | 'list';
 
 @Component({
   selector: 'app-folder-element-editor',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatButtonToggleModule,

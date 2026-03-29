@@ -32,7 +32,6 @@ interface SystemFeaturesResponse {
 
 @Component({
   selector: 'app-setup',
-  standalone: true,
   imports: [
     FormsModule,
     MatCardModule,

@@ -12,7 +12,6 @@ import { ProjectCoverComponent } from '../project-cover/project-cover.component'
 
 @Component({
   selector: 'app-project-card',
-  standalone: true,
   imports: [
     MatCardModule,
     MatButtonModule,

@@ -41,7 +41,6 @@ interface AnnouncementFormValue {
 
 @Component({
   selector: 'app-announcement-editor-dialog',
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     MatButtonModule,

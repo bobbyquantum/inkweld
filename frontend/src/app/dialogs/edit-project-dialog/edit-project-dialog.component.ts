@@ -42,7 +42,6 @@ import {
   selector: 'app-edit-project-dialog',
   templateUrl: './edit-project-dialog.component.html',
   styleUrls: ['./edit-project-dialog.component.scss'],
-  standalone: true,
   imports: [
     ReactiveFormsModule,
     MatDialogModule,

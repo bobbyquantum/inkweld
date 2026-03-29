@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -52,7 +51,6 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       imports: [AccountSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         { provide: UserService, useValue: mockUserService },
         { provide: SystemConfigService, useValue: mockSystemConfig },
       ],

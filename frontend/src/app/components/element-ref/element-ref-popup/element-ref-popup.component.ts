@@ -32,7 +32,6 @@ import { ElementRefService } from '../element-ref.service';
 
 @Component({
   selector: 'app-element-ref-popup',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

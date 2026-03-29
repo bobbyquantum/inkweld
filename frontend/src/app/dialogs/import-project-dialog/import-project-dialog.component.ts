@@ -59,7 +59,6 @@ interface ArchivePreview {
   selector: 'app-import-project-dialog',
   templateUrl: './import-project-dialog.component.html',
   styleUrl: './import-project-dialog.component.scss',
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

@@ -69,7 +69,6 @@ import { type ResolvedTag } from '../tags/tag.model';
 
 @Component({
   selector: 'app-document-element-editor',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatIconModule,

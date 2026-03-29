@@ -9,7 +9,6 @@ import { AnnouncementService } from '@services/announcement/announcement.service
 
 @Component({
   selector: 'app-messages',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatIconModule,

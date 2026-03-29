@@ -50,7 +50,6 @@ export interface ElementPickerDialogResult {
 
 @Component({
   selector: 'app-element-picker-dialog',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

@@ -16,7 +16,6 @@ import { type ExtendedCorrectionDto } from './correction-dto.extension';
 
 @Component({
   selector: 'app-lint-overlay',
-  standalone: true,
   imports: [MatTooltipModule],
   encapsulation: ViewEncapsulation.None,
   template: `

@@ -22,7 +22,6 @@ export interface RestoreSnapshotDialogData {
  */
 @Component({
   selector: 'app-restore-snapshot-dialog',
-  standalone: true,
   imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './restore-snapshot-dialog.component.html',
   styleUrl: './restore-snapshot-dialog.component.scss',

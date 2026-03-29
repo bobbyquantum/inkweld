@@ -43,7 +43,6 @@ interface RelationshipTypeView {
   selector: 'app-relationships-tab',
   templateUrl: './relationships-tab.component.html',
   styleUrls: ['./relationships-tab.component.scss'],
-  standalone: true,
   imports: [
     MatButtonModule,
     MatCardModule,

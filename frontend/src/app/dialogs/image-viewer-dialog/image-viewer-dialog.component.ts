@@ -23,7 +23,6 @@ const MAX_ZOOM = 5;
 
 @Component({
   selector: 'app-image-viewer-dialog',
-  standalone: true,
   imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './image-viewer-dialog.component.html',
   styleUrl: './image-viewer-dialog.component.scss',

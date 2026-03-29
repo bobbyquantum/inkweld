@@ -41,7 +41,6 @@ import { WorldbuildingService } from '../../../services/worldbuilding/worldbuild
   selector: 'app-tab-interface',
   templateUrl: './tab-interface.component.html',
   styleUrls: ['./tab-interface.component.scss'],
-  standalone: true,
   imports: [
     Tabs,
     TabList,

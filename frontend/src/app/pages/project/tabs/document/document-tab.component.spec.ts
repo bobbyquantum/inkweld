@@ -22,7 +22,6 @@ import { DocumentTabComponent } from './document-tab.component';
 @Component({
   selector: 'app-document-element-editor',
   template: '<div>Mock Document Editor</div>',
-  standalone: true,
 })
 class MockDocumentElementEditorComponent implements OnInit, OnDestroy {
   @Input() documentId: string = '';

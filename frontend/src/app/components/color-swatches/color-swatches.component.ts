@@ -142,7 +142,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       }
     `,
   ],
-  standalone: true,
   imports: [FormsModule, MatIconModule, MatInputModule, MatTooltipModule],
 })
 export class ColorSwatchesComponent {

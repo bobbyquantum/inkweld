@@ -12,7 +12,6 @@ import { UserService } from '@services/user/user.service';
 
 @Component({
   selector: 'app-account-settings',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

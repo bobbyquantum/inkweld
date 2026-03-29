@@ -37,7 +37,6 @@ const PAGE_SIZE = 20;
 
 @Component({
   selector: 'app-admin-users',
-  standalone: true,
   imports: [
     NgClass,
     FormsModule,

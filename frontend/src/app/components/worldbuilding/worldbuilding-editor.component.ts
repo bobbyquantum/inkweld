@@ -65,7 +65,6 @@ import { IdentityPanelComponent } from './identity-panel/identity-panel.componen
  */
 @Component({
   selector: 'app-worldbuilding-editor',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

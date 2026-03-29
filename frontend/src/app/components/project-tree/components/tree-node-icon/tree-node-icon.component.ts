@@ -11,7 +11,6 @@ import { WorldbuildingService } from '../../../../services/worldbuilding/worldbu
 
 @Component({
   selector: 'app-tree-node-icon',
-  standalone: true,
   imports: [MatIconModule],
   templateUrl: './tree-node-icon.component.html',
   styleUrls: ['./tree-node-icon.component.scss'],

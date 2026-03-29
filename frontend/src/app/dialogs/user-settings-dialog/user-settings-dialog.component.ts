@@ -1,11 +1,3 @@
-import {
-  animate,
-  group,
-  query,
-  style,
-  transition,
-  trigger,
-} from '@angular/animations';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   Component,
@@ -31,37 +23,12 @@ import { AuthorizedAppsComponent } from './tabs/authorized-apps/authorized-apps.
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
 
-const slideAnimation = trigger('slideAnimation', [
-  transition(
-    '* => *',
-    [
-      query(':enter, :leave', style({ position: 'absolute', width: '100%' }), {
-        optional: true,
-      }),
-      group([
-        query(
-          ':enter',
-          [
-            style({ transform: 'translateY({{enterTransform}})' }),
-            animate('300ms ease-out', style({ transform: 'translateY(0%)' })),
-          ],
-          { optional: true }
-        ),
-        query(
-          ':leave',
-          [
-            animate(
-              '300ms ease-out',
-              style({ transform: 'translateY({{leaveTransform}})' })
-            ),
-          ],
-          { optional: true }
-        ),
-      ]),
-    ],
-    { params: { enterTransform: '100%', leaveTransform: '-100%' } }
-  ),
-]);
+const CATEGORIES = [
+  'account',
+  'authorized-apps',
+  'project-tree',
+  'project',
+] as const;
 
 @Component({
   selector: 'app-user-settings-dialog',
@@ -79,7 +46,6 @@ const slideAnimation = trigger('slideAnimation', [
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,
   ],
-  animations: [slideAnimation],
   templateUrl: './user-settings-dialog.component.html',
   styleUrl: './user-settings-dialog.component.scss',
 })
@@ -117,23 +83,17 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.selectedCategory = category;
   }
 
-  getAnimationState() {
-    const categories = [
-      'account',
-      'authorized-apps',
-      'project-tree',
-      'project',
-    ];
-    const currentIndex = categories.indexOf(this.selectedCategory);
-    const previousIndex = categories.indexOf(this.previousCategory);
-    const isMovingDown = currentIndex > previousIndex;
+  getEnterAnimationClass() {
+    const currentIndex = CATEGORIES.indexOf(this.selectedCategory);
+    const previousIndex = CATEGORIES.indexOf(this.previousCategory);
+    return currentIndex > previousIndex
+      ? 'slide-from-bottom'
+      : 'slide-from-top';
+  }
 
-    return {
-      value: this.selectedCategory,
-      params: {
-        enterTransform: isMovingDown ? '100%' : '-100%',
-        leaveTransform: isMovingDown ? '-100%' : '100%',
-      },
-    };
+  getLeaveAnimationClass() {
+    const currentIndex = CATEGORIES.indexOf(this.selectedCategory);
+    const previousIndex = CATEGORIES.indexOf(this.previousCategory);
+    return currentIndex > previousIndex ? 'slide-to-top' : 'slide-to-bottom';
   }
 }

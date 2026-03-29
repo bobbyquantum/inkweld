@@ -7,7 +7,6 @@ import { AnnouncementService } from '@services/announcement/announcement.service
 
 @Component({
   selector: 'app-announcement-feed',
-  standalone: true,
   imports: [
     MatProgressSpinnerModule,
     MatCardModule,

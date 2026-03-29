@@ -17,7 +17,6 @@ import { type MediaSyncState } from '../../services/local/media-sync.service';
  */
 @Component({
   selector: 'app-connection-status',
-  standalone: true,
   imports: [
     MatIconModule,
     MatButtonModule,

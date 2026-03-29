@@ -11,7 +11,6 @@ import { UserMenuComponent } from '../../components/user-menu/user-menu.componen
 
 @Component({
   selector: 'app-admin',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatIconModule,
