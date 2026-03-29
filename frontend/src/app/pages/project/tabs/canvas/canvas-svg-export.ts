@@ -11,6 +11,8 @@ import type {
 
 import { svgEsc } from './canvas-utils';
 
+let svgIdCounter = 0;
+
 /** Bounding box result for SVG viewBox computation */
 export interface SvgViewBox {
   vX: number;
@@ -27,6 +29,7 @@ interface Bounds {
   maxY: number;
 }
 
+/** Expand bounding box to include all points of a path object */
 function expandBoundsForPath(b: Bounds, obj: CanvasObject): void {
   const pts = (obj as CanvasPath).points;
   for (let i = 0; i < pts.length - 1; i += 2) {
@@ -37,6 +40,7 @@ function expandBoundsForPath(b: Bounds, obj: CanvasObject): void {
   }
 }
 
+/** Expand bounding box to include scaled points of a line/arrow shape */
 function expandBoundsForLineShape(b: Bounds, obj: CanvasShape): void {
   const pts = obj.points ?? [];
   for (let i = 0; i < pts.length - 1; i += 2) {
@@ -49,6 +53,7 @@ function expandBoundsForLineShape(b: Bounds, obj: CanvasShape): void {
   }
 }
 
+/** Expand bounding box to include the scaled width/height of an object */
 function expandBoundsForBox(b: Bounds, obj: CanvasObject): void {
   const w = ('width' in obj ? obj.width : 30) * (obj.scaleX || 1);
   const h = ('height' in obj ? obj.height : 30) * (obj.scaleY || 1);
@@ -58,6 +63,7 @@ function expandBoundsForBox(b: Bounds, obj: CanvasObject): void {
   b.maxY = Math.max(b.maxY, obj.y + h);
 }
 
+/** Type guard: true if the object is a line or arrow shape with points */
 function isLineOrArrowShape(obj: CanvasObject): obj is CanvasShape {
   return (
     obj.type === 'shape' &&
@@ -134,6 +140,7 @@ export function canvasObjectToSvgElement(obj: CanvasObject): string {
   }
 }
 
+/** Convert a CanvasShape to its SVG element string */
 export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
   const fill = obj.fill ?? 'none';
   const base = `fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"`;
@@ -157,7 +164,7 @@ export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
     }
     case 'arrow': {
       const pts: number[] = obj.points ?? [0, 0, obj.width, 0];
-      const mid = `arrow-${Math.random().toString(36).slice(2)}`;
+      const mid = `arrow-${++svgIdCounter}`;
       const marker = `<defs><marker id="${mid}" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="${obj.stroke}"/></marker></defs>`;
       const line = `<line ${tf} x1="${pts[0]}" y1="${pts[1]}" x2="${pts[2]}" y2="${pts[3]}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}" marker-end="url(#${mid})"${dash}/>`;
       return marker + line;
@@ -174,6 +181,7 @@ export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
   }
 }
 
+/** Convert a CanvasText to an SVG text element with alignment */
 export function canvasTextToSvg(obj: CanvasText, tf: string): string {
   const bold = obj.fontStyle.includes('bold') ? 'bold' : 'normal';
   const italic = obj.fontStyle.includes('italic') ? 'italic' : 'normal';
@@ -182,10 +190,17 @@ export function canvasTextToSvg(obj: CanvasText, tf: string): string {
     right: 'end',
   };
   const anchor = anchorMap[obj.align] ?? 'start';
+  const textX =
+    obj.align === 'center'
+      ? obj.width / 2
+      : obj.align === 'right'
+        ? obj.width
+        : 0;
   const style = `font-size:${obj.fontSize}px;font-family:${obj.fontFamily};font-weight:${bold};font-style:${italic}`;
-  return `<text ${tf} fill="${obj.fill}" style="${style}" text-anchor="${anchor}" dominant-baseline="text-before-edge">${svgEsc(obj.text)}</text>`;
+  return `<text ${tf} x="${textX}" fill="${obj.fill}" style="${style}" text-anchor="${anchor}" dominant-baseline="text-before-edge">${svgEsc(obj.text)}</text>`;
 }
 
+/** Convert a CanvasPath to an SVG polyline element */
 export function canvasPathToSvg(obj: CanvasPath, tf: string): string {
   const pts = obj.points;
   if (pts.length < 4) return '';
@@ -196,6 +211,7 @@ export function canvasPathToSvg(obj: CanvasPath, tf: string): string {
   return `<path ${tf} d="${d.join(' ')}" fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"/>`;
 }
 
+/** Convert a CanvasImage to an SVG image or placeholder rect */
 export function canvasImageToSvg(obj: CanvasImage, tf: string): string {
   if (obj.src.startsWith('media:')) {
     return `<rect ${tf} width="${obj.width}" height="${obj.height}" fill="#ccc" stroke="#999" stroke-width="1"/>`;
@@ -203,6 +219,7 @@ export function canvasImageToSvg(obj: CanvasImage, tf: string): string {
   return `<image ${tf} href="${obj.src}" width="${obj.width}" height="${obj.height}"/>`;
 }
 
+/** Convert a CanvasPin to an SVG circle marker with label */
 export function canvasPinToSvg(obj: CanvasPin, tf: string): string {
   const label = obj.label
     ? `<text y="24" text-anchor="middle" font-size="12" fill="${obj.color}">${svgEsc(obj.label)}</text>`

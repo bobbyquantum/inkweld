@@ -197,6 +197,28 @@ describe('getObjectLabel', () => {
     };
     expect(getObjectLabel(obj)).toBe('My Location');
   });
+
+  it('should fallback to "Pin" for empty pin labels', () => {
+    const obj: CanvasPin = {
+      ...baseObj,
+      type: 'pin',
+      label: '',
+      icon: 'place',
+      color: '#f00',
+    };
+    expect(getObjectLabel(obj)).toBe('Pin');
+  });
+
+  it('should fallback to "Pin" for whitespace-only pin labels', () => {
+    const obj: CanvasPin = {
+      ...baseObj,
+      type: 'pin',
+      label: '   ',
+      icon: 'place',
+      color: '#f00',
+    };
+    expect(getObjectLabel(obj)).toBe('Pin');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────

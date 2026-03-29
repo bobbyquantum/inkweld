@@ -30,7 +30,7 @@ export function getObjectLabel(obj: CanvasObject): string {
     case 'shape':
       return obj.shapeType;
     case 'pin':
-      return obj.label;
+      return obj.label.trim() || 'Pin';
     default:
       return 'Object';
   }

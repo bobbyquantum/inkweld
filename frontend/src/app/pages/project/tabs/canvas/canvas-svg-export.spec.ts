@@ -400,6 +400,7 @@ describe('canvasTextToSvg', () => {
     expect(svg).toContain('font-size:16px');
     expect(svg).toContain('font-family:Arial');
     expect(svg).toContain('text-anchor="start"');
+    expect(svg).toContain('x="0"');
     expect(svg).toContain('>Hello</text>');
   });
 
@@ -417,6 +418,7 @@ describe('canvasTextToSvg', () => {
     };
     const svg = canvasTextToSvg(obj, tf);
     expect(svg).toContain('text-anchor="middle"');
+    expect(svg).toContain('x="100"');
   });
 
   it('should map right alignment to end anchor', () => {
@@ -433,6 +435,7 @@ describe('canvasTextToSvg', () => {
     };
     const svg = canvasTextToSvg(obj, tf);
     expect(svg).toContain('text-anchor="end"');
+    expect(svg).toContain('x="200"');
   });
 
   it('should apply bold style', () => {
