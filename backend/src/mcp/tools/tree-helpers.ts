@@ -494,9 +494,7 @@ export function buildVisualTree(elements: Element[]): TreeNode[] {
   const result: TreeNode[] = [];
   const stack: { node: TreeNode; level: number }[] = [];
 
-  for (let i = 0; i < elements.length; i++) {
-    const el = elements[i];
-
+  for (const el of elements) {
     const node: TreeNode = {
       id: el.id,
       name: el.name,
@@ -507,7 +505,7 @@ export function buildVisualTree(elements: Element[]): TreeNode[] {
     };
 
     // Pop from stack until we find the parent level
-    while (stack.length > 0 && stack[stack.length - 1].level >= el.level) {
+    while (stack.length > 0 && stack.at(-1)!.level >= el.level) {
       stack.pop();
     }
 
@@ -516,7 +514,7 @@ export function buildVisualTree(elements: Element[]): TreeNode[] {
       result.push(node);
     } else {
       // Add as child of current stack top
-      stack[stack.length - 1].node.children.push(node);
+      stack.at(-1)!.node.children.push(node);
     }
 
     // Push this node onto stack if it could have children
@@ -537,8 +535,7 @@ export function treeToText(elements: Element[]): string {
   function renderNodes(nodes: TreeNode[], indent: string = ''): string {
     let text = '';
 
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
+    for (const [i, node] of nodes.entries()) {
       const isLast = i === nodes.length - 1;
       const prefix = isLast ? '└── ' : '├── ';
 

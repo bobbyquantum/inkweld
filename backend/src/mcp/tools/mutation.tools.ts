@@ -185,7 +185,7 @@ Use move_elements or reorder_element to reposition after creation.`,
 
     const name = String(args.name ?? '').trim();
     const type = String(args.type ?? 'ITEM') as ElementType;
-    const schemaId = args.schemaId !== undefined ? String(args.schemaId).trim() : undefined;
+    const schemaId = args.schemaId === undefined ? undefined : String(args.schemaId).trim();
     const parentId = args.parentId ? String(args.parentId) : null;
 
     // Validate
@@ -851,7 +851,7 @@ to a new position among its siblings.`,
           insertAfterSiblingId = null;
         } else if (position === -1 || position >= siblings.length - 1) {
           // Move to last position
-          const lastSibling = siblings[siblings.length - 1];
+          const lastSibling = siblings.at(-1)!;
           if (lastSibling.element.id !== elementId) {
             insertAfterSiblingId = lastSibling.element.id;
           }

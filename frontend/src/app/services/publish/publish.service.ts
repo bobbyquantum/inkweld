@@ -230,7 +230,7 @@ export class PublishService {
 
       const duration = Date.now() - startTime;
 
-      if (result.success && result.result && result.result.file) {
+      if (result.success && result.result?.file) {
         const blob = result.result.file;
         const filename =
           options.filename ||
@@ -889,7 +889,7 @@ export class PublishService {
     link.download = filename;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
 
     // Clean up after a short delay
     setTimeout(() => URL.revokeObjectURL(url), 1000);

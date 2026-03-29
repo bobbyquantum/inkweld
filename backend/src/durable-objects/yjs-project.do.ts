@@ -590,7 +590,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     }
 
     // Set the final value
-    const finalKey = parts[parts.length - 1];
+    const finalKey = parts.at(-1);
     if (parts.length > 1) {
       container.set(finalKey, value);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {

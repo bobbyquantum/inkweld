@@ -93,7 +93,7 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
   // Token is valid - look up the user
   const user = await userService.findById(db, sessionResult.session.userId);
 
-  if (!user || !user.username) {
+  if (!user?.username) {
     // User no longer exists - treat as invalid token
     return c.json({ error: 'User not found' }, 401);
   }
@@ -564,7 +564,7 @@ userRoutes.openapi(uploadAvatarRoute, async (c) => {
 
   const db = c.get('db');
   const user = await userService.findById(db, userId);
-  if (!user || !user.username) {
+  if (!user?.username) {
     return c.json({ error: 'User not found' }, 404);
   }
 
@@ -633,7 +633,7 @@ userRoutes.openapi(deleteAvatarRoute, async (c) => {
 
   const db = c.get('db');
   const user = await userService.findById(db, userId);
-  if (!user || !user.username) {
+  if (!user?.username) {
     return c.json({ error: 'User not found' }, 404);
   }
 

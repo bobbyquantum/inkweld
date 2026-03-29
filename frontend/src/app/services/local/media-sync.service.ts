@@ -208,11 +208,11 @@ export class MediaSyncService {
         let status: MediaSyncStatus;
         if (local && server) {
           // Check if server file has been updated (size changed)
-          if (local.size !== server.size) {
+          if (local.size === server.size) {
+            status = 'synced';
+          } else {
             status = 'server-only';
             needsDownload++;
-          } else {
-            status = 'synced';
           }
         } else if (local) {
           status = 'local-only';

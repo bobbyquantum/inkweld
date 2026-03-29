@@ -559,9 +559,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const currentTab = tabs[currentTabIndex - 1];
 
-    return (
-      currentTab && currentTab.type === 'document' && currentTab.element != null
-    );
+    return currentTab?.type === 'document' && currentTab?.element != null;
   }
 
   getCurrentDocumentId(): string | null {
@@ -579,7 +577,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const currentTab = tabs[currentTabIndex - 1];
 
-    if (currentTab && currentTab.type === 'document' && currentTab.element) {
+    if (currentTab?.type === 'document' && currentTab?.element) {
       return `${this.projectState.project()!.username}:${this.projectState.project()!.slug}:${currentTab.id}`;
     }
 

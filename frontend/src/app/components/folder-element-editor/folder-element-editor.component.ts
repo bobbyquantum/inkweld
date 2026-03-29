@@ -195,7 +195,7 @@ export class FolderElementEditorComponent implements OnInit {
    */
   private loadViewModeFromMetadata(): void {
     const folder = this.folderElement();
-    if (folder && folder.metadata && folder.metadata['viewMode']) {
+    if (folder?.metadata?.['viewMode']) {
       const savedMode = folder.metadata['viewMode'] as ViewMode;
       if (savedMode === 'grid' || savedMode === 'list') {
         this.viewMode.set(savedMode);

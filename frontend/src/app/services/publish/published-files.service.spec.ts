@@ -330,14 +330,12 @@ describe('PublishedFilesService', () => {
         href: '',
         download: '',
         click: vi.fn(),
+        remove: vi.fn(),
       };
       vi.spyOn(document, 'createElement').mockReturnValue(
         mockAnchor as unknown as HTMLAnchorElement
       );
       vi.spyOn(document.body, 'appendChild').mockImplementation(
-        () => mockAnchor as unknown as Node
-      );
-      vi.spyOn(document.body, 'removeChild').mockImplementation(
         () => mockAnchor as unknown as Node
       );
       vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-url');

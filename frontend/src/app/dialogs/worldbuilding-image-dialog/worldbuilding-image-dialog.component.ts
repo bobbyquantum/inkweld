@@ -29,6 +29,7 @@ import {
 } from 'ngx-image-cropper';
 
 import { base64ToBlob } from '../../utils/base64-utils';
+import { formatWorldbuildingFields } from '../../utils/worldbuilding.utils';
 
 /**
  * Data passed to the dialog
@@ -206,39 +207,9 @@ export class WorldbuildingImageDialogComponent implements OnInit {
     }
 
     // Add worldbuilding fields with values
-    const fieldParts: string[] = [];
-    for (const [key, value] of Object.entries(this.worldbuildingFields)) {
-      // Skip empty values, internal fields, and timestamps
-      if (
-        value === null ||
-        value === undefined ||
-        value === '' ||
-        key === 'lastModified' ||
-        key.startsWith('_')
-      ) {
-        continue;
-      }
-
-      // Format the value
-      let formattedValue: string;
-      if (Array.isArray(value)) {
-        formattedValue = value.filter(v => v).join(', ');
-        if (!formattedValue) continue;
-      } else if (typeof value === 'object') {
-        continue; // Skip nested objects
-      } else if (typeof value === 'string') {
-        formattedValue = value;
-      } else if (typeof value === 'number' || typeof value === 'boolean') {
-        formattedValue = String(value);
-      } else {
-        continue; // Skip unsupported types
-      }
-
-      fieldParts.push(`${key}: ${formattedValue}`);
-    }
-
-    if (fieldParts.length > 0) {
-      parts.push(fieldParts.join(', '));
+    const formattedFields = formatWorldbuildingFields(this.worldbuildingFields);
+    if (formattedFields) {
+      parts.push(formattedFields);
     }
 
     return parts.join('. ');

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { ElementType } from '../../api-client';
-import { isWorldbuildingType } from './worldbuilding.utils';
+import {
+  formatWorldbuildingFields,
+  isWorldbuildingType,
+} from './worldbuilding.utils';
 
 describe('worldbuilding.utils', () => {
   describe('isWorldbuildingType', () => {
@@ -27,6 +30,52 @@ describe('worldbuilding.utils', () => {
     it('should handle edge cases', () => {
       expect(isWorldbuildingType('')).toBe(false);
       expect(isWorldbuildingType('worldbuilding')).toBe(false); // lowercase
+    });
+  });
+
+  describe('formatWorldbuildingFields', () => {
+    it('should format string fields', () => {
+      expect(formatWorldbuildingFields({ name: 'Elara', role: 'Mage' })).toBe(
+        'name: Elara, role: Mage'
+      );
+    });
+
+    it('should format number and boolean fields', () => {
+      expect(formatWorldbuildingFields({ age: 25, active: true })).toBe(
+        'age: 25, active: true'
+      );
+    });
+
+    it('should format array fields', () => {
+      expect(formatWorldbuildingFields({ tags: ['fire', 'ice'] })).toBe(
+        'tags: fire, ice'
+      );
+    });
+
+    it('should skip empty, null, and undefined values', () => {
+      expect(
+        formatWorldbuildingFields({ a: '', b: null, c: undefined, d: 'ok' })
+      ).toBe('d: ok');
+    });
+
+    it('should skip internal fields and timestamps', () => {
+      expect(
+        formatWorldbuildingFields({
+          _internal: 'x',
+          lastModified: '2024',
+          name: 'test',
+        })
+      ).toBe('name: test');
+    });
+
+    it('should skip objects and empty arrays', () => {
+      expect(
+        formatWorldbuildingFields({ nested: { a: 1 }, empty: [], name: 'ok' })
+      ).toBe('name: ok');
+    });
+
+    it('should return empty string for empty input', () => {
+      expect(formatWorldbuildingFields({})).toBe('');
     });
   });
 });

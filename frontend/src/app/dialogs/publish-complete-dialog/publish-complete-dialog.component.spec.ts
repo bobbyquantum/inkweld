@@ -159,18 +159,17 @@ describe('PublishCompleteDialogComponent', () => {
       const appendChildSpy = vi
         .spyOn(document.body, 'appendChild')
         .mockImplementation(() => document.body);
-      const removeChildSpy = vi
-        .spyOn(document.body, 'removeChild')
-        .mockImplementation(() => document.body);
       const revokeObjectURLSpy = vi
         .spyOn(URL, 'revokeObjectURL')
         .mockImplementation(() => {});
       vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test');
 
+      const removeSpy = vi.fn();
       const mockAnchor = {
         href: '',
         download: '',
         click: vi.fn(),
+        remove: removeSpy,
       } as unknown as HTMLAnchorElement;
       createElementSpy.mockReturnValue(mockAnchor);
 
@@ -180,7 +179,7 @@ describe('PublishCompleteDialogComponent', () => {
       expect(mockAnchor.download).toBe('My Novel.epub');
       expect(mockAnchor.click).toHaveBeenCalled();
       expect(appendChildSpy).toHaveBeenCalled();
-      expect(removeChildSpy).toHaveBeenCalled();
+      expect(removeSpy).toHaveBeenCalled();
       expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:test');
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'File downloaded',
@@ -191,7 +190,6 @@ describe('PublishCompleteDialogComponent', () => {
       // Cleanup
       createElementSpy.mockRestore();
       appendChildSpy.mockRestore();
-      removeChildSpy.mockRestore();
       revokeObjectURLSpy.mockRestore();
     });
   });
