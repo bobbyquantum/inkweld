@@ -17,6 +17,14 @@
     }
   ],
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from POST /api/v1/auth/login. Include as: Authorization: Bearer <token>"
+      }
+    },
     "schemas": {
       "RegisterResponse": {
         "type": "object",
@@ -4026,15 +4034,7 @@
         ]
       }
     },
-    "parameters": {},
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "JWT token obtained from POST /api/v1/auth/login. Include as: Authorization: Bearer <token>"
-      }
-    }
+    "parameters": {}
   },
   "paths": {
     "/api/v1/auth/register": {
