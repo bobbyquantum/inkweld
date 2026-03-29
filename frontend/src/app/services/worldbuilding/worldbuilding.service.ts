@@ -50,7 +50,10 @@ export class WorldbuildingService {
   private connections = new Map<string, WorldbuildingConnection>();
 
   // Pending connection promises to prevent race conditions
-  private pendingConnections = new Map<string, Promise<Y.Map<unknown>>>();
+  private readonly pendingConnections = new Map<
+    string,
+    Promise<Y.Map<unknown>>
+  >();
 
   // Current sync provider (used for schema library access)
   private syncProvider: IElementSyncProvider | null = null;

@@ -320,6 +320,74 @@ describe('RelationshipChartService', () => {
       expect(result.nodes.map(n => n.id)).not.toContain('d');
     });
 
+    it('should skip focus filtering when focusElementId is not in elements', () => {
+      const elements = [
+        makeElement({ id: 'a', name: 'Alice' }),
+        makeElement({ id: 'b', name: 'Bob' }),
+      ];
+      const relationships = [
+        makeRelationship({ sourceElementId: 'a', targetElementId: 'b' }),
+      ];
+      const types = [makeRelType()];
+
+      const result = service.buildGraph(elements, relationships, types, {
+        mode: 'all',
+        includedElementIds: [],
+        relationshipTypeIds: [],
+        schemaIds: [],
+        elementTypes: [],
+        showOrphans: false,
+        focusElementId: 'deleted-element',
+        maxDepth: 2,
+      });
+
+      // All elements should be returned since the focus element doesn't exist
+      expect(result.nodes.map(n => n.id)).toContain('a');
+      expect(result.nodes.map(n => n.id)).toContain('b');
+    });
+
+    it('should handle cyclic graph without infinite loop in focus mode', () => {
+      const elements = [
+        makeElement({ id: 'a', name: 'Alice' }),
+        makeElement({ id: 'b', name: 'Bob' }),
+        makeElement({ id: 'c', name: 'Charlie' }),
+      ];
+      // Create a cycle: A↔B, B↔C, C↔A
+      const relationships = [
+        makeRelationship({
+          id: 'r1',
+          sourceElementId: 'a',
+          targetElementId: 'b',
+        }),
+        makeRelationship({
+          id: 'r2',
+          sourceElementId: 'b',
+          targetElementId: 'c',
+        }),
+        makeRelationship({
+          id: 'r3',
+          sourceElementId: 'c',
+          targetElementId: 'a',
+        }),
+      ];
+      const types = [makeRelType()];
+
+      const result = service.buildGraph(elements, relationships, types, {
+        mode: 'all',
+        includedElementIds: [],
+        relationshipTypeIds: [],
+        schemaIds: [],
+        elementTypes: [],
+        showOrphans: false,
+        focusElementId: 'a',
+        maxDepth: 3,
+      });
+
+      // Should return all 3 nodes without hanging
+      expect(result.nodes).toHaveLength(3);
+      expect(result.nodes.map(n => n.id).sort()).toEqual(['a', 'b', 'c']);
+    });
+
     it('should derive correct category labels', () => {
       const elements = [
         makeElement({
@@ -553,6 +621,102 @@ describe('RelationshipChartService', () => {
       expect(config.filters.mode).toBe('curated');
       expect(config.filters.includedElementIds).toEqual([]);
       expect(config.layout).toBe('force');
+    });
+
+    it('should fallback to defaults when metadata has malformed JSON', () => {
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: { chartConfig: '{invalid json!' },
+        }),
+      ]);
+
+      const config = service.loadConfig('chart-1');
+      expect(config.layout).toBe('force');
+      expect(config.filters.mode).toBe('curated');
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'RelationshipChart',
+        'Failed to parse chart config from metadata'
+      );
+    });
+
+    it('should use default filters when saved config has no filters property', () => {
+      const savedConfig = {
+        layout: 'circular',
+      };
+
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: { chartConfig: JSON.stringify(savedConfig) },
+        }),
+      ]);
+
+      const config = service.loadConfig('chart-1');
+      expect(config.layout).toBe('circular');
+      // Should use default filters since none were saved
+      expect(config.filters.mode).toBe('curated');
+      expect(config.filters.includedElementIds).toEqual([]);
+      expect(config.filters.showOrphans).toBe(true);
+    });
+
+    it('should pass through non-array filter values in sanitizeFilters', () => {
+      const savedConfig = {
+        layout: 'force',
+        filters: {
+          mode: 'all',
+          showOrphans: false,
+          includedElementIds: ['a', 'b'],
+          relationshipTypeIds: ['friend'],
+          schemaIds: [],
+          elementTypes: [],
+        },
+      };
+
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: { chartConfig: JSON.stringify(savedConfig) },
+        }),
+      ]);
+
+      const config = service.loadConfig('chart-1');
+      // Non-array values should be passed through
+      expect(config.filters.mode).toBe('all');
+      expect(config.filters.showOrphans).toBe(false);
+      // Array values that are valid arrays should be kept
+      expect(config.filters.includedElementIds).toEqual(['a', 'b']);
+      expect(config.filters.relationshipTypeIds).toEqual(['friend']);
+    });
+
+    it('should fallback to default array when saved value is not an array', () => {
+      const savedConfig = {
+        layout: 'force',
+        filters: {
+          mode: 'all',
+          includedElementIds: 'not-an-array',
+          relationshipTypeIds: [],
+          schemaIds: [],
+          elementTypes: [],
+          showOrphans: true,
+        },
+      };
+
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: { chartConfig: JSON.stringify(savedConfig) },
+        }),
+      ]);
+
+      const config = service.loadConfig('chart-1');
+      // Should fallback to the default empty array since the saved value is not an array
+      expect(Array.isArray(config.filters.includedElementIds)).toBe(true);
+      expect(config.filters.includedElementIds).toEqual([]);
     });
   });
 

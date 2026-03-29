@@ -271,6 +271,25 @@ describe('AdminAiTextSettingsComponent', () => {
       expect(models[0].id).toBe('gpt-4o');
     });
 
+    it('should use API defaults when models config value is null', async () => {
+      mockConfigService.getAllConfig.mockResolvedValue(
+        createMockConfig({
+          AI_TEXT_OPENAI_MODELS: {
+            key: 'AI_TEXT_OPENAI_MODELS',
+            value: null as unknown as string,
+            source: 'default',
+          },
+        })
+      );
+
+      await component.loadConfig();
+      await flushPromises();
+
+      const models = component.openaiModels();
+      expect(models.length).toBeGreaterThan(0);
+      expect(models[0].id).toBe('gpt-4o');
+    });
+
     it('should set lint model from config', async () => {
       await component.loadConfig();
       await flushPromises();

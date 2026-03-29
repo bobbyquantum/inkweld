@@ -330,9 +330,10 @@ export class ProjectSearchDialogComponent implements AfterViewInit, OnDestroy {
         progress => {
           if (!signal.aborted) {
             this.progress.set(progress);
-            if (progress.results.length > 0 && this.selectedIndex() < 0) {
-              this.selectedIndex.set(0);
-            } else if (this.selectedIndex() >= progress.results.length) {
+            if (
+              (progress.results.length > 0 && this.selectedIndex() < 0) ||
+              this.selectedIndex() >= progress.results.length
+            ) {
               this.selectedIndex.set(0);
             }
             if (progress.done) {

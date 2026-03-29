@@ -228,7 +228,7 @@ export class AccountSettingsComponent implements OnInit {
 
           // If no grants left, remove the session entirely
           const updatedDetails = this.sessionDetails().get(sessionId);
-          if (updatedDetails && updatedDetails.grants.length === 0) {
+          if (updatedDetails?.grants.length === 0) {
             this.sessions.update(sessions =>
               sessions.filter(s => s.id !== sessionId)
             );

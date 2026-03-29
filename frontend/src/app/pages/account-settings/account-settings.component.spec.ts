@@ -244,6 +244,25 @@ describe('AccountSettingsComponent', () => {
         details?.grants.find(g => g.projectId === 'proj-1')
       ).toBeUndefined();
     });
+
+    it('should handle revoke when session details are not loaded', async () => {
+      // Revoke grant for a session that has no loaded details
+      const grant = mockSessionDetails.grants[0];
+      await component.revokeGrant('nonexistent-session', grant);
+
+      // Should not call the API since details are not loaded (early return)
+      expect(dialogGateway.openConfirmationDialog).not.toHaveBeenCalled();
+      expect(oauthService.revokeOAuthGrant).not.toHaveBeenCalled();
+    });
+
+    it('should remove session when all grants are revoked', async () => {
+      // Revoke both grants
+      await component.revokeGrant('session-1', mockSessionDetails.grants[0]);
+      await component.revokeGrant('session-1', mockSessionDetails.grants[1]);
+
+      // Session should be removed when no grants remain
+      expect(component.getSessionDetails('session-1')).toBeUndefined();
+    });
   });
 
   describe('update grant role', () => {

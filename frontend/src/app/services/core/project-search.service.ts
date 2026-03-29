@@ -186,9 +186,9 @@ export class ProjectSearchService {
     const elementMap = new Map(elements.map(el => [el.id, el]));
     const searchableElements = this.buildSearchableElements(elements, filters);
 
-    // ─── Browse mode (no query) ──────────────────────────────────────────
+    // ─── Browse mode (no query or single character) ────────────────────
     // Return all matching elements without loading document content.
-    if (!normalizedQuery) {
+    if (normalizedQuery.length < 2) {
       this.emitProgress(
         onProgress,
         searchableElements.length,

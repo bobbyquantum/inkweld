@@ -16,14 +16,9 @@ async function waitForServer(baseUrl: string, timeoutMs = 2_000): Promise<void> 
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
-      const response = await fetch(baseUrl, {
-        method: 'HEAD',
-      });
-
-      // Any HTTP response means the socket is accepting connections.
-      if (response.status >= 200 || response.status === 404 || response.status === 405) {
-        return;
-      }
+      await fetch(baseUrl, { method: 'HEAD' });
+      // Any successful fetch (no exception) means the socket is accepting connections.
+      return;
     } catch {
       // Server is not accepting connections yet.
     }

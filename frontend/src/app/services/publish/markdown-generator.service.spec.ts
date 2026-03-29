@@ -1328,6 +1328,75 @@ describe('MarkdownGeneratorService', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should handle ngx-editor mark format with type as object', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              text: 'Bold text',
+              marks: [{ type: { name: 'bold' } }],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      expect(text).toContain('**Bold text**');
+    });
+
+    it('should ignore marks with non-string non-object type', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              text: 'Plain text',
+              marks: [{ type: 42 }],
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(planWithElement);
+
+      expect(result.success).toBe(true);
+      const text = await result.file!.text();
+      // Mark type is invalid, so text should be plain (no markdown wrapping)
+      expect(text).toContain('Plain text');
+      expect(text).not.toContain('**');
+      expect(text).not.toContain('*Plain text*');
+    });
+
     it('should handle nodeName property (alternative to type)', async () => {
       documentServiceMock.getDocumentContent.mockResolvedValue([
         { nodeName: 'paragraph', children: [{ text: 'Text using nodeName' }] },

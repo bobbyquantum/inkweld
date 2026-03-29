@@ -78,36 +78,13 @@ export class RelationshipChartService {
   loadConfig(elementId: string): ChartConfig {
     const elements = this.projectState.elements();
     const element = elements.find(e => e.id === elementId);
+    const rawConfig = element?.metadata?.[CHART_CONFIG_META_KEY];
 
-    if (element?.metadata?.[CHART_CONFIG_META_KEY]) {
-      try {
-        const parsed = JSON.parse(
-          element.metadata[CHART_CONFIG_META_KEY]
-        ) as Partial<ChartConfig>;
-        const defaults = createDefaultChartConfig(elementId);
-        const config: ChartConfig = {
-          ...defaults,
-          ...parsed,
-          filters: parsed.filters
-            ? {
-                ...defaults.filters,
-                ...parsed.filters,
-              }
-            : defaults.filters,
-          elementId, // Ensure elementId is always correct
-        };
-        this.logger.debug(
-          'RelationshipChart',
-          `loadConfig: restored config for ${elementId} (mode=${config.filters.mode}, ` +
-            `elements=${config.filters.includedElementIds?.length ?? 0})`
-        );
-        this.activeConfigSignal.set(config);
-        return config;
-      } catch {
-        this.logger.warn(
-          'RelationshipChart',
-          'Failed to parse chart config from metadata'
-        );
+    if (rawConfig) {
+      const parsed = this.tryParseConfig(rawConfig, elementId);
+      if (parsed) {
+        this.activeConfigSignal.set(parsed);
+        return parsed;
       }
     }
 
@@ -119,6 +96,59 @@ export class RelationshipChartService {
     const config = createDefaultChartConfig(elementId);
     this.activeConfigSignal.set(config);
     return config;
+  }
+
+  private tryParseConfig(
+    rawConfig: string,
+    elementId: string
+  ): ChartConfig | null {
+    try {
+      const parsed = JSON.parse(rawConfig) as Partial<ChartConfig>;
+      const defaults = createDefaultChartConfig(elementId);
+      const filters = parsed.filters
+        ? {
+            ...defaults.filters,
+            ...this.sanitizeFilters(parsed.filters, defaults.filters),
+          }
+        : defaults.filters;
+      const config: ChartConfig = {
+        ...defaults,
+        ...parsed,
+        filters,
+        elementId,
+      };
+      this.logger.debug(
+        'RelationshipChart',
+        `loadConfig: restored config for ${elementId} (mode=${config.filters.mode}, ` +
+          `elements=${config.filters.includedElementIds?.length ?? 0})`
+      );
+      return config;
+    } catch {
+      this.logger.warn(
+        'RelationshipChart',
+        'Failed to parse chart config from metadata'
+      );
+      return null;
+    }
+  }
+
+  private sanitizeFilters(
+    parsed: Partial<ChartFilters>,
+    defaults: ChartFilters
+  ): Partial<ChartFilters> {
+    const sanitized: Partial<ChartFilters> = {};
+    const defaultsRecord = defaults as unknown as Record<string, unknown>;
+    for (const [key, value] of Object.entries(parsed)) {
+      const defaultValue = defaultsRecord[key];
+      if (Array.isArray(defaultValue)) {
+        sanitized[key as keyof ChartFilters] = Array.isArray(value)
+          ? (value as never)
+          : (defaultValue as never);
+      } else {
+        sanitized[key as keyof ChartFilters] = value as never;
+      }
+    }
+    return sanitized;
   }
 
   /**
@@ -354,6 +384,12 @@ export class RelationshipChartService {
     const filteredElementIds = new Set(
       filteredElements.map(element => element.id)
     );
+
+    // Guard: if focusElementId refers to a deleted/missing element, skip focus filtering
+    if (!filteredElementIds.has(filters.focusElementId)) {
+      return filteredElements;
+    }
+
     const visibleRelationships = relationships.filter(
       relationship =>
         filteredElementIds.has(relationship.sourceElementId) &&
@@ -507,6 +543,7 @@ export class RelationshipChartService {
     maxDepth: number
   ): Element[] {
     const visited = new Set<string>();
+    const seen = new Set<string>([focusId]);
     const queue: Array<{ id: string; depth: number }> = [
       { id: focusId, depth: 0 },
     ];
@@ -517,7 +554,7 @@ export class RelationshipChartService {
       visited.add(id);
 
       if (depth < maxDepth) {
-        this.enqueueNeighbors(id, depth, relationships, visited, queue);
+        this.enqueueNeighbors(id, depth, relationships, visited, seen, queue);
       }
     }
 
@@ -530,13 +567,24 @@ export class RelationshipChartService {
     depth: number,
     relationships: ReturnType<RelationshipService['getAllRelationships']>,
     visited: Set<string>,
+    seen: Set<string>,
     queue: Array<{ id: string; depth: number }>
   ): void {
     for (const rel of relationships) {
-      if (rel.sourceElementId === id && !visited.has(rel.targetElementId)) {
+      if (
+        rel.sourceElementId === id &&
+        !visited.has(rel.targetElementId) &&
+        !seen.has(rel.targetElementId)
+      ) {
+        seen.add(rel.targetElementId);
         queue.push({ id: rel.targetElementId, depth: depth + 1 });
       }
-      if (rel.targetElementId === id && !visited.has(rel.sourceElementId)) {
+      if (
+        rel.targetElementId === id &&
+        !visited.has(rel.sourceElementId) &&
+        !seen.has(rel.sourceElementId)
+      ) {
+        seen.add(rel.sourceElementId);
         queue.push({ id: rel.sourceElementId, depth: depth + 1 });
       }
     }

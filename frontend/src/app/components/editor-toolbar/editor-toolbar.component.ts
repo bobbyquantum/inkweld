@@ -87,7 +87,7 @@ export class EditorToolbarComponent implements OnDestroy {
   @Output() insertImageClick = new EventEmitter<void>();
 
   /** Signal for tracking the current selection state */
-  private selectionState = signal({
+  private readonly selectionState = signal({
     bold: false,
     italic: false,
     underline: false,

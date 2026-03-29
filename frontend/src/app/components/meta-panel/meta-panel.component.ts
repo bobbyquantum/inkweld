@@ -102,7 +102,7 @@ export class MetaPanelComponent {
    * The normalized element ID for relationship matching.
    * Extracts the element ID from documentId format (username:slug:elementId).
    */
-  private normalizedElementId = computed(() => {
+  private readonly normalizedElementId = computed(() => {
     const id = this.effectiveElementId();
     return this.extractElementId(id ?? '');
   });

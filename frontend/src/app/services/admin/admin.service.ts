@@ -188,7 +188,8 @@ export class AdminService {
     if (options?.offset) params.set('offset', options.offset.toString());
 
     const queryString = params.toString();
-    const url = `${this.basePath}/api/v1/users${queryString ? `?${queryString}` : ''}`;
+    const queryPart = queryString ? `?${queryString}` : '';
+    const url = `${this.basePath}/api/v1/users${queryPart}`;
 
     return firstValueFrom(
       this.http

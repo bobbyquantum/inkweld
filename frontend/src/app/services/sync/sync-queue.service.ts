@@ -66,7 +66,7 @@ export class SyncQueueService {
   private queue: string[] = [];
 
   /** Map of project key to sync status */
-  private projectStatuses = new Map<
+  private readonly projectStatuses = new Map<
     string,
     ReturnType<typeof signal<ProjectSyncStatus>>
   >();
@@ -210,7 +210,7 @@ export class SyncQueueService {
     // Mark remaining queued projects as cancelled
     for (const projectKey of this.queue) {
       const status = this.projectStatuses.get(projectKey);
-      if (status && status().stage === SyncStage.Queued) {
+      if (status?.().stage === SyncStage.Queued) {
         status.update(s => ({
           ...s,
           stage: SyncStage.Failed,

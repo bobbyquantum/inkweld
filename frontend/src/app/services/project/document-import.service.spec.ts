@@ -188,5 +188,27 @@ describe('DocumentImportService', () => {
 
       expect(logger.debug).toHaveBeenCalled();
     });
+
+    it('should write dot-notation keys as nested Y.Map structures', async () => {
+      const wb = {
+        elementId: 'wb-elem-dot',
+        schemaId: 'character-v1',
+        data: {
+          'appearance.height': '180cm',
+          'appearance.tags': ['tall', 'blonde'],
+          name: 'Test Character',
+        },
+      };
+
+      // writeWorldbuildingData throws on error (catch re-throws),
+      // so a successful await proves the dot-notation path didn't break
+      await service.writeWorldbuildingData(wb, 'testuser', 'project-slug');
+
+      // logger.debug is only called on the success path
+      expect(logger.debug).toHaveBeenCalledWith(
+        'DocumentImport',
+        expect.stringContaining('wb-elem-dot')
+      );
+    });
   });
 });

@@ -50,7 +50,7 @@ export class EditorFloatingMenuComponent implements OnDestroy {
   @Input({ required: true }) editor!: Editor;
 
   /** Signal for tracking the current selection state */
-  private selectionState = signal({
+  private readonly selectionState = signal({
     bold: false,
     italic: false,
     underline: false,

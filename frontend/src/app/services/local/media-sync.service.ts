@@ -114,7 +114,7 @@ export class MediaSyncService {
   private readonly projectSync = inject(ProjectSyncService);
 
   /** Cache of sync states per project */
-  private syncStates = new Map<
+  private readonly syncStates = new Map<
     string,
     ReturnType<typeof signal<MediaSyncState>>
   >();

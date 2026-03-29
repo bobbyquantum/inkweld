@@ -824,6 +824,74 @@ describe('ImageGenerationService', () => {
         })
       );
     });
+
+    it('should handle CRLF-separated SSE events', async () => {
+      // Build a custom stream using \r\n\r\n separators instead of \n\n
+      const encoder = new TextEncoder();
+      const completedResult = createMockResponse();
+      const eventData = JSON.stringify({
+        type: 'completed',
+        result: completedResult,
+      });
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          const chunk = `event: completed\r\ndata: ${eventData}\r\n\r\n`;
+          controller.enqueue(encoder.encode(chunk));
+          controller.close();
+        },
+      });
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        body,
+      } as unknown as Response);
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('completed');
+      expect(job?.images.length).toBe(1);
+    });
+
+    it('should fail streaming job when completed event has text-only response', async () => {
+      const textOnlyResult: ImageGenerateResponse = {
+        data: [{ textContent: 'I cannot generate this image.', index: 0 }],
+        model: 'gpt-image-1',
+        provider: 'openai' as ImageProviderType,
+        created: Date.now(),
+        request: { prompt: 'A test image' },
+        textContent: 'I cannot generate this image.',
+      };
+
+      mockFetchResponse([
+        {
+          event: 'completed',
+          data: { type: 'completed', result: textOnlyResult },
+        },
+      ]);
+
+      const jobId = service.startGeneration(
+        'user/project',
+        createMockRequest(),
+        { providerType: 'openai' }
+      );
+
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      const job = service.getJob(jobId);
+      expect(job?.status).toBe('failed');
+    });
   });
 
   describe('saveGeneratedImages mimeType handling', () => {

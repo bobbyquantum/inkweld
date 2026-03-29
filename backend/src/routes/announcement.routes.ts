@@ -9,6 +9,15 @@ import type { AppContext } from '../types/context';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 import { UnauthorizedError } from '../errors';
 
+/**
+ * Tri-state date field: undefined → no update, null → clear, string → Date.
+ */
+function parseTriStateDate(value: string | null | undefined): Date | null | undefined {
+  if (value === undefined) return undefined;
+  if (!value) return null;
+  return new Date(value);
+}
+
 // Schemas
 const AnnouncementSchema = z.object({
   id: z.string(),
@@ -667,16 +676,17 @@ adminAnnouncementRoutes.openapi(adminUpdateAnnouncementRoute, async (c) => {
     return c.json({ error: 'Announcement not found' }, 404);
   }
 
+  // Tri-state date handling:
+  //   undefined → no update (field not included in request)
+  //   null     → clear the date
+  //   string   → parse as Date
+  const publishedAt = parseTriStateDate(data.publishedAt);
+  const expiresAt = parseTriStateDate(data.expiresAt);
+
   const announcement = await announcementService.update(db, announcementId, {
     ...data,
-    publishedAt:
-      data.publishedAt !== undefined
-        ? data.publishedAt
-          ? new Date(data.publishedAt)
-          : null
-        : undefined,
-    expiresAt:
-      data.expiresAt !== undefined ? (data.expiresAt ? new Date(data.expiresAt) : null) : undefined,
+    publishedAt,
+    expiresAt,
   });
   return c.json(formatAnnouncementResponse(announcement), 200);
 });
