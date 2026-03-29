@@ -260,24 +260,27 @@ export class ImageGenerationService {
     jobId: string,
     response: ImageGenerateResponse
   ): boolean {
-    if (!this.isTextOnlyResponse(response)) {
+    if (this.hasRenderableImage(response)) {
       return false;
     }
+
+    const textContent =
+      response.textContent ??
+      response.data.find(image => image.textContent)?.textContent ??
+      'The model returned no image data.';
 
     this.updateJob(jobId, {
       status: 'failed',
       message: 'Generation failed',
-      error: this.getTextOnlyResponseError(response.textContent),
+      error: this.getTextOnlyResponseError(textContent),
       response,
     });
     this.updateActiveJobs();
     return true;
   }
 
-  private isTextOnlyResponse(
-    response: ImageGenerateResponse
-  ): response is ImageGenerateResponse & { textContent: string } {
-    return response.data.length === 0 && !!response.textContent;
+  private hasRenderableImage(response: ImageGenerateResponse): boolean {
+    return response.data.some(image => !!image.b64Json || !!image.url);
   }
 
   private getTextOnlyResponseError(textContent: string): string {

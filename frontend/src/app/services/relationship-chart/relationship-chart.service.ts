@@ -341,17 +341,28 @@ export class RelationshipChartService {
     relatedIds: Set<string>,
     filters: ChartFilters
   ): Element[] {
-    const filteredElements = elements.filter(element =>
-      this.shouldIncludeElement(element, relatedIds, filters)
+    const filteredElements = elements.filter(
+      element =>
+        element.id === filters.focusElementId ||
+        this.shouldIncludeElement(element, relatedIds, filters)
     );
 
     if (!filters.focusElementId) {
       return filteredElements;
     }
 
+    const filteredElementIds = new Set(
+      filteredElements.map(element => element.id)
+    );
+    const visibleRelationships = relationships.filter(
+      relationship =>
+        filteredElementIds.has(relationship.sourceElementId) &&
+        filteredElementIds.has(relationship.targetElementId)
+    );
+
     return this.filterByFocus(
       filteredElements,
-      relationships,
+      visibleRelationships,
       filters.focusElementId,
       filters.maxDepth ?? 3
     );

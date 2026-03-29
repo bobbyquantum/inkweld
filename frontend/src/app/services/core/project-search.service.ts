@@ -368,6 +368,21 @@ export class ProjectSearchService {
     return results;
   }
 
+  private extractContentNodes(content: unknown): unknown[] {
+    if (Array.isArray(content)) {
+      return content;
+    }
+    if (
+      content !== null &&
+      typeof content === 'object' &&
+      'content' in content &&
+      Array.isArray((content as { content?: unknown }).content)
+    ) {
+      return (content as { content: unknown[] }).content;
+    }
+    return [];
+  }
+
   private async searchElementDocument(
     project: Project,
     element: Element,
@@ -378,7 +393,8 @@ export class ProjectSearchService {
 
     try {
       const content = await this.documentService.getDocumentContent(documentId);
-      const text = flattenToPlainText(Array.isArray(content) ? content : []);
+      const nodes = this.extractContentNodes(content);
+      const text = flattenToPlainText(nodes);
       const { matchCount, snippets } = this.collectSearchMatches(
         text,
         normalizedQuery
