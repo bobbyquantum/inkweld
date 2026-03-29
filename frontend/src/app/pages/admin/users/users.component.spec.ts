@@ -10,7 +10,6 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { type User } from '@inkweld/model/user';
 import { AdminService, type AdminUser } from '@services/admin/admin.service';
@@ -25,7 +24,6 @@ import { AdminUsersComponent } from './users.component';
 @Component({
   selector: 'app-user-avatar',
   template: '',
-  standalone: true,
 })
 class MockUserAvatarComponent {
   @Input() username?: string;
@@ -158,7 +156,6 @@ describe('AdminUsersComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         { provide: AdminService, useValue: adminServiceMock },
         { provide: UnifiedUserService, useValue: userServiceMock },
         { provide: MatSnackBar, useValue: snackBarMock },

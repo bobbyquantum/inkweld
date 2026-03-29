@@ -46,17 +46,16 @@ import { TemplatesTabComponent } from '../templates/templates-tab.component';
 import { SettingsTabComponent } from './settings-tab.component';
 
 // Mock child components to avoid their complex dependencies
-@Component({ selector: 'app-templates-tab', template: '', standalone: true })
+@Component({ selector: 'app-templates-tab', template: '' })
 class MockTemplatesTabComponent {}
 
 @Component({
   selector: 'app-relationships-tab',
   template: '',
-  standalone: true,
 })
 class MockRelationshipsTabComponent {}
 
-@Component({ selector: 'app-tags-tab', template: '', standalone: true })
+@Component({ selector: 'app-tags-tab', template: '' })
 class MockTagsTabComponent {}
 
 describe('SettingsTabComponent', () => {

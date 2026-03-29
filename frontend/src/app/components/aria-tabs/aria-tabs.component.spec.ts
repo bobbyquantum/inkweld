@@ -11,7 +11,6 @@ import { type AriaTabConfig, AriaTabsComponent } from './aria-tabs.component';
 
 // Test host component to wrap AriaTabsComponent with projected content
 @Component({
-  standalone: true,
   imports: [AriaTabsComponent, AriaTabPanelComponent],
   template: `
     <app-aria-tabs

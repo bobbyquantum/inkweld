@@ -9,7 +9,6 @@ import {
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { isDevMode } from '@angular/core';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, RouteReuseStrategy } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { XsrfService } from '@services/auth/xsrf.service';
@@ -25,7 +24,6 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
     provideRouter(routes),
-    provideAnimationsAsync(),
     provideHttpClient(
       withXsrfConfiguration({
         cookieName: 'XSRF-TOKEN',

@@ -60,7 +60,6 @@ interface TemplateSchema {
   selector: 'app-templates-tab',
   templateUrl: './templates-tab.component.html',
   styleUrls: ['./templates-tab.component.scss'],
-  standalone: true,
   imports: [
     MatButtonModule,
     MatCardModule,

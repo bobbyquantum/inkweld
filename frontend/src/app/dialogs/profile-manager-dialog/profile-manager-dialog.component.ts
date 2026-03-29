@@ -46,7 +46,6 @@ import {
  */
 @Component({
   selector: 'app-profile-manager-dialog',
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

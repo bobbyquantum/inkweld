@@ -92,7 +92,6 @@ const ZOOM_STEP = 1.1;
   selector: 'app-canvas-tab',
   templateUrl: './canvas-tab.component.html',
   styleUrls: ['./canvas-tab.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,

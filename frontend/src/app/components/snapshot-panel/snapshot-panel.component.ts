@@ -36,7 +36,6 @@ import {
  */
 @Component({
   selector: 'app-snapshot-panel',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatIconModule,

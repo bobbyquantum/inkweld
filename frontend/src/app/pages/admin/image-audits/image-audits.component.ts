@@ -31,7 +31,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 @Component({
   selector: 'app-admin-image-audits',
-  standalone: true,
   imports: [
     DatePipe,
     FormsModule,

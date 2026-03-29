@@ -41,7 +41,6 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
   selector: 'app-account-settings',
   templateUrl: './account-settings.component.html',
   styleUrls: ['./account-settings.component.scss'],
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

@@ -17,7 +17,6 @@ import { pluginKey } from './lint-plugin';
 
 @Component({
   selector: 'app-lint-floating-menu',
-  standalone: true,
   imports: [MatButtonModule, MatIconModule],
   template: `
     @if (activeSuggestion) {

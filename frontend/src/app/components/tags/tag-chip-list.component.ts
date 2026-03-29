@@ -41,7 +41,6 @@ type TagAutocompleteValue = TagDefinition | { name: string; isNew: true };
  */
 @Component({
   selector: 'app-tag-chip-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

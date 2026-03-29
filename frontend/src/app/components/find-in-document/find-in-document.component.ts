@@ -29,7 +29,6 @@ import { FindInDocumentService } from '@services/core/find-in-document.service';
 
 @Component({
   selector: 'app-find-in-document',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,

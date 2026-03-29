@@ -48,7 +48,6 @@ const PAGE_SIZE = 50;
  */
 @Component({
   selector: 'app-project-search-dialog',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatDialogModule,

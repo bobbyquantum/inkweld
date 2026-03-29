@@ -62,7 +62,6 @@ export interface AddRelationshipDialogResult {
  */
 @Component({
   selector: 'app-add-relationship-dialog',
-  standalone: true,
   imports: [
     FormsModule,
     ReactiveFormsModule,

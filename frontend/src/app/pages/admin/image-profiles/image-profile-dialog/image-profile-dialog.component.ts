@@ -84,7 +84,6 @@ interface ImageProfileForm {
 
 @Component({
   selector: 'app-image-profile-dialog',
-  standalone: true,
   imports: [
     FormsModule,
     ReactiveFormsModule,

@@ -20,8 +20,8 @@ export const ProjectSchema = z
         'Minimum client version required to open this project. If null, any client version is acceptable.',
       example: '0.2.0',
     }),
-    createdDate: z.string().datetime().openapi({ description: 'Project creation date' }),
-    updatedDate: z.string().datetime().openapi({ description: 'Last update date' }),
+    createdDate: z.iso.datetime().openapi({ description: 'Project creation date' }),
+    updatedDate: z.iso.datetime().openapi({ description: 'Last update date' }),
     // Access permissions (only set when user is authenticated)
     access: z
       .object({
@@ -100,7 +100,7 @@ export const ProjectRenameRedirectSchema = z
     oldSlug: z.string().openapi({ description: 'The old slug that was requested' }),
     newSlug: z.string().openapi({ description: 'The new slug to redirect to' }),
     username: z.string().openapi({ description: 'Project owner username' }),
-    renamedAt: z.string().datetime().openapi({ description: 'When the rename occurred' }),
+    renamedAt: z.iso.datetime().openapi({ description: 'When the rename occurred' }),
   })
   .openapi('ProjectRenameRedirect');
 
@@ -112,7 +112,7 @@ export const ProjectTombstoneSchema = z
   .object({
     username: z.string().openapi({ description: 'The owner username of the deleted project' }),
     slug: z.string().openapi({ description: 'The slug of the deleted project' }),
-    deletedAt: z.string().datetime().openapi({ description: 'When the project was deleted' }),
+    deletedAt: z.iso.datetime().openapi({ description: 'When the project was deleted' }),
   })
   .openapi('ProjectTombstone');
 

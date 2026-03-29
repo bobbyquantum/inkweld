@@ -84,7 +84,6 @@ export interface SelectionChangeEvent {
 
 @Component({
   selector: 'app-worldbuilding-element-selector',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,

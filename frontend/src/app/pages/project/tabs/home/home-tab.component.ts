@@ -29,7 +29,6 @@ import { base64ToBlob } from '../../../../utils/base64-utils';
   selector: 'app-home-tab',
   templateUrl: './home-tab.component.html',
   styleUrl: './home-tab.component.scss',
-  standalone: true,
   imports: [
     MatButtonModule,
     MatIconModule,

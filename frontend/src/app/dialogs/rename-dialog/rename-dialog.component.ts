@@ -53,7 +53,6 @@ export interface RenameDialogData {
       }
     `,
   ],
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

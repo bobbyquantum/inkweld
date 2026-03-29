@@ -7,7 +7,6 @@ import {
   signal,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { type User } from '@inkweld/model/user';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -21,7 +20,6 @@ import { AdminComponent } from './admin.component';
 @Component({
   selector: 'app-user-menu',
   template: '',
-  standalone: true,
 })
 class MockUserMenuComponent {
   @Input() miniMode?: boolean;
@@ -61,7 +59,6 @@ describe('AdminComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideZonelessChangeDetection(),
-        provideNoopAnimations(),
         provideRouter([
           { path: '', redirectTo: 'users', pathMatch: 'full' },
           { path: 'users', component: AdminComponent },

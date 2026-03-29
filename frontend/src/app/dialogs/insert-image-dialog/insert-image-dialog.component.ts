@@ -54,7 +54,6 @@ export interface InsertImageDialogResult {
 
 @Component({
   selector: 'app-insert-image-dialog',
-  standalone: true,
   imports: [
     MatDialogModule,
     MatButtonModule,

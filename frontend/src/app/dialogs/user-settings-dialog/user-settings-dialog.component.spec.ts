@@ -11,28 +11,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock child components
 @Component({
   selector: 'app-account-settings',
-  standalone: true,
   template: '<div>Account Settings</div>',
 })
 class MockAccountSettingsComponent {}
 
 @Component({
   selector: 'app-project-tree-settings',
-  standalone: true,
   template: '<div>Project Tree Settings</div>',
 })
 class MockProjectTreeSettingsComponent {}
 
 @Component({
   selector: 'app-project-settings',
-  standalone: true,
   template: '<div>Project Settings</div>',
 })
 class MockProjectSettingsComponent {}
 
 @Component({
   selector: 'app-authorized-apps',
-  standalone: true,
   template: '<div>Authorized Apps</div>',
 })
 class MockAuthorizedAppsComponent {}
@@ -66,7 +62,6 @@ describe('UserSettingsDialogComponent', () => {
     // Create a wrapper component for testing to avoid BrowserModule conflicts
     @Component({
       selector: 'app-test-wrapper',
-      standalone: true,
       imports: [
         MatDialogModule,
         MockAccountSettingsComponent,
@@ -144,21 +139,17 @@ describe('UserSettingsDialogComponent', () => {
     expect(component.previousCategory).toBe('account');
   });
 
-  it('should return correct animation state when moving from account to project', () => {
+  it('should return correct animation classes when moving from account to project', () => {
     component.selectCategory('project');
-    const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('project');
-    expect(animationState.params.enterTransform).toBe('100%');
-    expect(animationState.params.leaveTransform).toBe('-100%');
+    expect(component.getEnterAnimationClass()).toBe('slide-from-bottom');
+    expect(component.getLeaveAnimationClass()).toBe('slide-to-top');
   });
 
-  it('should return correct animation state when moving from project to account', () => {
+  it('should return correct animation classes when moving from project to account', () => {
     component.selectCategory('project');
     component.selectCategory('account');
-    const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('account');
-    expect(animationState.params.enterTransform).toBe('-100%');
-    expect(animationState.params.leaveTransform).toBe('100%');
+    expect(component.getEnterAnimationClass()).toBe('slide-from-top');
+    expect(component.getLeaveAnimationClass()).toBe('slide-to-bottom');
   });
 
   // TODO: Fix animation timing issue in zoneless mode
