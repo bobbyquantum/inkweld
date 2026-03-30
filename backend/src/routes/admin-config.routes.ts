@@ -3,7 +3,7 @@ import { requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
 import { imageGenerationService } from '../services/image-generation.service';
 import type { AppContext } from '../types/context';
-import { ErrorResponseSchema } from '../schemas/common.schemas';
+import { ErrorResponseSchema, errorResponses } from '../schemas/common.schemas';
 import { CONFIG_KEYS, CONFIG_CATEGORIES } from '../db/schema/config';
 
 // Schema for config value response
@@ -53,14 +53,7 @@ const listConfigKeysRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -94,14 +87,7 @@ const getAllConfigRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -148,14 +134,7 @@ const getConfigByCategoryRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -203,14 +182,7 @@ const getConfigRoute = createRoute({
       description: 'Invalid config key',
       content: { 'application/json': { schema: ErrorResponseSchema } },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -268,14 +240,7 @@ const setConfigRoute = createRoute({
       description: 'Invalid config key or value',
       content: { 'application/json': { schema: ErrorResponseSchema } },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -347,14 +312,7 @@ const deleteConfigRoute = createRoute({
       description: 'Invalid config key',
       content: { 'application/json': { schema: ErrorResponseSchema } },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 

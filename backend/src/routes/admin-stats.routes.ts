@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { users, projects } from '../db/schema';
 import { config } from '../config/env';
 import type { AppContext } from '../types/context';
-import { ErrorResponseSchema } from '../schemas/common.schemas';
+import { errorResponses } from '../schemas/common.schemas';
 
 const adminStatsRoutes = new OpenAPIHono<AppContext>();
 adminStatsRoutes.use('*', requireAdmin);
@@ -36,14 +36,7 @@ const systemStatsRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 

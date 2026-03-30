@@ -13,7 +13,7 @@ import {
   type UpdateProfileInput,
 } from '../services/image-profile.service';
 import type { AppContext } from '../types/context';
-import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
+import { errorResponse, errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
 import { IMAGE_PROVIDERS } from '../db/schema/image-model-profiles';
 
 // ============================================
@@ -179,10 +179,7 @@ const listEnabledProfilesRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.unauthorized,
   },
 });
 
@@ -217,14 +214,7 @@ const listAllProfilesRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -263,14 +253,7 @@ const listProvidersRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -308,18 +291,7 @@ const getProfileRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    404: {
-      description: 'Profile not found',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.adminEntity('Profile'),
   },
 });
 
@@ -361,22 +333,9 @@ const createProfileRoute = createRoute({
         },
       },
     },
-    400: {
-      description: 'Invalid request',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    409: {
-      description: 'Profile with this name already exists',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.badRequest,
+    ...errorResponses.admin,
+    409: errorResponse('Profile with this name already exists'),
   },
 });
 
@@ -439,26 +398,9 @@ const updateProfileRoute = createRoute({
         },
       },
     },
-    400: {
-      description: 'Invalid request',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    404: {
-      description: 'Profile not found',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    409: {
-      description: 'Profile with this name already exists',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.badRequest,
+    ...errorResponses.adminEntity('Profile'),
+    409: errorResponse('Profile with this name already exists'),
   },
 });
 
@@ -518,18 +460,7 @@ const deleteProfileRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    404: {
-      description: 'Profile not found',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.adminEntity('Profile'),
   },
 });
 
