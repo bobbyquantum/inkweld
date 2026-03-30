@@ -66,7 +66,7 @@ export class BackgroundSyncService implements OnDestroy {
 
   ngOnDestroy(): void {
     if (this.onlineHandler) {
-      window.removeEventListener('online', this.onlineHandler);
+      globalThis.removeEventListener('online', this.onlineHandler);
       this.onlineHandler = null;
     }
   }
@@ -410,6 +410,6 @@ export class BackgroundSyncService implements OnDestroy {
       void this.syncPendingItems();
     };
 
-    window.addEventListener('online', this.onlineHandler);
+    globalThis.addEventListener('online', this.onlineHandler);
   }
 }

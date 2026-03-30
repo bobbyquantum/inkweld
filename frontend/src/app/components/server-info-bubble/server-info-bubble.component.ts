@@ -83,7 +83,7 @@ export class ServerInfoBubbleComponent {
     this.storageContext.switchToConfig(profile.id);
     // Navigate to home before reloading - the current project URL
     // won't exist in the new profile context
-    window.location.href = '/';
+    globalThis.location.href = '/';
   }
 
   /**

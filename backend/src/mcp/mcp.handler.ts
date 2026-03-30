@@ -8,8 +8,6 @@
 import type { Context } from 'hono';
 import type { AppContext } from '../types/context';
 import {
-  type JsonRpcRequest as _JsonRpcRequest,
-  type JsonRpcResponse as _JsonRpcResponse,
   type McpInitializeParams,
   type McpInitializeResult,
   type McpResource,

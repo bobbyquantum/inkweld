@@ -110,7 +110,7 @@ function getMinLevel(): LogLevel {
  * Format error for logging
  */
 function formatError(
-  error: Error | unknown
+  error: unknown
 ): { name: string; message: string; stack?: string } | undefined {
   if (!error) return undefined;
 
@@ -199,7 +199,7 @@ function log(
   level: LogLevel,
   context: string,
   message: string,
-  error?: Error | unknown,
+  error?: unknown,
   data?: Record<string, unknown>,
   explicitCorrelationId?: string
 ): void {
@@ -316,7 +316,7 @@ export const logger = {
   error(
     context: string,
     message: string,
-    error?: Error | unknown,
+    error?: unknown,
     data?: Record<string, unknown>,
     correlationId?: string
   ): void {
@@ -336,7 +336,7 @@ export const logger = {
         logger.warn(context, message, data, correlationId),
       error: (
         message: string,
-        error?: Error | unknown,
+        error?: unknown,
         data?: Record<string, unknown>,
         correlationId?: string
       ) => logger.error(context, message, error, data, correlationId),

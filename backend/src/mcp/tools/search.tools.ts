@@ -789,7 +789,7 @@ registerTool({
             const imageFilename = `element-${elementId}.${ext}`;
             const exists = await storageService.projectFileExists(username, slug, imageFilename);
             if (exists) {
-              if (!identityData) identityData = {};
+              identityData ??= {};
               identityData.image = `media://${imageFilename}`;
               break;
             }
@@ -1362,5 +1362,3 @@ registerTool({
     }
   },
 });
-
-export {};
