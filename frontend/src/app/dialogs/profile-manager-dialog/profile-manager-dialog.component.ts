@@ -202,7 +202,7 @@ export class ProfileManagerDialogComponent {
     if (
       trimmed.startsWith('localhost') ||
       trimmed.startsWith('127.0.0.1') ||
-      trimmed.match(/^localhost:\d+/)
+      /^localhost:\d+/.exec(trimmed)
     ) {
       return `http://${trimmed}`;
     }
@@ -298,7 +298,7 @@ export class ProfileManagerDialogComponent {
 
     this.storageContext.switchToConfig(profile.id);
     // Navigate to home - the current project URL won't exist in the new profile context
-    window.location.href = '/';
+    globalThis.location.href = '/';
   }
 
   /**
@@ -475,7 +475,7 @@ export class ProfileManagerDialogComponent {
       this.setupService.configureLocalMode({ name: displayName, username });
 
       // Navigate to home - the current project URL won't exist in the new profile context
-      window.location.href = '/';
+      globalThis.location.href = '/';
     } catch (error) {
       console.error('Failed to add local mode:', error);
       this.localError.set('Failed to add local mode. Please try again.');
@@ -527,7 +527,7 @@ export class ProfileManagerDialogComponent {
     if (newConfig) {
       this.storageContext.switchToConfig(newConfig.id);
       // Navigate to home
-      window.location.href = '/';
+      globalThis.location.href = '/';
     }
   }
 
@@ -773,7 +773,7 @@ export class ProfileManagerDialogComponent {
       // Navigate to home after successful sync or if no projects selected
       if (this.syncSuccess()) {
         setTimeout(() => {
-          window.location.href = '/';
+          globalThis.location.href = '/';
         }, 1500);
       }
     } catch (error) {

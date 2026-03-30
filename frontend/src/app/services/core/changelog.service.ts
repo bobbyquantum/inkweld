@@ -40,7 +40,7 @@ export class ChangelogService {
         .trim();
 
       // Match [version] - date or [Unreleased]
-      const versionMatch = header.match(/\[(.*?)\](?: - (.*))?/);
+      const versionMatch = /\[(.*?)\](?: - (.*))?/.exec(header);
 
       if (versionMatch) {
         const version = versionMatch[1];

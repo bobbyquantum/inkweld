@@ -18,7 +18,7 @@ interface LibraryInfo {
 }
 
 function stripSemverPrefix(version: string): string {
-  return version.replace(/^[^0-9]*/, '');
+  return version.replace(/^\D*/, '');
 }
 
 @Component({

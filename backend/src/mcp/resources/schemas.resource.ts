@@ -91,7 +91,7 @@ async function readSchema(
   username: string,
   slug: string,
   schemaId: string
-): Promise<unknown | null> {
+): Promise<unknown> {
   const docId = getSchemaLibraryDocId(username, slug);
 
   try {
@@ -152,7 +152,7 @@ const schemasResourceHandler = {
     uri: string
   ): Promise<McpResourceContents | null> {
     // Parse project from URI: inkweld://project/{username}/{slug}/schemas or /schema/{id}
-    const projectMatch = uri.match(/^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(schemas|schema\/.+)$/);
+    const projectMatch = /^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(schemas|schema\/.+)$/.exec(uri);
     if (!projectMatch) {
       return null;
     }
@@ -176,7 +176,7 @@ const schemasResourceHandler = {
     }
 
     // Handle individual schema
-    const schemaMatch = path.match(/^schema\/(.+)$/);
+    const schemaMatch = /^schema\/(.+)$/.exec(path);
     if (schemaMatch) {
       const schemaId = schemaMatch[1];
       const schema = await readSchema(ctx, username, slug, schemaId);

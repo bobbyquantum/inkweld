@@ -11,7 +11,9 @@ mat-card {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   position: relative;
 
   &:hover {
@@ -19,7 +21,6 @@ mat-card {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   }
 }
-
 
 // Add aspect-ratio styles to the project-card class for browsers that support it
 .project-card {
@@ -56,6 +57,28 @@ mat-card {
 
     mat-icon {
       color: #333;
+    }
+  }
+
+  .sync-overlay {
+    background: rgba(255, 255, 255, 0.85);
+
+    &.synced {
+      background: rgba(200, 255, 200, 0.9);
+    }
+
+    &.failed {
+      background: rgba(255, 200, 200, 0.9);
+    }
+  }
+
+  .sync-content {
+    color: #333;
+  }
+
+  .sync-icon {
+    &.queued-icon {
+      color: rgba(0, 0, 0, 0.5);
     }
   }
 }
@@ -142,30 +165,5 @@ mat-card {
   }
   50% {
     opacity: 1;
-  }
-}
-
-// Light mode adjustments for sync overlay
-:host-context(body:not(.dark-theme)) {
-  .sync-overlay {
-    background: rgba(255, 255, 255, 0.85);
-
-    &.synced {
-      background: rgba(200, 255, 200, 0.9);
-    }
-
-    &.failed {
-      background: rgba(255, 200, 200, 0.9);
-    }
-  }
-
-  .sync-content {
-    color: #333;
-  }
-
-  .sync-icon {
-    &.queued-icon {
-      color: rgba(0, 0, 0, 0.5);
-    }
   }
 }

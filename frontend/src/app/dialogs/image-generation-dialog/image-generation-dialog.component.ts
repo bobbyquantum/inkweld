@@ -287,7 +287,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     label: string;
   } | null {
     // Try format with resolution: "16:9@4K"
-    const withResMatch = size.match(/^(\d+:\d+)@(\d+K)$/);
+    const withResMatch = /^(\d+:\d+)@(\d+K)$/.exec(size);
     if (withResMatch) {
       return {
         ratio: withResMatch[1],
@@ -297,7 +297,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     }
 
     // Try plain aspect ratio: "16:9", "1:1", etc.
-    const plainMatch = size.match(/^(\d+:\d+)$/);
+    const plainMatch = /^(\d+:\d+)$/.exec(size);
     if (plainMatch) {
       return {
         ratio: plainMatch[1],
@@ -329,7 +329,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
     // Try to parse the size value
     // First check if it's a plain ratio like "16:9"
-    const plainMatch = sizeValue.match(/^(\d+):(\d+)$/);
+    const plainMatch = /^(\d+):(\d+)$/.exec(sizeValue);
     if (plainMatch) {
       const w = Number.parseInt(plainMatch[1], 10);
       const h = Number.parseInt(plainMatch[2], 10);
@@ -337,7 +337,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     }
 
     // Check if it's a ratio with resolution like "16:9@4K"
-    const withResMatch = sizeValue.match(/^(\d+):(\d+)@/);
+    const withResMatch = /^(\d+):(\d+)@/.exec(sizeValue);
     if (withResMatch) {
       const w = Number.parseInt(withResMatch[1], 10);
       const h = Number.parseInt(withResMatch[2], 10);
@@ -345,7 +345,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     }
 
     // Check if it's a dimension format like "1920x1080"
-    const dimMatch = sizeValue.match(/^(\d+)x(\d+)$/);
+    const dimMatch = /^(\d+)x(\d+)$/.exec(sizeValue);
     if (dimMatch) {
       const w = Number.parseInt(dimMatch[1], 10);
       const h = Number.parseInt(dimMatch[2], 10);

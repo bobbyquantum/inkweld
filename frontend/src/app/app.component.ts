@@ -75,7 +75,7 @@ export class AppComponent implements OnInit {
   }
 
   protected refreshPage(): void {
-    window.location.reload();
+    globalThis.location.reload();
   }
 
   private async initializeApp(): Promise<void> {

@@ -11,16 +11,189 @@
     height: var(--app-height-offset-82);
     overflow-x: hidden;
   }
+
+  // --- Mobile drill-in visibility control ---
+
+  // OVERVIEW: Show compact header + section list, hide identity/editor/meta
+  &.mobile-overview {
+    app-identity-panel,
+    .editor-section,
+    .meta-panel-container {
+      display: none !important;
+    }
+  }
+
+  // DRILLED INTO IDENTITY: Show identity panel full-screen, hide editor + meta
+  &.mobile-drilled-identity {
+    .editor-section,
+    .meta-panel-container {
+      display: none !important;
+    }
+
+    app-identity-panel {
+      flex: 1;
+      overflow-y: auto;
+      border-bottom: none;
+
+      // Override mobile compact styles to show full vertical layout
+      ::ng-deep {
+        .identity-panel {
+          flex-direction: column !important;
+          flex-wrap: nowrap !important;
+          align-items: stretch !important;
+
+          .collapse-toggle {
+            display: none !important;
+          }
+        }
+
+        .identity-content {
+          flex-direction: column !important;
+          flex-wrap: nowrap !important;
+          gap: 16px !important;
+
+          .image-section {
+            flex: initial !important;
+            margin: 0 -16px 8px -16px !important;
+            width: calc(100% + 32px) !important;
+
+            &.no-image-container {
+              margin: 0 0 16px 0 !important;
+              width: 100% !important;
+            }
+          }
+
+          .name-section {
+            flex: initial !important;
+            min-width: initial !important;
+            justify-content: center !important;
+          }
+
+          .description-section,
+          .tags-section {
+            flex: initial !important;
+          }
+        }
+
+        .image-placeholder {
+          width: 100% !important;
+          height: auto !important;
+          aspect-ratio: 1 / 1 !important;
+          border-radius: 0 !important;
+
+          // In drilled-in view, no-image should also be a square container
+          // (not the compact button style used in the horizontal mobile layout)
+          &.no-image {
+            width: 100% !important;
+            height: auto !important;
+            aspect-ratio: 1 / 1 !important;
+            display: grid !important;
+            place-items: center !important;
+            padding: 0 !important;
+            border: 1px dashed var(--sys-outline) !important;
+            border-radius: 0 !important;
+          }
+
+          .placeholder-icon {
+            font-size: 48px !important;
+            width: 48px !important;
+            height: 48px !important;
+          }
+
+          .placeholder-text {
+            display: block !important;
+          }
+        }
+
+        .element-name {
+          font-size: 18px !important;
+        }
+
+        textarea {
+          min-height: 80px !important;
+        }
+
+        .view-image-button {
+          width: 36px !important;
+          height: 36px !important;
+          bottom: 8px !important;
+          left: 8px !important;
+
+          mat-icon {
+            font-size: 20px !important;
+            width: 20px !important;
+            height: 20px !important;
+          }
+        }
+
+        .change-image-button {
+          width: 36px !important;
+          height: 36px !important;
+          bottom: 8px !important;
+          right: 8px !important;
+
+          mat-icon {
+            font-size: 20px !important;
+            width: 20px !important;
+            height: 20px !important;
+          }
+        }
+      }
+    }
+  }
+
+  // DRILLED INTO TAB: Show editor without tab bar, hide identity + meta
+  &.mobile-drilled-tab {
+    app-identity-panel,
+    .meta-panel-container {
+      display: none !important;
+    }
+
+    .editor-section {
+      flex: 1;
+    }
+
+    // Hide the tab bar navigation (keep tab panels visible)
+    ::ng-deep .aria-tabs-container {
+      display: none !important;
+    }
+  }
+
+  // DRILLED INTO RELATIONSHIPS: Show meta panel full, hide identity + editor
+  &.mobile-drilled-relationships {
+    app-identity-panel,
+    .editor-section {
+      display: none !important;
+    }
+
+    .meta-panel-container {
+      flex: 1;
+      border-left: none;
+      border-top: none;
+      max-height: none !important;
+      overflow-y: auto;
+
+      ::ng-deep .meta-panel {
+        width: 100% !important;
+        min-width: unset;
+
+        // Hide the collapse toggle — panel should always be expanded on mobile drill-in
+        .collapse-toggle {
+          display: none;
+        }
+      }
+    }
+  }
 }
 
 // Identity panel (left side on desktop)
 app-identity-panel {
   flex-shrink: 0;
-  
+
   @media (min-width: 760px) {
     border-right: 1px solid var(--sys-outline-variant);
   }
-  
+
   @media (max-width: 759px) {
     border-bottom: 1px solid var(--sys-outline-variant);
   }
@@ -112,8 +285,13 @@ app-identity-panel {
       grid-column: span 1 !important;
     }
   }
-  .full-width { width: 100%; }
-  .array-field { width: 100%; margin-bottom: 1rem; }
+  .full-width {
+    width: 100%;
+  }
+  .array-field {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
   .array-item {
     display: flex;
     gap: 0.5rem;
@@ -128,7 +306,13 @@ app-identity-panel {
       }
     }
   }
-  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; }
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+  }
 }
 
 // Status bar at the bottom of the editor section
@@ -194,19 +378,30 @@ app-identity-panel {
       margin-right: 4px;
       flex-shrink: 0;
     }
-    .sync-dot.unavailable { background-color: var(--sync-dot-unavailable-color); }
-    .sync-dot.offline { background-color: var(--sync-dot-offline-color); }
+    .sync-dot.unavailable {
+      background-color: var(--sync-dot-unavailable-color);
+    }
+    .sync-dot.offline {
+      background-color: var(--sync-dot-offline-color);
+    }
     .sync-dot.syncing {
       background-color: var(--sync-dot-syncing-color);
       animation: wb-pulse 1.5s infinite;
     }
-    .sync-dot.synced { background-color: var(--sync-dot-synced-color); }
+    .sync-dot.synced {
+      background-color: var(--sync-dot-synced-color);
+    }
   }
 }
 
 @keyframes wb-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 // Meta panel container (right side) - panel manages its own collapsed/expanded state
@@ -456,178 +651,4 @@ app-identity-panel {
   color: var(--sys-on-surface-variant);
   flex-shrink: 0;
   margin-left: 8px;
-}
-
-// --- Mobile drill-in visibility control ---
-.worldbuilding-editor-container {
-  // OVERVIEW: Show compact header + section list, hide identity/editor/meta
-  &.mobile-overview {
-    app-identity-panel,
-    .editor-section,
-    .meta-panel-container {
-      display: none !important;
-    }
-  }
-
-  // DRILLED INTO IDENTITY: Show identity panel full-screen, hide editor + meta
-  &.mobile-drilled-identity {
-    .editor-section,
-    .meta-panel-container {
-      display: none !important;
-    }
-
-    app-identity-panel {
-      flex: 1;
-      overflow-y: auto;
-      border-bottom: none;
-
-      // Override mobile compact styles to show full vertical layout
-      ::ng-deep {
-        .identity-panel {
-          flex-direction: column !important;
-          flex-wrap: nowrap !important;
-          align-items: stretch !important;
-
-          .collapse-toggle {
-            display: none !important;
-          }
-        }
-
-        .identity-content {
-          flex-direction: column !important;
-          flex-wrap: nowrap !important;
-          gap: 16px !important;
-
-          .image-section {
-            flex: initial !important;
-            margin: 0 -16px 8px -16px !important;
-            width: calc(100% + 32px) !important;
-
-            &.no-image-container {
-              margin: 0 0 16px 0 !important;
-              width: 100% !important;
-            }
-          }
-
-          .name-section {
-            flex: initial !important;
-            min-width: initial !important;
-            justify-content: center !important;
-          }
-
-          .description-section,
-          .tags-section {
-            flex: initial !important;
-          }
-        }
-
-        .image-placeholder {
-          width: 100% !important;
-          height: auto !important;
-          aspect-ratio: 1 / 1 !important;
-          border-radius: 0 !important;
-
-          // In drilled-in view, no-image should also be a square container
-          // (not the compact button style used in the horizontal mobile layout)
-          &.no-image {
-            width: 100% !important;
-            height: auto !important;
-            aspect-ratio: 1 / 1 !important;
-            display: grid !important;
-            place-items: center !important;
-            padding: 0 !important;
-            border: 1px dashed var(--sys-outline) !important;
-            border-radius: 0 !important;
-          }
-
-          .placeholder-icon {
-            font-size: 48px !important;
-            width: 48px !important;
-            height: 48px !important;
-          }
-
-          .placeholder-text {
-            display: block !important;
-          }
-        }
-
-        .element-name {
-          font-size: 18px !important;
-        }
-
-        textarea {
-          min-height: 80px !important;
-        }
-
-        .view-image-button {
-          width: 36px !important;
-          height: 36px !important;
-          bottom: 8px !important;
-          left: 8px !important;
-
-          mat-icon {
-            font-size: 20px !important;
-            width: 20px !important;
-            height: 20px !important;
-          }
-        }
-
-        .change-image-button {
-          width: 36px !important;
-          height: 36px !important;
-          bottom: 8px !important;
-          right: 8px !important;
-
-          mat-icon {
-            font-size: 20px !important;
-            width: 20px !important;
-            height: 20px !important;
-          }
-        }
-      }
-    }
-  }
-
-  // DRILLED INTO TAB: Show editor without tab bar, hide identity + meta
-  &.mobile-drilled-tab {
-    app-identity-panel,
-    .meta-panel-container {
-      display: none !important;
-    }
-
-    .editor-section {
-      flex: 1;
-    }
-
-    // Hide the tab bar navigation (keep tab panels visible)
-    ::ng-deep .aria-tabs-container {
-      display: none !important;
-    }
-  }
-
-  // DRILLED INTO RELATIONSHIPS: Show meta panel full, hide identity + editor
-  &.mobile-drilled-relationships {
-    app-identity-panel,
-    .editor-section {
-      display: none !important;
-    }
-
-    .meta-panel-container {
-      flex: 1;
-      border-left: none;
-      border-top: none;
-      max-height: none !important;
-      overflow-y: auto;
-
-      ::ng-deep .meta-panel {
-        width: 100% !important;
-        min-width: unset;
-
-        // Hide the collapse toggle — panel should always be expanded on mobile drill-in
-        .collapse-toggle {
-          display: none;
-        }
-      }
-    }
-  }
 }

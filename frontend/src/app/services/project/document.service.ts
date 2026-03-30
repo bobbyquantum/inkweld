@@ -1233,7 +1233,7 @@ export class DocumentService {
         providerRef.connect();
       };
 
-      window.addEventListener('online', handleOnline);
+      globalThis.addEventListener('online', handleOnline);
     }
   }
 
@@ -1753,55 +1753,14 @@ export class DocumentService {
     const formattedDocId = documentId.replace(/^\/+/, '');
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
 
-    let provider: WebsocketProvider | null = null;
-
-    try {
-      // Connect to WebSocket with authentication
-      provider = await this.createAuthWsProvider(wsUrl, '', ydoc, authToken, {
-        resyncInterval: 10000,
-      });
-
-      // Wait for the document to be synced
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error(`Sync timeout for document ${documentId}`));
-        }, timeoutMs);
-
-        // y-websocket fires 'sync' event when initial sync is complete
-        const checkSynced = (isSynced: boolean) => {
-          if (isSynced) {
-            clearTimeout(timeout);
-            provider?.off('sync', checkSynced);
-            resolve();
-          }
-        };
-
-        // Check if already synced
-        if (provider?.synced) {
-          clearTimeout(timeout);
-          resolve();
-          return;
-        }
-
-        provider?.on('sync', checkSynced);
-      });
-
-      // Force save to IndexedDB to persist the synced state
-      await storeState(indexeddbProvider);
-
-      this.logger.info(
-        'DocumentService',
-        `syncDocumentToServer: Successfully synced ${documentId}`
-      );
-    } finally {
-      // Clean up: disconnect WebSocket and destroy providers
-      if (provider) {
-        provider.disconnect();
-        provider.destroy();
-      }
-      await indexeddbProvider.destroy();
-      ydoc.destroy();
-    }
+    await this.syncViaWebSocket({
+      wsUrl,
+      ydoc,
+      authToken,
+      indexeddbProvider,
+      timeoutMs,
+      description: `syncDocumentToServer: document ${documentId}`,
+    });
   }
 
   /**
@@ -1944,59 +1903,14 @@ export class DocumentService {
     const formattedId = worldbuildingId.replace(/^\/+/, '');
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
 
-    let provider: WebsocketProvider | null = null;
-
-    try {
-      // Connect to WebSocket with authentication
-      provider = await this.createAuthWsProvider(wsUrl, '', ydoc, authToken, {
-        resyncInterval: 10000,
-      });
-
-      // Wait for the document to be synced
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(
-            new Error(
-              `Sync timeout for worldbuilding element ${worldbuildingId}`
-            )
-          );
-        }, timeoutMs);
-
-        // y-websocket fires 'sync' event when initial sync is complete
-        const checkSynced = (isSynced: boolean) => {
-          if (isSynced) {
-            clearTimeout(timeout);
-            provider?.off('sync', checkSynced);
-            resolve();
-          }
-        };
-
-        // Check if already synced
-        if (provider?.synced) {
-          clearTimeout(timeout);
-          resolve();
-          return;
-        }
-
-        provider?.on('sync', checkSynced);
-      });
-
-      // Force save to IndexedDB to persist the synced state
-      await storeState(indexeddbProvider);
-
-      this.logger.info(
-        'DocumentService',
-        `syncWorldbuildingToServer: Successfully synced ${worldbuildingId}`
-      );
-    } finally {
-      // Clean up: disconnect WebSocket and destroy providers
-      if (provider) {
-        provider.disconnect();
-        provider.destroy();
-      }
-      await indexeddbProvider.destroy();
-      ydoc.destroy();
-    }
+    await this.syncViaWebSocket({
+      wsUrl,
+      ydoc,
+      authToken,
+      indexeddbProvider,
+      timeoutMs,
+      description: `syncWorldbuildingToServer: worldbuilding element ${worldbuildingId}`,
+    });
   }
 
   /**
@@ -2136,21 +2050,44 @@ export class DocumentService {
     // Connect to WebSocket with the SERVER (unprefixed) document ID
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${serverDocId}`;
 
+    await this.syncViaWebSocket({
+      wsUrl,
+      ydoc,
+      authToken,
+      indexeddbProvider,
+      timeoutMs,
+      description: `syncElementsToServer: elements ${serverDocId}`,
+    });
+  }
+
+  /**
+   * Shared WebSocket sync+cleanup logic used by syncDocumentToServer,
+   * syncWorldbuildingToServer, and syncElementsToServer.
+   */
+  private async syncViaWebSocket(params: {
+    wsUrl: string;
+    ydoc: Y.Doc;
+    authToken: string;
+    indexeddbProvider: IndexeddbPersistence;
+    timeoutMs: number;
+    description: string;
+  }): Promise<void> {
     let provider: WebsocketProvider | null = null;
 
     try {
-      // Connect to WebSocket with authentication
-      provider = await this.createAuthWsProvider(wsUrl, '', ydoc, authToken, {
-        resyncInterval: 10000,
-      });
+      provider = await this.createAuthWsProvider(
+        params.wsUrl,
+        '',
+        params.ydoc,
+        params.authToken,
+        { resyncInterval: 10000 }
+      );
 
-      // Wait for the document to be synced
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error(`Sync timeout for elements ${serverDocId}`));
-        }, timeoutMs);
+        const timeout = window.setTimeout(() => {
+          reject(new Error(`Sync timeout for ${params.description}`));
+        }, params.timeoutMs);
 
-        // y-websocket fires 'sync' event when initial sync is complete
         const checkSynced = (isSynced: boolean) => {
           if (isSynced) {
             clearTimeout(timeout);
@@ -2159,7 +2096,6 @@ export class DocumentService {
           }
         };
 
-        // Check if already synced
         if (provider?.synced) {
           clearTimeout(timeout);
           resolve();
@@ -2169,21 +2105,19 @@ export class DocumentService {
         provider?.on('sync', checkSynced);
       });
 
-      // Force save to IndexedDB to persist the synced state
-      await storeState(indexeddbProvider);
+      await storeState(params.indexeddbProvider);
 
       this.logger.info(
         'DocumentService',
-        `syncElementsToServer: Successfully synced ${serverDocId}`
+        `${params.description}: Successfully synced`
       );
     } finally {
-      // Clean up: disconnect WebSocket and destroy providers
       if (provider) {
         provider.disconnect();
         provider.destroy();
       }
-      await indexeddbProvider.destroy();
-      ydoc.destroy();
+      await params.indexeddbProvider.destroy();
+      params.ydoc.destroy();
     }
   }
 

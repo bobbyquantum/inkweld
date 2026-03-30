@@ -182,10 +182,10 @@ export function insertElement(
     if (afterSiblingId) {
       // Find the sibling and insert after its subtree
       const siblingIndex = result.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex !== -1) {
-        insertIndex = getSubtreeEndIndex(result, siblingIndex);
-      } else {
+      if (siblingIndex === -1) {
         insertIndex = result.length; // Fallback: append
+      } else {
+        insertIndex = getSubtreeEndIndex(result, siblingIndex);
       }
     } else {
       // Insert at the end of root elements
@@ -204,11 +204,11 @@ export function insertElement(
     if (afterSiblingId) {
       // Insert after specific sibling
       const siblingIndex = result.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex !== -1 && siblingIndex > parentIndex) {
-        insertIndex = getSubtreeEndIndex(result, siblingIndex);
-      } else {
+      if (siblingIndex === -1 || siblingIndex <= parentIndex) {
         // Sibling not found or not under this parent - insert at end of parent's children
         insertIndex = getSubtreeEndIndex(result, parentIndex);
+      } else {
+        insertIndex = getSubtreeEndIndex(result, siblingIndex);
       }
     } else {
       // Insert at the end of parent's subtree
@@ -314,10 +314,10 @@ export function moveElement(
   if (newParentId === null) {
     if (afterSiblingId) {
       const siblingIndex = withoutSubtree.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex !== -1) {
-        insertIndex = getSubtreeEndIndex(withoutSubtree, siblingIndex);
-      } else {
+      if (siblingIndex === -1) {
         insertIndex = withoutSubtree.length;
+      } else {
+        insertIndex = getSubtreeEndIndex(withoutSubtree, siblingIndex);
       }
     } else if (afterSiblingId === null) {
       // Explicitly null: insert at start (position 0 among roots)
@@ -333,10 +333,10 @@ export function moveElement(
 
     if (afterSiblingId) {
       const siblingIndex = withoutSubtree.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex !== -1 && siblingIndex > parentIndex) {
-        insertIndex = getSubtreeEndIndex(withoutSubtree, siblingIndex);
-      } else {
+      if (siblingIndex === -1 || siblingIndex <= parentIndex) {
         insertIndex = getSubtreeEndIndex(withoutSubtree, parentIndex);
+      } else {
+        insertIndex = getSubtreeEndIndex(withoutSubtree, siblingIndex);
       }
     } else if (afterSiblingId === null) {
       // Explicitly null: insert as first child of parent

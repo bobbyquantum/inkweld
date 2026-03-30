@@ -91,7 +91,7 @@ const projectsResourceHandler = {
     }
 
     // Handle individual project resource
-    const projectMatch = uri.match(/^inkweld:\/\/project\/([^/]+)\/([^/]+)$/);
+    const projectMatch = /^inkweld:\/\/project\/([^/]+)\/([^/]+)$/.exec(uri);
     if (projectMatch) {
       const [, username, slug] = projectMatch;
       const project = projects.find((p) => p.username === username && p.slug === slug);

@@ -36,6 +36,38 @@
   --nav-scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
   --placeholder-gradient-start: #e0e0e0;
   --placeholder-gradient-end: #f5f5f5;
+
+  .shared-indicator {
+    background: rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+
+    mat-icon {
+      color: #333 !important;
+    }
+  }
+
+  // Light mode sync overlay
+  .sync-overlay {
+    background: rgba(255, 255, 255, 0.85);
+
+    &.synced {
+      background: rgba(200, 255, 200, 0.9);
+    }
+
+    &.failed {
+      background: rgba(255, 200, 200, 0.9);
+    }
+
+    mat-spinner {
+      --mdc-circular-progress-active-indicator-color: #333;
+    }
+
+    .sync-icon {
+      &.queued-icon {
+        color: rgba(0, 0, 0, 0.5);
+      }
+    }
+  }
 }
 
 .side-nav-container {
@@ -371,41 +403,6 @@
     .side-nav {
       position: relative;
       transform: none !important;
-    }
-  }
-}
-
-// Light mode shared indicator
-:host-context(body:not(.dark-theme)) {
-  .shared-indicator {
-    background: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-
-    mat-icon {
-      color: #333 !important;
-    }
-  }
-
-  // Light mode sync overlay
-  .sync-overlay {
-    background: rgba(255, 255, 255, 0.85);
-
-    &.synced {
-      background: rgba(200, 255, 200, 0.9);
-    }
-
-    &.failed {
-      background: rgba(255, 200, 200, 0.9);
-    }
-
-    mat-spinner {
-      --mdc-circular-progress-active-indicator-color: #333;
-    }
-
-    .sync-icon {
-      &.queued-icon {
-        color: rgba(0, 0, 0, 0.5);
-      }
     }
   }
 }

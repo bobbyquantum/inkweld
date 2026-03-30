@@ -624,7 +624,7 @@ export class SettingsTabComponent implements AfterViewInit {
     const _projectKey = `${username}/${slug}`;
 
     // Confirm with user
-    const confirmed = window.confirm(
+    const confirmed = globalThis.confirm(
       `This will delete all locally cached data for "${project.title}" and re-download from the server.\n\n` +
         `This can fix sync issues but any unsynced local changes will be lost.\n\n` +
         `Continue?`
@@ -653,7 +653,7 @@ export class SettingsTabComponent implements AfterViewInit {
 
       // Reload the page to force fresh load from server
       setTimeout(() => {
-        window.location.reload();
+        globalThis.location.reload();
       }, 1000);
     } catch (error) {
       console.error('Failed to reset local data:', error);
@@ -888,7 +888,7 @@ export class SettingsTabComponent implements AfterViewInit {
       setTimeout(() => {
         void this.router.navigate(['/', project.username, newSlug, 'settings']);
         // Reload to ensure all state is refreshed
-        window.location.href = `/${project.username}/${newSlug}/settings`;
+        globalThis.location.href = `/${project.username}/${newSlug}/settings`;
       }, 1000);
     } catch (error) {
       console.error('Failed to rename project:', error);

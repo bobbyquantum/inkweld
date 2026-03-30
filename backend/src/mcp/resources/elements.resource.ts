@@ -91,8 +91,8 @@ const elementsResourceHandler = {
     uri: string
   ): Promise<McpResourceContents | null> {
     // Parse project from URI: inkweld://project/{username}/{slug}/elements or /element/{id}
-    const projectMatch = uri.match(
-      /^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(elements|element\/.+)$/
+    const projectMatch = /^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(elements|element\/.+)$/.exec(
+      uri
     );
     if (!projectMatch) {
       return null;
@@ -117,7 +117,7 @@ const elementsResourceHandler = {
     }
 
     // Handle individual element
-    const elementMatch = path.match(/^element\/(.+)$/);
+    const elementMatch = /^element\/(.+)$/.exec(path);
     if (elementMatch) {
       const elementId = elementMatch[1];
       const elements = await readElementsFromYjs(ctx, username, slug);

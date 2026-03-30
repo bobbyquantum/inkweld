@@ -222,9 +222,8 @@ const worldbuildingResourceHandler = {
     uri: string
   ): Promise<McpResourceContents | null> {
     // Parse project from URI: inkweld://project/{username}/{slug}/worldbuilding or /relationships
-    const projectMatch = uri.match(
-      /^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(worldbuilding(?:\/.*)?|relationships)$/
-    );
+    const projectMatch =
+      /^inkweld:\/\/project\/([^/]+)\/([^/]+)\/(worldbuilding(?:\/.*)?|relationships)$/.exec(uri);
     if (!projectMatch) {
       return null;
     }
@@ -275,7 +274,7 @@ const worldbuildingResourceHandler = {
     }
 
     // Handle individual worldbuilding element
-    const wbMatch = path.match(/^worldbuilding\/(.+)$/);
+    const wbMatch = /^worldbuilding\/(.+)$/.exec(path);
     if (wbMatch) {
       const elementId = wbMatch[1];
       const data = await readWorldbuildingData(ctx, username, slug, elementId);

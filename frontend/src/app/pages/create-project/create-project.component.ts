@@ -92,7 +92,7 @@ export class CreateProjectComponent implements OnInit {
     // Use inkweld:// protocol in Electron, otherwise use current origin
     this.baseUrl = this.electronService.isElectron
       ? 'inkweld:/'
-      : window.location.origin;
+      : globalThis.location.origin;
 
     this.projectForm
       .get('title')

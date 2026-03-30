@@ -714,7 +714,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     pos: number,
     marks: Record<string, unknown> = {}
   ): { nodes: any[]; pos: number } {
-    const tagMatch = xml.substring(pos).match(/^<([a-zA-Z_][a-zA-Z0-9_-]*)/);
+    const tagMatch = /^<([a-zA-Z_][a-zA-Z0-9_-]*)/.exec(xml.substring(pos));
     if (!tagMatch) return this.parseFallbackText(Y, xml, pos, marks);
 
     const rawTagName = tagMatch[1].toLowerCase();
@@ -754,9 +754,9 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     while (cursor < xml.length) {
       while (cursor < xml.length && /\s/.test(xml[cursor])) cursor++;
       if (xml[cursor] === '>' || (xml[cursor] === '/' && xml[cursor + 1] === '>')) break;
-      const attrMatch = xml
-        .substring(cursor)
-        .match(/^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/);
+      const attrMatch = /^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/.exec(
+        xml.substring(cursor)
+      );
       if (attrMatch) {
         attrs[attrMatch[1]] = this.decodeXmlEntities(attrMatch[2] ?? attrMatch[3] ?? '');
         cursor += attrMatch[0].length;
@@ -785,7 +785,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       }
       const childResult = this.parseXmlNode(Y, xml, cursor, marks);
       if (!childResult) {
-        const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
+        const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
         if (closeMatch) cursor += closeMatch[0].length;
         break;
       }
