@@ -58,7 +58,7 @@ export class QuickOpenService {
 
     this.keydownListener = (event: KeyboardEvent) => {
       // Check for Cmd/Ctrl + P
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 
       if (modifierKey && event.key.toLowerCase() === 'p') {
@@ -249,8 +249,7 @@ export class QuickOpenService {
     let targetIndex = 0;
     let prevMatchIndex = -1;
 
-    for (let queryIndex = 0; queryIndex < query.length; queryIndex++) {
-      const queryChar = query[queryIndex];
+    for (const queryChar of query) {
       let found = false;
 
       while (targetIndex < targetLower.length) {

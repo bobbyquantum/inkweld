@@ -1324,7 +1324,7 @@ describe('SettingsTabComponent', () => {
 
     it('should reset local data and schedule a reload', async () => {
       vi.useFakeTimers();
-      const confirm = vi.fn().mockReturnValue(true);
+      vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
       vi.spyOn(component as any, 'getProjectDatabases').mockResolvedValue([
         'db-one',
         'db-two',
@@ -1332,12 +1332,7 @@ describe('SettingsTabComponent', () => {
       vi.spyOn(component as any, 'deleteDatabase').mockResolvedValue(undefined);
 
       const reloadSpy = vi.fn();
-      const reloadWindow = {
-        ...globalThis.window,
-        confirm,
-        location: { reload: reloadSpy },
-      };
-      vi.stubGlobal('window', reloadWindow);
+      vi.stubGlobal('location', { reload: reloadSpy });
 
       await component.resetLocalData();
       vi.advanceTimersByTime(1000);
@@ -1354,8 +1349,7 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should handle local data reset failures', async () => {
-      const confirm = vi.fn().mockReturnValue(true);
-      vi.stubGlobal('window', { ...globalThis.window, confirm });
+      vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
       vi.spyOn(component as any, 'getProjectDatabases').mockRejectedValue(
         new Error('db lookup failed')
       );

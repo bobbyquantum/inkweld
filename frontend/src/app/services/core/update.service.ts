@@ -76,7 +76,7 @@ export class UpdateService {
    * Apply the pending update by reloading the page.
    */
   applyUpdate(): void {
-    window.location.reload();
+    globalThis.location.reload();
   }
 
   private showUpdateDialog(): void {
@@ -91,7 +91,7 @@ export class UpdateService {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        window.location.reload();
+        globalThis.location.reload();
       }
     });
   }

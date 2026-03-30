@@ -44,7 +44,7 @@ export function parseVersion(version: string): {
   minor: number;
   patch: number;
 } {
-  const match = version.match(/^(\d+)\.(\d+)\.(\d+)/);
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
   if (!match) {
     return { major: 0, minor: 0, patch: 0 };
   }

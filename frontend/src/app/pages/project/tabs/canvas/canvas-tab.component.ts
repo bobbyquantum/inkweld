@@ -955,7 +955,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
 
     if (tool === 'shape') {
       this.placeDefaultShape(e);
-      return;
     }
   }
 
@@ -1194,7 +1193,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       const points = this.drawingLine.points();
       const dx = (points[2] ?? 0) - (points[0] ?? 0);
       const dy = (points[3] ?? 0) - (points[1] ?? 0);
-      const len = Math.sqrt(dx * dx + dy * dy);
+      const len = Math.hypot(dx, dy);
 
       if (len > 5) {
         const layerId = this.ensureActiveLayer();
@@ -1241,7 +1240,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       const points = this.drawingLine.points();
       const dx = (points[2] ?? 0) - (points[0] ?? 0);
       const dy = (points[3] ?? 0) - (points[1] ?? 0);
-      const len = Math.sqrt(dx * dx + dy * dy);
+      const len = Math.hypot(dx, dy);
 
       if (len > 5) {
         const layerId = this.ensureActiveLayer();

@@ -46,7 +46,7 @@ async function loadElementImage(
 
     // Handle data: URLs (base64 encoded images pasted directly)
     if (imageUrl.startsWith('data:')) {
-      const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      const match = /^data:([^;]+);base64,(.+)$/.exec(imageUrl);
       if (!match) {
         refImgLog.warn(`Element ${elementId} has malformed data URL`);
         return null;
@@ -200,7 +200,7 @@ export async function getElementImageUrls(
       if (imageUrl) {
         // For data URLs, just store the MIME type and truncated marker for brevity
         if (imageUrl.startsWith('data:')) {
-          const mimeMatch = imageUrl.match(/^data:([^;]+);/);
+          const mimeMatch = /^data:([^;]+);/.exec(imageUrl);
           const mimeType = mimeMatch ? mimeMatch[1] : 'image/*';
           urls.push(`data:${mimeType};base64,[inline-image]`);
         } else {

@@ -414,7 +414,7 @@ function parseElement(
 ): { nodes: any[]; pos: number } {
   // Parse opening tag: <tagName attr1="val1" attr2="val2">
   // or self-closing: <tagName attr1="val1"/>
-  const tagMatch = xml.substring(pos).match(/^<([a-zA-Z_][a-zA-Z0-9_-]*)/);
+  const tagMatch = /^<([a-zA-Z_][a-zA-Z0-9_-]*)/.exec(xml.substring(pos));
   if (!tagMatch) {
     // Not a valid tag, treat as text
     return parseText(Y, xml, pos, marks);
@@ -435,9 +435,9 @@ function parseElement(
     }
 
     // Parse attribute: name="value" or name='value'
-    const attrMatch = xml
-      .substring(cursor)
-      .match(/^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/);
+    const attrMatch = /^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/.exec(
+      xml.substring(cursor)
+    );
     if (attrMatch) {
       const attrName = attrMatch[1];
       const attrValue = attrMatch[2] ?? attrMatch[3] ?? '';
@@ -476,7 +476,7 @@ function parseElement(
       }
       const childResult = parseNode(Y, xml, cursor, newMarks);
       if (!childResult) {
-        const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
+        const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
         if (closeMatch) cursor += closeMatch[0].length;
         break;
       }
@@ -519,7 +519,7 @@ function parseElement(
     const childResult = parseNode(Y, xml, cursor);
     if (!childResult) {
       // Closing tag of parent element found, advance past it
-      const closeMatch = xml.substring(cursor).match(/^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/);
+      const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
       if (closeMatch) {
         cursor += closeMatch[0].length;
       }

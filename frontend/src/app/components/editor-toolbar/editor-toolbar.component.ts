@@ -606,7 +606,7 @@ export class EditorToolbarComponent implements OnDestroy {
     }
 
     // Prompt for URL (in a real implementation, use a Material dialog)
-    const href = window.prompt('Enter URL:', existingHref || 'https://');
+    const href = globalThis.prompt('Enter URL:', existingHref || 'https://');
     if (href === null) return; // Cancelled
 
     if (href === '') {

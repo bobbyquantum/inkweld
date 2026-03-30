@@ -838,15 +838,15 @@ export class PdfGeneratorService {
   private escapeTypst(text: string): string {
     if (!text) return '';
     return text
-      .replaceAll('\\', '\\\\')
-      .replaceAll('#', '\\#')
-      .replaceAll('$', '\\$')
-      .replaceAll('_', '\\_')
-      .replaceAll('*', '\\*')
-      .replaceAll('@', '\\@')
-      .replaceAll('[', '\\[')
-      .replaceAll(']', '\\]')
-      .replaceAll('`', '\\`');
+      .replaceAll('\\', String.raw`\\`)
+      .replaceAll('#', String.raw`\#`)
+      .replaceAll('$', String.raw`\$`)
+      .replaceAll('_', String.raw`\_`)
+      .replaceAll('*', String.raw`\*`)
+      .replaceAll('@', String.raw`\@`)
+      .replaceAll('[', String.raw`\[`)
+      .replaceAll(']', String.raw`\]`)
+      .replaceAll('`', String.raw`\``);
   }
 
   private toRoman(num: number): string {

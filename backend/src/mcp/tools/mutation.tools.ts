@@ -451,8 +451,8 @@ This tool only updates name and type without changing position.`,
     const { username, slug } = result.project;
 
     const elementId = String(args.elementId);
-    const newName = args.name !== undefined ? String(args.name).trim() : undefined;
-    const newType = args.type !== undefined ? (String(args.type) as ElementType) : undefined;
+    const newName = args.name === undefined ? undefined : String(args.name).trim();
+    const newType = args.type === undefined ? undefined : (String(args.type) as ElementType);
 
     if (!elementId) {
       return {
@@ -788,7 +788,7 @@ to a new position among its siblings.`,
 
     const elementId = String(args.elementId);
     const afterElementId = args.afterElementId ? String(args.afterElementId) : undefined;
-    const position = args.position !== undefined ? Number(args.position) : undefined;
+    const position = args.position === undefined ? undefined : Number(args.position);
 
     if (!elementId) {
       return {
@@ -1839,5 +1839,3 @@ function extractTextContent(fragment: any): string {
   traverse(fragment);
   return parts.join(' ').trim();
 }
-
-export {};
