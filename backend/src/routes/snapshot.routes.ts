@@ -11,7 +11,7 @@ import {
   SnapshotWithContentSchema,
 } from '../schemas/snapshot.schemas';
 import {
-  ErrorResponseSchema,
+  errorResponses,
   MessageResponseSchema,
   ProjectPathParamsSchema,
 } from '../schemas/common.schemas';
@@ -39,30 +39,7 @@ const getSnapshotsRoute = createRoute({
       },
       description: 'List of snapshots',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project not found',
-    },
+    ...errorResponses.authEntity('Project'),
   },
 });
 
@@ -117,30 +94,7 @@ const getSnapshotRoute = createRoute({
       },
       description: 'Snapshot details with document state',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project or snapshot not found',
-    },
+    ...errorResponses.authEntity('Project or snapshot'),
   },
 });
 
@@ -206,38 +160,8 @@ const createSnapshotRoute = createRoute({
       },
       description: 'Snapshot created successfully',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid input data',
-    },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied - not project owner',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project not found',
-    },
+    ...errorResponses.badRequest,
+    ...errorResponses.authEntity('Project'),
   },
 });
 
@@ -314,30 +238,7 @@ const deleteSnapshotRoute = createRoute({
       },
       description: 'Snapshot deleted successfully',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied - not project owner',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project or snapshot not found',
-    },
+    ...errorResponses.authEntity('Project or snapshot'),
   },
 });
 
@@ -402,30 +303,7 @@ const restoreSnapshotRoute = createRoute({
       },
       description: 'Snapshot restored successfully',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied - not project owner',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project or snapshot not found',
-    },
+    ...errorResponses.authEntity('Project or snapshot'),
   },
 });
 
@@ -479,30 +357,7 @@ const previewSnapshotRoute = createRoute({
       },
       description: 'Snapshot preview',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project or snapshot not found',
-    },
+    ...errorResponses.authEntity('Project or snapshot'),
   },
 });
 

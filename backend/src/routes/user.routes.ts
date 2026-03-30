@@ -5,7 +5,7 @@ import { userService } from '../services/user.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
-import { ErrorResponseSchema } from '../schemas/common.schemas';
+import { errorResponse, errorResponses } from '../schemas/common.schemas';
 import { authService } from '../services/auth.service';
 
 const userRoutes = new OpenAPIHono<AppContext>();
@@ -44,22 +44,8 @@ const getCurrentUserRoute = createRoute({
       },
       description: 'Current user (or anonymous user if not authenticated)',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid or expired token (client should clear credentials)',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Account disabled or pending approval',
-    },
+    401: errorResponse('Invalid or expired token (client should clear credentials)'),
+    403: errorResponse('Account disabled or pending approval'),
   },
 });
 
@@ -129,7 +115,6 @@ const UpdateProfileRequestSchema = z
       .optional()
       .openapi({ description: 'Display name', example: 'John Doe' }),
     email: z
-      .string()
       .email()
       .optional()
       .openapi({ description: 'Email address', example: 'john@example.com' }),
@@ -159,22 +144,8 @@ const updateProfileRoute = createRoute({
       },
       description: 'Updated user profile',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Duplicate email address',
-    },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
+    400: errorResponse('Duplicate email address'),
+    ...errorResponses.notAuthenticated,
   },
 });
 
@@ -410,14 +381,7 @@ const checkUsernameRoute = createRoute({
       },
       description: 'Username availability',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid username',
-    },
+    400: errorResponse('Invalid username'),
   },
 });
 
@@ -463,14 +427,7 @@ const getAvatarRoute = createRoute({
       },
       description: 'User avatar',
     },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Avatar not found',
-    },
+    ...errorResponses.notFound('Avatar'),
   },
 });
 
@@ -527,30 +484,9 @@ const uploadAvatarRoute = createRoute({
       },
       description: 'Avatar uploaded',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'No file or invalid image',
-    },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'User not found',
-    },
+    400: errorResponse('No file or invalid image'),
+    ...errorResponses.notAuthenticated,
+    ...errorResponses.notFound('User'),
   },
 });
 
@@ -604,22 +540,8 @@ const deleteAvatarRoute = createRoute({
       },
       description: 'Avatar deleted',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'User or avatar not found',
-    },
+    ...errorResponses.notAuthenticated,
+    404: errorResponse('User or avatar not found'),
   },
 });
 

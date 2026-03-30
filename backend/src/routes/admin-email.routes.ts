@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { emailService } from '../services/email.service';
-import { ErrorResponseSchema } from '../schemas/common.schemas';
+import { errorResponse } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
 
 const adminEmailRoutes = new OpenAPIHono<AppContext>();
@@ -31,14 +31,7 @@ const sendTestEmailRoute = createRoute({
       },
       description: 'Test email result',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Email not configured or user has no email',
-    },
+    400: errorResponse('Email not configured or user has no email'),
   },
 });
 

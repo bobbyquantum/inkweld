@@ -15,7 +15,7 @@ import {
   RegisterRequestSchema,
   RegisterResponseSchema,
 } from '../schemas/auth.schemas';
-import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
+import { errorResponse, MessageResponseSchema } from '../schemas/common.schemas';
 
 const authRoutes = new OpenAPIHono<AppContext>();
 
@@ -43,14 +43,7 @@ const registerRoute = createRoute({
       },
       description: 'Registration successful',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid input or username already exists',
-    },
+    400: errorResponse('Invalid input or username already exists'),
   },
 });
 
@@ -208,22 +201,8 @@ const loginRoute = createRoute({
       },
       description: 'Login successful',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid credentials',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Account disabled or pending approval',
-    },
+    401: errorResponse('Invalid credentials'),
+    403: errorResponse('Account disabled or pending approval'),
   },
 });
 
