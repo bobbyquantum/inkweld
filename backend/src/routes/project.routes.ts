@@ -22,7 +22,8 @@ import {
   CheckTombstonesResponseSchema,
 } from '../schemas/project.schemas';
 import {
-  ErrorResponseSchema,
+  errorResponse,
+  errorResponses,
   MessageResponseSchema,
   ProjectPathParamsSchema,
 } from '../schemas/common.schemas';
@@ -47,14 +48,7 @@ const listProjectsRoute = createRoute({
       },
       description: 'List of user projects',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
+    ...errorResponses.notAuthenticated,
   },
 });
 
@@ -111,30 +105,7 @@ const getProjectRoute = createRoute({
       },
       description: 'Project was renamed - client should update local storage and redirect',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project not found',
-    },
+    ...errorResponses.authEntity('Project'),
   },
 });
 
@@ -224,30 +195,9 @@ const createProjectRoute = createRoute({
       },
       description: 'Project created',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid input or project already exists',
-    },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'User not found',
-    },
+    400: errorResponse('Invalid input or project already exists'),
+    ...errorResponses.notAuthenticated,
+    404: errorResponse('User not found'),
   },
 });
 
@@ -332,30 +282,7 @@ const updateProjectRoute = createRoute({
       },
       description: 'Project updated',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project not found',
-    },
+    ...errorResponses.authEntity('Project'),
   },
 });
 
@@ -464,30 +391,7 @@ const deleteProjectRoute = createRoute({
       },
       description: 'Project deleted',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Access denied',
-    },
-    404: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Project not found',
-    },
+    ...errorResponses.authEntity('Project'),
   },
 });
 
@@ -542,14 +446,7 @@ const checkTombstonesRoute = createRoute({
       },
       description: 'List of tombstones for deleted projects',
     },
-    401: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Not authenticated',
-    },
+    ...errorResponses.notAuthenticated,
   },
 });
 

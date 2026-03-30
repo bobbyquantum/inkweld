@@ -8,7 +8,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { imageAuditService } from '../services/image-audit.service';
 import type { AppContext } from '../types/context';
-import { ErrorResponseSchema } from '../schemas/common.schemas';
+import { errorResponses } from '../schemas/common.schemas';
 
 // ============================================
 // Schemas
@@ -128,14 +128,7 @@ const listAuditsRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -201,18 +194,7 @@ const getAuditRoute = createRoute({
         },
       },
     },
-    404: {
-      description: 'Audit not found',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.adminEntity('Audit record'),
   },
 });
 
@@ -264,14 +246,7 @@ const getStatsRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: { 'application/json': { schema: ErrorResponseSchema } },
-    },
+    ...errorResponses.admin,
   },
 });
 

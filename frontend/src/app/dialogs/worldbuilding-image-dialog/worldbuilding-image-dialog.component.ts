@@ -1,35 +1,14 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  computed,
-  type ElementRef,
-  inject,
-  type OnInit,
-  signal,
-  ViewChild,
-} from '@angular/core';
+import { Component, inject, type OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogModule,
-  MatDialogRef,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
-import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { SystemConfigService } from '@services/core/system-config.service';
-import { ProjectStateService } from '@services/project/project-state.service';
-import {
-  type ImageCroppedEvent,
-  ImageCropperComponent,
-  type LoadedImage,
-} from 'ngx-image-cropper';
+import { type SafeUrl } from '@angular/platform-browser';
+import { ImageCropperComponent } from 'ngx-image-cropper';
 
-import { base64ToBlob } from '../../utils/base64-utils';
 import { formatWorldbuildingFields } from '../../utils/worldbuilding.utils';
+import { BaseImageDialogComponent } from '../base-image-dialog';
 
 /**
  * Data passed to the dialog
@@ -76,48 +55,18 @@ export interface WorldbuildingImageDialogResult {
   templateUrl: './worldbuilding-image-dialog.component.html',
   styleUrls: ['./worldbuilding-image-dialog.component.scss'],
 })
-export class WorldbuildingImageDialogComponent implements OnInit {
-  private readonly dialogRef = inject(
-    MatDialogRef<WorldbuildingImageDialogComponent>
-  );
+export class WorldbuildingImageDialogComponent
+  extends BaseImageDialogComponent
+  implements OnInit
+{
   private readonly dialogData =
     inject<WorldbuildingImageDialogData>(MAT_DIALOG_DATA);
-  private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly snackBar = inject(MatSnackBar);
-  private readonly sanitizer = inject(DomSanitizer);
-  private readonly cdr = inject(ChangeDetectorRef);
-  private readonly systemConfig = inject(SystemConfigService);
-  private readonly projectState = inject(ProjectStateService);
 
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
-
-  // AI generation status - considers mode, config, and connection state
-  readonly aiGenerationStatus = computed(() =>
-    this.systemConfig.getAiImageGenerationStatus(
-      this.projectState.getSyncState()
-    )
-  );
-
-  // Dialog data
+  // Worldbuilding-specific data
   elementName = '';
-  username = '';
-  slug = '';
   currentImageUrl?: SafeUrl;
   hasCurrentImage = false;
-  description = '';
   worldbuildingFields: Record<string, unknown> = {};
-
-  // Image cropper properties
-  imageChangedEvent: Event | null = null;
-  imageBase64: string | undefined = undefined;
-  croppedImage: SafeUrl | null = null;
-  croppedBlob: Blob | null = null;
-  isCropperReady = false;
-  hasImageLoaded = false;
-  hasLoadFailed = false;
-  showCropper = false;
-  pendingFileName = '';
-  readonly isLoading = signal(false);
 
   // Square aspect ratio for worldbuilding images
   readonly aspectRatio = 1;
@@ -138,74 +87,18 @@ export class WorldbuildingImageDialogComponent implements OnInit {
     this.worldbuildingFields = this.dialogData.worldbuildingFields ?? {};
   }
 
-  // --- File Upload ---
-
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      if (this.isValidImageFile(file)) {
-        this.resetCropperState();
-        this.imageChangedEvent = event;
-        this.pendingFileName = file.name;
-        this.showCropper = true;
-      } else {
-        this.showError('Invalid image file. Please select a JPEG or PNG file.');
-      }
-    }
-  }
-
-  private isValidImageFile(file: File): boolean {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    return validTypes.includes(file.type);
-  }
-
-  openFileSelector(): void {
-    this.fileInput.nativeElement.click();
-  }
-
-  // --- Media Library ---
-
-  async openMediaLibrary(): Promise<void> {
-    const result = await this.dialogGateway.openMediaSelectorDialog({
-      username: this.username,
-      slug: this.slug,
-      filterType: 'image',
-      title: 'Select Image',
-    });
-
-    if (result?.blob) {
-      // Convert blob to base64 for the cropper
-      const base64 = await this.blobToBase64(result.blob);
-      const filename = result.selected?.filename || 'selected-image.png';
-
-      this.resetCropperState();
-      this.pendingFileName = filename;
-      this.imageBase64 = base64;
-      this.showCropper = true;
-      this.cdr.detectChanges();
-    }
-  }
-
   // --- AI Generation ---
 
-  /**
-   * Build a prompt string from name, description, and worldbuilding fields
-   */
   private buildInitialPrompt(): string {
     const parts: string[] = [];
 
-    // Add element name
     if (this.elementName) {
       parts.push(this.elementName);
     }
-
-    // Add description
     if (this.description) {
       parts.push(this.description);
     }
 
-    // Add worldbuilding fields with values
     const formattedFields = formatWorldbuildingFields(this.worldbuildingFields);
     if (formattedFields) {
       parts.push(formattedFields);
@@ -218,93 +111,32 @@ export class WorldbuildingImageDialogComponent implements OnInit {
     const initialPrompt = this.buildInitialPrompt();
 
     const result = await this.dialogGateway.openImageGenerationDialog({
-      forCover: false, // Not a cover, just a worldbuilding image
+      forCover: false,
       prompt: initialPrompt || undefined,
       selectedElementIds: [this.dialogData.elementId],
     });
 
-    if (!result) {
-      return; // Dialog cancelled
+    if (!result?.saved || !result.imageData) {
+      return;
     }
 
-    if (result.saved && result.imageData) {
-      try {
-        let blob: Blob;
+    try {
+      const blob = await this.extractImageBlob(result.imageData);
 
-        // Handle both base64 and URL data
-        if (
-          result.imageData.startsWith('data:') ||
-          result.imageData.startsWith('blob:')
-        ) {
-          // It's already a data URL, extract and convert to blob
-          blob = base64ToBlob(result.imageData);
-        } else if (
-          result.imageData.startsWith('http://') ||
-          result.imageData.startsWith('https://') ||
-          result.imageData.startsWith('media://')
-        ) {
-          // It's a URL, fetch and convert to blob
-          const fetchResponse = await fetch(result.imageData);
-          blob = await fetchResponse.blob();
-        } else {
-          // Assume it's raw base64
-          blob = base64ToBlob(result.imageData);
-        }
-
-        // Return the result directly (no cropping for AI-generated images)
-        this.dialogRef.close({
-          imageData: result.imageData,
-          imageBlob: blob,
-        } as WorldbuildingImageDialogResult);
-      } catch (err) {
-        console.error(
-          '[WorldbuildingImageDialog] Failed to process image:',
-          err
-        );
-        this.showError('Failed to process generated image. Please try again.');
-      }
+      this.dialogRef.close({
+        imageData: result.imageData,
+        imageBlob: blob,
+      } as WorldbuildingImageDialogResult);
+    } catch (err) {
+      console.error('[WorldbuildingImageDialog] Failed to process image:', err);
+      this.showError('Failed to process generated image. Please try again.');
     }
   }
 
-  // --- Image Cropper ---
-
-  imageCropped(event: ImageCroppedEvent): void {
-    if (event.objectUrl && event.blob) {
-      this.croppedImage = this.sanitizer.bypassSecurityTrustUrl(
-        event.objectUrl
-      );
-      this.croppedBlob = event.blob;
-    }
-  }
-
-  onImageLoaded(_image: LoadedImage): void {
-    this.hasImageLoaded = true;
-  }
-
-  onCropperReady(): void {
-    this.isCropperReady = true;
-  }
-
-  onLoadImageFailed(): void {
-    this.hasLoadFailed = true;
-    this.showCropper = false;
-    this.showError('Failed to load image. Please try another file.');
-  }
-
-  resetCropperState(): void {
-    this.imageChangedEvent = null;
-    this.imageBase64 = undefined;
-    this.croppedImage = null;
-    this.croppedBlob = null;
-    this.hasImageLoaded = false;
-    this.isCropperReady = false;
-    this.hasLoadFailed = false;
-    this.pendingFileName = '';
-  }
+  // --- Apply Cropped Image ---
 
   applyCroppedImage(): void {
     if (this.croppedBlob && this.croppedImage) {
-      // Convert blob to base64 for storage
       void this.blobToBase64(this.croppedBlob).then(base64 => {
         this.dialogRef.close({
           imageData: base64,
@@ -314,40 +146,11 @@ export class WorldbuildingImageDialogComponent implements OnInit {
     }
   }
 
-  cancelCropping(): void {
-    this.showCropper = false;
-    this.resetCropperState();
-    if (this.fileInput) {
-      this.fileInput.nativeElement.value = '';
-    }
-  }
-
   // --- Remove Image ---
 
   removeImage(): void {
     this.dialogRef.close({
       removed: true,
     } as WorldbuildingImageDialogResult);
-  }
-
-  // --- Cancel ---
-
-  cancel(): void {
-    this.dialogRef.close();
-  }
-
-  // --- Helpers ---
-
-  private blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  private showError(message: string): void {
-    this.snackBar.open(message, 'Close', { duration: 5000 });
   }
 }

@@ -6,7 +6,7 @@ import { accountApprovedEmail, accountRejectedEmail } from '../services/email-te
 import { getBaseUrl } from '../services/url.service';
 import type { AppContext } from '../types/context';
 import type { User } from '../db/schema';
-import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
+import { errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
 
 // Helper to safely format user response
 function formatUserResponse(user: User) {
@@ -63,22 +63,7 @@ const listPendingUsersRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -101,30 +86,7 @@ const approveUserRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'User not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('User'),
   },
 });
 
@@ -147,30 +109,7 @@ const rejectUserRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'User not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('User'),
   },
 });
 
@@ -193,30 +132,7 @@ const enableUserRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'User not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('User'),
   },
 });
 
@@ -239,30 +155,7 @@ const disableUserRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'User not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('User'),
   },
 });
 
@@ -294,30 +187,7 @@ const setUserAdminRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'User not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('User'),
   },
 });
 
@@ -340,30 +210,7 @@ const deleteUserRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'User not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('User'),
   },
 });
 
