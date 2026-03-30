@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { passwordResetService } from '../services/password-reset.service';
 import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
-import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
+import { errorResponse, MessageResponseSchema } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
 
 const passwordResetRoutes = new OpenAPIHono<AppContext>();
@@ -39,14 +39,7 @@ const forgotPasswordRoute = createRoute({
       },
       description: 'If an account with this email exists, a password reset link has been sent.',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid request',
-    },
+    400: errorResponse('Invalid request'),
   },
 });
 
@@ -102,14 +95,7 @@ const resetPasswordRoute = createRoute({
       },
       description: 'Password has been reset successfully',
     },
-    400: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'Invalid or expired reset token',
-    },
+    400: errorResponse('Invalid or expired reset token'),
   },
 });
 

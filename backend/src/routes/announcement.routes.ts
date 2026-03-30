@@ -6,7 +6,7 @@ import {
 } from '../services/announcement.service';
 import type { Announcement } from '../db/schema';
 import type { AppContext } from '../types/context';
-import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
+import { errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
 import { UnauthorizedError } from '../errors';
 
 /**
@@ -159,14 +159,7 @@ const listAnnouncementsRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.unauthorized,
   },
 });
 
@@ -186,14 +179,7 @@ const getUnreadCountRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.unauthorized,
   },
 });
 
@@ -216,22 +202,8 @@ const markAsReadRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Announcement not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.unauthorized,
+    ...errorResponses.notFound('Announcement'),
   },
 });
 
@@ -251,14 +223,7 @@ const markAllAsReadRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.unauthorized,
   },
 });
 
@@ -329,22 +294,7 @@ const adminListAnnouncementsRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -373,22 +323,7 @@ const adminCreateAnnouncementRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.admin,
   },
 });
 
@@ -411,30 +346,7 @@ const adminGetAnnouncementRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Announcement not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('Announcement'),
   },
 });
 
@@ -464,30 +376,7 @@ const adminUpdateAnnouncementRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Announcement not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('Announcement'),
   },
 });
 
@@ -510,30 +399,7 @@ const adminDeleteAnnouncementRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Announcement not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('Announcement'),
   },
 });
 
@@ -556,30 +422,7 @@ const adminPublishAnnouncementRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Announcement not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('Announcement'),
   },
 });
 
@@ -602,30 +445,7 @@ const adminUnpublishAnnouncementRoute = createRoute({
         },
       },
     },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    404: {
-      description: 'Announcement not found',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
+    ...errorResponses.adminEntity('Announcement'),
   },
 });
 
