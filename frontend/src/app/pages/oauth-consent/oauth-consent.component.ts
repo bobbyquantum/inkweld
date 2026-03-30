@@ -263,7 +263,7 @@ export class OAuthConsentComponent implements OnInit {
           this.submitting.set(false);
 
           // Attempt to navigate to the redirect URI
-          window.location.href = response.redirectUri;
+          globalThis.location.href = response.redirectUri;
         },
         error: (err: OAuthApiError) => {
           console.error('Failed to submit consent:', err);
@@ -295,7 +295,7 @@ export class OAuthConsentComponent implements OnInit {
     if (params.state) {
       redirectUrl.searchParams.set('state', params.state);
     }
-    window.location.href = redirectUrl.toString();
+    globalThis.location.href = redirectUrl.toString();
   }
 
   /** Select all projects */

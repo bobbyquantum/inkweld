@@ -33,7 +33,7 @@ export type VersionComparison = -1 | 0 | 1;
  * Parse a semantic version string into its components
  */
 export function parseVersion(version: string): { major: number; minor: number; patch: number } {
-  const match = version.match(/^(\d+)\.(\d+)\.(\d+)/);
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
   if (!match) {
     return { major: 0, minor: 0, patch: 0 };
   }

@@ -49,6 +49,6 @@ export class ChangelogComponent implements OnInit {
   }
 
   goBack(): void {
-    window.history.back();
+    globalThis.history.back();
   }
 }
