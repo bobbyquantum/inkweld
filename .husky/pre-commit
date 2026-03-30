@@ -1,1 +1,8 @@
+# Block accidental package-lock.json in backend (uses Bun, not npm)
+if git diff --cached --name-only | grep -q '^backend/package-lock.json$'; then
+  echo "❌ backend/package-lock.json is staged — backend uses Bun, not npm."
+  echo "   Run: git reset HEAD backend/package-lock.json"
+  exit 1
+fi
+
 npx lint-staged
