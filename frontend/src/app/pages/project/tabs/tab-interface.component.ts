@@ -371,146 +371,166 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   updateSelectedTabFromUrl(): void {
-    // Get current route URL
-    let currentRoute = this.route.root;
-    let tabId: string | null = null;
-    let systemRoute: string | null = null;
-    let publishPlanId: string | null = null;
-
-    // First check if we're on a system route or publish-plan route
-    const url = this.router.url;
-    const project = this.projectState.project();
-    if (project) {
-      const projectBaseUrl = `/${project.username}/${project.slug}`;
-      if (url === `${projectBaseUrl}/documents-list`) {
-        systemRoute = 'documents-list';
-      } else if (url === `${projectBaseUrl}/media`) {
-        systemRoute = 'media';
-      } else if (url === `${projectBaseUrl}/templates-list`) {
-        systemRoute = 'templates-list';
-      } else if (url === `${projectBaseUrl}/relationships-list`) {
-        systemRoute = 'relationships-list';
-      } else if (url === `${projectBaseUrl}/tags-list`) {
-        systemRoute = 'tags-list';
-      } else if (url === `${projectBaseUrl}/settings`) {
-        systemRoute = 'settings';
-      } else if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
-        // Extract publish plan ID from URL
-        const urlParts = url.split('/');
-        publishPlanId = urlParts.at(-1) ?? null;
-        // Remove any query params
-        if (publishPlanId?.includes('?')) {
-          publishPlanId = publishPlanId.split('?')[0];
-        }
-      }
-    }
-
-    // If not a system route or publish-plan route, check for tabId param
-    if (!systemRoute && !publishPlanId) {
-      while (currentRoute.firstChild) {
-        currentRoute = currentRoute.firstChild;
-        if (
-          currentRoute.outlet === PRIMARY_OUTLET &&
-          currentRoute.snapshot.paramMap.has('tabId')
-        ) {
-          tabId = currentRoute.snapshot.paramMap.get('tabId');
-        }
-      }
-    }
+    const { systemRoute, publishPlanId, tabId } = this.parseRouteInfo();
 
     // Check if we are at the project root (home tab)
     if (!tabId && !systemRoute && !publishPlanId) {
-      // Find home tab index
-      const homeIndex = this.projectState
-        .openTabs()
-        .findIndex(tab => tab.systemType === 'home');
-      if (homeIndex !== -1) {
-        this.projectState.selectTab(homeIndex);
-      } else {
-        // No home tab, open it
-        this.projectState.openHomeTab();
-      }
+      this.selectOrOpenHomeTab();
       return;
     }
 
-    // Find the tab index
-    let tabIndex = -1;
+    const tabIndex = this.findOrCreateTab(systemRoute, publishPlanId, tabId);
+    if (tabIndex !== -1) {
+      this.projectState.selectTab(tabIndex);
+    }
+  }
 
+  private parseRouteInfo(): {
+    systemRoute: string | null;
+    publishPlanId: string | null;
+    tabId: string | null;
+  } {
+    const url = this.router.url;
+    const project = this.projectState.project();
+
+    if (project) {
+      const projectBaseUrl = `/${project.username}/${project.slug}`;
+      const systemRoutes = [
+        'documents-list',
+        'media',
+        'templates-list',
+        'relationships-list',
+        'tags-list',
+        'settings',
+      ];
+
+      for (const route of systemRoutes) {
+        if (url === `${projectBaseUrl}/${route}`) {
+          return { systemRoute: route, publishPlanId: null, tabId: null };
+        }
+      }
+
+      if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
+        let planId = url.split('/').at(-1) ?? null;
+        if (planId?.includes('?')) {
+          planId = planId.split('?')[0];
+        }
+        return { systemRoute: null, publishPlanId: planId, tabId: null };
+      }
+    }
+
+    // Walk the route tree looking for a tabId param
+    let currentRoute = this.route.root;
+    let tabId: string | null = null;
+    while (currentRoute.firstChild) {
+      currentRoute = currentRoute.firstChild;
+      if (
+        currentRoute.outlet === PRIMARY_OUTLET &&
+        currentRoute.snapshot.paramMap.has('tabId')
+      ) {
+        tabId = currentRoute.snapshot.paramMap.get('tabId');
+      }
+    }
+
+    return { systemRoute: null, publishPlanId: null, tabId };
+  }
+
+  private selectOrOpenHomeTab(): void {
+    const homeIndex = this.projectState
+      .openTabs()
+      .findIndex(tab => tab.systemType === 'home');
+    if (homeIndex !== -1) {
+      this.projectState.selectTab(homeIndex);
+    } else {
+      this.projectState.openHomeTab();
+    }
+  }
+
+  private findOrCreateTab(
+    systemRoute: string | null,
+    publishPlanId: string | null,
+    tabId: string | null
+  ): number {
     if (systemRoute) {
-      // Find the system tab
+      return this.findOrCreateSystemTab(systemRoute);
+    }
+    if (publishPlanId) {
+      return this.findOrCreatePublishPlanTab(publishPlanId);
+    }
+    if (tabId) {
+      return this.findOrCreateDocumentTab(tabId);
+    }
+    return -1;
+  }
+
+  private findOrCreateSystemTab(systemRoute: string): number {
+    let tabIndex = this.projectState
+      .openTabs()
+      .findIndex(
+        tab => tab.type === 'system' && tab.systemType === systemRoute
+      );
+
+    if (tabIndex === -1) {
+      this.projectState.openSystemTab(
+        systemRoute as
+          | 'documents-list'
+          | 'media'
+          | 'templates-list'
+          | 'relationships-list'
+          | 'tags-list'
+      );
       tabIndex = this.projectState
         .openTabs()
         .findIndex(
           tab => tab.type === 'system' && tab.systemType === systemRoute
         );
+    }
+    return tabIndex;
+  }
 
-      // If system tab not found in the existing tabs, create it
-      if (tabIndex === -1) {
-        this.projectState.openSystemTab(
-          systemRoute as
-            | 'documents-list'
-            | 'media'
-            | 'templates-list'
-            | 'relationships-list'
-            | 'tags-list'
-        );
-        // Re-find the tab index after creating
+  private findOrCreatePublishPlanTab(publishPlanId: string): number {
+    let tabIndex = this.projectState
+      .openTabs()
+      .findIndex(
+        tab =>
+          tab.type === 'publishPlan' &&
+          (tab.publishPlan?.id === publishPlanId ||
+            tab.id === `publish-plan-${publishPlanId}`)
+      );
+
+    if (tabIndex === -1) {
+      const plan = this.projectState.getPublishPlan(publishPlanId);
+      if (plan) {
+        this.projectState.openPublishPlan(plan);
         tabIndex = this.projectState
           .openTabs()
           .findIndex(
-            tab => tab.type === 'system' && tab.systemType === systemRoute
+            tab =>
+              tab.type === 'publishPlan' &&
+              (tab.publishPlan?.id === publishPlanId ||
+                tab.id === `publish-plan-${publishPlanId}`)
           );
       }
-    } else if (publishPlanId) {
-      // Find the publish plan tab by plan ID
-      tabIndex = this.projectState
-        .openTabs()
-        .findIndex(
-          tab =>
-            tab.type === 'publishPlan' &&
-            (tab.publishPlan?.id === publishPlanId ||
-              tab.id === `publish-plan-${publishPlanId}`)
-        );
+    }
+    return tabIndex;
+  }
 
-      // If publish plan tab not found, try to create it
-      if (tabIndex === -1) {
-        const plan = this.projectState.getPublishPlan(publishPlanId);
-        if (plan) {
-          this.projectState.openPublishPlan(plan);
-          // Re-find the tab index after creating
-          tabIndex = this.projectState
-            .openTabs()
-            .findIndex(
-              tab =>
-                tab.type === 'publishPlan' &&
-                (tab.publishPlan?.id === publishPlanId ||
-                  tab.id === `publish-plan-${publishPlanId}`)
-            );
-        }
-      }
-    } else if (tabId) {
-      // Find tab with the specific ID (for document/folder tabs)
-      tabIndex = this.projectState
-        .openTabs()
-        .findIndex(tab => tab.id === tabId);
+  private findOrCreateDocumentTab(tabId: string): number {
+    let tabIndex = this.projectState
+      .openTabs()
+      .findIndex(tab => tab.id === tabId);
 
-      // If tab not found, try to find and open the element
-      if (tabIndex === -1) {
-        const elements = this.projectState.elements();
-        const element = elements.find(el => el.id === tabId);
-        if (element) {
-          // Open the document/folder which will create the tab
-          this.projectState.openDocument(element);
-          // Re-find the tab index after creating
-          tabIndex = this.projectState
-            .openTabs()
-            .findIndex(tab => tab.id === tabId);
-        }
+    if (tabIndex === -1) {
+      const elements = this.projectState.elements();
+      const element = elements.find(el => el.id === tabId);
+      if (element) {
+        this.projectState.openDocument(element);
+        tabIndex = this.projectState
+          .openTabs()
+          .findIndex(tab => tab.id === tabId);
       }
     }
-    if (tabIndex !== -1) {
-      this.projectState.selectTab(tabIndex);
-    }
+    return tabIndex;
   }
 
   onTabChange(index: number): void {

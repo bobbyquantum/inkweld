@@ -787,4 +787,250 @@ describe('TabInterfaceComponent', () => {
       expect((component as any).isProjectRoute('/username/project')).toBe(true);
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Route Parsing & Tab Creation (extracted methods)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('route parsing and tab creation', () => {
+    it('should detect documents-list system route', () => {
+      (router as any).url = '/testuser/test-project/documents-list';
+
+      component.updateSelectedTabFromUrl();
+
+      // mockTabs[2] has systemType: 'documents-list'
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(2);
+    });
+
+    it('should detect media system route and open tab', () => {
+      (router as any).url = '/testuser/test-project/media';
+      // No media tab currently open
+      (projectStateService.openTabs as any).set([...mockTabs]);
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
+    });
+
+    it('should detect templates-list system route and open tab', () => {
+      (router as any).url = '/testuser/test-project/templates-list';
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'templates-list'
+      );
+    });
+
+    it('should detect relationships-list system route and open tab', () => {
+      (router as any).url = '/testuser/test-project/relationships-list';
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'relationships-list'
+      );
+    });
+
+    it('should detect tags-list system route and open tab', () => {
+      (router as any).url = '/testuser/test-project/tags-list';
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'tags-list'
+      );
+    });
+
+    it('should detect settings system route and open tab', () => {
+      (router as any).url = '/testuser/test-project/settings';
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+        'settings' as any
+      );
+    });
+
+    it('should find existing system tab by systemType', () => {
+      // Set up an already-open media tab
+      const mediaTabs: AppTab[] = [
+        ...mockTabs,
+        {
+          id: 'system-media',
+          name: 'Media',
+          type: 'system',
+          systemType: 'media',
+        },
+      ];
+      (projectStateService.openTabs as any).set(mediaTabs);
+      (router as any).url = '/testuser/test-project/media';
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(3);
+      expect(projectStateService.openSystemTab).not.toHaveBeenCalled();
+    });
+
+    it('should parse publish-plan URL and find plan tab', () => {
+      const planId = 'plan-new-123';
+      (router as any).url = `/testuser/test-project/publish-plan/${planId}`;
+      (projectStateService as any).getPublishPlan = vi.fn(() => ({
+        id: planId,
+        name: 'My Plan',
+      }));
+      (projectStateService as any).openPublishPlan = vi.fn();
+
+      component.updateSelectedTabFromUrl();
+
+      expect((projectStateService as any).getPublishPlan).toHaveBeenCalledWith(
+        planId
+      );
+      expect((projectStateService as any).openPublishPlan).toHaveBeenCalled();
+    });
+
+    it('should handle publish-plan URL with query params', () => {
+      const planId = 'plan-456';
+      (router as any).url =
+        `/testuser/test-project/publish-plan/${planId}?tab=content`;
+      (projectStateService as any).getPublishPlan = vi.fn(() => ({
+        id: planId,
+        name: 'Plan',
+      }));
+      (projectStateService as any).openPublishPlan = vi.fn();
+
+      component.updateSelectedTabFromUrl();
+
+      expect((projectStateService as any).getPublishPlan).toHaveBeenCalledWith(
+        planId
+      );
+    });
+
+    it('should return -1 when publish plan is not found', () => {
+      const planId = 'nonexistent-plan';
+      (router as any).url = `/testuser/test-project/publish-plan/${planId}`;
+      (projectStateService as any).getPublishPlan = vi.fn(() => null);
+      (projectStateService as any).openPublishPlan = vi.fn();
+
+      component.updateSelectedTabFromUrl();
+
+      // selectTab should not be called when tab is not found
+      expect(
+        (projectStateService as any).openPublishPlan
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should create document tab when document exists in elements but not in tabs', () => {
+      (component as any)['route'] = {
+        root: {
+          firstChild: {
+            firstChild: {
+              outlet: 'primary',
+              snapshot: {
+                paramMap: {
+                  has: () => true,
+                  get: () => 'doc1',
+                },
+              },
+            },
+          },
+        },
+      } as any;
+
+      // Remove doc1 from open tabs
+      (projectStateService.openTabs as any).set([mockTabs[2]]);
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockDocuments[0]
+      );
+    });
+
+    it('should not create tab for unknown document ID', () => {
+      (component as any)['route'] = {
+        root: {
+          firstChild: {
+            firstChild: {
+              outlet: 'primary',
+              snapshot: {
+                paramMap: {
+                  has: () => true,
+                  get: () => 'nonexistent-id',
+                },
+              },
+            },
+          },
+        },
+      } as any;
+
+      (projectStateService.openTabs as any).set([mockTabs[2]]);
+      const selectSpy = vi.spyOn(projectStateService as any, 'selectTab');
+      selectSpy.mockClear();
+
+      component.updateSelectedTabFromUrl();
+
+      expect(projectStateService.openDocument).not.toHaveBeenCalled();
+      expect(selectSpy).not.toHaveBeenCalled();
+    });
+
+    it('should select home tab when URL has no tabId and home tab exists', () => {
+      (component as any)['route'] = {
+        root: {
+          firstChild: {
+            firstChild: {
+              outlet: 'primary',
+              snapshot: {
+                paramMap: {
+                  has: () => false,
+                  get: () => null,
+                },
+              },
+            },
+          },
+        },
+      } as any;
+
+      const homeTabs: AppTab[] = [
+        {
+          id: 'home',
+          name: 'Home',
+          type: 'system',
+          systemType: 'home',
+        },
+        ...mockTabs,
+      ];
+      (projectStateService.openTabs as any).set(homeTabs);
+      (router as any).url = '/testuser/test-project';
+
+      const selectSpy = vi.spyOn(projectStateService as any, 'selectTab');
+      selectSpy.mockClear();
+
+      component.updateSelectedTabFromUrl();
+
+      expect(selectSpy).toHaveBeenCalledWith(0);
+      expect(projectStateService.openHomeTab).not.toHaveBeenCalled();
+    });
+
+    it('should handle null project gracefully in parseRouteInfo', () => {
+      (projectStateService.project as any).set(null);
+      (component as any)['route'] = {
+        root: {
+          firstChild: {
+            firstChild: {
+              outlet: 'primary',
+              snapshot: {
+                paramMap: {
+                  has: () => false,
+                  get: () => null,
+                },
+              },
+            },
+          },
+        },
+      } as any;
+
+      expect(() => component.updateSelectedTabFromUrl()).not.toThrow();
+    });
+  });
 });
