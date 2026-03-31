@@ -7,6 +7,7 @@ import {
   LocalSnapshotService,
   type StoredSnapshot,
 } from '../local/local-snapshot.service';
+import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 import { TabManagerService } from './tab-manager.service';
@@ -60,6 +61,7 @@ export class AutoSnapshotService implements OnDestroy {
   private readonly settings = inject(SettingsService);
   private readonly projectState = inject(ProjectStateService);
   private readonly documentService = inject(DocumentService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snapshotService = inject(UnifiedSnapshotService);
   private readonly localSnapshots = inject(LocalSnapshotService);
   private readonly tabManager = inject(TabManagerService);
@@ -81,6 +83,11 @@ export class AutoSnapshotService implements OnDestroy {
   private readonly editSubscription: Subscription;
 
   /**
+   * Subscription to WorldbuildingService's local edit events.
+   */
+  private readonly wbEditSubscription: Subscription;
+
+  /**
    * Subscription to TabManagerService's tab close events.
    */
   private readonly tabCloseSubscription: Subscription;
@@ -92,6 +99,16 @@ export class AutoSnapshotService implements OnDestroy {
         const parts = documentId.split(':');
         const elementId =
           parts.length >= 3 ? parts.slice(2).join(':') : documentId;
+        this.markDirty(elementId);
+      }
+    );
+
+    this.wbEditSubscription = this.worldbuildingService.localEdit$.subscribe(
+      (connectionKey: string) => {
+        // Extract element ID from connection key (username:slug:elementId)
+        const parts = connectionKey.split(':');
+        const elementId =
+          parts.length >= 3 ? parts.slice(2).join(':') : connectionKey;
         this.markDirty(elementId);
       }
     );
@@ -110,6 +127,7 @@ export class AutoSnapshotService implements OnDestroy {
 
   ngOnDestroy(): void {
     this.editSubscription.unsubscribe();
+    this.wbEditSubscription.unsubscribe();
     this.tabCloseSubscription.unsubscribe();
   }
 
