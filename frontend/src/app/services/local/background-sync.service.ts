@@ -119,7 +119,6 @@ export class BackgroundSyncService implements OnDestroy {
    */
   private async checkAndRemoveTombstonedProjects(): Promise<void> {
     try {
-      // Get all pending project creations - these are local projects that need to sync
       const pendingCreations =
         await this.projectSync.getProjectsWithPendingCreations();
 
@@ -127,62 +126,8 @@ export class BackgroundSyncService implements OnDestroy {
         return;
       }
 
-      // Collect all tombstoned project keys from both local and server sources
-      const tombstonedProjectKeys = new Set<string>();
-
-      // First, check local tombstones (works in both local and server mode)
-      const localTombstones = await this.projectSync.getAllTombstones();
-      for (const tombstone of localTombstones) {
-        // Check if any pending creation matches this tombstone
-        const matches = pendingCreations.some(
-          ({ projectKey }) => projectKey === tombstone.projectKey
-        );
-        if (matches) {
-          tombstonedProjectKeys.add(tombstone.projectKey);
-          this.logger.debug(
-            'BackgroundSync',
-            `Found local tombstone for: ${tombstone.projectKey}`
-          );
-        }
-      }
-
-      // Then, check server tombstones (only if online and in server mode)
-      if (navigator.onLine && this.setupService.getMode() === 'server') {
-        // Extract project keys (format: "username/slug")
-        const projectKeys = pendingCreations.map(
-          ({ projectKey }) => projectKey
-        );
-
-        if (projectKeys.length > 0) {
-          this.logger.debug(
-            'BackgroundSync',
-            `Checking ${projectKeys.length} project(s) for server tombstones`
-          );
-
-          try {
-            const response = await firstValueFrom(
-              this.projectsApi.checkTombstones({ projectKeys })
-            );
-
-            // Add server tombstones to the set
-            for (const tombstone of response.tombstones) {
-              const projectKey = `${tombstone.username}/${tombstone.slug}`;
-              tombstonedProjectKeys.add(projectKey);
-              this.logger.debug(
-                'BackgroundSync',
-                `Found server tombstone for: ${projectKey}`
-              );
-            }
-          } catch (error) {
-            this.logger.error(
-              'BackgroundSync',
-              'Failed to check server tombstones',
-              error
-            );
-            // Continue with local tombstones only
-          }
-        }
-      }
+      const tombstonedProjectKeys =
+        await this.collectTombstonedKeys(pendingCreations);
 
       if (tombstonedProjectKeys.size === 0) {
         this.logger.debug('BackgroundSync', 'No tombstones found');
@@ -194,38 +139,95 @@ export class BackgroundSyncService implements OnDestroy {
         `Found ${tombstonedProjectKeys.size} tombstone(s), removing local projects`
       );
 
-      // Remove local projects that have tombstones
-      for (const projectKey of tombstonedProjectKeys) {
+      await this.removeTombstonedProjects(tombstonedProjectKeys);
+    } catch (error) {
+      this.logger.error('BackgroundSync', 'Failed to check tombstones', error);
+    }
+  }
+
+  private async collectTombstonedKeys(
+    pendingCreations: { projectKey: string }[]
+  ): Promise<Set<string>> {
+    const tombstonedProjectKeys = new Set<string>();
+
+    // Check local tombstones
+    const localTombstones = await this.projectSync.getAllTombstones();
+    for (const tombstone of localTombstones) {
+      if (
+        pendingCreations.some(
+          ({ projectKey }) => projectKey === tombstone.projectKey
+        )
+      ) {
+        tombstonedProjectKeys.add(tombstone.projectKey);
+        this.logger.debug(
+          'BackgroundSync',
+          `Found local tombstone for: ${tombstone.projectKey}`
+        );
+      }
+    }
+
+    // Check server tombstones (only if online and in server mode)
+    if (navigator.onLine && this.setupService.getMode() === 'server') {
+      const projectKeys = pendingCreations.map(({ projectKey }) => projectKey);
+
+      if (projectKeys.length > 0) {
+        this.logger.debug(
+          'BackgroundSync',
+          `Checking ${projectKeys.length} project(s) for server tombstones`
+        );
+
         try {
-          const parts = projectKey.split('/');
-          const username = parts[0] ?? '';
-          const slug = parts[1] ?? '';
+          const response = await firstValueFrom(
+            this.projectsApi.checkTombstones({ projectKeys })
+          );
 
-          if (username && slug) {
-            // Delete the local project without creating another tombstone
-            this.localProjectService.deleteProject(username, slug, {
-              createTombstone: false,
-            });
-
-            // Clear the sync state
-            await this.projectSync.deleteSyncState(projectKey);
-
-            this.logger.info(
+          for (const tombstone of response.tombstones) {
+            const projectKey = `${tombstone.username}/${tombstone.slug}`;
+            tombstonedProjectKeys.add(projectKey);
+            this.logger.debug(
               'BackgroundSync',
-              `Removed tombstoned project: ${projectKey}`
+              `Found server tombstone for: ${projectKey}`
             );
           }
         } catch (error) {
           this.logger.error(
             'BackgroundSync',
-            `Failed to remove tombstoned project: ${projectKey}`,
+            'Failed to check server tombstones',
             error
           );
         }
       }
-    } catch (error) {
-      this.logger.error('BackgroundSync', 'Failed to check tombstones', error);
-      // Don't throw - we can still try to sync other items
+    }
+
+    return tombstonedProjectKeys;
+  }
+
+  private async removeTombstonedProjects(
+    tombstonedProjectKeys: Set<string>
+  ): Promise<void> {
+    for (const projectKey of tombstonedProjectKeys) {
+      try {
+        const parts = projectKey.split('/');
+        const username = parts[0] ?? '';
+        const slug = parts[1] ?? '';
+
+        if (username && slug) {
+          this.localProjectService.deleteProject(username, slug, {
+            createTombstone: false,
+          });
+          await this.projectSync.deleteSyncState(projectKey);
+          this.logger.info(
+            'BackgroundSync',
+            `Removed tombstoned project: ${projectKey}`
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          'BackgroundSync',
+          `Failed to remove tombstoned project: ${projectKey}`,
+          error
+        );
+      }
     }
   }
 
