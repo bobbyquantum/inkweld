@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import {
   MediaSyncService,
   type MediaSyncState,
 } from '../local/media-sync.service';
+import { DocumentService } from '../project/document.service';
 import { SyncQueueService, SyncStage } from './sync-queue.service';
 
 describe('SyncQueueService', () => {
@@ -18,6 +20,12 @@ describe('SyncQueueService', () => {
     checkSyncStatus: Mock;
     downloadAllFromServer: Mock;
   };
+  let mockDocumentService: {
+    syncElementsToServer: Mock;
+    syncDocumentsToServer: Mock;
+    syncWorldbuildingToServerBatch: Mock;
+  };
+  let mockStorageContext: { getPrefix: Mock };
   let mockSetupService: { getMode: Mock };
   let mockLogger: { info: Mock; warn: Mock; error: Mock; debug: Mock };
 
@@ -51,6 +59,20 @@ describe('SyncQueueService', () => {
       downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockDocumentService = {
+      syncElementsToServer: vi.fn().mockResolvedValue(undefined),
+      syncDocumentsToServer: vi
+        .fn()
+        .mockResolvedValue({ success: [], failed: [] }),
+      syncWorldbuildingToServerBatch: vi
+        .fn()
+        .mockResolvedValue({ success: [], failed: [] }),
+    };
+
+    mockStorageContext = {
+      getPrefix: vi.fn().mockReturnValue('srv:abc12345:'),
+    };
+
     mockSetupService = {
       getMode: vi.fn().mockReturnValue('server'),
     };
@@ -67,6 +89,8 @@ describe('SyncQueueService', () => {
         SyncQueueService,
         { provide: ProjectsService, useValue: mockProjectsApi },
         { provide: MediaSyncService, useValue: mockMediaSyncService },
+        { provide: DocumentService, useValue: mockDocumentService },
+        { provide: StorageContextService, useValue: mockStorageContext },
         { provide: SetupService, useValue: mockSetupService },
         { provide: LoggerService, useValue: mockLogger },
       ],

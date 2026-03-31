@@ -209,6 +209,22 @@ export class WorldbuildingService {
       dataMap
     );
 
+    // Wait for WebSocket sync to complete before returning, so callers
+    // don't read an empty dataMap and overwrite server data with defaults.
+    if (provider && !provider.synced) {
+      await new Promise<void>(resolve => {
+        const onSync = (isSynced: boolean) => {
+          if (isSynced) {
+            provider.off('sync', onSync);
+            resolve();
+          }
+        };
+        provider.on('sync', onSync);
+        // Safety timeout — don't block forever if server is unreachable
+        setTimeout(resolve, 10000);
+      });
+    }
+
     const connection: WorldbuildingConnection = {
       ydoc,
       dataMap,
