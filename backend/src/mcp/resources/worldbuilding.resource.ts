@@ -194,23 +194,23 @@ const worldbuildingResourceHandler = {
       // Add worldbuilding listing resource
       // Note: Individual worldbuilding elements are discovered via resources/read on this URI
       // We don't enumerate them here to avoid loading Yjs documents
-      resources.push({
-        uri: `inkweld://project/${username}/${slug}/worldbuilding`,
-        name: `Worldbuilding (${username}/${slug})`,
-        title: `All Worldbuilding Entries - ${username}/${slug}`,
-        description:
-          'List of all worldbuilding elements (characters, locations, items, etc.). Read this resource to discover individual entries.',
-        mimeType: 'application/json',
-      });
-
-      // Add relationships resource
-      resources.push({
-        uri: `inkweld://project/${username}/${slug}/relationships`,
-        name: `Relationships (${username}/${slug})`,
-        title: `Element Relationships - ${username}/${slug}`,
-        description: 'All relationships between worldbuilding elements',
-        mimeType: 'application/json',
-      });
+      resources.push(
+        {
+          uri: `inkweld://project/${username}/${slug}/worldbuilding`,
+          name: `Worldbuilding (${username}/${slug})`,
+          title: `All Worldbuilding Entries - ${username}/${slug}`,
+          description:
+            'List of all worldbuilding elements (characters, locations, items, etc.). Read this resource to discover individual entries.',
+          mimeType: 'application/json',
+        },
+        {
+          uri: `inkweld://project/${username}/${slug}/relationships`,
+          name: `Relationships (${username}/${slug})`,
+          title: `Element Relationships - ${username}/${slug}`,
+          description: 'All relationships between worldbuilding elements',
+          mimeType: 'application/json',
+        }
+      );
     }
 
     return resources;
