@@ -2,8 +2,11 @@ import { signal } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { LocalStorageService } from '@services/local/local-storage.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
+import { UserService } from '@services/user/user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -61,6 +64,15 @@ describe('PresenceIndicatorComponent', () => {
         provideZonelessChangeDetection(),
         { provide: DocumentService, useValue: documentService },
         { provide: ProjectStateService, useValue: projectStateService },
+        {
+          provide: UnifiedUserService,
+          useValue: { getMode: vi.fn().mockReturnValue('local') },
+        },
+        { provide: UserService, useValue: { getUserAvatar: vi.fn() } },
+        {
+          provide: LocalStorageService,
+          useValue: { getItem: vi.fn(), setItem: vi.fn() },
+        },
       ],
     }).compileComponents();
 

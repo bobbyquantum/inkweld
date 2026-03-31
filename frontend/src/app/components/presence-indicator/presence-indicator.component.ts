@@ -11,6 +11,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
+import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
+
 /**
  * Represents a user state from Yjs awareness
  */
@@ -40,7 +42,7 @@ export interface PresenceUser {
  */
 @Component({
   selector: 'app-presence-indicator',
-  imports: [MatIconModule, MatTooltipModule],
+  imports: [MatIconModule, MatTooltipModule, UserAvatarComponent],
   template: `
     @if (activeUsers().length > 0) {
       <div class="presence-container" data-testid="presence-indicator">
@@ -48,10 +50,10 @@ export interface PresenceUser {
           @for (user of displayedUsers(); track user.clientId) {
             <div
               class="presence-avatar"
-              [style.background-color]="user.color"
               [matTooltip]="user.username"
               matTooltipPosition="below">
-              {{ getInitials(user.username) }}
+              <app-user-avatar [username]="user.username" size="small">
+              </app-user-avatar>
             </div>
           }
           @if (overflowCount() > 0) {
@@ -92,14 +94,21 @@ export interface PresenceUser {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 11px;
-        font-weight: 600;
-        color: white;
-        text-transform: uppercase;
         border: 2px solid var(--sys-surface);
         margin-left: -8px;
         cursor: default;
         transition: transform 0.2s ease;
+        overflow: hidden;
+
+        app-user-avatar {
+          width: 100%;
+          height: 100%;
+
+          ::ng-deep .avatar.small {
+            width: 100%;
+            height: 100%;
+          }
+        }
 
         &:first-child {
           margin-left: 0;
