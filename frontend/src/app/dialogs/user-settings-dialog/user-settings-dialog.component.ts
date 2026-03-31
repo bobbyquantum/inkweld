@@ -29,6 +29,7 @@ const CATEGORIES = [
   'project-tree',
   'project',
 ] as const;
+type SettingsCategory = (typeof CATEGORIES)[number];
 
 @Component({
   selector: 'app-user-settings-dialog',
@@ -52,13 +53,8 @@ const CATEGORIES = [
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   private readonly breakpointObserver = inject(BreakpointObserver);
 
-  @Input() selectedCategory:
-    | 'account'
-    | 'authorized-apps'
-    | 'project-tree'
-    | 'project' = 'account';
-  previousCategory: 'account' | 'authorized-apps' | 'project-tree' | 'project' =
-    'account';
+  @Input() selectedCategory: SettingsCategory = 'account';
+  previousCategory: SettingsCategory = 'account';
   isMobile = false;
   private destroyed = new Subject<void>();
 

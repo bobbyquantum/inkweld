@@ -14,6 +14,9 @@ import { catchError, firstValueFrom, throwError } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
 
+type AnnouncementType = 'announcement' | 'update' | 'maintenance';
+type AnnouncementPriority = 'low' | 'normal' | 'high';
+
 export class AnnouncementServiceError extends Error {
   constructor(
     public code:
@@ -33,8 +36,8 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  type: 'announcement' | 'update' | 'maintenance';
-  priority: 'low' | 'normal' | 'high';
+  type: AnnouncementType;
+  priority: AnnouncementPriority;
   isPublic: boolean;
   publishedAt: string | null;
   expiresAt: string | null;
@@ -51,8 +54,8 @@ export interface AnnouncementWithReadStatus extends Announcement {
 export interface CreateAnnouncementData {
   title: string;
   content: string;
-  type?: 'announcement' | 'update' | 'maintenance';
-  priority?: 'low' | 'normal' | 'high';
+  type?: AnnouncementType;
+  priority?: AnnouncementPriority;
   isPublic?: boolean;
   publishedAt?: string | null;
   expiresAt?: string | null;
@@ -61,8 +64,8 @@ export interface CreateAnnouncementData {
 export interface UpdateAnnouncementData {
   title?: string;
   content?: string;
-  type?: 'announcement' | 'update' | 'maintenance';
-  priority?: 'low' | 'normal' | 'high';
+  type?: AnnouncementType;
+  priority?: AnnouncementPriority;
   isPublic?: boolean;
   publishedAt?: string | null;
   expiresAt?: string | null;
