@@ -15,7 +15,7 @@
 import 'fake-indexeddb/auto';
 import '@angular/compiler'; // Required for JIT compilation in tests
 
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 
 // Mock @myriaddreamin/typst.ts globally BEFORE any imports that might use it
 // This is needed for non-isolated test mode where module cache is shared
@@ -69,7 +69,6 @@ if (!getTestBed().platform) {
 // Clean up after each test to prevent state leakage
 // Note: Individual test files should handle their own cleanup in afterEach
 // This global cleanup runs last and ensures TestBed is reset
-import { afterEach } from 'vitest';
 
 afterEach(() => {
   // Use destroyAfterEach instead of resetTestingModule for better cleanup

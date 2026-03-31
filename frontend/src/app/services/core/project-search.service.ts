@@ -223,10 +223,7 @@ export class ProjectSearchService {
   }
 
   private isMacPlatform(): boolean {
-    return (
-      typeof navigator !== 'undefined' &&
-      navigator.platform.toUpperCase().includes('MAC')
-    );
+    return typeof navigator !== 'undefined' && /mac/i.test(navigator.userAgent);
   }
 
   private buildSearchableElements(

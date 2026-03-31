@@ -135,8 +135,8 @@ export class DocumentService {
 
   constructor() {
     // Ensure awareness is cleaned up when the browser tab/window closes
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', () => {
+    if (typeof globalThis.addEventListener === 'function') {
+      globalThis.addEventListener('beforeunload', () => {
         this.connections.forEach((connection, documentId) => {
           if (connection.provider) {
             this.logger.debug(

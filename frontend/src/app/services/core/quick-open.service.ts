@@ -58,7 +58,7 @@ export class QuickOpenService {
 
     this.keydownListener = (event: KeyboardEvent) => {
       // Check for Cmd/Ctrl + P
-      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      const isMac = /mac/i.test(navigator.userAgent);
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 
       if (modifierKey && event.key.toLowerCase() === 'p') {
