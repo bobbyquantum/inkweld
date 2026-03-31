@@ -1,10 +1,19 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { type Project, ProjectsService } from '@inkweld/index';
+import {
+  type Element,
+  ElementType,
+  type Project,
+  ProjectsService,
+} from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
+import { IndexeddbPersistence } from 'y-indexeddb';
+import * as Y from 'yjs';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { MediaSyncService } from '../local/media-sync.service';
+import { DocumentService } from '../project/document.service';
 
 /**
  * Sync stage for a project
@@ -61,6 +70,8 @@ export class SyncQueueService {
   private readonly setupService = inject(SetupService);
   private readonly projectsApi = inject(ProjectsService);
   private readonly mediaSyncService = inject(MediaSyncService);
+  private readonly documentService = inject(DocumentService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Queue of project keys waiting to be synced */
   private queue: string[] = [];
@@ -351,24 +362,40 @@ export class SyncQueueService {
 
   /**
    * Sync project elements (structure/tree)
-   * Elements sync happens automatically via Yjs WebSocket, so this just verifies connection
+   * Opens a headless WebSocket connection to push/pull the elements Yjs document.
    */
-  private async syncElements(_projectKey: string): Promise<void> {
-    // Elements sync via Yjs is automatic when connected
-    // This stage is a placeholder for any explicit sync logic
-    await new Promise(resolve => setTimeout(resolve, 100));
-    this.logger.debug('SyncQueueService', `[${_projectKey}] Elements synced`);
+  private async syncElements(projectKey: string): Promise<void> {
+    const [username, slug] = projectKey.split('/');
+    await this.documentService.syncElementsToServer(username, slug);
+    this.logger.debug('SyncQueueService', `[${projectKey}] Elements synced`);
   }
 
   /**
-   * Sync all documents in the project
-   * Documents sync happens automatically via Yjs WebSocket
+   * Sync all documents in the project.
+   * Discovers ITEM elements from the local elements Yjs doc, then syncs each prose document.
    */
-  private async syncDocuments(_projectKey: string): Promise<void> {
-    // Documents sync via Yjs is automatic when connected
-    // This stage is a placeholder for any explicit sync logic
-    await new Promise(resolve => setTimeout(resolve, 100));
-    this.logger.debug('SyncQueueService', `[${_projectKey}] Documents synced`);
+  private async syncDocuments(projectKey: string): Promise<void> {
+    const [username, slug] = projectKey.split('/');
+    const elements = await this.loadElementsFromIndexedDB(username, slug);
+
+    const documentIds = elements
+      .filter(el => el.type === ElementType.Item)
+      .map(el => `${username}:${slug}:${el.id}`);
+
+    if (documentIds.length === 0) {
+      this.logger.debug(
+        'SyncQueueService',
+        `[${projectKey}] No documents to sync`
+      );
+      return;
+    }
+
+    const result =
+      await this.documentService.syncDocumentsToServer(documentIds);
+    this.logger.debug(
+      'SyncQueueService',
+      `[${projectKey}] Documents synced: ${result.success.length} ok, ${result.failed.length} failed`
+    );
   }
 
   /**
@@ -410,16 +437,58 @@ export class SyncQueueService {
   }
 
   /**
-   * Sync worldbuilding schemas and data
-   * Worldbuilding sync happens via Yjs
+   * Sync worldbuilding schemas and data.
+   * Discovers WORLDBUILDING elements from the local elements Yjs doc, then syncs each.
    */
-  private async syncWorldbuilding(_projectKey: string): Promise<void> {
-    // Worldbuilding sync via Yjs is automatic when connected
-    await new Promise(resolve => setTimeout(resolve, 100));
+  private async syncWorldbuilding(projectKey: string): Promise<void> {
+    const [username, slug] = projectKey.split('/');
+    const elements = await this.loadElementsFromIndexedDB(username, slug);
+
+    const worldbuildingIds = elements
+      .filter(el => el.type === ElementType.Worldbuilding)
+      .map(el => `worldbuilding:${username}:${slug}:${el.id}`);
+
+    if (worldbuildingIds.length === 0) {
+      this.logger.debug(
+        'SyncQueueService',
+        `[${projectKey}] No worldbuilding elements to sync`
+      );
+      return;
+    }
+
+    const result =
+      await this.documentService.syncWorldbuildingToServerBatch(
+        worldbuildingIds
+      );
     this.logger.debug(
       'SyncQueueService',
-      `[${_projectKey}] Worldbuilding synced`
+      `[${projectKey}] Worldbuilding synced: ${result.success.length} ok, ${result.failed.length} failed`
     );
+  }
+
+  /**
+   * Load the elements array from IndexedDB for a project.
+   * Creates a temporary Yjs doc, loads the elements document from local storage,
+   * reads the elements array, then cleans up.
+   */
+  private async loadElementsFromIndexedDB(
+    username: string,
+    slug: string
+  ): Promise<Element[]> {
+    const serverDocId = `${username}:${slug}:elements`;
+    const localDocId = `${this.storageContext.getPrefix()}${serverDocId}`;
+
+    const ydoc = new Y.Doc();
+    const idbProvider = new IndexeddbPersistence(localDocId, ydoc);
+
+    try {
+      await idbProvider.whenSynced;
+      const elementsArray = ydoc.getArray<Element>('elements');
+      return elementsArray.toArray();
+    } finally {
+      await idbProvider.destroy();
+      ydoc.destroy();
+    }
   }
 
   /**

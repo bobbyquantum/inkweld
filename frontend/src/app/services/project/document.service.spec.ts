@@ -1173,7 +1173,7 @@ describe('DocumentService', () => {
         );
 
         expect(mockCreateAuthWsProvider).toHaveBeenCalledWith(
-          'ws://localhost:8333/api/v1/ws/yjs?documentId=worldbuilding:testuser:test-project:element123',
+          'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:element123',
           '',
           expect.any(Y.Doc),
           'test-auth-token',
