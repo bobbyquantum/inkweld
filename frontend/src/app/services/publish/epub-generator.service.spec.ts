@@ -1025,4 +1025,63 @@ describe('EpubGeneratorService', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe('MARK_TAGS rendering', () => {
+    it('should apply bold mark tags to ProseMirror text nodes', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Bold text',
+              marks: [{ type: 'bold' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should apply multiple mark tags to a single text node', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Bold italic text',
+              marks: [{ type: 'bold' }, { type: 'italic' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should skip unknown mark types gracefully', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Styled text',
+              marks: [{ type: 'unknown-mark' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+
+      expect(result.success).toBe(true);
+    });
+  });
 });
