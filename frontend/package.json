@@ -89,7 +89,7 @@
     "echarts": "^6.0.0",
     "fracticons": "^1.0.0",
     "konva": "^10.2.0",
-    "lodash-es": "4.17.23",
+    "lodash-es": "4.18.0",
     "marked": "^17.0.1",
     "material-icons": "1.13.14",
     "material-symbols": "0.43.0",
