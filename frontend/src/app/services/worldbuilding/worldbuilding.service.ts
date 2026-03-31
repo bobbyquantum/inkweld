@@ -216,12 +216,16 @@ export class WorldbuildingService {
         const onSync = (isSynced: boolean) => {
           if (isSynced) {
             provider.off('sync', onSync);
+            clearTimeout(timeoutId);
             resolve();
           }
         };
         provider.on('sync', onSync);
         // Safety timeout — don't block forever if server is unreachable
-        setTimeout(resolve, 10000);
+        const timeoutId = setTimeout(() => {
+          provider.off('sync', onSync);
+          resolve();
+        }, 10000);
       });
     }
 
