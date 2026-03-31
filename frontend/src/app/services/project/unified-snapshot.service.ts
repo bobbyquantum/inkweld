@@ -130,43 +130,10 @@ export class UnifiedSnapshotService {
     const element = this.projectState.elements().find(e => e.id === elementId);
     const isWorldbuilding = element && this.isWorldbuildingType(element.type);
 
-    let xmlContent = '';
-    let wordCount = 0;
-    let worldbuildingData: Record<string, unknown> | undefined;
-
-    // For worldbuilding elements, we primarily snapshot the worldbuilding data
-    // The prose document may not exist or may be empty
-    if (isWorldbuilding) {
-      // Get worldbuilding data (required for WB elements)
-      const wbYdoc = this.getWorldbuildingYDoc(elementId);
-      if (!wbYdoc) {
-        throw new Error(
-          `Worldbuilding document ${elementId} not found or not loaded`
-        );
-      }
-      const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
-      worldbuildingData = yjsMapToJson(dataMap);
-
-      // Optionally try to get prose content (may not exist)
-      const ydoc = await this.getDocumentYDoc(documentId);
-      if (ydoc) {
-        const prosemirror = ydoc.getXmlFragment('prosemirror');
-        if (prosemirror.length > 0) {
-          xmlContent = xmlFragmentToXmlString(prosemirror);
-          wordCount = this.calculateWordCount(ydoc);
-        }
-      }
-    } else {
-      // For regular documents, the prose document is required
-      const ydoc = await this.getDocumentYDoc(documentId);
-      if (!ydoc) {
-        throw new Error(`Document ${elementId} not found or not loaded`);
-      }
-
-      const prosemirror = ydoc.getXmlFragment('prosemirror');
-      xmlContent = xmlFragmentToXmlString(prosemirror);
-      wordCount = this.calculateWordCount(ydoc);
-    }
+    // Extract content based on element type
+    const { xmlContent, wordCount, worldbuildingData } = isWorldbuilding
+      ? await this.extractWorldbuildingContent(elementId, documentId)
+      : await this.extractDocumentContent(elementId, documentId);
 
     // Create the snapshot options
     const options: CreateSnapshotOptions = {
@@ -803,6 +770,59 @@ export class UnifiedSnapshotService {
    */
   private isWorldbuildingType(type: string): boolean {
     return type === 'WORLDBUILDING';
+  }
+
+  private async extractWorldbuildingContent(
+    elementId: string,
+    documentId: string
+  ): Promise<{
+    xmlContent: string;
+    wordCount: number;
+    worldbuildingData: Record<string, unknown> | undefined;
+  }> {
+    const wbYdoc = this.getWorldbuildingYDoc(elementId);
+    if (!wbYdoc) {
+      throw new Error(
+        `Worldbuilding document ${elementId} not found or not loaded`
+      );
+    }
+    const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
+    const worldbuildingData = yjsMapToJson(dataMap);
+
+    let xmlContent = '';
+    let wordCount = 0;
+
+    const ydoc = await this.getDocumentYDoc(documentId);
+    if (ydoc) {
+      const prosemirror = ydoc.getXmlFragment('prosemirror');
+      if (prosemirror.length > 0) {
+        xmlContent = xmlFragmentToXmlString(prosemirror);
+        wordCount = this.calculateWordCount(ydoc);
+      }
+    }
+
+    return { xmlContent, wordCount, worldbuildingData };
+  }
+
+  private async extractDocumentContent(
+    elementId: string,
+    documentId: string
+  ): Promise<{
+    xmlContent: string;
+    wordCount: number;
+    worldbuildingData: Record<string, unknown> | undefined;
+  }> {
+    const ydoc = await this.getDocumentYDoc(documentId);
+    if (!ydoc) {
+      throw new Error(`Document ${elementId} not found or not loaded`);
+    }
+
+    const prosemirror = ydoc.getXmlFragment('prosemirror');
+    return {
+      xmlContent: xmlFragmentToXmlString(prosemirror),
+      wordCount: this.calculateWordCount(ydoc),
+      worldbuildingData: undefined,
+    };
   }
 
   /**
