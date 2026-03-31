@@ -129,6 +129,7 @@ describe('HomeComponent', () => {
       post: vi.fn(),
       put: vi.fn(),
       delete: vi.fn(),
+      request: vi.fn().mockReturnValue(of({})),
     } as unknown as MockedObject<HttpClient>;
 
     router = {
