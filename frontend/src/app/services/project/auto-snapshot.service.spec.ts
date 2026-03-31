@@ -11,6 +11,7 @@ import {
   LocalSnapshotService,
   type StoredSnapshot,
 } from '../local/local-snapshot.service';
+import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
 import {
   AUTO_SNAPSHOT_NAME_PREFIX,
   AutoSnapshotService,
@@ -25,6 +26,7 @@ describe('AutoSnapshotService', () => {
   let projectSignal: ReturnType<typeof signal<Project | undefined>>;
   let elementsSignal: ReturnType<typeof signal<ProjectElement[]>>;
   let localEdit$: Subject<string>;
+  let wbLocalEdit$: Subject<string>;
   let tabClosed$: Subject<AppTab>;
 
   // Mock services
@@ -75,6 +77,7 @@ describe('AutoSnapshotService', () => {
     ]);
 
     localEdit$ = new Subject<string>();
+    wbLocalEdit$ = new Subject<string>();
     tabClosed$ = new Subject<AppTab>();
 
     settingsService = {
@@ -107,6 +110,10 @@ describe('AutoSnapshotService', () => {
           useValue: { project: projectSignal, elements: elementsSignal },
         },
         { provide: DocumentService, useValue: { localEdit$ } },
+        {
+          provide: WorldbuildingService,
+          useValue: { localEdit$: wbLocalEdit$ },
+        },
         { provide: TabManagerService, useValue: { tabClosed$ } },
         { provide: UnifiedSnapshotService, useValue: snapshotService },
         { provide: LocalSnapshotService, useValue: localSnapshots },
@@ -158,6 +165,19 @@ describe('AutoSnapshotService', () => {
     it('should handle plain element IDs', () => {
       localEdit$.next('doc1');
       expect(service.getDirtyCount()).toBe(1);
+    });
+  });
+
+  describe('worldbuilding localEdit$ subscription', () => {
+    it('should mark worldbuilding elements dirty when wbLocalEdit$ emits', () => {
+      wbLocalEdit$.next('testuser:test-project:wb1');
+      expect(service.getDirtyCount()).toBe(1);
+    });
+
+    it('should extract element ID from worldbuilding connection key', () => {
+      wbLocalEdit$.next('testuser:test-project:wb1');
+      wbLocalEdit$.next('testuser:test-project:wb2');
+      expect(service.getDirtyCount()).toBe(2);
     });
   });
 

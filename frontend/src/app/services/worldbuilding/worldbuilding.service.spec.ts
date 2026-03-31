@@ -962,4 +962,12 @@ describe('WorldbuildingService', () => {
       );
     });
   });
+
+  describe('localEdit$', () => {
+    it('should have a localEdit$ Subject for auto-snapshot tracking', () => {
+      // localEdit$ is subscribed to by AutoSnapshotService to track dirty elements
+      expect(service.localEdit$).toBeDefined();
+      expect(typeof service.localEdit$.subscribe).toBe('function');
+    });
+  });
 });
