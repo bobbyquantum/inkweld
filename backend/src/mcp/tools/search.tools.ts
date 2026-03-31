@@ -248,29 +248,30 @@ function searchInObject(
 
   for (const [key, value] of Object.entries(obj)) {
     const fieldPath = prefix ? `${prefix}.${key}` : key;
-
-    if (typeof value === 'string') {
-      const score = matchText(value, query);
-      if (score > 0) {
-        results.push({ field: fieldPath, value, score });
-      }
-    } else if (Array.isArray(value)) {
-      for (const item of value) {
-        if (typeof item === 'string') {
-          const score = matchText(item, query);
-          if (score > 0) {
-            results.push({ field: fieldPath, value: item, score });
-          }
-        } else if (typeof item === 'object' && item !== null) {
-          results.push(...searchInObject(item as Record<string, unknown>, query, fieldPath));
-        }
-      }
-    } else if (typeof value === 'object' && value !== null) {
-      results.push(...searchInObject(value as Record<string, unknown>, query, fieldPath));
-    }
+    searchValue(results, value, query, fieldPath);
   }
 
   return results;
+}
+
+function searchValue(
+  results: Array<{ field: string; value: string; score: number }>,
+  value: unknown,
+  query: string,
+  fieldPath: string
+): void {
+  if (typeof value === 'string') {
+    const score = matchText(value, query);
+    if (score > 0) {
+      results.push({ field: fieldPath, value, score });
+    }
+  } else if (Array.isArray(value)) {
+    for (const item of value) {
+      searchValue(results, item, query, fieldPath);
+    }
+  } else if (typeof value === 'object' && value !== null) {
+    results.push(...searchInObject(value as Record<string, unknown>, query, fieldPath));
+  }
 }
 
 // ============================================
@@ -472,6 +473,46 @@ registerTool({
 });
 
 // ============================================
+/**
+ * Collect search matches for a single element's worldbuilding data.
+ */
+function collectElementMatches(
+  results: SearchResult[],
+  elem: Element,
+  data: Record<string, unknown>,
+  query: string,
+  fields: string[],
+  includeFullContent: boolean
+): void {
+  const nameScore = matchText(elem.name, query);
+  if (nameScore > 0) {
+    results.push({
+      elementId: elem.id,
+      elementName: elem.name,
+      elementType: elem.type,
+      matchedField: 'name',
+      matchedValue: elem.name,
+      score: nameScore,
+    });
+  }
+
+  const matches = searchInObject(data, query);
+  const filteredMatches =
+    fields.length > 0 ? matches.filter((m) => fields.some((f) => m.field.includes(f))) : matches;
+
+  for (const match of filteredMatches) {
+    results.push({
+      elementId: elem.id,
+      elementName: elem.name,
+      elementType: elem.type,
+      matchedField: match.field,
+      matchedValue: includeFullContent ? match.value : match.value.substring(0, 200),
+      score: match.score,
+    });
+  }
+}
+
+// ============================================
 // search_worldbuilding tool
 // ============================================
 
@@ -548,45 +589,11 @@ registerTool({
       const data = await getWorldbuildingData(ctx, username, slug, elem.id);
       if (!data) continue;
 
-      // Cache data for later use if includeFullContent is true
       if (includeFullContent) {
         elementDataCache.set(elem.id, data);
       }
 
-      // Search name first
-      const nameScore = matchText(elem.name, query);
-      if (nameScore > 0) {
-        results.push({
-          elementId: elem.id,
-          elementName: elem.name,
-          elementType: elem.type,
-          matchedField: 'name',
-          matchedValue: elem.name,
-          score: nameScore,
-          schemaId: elem.schemaId,
-        });
-      }
-
-      // Search in data
-      const matches = searchInObject(data, query);
-
-      // Filter by field if specified
-      const filteredMatches =
-        fields.length > 0
-          ? matches.filter((m) => fields.some((f) => m.field.includes(f)))
-          : matches;
-
-      for (const match of filteredMatches) {
-        results.push({
-          elementId: elem.id,
-          elementName: elem.name,
-          elementType: elem.type,
-          matchedField: match.field,
-          matchedValue: includeFullContent ? match.value : match.value.substring(0, 200),
-          score: match.score,
-          schemaId: elem.schemaId,
-        });
-      }
+      collectElementMatches(results, elem, data, query, fields, includeFullContent);
     }
 
     // Deduplicate by elementId, keeping highest score
@@ -718,6 +725,87 @@ registerTool({
   },
 });
 
+async function fetchWorldbuildingContent(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  identityData: Record<string, unknown> | null
+): Promise<{
+  worldbuildingData: Record<string, unknown> | null;
+  identityData: Record<string, unknown> | null;
+}> {
+  let worldbuildingData: Record<string, unknown> | null = null;
+  const data = await getWorldbuildingData(ctx, username, slug, elementId);
+  if (data) {
+    worldbuildingData = data.worldbuilding;
+    identityData = Object.keys(data.identity).length > 0 ? data.identity : null;
+  }
+
+  if (!identityData?.image) {
+    identityData = await probeElementImage(ctx, username, slug, elementId, identityData);
+  }
+
+  return { worldbuildingData, identityData };
+}
+
+async function probeElementImage(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  identityData: Record<string, unknown> | null
+): Promise<Record<string, unknown> | null> {
+  try {
+    const storageBinding = ctx.env?.STORAGE as Parameters<typeof getStorageService>[0] | undefined;
+    const storageService = getStorageService(storageBinding);
+    for (const ext of ['png', 'jpg']) {
+      const imageFilename = `element-${elementId}.${ext}`;
+      const exists = await storageService.projectFileExists(username, slug, imageFilename);
+      if (exists) {
+        identityData ??= {};
+        identityData.image = `media://${imageFilename}`;
+        break;
+      }
+    }
+  } catch {
+    // Storage probe failed, skip — not critical
+  }
+  return identityData;
+}
+
+async function fetchElementRelationships(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string
+): Promise<Array<Record<string, unknown>>> {
+  try {
+    const allRelationships = await runtimeGetRelationships(ctx, username, slug);
+    return allRelationships
+      .filter((r) => r.sourceElementId === elementId || r.targetElementId === elementId)
+      .map((r) => ({ ...r }));
+  } catch {
+    return [];
+  }
+}
+
+function buildElementPath(
+  elements: Array<{ id: string; name: string; parentId: string | null }>,
+  element: { parentId: string | null }
+): string[] {
+  const elementMap = new Map(elements.map((e) => [e.id, e]));
+  const path: string[] = [];
+  let current = element;
+  while (current.parentId) {
+    const parent = elementMap.get(current.parentId);
+    if (!parent) break;
+    path.unshift(parent.name);
+    current = parent;
+  }
+  return path;
+}
+
 // ============================================
 // get_element_full tool
 // ============================================
@@ -772,58 +860,20 @@ registerTool({
     let worldbuildingData: Record<string, unknown> | null = null;
     let identityData: Record<string, unknown> | null = null;
     if (element.type === 'WORLDBUILDING') {
-      const data = await getWorldbuildingData(ctx, username, slug, elementId);
-      if (data) {
-        worldbuildingData = data.worldbuilding;
-        identityData = Object.keys(data.identity).length > 0 ? data.identity : null;
-      }
-
-      // Probe for image file if identity.image is not set
-      if (!identityData?.image) {
-        try {
-          const storageBinding = ctx.env?.STORAGE as
-            | Parameters<typeof getStorageService>[0]
-            | undefined;
-          const storageService = getStorageService(storageBinding);
-          for (const ext of ['png', 'jpg']) {
-            const imageFilename = `element-${elementId}.${ext}`;
-            const exists = await storageService.projectFileExists(username, slug, imageFilename);
-            if (exists) {
-              identityData ??= {};
-              identityData.image = `media://${imageFilename}`;
-              break;
-            }
-          }
-        } catch {
-          // Storage probe failed, skip — not critical
-        }
-      }
+      ({ worldbuildingData, identityData } = await fetchWorldbuildingContent(
+        ctx,
+        username,
+        slug,
+        elementId,
+        identityData
+      ));
     }
 
     // Get relationships for this element using the runtime-aware helper
-    let relationships: Array<Record<string, unknown>> = [];
-    try {
-      const allRelationships = await runtimeGetRelationships(ctx, username, slug);
-      relationships = allRelationships
-        .filter((r) => r.sourceElementId === elementId || r.targetElementId === elementId)
-        .map((r) => ({ ...r }));
-    } catch {
-      // Relationships not available, that's ok
-    }
+    const relationships = await fetchElementRelationships(ctx, username, slug, elementId);
 
     // Build parent path
-    const elementMap = new Map(elements.map((e) => [e.id, e]));
-    const path: string[] = [];
-    let current = element;
-    while (current.parentId) {
-      const parent = elementMap.get(current.parentId);
-      if (parent) {
-        path.unshift(parent.name);
-        current = parent;
-      } else {
-        break;
-      }
-    }
+    const path = buildElementPath(elements, element);
 
     // Deserialize metadata.tags from JSON string to array for MCP response
     const presentedMetadata = { ...element.metadata };

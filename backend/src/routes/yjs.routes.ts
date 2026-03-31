@@ -10,6 +10,78 @@ import { logger } from '../services/logger.service';
 const wsLog = logger.child('WebSocket');
 const app = new Hono<AppContext>();
 
+function parseDocumentOwner(documentId: string): { projectOwner: string; slug: string } | null {
+  let docIdForParsing = documentId;
+  if (docIdForParsing.startsWith('worldbuilding:')) {
+    docIdForParsing = docIdForParsing.substring('worldbuilding:'.length);
+  }
+  const parts = docIdForParsing.split(':');
+  if (parts.length < 2) return null;
+  return { projectOwner: parts[0], slug: parts[1] };
+}
+
+function isBlockedForViewer(buffer: Buffer, documentId: string): boolean {
+  const messageType = buffer[0];
+
+  if (messageType === 2) {
+    wsLog.debug(`Blocked update message from read-only viewer for ${documentId}`);
+    return true;
+  }
+
+  if (messageType === 0 && buffer.length > 1) {
+    const syncMessageType = buffer[1];
+    if (syncMessageType === 1) {
+      wsLog.debug(
+        `Blocked sync-step-2 (client sending updates) from read-only viewer for ${documentId}`
+      );
+      return true;
+    }
+    if (syncMessageType === 2) {
+      wsLog.debug(`Blocked sync-update from read-only viewer for ${documentId}`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function resolveWriteAccess(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  project: { id: string; userId: string },
+  sessionData: { userId: string; username: string },
+  projectOwner: string,
+  slug: string
+): Promise<boolean | null> {
+  if (project.userId === sessionData.userId) return true;
+
+  const access = await collaborationService.checkAccess(db, project.id, sessionData.userId);
+  if (!access.canRead) {
+    wsLog.warn(`User ${sessionData.username} attempted to access project ${projectOwner}/${slug}`);
+    return null;
+  }
+  wsLog.info(
+    `Collaborator ${sessionData.username} (${access.role}, canWrite: ${access.canWrite}) accessing project ${projectOwner}/${slug}`
+  );
+  return access.canWrite;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function startPingInterval(ws: any, documentId: string, onClear: () => void): Timer {
+  const PING_INTERVAL = 30000;
+  const interval = setInterval(() => {
+    try {
+      ws.raw.ping();
+    } catch (error) {
+      wsLog.error(`Error sending ping for ${documentId}, closing connection`, error);
+      ws.close();
+      clearInterval(interval);
+      onClear();
+    }
+  }, PING_INTERVAL);
+  return interval;
+}
+
 /**
  * WebSocket Authentication Protocol
  * =================================
@@ -47,7 +119,7 @@ app.get(
 
     // Connection state
     let authenticated = false;
-    let canWrite = false; // Viewers can receive but not send updates
+    let canWrite: boolean | null = false; // Viewers can receive but not send updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
     let doc: any = null;
     let pingInterval: Timer | null = null;
@@ -63,16 +135,11 @@ app.get(
       async onMessage(event, ws) {
         // Text messages are for authentication
         if (typeof event.data === 'string') {
-          if (authenticated) {
-            // Already authenticated, ignore text messages
-            return;
-          }
+          if (authenticated) return;
 
-          // First text message should be the auth token
           const token = event.data;
 
           try {
-            // Validate the token
             const sessionData = await authService.verifyToken(token, c);
             if (!sessionData) {
               wsLog.warn(`Invalid auth token for ${documentId}`);
@@ -81,91 +148,53 @@ app.get(
               return;
             }
 
-            // Validate document access
-            // Format: username:slug:documentId, username:slug:elements, or worldbuilding:username:slug:elementId
-            let docIdForParsing = documentId;
-
-            // Strip 'worldbuilding:' prefix if present - worldbuilding docs have format worldbuilding:username:slug:elementId
-            if (docIdForParsing.startsWith('worldbuilding:')) {
-              docIdForParsing = docIdForParsing.substring('worldbuilding:'.length);
-            }
-
-            const parts = docIdForParsing.split(':');
-            if (parts.length < 2) {
+            const parsed = parseDocumentOwner(documentId);
+            if (!parsed) {
               wsLog.error(`Invalid document ID format: ${documentId}`);
               ws.send('access-denied:invalid-document');
               ws.close(4002, 'Invalid document ID');
               return;
             }
 
-            const [projectOwner, slug] = parts;
-
-            // Verify project exists and user has access
-            const project = await projectService.findByUsernameAndSlug(db, projectOwner, slug);
+            const project = await projectService.findByUsernameAndSlug(
+              db,
+              parsed.projectOwner,
+              parsed.slug
+            );
             if (!project) {
-              wsLog.warn(`Project not found: ${projectOwner}/${slug}`);
+              wsLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
               ws.send('access-denied:project-not-found');
               ws.close(4003, 'Project not found');
               return;
             }
 
-            // Check access - owner or collaborator
-            if (project.userId === sessionData.userId) {
-              // Owner always has write access
-              canWrite = true;
-            } else {
-              // Not the owner, check if they're a collaborator
-              const access = await collaborationService.checkAccess(
-                db,
-                project.id,
-                sessionData.userId
-              );
-              if (!access.canRead) {
-                wsLog.warn(
-                  `User ${sessionData.username} attempted to access project ${projectOwner}/${slug}`
-                );
-                ws.send('access-denied:forbidden');
-                ws.close(4003, 'Access denied');
-                return;
-              }
-              // Collaborator access granted - set write permission based on role
-              canWrite = access.canWrite;
-              wsLog.info(
-                `Collaborator ${sessionData.username} (${access.role}, canWrite: ${canWrite}) accessing project ${projectOwner}/${slug}`
-              );
+            canWrite = await resolveWriteAccess(
+              db,
+              project,
+              sessionData,
+              parsed.projectOwner,
+              parsed.slug
+            );
+            if (canWrite === null) {
+              ws.send('access-denied:forbidden');
+              ws.close(4003, 'Access denied');
+              return;
             }
 
-            // Authentication successful!
             authenticated = true;
             wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
-
-            // Send success message
             ws.send('authenticated');
 
-            // Now set up Yjs connection
             doc = await yjsService.handleConnection(ws.raw, documentId);
 
-            // Process any binary messages that arrived during auth
             for (const data of pendingMessages) {
-              const buffer = Buffer.from(data);
-              yjsService.handleMessage(ws.raw, doc, buffer);
+              yjsService.handleMessage(ws.raw, doc, Buffer.from(data));
             }
             pendingMessages = [];
 
-            // Set up ping heartbeat to keep connection alive
-            const PING_INTERVAL = 30000; // 30 seconds
-            pingInterval = setInterval(() => {
-              try {
-                ws.raw.ping();
-              } catch (error) {
-                wsLog.error(`Error sending ping for ${documentId}, closing connection`, error);
-                ws.close();
-                if (pingInterval) {
-                  clearInterval(pingInterval);
-                  pingInterval = null;
-                }
-              }
-            }, PING_INTERVAL);
+            pingInterval = startPingInterval(ws, documentId, () => {
+              pingInterval = null;
+            });
           } catch (error) {
             wsLog.error(`Auth error for ${documentId}`, error);
             ws.send('access-denied:error');
@@ -177,45 +206,14 @@ app.get(
 
         // Binary messages are Yjs sync protocol
         if (event.data instanceof ArrayBuffer) {
-          if (authenticated && doc) {
-            const buffer = Buffer.from(event.data);
-
-            // For read-only viewers, only allow sync step 1 requests (asking for state)
-            // Block: update messages (type 2) and sync step 2 (type 0, subtype 1) which sends updates
-            if (!canWrite) {
-              // Message type 0 = sync, type 1 = awareness, type 2 = update
-              const messageType = buffer[0];
-
-              // Block update messages entirely
-              if (messageType === 2) {
-                wsLog.debug(`Blocked update message from read-only viewer for ${documentId}`);
-                return;
-              }
-
-              // For sync messages (type 0), check the sync message type
-              // Sync step 1 (subtype 0) = request state - allowed (read-only)
-              // Sync step 2 (subtype 1) = send updates - blocked (write)
-              // Sync update (subtype 2) = send update - blocked (write)
-              if (messageType === 0 && buffer.length > 1) {
-                const syncMessageType = buffer[1];
-                if (syncMessageType === 1) {
-                  wsLog.debug(
-                    `Blocked sync-step-2 (client sending updates) from read-only viewer for ${documentId}`
-                  );
-                  return;
-                }
-                if (syncMessageType === 2) {
-                  wsLog.debug(`Blocked sync-update from read-only viewer for ${documentId}`);
-                  return;
-                }
-              }
-            }
-
-            yjsService.handleMessage(ws.raw, doc, buffer);
-          } else {
-            // Queue message until authenticated
+          if (!authenticated || !doc) {
             pendingMessages.push(event.data);
+            return;
           }
+
+          const buffer = Buffer.from(event.data);
+          if (!canWrite && isBlockedForViewer(buffer, documentId)) return;
+          yjsService.handleMessage(ws.raw, doc, buffer);
         }
       },
 

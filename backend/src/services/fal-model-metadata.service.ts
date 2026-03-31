@@ -191,75 +191,65 @@ export function parseModelSchema(model: FalModelMetadata): ParsedFalModelInfo {
     sizeMode: 'unknown',
   };
 
-  if (!model.openapi?.components?.schemas) {
-    return info;
-  }
+  const inputSchema = findInputSchema(model);
+  if (!inputSchema?.properties) return info;
 
-  // Find the Input schema
-  const schemas = model.openapi.components.schemas;
-  const inputSchema =
-    schemas['Input'] || schemas['TextToImageInput'] || schemas['ImageToImageInput'];
+  parseImageSizeProperty(info, inputSchema.properties['image_size']);
+  parseAspectRatioProperty(info, inputSchema.properties['aspect_ratio']);
 
-  if (!inputSchema?.properties) {
-    return info;
-  }
-
-  // Check for image_size property (dimensions mode)
-  const imageSizeProp = inputSchema.properties['image_size'];
-  if (imageSizeProp) {
-    info.sizeMode = 'dimensions';
-
-    // Check if it's an enum with specific sizes or allows arbitrary values
-    if (imageSizeProp.oneOf || imageSizeProp.anyOf) {
-      // Has specific allowed values
-      const options = imageSizeProp.oneOf || imageSizeProp.anyOf || [];
-      for (const opt of options) {
-        if (opt.properties?.width && opt.properties?.height) {
-          // It's an object with width/height - check for enum values
-          const widthEnum = opt.properties.width.enum;
-          const heightEnum = opt.properties.height.enum;
-          if (widthEnum && heightEnum) {
-            // Combine width/height enums into size strings
-            for (const w of widthEnum) {
-              for (const h of heightEnum) {
-                info.supportedSizes.push(`${w}x${h}`);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // If no enum restrictions found, it likely supports custom resolutions
-    if (info.supportedSizes.length === 0) {
-      info.supportsCustomResolutions = true;
-      // Add some default presets
-      info.supportedSizes = ['1024x1024', '1920x1080', '1080x1920', '1344x768', '768x1344'];
-    }
-  }
-
-  // Check for aspect_ratio property (aspect ratio mode)
-  const aspectRatioProp = inputSchema.properties['aspect_ratio'];
-  if (aspectRatioProp) {
-    info.sizeMode = 'aspect_ratio';
-
-    if (aspectRatioProp.enum) {
-      info.supportedAspectRatios = aspectRatioProp.enum as string[];
-    }
-  }
-
-  // Check for resolution property
   const resolutionProp = inputSchema.properties['resolution'];
   if (resolutionProp?.enum) {
     info.supportedResolutions = resolutionProp.enum as string[];
   }
 
-  // Check for image input properties
   if (inputSchema.properties['image'] || inputSchema.properties['image_url']) {
     info.supportsImageInput = true;
   }
 
   return info;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findInputSchema(model: FalModelMetadata): any {
+  const schemas = model.openapi?.components?.schemas;
+  if (!schemas) return null;
+  return schemas['Input'] || schemas['TextToImageInput'] || schemas['ImageToImageInput'] || null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseImageSizeProperty(info: ParsedFalModelInfo, prop: any): void {
+  if (!prop) return;
+
+  info.sizeMode = 'dimensions';
+
+  const options = prop.oneOf || prop.anyOf;
+  if (options) {
+    for (const opt of options) {
+      const widthEnum = opt.properties?.width?.enum;
+      const heightEnum = opt.properties?.height?.enum;
+      if (widthEnum && heightEnum) {
+        for (const w of widthEnum) {
+          for (const h of heightEnum) {
+            info.supportedSizes.push(`${w}x${h}`);
+          }
+        }
+      }
+    }
+  }
+
+  if (info.supportedSizes.length === 0) {
+    info.supportsCustomResolutions = true;
+    info.supportedSizes = ['1024x1024', '1920x1080', '1080x1920', '1344x768', '768x1344'];
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseAspectRatioProperty(info: ParsedFalModelInfo, prop: any): void {
+  if (!prop) return;
+  info.sizeMode = 'aspect_ratio';
+  if (prop.enum) {
+    info.supportedAspectRatios = prop.enum as string[];
+  }
 }
 
 /**

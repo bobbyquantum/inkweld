@@ -324,54 +324,20 @@ export class ProjectStateService implements OnDestroy {
   ): Promise<void> {
     const projectKey = `${username}/${slug}`;
 
-    // Check if this project was created offline and hasn't been synced yet
-    // If so, we need to sync it to the server BEFORE trying to connect
-    // WebSocket, otherwise WebSocket auth will fail with "project-not-found"
-    if (this.projectSyncService.hasPendingCreation(projectKey)) {
-      this.logger.info(
-        'ProjectState',
-        `Project ${projectKey} has pending creation - syncing to server first`
-      );
-
-      try {
-        // Use BackgroundSyncService to sync all pending items (including this project)
-        const syncSuccess = await this.backgroundSyncService.syncPendingItems();
-        if (syncSuccess) {
-          this.logger.info(
-            'ProjectState',
-            `Successfully synced pending creation for ${projectKey}`
-          );
-        } else {
-          this.logger.warn(
-            'ProjectState',
-            `Sync may have partially failed for ${projectKey}, continuing anyway`
-          );
-        }
-      } catch (syncError) {
-        this.logger.error(
-          'ProjectState',
-          `Failed to sync pending creation for ${projectKey}`,
-          syncError
-        );
-        // Continue anyway - the project may still work in offline mode
-      }
-    }
+    // Sync pending creation if needed
+    await this.syncPendingCreation(projectKey);
 
     // Local-first: Try to get project metadata using UnifiedProjectService
-    // which handles caching and graceful fallback when server is down
     let project: Project | null = null;
     let serverError: Error | null = null;
 
     try {
       project = await this.unifiedProjectService.getProject(username, slug);
     } catch (err) {
-      // Check if this is a project rename redirect
       if (err instanceof ProjectRenamedError) {
         await this.handleProjectRenamed(err);
-        return; // Navigation will reload with new slug
+        return;
       }
-
-      // Server might be down - save error but continue
       serverError = err instanceof Error ? err : new Error('Unknown error');
       this.logger.warn(
         'ProjectState',
@@ -379,40 +345,71 @@ export class ProjectStateService implements OnDestroy {
       );
     }
 
-    // If we got project metadata, set it
     if (project) {
       this.project.set(project);
     } else if (!serverError) {
-      // No project and no error means project wasn't found
       throw new Error('Project not found');
     }
 
-    // Connect sync provider - this is local-first (IndexedDB + WebSocket)
-    // Even if server is down, we can load from IndexedDB
     const connected = await this.connectSyncProvider(username, slug);
 
-    // If we don't have project metadata but sync provider connected,
-    // we're in degraded mode - show a placeholder project
+    // Handle offline/degraded mode
+    this.handleOfflineMode(project, connected, username, slug, serverError);
+  }
+
+  private async syncPendingCreation(projectKey: string): Promise<void> {
+    if (!this.projectSyncService.hasPendingCreation(projectKey)) return;
+
+    this.logger.info(
+      'ProjectState',
+      `Project ${projectKey} has pending creation - syncing to server first`
+    );
+
+    try {
+      const syncSuccess = await this.backgroundSyncService.syncPendingItems();
+      if (syncSuccess) {
+        this.logger.info(
+          'ProjectState',
+          `Successfully synced pending creation for ${projectKey}`
+        );
+      } else {
+        this.logger.warn(
+          'ProjectState',
+          `Sync may have partially failed for ${projectKey}, continuing anyway`
+        );
+      }
+    } catch (syncError) {
+      this.logger.error(
+        'ProjectState',
+        `Failed to sync pending creation for ${projectKey}`,
+        syncError
+      );
+    }
+  }
+
+  private handleOfflineMode(
+    project: Project | null,
+    connected: boolean,
+    username: string,
+    slug: string,
+    serverError: Error | null
+  ): void {
     if (!project && connected && this.syncProvider?.isConnected()) {
       this.logger.info(
         'ProjectState',
         'Operating in offline mode - server unavailable but local data loaded'
       );
-      // Create a minimal project placeholder so UI can render
-      // The real project data will sync when server comes back
       this.project.set({
         id: `local-${username}-${slug}`,
         username,
         slug,
-        title: slug, // Use slug as title placeholder
+        title: slug,
         description: '',
         createdDate: new Date().toISOString(),
         updatedDate: new Date().toISOString(),
       });
-      // Mark as offline state
       this.docSyncState.set(DocumentSyncState.Local);
     } else if (!project && !connected) {
-      // No project and sync provider failed too
       throw serverError || new Error('Failed to load project');
     }
   }
@@ -1290,6 +1287,28 @@ export class ProjectStateService implements OnDestroy {
     }
   }
 
+  private static readonly URL_TO_SYSTEM_TAB: Record<string, string> = {
+    documents: 'documents-list',
+    media: 'media',
+    templates: 'templates-list',
+  };
+
+  private resolveTabIndexFromUrl(tabs: AppTab[], projectSlug: string): number {
+    const urlParams = window.location.pathname.split('/');
+    const lastSegment = urlParams[urlParams.length - 1];
+
+    if (!lastSegment || lastSegment === projectSlug) return 0;
+
+    const systemType = ProjectStateService.URL_TO_SYSTEM_TAB[lastSegment];
+    if (systemType) {
+      const idx = tabs.findIndex(t => t.systemType === systemType);
+      return idx !== -1 ? idx : 0;
+    }
+
+    const idx = tabs.findIndex(t => t.id === lastSegment);
+    return idx !== -1 ? idx : 0;
+  }
+
   async restoreOpenedDocumentsFromCache(): Promise<void> {
     if (!this.documentCacheDb || !this.storageService.isAvailable()) return;
 
@@ -1331,26 +1350,10 @@ export class ProjectStateService implements OnDestroy {
           });
 
         if (validTabs.length > 0) {
-          const urlParams = window.location.pathname.split('/');
-          const lastSegment = urlParams[urlParams.length - 1];
-          let selectedIndex = 0;
-
-          if (lastSegment === 'documents') {
-            selectedIndex = validTabs.findIndex(
-              t => t.systemType === 'documents-list'
-            );
-          } else if (lastSegment === 'media') {
-            selectedIndex = validTabs.findIndex(t => t.systemType === 'media');
-          } else if (lastSegment === 'templates') {
-            selectedIndex = validTabs.findIndex(
-              t => t.systemType === 'templates-list'
-            );
-          } else if (lastSegment && lastSegment !== project.slug) {
-            // Match any element ID (slugs like 'doc-moonveil-accord' or UUIDs)
-            selectedIndex = validTabs.findIndex(t => t.id === lastSegment);
-          }
-
-          selectedIndex = selectedIndex !== -1 ? selectedIndex : 0;
+          const selectedIndex = this.resolveTabIndexFromUrl(
+            validTabs,
+            project.slug
+          );
           this.tabManager.setTabs(validTabs, selectedIndex);
 
           this.logger.info('ProjectState', 'Tabs restored from cache', {

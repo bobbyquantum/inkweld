@@ -325,6 +325,132 @@ const generateRoute = createRoute({
   },
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ProfileRecord = any;
+type ValidatedBody = z.infer<typeof GenerateRequestSchema>;
+
+interface ResolvedProfile {
+  profile: ProfileRecord;
+  provider: ImageProviderType;
+  model: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  profileConfig: any;
+  size: ImageSize | undefined;
+  quality: 'standard' | 'hd' | undefined;
+  style: 'vivid' | 'natural' | undefined;
+}
+
+async function resolveProfileSettings(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  body: ValidatedBody
+): Promise<ResolvedProfile | { error: string }> {
+  const profile = await imageProfileService.getById(db, body.profileId);
+  if (!profile) return { error: 'Image profile not found' };
+  if (!profile.enabled) return { error: 'Image profile is disabled' };
+
+  const profileConfig = profile.modelConfig;
+  let size: ImageSize | undefined = body.size;
+  if (!size && profile.defaultSize) {
+    size = profile.defaultSize as ImageSize;
+  }
+
+  if (size && profile.supportedSizes && !profile.supportedSizes.includes(size)) {
+    return {
+      error: `Size '${size}' is not supported by this profile. Supported: ${profile.supportedSizes.join(', ')}`,
+    };
+  }
+
+  let quality = body.quality;
+  let style = body.style;
+  if (profileConfig) {
+    if (!quality && profileConfig.quality) quality = profileConfig.quality as 'standard' | 'hd';
+    if (!style && profileConfig.style) style = profileConfig.style as 'vivid' | 'natural';
+  }
+
+  return {
+    profile,
+    provider: profile.provider as ImageProviderType,
+    model: profile.modelId,
+    profileConfig,
+    size,
+    quality,
+    style,
+  };
+}
+
+async function loadReferenceImagesForRequest(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  storage: any,
+  body: ValidatedBody
+): Promise<{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  referenceImages: any[] | undefined;
+  referenceImageUrls: string[];
+}> {
+  const worldbuildingContext = body.worldbuildingContext as WorldbuildingContext[] | undefined;
+  if (!worldbuildingContext?.length || !body.projectKey) {
+    return { referenceImages: undefined, referenceImageUrls: [] };
+  }
+
+  const [username, slug] = body.projectKey.split('/');
+  if (!username || !slug) {
+    return { referenceImages: undefined, referenceImageUrls: [] };
+  }
+
+  const referenceImageUrls = await getElementImageUrls(username, slug, worldbuildingContext);
+  const referenceImages = await loadReferenceImagesFromContext(
+    storage,
+    username,
+    slug,
+    worldbuildingContext
+  );
+  if (referenceImages.length > 0) {
+    aiImageLog.info(`Loaded ${referenceImages.length} reference images from project storage`);
+  }
+  return { referenceImages, referenceImageUrls };
+}
+
+async function recordGenerationAudit(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+
+  profile: ProfileRecord,
+  prompt: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  result: any,
+  referenceImageUrls: string[]
+): Promise<void> {
+  const isModerated = !!(
+    result.textContent ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (result.data.length > 0 && result.data.every((d: any) => d.textContent && !d.b64Json && !d.url))
+  );
+  const outputImageUrls = result.data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((d: any) => d.url || d.b64Json)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((d: any) => d.url || `data:${d.mimeType || 'image/png'};base64,[generated-image]`);
+
+  try {
+    await imageAuditService.create(db, {
+      userId: user?.id ?? '',
+      profileId: profile.id,
+      profileName: profile.name,
+      prompt,
+      referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
+      outputImageUrls: outputImageUrls.length > 0 ? outputImageUrls : undefined,
+      creditCost: profile.creditCost,
+      status: isModerated ? 'moderated' : 'success',
+      message: isModerated ? result.textContent || result.data[0]?.textContent : undefined,
+    });
+  } catch (auditError) {
+    aiImageLog.error('Failed to record image generation audit:', auditError);
+  }
+}
+
 aiImageRoutes.openapi(generateRoute, async (c) => {
   const db = c.get('db');
   const storage = getStorageService(c.get('storage'));
@@ -334,7 +460,6 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
     const body = await c.req.json();
     const validatedBody = GenerateRequestSchema.parse(body);
 
-    // Check if generation is available
     const isAvailable = await imageGenerationService.isAvailable(db);
     if (!isAvailable) {
       return c.json(
@@ -346,73 +471,18 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       );
     }
 
-    // Look up the profile
-    const profile = await imageProfileService.getById(db, validatedBody.profileId);
-    if (!profile) {
-      return c.json({ error: 'Image profile not found' }, 400);
-    }
-    if (!profile.enabled) {
-      return c.json({ error: 'Image profile is disabled' }, 400);
+    const profileResult = await resolveProfileSettings(db, validatedBody);
+    if ('error' in profileResult) {
+      return c.json({ error: profileResult.error }, 400);
     }
 
-    // Resolve settings from profile
-    const provider = profile.provider as ImageProviderType;
-    const model = profile.modelId;
-    const profileConfig = profile.modelConfig;
+    const { profile, provider, model, size, quality, style, profileConfig } = profileResult;
 
-    // Use request size or fall back to profile default
-    let size: ImageSize | undefined = validatedBody.size;
-    if (!size && profile.defaultSize) {
-      size = profile.defaultSize as ImageSize;
-    }
+    const { referenceImages, referenceImageUrls } = await loadReferenceImagesForRequest(
+      storage,
+      validatedBody
+    );
 
-    // Validate size is supported by profile
-    if (size && profile.supportedSizes && !profile.supportedSizes.includes(size)) {
-      return c.json(
-        {
-          error: `Size '${size}' is not supported by this profile. Supported: ${profile.supportedSizes.join(', ')}`,
-        },
-        400
-      );
-    }
-
-    // Request values override profile config
-    let quality = validatedBody.quality;
-    let style = validatedBody.style;
-    if (profileConfig) {
-      if (!quality && profileConfig.quality) {
-        quality = profileConfig.quality as 'standard' | 'hd';
-      }
-      if (!style && profileConfig.style) {
-        style = profileConfig.style as 'vivid' | 'natural';
-      }
-    }
-
-    // Load reference images from worldbuilding elements with role 'reference'
-    let referenceImages;
-    let referenceImageUrls: string[] = [];
-    const worldbuildingContext = validatedBody.worldbuildingContext as
-      | WorldbuildingContext[]
-      | undefined;
-    if (worldbuildingContext && worldbuildingContext.length > 0 && validatedBody.projectKey) {
-      const [username, slug] = validatedBody.projectKey.split('/');
-      if (username && slug) {
-        // Get URLs for audit logging (before loading full data)
-        referenceImageUrls = await getElementImageUrls(username, slug, worldbuildingContext);
-
-        referenceImages = await loadReferenceImagesFromContext(
-          storage,
-          username,
-          slug,
-          worldbuildingContext
-        );
-        if (referenceImages.length > 0) {
-          aiImageLog.info(`Loaded ${referenceImages.length} reference images from project storage`);
-        }
-      }
-    }
-
-    // Generate images
     const result = await imageGenerationService.generate(db, {
       prompt: validatedBody.prompt,
       profileId: validatedBody.profileId,
@@ -423,41 +493,22 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       quality,
       style,
       negativePrompt: validatedBody.negativePrompt,
-      worldbuildingContext,
+      worldbuildingContext: validatedBody.worldbuildingContext as
+        | WorldbuildingContext[]
+        | undefined,
       referenceImages,
       options: profileConfig || undefined,
       usesAspectRatioOnly: profile.usesAspectRatioOnly,
     });
 
-    // Determine if this was a moderated response (text content instead of images)
-    const isModerated = !!(
-      result.textContent ||
-      (result.data.length > 0 && result.data.every((d) => d.textContent && !d.b64Json && !d.url))
+    await recordGenerationAudit(
+      db,
+      user,
+      profile,
+      validatedBody.prompt,
+      result,
+      referenceImageUrls
     );
-
-    // Extract output image URLs for audit
-    const outputImageUrls = result.data
-      .filter((d) => d.url || d.b64Json)
-      .map((d) => d.url || `data:${d.mimeType || 'image/png'};base64,[generated-image]`);
-
-    // Record audit (for both success and moderated - not for general errors)
-    // Note: user is guaranteed to exist here due to auth middleware
-    try {
-      await imageAuditService.create(db, {
-        userId: user?.id ?? '',
-        profileId: profile.id,
-        profileName: profile.name,
-        prompt: validatedBody.prompt,
-        referenceImageUrls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
-        outputImageUrls: outputImageUrls.length > 0 ? outputImageUrls : undefined,
-        creditCost: profile.creditCost,
-        status: isModerated ? 'moderated' : 'success',
-        message: isModerated ? result.textContent || result.data[0]?.textContent : undefined,
-      });
-    } catch (auditError) {
-      // Log but don't fail the request if audit fails
-      aiImageLog.error('Failed to record image generation audit:', auditError);
-    }
 
     return c.json(result, 200);
   } catch (error: unknown) {
@@ -664,56 +715,21 @@ aiImageRoutes.post('/generate-stream', async (c) => {
       return c.json({ error: 'No image generation provider is available.' }, 503);
     }
 
-    const profile = await imageProfileService.getById(db, validatedBody.profileId);
-    if (!profile) {
-      return c.json({ error: 'Image profile not found' }, 400);
-    }
-    if (!profile.enabled) {
-      return c.json({ error: 'Image profile is disabled' }, 400);
+    const profileResult = await resolveProfileSettings(db, validatedBody);
+    if ('error' in profileResult) {
+      return c.json({ error: profileResult.error }, 400);
     }
 
-    const provider = profile.provider as ImageProviderType;
-    const model = profile.modelId;
-    const profileConfig = profile.modelConfig;
+    const { profile, provider, model, size, quality, style, profileConfig } = profileResult;
 
-    let size: ImageSize | undefined = validatedBody.size;
-    if (!size && profile.defaultSize) {
-      size = profile.defaultSize as ImageSize;
-    }
+    const { referenceImages, referenceImageUrls } = await loadReferenceImagesForRequest(
+      storage,
+      validatedBody
+    );
 
-    if (size && profile.supportedSizes && !profile.supportedSizes.includes(size)) {
-      return c.json({ error: `Size '${size}' is not supported by this profile.` }, 400);
-    }
-
-    let quality = validatedBody.quality;
-    let style = validatedBody.style;
-    if (profileConfig) {
-      if (!quality && profileConfig.quality) {
-        quality = profileConfig.quality as 'standard' | 'hd';
-      }
-      if (!style && profileConfig.style) {
-        style = profileConfig.style as 'vivid' | 'natural';
-      }
-    }
-
-    // Load reference images
-    let referenceImages;
-    let referenceImageUrls: string[] = [];
     const worldbuildingContext = validatedBody.worldbuildingContext as
       | WorldbuildingContext[]
       | undefined;
-    if (worldbuildingContext && worldbuildingContext.length > 0 && validatedBody.projectKey) {
-      const [username, slug] = validatedBody.projectKey.split('/');
-      if (username && slug) {
-        referenceImageUrls = await getElementImageUrls(username, slug, worldbuildingContext);
-        referenceImages = await loadReferenceImagesFromContext(
-          storage,
-          username,
-          slug,
-          worldbuildingContext
-        );
-      }
-    }
 
     const resolvedRequest: ResolvedImageRequest = {
       prompt: validatedBody.prompt,
@@ -747,38 +763,15 @@ aiImageRoutes.post('/generate-stream', async (c) => {
             for await (const event of imageGenerationService.generateStream(db, resolvedRequest)) {
               send(event.type, event);
 
-              // On completed, record audit
               if (event.type === 'completed') {
-                const result = event.result;
-                const isModerated = !!(
-                  result.textContent ||
-                  (result.data.length > 0 &&
-                    result.data.every((d) => d.textContent && !d.b64Json && !d.url))
+                await recordGenerationAudit(
+                  db,
+                  user,
+                  profile,
+                  validatedBody.prompt,
+                  event.result,
+                  referenceImageUrls
                 );
-                const outputImageUrls = result.data
-                  .filter((d) => d.url || d.b64Json)
-                  .map(
-                    (d) => d.url || `data:${d.mimeType || 'image/png'};base64,[generated-image]`
-                  );
-
-                try {
-                  await imageAuditService.create(db, {
-                    userId: user?.id ?? '',
-                    profileId: profile.id,
-                    profileName: profile.name,
-                    prompt: validatedBody.prompt,
-                    referenceImageUrls:
-                      referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
-                    outputImageUrls: outputImageUrls.length > 0 ? outputImageUrls : undefined,
-                    creditCost: profile.creditCost,
-                    status: isModerated ? 'moderated' : 'success',
-                    message: isModerated
-                      ? result.textContent || result.data[0]?.textContent
-                      : undefined,
-                  });
-                } catch (auditError) {
-                  aiImageLog.error('Failed to record streaming audit:', auditError);
-                }
               }
             }
           } catch (err: unknown) {

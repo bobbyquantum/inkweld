@@ -143,66 +143,7 @@ export class UserService {
       }
 
       // Always try to fetch from API to validate session and get fresh data
-      try {
-        const user = await firstValueFrom(
-          this.userAPI.getCurrentUser().pipe(
-            retry(MAX_RETRIES),
-            catchError((error: unknown) => {
-              const userError = this.formatError(error);
-              // If we have cached user and it's a network/server error, use cache
-              if (
-                cachedUser &&
-                cachedUser.username !== 'anonymous' &&
-                (userError.code === 'NETWORK_ERROR' ||
-                  userError.code === 'SERVER_ERROR')
-              ) {
-                this.logger.warn(
-                  'UserService',
-                  'Server unavailable, using cached user'
-                );
-                return throwError(
-                  () => new Error('Refresh failed, using cache')
-                );
-              }
-              // For auth errors (SESSION_EXPIRED, ACCESS_DENIED), clear cache and propagate
-              this.error.set(userError);
-              return throwError(() => userError);
-            })
-          )
-        );
-        this.logger.debug('UserService', 'User result', user);
-        if (user) {
-          // Check if this is an anonymous user response (not authenticated)
-          if (user.username === 'anonymous') {
-            this.logger.debug(
-              'UserService',
-              'Received anonymous user - not authenticated'
-            );
-            // Clear any cached user since we're not authenticated
-            await this.clearCurrentUser();
-            // Set the anonymous user (this is not an error condition)
-            this.currentUser.set(user);
-          } else {
-            this.logger.debug('UserService', 'Saving user', user);
-            await this.setCurrentUser(user);
-          }
-        }
-      } catch (refreshErr) {
-        // If refresh failed but we have cache (network issue), that's OK
-        const canRecover =
-          refreshErr instanceof Error &&
-          refreshErr.message === 'Refresh failed, using cache';
-        if (canRecover && cachedUser && cachedUser.username !== 'anonymous') {
-          this.logger.info(
-            'UserService',
-            'Using cached user due to network error'
-          );
-          // User already set from cache above, continue
-        } else if (!canRecover) {
-          // Re-throw auth errors and other non-recoverable errors
-          throw refreshErr;
-        }
-      }
+      await this.fetchAndRefreshUser(cachedUser);
     } catch (err) {
       const error =
         err instanceof UserServiceError
@@ -213,6 +154,66 @@ export class UserService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  private async fetchAndRefreshUser(cachedUser?: User): Promise<void> {
+    try {
+      const user = await firstValueFrom(
+        this.userAPI.getCurrentUser().pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const userError = this.formatError(error);
+            // If we have cached user and it's a network/server error, use cache
+            if (
+              cachedUser &&
+              cachedUser.username !== 'anonymous' &&
+              (userError.code === 'NETWORK_ERROR' ||
+                userError.code === 'SERVER_ERROR')
+            ) {
+              this.logger.warn(
+                'UserService',
+                'Server unavailable, using cached user'
+              );
+              return throwError(() => new Error('Refresh failed, using cache'));
+            }
+            // For auth errors (SESSION_EXPIRED, ACCESS_DENIED), clear cache and propagate
+            this.error.set(userError);
+            return throwError(() => userError);
+          })
+        )
+      );
+      this.logger.debug('UserService', 'User result', user);
+      if (user) {
+        await this.processUserResult(user);
+      }
+    } catch (refreshErr) {
+      // If refresh failed but we have cache (network issue), that's OK
+      const canRecover =
+        refreshErr instanceof Error &&
+        refreshErr.message === 'Refresh failed, using cache';
+      if (canRecover && cachedUser && cachedUser.username !== 'anonymous') {
+        this.logger.info(
+          'UserService',
+          'Using cached user due to network error'
+        );
+      } else if (!canRecover) {
+        throw refreshErr;
+      }
+    }
+  }
+
+  private async processUserResult(user: User): Promise<void> {
+    if (user.username === 'anonymous') {
+      this.logger.debug(
+        'UserService',
+        'Received anonymous user - not authenticated'
+      );
+      await this.clearCurrentUser();
+      this.currentUser.set(user);
+    } else {
+      this.logger.debug('UserService', 'Saving user', user);
+      await this.setCurrentUser(user);
     }
   }
 

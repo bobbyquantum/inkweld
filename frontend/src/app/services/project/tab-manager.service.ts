@@ -190,20 +190,16 @@ export class TabManagerService {
   ): OpenTabResult {
     const tabs = this.openTabs();
     const tabId = `system-${type}`;
-    const tabName =
-      type === 'home'
-        ? 'Home'
-        : type === 'documents-list'
-          ? 'Documents'
-          : type === 'media'
-            ? 'Media'
-            : type === 'templates-list'
-              ? 'Templates'
-              : type === 'tags-list'
-                ? 'Tags'
-                : type === 'settings'
-                  ? 'Settings'
-                  : 'Relationships';
+    const TAB_NAMES: Record<string, string> = {
+      home: 'Home',
+      'documents-list': 'Documents',
+      media: 'Media',
+      'templates-list': 'Templates',
+      'tags-list': 'Tags',
+      settings: 'Settings',
+      'relationships-list': 'Relationships',
+    };
+    const tabName = TAB_NAMES[type] ?? type;
 
     // Check if tab already exists
     const existingIndex = tabs.findIndex(t => t.id === tabId);
