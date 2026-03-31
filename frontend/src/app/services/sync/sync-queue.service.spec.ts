@@ -1,14 +1,16 @@
 import { TestBed } from '@angular/core/testing';
-import { type Project, ProjectsService } from '@inkweld/index';
+import { ElementType, type Project, ProjectsService } from '@inkweld/index';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import {
   MediaSyncService,
   type MediaSyncState,
 } from '../local/media-sync.service';
+import { DocumentService } from '../project/document.service';
 import { SyncQueueService, SyncStage } from './sync-queue.service';
 
 describe('SyncQueueService', () => {
@@ -18,6 +20,12 @@ describe('SyncQueueService', () => {
     checkSyncStatus: Mock;
     downloadAllFromServer: Mock;
   };
+  let mockDocumentService: {
+    syncElementsToServer: Mock;
+    syncDocumentsToServer: Mock;
+    syncWorldbuildingToServerBatch: Mock;
+  };
+  let mockStorageContext: { getPrefix: Mock };
   let mockSetupService: { getMode: Mock };
   let mockLogger: { info: Mock; warn: Mock; error: Mock; debug: Mock };
 
@@ -51,6 +59,20 @@ describe('SyncQueueService', () => {
       downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockDocumentService = {
+      syncElementsToServer: vi.fn().mockResolvedValue(undefined),
+      syncDocumentsToServer: vi
+        .fn()
+        .mockResolvedValue({ success: [], failed: [] }),
+      syncWorldbuildingToServerBatch: vi
+        .fn()
+        .mockResolvedValue({ success: [], failed: [] }),
+    };
+
+    mockStorageContext = {
+      getPrefix: vi.fn().mockReturnValue('srv:abc12345:'),
+    };
+
     mockSetupService = {
       getMode: vi.fn().mockReturnValue('server'),
     };
@@ -67,6 +89,8 @@ describe('SyncQueueService', () => {
         SyncQueueService,
         { provide: ProjectsService, useValue: mockProjectsApi },
         { provide: MediaSyncService, useValue: mockMediaSyncService },
+        { provide: DocumentService, useValue: mockDocumentService },
+        { provide: StorageContextService, useValue: mockStorageContext },
         { provide: SetupService, useValue: mockSetupService },
         { provide: LoggerService, useValue: mockLogger },
       ],
@@ -351,6 +375,93 @@ describe('SyncQueueService', () => {
         currentProjectKey: null,
       });
       expect(service.getProjectStatus('testuser/project-1')).toBeUndefined();
+    });
+  });
+
+  describe('syncDocuments with elements', () => {
+    it('should sync documents when ITEM elements exist', async () => {
+      // Mock loadElementsFromIndexedDB to return elements with items
+      vi.spyOn(service as any, 'loadElementsFromIndexedDB').mockResolvedValue([
+        { id: 'doc-1', type: ElementType.Item, name: 'Chapter 1' },
+        { id: 'doc-2', type: ElementType.Item, name: 'Chapter 2' },
+        { id: 'folder-1', type: ElementType.Folder, name: 'Folder' },
+      ]);
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects);
+
+      expect(mockDocumentService.syncDocumentsToServer).toHaveBeenCalledWith([
+        'testuser:project-1:doc-1',
+        'testuser:project-1:doc-2',
+      ]);
+      expect(service.queueState().completedProjects).toBe(1);
+    });
+
+    it('should handle document sync failures gracefully', async () => {
+      vi.spyOn(service as any, 'loadElementsFromIndexedDB').mockResolvedValue([
+        { id: 'doc-1', type: ElementType.Item, name: 'Chapter 1' },
+      ]);
+      mockDocumentService.syncDocumentsToServer.mockResolvedValue({
+        success: [],
+        failed: ['testuser:project-1:doc-1'],
+      });
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects);
+
+      expect(mockDocumentService.syncDocumentsToServer).toHaveBeenCalled();
+      expect(service.queueState().completedProjects).toBe(1);
+    });
+  });
+
+  describe('syncWorldbuilding with elements', () => {
+    it('should sync worldbuilding when WORLDBUILDING elements exist', async () => {
+      vi.spyOn(service as any, 'loadElementsFromIndexedDB').mockResolvedValue([
+        { id: 'wb-1', type: ElementType.Worldbuilding, name: 'Characters' },
+        { id: 'wb-2', type: ElementType.Worldbuilding, name: 'Locations' },
+        { id: 'doc-1', type: ElementType.Item, name: 'Chapter 1' },
+      ]);
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects);
+
+      expect(
+        mockDocumentService.syncWorldbuildingToServerBatch
+      ).toHaveBeenCalledWith([
+        'worldbuilding:testuser:project-1:wb-1',
+        'worldbuilding:testuser:project-1:wb-2',
+      ]);
+      expect(service.queueState().completedProjects).toBe(1);
+    });
+
+    it('should handle worldbuilding sync failures gracefully', async () => {
+      vi.spyOn(service as any, 'loadElementsFromIndexedDB').mockResolvedValue([
+        { id: 'wb-1', type: ElementType.Worldbuilding, name: 'Characters' },
+      ]);
+      mockDocumentService.syncWorldbuildingToServerBatch.mockResolvedValue({
+        success: [],
+        failed: ['worldbuilding:testuser:project-1:wb-1'],
+      });
+
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects);
+
+      expect(
+        mockDocumentService.syncWorldbuildingToServerBatch
+      ).toHaveBeenCalled();
+      expect(service.queueState().completedProjects).toBe(1);
+    });
+  });
+
+  describe('syncElements', () => {
+    it('should call documentService.syncElementsToServer', async () => {
+      const projects = [createMockProject('1', 'project-1')];
+      await service.syncAllProjects(projects);
+
+      expect(mockDocumentService.syncElementsToServer).toHaveBeenCalledWith(
+        'testuser',
+        'project-1'
+      );
     });
   });
 });

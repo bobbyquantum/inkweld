@@ -848,5 +848,118 @@ describe('WorldbuildingService', () => {
       );
       expect(data).toBeDefined();
     });
+
+    it('should wait for WebSocket sync before returning', async () => {
+      // Create a mock WebSocket provider that fires sync after a short delay
+      const listeners = new Map<string, ((...args: unknown[]) => void)[]>();
+      const mockWsProvider = {
+        synced: false,
+        on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+          const cbs = listeners.get(event) ?? [];
+          cbs.push(cb);
+          listeners.set(event, cbs);
+        }),
+        off: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+          const cbs = listeners.get(event) ?? [];
+          listeners.set(
+            event,
+            cbs.filter(fn => fn !== cb)
+          );
+        }),
+        destroy: vi.fn(),
+      };
+
+      vi.spyOn(
+        onlineService as any,
+        'tryCreateWebSocketProvider'
+      ).mockResolvedValue(mockWsProvider);
+
+      // Fire sync event after a short delay
+      setTimeout(() => {
+        for (const cb of listeners.get('sync') ?? []) {
+          cb(true);
+        }
+      }, 50);
+
+      const data = await onlineService.getWorldbuildingData(
+        'sync-wait-elem',
+        username,
+        slug
+      );
+
+      expect(data).toBeDefined();
+      // Verify the sync listener was registered and cleaned up
+      expect(mockWsProvider.on).toHaveBeenCalledWith(
+        'sync',
+        expect.any(Function)
+      );
+      expect(mockWsProvider.off).toHaveBeenCalledWith(
+        'sync',
+        expect.any(Function)
+      );
+    });
+
+    it('should resolve via timeout when WebSocket sync never fires', async () => {
+      vi.useFakeTimers();
+
+      const mockWsProvider = {
+        synced: false,
+        on: vi.fn(),
+        off: vi.fn(),
+        destroy: vi.fn(),
+      };
+
+      vi.spyOn(
+        onlineService as any,
+        'tryCreateWebSocketProvider'
+      ).mockResolvedValue(mockWsProvider);
+
+      const dataPromise = onlineService.getWorldbuildingData(
+        'timeout-elem',
+        username,
+        slug
+      );
+
+      // Advance past the 10s safety timeout
+      await vi.advanceTimersByTimeAsync(10000);
+
+      const data = await dataPromise;
+
+      expect(data).toBeDefined();
+      // Verify cleanup: off should be called when timeout fires
+      expect(mockWsProvider.off).toHaveBeenCalledWith(
+        'sync',
+        expect.any(Function)
+      );
+
+      vi.useRealTimers();
+    });
+
+    it('should skip sync-wait when provider is already synced', async () => {
+      const mockWsProvider = {
+        synced: true,
+        on: vi.fn(),
+        off: vi.fn(),
+        destroy: vi.fn(),
+      };
+
+      vi.spyOn(
+        onlineService as any,
+        'tryCreateWebSocketProvider'
+      ).mockResolvedValue(mockWsProvider);
+
+      const data = await onlineService.getWorldbuildingData(
+        'already-synced-elem',
+        username,
+        slug
+      );
+
+      expect(data).toBeDefined();
+      // on('sync') should NOT have been called since provider was already synced
+      expect(mockWsProvider.on).not.toHaveBeenCalledWith(
+        'sync',
+        expect.any(Function)
+      );
+    });
   });
 });

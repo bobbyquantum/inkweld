@@ -1899,9 +1899,10 @@ export class DocumentService {
       `syncWorldbuildingToServer: IndexedDB synced for ${localDocId}, map size: ${worldbuildingMap.size}`
     );
 
-    // Format worldbuildingId for WebSocket URL (remove leading slashes if any)
-    const formattedId = worldbuildingId.replace(/^\/+/, '');
-    const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
+    // Convert IndexedDB key format (worldbuilding:username:slug:elementId)
+    // to server document ID format (username:slug:elementId)
+    const serverDocId = worldbuildingId.replace(/^worldbuilding:/, '');
+    const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${serverDocId}`;
 
     await this.syncViaWebSocket({
       wsUrl,
