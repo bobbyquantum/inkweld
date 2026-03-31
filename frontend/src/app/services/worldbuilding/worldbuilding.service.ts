@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
-import { type Subscription } from 'rxjs';
+import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
@@ -48,6 +48,13 @@ export class WorldbuildingService {
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private connections = new Map<string, WorldbuildingConnection>();
+
+  /**
+   * Emits the connection key (username:slug:elementId) whenever a local edit
+   * is applied to a worldbuilding element. Used by AutoSnapshotService to track
+   * which elements were modified during a session.
+   */
+  readonly localEdit$ = new Subject<string>();
 
   // Pending connection promises to prevent race conditions
   private readonly pendingConnections = new Map<
@@ -236,6 +243,16 @@ export class WorldbuildingService {
       provider,
       indexeddbProvider,
     };
+
+    // Track local edits for auto-snapshots (same pattern as DocumentService)
+    ydoc.on('update', (_update: Uint8Array, origin: unknown) => {
+      // Skip updates from IndexedDB (loading persisted state)
+      // or from the WebSocket provider (remote edits).
+      // Everything else is a local edit.
+      if (origin !== indexeddbProvider && origin !== connection.provider) {
+        this.localEdit$.next(connectionKey);
+      }
+    });
 
     this.connections.set(connectionKey, connection);
 
