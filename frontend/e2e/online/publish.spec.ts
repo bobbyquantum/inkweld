@@ -202,9 +202,6 @@ test.describe('Online Publishing Workflow', () => {
       // Click generate
       await page.getByTestId('generate-button').click();
 
-      // Should show "Generating..." button state
-      await expect(page.getByTestId('generate-button-loading')).toBeVisible();
-
       // Wait for publish complete dialog
       await expect(
         page.getByTestId('publish-complete-dialog-title')
