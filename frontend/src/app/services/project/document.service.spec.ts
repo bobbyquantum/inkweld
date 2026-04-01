@@ -6,7 +6,8 @@ import { DocumentsService } from '@inkweld/api/documents.service';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
-import { type IndexeddbPersistence, storeState } from 'y-indexeddb';
+import { type IndexeddbPersistence } from 'y-indexeddb';
+import * as yIndexeddb from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
@@ -725,14 +726,27 @@ describe('DocumentService', () => {
         indexeddbProvider,
       });
 
-      // Make storeState throw synchronously
-      vi.mocked(storeState).mockImplementationOnce(() => {
-        throw new Error('Provider already destroyed');
+      // Make storeState throw synchronously by temporarily replacing the mock export.
+      // Object.defineProperty bypasses esbuild's ESM immutability check.
+      const original = yIndexeddb.storeState;
+      Object.defineProperty(yIndexeddb, 'storeState', {
+        value: () => {
+          throw new Error('Provider already destroyed');
+        },
+        writable: true,
+        configurable: true,
       });
 
       // Should not throw — the catch block handles it
       expect(() => service.disconnect(testDocumentId)).not.toThrow();
       expect(service.isConnected(testDocumentId)).toBe(false);
+
+      // Restore
+      Object.defineProperty(yIndexeddb, 'storeState', {
+        value: original,
+        writable: true,
+        configurable: true,
+      });
     });
 
     it('should handle synchronous storeState error on disconnect-all', () => {
@@ -751,14 +765,26 @@ describe('DocumentService', () => {
         indexeddbProvider,
       });
 
-      // Make storeState throw synchronously
-      vi.mocked(storeState).mockImplementationOnce(() => {
-        throw new Error('Provider already destroyed');
+      // Make storeState throw synchronously by temporarily replacing the mock export
+      const original = yIndexeddb.storeState;
+      Object.defineProperty(yIndexeddb, 'storeState', {
+        value: () => {
+          throw new Error('Provider already destroyed');
+        },
+        writable: true,
+        configurable: true,
       });
 
       // Should not throw — the catch block handles it
       expect(() => service.disconnect()).not.toThrow();
       expect(service.isConnected(testDocumentId)).toBe(false);
+
+      // Restore
+      Object.defineProperty(yIndexeddb, 'storeState', {
+        value: original,
+        writable: true,
+        configurable: true,
+      });
     });
 
     it.skip('should connect websocket in the background and react to status changes', async () => {

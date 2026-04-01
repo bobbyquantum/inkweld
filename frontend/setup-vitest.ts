@@ -127,7 +127,7 @@ vi.mock('y-indexeddb', () => {
         return Promise.resolve();
       }
     },
-    storeState: vi.fn().mockImplementation(() => Promise.resolve()),
+    storeState: () => Promise.resolve(),
     fetchUpdates: () => Promise.resolve(),
     clearDocument: () => Promise.resolve(),
   };
