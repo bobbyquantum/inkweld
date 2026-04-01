@@ -59,6 +59,15 @@ export const test = base.extend<LocalTestFixtures>({
       await route.abort('failed');
     });
 
+    // Override navigator.platform so the Angular app always checks ctrlKey.
+    // This avoids macOS Chromium intercepting Cmd+P (print) and Cmd+Shift+F
+    // (find-in-page) at the browser level before they reach JavaScript.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'Linux x86_64',
+      });
+    });
+
     // Set up app configuration for local mode
     await page.addInitScript(() => {
       const userProfile = {
@@ -132,6 +141,15 @@ export const test = base.extend<LocalTestFixtures>({
       const url = route.request().url();
       apiRequests.push(url);
       await route.abort('failed');
+    });
+
+    // Override navigator.platform so the Angular app always checks ctrlKey.
+    // This avoids macOS Chromium intercepting Cmd+P (print) and Cmd+Shift+F
+    // (find-in-page) at the browser level before they reach JavaScript.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'Linux x86_64',
+      });
     });
 
     // Set up app configuration for local mode
@@ -229,6 +247,13 @@ export const test = base.extend<LocalTestFixtures>({
   // Local browser context
   localContext: async ({ browser }, use) => {
     const context = await browser.newContext();
+
+    // Override navigator.platform so the Angular app always checks ctrlKey.
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'Linux x86_64',
+      });
+    });
 
     // Set up local mode for all pages in this context
     await context.addInitScript(() => {

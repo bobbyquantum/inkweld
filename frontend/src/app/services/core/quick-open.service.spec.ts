@@ -173,6 +173,12 @@ describe('QuickOpenService', () => {
 
     it('should open on Meta+P when navigator.platform is Mac', () => {
       const originalPlatform = navigator.platform;
+      const originalUAData = (navigator as any).userAgentData;
+      // Remove userAgentData so it falls back to platform
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: undefined,
+        configurable: true,
+      });
       Object.defineProperty(navigator, 'platform', {
         value: 'MacIntel',
         configurable: true,
@@ -189,10 +195,19 @@ describe('QuickOpenService', () => {
         value: originalPlatform,
         configurable: true,
       });
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: originalUAData,
+        configurable: true,
+      });
     });
 
     it('should open on Ctrl+P when navigator.platform is not Mac', () => {
       const originalPlatform = navigator.platform;
+      const originalUAData = (navigator as any).userAgentData;
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: undefined,
+        configurable: true,
+      });
       Object.defineProperty(navigator, 'platform', {
         value: 'Win32',
         configurable: true,
@@ -207,6 +222,30 @@ describe('QuickOpenService', () => {
       expect(mockDialog.open).toHaveBeenCalledOnce();
       Object.defineProperty(navigator, 'platform', {
         value: originalPlatform,
+        configurable: true,
+      });
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: originalUAData,
+        configurable: true,
+      });
+    });
+
+    it('should use userAgentData.platform when available', () => {
+      const originalUAData = (navigator as any).userAgentData;
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: { platform: 'macOS' },
+        configurable: true,
+      });
+      service.initialize();
+      const event = new KeyboardEvent('keydown', {
+        key: 'p',
+        metaKey: true,
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: originalUAData,
         configurable: true,
       });
     });

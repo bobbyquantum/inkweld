@@ -3,26 +3,18 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 
 /**
- * Press a keyboard shortcut using the correct modifier key for the emulated browser.
+ * Press a keyboard shortcut using the Control modifier key.
  *
- * The app detects platform via `navigator.platform` (matching ProseMirror's detection),
- * NOT `process.platform` on the test runner. Using `process.platform` causes mismatches
- * when Playwright's emulated device has a different OS user agent than the host machine.
+ * All E2E test pages override `navigator.platform` to `'Linux x86_64'` via
+ * `addInitScript`, so the Angular app always checks `event.ctrlKey`. This
+ * avoids the macOS issue where Chromium intercepts Cmd+P (print) and
+ * Cmd+Shift+F (find-in-page) at the browser level before they reach JS.
  *
  * @param page - Playwright page
  * @param key - Key combo without modifier, e.g. `'p'`, `'Shift+f'`, `'Shift+KeyI'`
- *
- * @example
- * await pressShortcut(page, 'p');          // Quick Open  (Ctrl/Cmd + P)
- * await pressShortcut(page, 'Shift+f');    // Project Search (Ctrl/Cmd + Shift + F)
- * await pressShortcut(page, 'f');          // Find in Document (Ctrl/Cmd + F)
  */
 export async function pressShortcut(page: Page, key: string): Promise<void> {
-  const isMac = await page.evaluate(() =>
-    /Mac|iP(hone|[oa]d)/.test(navigator.platform)
-  );
-  const modifier = isMac ? 'Meta' : 'Control';
-  await page.keyboard.press(`${modifier}+${key}`);
+  await page.keyboard.press(`Control+${key}`);
 }
 
 /**
