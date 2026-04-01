@@ -431,20 +431,9 @@ export class HtmlGeneratorService {
       return this.applyMarks(text, node);
     }
 
-    // Handle elementRef nodes - render display text as plain text
-    // These are design-time references, no special rendering or linking in published output
-    if (typeof node === 'object' && node) {
-      const nodeType =
-        'type' in node
-          ? (node['type'] as string)
-          : (node['nodeName'] as string);
-      if (nodeType === 'elementRef') {
-        const attrs =
-          'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
-        const displayText = attrs?.['displayText'] as string | undefined;
-        return displayText ? this.escapeHtml(displayText) : '';
-      }
-    }
+    // Handle elementRef nodes
+    const elementRefHtml = this.renderElementRef(node);
+    if (elementRefHtml !== null) return elementRefHtml;
 
     const tagName = this.getTagName(node);
     const children = this.getChildren(node);
@@ -452,6 +441,18 @@ export class HtmlGeneratorService {
 
     if (['br', 'hr'].includes(tagName)) return `<${tagName} />`;
     return `<${tagName}>${childHtml}</${tagName}>`;
+  }
+
+  private renderElementRef(node: ProseMirrorNode): string | null {
+    if (typeof node !== 'object' || !node || Array.isArray(node)) return null;
+    const nodeType =
+      'type' in node ? (node['type'] as string) : (node['nodeName'] as string);
+    if (nodeType !== 'elementRef') return null;
+
+    const attrs =
+      'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
+    const displayText = attrs?.['displayText'] as string | undefined;
+    return displayText ? this.escapeHtml(displayText) : '';
   }
 
   private getTagName(node: ProseMirrorNode): string {

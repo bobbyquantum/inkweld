@@ -705,7 +705,6 @@ export class ProfileManagerDialogComponent {
   async migrateProjects(): Promise<void> {
     const selectedSlugs = Array.from(this.selectedProjectSlugs());
 
-    // Check if there are unresolved conflicts
     if (this.hasUnresolvedConflicts()) {
       this.authError.set(
         'Please resolve slug conflicts before migrating. Rename conflicting projects or deselect them.'
@@ -720,57 +719,11 @@ export class ProfileManagerDialogComponent {
 
     try {
       if (selectedSlugs.length > 0) {
-        // Build slug renames map for migration
-        const renames = this.projectRenames();
-        await this.migrationService.migrateToServer(
-          this.pendingServerUrl,
-          selectedSlugs,
-          renames.size > 0 ? renames : undefined
-        );
-
-        // Handle migration results
-        const state = this.migrationState();
-
-        if (state.status === MigrationStatus.Completed) {
-          // Migration copied data to server-mode storage.
-          // Now sync to actually create the projects on the server.
-          this.isMigrating.set(false);
-          this.isSyncing.set(true);
-
-          try {
-            const syncSuccess =
-              await this.backgroundSyncService.syncPendingItems();
-
-            if (syncSuccess) {
-              this.syncSuccess.set(true);
-              // Clean up migrated project data only after successful sync
-              this.migrationService.cleanupLocalData(selectedSlugs);
-            } else {
-              this.syncError.set(
-                'Some projects failed to sync. They will be synced automatically later.'
-              );
-            }
-          } catch (syncErr) {
-            console.error('Sync failed:', syncErr);
-            this.syncError.set(
-              syncErr instanceof Error
-                ? syncErr.message
-                : 'Sync failed. Projects will sync automatically when online.'
-            );
-          } finally {
-            this.isSyncing.set(false);
-          }
-        } else if (state.status === MigrationStatus.Failed) {
-          this.authError.set(
-            `Migration completed with errors. ${state.completedProjects} succeeded, ${state.failedProjects} failed.`
-          );
-        }
+        await this.runMigrationAndSync(selectedSlugs);
       } else {
-        // No projects selected - just connect to server
         this.syncSuccess.set(true);
       }
 
-      // Navigate to home after successful sync or if no projects selected
       if (this.syncSuccess()) {
         setTimeout(() => {
           globalThis.location.href = '/';
@@ -786,6 +739,48 @@ export class ProfileManagerDialogComponent {
     } finally {
       this.isMigrating.set(false);
       this.isSyncing.set(false);
+    }
+  }
+
+  private async runMigrationAndSync(selectedSlugs: string[]): Promise<void> {
+    const renames = this.projectRenames();
+    await this.migrationService.migrateToServer(
+      this.pendingServerUrl,
+      selectedSlugs,
+      renames.size > 0 ? renames : undefined
+    );
+
+    const state = this.migrationState();
+
+    if (state.status === MigrationStatus.Completed) {
+      this.isMigrating.set(false);
+      this.isSyncing.set(true);
+
+      try {
+        const syncSuccess = await this.backgroundSyncService.syncPendingItems();
+
+        if (syncSuccess) {
+          this.syncSuccess.set(true);
+          this.migrationService.cleanupLocalData(selectedSlugs);
+        } else {
+          this.syncError.set(
+            'Some projects failed to sync. They will be synced automatically later.'
+          );
+        }
+      } catch (syncErr) {
+        console.error('Sync failed:', syncErr);
+        this.syncError.set(
+          syncErr instanceof Error
+            ? syncErr.message
+            : 'Sync failed. Projects will sync automatically when online.'
+        );
+      } finally {
+        this.isSyncing.set(false);
+      }
+    } else if (state.status === MigrationStatus.Failed) {
+      this.authError.set(
+        `Migration completed with errors. ${state.completedProjects} succeeded, ${state.failedProjects} failed.`
+      );
     }
   }
 

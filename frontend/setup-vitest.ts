@@ -238,8 +238,11 @@ if (!Blob.prototype.text) {
 (globalThis as any).URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 (globalThis as any).URL.revokeObjectURL = vi.fn();
 
-// Note: JSZip mock is defined per-test-file to avoid parallel execution issues
-// Each test file that uses JSZip should define its own vi.mock('@progress/jszip-esm')
+// Note: JSZip (@progress/jszip-esm) is NOT mocked globally.
+// All test files use the real JSZip, which works fine in the test environment.
+// Avoid vi.mock('@progress/jszip-esm') — it intermittently fails with
+// "Cannot read properties of undefined (reading 'trim')" in Angular's
+// vitest-mock-patch when isolate: false shares module cache across files.
 
 // Mock localStorage for jsdom environment
 const localStorageMock = (() => {

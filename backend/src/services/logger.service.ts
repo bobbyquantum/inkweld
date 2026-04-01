@@ -204,8 +204,6 @@ function log(
   explicitCorrelationId?: string
 ): void {
   const minLevel = getMinLevel();
-
-  // Check if this level should be logged
   if (level < minLevel) return;
 
   const { isDev } = detectEnvironment();
@@ -214,59 +212,80 @@ function log(
   const levelStr = levelToString(level);
 
   if (isDev) {
-    // Human-readable colored output for development
-    const levelColor = colors[levelStr];
-    const timeStr = colors.dim + timestamp.split('T')[1].replaceAll('Z', '') + colors.reset;
-    const levelLabel = levelColor + colors.bright + levelStr.toUpperCase().padEnd(5) + colors.reset;
-    const contextStr = colors.context + `[${context}]` + colors.reset;
-    const corrStr = correlationId
-      ? colors.dim + ` (${correlationId.slice(0, 8)})` + colors.reset
-      : '';
-
-    // Build the log line
-    let logLine = `${timeStr} ${levelLabel} ${contextStr}${corrStr} ${message}`;
-
-    // Add data if present
-    if (data && Object.keys(data).length > 0) {
-      logLine += colors.dim + ' ' + JSON.stringify(data) + colors.reset;
-    }
-
-    // Output based on level
-    if (level === LogLevel.ERROR) {
-      console.error(logLine);
-      if (error) {
-        const formatted = formatError(error);
-        if (formatted?.stack) {
-          console.error(colors.dim + formatted.stack + colors.reset);
-        }
-      }
-    } else if (level === LogLevel.WARN) {
-      console.warn(logLine);
-    } else {
-      console.log(logLine);
-    }
+    logDev(level, context, message, error, data, correlationId, timestamp, levelStr);
   } else {
-    // Structured JSON output for production
-    const entry: LogEntry = {
-      timestamp,
-      level: levelStr,
-      context,
-      message,
-    };
+    logProduction(level, context, message, error, data, correlationId, timestamp, levelStr);
+  }
+}
 
-    if (correlationId) entry.correlationId = correlationId;
-    if (data && Object.keys(data).length > 0) entry.data = data;
-    if (error) entry.error = formatError(error);
+function logDev(
+  level: LogLevel,
+  context: string,
+  message: string,
+  error: unknown | undefined,
+  data: Record<string, unknown> | undefined,
+  correlationId: string | null | undefined,
+  timestamp: string,
+  levelStr: LogLevelString
+): void {
+  const levelColor = colors[levelStr];
+  const timeStr = colors.dim + timestamp.split('T')[1].replaceAll('Z', '') + colors.reset;
+  const levelLabel = levelColor + colors.bright + levelStr.toUpperCase().padEnd(5) + colors.reset;
+  const contextStr = colors.context + `[${context}]` + colors.reset;
+  const corrStr = correlationId
+    ? colors.dim + ` (${correlationId.slice(0, 8)})` + colors.reset
+    : '';
 
-    const jsonLine = JSON.stringify(entry);
+  let logLine = `${timeStr} ${levelLabel} ${contextStr}${corrStr} ${message}`;
 
-    if (level === LogLevel.ERROR) {
-      console.error(jsonLine);
-    } else if (level === LogLevel.WARN) {
-      console.warn(jsonLine);
-    } else {
-      console.log(jsonLine);
+  if (data && Object.keys(data).length > 0) {
+    logLine += colors.dim + ' ' + JSON.stringify(data) + colors.reset;
+  }
+
+  if (level === LogLevel.ERROR) {
+    console.error(logLine);
+    if (error) {
+      const formatted = formatError(error);
+      if (formatted?.stack) {
+        console.error(colors.dim + formatted.stack + colors.reset);
+      }
     }
+  } else if (level === LogLevel.WARN) {
+    console.warn(logLine);
+  } else {
+    console.log(logLine);
+  }
+}
+
+function logProduction(
+  level: LogLevel,
+  context: string,
+  message: string,
+  error: unknown | undefined,
+  data: Record<string, unknown> | undefined,
+  correlationId: string | null | undefined,
+  timestamp: string,
+  levelStr: LogLevelString
+): void {
+  const entry: LogEntry = {
+    timestamp,
+    level: levelStr,
+    context,
+    message,
+  };
+
+  if (correlationId) entry.correlationId = correlationId;
+  if (data && Object.keys(data).length > 0) entry.data = data;
+  if (error) entry.error = formatError(error);
+
+  const jsonLine = JSON.stringify(entry);
+
+  if (level === LogLevel.ERROR) {
+    console.error(jsonLine);
+  } else if (level === LogLevel.WARN) {
+    console.warn(jsonLine);
+  } else {
+    console.log(jsonLine);
   }
 }
 

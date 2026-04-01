@@ -113,38 +113,13 @@ export class DocumentImportService {
 
         // Second pass: set all values
         for (const [key, value] of Object.entries(wb.data)) {
-          if (key.includes('.')) {
-            // Dot-notation key: set into nested map
-            const [parentKey, childKey] = key.split('.');
-            const nestedMap = nestedMaps.get(parentKey);
-            if (nestedMap) {
-              // Convert arrays to Y.Array for proper Yjs handling
-              if (Array.isArray(value)) {
-                const yArray = new Y.Array<unknown>();
-                yArray.push(value);
-                nestedMap.set(childKey, yArray);
-              } else {
-                nestedMap.set(childKey, value);
-              }
-            }
-          } else if (Array.isArray(value)) {
-            // Simple key: set directly on dataMap
-            const yArray = new Y.Array<unknown>();
-            yArray.push(value);
-            dataMap.set(key, yArray);
-          } else if (typeof value === 'object' && value !== null) {
-            // Skip nested objects - they're created from dot-notation keys
-            // or not used in new format
-          } else {
-            dataMap.set(key, value);
-          }
+          this.setWorldbuildingValue(dataMap, nestedMaps, key, value);
         }
 
         // Also store the schema ID
         dataMap.set('schemaId', wb.schemaId);
 
         // Copy identity fields (description, image) to the identity map
-        // These are stored separately for the identity panel
         const identityMap = ydoc.getMap<unknown>('identity');
         if (wb.data['description']) {
           identityMap.set('description', wb.data['description']);
@@ -172,6 +147,33 @@ export class DocumentImportService {
       );
       throw error;
     }
+  }
+
+  private setWorldbuildingValue(
+    dataMap: Y.Map<unknown>,
+    nestedMaps: Map<string, Y.Map<unknown>>,
+    key: string,
+    value: unknown
+  ): void {
+    if (key.includes('.')) {
+      const [parentKey, childKey] = key.split('.');
+      const nestedMap = nestedMaps.get(parentKey);
+      if (!nestedMap) return;
+      if (Array.isArray(value)) {
+        const yArray = new Y.Array<unknown>();
+        value.forEach(item => yArray.push([item]));
+        nestedMap.set(childKey, yArray);
+      } else {
+        nestedMap.set(childKey, value);
+      }
+    } else if (Array.isArray(value)) {
+      const yArray = new Y.Array<unknown>();
+      value.forEach(item => yArray.push([item]));
+      dataMap.set(key, yArray);
+    } else if (typeof value !== 'object' || value === null) {
+      dataMap.set(key, value);
+    }
+    // Skip nested objects — created from dot-notation keys
   }
 
   /**

@@ -3,6 +3,7 @@
  * Handles provider configuration, selection, and image generation.
  */
 import { configService } from './config.service';
+import type { ConfigKey } from '../db/schema/config';
 import {
   FalAiImageProvider,
   OpenAIImageProvider,
@@ -46,11 +47,9 @@ class ImageGenerationService {
   async configure(db: DatabaseInstance): Promise<void> {
     imgLog.info('Configuring providers from database...');
 
-    // Check if image generation is globally enabled
     const globalEnabled = await configService.getBoolean(db, 'AI_IMAGE_ENABLED');
     if (!globalEnabled) {
       imgLog.info('Image generation is globally disabled');
-      // Disable all providers
       for (const provider of this.providers.values()) {
         (provider as OpenAIImageProvider).configure({ enabled: false });
       }
@@ -60,139 +59,88 @@ class ImageGenerationService {
 
     // Configure OpenAI provider
     const openaiProvider = this.providers.get('openai') as OpenAIImageProvider;
-    const openaiEnabledConfig = await configService.getBooleanWithSource(
-      db,
-      'AI_IMAGE_OPENAI_ENABLED'
-    );
     const openaiApiKey = await this.getConfigValue(db, 'AI_OPENAI_API_KEY');
     const openaiEndpoint = await this.getConfigValue(db, 'AI_OPENAI_ENDPOINT');
-    // If enabled is explicitly set, respect that; otherwise auto-enable if API key is present
-    const openaiEnabled = openaiEnabledConfig.isExplicitlySet
-      ? openaiEnabledConfig.value
-      : !!openaiApiKey;
+    const openaiEnabled = await this.resolveEnabled(db, 'AI_IMAGE_OPENAI_ENABLED', !!openaiApiKey);
     openaiProvider.configure({
       enabled: openaiEnabled,
       apiKey: openaiApiKey,
       endpoint: openaiEndpoint,
     });
-    // Load custom model configuration for OpenAI
-    const openaiModelsJson = await this.getConfigValue(db, 'AI_IMAGE_OPENAI_MODELS');
-    if (openaiModelsJson) {
-      try {
-        const customModels = JSON.parse(openaiModelsJson);
-        if (Array.isArray(customModels) && customModels.length > 0) {
-          openaiProvider.setModels(customModels);
-          imgLog.debug(`OpenAI using ${customModels.length} custom models`);
-        }
-      } catch (e) {
-        imgLog.warn('Failed to parse OpenAI models config', { error: e });
-      }
-    }
+    await this.loadCustomModels(db, 'AI_IMAGE_OPENAI_MODELS', openaiProvider, 'OpenAI');
 
     // Configure OpenRouter provider
     const openrouterProvider = this.providers.get('openrouter') as OpenRouterImageProvider;
-    const openrouterEnabledConfig = await configService.getBooleanWithSource(
-      db,
-      'AI_IMAGE_OPENROUTER_ENABLED'
-    );
     const openrouterApiKey = await this.getConfigValue(db, 'AI_OPENROUTER_API_KEY');
-    // If enabled is explicitly set, respect that; otherwise auto-enable if API key is present
-    const openrouterEnabled = openrouterEnabledConfig.isExplicitlySet
-      ? openrouterEnabledConfig.value
-      : !!openrouterApiKey;
-    openrouterProvider.configure({
-      enabled: openrouterEnabled,
-      apiKey: openrouterApiKey,
-    });
-    // Load custom model configuration for OpenRouter
-    const openrouterModelsJson = await this.getConfigValue(db, 'AI_IMAGE_OPENROUTER_MODELS');
-    if (openrouterModelsJson) {
-      try {
-        const customModels = JSON.parse(openrouterModelsJson);
-        if (Array.isArray(customModels) && customModels.length > 0) {
-          openrouterProvider.setModels(customModels);
-          imgLog.debug(`OpenRouter using ${customModels.length} custom models`);
-        }
-      } catch (e) {
-        imgLog.warn('Failed to parse OpenRouter models config', { error: e });
-      }
-    }
+    const openrouterEnabled = await this.resolveEnabled(
+      db,
+      'AI_IMAGE_OPENROUTER_ENABLED',
+      !!openrouterApiKey
+    );
+    openrouterProvider.configure({ enabled: openrouterEnabled, apiKey: openrouterApiKey });
+    await this.loadCustomModels(db, 'AI_IMAGE_OPENROUTER_MODELS', openrouterProvider, 'OpenRouter');
 
     // Configure Stable Diffusion provider
     const sdProvider = this.providers.get('stable-diffusion') as StableDiffusionProvider;
-    const sdEnabledConfig = await configService.getBooleanWithSource(db, 'AI_IMAGE_SD_ENABLED');
     const sdEndpoint = await this.getConfigValue(db, 'AI_SD_ENDPOINT');
     const sdApiKey = await this.getConfigValue(db, 'AI_SD_API_KEY');
-    // If enabled is explicitly set, respect that; otherwise auto-enable if endpoint is present
-    const sdEnabled = sdEnabledConfig.isExplicitlySet ? sdEnabledConfig.value : !!sdEndpoint;
-    sdProvider.configure({
-      enabled: sdEnabled,
-      endpoint: sdEndpoint,
-      apiKey: sdApiKey,
-    });
+    const sdEnabled = await this.resolveEnabled(db, 'AI_IMAGE_SD_ENABLED', !!sdEndpoint);
+    sdProvider.configure({ enabled: sdEnabled, endpoint: sdEndpoint, apiKey: sdApiKey });
 
     // Configure Fal.ai provider
     const falaiProvider = this.providers.get('falai') as FalAiImageProvider;
-    const falaiEnabledConfig = await configService.getBooleanWithSource(
-      db,
-      'AI_IMAGE_FALAI_ENABLED'
-    );
     const falaiApiKey = await this.getConfigValue(db, 'AI_FALAI_API_KEY');
-    // If enabled is explicitly set, respect that; otherwise auto-enable if API key is present
-    const falaiEnabled = falaiEnabledConfig.isExplicitlySet
-      ? falaiEnabledConfig.value
-      : !!falaiApiKey;
-    falaiProvider.configure({
-      enabled: falaiEnabled,
-      apiKey: falaiApiKey,
-    });
-    // Load custom model configuration for Fal.ai
-    const falaiModelsJson = await this.getConfigValue(db, 'AI_IMAGE_FALAI_MODELS');
-    if (falaiModelsJson) {
-      try {
-        const customModels = JSON.parse(falaiModelsJson);
-        if (Array.isArray(customModels) && customModels.length > 0) {
-          falaiProvider.setModels(customModels);
-          imgLog.debug(`Fal.ai using ${customModels.length} custom models`);
-        }
-      } catch (e) {
-        imgLog.warn('Failed to parse Fal.ai models config', { error: e });
-      }
-    }
+    const falaiEnabled = await this.resolveEnabled(db, 'AI_IMAGE_FALAI_ENABLED', !!falaiApiKey);
+    falaiProvider.configure({ enabled: falaiEnabled, apiKey: falaiApiKey });
+    await this.loadCustomModels(db, 'AI_IMAGE_FALAI_MODELS', falaiProvider, 'Fal.ai');
 
     // Configure Workers AI provider
     const workersaiProvider = this.providers.get('workersai') as WorkersAIImageProvider;
-    const workersaiEnabledConfig = await configService.getBooleanWithSource(
-      db,
-      'AI_IMAGE_WORKERSAI_ENABLED'
-    );
     const workersaiApiKey = await this.getConfigValue(db, 'AI_WORKERSAI_API_TOKEN');
     const workersaiAccountId = await this.getConfigValue(db, 'AI_WORKERSAI_ACCOUNT_ID');
-    // If enabled is explicitly set, respect that; otherwise auto-enable if API key and account ID are present
-    const workersaiEnabled = workersaiEnabledConfig.isExplicitlySet
-      ? workersaiEnabledConfig.value
-      : !!(workersaiApiKey && workersaiAccountId);
+    const workersaiEnabled = await this.resolveEnabled(
+      db,
+      'AI_IMAGE_WORKERSAI_ENABLED',
+      !!(workersaiApiKey && workersaiAccountId)
+    );
     workersaiProvider.configure({
       enabled: workersaiEnabled,
       apiKey: workersaiApiKey,
       accountId: workersaiAccountId,
     });
-    // Load custom model configuration for Workers AI
-    const workersaiModelsJson = await this.getConfigValue(db, 'AI_IMAGE_WORKERSAI_MODELS');
-    if (workersaiModelsJson) {
-      try {
-        const customModels = JSON.parse(workersaiModelsJson);
-        if (Array.isArray(customModels) && customModels.length > 0) {
-          workersaiProvider.setModels(customModels);
-          imgLog.debug(`Workers AI using ${customModels.length} custom models`);
-        }
-      } catch (e) {
-        imgLog.warn('Failed to parse Workers AI models config', { error: e });
-      }
-    }
+    await this.loadCustomModels(db, 'AI_IMAGE_WORKERSAI_MODELS', workersaiProvider, 'Workers AI');
 
     this.initialized = true;
     imgLog.info('Provider configuration complete');
+  }
+
+  private async resolveEnabled(
+    db: DatabaseInstance,
+    configKey: ConfigKey,
+    autoEnabled: boolean
+  ): Promise<boolean> {
+    const config = await configService.getBooleanWithSource(db, configKey);
+    return config.isExplicitlySet ? config.value : autoEnabled;
+  }
+
+  private async loadCustomModels(
+    db: DatabaseInstance,
+    configKey: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    provider: { setModels(models: any[]): void },
+    label: string
+  ): Promise<void> {
+    const modelsJson = await this.getConfigValue(db, configKey);
+    if (!modelsJson) return;
+    try {
+      const customModels = JSON.parse(modelsJson);
+      if (Array.isArray(customModels) && customModels.length > 0) {
+        provider.setModels(customModels);
+        imgLog.debug(`${label} using ${customModels.length} custom models`);
+      }
+    } catch (e) {
+      imgLog.warn(`Failed to parse ${label} models config`, { error: e });
+    }
   }
 
   /**

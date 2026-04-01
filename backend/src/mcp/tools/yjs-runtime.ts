@@ -412,85 +412,89 @@ function parseElement(
   marks: Record<string, unknown> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): { nodes: any[]; pos: number } {
-  // Parse opening tag: <tagName attr1="val1" attr2="val2">
-  // or self-closing: <tagName attr1="val1"/>
   const tagMatch = /^<([a-zA-Z_][a-zA-Z0-9_-]*)/.exec(xml.substring(pos));
   if (!tagMatch) {
-    // Not a valid tag, treat as text
     return parseText(Y, xml, pos, marks);
   }
 
   const rawTagName = tagMatch[1].toLowerCase();
   let cursor = pos + tagMatch[0].length;
 
-  // Parse attributes
+  const { attrs, cursor: afterAttrs } = parseAttributes(xml, cursor);
+  cursor = afterAttrs;
+
+  const markName = MARK_TAGS[rawTagName];
+  if (markName) {
+    return parseMarkTag(Y, xml, cursor, rawTagName, markName, attrs, marks);
+  }
+
+  return parseRegularElement(Y, xml, cursor, rawTagName, attrs, marks);
+}
+
+function parseAttributes(
+  xml: string,
+  start: number
+): { attrs: Record<string, string>; cursor: number } {
   const attrs: Record<string, string> = {};
+  let cursor = start;
+
   while (cursor < xml.length) {
-    // Skip whitespace
     while (cursor < xml.length && /\s/.test(xml[cursor])) cursor++;
 
-    // Check for end of tag
     if (xml[cursor] === '>' || (xml[cursor] === '/' && xml[cursor + 1] === '>')) {
       break;
     }
 
-    // Parse attribute: name="value" or name='value'
     const attrMatch = /^([a-zA-Z_][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/.exec(
       xml.substring(cursor)
     );
     if (attrMatch) {
-      const attrName = attrMatch[1];
-      const attrValue = attrMatch[2] ?? attrMatch[3] ?? '';
-      attrs[attrName] = decodeXmlEntities(attrValue);
+      attrs[attrMatch[1]] = decodeXmlEntities(attrMatch[2] ?? attrMatch[3] ?? '');
       cursor += attrMatch[0].length;
     } else {
-      // Skip unrecognized character
       cursor++;
     }
   }
 
-  // Check if this is an inline mark tag (bold, italic, etc.)
-  const markName = MARK_TAGS[rawTagName];
-  if (markName) {
-    // Build mark value (for link marks include href/title, for others just {})
-    const markValue =
-      rawTagName === 'a' || markName === 'link'
-        ? { href: attrs.href || '', ...(attrs.title ? { title: attrs.title } : {}) }
-        : {};
-    const newMarks = { ...marks, [markName]: markValue };
+  return { attrs, cursor };
+}
 
-    // Self-closing mark (unusual but handle gracefully)
-    if (xml[cursor] === '/' && xml[cursor + 1] === '>') {
-      return { nodes: [], pos: cursor + 2 };
-    }
-    if (xml[cursor] === '>') cursor++;
+function parseMarkTag(
+  Y: typeof import('yjs'),
+  xml: string,
+  cursor: number,
+  rawTagName: string,
+  markName: string,
+  attrs: Record<string, string>,
+  marks: Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): { nodes: any[]; pos: number } {
+  const markValue =
+    rawTagName === 'a' || markName === 'link'
+      ? { href: attrs.href || '', ...(attrs.title ? { title: attrs.title } : {}) }
+      : {};
+  const newMarks = { ...marks, [markName]: markValue };
 
-    // Parse children with accumulated marks — returns formatted XmlText nodes
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const children: any[] = [];
-    const closingTag = `</${rawTagName}>`;
-    while (cursor < xml.length) {
-      if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
-        cursor += closingTag.length;
-        break;
-      }
-      const childResult = parseNode(Y, xml, cursor, newMarks);
-      if (!childResult) {
-        const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
-        if (closeMatch) cursor += closeMatch[0].length;
-        break;
-      }
-      for (const node of childResult.nodes) children.push(node);
-      if (childResult.pos <= cursor) break;
-      cursor = childResult.pos;
-    }
-    return { nodes: children, pos: cursor };
+  if (xml[cursor] === '/' && xml[cursor + 1] === '>') {
+    return { nodes: [], pos: cursor + 2 };
   }
+  if (xml[cursor] === '>') cursor++;
 
-  // Regular element — apply node tag aliases (e.g., numbered_list → ordered_list)
+  const { children, cursor: afterChildren } = parseChildren(Y, xml, cursor, rawTagName, newMarks);
+  return { nodes: children, pos: afterChildren };
+}
+
+function parseRegularElement(
+  Y: typeof import('yjs'),
+  xml: string,
+  cursor: number,
+  rawTagName: string,
+  attrs: Record<string, string>,
+  marks: Record<string, unknown> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): { nodes: any[]; pos: number } {
   const tagName = NODE_TAG_ALIASES[rawTagName] ?? rawTagName;
 
-  // Check for self-closing tag
   const selfClosing = xml[cursor] === '/' && xml[cursor + 1] === '>';
   if (selfClosing) {
     cursor += 2;
@@ -501,36 +505,9 @@ function parseElement(
     return { nodes: [yElement], pos: cursor };
   }
 
-  // Skip '>'
   if (xml[cursor] === '>') cursor++;
 
-  // Parse children until closing tag
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const children: any[] = [];
-  const closingTag = `</${rawTagName}>`;
-
-  while (cursor < xml.length) {
-    // Check for closing tag
-    if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
-      cursor += closingTag.length;
-      break;
-    }
-
-    const childResult = parseNode(Y, xml, cursor);
-    if (!childResult) {
-      // Closing tag of parent element found, advance past it
-      const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
-      if (closeMatch) {
-        cursor += closeMatch[0].length;
-      }
-      break;
-    }
-    for (const node of childResult.nodes) {
-      children.push(node);
-    }
-    if (childResult.pos <= cursor) break; // prevent infinite loop
-    cursor = childResult.pos;
-  }
+  const { children, cursor: afterChildren } = parseChildren(Y, xml, cursor, rawTagName, marks);
 
   const yElement = new Y.XmlElement(tagName);
   for (const [key, value] of Object.entries(attrs)) {
@@ -540,7 +517,40 @@ function parseElement(
     yElement.insert(0, children);
   }
 
-  return { nodes: [yElement], pos: cursor };
+  return { nodes: [yElement], pos: afterChildren };
+}
+
+function parseChildren(
+  Y: typeof import('yjs'),
+  xml: string,
+  start: number,
+  rawTagName: string,
+  marks?: Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): { children: any[]; cursor: number } {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const children: any[] = [];
+  const closingTag = `</${rawTagName}>`;
+  let cursor = start;
+
+  while (cursor < xml.length) {
+    if (xml.substring(cursor).toLowerCase().startsWith(closingTag)) {
+      cursor += closingTag.length;
+      break;
+    }
+
+    const childResult = parseNode(Y, xml, cursor, marks);
+    if (!childResult) {
+      const closeMatch = /^<\/[a-zA-Z_][a-zA-Z0-9_-]*>/.exec(xml.substring(cursor));
+      if (closeMatch) cursor += closeMatch[0].length;
+      break;
+    }
+    for (const node of childResult.nodes) children.push(node);
+    if (childResult.pos <= cursor) break;
+    cursor = childResult.pos;
+  }
+
+  return { children, cursor };
 }
 
 /**

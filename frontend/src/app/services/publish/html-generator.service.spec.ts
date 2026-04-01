@@ -1381,5 +1381,97 @@ describe('HtmlGeneratorService', () => {
 
       expect(result.success).toBe(true);
     });
+
+    it('should render elementRef nodes with display text', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'elementRef',
+              attrs: { displayText: 'Chapter One', elementId: 'el-1' },
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateHtml(planWithElement);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should render elementRef nodes without display text as empty', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'elementRef',
+              attrs: { elementId: 'el-1' },
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateHtml(planWithElement);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should render elementRef nodes without attrs', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'elementRef',
+            },
+          ],
+        },
+      ]);
+
+      const planWithElement: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      const result = await service.generateHtml(planWithElement);
+
+      expect(result.success).toBe(true);
+    });
   });
 });

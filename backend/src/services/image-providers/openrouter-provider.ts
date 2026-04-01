@@ -19,6 +19,17 @@ import {
 
 const orLog = logger.child('OpenRouter');
 
+interface OpenRouterImageResponse {
+  choices?: Array<{
+    message?: OpenRouterMessage;
+  }>;
+}
+
+interface OpenRouterMessage {
+  content?: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+  images?: Array<{ url?: string; image_url?: { url: string } }>;
+}
+
 export class OpenRouterImageProvider extends BaseImageProvider {
   readonly type: ImageProviderType = 'openrouter';
   readonly name = 'OpenRouter';
@@ -64,75 +75,18 @@ export class OpenRouterImageProvider extends BaseImageProvider {
     }
 
     const model = request.model;
-    let prompt = this.buildPromptWithContext(request);
-
-    // Size comes in as aspect ratio (e.g., "16:9", "1:1") - use directly
     const aspectRatio = request.size || '1:1';
-
-    // Optimize prompt for model limits
-    const promptResult = optimizePromptForModel(prompt, this.type, model);
-    if (promptResult.wasOptimized) {
-      orLog.warn(`Prompt truncated for model limits`, {
-        model,
-        originalChars: promptResult.originalChars,
-        optimizedChars: promptResult.optimizedChars,
-      });
-      prompt = promptResult.prompt;
-    }
-
-    // Validate and prepare reference images
-    const referenceImages = request.referenceImages || [];
-    const imageResult = validateReferenceImages(referenceImages, this.type, model);
-    if (imageResult.wasLimited) {
-      orLog.warn(`Reference images limited for model`, {
-        model,
-        originalCount: imageResult.originalCount,
-        limitedTo: imageResult.images.length,
-      });
-    }
+    const { prompt, imageResult } = this.prepareRequest(request, model);
 
     orLog.info(`Generating image`, {
       model,
       aspectRatio,
-      promptChars: promptResult.optimizedChars,
+      promptChars: prompt.length,
       referenceImages: imageResult.images.length,
     });
 
     try {
-      // Build message content - text prompt + optional reference images
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const messageContent: any[] = [{ type: 'text', text: prompt }];
-      if (imageResult.images.length > 0) {
-        for (const img of imageResult.images) {
-          messageContent.push({
-            type: 'image_url',
-            image_url: {
-              url: normalizeImageDataUrl(img.data, img.mimeType),
-              detail: 'auto',
-            },
-          });
-        }
-      }
-
-      // Build request body for chat/completions API
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const requestBody: any = {
-        model,
-        modalities: ['text', 'image'],
-        messages: [
-          {
-            role: 'user',
-            content: messageContent,
-          },
-        ],
-      };
-
-      // Add image_config for aspect ratio (supported by some models like Gemini)
-      if (aspectRatio && aspectRatio !== '1:1') {
-        requestBody.image_config = {
-          aspect_ratio: aspectRatio,
-        };
-      }
+      const requestBody = this.buildRequestBody(model, prompt, imageResult, aspectRatio);
 
       orLog.info(`Sending request`, {
         model,
@@ -141,7 +95,6 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         imageCount: imageResult.images.length,
       });
 
-      // Use direct fetch instead of SDK to avoid CPU accumulation from streaming infrastructure
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -154,44 +107,9 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       });
 
       if (!response.ok) {
-        const errorBody = await response.text();
-        let parsedError: {
-          error?: { message?: string; metadata?: { raw?: string; provider_name?: string } };
-        } | null = null;
-        try {
-          parsedError = JSON.parse(errorBody);
-        } catch {
-          // Not JSON
-        }
-
-        // Check for moderation in error response
-        const errorMessage = parsedError?.error?.message || errorBody;
-        const rawMetadata = parsedError?.error?.metadata?.raw || '';
-        const providerName = parsedError?.error?.metadata?.provider_name || 'the provider';
-
-        if (
-          errorMessage.includes('Request Moderated') ||
-          errorMessage.includes('Content Moderated') ||
-          rawMetadata.includes('Request Moderated') ||
-          rawMetadata.includes('Moderated')
-        ) {
-          throw new Error(
-            `MODERATION_BLOCKED: Your request was blocked by ${providerName}'s content filter. Try rephrasing the prompt or using a different model.`
-          );
-        }
-
-        throw new Error(`OpenRouter API error (${response.status}): ${errorMessage}`);
+        await this.handleErrorResponse(response);
       }
 
-      // OpenRouter response structure
-      interface OpenRouterImageResponse {
-        choices?: Array<{
-          message?: {
-            content?: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
-            images?: Array<{ url?: string; image_url?: { url: string } }>;
-          };
-        }>;
-      }
       const data = (await response.json()) as OpenRouterImageResponse;
 
       orLog.info(`Received response`, {
@@ -199,117 +117,189 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         choicesLength: data.choices?.length,
       });
 
-      // Extract images from the chat completions response format
-      const images: Array<{
-        b64Json?: string;
-        url?: string;
-        mimeType?: string;
-        revisedPrompt?: string;
-        index: number;
-      }> = [];
-
       const message = data.choices?.[0]?.message;
-      if (message?.images && Array.isArray(message.images)) {
-        // Images returned in message.images array
-        for (const [i, img] of message.images.entries()) {
-          const imageUrl = img.image_url?.url || img.url;
-          if (imageUrl) {
-            if (imageUrl.startsWith('data:image/')) {
-              // Extract base64 and mime type from data URL
-              const base64Match = /^data:(image\/[^;]+);base64,(.+)$/.exec(imageUrl);
-              if (base64Match) {
-                images.push({
-                  b64Json: base64Match[2],
-                  mimeType: base64Match[1],
-                  index: i,
-                });
-              } else {
-                images.push({
-                  url: imageUrl,
-                  index: i,
-                });
-              }
-            } else {
-              images.push({
-                url: imageUrl,
-                index: i,
-              });
-            }
-          }
-        }
-      }
-
-      // Also check for images in content array (alternative format)
-      if (images.length === 0 && message?.content && Array.isArray(message.content)) {
-        for (const [i, item] of message.content.entries()) {
-          if (item.type === 'image_url' && item.image_url?.url) {
-            const imageUrl = item.image_url.url;
-            if (imageUrl.startsWith('data:image/')) {
-              const base64Match = /^data:(image\/[^;]+);base64,(.+)$/.exec(imageUrl);
-              if (base64Match) {
-                images.push({
-                  b64Json: base64Match[2],
-                  mimeType: base64Match[1],
-                  index: i,
-                });
-              } else {
-                images.push({
-                  url: imageUrl,
-                  index: i,
-                });
-              }
-            } else {
-              images.push({
-                url: imageUrl,
-                index: i,
-              });
-            }
-          }
-        }
-      }
+      const images = this.extractImagesFromMessage(message);
 
       if (images.length === 0) {
-        // Check for text response (might be a refusal/explanation)
-        let textContent = '';
-        if (typeof message?.content === 'string') {
-          textContent = message.content.trim();
-        } else if (Array.isArray(message?.content)) {
-          const textParts = (message.content as Array<{ type: string; text?: string }>)
-            .filter((c) => c.type === 'text')
-            .map((c) => c.text ?? '');
-          textContent = textParts.join('\n').trim();
-        }
-
-        orLog.error('No images in response', undefined, {
-          textContent: textContent?.substring(0, 500),
-          rawMessage: JSON.stringify(message).substring(0, 2000),
-        });
-
-        if (textContent) {
-          return {
-            created: Math.floor(Date.now() / 1000),
-            data: [],
-            provider: this.type,
-            model,
-            request: {
-              prompt: request.prompt,
-              size: request.size,
-              quality: request.quality,
-              style: request.style,
-            },
-            textContent:
-              textContent.length > 500 ? textContent.substring(0, 500) + '...' : textContent,
-          };
-        }
-
-        throw new Error('The model did not generate an image and provided no explanation.');
+        return this.handleNoImages(message, request, model);
       }
 
       orLog.info(`Successfully extracted ${images.length} image(s)`);
 
+      return this.buildSuccessResponse(images, request, model);
+    } catch (error: unknown) {
+      throw this.wrapError(error);
+    }
+  }
+
+  private prepareRequest(
+    request: ResolvedImageRequest,
+    model: string
+  ): {
+    prompt: string;
+    imageResult: ReturnType<typeof validateReferenceImages>;
+  } {
+    let prompt = this.buildPromptWithContext(request);
+
+    const promptResult = optimizePromptForModel(prompt, this.type, model);
+    if (promptResult.wasOptimized) {
+      orLog.warn(`Prompt truncated for model limits`, {
+        model,
+        originalChars: promptResult.originalChars,
+        optimizedChars: promptResult.optimizedChars,
+      });
+      prompt = promptResult.prompt;
+    }
+
+    const referenceImages = request.referenceImages || [];
+    const imageResult = validateReferenceImages(referenceImages, this.type, model);
+    if (imageResult.wasLimited) {
+      orLog.warn(`Reference images limited for model`, {
+        model,
+        originalCount: imageResult.originalCount,
+        limitedTo: imageResult.images.length,
+      });
+    }
+
+    return { prompt, imageResult };
+  }
+
+  private buildRequestBody(
+    model: string,
+    prompt: string,
+    imageResult: ReturnType<typeof validateReferenceImages>,
+    aspectRatio: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messageContent: any[] = [{ type: 'text', text: prompt }];
+    for (const img of imageResult.images) {
+      messageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: normalizeImageDataUrl(img.data, img.mimeType),
+          detail: 'auto',
+        },
+      });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body: any = {
+      model,
+      modalities: ['text', 'image'],
+      messages: [{ role: 'user', content: messageContent }],
+    };
+
+    if (aspectRatio && aspectRatio !== '1:1') {
+      body.image_config = { aspect_ratio: aspectRatio };
+    }
+
+    return body;
+  }
+
+  private async handleErrorResponse(response: Response): Promise<never> {
+    const errorBody = await response.text();
+    let parsedError: {
+      error?: { message?: string; metadata?: { raw?: string; provider_name?: string } };
+    } | null = null;
+    try {
+      parsedError = JSON.parse(errorBody);
+    } catch {
+      // Not JSON
+    }
+
+    const errorMessage = parsedError?.error?.message || errorBody;
+    const rawMetadata = parsedError?.error?.metadata?.raw || '';
+    const providerName = parsedError?.error?.metadata?.provider_name || 'the provider';
+
+    const isModerated =
+      errorMessage.includes('Request Moderated') ||
+      errorMessage.includes('Content Moderated') ||
+      rawMetadata.includes('Request Moderated') ||
+      rawMetadata.includes('Moderated');
+
+    if (isModerated) {
+      throw new Error(
+        `MODERATION_BLOCKED: Your request was blocked by ${providerName}'s content filter. Try rephrasing the prompt or using a different model.`
+      );
+    }
+
+    throw new Error(`OpenRouter API error (${response.status}): ${errorMessage}`);
+  }
+
+  private parseImageUrl(
+    imageUrl: string,
+    index: number
+  ): { b64Json?: string; url?: string; mimeType?: string; revisedPrompt?: string; index: number } {
+    if (imageUrl.startsWith('data:image/')) {
+      const base64Match = /^data:(image\/[^;]+);base64,(.+)$/.exec(imageUrl);
+      if (base64Match) {
+        return { b64Json: base64Match[2], mimeType: base64Match[1], index };
+      }
+    }
+    return { url: imageUrl, index };
+  }
+
+  private extractImagesFromMessage(message: OpenRouterMessage | undefined): Array<{
+    b64Json?: string;
+    url?: string;
+    mimeType?: string;
+    revisedPrompt?: string;
+    index: number;
+  }> {
+    if (!message) return [];
+
+    // Try message.images array first
+    if (message.images && Array.isArray(message.images)) {
+      const images = message.images.flatMap((img, i) => {
+        const imageUrl = img.image_url?.url || img.url;
+        return imageUrl ? [this.parseImageUrl(imageUrl, i)] : [];
+      });
+      if (images.length > 0) return images;
+    }
+
+    // Fall back to content array
+    if (Array.isArray(message.content)) {
+      return message.content.flatMap((item, i) => {
+        if (item.type === 'image_url' && item.image_url?.url) {
+          return [this.parseImageUrl(item.image_url.url, i)];
+        }
+        return [];
+      });
+    }
+
+    return [];
+  }
+
+  private extractTextContent(message: OpenRouterMessage | undefined): string {
+    if (!message) return '';
+    if (typeof message.content === 'string') return message.content.trim();
+    if (Array.isArray(message.content)) {
+      return message.content
+        .filter((c) => c.type === 'text')
+        .map((c) => c.text ?? '')
+        .join('\n')
+        .trim();
+    }
+    return '';
+  }
+
+  private handleNoImages(
+    message: OpenRouterMessage | undefined,
+    request: ResolvedImageRequest,
+    model: string
+  ): ImageGenerateResponse {
+    const textContent = this.extractTextContent(message);
+
+    orLog.error('No images in response', undefined, {
+      textContent: textContent?.substring(0, 500),
+      rawMessage: JSON.stringify(message).substring(0, 2000),
+    });
+
+    if (textContent) {
       return {
         created: Math.floor(Date.now() / 1000),
-        data: images,
+        data: [],
         provider: this.type,
         model,
         request: {
@@ -318,29 +308,58 @@ export class OpenRouterImageProvider extends BaseImageProvider {
           quality: request.quality,
           style: request.style,
         },
+        textContent: textContent.length > 500 ? textContent.substring(0, 500) + '...' : textContent,
       };
-    } catch (error: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const err = error as any;
-      const errorMessage = err.message || 'Unknown error';
-
-      // Re-throw moderation errors as-is
-      if (errorMessage.startsWith('MODERATION_BLOCKED:')) {
-        throw error;
-      }
-
-      if (err.name === 'AbortError') {
-        throw new Error('OpenRouter image generation timed out', { cause: error });
-      }
-
-      orLog.error(`Error generating image: ${errorMessage}`, undefined, {
-        errorName: err.name,
-        rawError: JSON.stringify(err).substring(0, 1000),
-      });
-
-      throw new Error(`Failed to generate image with OpenRouter: ${errorMessage}`, {
-        cause: error,
-      });
     }
+
+    throw new Error('The model did not generate an image and provided no explanation.');
+  }
+
+  private buildSuccessResponse(
+    images: Array<{
+      b64Json?: string;
+      url?: string;
+      mimeType?: string;
+      revisedPrompt?: string;
+      index: number;
+    }>,
+    request: ResolvedImageRequest,
+    model: string
+  ): ImageGenerateResponse {
+    return {
+      created: Math.floor(Date.now() / 1000),
+      data: images,
+      provider: this.type,
+      model,
+      request: {
+        prompt: request.prompt,
+        size: request.size,
+        quality: request.quality,
+        style: request.style,
+      },
+    };
+  }
+
+  private wrapError(error: unknown): Error {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const err = error as any;
+    const errorMessage = err.message || 'Unknown error';
+
+    if (errorMessage.startsWith('MODERATION_BLOCKED:')) {
+      return err;
+    }
+
+    if (err.name === 'AbortError') {
+      return new Error('OpenRouter image generation timed out', { cause: error });
+    }
+
+    orLog.error(`Error generating image: ${errorMessage}`, undefined, {
+      errorName: err.name,
+      rawError: JSON.stringify(err).substring(0, 1000),
+    });
+
+    return new Error(`Failed to generate image with OpenRouter: ${errorMessage}`, {
+      cause: error,
+    });
   }
 }

@@ -482,45 +482,57 @@ export class WorldbuildingService {
 
     // Perform transaction to update all fields
     connection.ydoc.transact(() => {
-      Object.entries(data).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(data)) {
         if (value !== undefined) {
-          if (Array.isArray(value)) {
-            // Handle arrays
-            const yArray = new Y.Array();
-            value.forEach(item => yArray.push([item]));
-            dataMap.set(key, yArray);
-          } else if (typeof value === 'object' && value !== null) {
-            // For nested objects, check if it already exists as a Y.Map
-            let nestedMap = dataMap.get(key) as Y.Map<unknown> | undefined;
-            if (!(nestedMap instanceof Y.Map)) {
-              // Create new Y.Map if it doesn't exist or isn't a Y.Map
-              nestedMap = new Y.Map();
-              dataMap.set(key, nestedMap);
-            }
-            // Update the nested map with new values
-            Object.entries(value as Record<string, unknown>).forEach(
-              ([nestedKey, nestedValue]) => {
-                // Convert nested arrays to Y.Array
-                if (Array.isArray(nestedValue)) {
-                  const yArray = new Y.Array();
-                  nestedValue.forEach(item => yArray.push([item]));
-                  nestedMap.set(nestedKey, yArray);
-                } else {
-                  nestedMap.set(nestedKey, nestedValue);
-                }
-              }
-            );
-          } else {
-            // Handle primitive values
-            dataMap.set(key, value);
-          }
+          this.setYjsValue(dataMap, key, value);
         }
-      });
+      }
 
       // Update lastModified timestamp
       dataMap.set('lastModified', new Date().toISOString());
     });
     // Data is automatically synced via WebSocket and IndexedDB
+  }
+
+  private setYjsValue(
+    dataMap: Y.Map<unknown>,
+    key: string,
+    value: unknown
+  ): void {
+    if (Array.isArray(value)) {
+      const yArray = new Y.Array();
+      value.forEach(item => yArray.push([item]));
+      dataMap.set(key, yArray);
+      return;
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      this.setYjsNestedObject(dataMap, key, value as Record<string, unknown>);
+      return;
+    }
+
+    dataMap.set(key, value);
+  }
+
+  private setYjsNestedObject(
+    dataMap: Y.Map<unknown>,
+    key: string,
+    obj: Record<string, unknown>
+  ): void {
+    let nestedMap = dataMap.get(key) as Y.Map<unknown> | undefined;
+    if (!(nestedMap instanceof Y.Map)) {
+      nestedMap = new Y.Map();
+      dataMap.set(key, nestedMap);
+    }
+    for (const [nestedKey, nestedValue] of Object.entries(obj)) {
+      if (Array.isArray(nestedValue)) {
+        const yArray = new Y.Array();
+        nestedValue.forEach(item => yArray.push([item]));
+        nestedMap.set(nestedKey, yArray);
+      } else {
+        nestedMap.set(nestedKey, nestedValue);
+      }
+    }
   }
 
   /**

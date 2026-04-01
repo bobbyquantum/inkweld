@@ -239,6 +239,8 @@ export class QuickOpenService {
    * @param query - Search query
    * @returns Match result with positions and score, or null if no match
    */
+  private static readonly WORD_BOUNDARY_CHARS = new Set([' ', '/', '_', '-']);
+
   private fuzzyMatch(
     target: string,
     query: string
@@ -255,26 +257,7 @@ export class QuickOpenService {
       while (targetIndex < targetLower.length) {
         if (targetLower[targetIndex] === queryChar) {
           positions.push(targetIndex);
-
-          // Score bonuses
-          if (targetIndex === 0) {
-            score += 10; // Start of string
-          } else if (
-            target[targetIndex - 1] === ' ' ||
-            target[targetIndex - 1] === '/' ||
-            target[targetIndex - 1] === '_' ||
-            target[targetIndex - 1] === '-'
-          ) {
-            score += 8; // Word boundary
-          }
-
-          if (prevMatchIndex !== -1 && targetIndex === prevMatchIndex + 1) {
-            score += 5; // Consecutive match
-          }
-
-          // Prefer matches closer to start
-          score += Math.max(0, 10 - targetIndex);
-
+          score += this.charMatchScore(target, targetIndex, prevMatchIndex);
           prevMatchIndex = targetIndex;
           targetIndex++;
           found = true;
@@ -283,9 +266,7 @@ export class QuickOpenService {
         targetIndex++;
       }
 
-      if (!found) {
-        return null; // Query character not found
-      }
+      if (!found) return null;
     }
 
     // Bonus for exact matches
@@ -296,6 +277,23 @@ export class QuickOpenService {
     }
 
     return { positions, score };
+  }
+
+  private charMatchScore(
+    target: string,
+    index: number,
+    prevMatchIndex: number
+  ): number {
+    let s = Math.max(0, 10 - index); // Prefer matches closer to start
+    if (index === 0) {
+      s += 10;
+    } else if (QuickOpenService.WORD_BOUNDARY_CHARS.has(target[index - 1])) {
+      s += 8;
+    }
+    if (prevMatchIndex !== -1 && index === prevMatchIndex + 1) {
+      s += 5;
+    }
+    return s;
   }
 
   /**

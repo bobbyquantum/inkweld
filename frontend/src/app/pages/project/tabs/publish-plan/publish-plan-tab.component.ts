@@ -515,70 +515,76 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
         }
       );
 
-      // Extract typed values for type narrowing
-      const savedFile: PublishedFile | undefined = result.savedFile;
-      const blob: Blob | undefined = result.blob;
-
-      if (result.success && savedFile && blob) {
-        // Show completion dialog
-        const currentProject = this.projectState.project();
-        if (!currentProject) {
-          throw new Error('No active project');
-        }
-        const projectKey = `${currentProject.username}/${currentProject.slug}`;
-
-        const dialogData: PublishCompleteDialogData = {
-          file: savedFile,
-          projectKey,
-          blob,
-        };
-
-        const dialogRef = this.dialog.open<
-          PublishCompleteDialogComponent,
-          PublishCompleteDialogData,
-          PublishCompleteDialogResult
-        >(PublishCompleteDialogComponent, {
-          data: dialogData,
-          width: '480px',
-          disableClose: false,
-        });
-
-        const dialogResult = await firstValueFrom(dialogRef.afterClosed());
-
-        // Handle dialog action
-        if (dialogResult?.action === 'view-files') {
-          // Navigate to published files tab
-          const parts = projectKey.split('/');
-          void this.router.navigate([
-            '/project',
-            parts[0],
-            parts[1],
-            'tab',
-            'published-files',
-          ]);
-        }
-      } else if (result.success) {
-        // Success but no savedFile (saveFile option was false)
-        const stats = result.stats;
-        const message = stats
-          ? `${plan.format} generated: ${stats.wordCount.toLocaleString()} words, ${stats.chapterCount} chapters`
-          : `${plan.format} generated successfully!`;
-        this.snackBar.open(message, 'OK', { duration: 5000 });
-      } else if (result.cancelled) {
-        this.snackBar.open('Generation cancelled', undefined, {
-          duration: 3000,
-        });
-      } else {
-        this.snackBar.open(`Error: ${result.error}`, 'Dismiss', {
-          duration: 10000,
-        });
-      }
+      this.handlePublishResult(result, plan);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.snackBar.open(`Error: ${message}`, 'Dismiss', { duration: 10000 });
     } finally {
       this.isGenerating.set(false);
     }
+  }
+
+  private handlePublishResult(
+    result: PublishingResult,
+    plan: { format: string; id: string }
+  ): void {
+    const savedFile: PublishedFile | undefined = result.savedFile;
+    const blob: Blob | undefined = result.blob;
+
+    if (result.success && savedFile && blob) {
+      this.showPublishDialog(savedFile, blob);
+    } else if (result.success) {
+      const stats = result.stats;
+      const message = stats
+        ? `${plan.format} generated: ${stats.wordCount.toLocaleString()} words, ${stats.chapterCount} chapters`
+        : `${plan.format} generated successfully!`;
+      this.snackBar.open(message, 'OK', { duration: 5000 });
+    } else if (result.cancelled) {
+      this.snackBar.open('Generation cancelled', undefined, {
+        duration: 3000,
+      });
+    } else {
+      this.snackBar.open(`Error: ${result.error}`, 'Dismiss', {
+        duration: 10000,
+      });
+    }
+  }
+
+  private showPublishDialog(savedFile: PublishedFile, blob: Blob): void {
+    const currentProject = this.projectState.project();
+    if (!currentProject) {
+      throw new Error('No active project');
+    }
+    const projectKey = `${currentProject.username}/${currentProject.slug}`;
+
+    const dialogData: PublishCompleteDialogData = {
+      file: savedFile,
+      projectKey,
+      blob,
+    };
+
+    const dialogRef = this.dialog.open<
+      PublishCompleteDialogComponent,
+      PublishCompleteDialogData,
+      PublishCompleteDialogResult
+    >(PublishCompleteDialogComponent, {
+      data: dialogData,
+      width: '480px',
+      disableClose: false,
+    });
+
+    void firstValueFrom(dialogRef.afterClosed()).then(dialogResult => {
+      if (dialogResult?.action === 'view-files') {
+        const parts = projectKey.split('/');
+        void this.router.navigate([
+          '/project',
+          parts[0],
+          parts[1],
+          'tab',
+          'published-files',
+        ]);
+      }
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
