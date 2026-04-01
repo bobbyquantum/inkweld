@@ -176,25 +176,29 @@ describe('DocumentService', () => {
 
     // Mock window location for WebSocket URL
     // Include reload() to prevent unhandled exceptions from leaked timers
-    Object.defineProperty(globalThis, 'location', {
-      value: {
-        protocol: 'http:',
-        host: 'localhost:4200',
-        reload: () => {},
-        href: 'http://localhost:4200/',
-        origin: 'http://localhost:4200',
-        pathname: '/',
-        search: '',
-        hash: '',
-      },
-      writable: true,
-      configurable: true,
+    // Use vi.stubGlobal so vi.unstubAllGlobals() in global afterEach restores it
+    vi.stubGlobal('location', {
+      protocol: 'http:',
+      host: 'localhost:4200',
+      reload: () => {},
+      href: 'http://localhost:4200/',
+      origin: 'http://localhost:4200',
+      pathname: '/',
+      search: '',
+      hash: '',
     });
   });
 
   afterEach(() => {
-    // Clean up all document connections to prevent memory leaks and async issues
-    service.disconnect();
+    // Clean up all document connections to prevent memory leaks and async issues.
+    // Wrapped in try-catch because with isolate:false, storeState may reference
+    // the real y-indexeddb module (instead of the mock) depending on fork ordering.
+    try {
+      service.disconnect();
+    } catch {
+      // Ignore disconnect errors in cleanup
+    }
+    vi.restoreAllMocks();
   });
 
   describe('Document Connection Management', () => {

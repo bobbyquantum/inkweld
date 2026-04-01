@@ -94,7 +94,7 @@ describe('ProjectRenameMigrationService', () => {
 
   beforeEach(() => {
     // Reset IndexedDB between tests
-    globalThis.indexedDB = new IDBFactory();
+    vi.stubGlobal('indexedDB', new IDBFactory());
 
     TestBed.configureTestingModule({
       providers: [ProjectRenameMigrationService, LoggerService],
@@ -175,7 +175,7 @@ describe('ProjectRenameMigrationService', () => {
       const provider = new IndexeddbPersistence(oldDocId, doc);
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Mock databases() to return the database we created
       vi.spyOn(indexedDB, 'databases').mockResolvedValue([
@@ -202,7 +202,7 @@ describe('ProjectRenameMigrationService', () => {
       const provider = new IndexeddbPersistence(oldDocId, doc);
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Mock databases() to return our database
       vi.spyOn(indexedDB, 'databases').mockResolvedValue([
@@ -270,7 +270,7 @@ describe('ProjectRenameMigrationService', () => {
       const provider = new IndexeddbPersistence(oldDocId, doc);
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Run migration
       const result = await service.migrateProject(
@@ -290,7 +290,7 @@ describe('ProjectRenameMigrationService', () => {
       const emptyDoc = new Y.Doc();
       const provider = new IndexeddbPersistence(oldDocId, emptyDoc);
       await provider.whenSynced;
-      void provider.destroy();
+      await provider.destroy();
 
       // Run migration
       const result = await service.migrateProject(
@@ -322,7 +322,7 @@ describe('ProjectRenameMigrationService', () => {
 
       // Clean up providers before migration
       for (const { provider } of docs) {
-        void provider.destroy();
+        await provider.destroy();
       }
 
       // Run migration
@@ -413,7 +413,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       const result = await service.migrateProject(
         'testuser',
@@ -542,7 +542,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       await service.migrateProject('testuser', 'old-project', 'new-project');
 
@@ -564,7 +564,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       await service.migrateProject('testuser', 'old-project', 'new-project');
 
@@ -658,7 +658,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Run migration - it should find and process the database
       const result = await service.migrateProject(

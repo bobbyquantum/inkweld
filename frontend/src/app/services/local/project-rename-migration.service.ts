@@ -252,7 +252,7 @@ export class ProjectRenameMigrationService {
         'ProjectRenameMigration',
         `Skipping empty document: ${dbName}`
       );
-      void oldProvider.destroy();
+      await oldProvider.destroy();
       return false;
     }
 
@@ -268,8 +268,8 @@ export class ProjectRenameMigrationService {
     await storeState(newProvider, false);
 
     // Cleanup
-    void newProvider.destroy();
-    void oldProvider.destroy();
+    await newProvider.destroy();
+    await oldProvider.destroy();
 
     this.logger.debug(
       'ProjectRenameMigration',

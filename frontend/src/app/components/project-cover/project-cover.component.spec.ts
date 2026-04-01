@@ -90,6 +90,8 @@ describe('ProjectCoverComponent', () => {
 
   afterEach(() => {
     httpTestingController.verify();
+    fixture?.destroy();
+    vi.restoreAllMocks();
   });
 
   it('should create', () => {
