@@ -203,9 +203,9 @@ export const test = base.extend<LocalTestFixtures>({
     await page.getByTestId('create-new-project-menu-item').click();
 
     // Step 1: Template Selection
-    // Wait for template to be selected (defaults to 'empty')
+    // Wait for the wizard dialog to fully render before interacting
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor();
+    await nextButton.waitFor({ timeout: 30_000 });
     await nextButton.click();
 
     // Step 2: Fill in project details

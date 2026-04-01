@@ -6,7 +6,7 @@ import { DocumentsService } from '@inkweld/api/documents.service';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
-import { type IndexeddbPersistence } from 'y-indexeddb';
+import { type IndexeddbPersistence, storeState } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
@@ -702,6 +702,63 @@ describe('DocumentService', () => {
       expect(privateService.syncStatusSignals.has(testDocumentId)).toBe(false);
       expect(privateService.unsyncedChanges.has(testDocumentId)).toBe(false);
       expect(privateService.wordCountSignals.has(testDocumentId)).toBe(false);
+    });
+
+    it('should handle synchronous storeState error on single-document disconnect', () => {
+      const ydoc = new Y.Doc();
+      const provider = {
+        awareness: { setLocalState: vi.fn(), clientID: 123 },
+        disconnect: vi.fn(),
+        destroy: vi.fn(),
+      };
+      const indexeddbProvider = {
+        destroy: vi.fn().mockResolvedValue(undefined),
+      } as unknown as DeepMockProxy<IndexeddbPersistence>;
+      const privateService = service as unknown as {
+        connections: Map<string, unknown>;
+      };
+
+      privateService.connections.set(testDocumentId, {
+        ydoc,
+        provider,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider,
+      });
+
+      // Make storeState throw synchronously
+      vi.mocked(storeState).mockImplementationOnce(() => {
+        throw new Error('Provider already destroyed');
+      });
+
+      // Should not throw — the catch block handles it
+      expect(() => service.disconnect(testDocumentId)).not.toThrow();
+      expect(service.isConnected(testDocumentId)).toBe(false);
+    });
+
+    it('should handle synchronous storeState error on disconnect-all', () => {
+      const ydoc = new Y.Doc();
+      const indexeddbProvider = {
+        destroy: vi.fn().mockResolvedValue(undefined),
+      } as unknown as DeepMockProxy<IndexeddbPersistence>;
+      const privateService = service as unknown as {
+        connections: Map<string, unknown>;
+      };
+
+      privateService.connections.set(testDocumentId, {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider,
+      });
+
+      // Make storeState throw synchronously
+      vi.mocked(storeState).mockImplementationOnce(() => {
+        throw new Error('Provider already destroyed');
+      });
+
+      // Should not throw — the catch block handles it
+      expect(() => service.disconnect()).not.toThrow();
+      expect(service.isConnected(testDocumentId)).toBe(false);
     });
 
     it.skip('should connect websocket in the background and react to status changes', async () => {
