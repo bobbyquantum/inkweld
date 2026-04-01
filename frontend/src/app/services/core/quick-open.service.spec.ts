@@ -170,6 +170,46 @@ describe('QuickOpenService', () => {
       // Should not have added another listener
       expect(secondCallCount).toBe(firstCallCount);
     });
+
+    it('should open on Meta+P when navigator.platform is Mac', () => {
+      const originalPlatform = navigator.platform;
+      Object.defineProperty(navigator, 'platform', {
+        value: 'MacIntel',
+        configurable: true,
+      });
+      service.initialize();
+      const event = new KeyboardEvent('keydown', {
+        key: 'p',
+        metaKey: true,
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      Object.defineProperty(navigator, 'platform', {
+        value: originalPlatform,
+        configurable: true,
+      });
+    });
+
+    it('should open on Ctrl+P when navigator.platform is not Mac', () => {
+      const originalPlatform = navigator.platform;
+      Object.defineProperty(navigator, 'platform', {
+        value: 'Win32',
+        configurable: true,
+      });
+      service.initialize();
+      const event = new KeyboardEvent('keydown', {
+        key: 'p',
+        ctrlKey: true,
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      Object.defineProperty(navigator, 'platform', {
+        value: originalPlatform,
+        configurable: true,
+      });
+    });
   });
 
   describe('dialog management', () => {

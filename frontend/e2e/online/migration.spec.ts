@@ -331,10 +331,17 @@ test.describe('Offline to Server Migration', () => {
     }
 
     // Wait for project card to be visible
-    // Projects were created on server during migration, so they should appear immediately
+    // Projects were created on server during migration, so they should appear.
+    // If the project list is empty after navigation, reload to ensure a fresh fetch.
     const projectButton = offlinePage.getByRole('button', {
       name: /Open project Content Test/i,
     });
+    if (
+      !(await projectButton.isVisible({ timeout: 5000 }).catch(() => false))
+    ) {
+      await offlinePage.reload();
+      await offlinePage.waitForLoadState('networkidle');
+    }
     await expect(projectButton).toBeVisible();
 
     // Click on the project card

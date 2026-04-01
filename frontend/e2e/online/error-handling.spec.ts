@@ -31,7 +31,6 @@ test.describe('Error Handling and Edge Cases', () => {
 
       // Try special characters - should show validation error or server error
       await page.getByTestId('username-input').fill('user@#$%');
-      await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
       await page
         .getByTestId('confirm-password-input')
@@ -49,7 +48,6 @@ test.describe('Error Handling and Edge Cases', () => {
       const veryLongString = 'a'.repeat(500);
 
       await page.getByTestId('username-input').fill(veryLongString);
-      await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
       await page
         .getByTestId('confirm-password-input')
@@ -65,7 +63,6 @@ test.describe('Error Handling and Edge Cases', () => {
       await openRegisterDialog(page);
 
       await page.getByTestId('username-input').fill('user👨‍💻😀');
-      await page.keyboard.press('Tab');
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
       await page
         .getByTestId('confirm-password-input')
