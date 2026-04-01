@@ -92,42 +92,13 @@ export class ElementTreeService {
     const validLevels = new Set<number>();
 
     if (nodeAbove && nodeBelow) {
-      if (nodeAbove.level < nodeBelow.level) {
-        if (nodeAbove.type === ElementType.Folder) {
-          if (nodeBelow.level === nodeAbove.level + 1) {
-            validLevels.add(nodeBelow.level);
-          } else {
-            validLevels.add(nodeAbove.level);
-            validLevels.add(nodeAbove.level + 1);
-          }
-        } else {
-          validLevels.add(nodeBelow.level);
-        }
-      } else if (nodeAbove.level === nodeBelow.level) {
-        validLevels.add(nodeAbove.level);
-        // Also allow dropping inside if above node is a folder
-        if (nodeAbove.type === ElementType.Folder) {
-          validLevels.add(nodeAbove.level + 1);
-        }
-      } else {
-        // Allow all levels between the two nodes
-        for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
-          validLevels.add(level);
-        }
-      }
-    } else if (nodeAbove && !nodeBelow) {
-      // Allow current level and all levels above it
-      for (let level = 0; level <= nodeAbove.level; level++) {
-        validLevels.add(level);
-      }
-      // If above node is a folder, allow one level deeper
-      if (nodeAbove.type === ElementType.Folder) {
-        validLevels.add(nodeAbove.level + 1);
-      }
-    } else if (!nodeAbove && nodeBelow) {
+      this.computeBothNodesLevels(validLevels, nodeAbove, nodeBelow);
+    } else if (nodeAbove) {
+      this.computeAboveOnlyLevels(validLevels, nodeAbove);
+    } else if (nodeBelow) {
       validLevels.add(nodeBelow.level);
     } else {
-      validLevels.add(0); // Root level only if no context
+      validLevels.add(0);
     }
 
     const levels = Array.from(validLevels).sort((a, b) => a - b);
@@ -137,6 +108,46 @@ export class ElementTreeService {
       levels,
       defaultLevel,
     };
+  }
+
+  private computeBothNodesLevels(
+    validLevels: Set<number>,
+    nodeAbove: Element,
+    nodeBelow: Element
+  ): void {
+    if (nodeAbove.level < nodeBelow.level) {
+      if (nodeAbove.type === ElementType.Folder) {
+        if (nodeBelow.level === nodeAbove.level + 1) {
+          validLevels.add(nodeBelow.level);
+        } else {
+          validLevels.add(nodeAbove.level);
+          validLevels.add(nodeAbove.level + 1);
+        }
+      } else {
+        validLevels.add(nodeBelow.level);
+      }
+    } else if (nodeAbove.level === nodeBelow.level) {
+      validLevels.add(nodeAbove.level);
+      if (nodeAbove.type === ElementType.Folder) {
+        validLevels.add(nodeAbove.level + 1);
+      }
+    } else {
+      for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
+        validLevels.add(level);
+      }
+    }
+  }
+
+  private computeAboveOnlyLevels(
+    validLevels: Set<number>,
+    nodeAbove: Element
+  ): void {
+    for (let level = 0; level <= nodeAbove.level; level++) {
+      validLevels.add(level);
+    }
+    if (nodeAbove.type === ElementType.Folder) {
+      validLevels.add(nodeAbove.level + 1);
+    }
   }
 
   /**

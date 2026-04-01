@@ -132,6 +132,45 @@ function parseProjectParam(
   return { project };
 }
 
+/**
+ * Resolve the afterSiblingId for a reorder operation.
+ *
+ * Returns undefined when afterElementId is given but isn't a valid sibling (caller should error).
+ */
+function resolveReorderTarget(
+  elements: Element[],
+  elementId: string,
+  parentId: string | null,
+  afterElementId: string | undefined,
+  position: number | undefined
+): string | null | undefined {
+  // Collect siblings (same parent)
+  const siblings: { element: Element; index: number }[] = [];
+  for (let i = 0; i < elements.length; i++) {
+    const parent = findParentByPosition(elements, i);
+    if ((parent?.id ?? null) === parentId) {
+      siblings.push({ element: elements[i], index: i });
+    }
+  }
+
+  if (afterElementId) {
+    const isSibling = siblings.some((s) => s.element.id === afterElementId);
+    return isSibling ? afterElementId : undefined; // undefined signals "not a sibling"
+  }
+
+  if (position === undefined) return undefined;
+  if (position === 0) return null; // first position
+  if (position === -1 || position >= siblings.length - 1) {
+    const lastSibling = siblings.at(-1)!;
+    return lastSibling.element.id !== elementId ? lastSibling.element.id : undefined;
+  }
+  const siblingBefore = siblings[position - 1];
+  if (siblingBefore && siblingBefore.element.id !== elementId) {
+    return siblingBefore.element.id;
+  }
+  return undefined;
+}
+
 // ============================================
 // create_element tool
 // ============================================
@@ -818,50 +857,25 @@ to a new position among its siblings.`,
       const element = currentElements[elementIndex];
       const parentId = findParentByPosition(currentElements, elementIndex)?.id ?? null;
 
-      // Get siblings (same parent)
-      const siblings: { element: Element; index: number }[] = [];
-      for (let i = 0; i < currentElements.length; i++) {
-        const parent = findParentByPosition(currentElements, i);
-        if ((parent?.id ?? null) === parentId) {
-          siblings.push({ element: currentElements[i], index: i });
-        }
-      }
-
       // Determine the sibling to insert after
-      let insertAfterSiblingId: string | null | undefined;
+      const insertAfterSiblingId = resolveReorderTarget(
+        currentElements,
+        elementId,
+        parentId,
+        afterElementId,
+        position
+      );
 
-      if (afterElementId) {
-        // Validate that afterElementId is a sibling
-        const isSibling = siblings.some((s) => s.element.id === afterElementId);
-        if (!isSibling) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Error: "${afterElementId}" is not a sibling of "${elementId}"`,
-              },
-            ],
-            isError: true,
-          };
-        }
-        insertAfterSiblingId = afterElementId;
-      } else if (position !== undefined) {
-        if (position === 0) {
-          // Move to first position - null signals "insert at start" to moveElement
-          insertAfterSiblingId = null;
-        } else if (position === -1 || position >= siblings.length - 1) {
-          // Move to last position
-          const lastSibling = siblings.at(-1)!;
-          if (lastSibling.element.id !== elementId) {
-            insertAfterSiblingId = lastSibling.element.id;
-          }
-        } else {
-          // Move to specific position
-          const siblingBefore = siblings[position - 1];
-          if (siblingBefore && siblingBefore.element.id !== elementId) {
-            insertAfterSiblingId = siblingBefore.element.id;
-          }
-        }
+      if (insertAfterSiblingId === undefined && afterElementId) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: "${afterElementId}" is not a sibling of "${elementId}"`,
+            },
+          ],
+          isError: true,
+        };
       }
 
       // Use moveElement to reposition within the same parent
@@ -1694,72 +1708,16 @@ registerTool({
       }
 
       // Get document content - we need to read ProseMirror content
-      // This requires runtime-specific handling
-      let xmlContent = '';
-      let wordCount = 0;
-      let worldbuildingData: Record<string, unknown> | null = null;
+      const docContent = await extractSnapshotContent(ctx, username, slug, elementId, element.type);
 
-      if (isCloudflareWorkers(ctx)) {
-        // Cloudflare Workers: use getWorldbuildingDoc which can read document content
-        try {
-          const wbDoc = await getWorldbuildingDoc(ctx, username, slug, elementId);
-          const docData = wbDoc.toJSON();
-
-          // For now, we can't easily get ProseMirror XML on Workers
-          // since it requires XmlFragment parsing.
-          // xmlContent and wordCount keep their initialized defaults.
-
-          // Get worldbuilding data if applicable
-          if (element.type === 'WORLDBUILDING' && Object.keys(docData).length > 0) {
-            worldbuildingData = docData;
-          }
-        } catch (err: unknown) {
-          mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
-        }
-
-        // Skip persisting blank snapshots for ITEM documents on Workers
-        // (no XML/word data can be extracted in this environment)
-        if (element.type === 'ITEM' && !xmlContent && wordCount === 0) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Cannot create snapshot for document "${element.name}" on Cloudflare Workers: content extraction is not supported in this environment.`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      } else {
-        // Bun: use LevelDB service for full access
-        try {
-          const { yjsService } = await import('../../services/yjs.service');
-          const docContentId = `${username}:${slug}:${elementId}/`;
-          const contentDoc = await yjsService.getDocument(docContentId);
-
-          // Get ProseMirror content
-          const xmlFragment = contentDoc.doc.getXmlFragment('prosemirror');
-          xmlContent = xmlFragment.toString();
-
-          // Count words
-          const textContent = extractTextContent(xmlFragment);
-          wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
-
-          // Get worldbuilding data if applicable
-          if (element.type === 'WORLDBUILDING') {
-            const dataMap = contentDoc.doc.getMap('worldbuilding');
-            const data: Record<string, unknown> = {};
-            dataMap.forEach((value, key) => {
-              data[key] = value;
-            });
-            if (Object.keys(data).length > 0) {
-              worldbuildingData = data;
-            }
-          }
-        } catch (err: unknown) {
-          mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
-        }
+      if ('error' in docContent) {
+        return {
+          content: [{ type: 'text', text: docContent.error }],
+          isError: true,
+        };
       }
+
+      const { xmlContent, wordCount, worldbuildingData } = docContent;
 
       // Create snapshot in database
       // Import dynamically to avoid circular dependency
@@ -1812,6 +1770,69 @@ registerTool({
     }
   },
 });
+
+/**
+ * Extract document content for a snapshot, handling Cloudflare vs Bun differences.
+ */
+async function extractSnapshotContent(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  elementType: string
+): Promise<
+  | { xmlContent: string; wordCount: number; worldbuildingData: Record<string, unknown> | null }
+  | { error: string }
+> {
+  let xmlContent = '';
+  let wordCount = 0;
+  let worldbuildingData: Record<string, unknown> | null = null;
+
+  if (isCloudflareWorkers(ctx)) {
+    try {
+      const wbDoc = await getWorldbuildingDoc(ctx, username, slug, elementId);
+      const docData = wbDoc.toJSON();
+      if (elementType === 'WORLDBUILDING' && Object.keys(docData).length > 0) {
+        worldbuildingData = docData;
+      }
+    } catch (err: unknown) {
+      mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+    }
+
+    if (elementType === 'ITEM' && !xmlContent && wordCount === 0) {
+      return {
+        error: `Cannot create snapshot on Cloudflare Workers: content extraction is not supported in this environment.`,
+      };
+    }
+  } else {
+    try {
+      const { yjsService } = await import('../../services/yjs.service');
+      const docContentId = `${username}:${slug}:${elementId}/`;
+      const contentDoc = await yjsService.getDocument(docContentId);
+
+      const xmlFragment = contentDoc.doc.getXmlFragment('prosemirror');
+      xmlContent = xmlFragment.toString();
+
+      const textContent = extractTextContent(xmlFragment);
+      wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
+
+      if (elementType === 'WORLDBUILDING') {
+        const dataMap = contentDoc.doc.getMap('worldbuilding');
+        const data: Record<string, unknown> = {};
+        dataMap.forEach((value, key) => {
+          data[key] = value;
+        });
+        if (Object.keys(data).length > 0) {
+          worldbuildingData = data;
+        }
+      }
+    } catch (err: unknown) {
+      mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+    }
+  }
+
+  return { xmlContent, wordCount, worldbuildingData };
+}
 
 /**
  * Extract plain text from a Yjs XmlFragment

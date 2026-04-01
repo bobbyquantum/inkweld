@@ -25,7 +25,9 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { BackgroundSyncService } from '../local/background-sync.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
+import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
 import { UnifiedProjectService } from '../local/unified-project.service';
 import {
@@ -35,7 +37,7 @@ import {
 } from '../sync/index';
 import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';
-import { TabManagerService } from './tab-manager.service';
+import { type AppTab, TabManagerService } from './tab-manager.service';
 
 /**
  * Creates a mock IElementSyncProvider for testing.
@@ -168,6 +170,8 @@ describe('ProjectStateService', () => {
   let mockRecentFilesService: MockedObject<RecentFilesService>;
   let mockStorageService: MockedObject<StorageService>;
   let mockLoggerService: MockedObject<LoggerService>;
+  let mockProjectSyncService: MockedObject<ProjectSyncService>;
+  let mockBackgroundSyncService: MockedObject<BackgroundSyncService>;
 
   const mockDate = new Date('2025-02-22T22:43:16.240Z');
 
@@ -264,6 +268,15 @@ describe('ProjectStateService', () => {
       group: vi.fn(),
     } as unknown as MockedObject<LoggerService>;
 
+    mockProjectSyncService = {
+      hasPendingCreation: vi.fn().mockReturnValue(false),
+      hasPendingSync: vi.fn().mockReturnValue(false),
+    } as unknown as MockedObject<ProjectSyncService>;
+
+    mockBackgroundSyncService = {
+      syncPendingItems: vi.fn().mockResolvedValue(true),
+    } as unknown as MockedObject<BackgroundSyncService>;
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -284,6 +297,11 @@ describe('ProjectStateService', () => {
         {
           provide: ElementSyncProviderFactory,
           useValue: mockSyncProviderFactory,
+        },
+        { provide: ProjectSyncService, useValue: mockProjectSyncService },
+        {
+          provide: BackgroundSyncService,
+          useValue: mockBackgroundSyncService,
         },
       ],
     });
@@ -885,6 +903,217 @@ describe('ProjectStateService', () => {
       service.deletePublishPlan('nonexistent-id');
 
       expect(closeSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('syncPendingCreation', () => {
+    it('should skip sync when no pending creation', async () => {
+      mockProjectSyncService.hasPendingCreation.mockReturnValue(false);
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(mockBackgroundSyncService.syncPendingItems).not.toHaveBeenCalled();
+    });
+
+    it('should sync pending creation before loading project', async () => {
+      mockProjectSyncService.hasPendingCreation.mockReturnValue(true);
+      mockBackgroundSyncService.syncPendingItems.mockResolvedValue(true);
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(mockBackgroundSyncService.syncPendingItems).toHaveBeenCalled();
+      expect(mockLoggerService.info).toHaveBeenCalledWith(
+        'ProjectState',
+        expect.stringContaining('Successfully synced')
+      );
+    });
+
+    it('should warn but continue when sync partially fails', async () => {
+      mockProjectSyncService.hasPendingCreation.mockReturnValue(true);
+      mockBackgroundSyncService.syncPendingItems.mockResolvedValue(false);
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'ProjectState',
+        expect.stringContaining('partially failed')
+      );
+      // Should still continue loading
+      expect(service.project()).toBeDefined();
+    });
+
+    it('should handle sync error gracefully and continue', async () => {
+      mockProjectSyncService.hasPendingCreation.mockReturnValue(true);
+      mockBackgroundSyncService.syncPendingItems.mockRejectedValue(
+        new Error('Sync failed')
+      );
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(mockLoggerService.error).toHaveBeenCalledWith(
+        'ProjectState',
+        expect.stringContaining('Failed to sync pending creation'),
+        expect.any(Error)
+      );
+      // Should still continue loading
+      expect(service.project()).toBeDefined();
+    });
+  });
+
+  describe('handleOfflineMode', () => {
+    it('should set error when not connected and no project', async () => {
+      mockUnifiedProjectService.getProject.mockRejectedValue(
+        new Error('Server down')
+      );
+      mockSyncProvider.connect.mockResolvedValue({
+        success: false,
+        error: 'Connection failed',
+      });
+      mockSyncProvider.isConnected.mockReturnValue(false);
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(service.error()).toBeTruthy();
+    });
+  });
+
+  describe('restoreOpenedDocumentsFromCache', () => {
+    it('should resolve tab index for system tab URL', async () => {
+      const cachedTabs: AppTab[] = [
+        { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+        { id: 'media-tab', name: 'Media', type: 'system', systemType: 'media' },
+        {
+          id: 'docs-tab',
+          name: 'Documents',
+          type: 'system',
+          systemType: 'documents-list',
+        },
+      ];
+
+      mockStorageService.get
+        .mockResolvedValueOnce(cachedTabs) // tabs cache
+        .mockResolvedValue(null);
+
+      // Mock window.location.pathname to have 'media' as last segment
+      const origPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: '/testuser/test-project/media' },
+        writable: true,
+      });
+
+      await service.loadProject('testuser', 'test-project');
+
+      const tabManager = TestBed.inject(TabManagerService);
+      // Tab at index 1 is the media tab
+      expect(tabManager.selectedTabIndex()).toBe(1);
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: origPathname },
+        writable: true,
+      });
+    });
+
+    it('should resolve tab index for document ID URL', async () => {
+      const docElement: Element = {
+        ...mockElementDto,
+        id: 'doc-123',
+        name: 'Test Doc',
+      };
+      const cachedTabs: AppTab[] = [
+        { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+        {
+          id: 'doc-123',
+          name: 'Test Doc',
+          type: 'document',
+          element: docElement,
+        } as AppTab,
+      ];
+
+      mockStorageService.get
+        .mockResolvedValueOnce(cachedTabs)
+        .mockResolvedValue(null);
+
+      const origPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: {
+          ...window.location,
+          pathname: '/testuser/test-project/doc-123',
+        },
+        writable: true,
+      });
+
+      // Element must exist in elements() for tab validation
+      mockSyncProvider._elementsSubject.next([docElement]);
+
+      await service.loadProject('testuser', 'test-project');
+
+      const tabManager = TestBed.inject(TabManagerService);
+      expect(tabManager.selectedTabIndex()).toBe(1);
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: origPathname },
+        writable: true,
+      });
+    });
+
+    it('should default to index 0 when URL matches project slug', async () => {
+      const cachedTabs: AppTab[] = [
+        { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+        { id: 'media-tab', name: 'Media', type: 'system', systemType: 'media' },
+      ];
+
+      mockStorageService.get
+        .mockResolvedValueOnce(cachedTabs)
+        .mockResolvedValue(null);
+
+      const origPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: {
+          ...window.location,
+          pathname: '/testuser/test-project',
+        },
+        writable: true,
+      });
+
+      await service.loadProject('testuser', 'test-project');
+
+      const tabManager = TestBed.inject(TabManagerService);
+      expect(tabManager.selectedTabIndex()).toBe(0);
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: origPathname },
+        writable: true,
+      });
+    });
+
+    it('should default to index 0 for unknown URL segment', async () => {
+      const cachedTabs: AppTab[] = [
+        { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+        { id: 'media-tab', name: 'Media', type: 'system', systemType: 'media' },
+      ];
+
+      mockStorageService.get
+        .mockResolvedValueOnce(cachedTabs)
+        .mockResolvedValue(null);
+
+      const origPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: {
+          ...window.location,
+          pathname: '/testuser/test-project/nonexistent-id',
+        },
+        writable: true,
+      });
+
+      await service.loadProject('testuser', 'test-project');
+
+      const tabManager = TestBed.inject(TabManagerService);
+      expect(tabManager.selectedTabIndex()).toBe(0);
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: origPathname },
+        writable: true,
+      });
     });
   });
 });

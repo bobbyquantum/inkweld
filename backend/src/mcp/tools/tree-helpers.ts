@@ -172,49 +172,19 @@ export function insertElement(
   const result = [...elements];
 
   // Determine level and insertion index
-  let insertIndex: number;
   let level: number;
 
   if (parentId === null) {
-    // Insert at root level
     level = 0;
-
-    if (afterSiblingId) {
-      // Find the sibling and insert after its subtree
-      const siblingIndex = result.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex === -1) {
-        insertIndex = result.length; // Fallback: append
-      } else {
-        insertIndex = getSubtreeEndIndex(result, siblingIndex);
-      }
-    } else {
-      // Insert at the end of root elements
-      insertIndex = result.length;
-    }
   } else {
-    // Find parent
     const parentIndex = result.findIndex((e) => e.id === parentId);
     if (parentIndex === -1) {
       throw new Error(`Parent element "${parentId}" not found`);
     }
-
-    const parent = result[parentIndex];
-    level = parent.level + 1;
-
-    if (afterSiblingId) {
-      // Insert after specific sibling
-      const siblingIndex = result.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex === -1 || siblingIndex <= parentIndex) {
-        // Sibling not found or not under this parent - insert at end of parent's children
-        insertIndex = getSubtreeEndIndex(result, parentIndex);
-      } else {
-        insertIndex = getSubtreeEndIndex(result, siblingIndex);
-      }
-    } else {
-      // Insert at the end of parent's subtree
-      insertIndex = getSubtreeEndIndex(result, parentIndex);
-    }
+    level = result[parentIndex].level + 1;
   }
+
+  const insertIndex = findInsertionPoint(result, parentId, afterSiblingId);
 
   // Create the element with correct properties
   const elementToInsert: Element = {
@@ -229,6 +199,39 @@ export function insertElement(
 
   // Normalize orders
   return normalizeElements(result);
+}
+
+/**
+ * Find the correct insertion point in the elements array for a given parent and sibling.
+ */
+function findInsertionPoint(
+  elements: Element[],
+  parentId: string | null,
+  afterSiblingId?: string | null
+): number {
+  if (parentId === null) {
+    if (afterSiblingId) {
+      const siblingIndex = elements.findIndex((e) => e.id === afterSiblingId);
+      return siblingIndex === -1 ? elements.length : getSubtreeEndIndex(elements, siblingIndex);
+    }
+    if (afterSiblingId === null) return 0;
+    return elements.length;
+  }
+
+  const parentIndex = elements.findIndex((e) => e.id === parentId);
+  if (parentIndex === -1) {
+    throw new Error(`Parent "${parentId}" not found`);
+  }
+
+  if (afterSiblingId) {
+    const siblingIndex = elements.findIndex((e) => e.id === afterSiblingId);
+    if (siblingIndex === -1 || siblingIndex <= parentIndex) {
+      return getSubtreeEndIndex(elements, parentIndex);
+    }
+    return getSubtreeEndIndex(elements, siblingIndex);
+  }
+  if (afterSiblingId === null) return parentIndex + 1;
+  return getSubtreeEndIndex(elements, parentIndex);
 }
 
 /**
@@ -309,42 +312,7 @@ export function moveElement(
   const withoutSubtree = elements.filter((e) => !subtree.includes(e));
 
   // Find insertion point
-  let insertIndex: number;
-
-  if (newParentId === null) {
-    if (afterSiblingId) {
-      const siblingIndex = withoutSubtree.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex === -1) {
-        insertIndex = withoutSubtree.length;
-      } else {
-        insertIndex = getSubtreeEndIndex(withoutSubtree, siblingIndex);
-      }
-    } else if (afterSiblingId === null) {
-      // Explicitly null: insert at start (position 0 among roots)
-      insertIndex = 0;
-    } else {
-      insertIndex = withoutSubtree.length;
-    }
-  } else {
-    const parentIndex = withoutSubtree.findIndex((e) => e.id === newParentId);
-    if (parentIndex === -1) {
-      throw new Error(`New parent "${newParentId}" not found after subtree removal`);
-    }
-
-    if (afterSiblingId) {
-      const siblingIndex = withoutSubtree.findIndex((e) => e.id === afterSiblingId);
-      if (siblingIndex === -1 || siblingIndex <= parentIndex) {
-        insertIndex = getSubtreeEndIndex(withoutSubtree, parentIndex);
-      } else {
-        insertIndex = getSubtreeEndIndex(withoutSubtree, siblingIndex);
-      }
-    } else if (afterSiblingId === null) {
-      // Explicitly null: insert as first child of parent
-      insertIndex = parentIndex + 1;
-    } else {
-      insertIndex = getSubtreeEndIndex(withoutSubtree, parentIndex);
-    }
-  }
+  const insertIndex = findInsertionPoint(withoutSubtree, newParentId, afterSiblingId);
 
   // Insert adjusted subtree
   const result = [
@@ -539,14 +507,8 @@ export function treeToText(elements: Element[]): string {
       const isLast = i === nodes.length - 1;
       const prefix = isLast ? '└── ' : '├── ';
 
-      const typeIcon =
-        node.type === 'FOLDER'
-          ? '📁'
-          : node.type === 'ITEM'
-            ? '📄'
-            : node.type === 'WORLDBUILDING'
-              ? '📦'
-              : '📋';
+      const TYPE_ICONS: Record<string, string> = { FOLDER: '📁', ITEM: '📄', WORLDBUILDING: '📦' };
+      const typeIcon = TYPE_ICONS[node.type] ?? '📋';
 
       text += `${indent}${prefix}${typeIcon} ${node.name} (${node.id})\n`;
 
