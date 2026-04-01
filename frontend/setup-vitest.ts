@@ -260,18 +260,17 @@ vi.mock('@bobbyquantum/ngx-editor', () => {
     };
     update = new Subject();
     destroy = () => {};
-    constructor() {}
   }
 
   return {
     Editor: MockEditor,
     Toolbar: Array,
-    NgxEditorModule: class {},
-    NgxEditorComponent: class {},
-    NgxEditorMenuComponent: class {},
-    NgxEditorFloatingMenuComponent: class {},
-    NgxEditorService: class {},
-    ImageViewComponent: class {},
+    NgxEditorModule: class NgxEditorModule {},
+    NgxEditorComponent: class NgxEditorComponent {},
+    NgxEditorMenuComponent: class NgxEditorMenuComponent {},
+    NgxEditorFloatingMenuComponent: class NgxEditorFloatingMenuComponent {},
+    NgxEditorService: class NgxEditorService {},
+    ImageViewComponent: class ImageViewComponent {},
     DEFAULT_TOOLBAR: [],
     TOOLBAR_FULL: [],
     TOOLBAR_MINIMAL: [],

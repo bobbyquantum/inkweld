@@ -57,8 +57,8 @@ export class QuickOpenService {
     }
 
     this.keydownListener = (event: KeyboardEvent) => {
-      // Check for Cmd/Ctrl + P
-      const isMac = /mac/i.test(navigator.userAgent);
+      // Check for Cmd/Ctrl + P (use navigator.platform to match ProseMirror's detection)
+      const isMac = /Mac|iP(hone|[oa]d)/.test(navigator.platform);
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 
       if (modifierKey && event.key.toLowerCase() === 'p') {

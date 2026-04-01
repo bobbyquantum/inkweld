@@ -12,7 +12,10 @@
 import { type Page } from '@playwright/test';
 import { join } from 'path';
 
-import { createProjectWithTwoSteps } from '../common/test-helpers';
+import {
+  createProjectWithTwoSteps,
+  pressShortcut,
+} from '../common/test-helpers';
 import { test } from './fixtures';
 import {
   captureElementScreenshot,
@@ -82,8 +85,7 @@ test.describe('Quick Open Screenshots', () => {
       await setupProjectWithDocuments(page, 'quick-open-demo-1', 'My Novel');
 
       // Open Quick Open with keyboard shortcut
-      const isMac = process.platform === 'darwin';
-      await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+      await pressShortcut(page, 'p');
 
       // Wait for dialog to appear
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {
@@ -111,8 +113,7 @@ test.describe('Quick Open Screenshots', () => {
       await setupProjectWithDocuments(page, 'quick-open-demo-2', 'My Novel');
 
       // Open Quick Open
-      const isMac = process.platform === 'darwin';
-      await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+      await pressShortcut(page, 'p');
 
       // Wait for dialog
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {
@@ -144,8 +145,7 @@ test.describe('Quick Open Screenshots', () => {
       await setupProjectWithDocuments(page, 'quick-open-demo-3', 'My Novel');
 
       // Open Quick Open
-      const isMac = process.platform === 'darwin';
-      await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+      await pressShortcut(page, 'p');
 
       // Wait for dialog
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {
@@ -174,8 +174,7 @@ test.describe('Quick Open Screenshots', () => {
       await setupProjectWithDocuments(page, 'quick-open-demo-4', 'My Novel');
 
       // Open Quick Open
-      const isMac = process.platform === 'darwin';
-      await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+      await pressShortcut(page, 'p');
 
       // Wait for dialog
       await page.waitForSelector('[data-testid="quick-open-dialog"]', {

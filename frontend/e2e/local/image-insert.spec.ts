@@ -4,6 +4,7 @@
  * Tests that verify image insertion functionality works correctly,
  * including the toolbar button, paste functionality, and keyboard shortcut.
  */
+import { pressShortcut } from '../common';
 import { expect, test } from './fixtures';
 
 /**
@@ -244,10 +245,7 @@ test.describe('Image Insert', () => {
       await expect(editor).toBeFocused();
 
       // Press keyboard shortcut (Meta on macOS, Control on Windows/Linux)
-      const isMac = process.platform === 'darwin';
-      await page.keyboard.press(
-        isMac ? 'Meta+Shift+KeyI' : 'Control+Shift+KeyI'
-      );
+      await pressShortcut(page, 'Shift+KeyI');
 
       // Dialog should open
       await expect(page.getByRole('dialog')).toBeVisible();

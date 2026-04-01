@@ -4,6 +4,7 @@
  * Tests that verify the find and replace functionality (Cmd/Ctrl + F)
  * works correctly for searching and replacing text within documents.
  */
+import { pressShortcut } from '../common';
 import { expect, test } from './fixtures';
 
 test.describe('Find in Document', () => {
@@ -37,8 +38,7 @@ test.describe('Find in Document', () => {
     await editor.click();
 
     // Press Cmd/Ctrl + F to open find bar
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
 
     // Find bar should appear
     await expect(page.getByTestId('find-bar')).toBeVisible();
@@ -71,8 +71,7 @@ test.describe('Find in Document', () => {
     await editor.click();
 
     // Open find bar
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     await expect(page.getByTestId('find-bar')).toBeVisible();
 
     // Press Escape to close
@@ -110,8 +109,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     await expect(page.getByTestId('find-bar')).toBeVisible();
 
     // Type search query
@@ -152,8 +150,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar and search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     const findInput = page.getByTestId('find-input');
     await findInput.fill('test');
     await page.waitForTimeout(200);
@@ -200,8 +197,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar and search for non-existent text
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     const findInput = page.getByTestId('find-input');
     await findInput.fill('xyz123');
     await page.waitForTimeout(200);
@@ -235,8 +231,7 @@ test.describe('Find in Document', () => {
     await editor.click();
 
     // Open find bar
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     await expect(page.getByTestId('find-bar')).toBeVisible();
 
     // Click close button
@@ -272,8 +267,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar and search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     const findInput = page.getByTestId('find-input');
     await findInput.fill('find');
     await page.waitForTimeout(200);
@@ -314,8 +308,7 @@ test.describe('Find in Document', () => {
     await editor.click();
 
     // Open find bar
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     await expect(page.getByTestId('find-bar')).toBeVisible();
 
     // Replace bar should not be visible initially
@@ -359,8 +352,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar and search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     const findInput = page.getByTestId('find-input');
     await findInput.fill('cat');
     await page.waitForTimeout(200);
@@ -412,8 +404,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar and search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     const findInput = page.getByTestId('find-input');
     await findInput.fill('foo');
     await page.waitForTimeout(200);
@@ -467,8 +458,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar and search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     const findInput = page.getByTestId('find-input');
     await findInput.fill('apple');
     await page.waitForTimeout(200);
@@ -515,8 +505,7 @@ test.describe('Find in Document', () => {
     await page.waitForTimeout(300);
 
     // Open find bar and search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     const findInput = page.getByTestId('find-input');
     await findInput.fill('red');
     await page.waitForTimeout(200);
@@ -564,8 +553,7 @@ test.describe('Find in Document', () => {
     await editor.click();
 
     // Open find bar
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+f' : 'Control+f');
+    await pressShortcut(page, 'f');
     await expect(page.getByTestId('find-bar')).toBeVisible();
 
     // Open replace mode
