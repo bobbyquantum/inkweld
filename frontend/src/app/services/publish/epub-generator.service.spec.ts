@@ -22,28 +22,10 @@ import {
   type EpubResult,
 } from './epub-generator.service';
 
-// Mock JSZip - epub generator uses file() and generateAsync() methods
-vi.mock('@progress/jszip-esm', () => {
-  return {
-    default: class MockJSZip {
-      private readonly files: Map<string, string | Blob> = new Map();
-
-      file(path: string, content: string | Blob): this {
-        this.files.set(path, content);
-        return this;
-      }
-
-      generateAsync(_options: {
-        type: string;
-        mimeType?: string;
-      }): Promise<Blob> {
-        return Promise.resolve(
-          new Blob(['epub content'], { type: 'application/epub+zip' })
-        );
-      }
-    },
-  };
-});
+// Uses real JSZip (same as project-export and project-import specs).
+// Avoids vi.mock('@progress/jszip-esm') which intermittently fails with
+// "Cannot read properties of undefined (reading 'trim')" in Angular's
+// vitest-mock-patch when isolate: false shares module cache across files.
 
 describe('EpubGeneratorService', () => {
   let service: EpubGeneratorService;
@@ -1021,6 +1003,65 @@ describe('EpubGeneratorService', () => {
       };
 
       const result = await service.generateEpub(planWithCover);
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('MARK_TAGS rendering', () => {
+    it('should apply bold mark tags to ProseMirror text nodes', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Bold text',
+              marks: [{ type: 'bold' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should apply multiple mark tags to a single text node', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Bold italic text',
+              marks: [{ type: 'bold' }, { type: 'italic' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should skip unknown mark types gracefully', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Styled text',
+              marks: [{ type: 'unknown-mark' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
 
       expect(result.success).toBe(true);
     });

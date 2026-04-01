@@ -383,18 +383,7 @@ export class LocalSnapshotService {
         const prefix = `${projectKey}:`;
         const toDelete = all.filter(s => s.id.startsWith(prefix));
 
-        // Delete each matching snapshot
-        const deletePromises = toDelete.map(
-          s =>
-            new Promise<void>((res, rej) => {
-              const deleteReq = store.delete(s.id);
-              deleteReq.onsuccess = () => res();
-              deleteReq.onerror = () =>
-                rej(new Error(deleteReq.error?.message ?? 'Delete failed'));
-            })
-        );
-
-        Promise.all(deletePromises)
+        this.deleteSnapshots(store, toDelete)
           .then(() => {
             this.logger.debug(
               'LocalSnapshot',
@@ -411,6 +400,23 @@ export class LocalSnapshotService {
       transaction.onerror = () =>
         reject(new Error(transaction.error?.message ?? 'Transaction failed'));
     });
+  }
+
+  private deleteSnapshots(
+    store: IDBObjectStore,
+    snapshots: StoredSnapshot[]
+  ): Promise<void[]> {
+    return Promise.all(
+      snapshots.map(
+        s =>
+          new Promise<void>((res, rej) => {
+            const deleteReq = store.delete(s.id);
+            deleteReq.onsuccess = () => res();
+            deleteReq.onerror = () =>
+              rej(new Error(deleteReq.error?.message ?? 'Delete failed'));
+          })
+      )
+    );
   }
 
   /**

@@ -615,18 +615,18 @@ export class EpubGeneratorService {
       // Handle marks (bold, italic, etc.)
       const marks = this.getMarks(node);
       let result = text;
+      const MARK_TAGS: Record<string, [string, string]> = {
+        bold: ['<strong>', '</strong>'],
+        strong: ['<strong>', '</strong>'],
+        italic: ['<em>', '</em>'],
+        em: ['<em>', '</em>'],
+        underline: ['<u>', '</u>'],
+        strike: ['<s>', '</s>'],
+        code: ['<code>', '</code>'],
+      };
       for (const mark of marks) {
-        if (mark === 'bold' || mark === 'strong') {
-          result = `<strong>${result}</strong>`;
-        } else if (mark === 'italic' || mark === 'em') {
-          result = `<em>${result}</em>`;
-        } else if (mark === 'underline') {
-          result = `<u>${result}</u>`;
-        } else if (mark === 'strike') {
-          result = `<s>${result}</s>`;
-        } else if (mark === 'code') {
-          result = `<code>${result}</code>`;
-        }
+        const tag = MARK_TAGS[mark];
+        if (tag) result = `${tag[0]}${result}${tag[1]}`;
       }
       return result;
     }

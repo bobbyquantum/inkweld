@@ -353,33 +353,41 @@ export class MediaImageNodeView {
       return;
     }
 
-    // Check if it's a media URL
-    if (isMediaUrl(src)) {
-      const mediaId = extractMediaId(src);
-      if (mediaId) {
-        try {
-          const blobUrl = await this.options.getImageUrl(mediaId);
-          if (!this.destroyed && blobUrl) {
-            this.img.src = blobUrl;
-          } else if (!this.destroyed) {
-            // Show a placeholder or error indicator
-            this.img.alt = 'Image not found';
-            this.img.style.opacity = '0.5';
-          }
-        } catch (error) {
-          console.error(
-            '[MediaImageNodeView] Failed to resolve media URL:',
-            error
-          );
-          if (!this.destroyed) {
-            this.img.alt = 'Failed to load image';
-            this.img.style.opacity = '0.5';
-          }
-        }
-      }
-    } else {
-      // Use the src directly (for http:// URLs, data: URLs, etc.)
+    // Non-media URLs (http://, data:, etc.) — use directly
+    if (!isMediaUrl(src)) {
       this.img.src = src;
+      return;
+    }
+
+    const mediaId = extractMediaId(src);
+    if (!mediaId) return;
+
+    await this.resolveMediaImage(mediaId);
+  }
+
+  private async resolveMediaImage(mediaId: string): Promise<void> {
+    try {
+      const blobUrl = await this.options.getImageUrl(mediaId);
+      if (this.destroyed) return;
+      if (blobUrl) {
+        this.img.src = blobUrl;
+        this.img.style.opacity = '';
+        if (
+          this.img.alt === 'Image not found' ||
+          this.img.alt === 'Failed to load image'
+        ) {
+          this.img.alt = '';
+        }
+      } else {
+        this.img.alt = 'Image not found';
+        this.img.style.opacity = '0.5';
+      }
+    } catch (error) {
+      console.error('[MediaImageNodeView] Failed to resolve media URL:', error);
+      if (!this.destroyed) {
+        this.img.alt = 'Failed to load image';
+        this.img.style.opacity = '0.5';
+      }
     }
   }
 

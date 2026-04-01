@@ -450,58 +450,64 @@ export class DocumentService {
    */
   private domNodeToYjsNode(node: Node): Y.XmlElement | Y.XmlText | null {
     if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent || '';
-      if (text.trim() === '' && text !== ' ') {
-        // Skip whitespace-only text nodes (but preserve single spaces)
-        return null;
-      }
-      const yText = new Y.XmlText();
-      yText.insert(0, text);
-      return yText;
+      return this.textNodeToYjs(node);
     }
 
     if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as Element;
-      // Keep the original case of node names - ProseMirror schema uses camelCase (e.g., elementRef)
-      const yElement = new Y.XmlElement(element.nodeName);
-
-      // Copy all attributes from the DOM element
-      for (const attr of Array.from(element.attributes)) {
-        // Parse attribute values that might be JSON
-        let value: string | number | boolean | object = attr.value;
-        try {
-          // Try to parse as JSON for complex values (like objects)
-          const parsed = JSON.parse(attr.value) as unknown;
-          if (
-            typeof parsed === 'object' ||
-            typeof parsed === 'number' ||
-            typeof parsed === 'boolean'
-          ) {
-            value = parsed as string | number | boolean | object;
-          }
-        } catch {
-          // Keep as string if not valid JSON
-        }
-        yElement.setAttribute(attr.name, value as string);
-      }
-
-      // Recursively process children
-      const children: (Y.XmlElement | Y.XmlText)[] = [];
-      for (let i = 0; i < element.childNodes.length; i++) {
-        const childNode = this.domNodeToYjsNode(element.childNodes[i]);
-        if (childNode) {
-          children.push(childNode);
-        }
-      }
-
-      if (children.length > 0) {
-        yElement.insert(0, children);
-      }
-
-      return yElement;
+      return this.elementNodeToYjs(node as Element);
     }
 
     return null;
+  }
+
+  private textNodeToYjs(node: Node): Y.XmlText | null {
+    const text = node.textContent || '';
+    if (text.trim() === '' && text !== ' ') {
+      return null;
+    }
+    const yText = new Y.XmlText();
+    yText.insert(0, text);
+    return yText;
+  }
+
+  private elementNodeToYjs(element: Element): Y.XmlElement {
+    const yElement = new Y.XmlElement(element.nodeName);
+
+    // Copy all attributes, parsing JSON values
+    for (const attr of Array.from(element.attributes)) {
+      yElement.setAttribute(attr.name, this.parseAttrValue(attr.value));
+    }
+
+    // Recursively process children
+    const children: (Y.XmlElement | Y.XmlText)[] = [];
+    for (const child of Array.from(element.childNodes)) {
+      const childNode = this.domNodeToYjsNode(child);
+      if (childNode) {
+        children.push(childNode);
+      }
+    }
+
+    if (children.length > 0) {
+      yElement.insert(0, children);
+    }
+
+    return yElement;
+  }
+
+  private parseAttrValue(raw: string): string {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (
+        typeof parsed === 'object' ||
+        typeof parsed === 'number' ||
+        typeof parsed === 'boolean'
+      ) {
+        return parsed as unknown as string;
+      }
+    } catch {
+      // Keep as string if not valid JSON
+    }
+    return raw;
   }
 
   /**
@@ -1272,140 +1278,133 @@ export class DocumentService {
    */
   disconnect(documentId?: string) {
     if (documentId) {
-      // Disconnect specific document
-      const connection = this.connections.get(documentId);
-      if (connection) {
-        this.logger.info('DocumentService', `Disconnecting from ${documentId}`);
-
-        // Cancel any pending reconnect attempts
-        const reconnectTimeout = this.reconnectTimeouts.get(documentId);
-        if (reconnectTimeout) {
-          clearTimeout(reconnectTimeout);
-          this.reconnectTimeouts.delete(documentId);
-        }
-
-        // Clean up media observer
-        const mediaObserver = (
-          connection as unknown as { mediaObserver?: MutationObserver }
-        ).mediaObserver;
-        if (mediaObserver) {
-          mediaObserver.disconnect();
-          this.logger.debug(
-            'DocumentService',
-            `Media observer disconnected for ${documentId}`
-          );
-        }
-
-        // Remove from connections map FIRST to prevent reconnection
-        this.connections.delete(documentId);
-
-        // Clean up providers and document
-        // Order: Clear awareness → WebSocket disconnect → destroy providers → destroy doc
-        if (connection.provider) {
-          try {
-            // Clear local awareness state to remove cursor from other users' views
-            const clientID = connection.provider.awareness.clientID;
-            this.logger.debug(
-              'DocumentService',
-              `Clearing awareness for clientID ${clientID} on disconnect`
-            );
-            connection.provider.awareness.setLocalState(null);
-            connection.provider.disconnect();
-            connection.provider.destroy();
-          } catch (error) {
-            this.logger.warn(
-              'DocumentService',
-              `Error cleaning up WebSocket provider for ${documentId}`,
-              error
-            );
-          }
-        }
-
-        // IMPORTANT: Flush any pending writes before destroying
-        // y-indexeddb debounces writes, and destroy() cancels pending writes
-        // without flushing them. This ensures all edits are persisted.
-        // Note: We use void to fire-and-forget since disconnect() is sync,
-        // but the data will still be saved before destroy() runs.
-        void storeState(connection.indexeddbProvider, true)
-          .then(() => connection.indexeddbProvider.destroy())
-          .catch(error => {
-            this.logger.warn(
-              'DocumentService',
-              `Error flushing/destroying IndexedDB provider for ${documentId}`,
-              error
-            );
-          });
-
-        try {
-          connection.ydoc.destroy();
-        } catch (error) {
-          this.logger.warn(
-            'DocumentService',
-            `Error destroying Yjs doc for ${documentId}`,
-            error
-          );
-        }
-
-        // Clean up sync state
-        this.syncStatusSignals.delete(documentId);
-        this.unsyncedChanges.delete(documentId);
-        this.wordCountSignals.delete(documentId);
-      }
+      this.disconnectSingle(documentId);
     } else {
-      // Disconnect all documents
-      this.logger.info('DocumentService', 'Disconnecting from all documents');
+      this.disconnectAll();
+    }
+  }
 
-      // Cancel all pending reconnects
-      for (const timeout of this.reconnectTimeouts.values()) {
-        clearTimeout(timeout);
-      }
-      this.reconnectTimeouts.clear();
+  private disconnectSingle(documentId: string): void {
+    const connection = this.connections.get(documentId);
+    if (!connection) return;
 
-      // Clear connections map first to prevent reconnections
-      const connectionsToClose = Array.from(this.connections.entries());
-      this.connections.clear();
+    this.logger.info('DocumentService', `Disconnecting from ${documentId}`);
 
-      for (const [docId, connection] of connectionsToClose) {
-        // Clean up in reverse order: doc first, then providers
+    // Cancel any pending reconnect attempts
+    const reconnectTimeout = this.reconnectTimeouts.get(documentId);
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      this.reconnectTimeouts.delete(documentId);
+    }
+
+    // Clean up media observer
+    const mediaObserver = (
+      connection as unknown as { mediaObserver?: MutationObserver }
+    ).mediaObserver;
+    if (mediaObserver) {
+      mediaObserver.disconnect();
+      this.logger.debug(
+        'DocumentService',
+        `Media observer disconnected for ${documentId}`
+      );
+    }
+
+    // Remove from connections map FIRST to prevent reconnection
+    this.connections.delete(documentId);
+
+    this.cleanupProviders(documentId, connection);
+    this.cleanupSyncState(documentId);
+  }
+
+  private disconnectAll(): void {
+    this.logger.info('DocumentService', 'Disconnecting from all documents');
+
+    // Cancel all pending reconnects
+    for (const timeout of this.reconnectTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.reconnectTimeouts.clear();
+
+    // Clear connections map first to prevent reconnections
+    const connectionsToClose = Array.from(this.connections.entries());
+    this.connections.clear();
+
+    for (const [docId, connection] of connectionsToClose) {
+      if (connection.provider) {
         try {
-          connection.ydoc.destroy();
+          connection.provider.destroy();
         } catch (error) {
           this.logger.warn(
             'DocumentService',
-            `Error destroying Yjs doc for ${docId}`,
+            `Error destroying provider for ${docId}`,
             error
           );
         }
-
-        // IMPORTANT: Flush pending writes before destroying IndexedDB provider
-        void storeState(connection.indexeddbProvider, true)
-          .then(() => connection.indexeddbProvider.destroy())
-          .catch(error => {
-            this.logger.warn(
-              'DocumentService',
-              `Error flushing/destroying IndexedDB provider for ${docId}`,
-              error
-            );
-          });
-
-        if (connection.provider) {
-          try {
-            connection.provider.destroy();
-          } catch (error) {
-            this.logger.warn(
-              'DocumentService',
-              `Error destroying provider for ${docId}`,
-              error
-            );
-          }
-        }
-
-        this.syncStatusSignals.delete(docId);
-        this.unsyncedChanges.delete(docId);
-        this.wordCountSignals.delete(docId);
       }
-      // Connections map already cleared above
+
+      void storeState(connection.indexeddbProvider, true)
+        .then(() => connection.indexeddbProvider.destroy())
+        .then(() => connection.ydoc.destroy())
+        .catch(error => {
+          this.logger.warn(
+            'DocumentService',
+            `Error flushing/destroying IndexedDB or Yjs doc for ${docId}`,
+            error
+          );
+        });
+
+      this.cleanupSyncState(docId);
     }
+  }
+
+  private cleanupProviders(
+    documentId: string,
+    connection: DocumentConnection
+  ): void {
+    if (connection.provider) {
+      try {
+        const clientID = connection.provider.awareness.clientID;
+        this.logger.debug(
+          'DocumentService',
+          `Clearing awareness for clientID ${clientID} on disconnect`
+        );
+        connection.provider.awareness.setLocalState(null);
+        connection.provider.disconnect();
+        connection.provider.destroy();
+      } catch (error) {
+        this.logger.warn(
+          'DocumentService',
+          `Error cleaning up WebSocket provider for ${documentId}`,
+          error
+        );
+      }
+    }
+
+    void storeState(connection.indexeddbProvider, true)
+      .then(() => connection.indexeddbProvider.destroy())
+      .catch(error => {
+        this.logger.warn(
+          'DocumentService',
+          `Error flushing/destroying IndexedDB provider for ${documentId}`,
+          error
+        );
+      });
+
+    try {
+      connection.ydoc.destroy();
+    } catch (error) {
+      this.logger.warn(
+        'DocumentService',
+        `Error destroying Yjs doc for ${documentId}`,
+        error
+      );
+    }
+  }
+
+  private cleanupSyncState(documentId: string): void {
+    this.syncStatusSignals.delete(documentId);
+    this.unsyncedChanges.delete(documentId);
+    this.wordCountSignals.delete(documentId);
   }
 
   /**
@@ -1591,31 +1590,7 @@ export class DocumentService {
 
     // Set up MutationObserver to handle dynamically added images
     const observer = new MutationObserver(mutations => {
-      for (const mutation of mutations) {
-        // Check added nodes
-        for (const node of mutation.addedNodes) {
-          if (node instanceof HTMLImageElement && isMediaUrl(node.src)) {
-            setTimeout(() => resolveImageSrcSync(node), 0);
-          } else if (node instanceof HTMLElement) {
-            const imgs =
-              node.querySelectorAll<HTMLImageElement>('img[src^="media:"]');
-            for (const img of imgs) {
-              setTimeout(() => resolveImageSrcSync(img), 0);
-            }
-          }
-        }
-        // Check attribute changes on images
-        if (
-          mutation.type === 'attributes' &&
-          mutation.attributeName === 'src' &&
-          mutation.target instanceof HTMLImageElement
-        ) {
-          const img = mutation.target;
-          if (isMediaUrl(img.src)) {
-            setTimeout(() => resolveImageSrcSync(img), 0);
-          }
-        }
-      }
+      this.handleMediaMutations(mutations, resolveImageSrcSync);
     });
 
     observer.observe(view.dom, {
@@ -1638,6 +1613,50 @@ export class DocumentService {
       'DocumentService',
       `Media URL observer started for ${documentId}`
     );
+  }
+
+  private handleMediaMutations(
+    mutations: MutationRecord[],
+    resolveImg: (img: HTMLImageElement) => void
+  ): void {
+    for (const mutation of mutations) {
+      this.processAddedNodes(mutation.addedNodes, resolveImg);
+      this.processAttributeChange(mutation, resolveImg);
+    }
+  }
+
+  private processAddedNodes(
+    nodes: NodeList,
+    resolveImg: (img: HTMLImageElement) => void
+  ): void {
+    for (const node of nodes) {
+      if (node instanceof HTMLImageElement && isMediaUrl(node.src)) {
+        setTimeout(() => resolveImg(node), 0);
+      } else if (node instanceof HTMLElement) {
+        const imgs =
+          node.querySelectorAll<HTMLImageElement>('img[src^="media:"]');
+        for (const img of imgs) {
+          setTimeout(() => resolveImg(img), 0);
+        }
+      }
+    }
+  }
+
+  private processAttributeChange(
+    mutation: MutationRecord,
+    resolveImg: (img: HTMLImageElement) => void
+  ): void {
+    if (
+      mutation.type !== 'attributes' ||
+      mutation.attributeName !== 'src' ||
+      !(mutation.target instanceof HTMLImageElement)
+    ) {
+      return;
+    }
+    const img = mutation.target;
+    if (isMediaUrl(img.src)) {
+      setTimeout(() => resolveImg(img), 0);
+    }
   }
 
   /**
@@ -1727,27 +1746,7 @@ export class DocumentService {
     );
 
     // Check for imported content and apply it to the XmlFragment
-    const importedContentMap = ydoc.getMap<unknown>('importedContent');
-    const importedContent = importedContentMap.get('content');
-    if (importedContent && type.length === 0) {
-      this.logger.info(
-        'DocumentService',
-        `syncDocumentToServer: Found imported content for ${documentId}, applying to XmlFragment`
-      );
-      const xmlContent = this.prosemirrorJsonToXml(importedContent);
-      if (xmlContent) {
-        this.importXmlString(ydoc, type, xmlContent);
-        // Clear the importedContent map now that we've applied it
-        ydoc.transact(() => {
-          importedContentMap.delete('content');
-          importedContentMap.delete('importedAt');
-        });
-        this.logger.debug(
-          'DocumentService',
-          `syncDocumentToServer: Applied imported content and cleared importedContentMap`
-        );
-      }
-    }
+    this.applyImportedContent(ydoc, type, documentId);
 
     // Format documentId for WebSocket URL
     const formattedDocId = documentId.replace(/^\/+/, '');
@@ -1761,6 +1760,33 @@ export class DocumentService {
       timeoutMs,
       description: `syncDocumentToServer: document ${documentId}`,
     });
+  }
+
+  private applyImportedContent(
+    ydoc: Y.Doc,
+    type: Y.XmlFragment,
+    documentId: string
+  ): void {
+    const importedContentMap = ydoc.getMap<unknown>('importedContent');
+    const importedContent = importedContentMap.get('content');
+    if (!importedContent || type.length !== 0) return;
+
+    this.logger.info(
+      'DocumentService',
+      `syncDocumentToServer: Found imported content for ${documentId}, applying to XmlFragment`
+    );
+    const xmlContent = this.prosemirrorJsonToXml(importedContent);
+    if (!xmlContent) return;
+
+    this.importXmlString(ydoc, type, xmlContent);
+    ydoc.transact(() => {
+      importedContentMap.delete('content');
+      importedContentMap.delete('importedAt');
+    });
+    this.logger.debug(
+      'DocumentService',
+      `syncDocumentToServer: Applied imported content and cleared importedContentMap`
+    );
   }
 
   /**

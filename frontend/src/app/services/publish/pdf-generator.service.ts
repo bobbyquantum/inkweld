@@ -732,12 +732,18 @@ export class PdfGeneratorService {
 
       if (marks.length === 0) return text;
 
+      const TYPST_MARKS: Record<string, [string, string]> = {
+        bold: ['*', '*'],
+        strong: ['*', '*'],
+        italic: ['_', '_'],
+        em: ['_', '_'],
+        underline: ['#underline[', ']'],
+        strike: ['#strike[', ']'],
+        code: ['`', '`'],
+      };
       for (const mark of marks) {
-        if (mark === 'bold' || mark === 'strong') text = `*${text}*`;
-        if (mark === 'italic' || mark === 'em') text = `_${text}_`;
-        if (mark === 'underline') text = `#underline[${text}]`;
-        if (mark === 'strike') text = `#strike[${text}]`;
-        if (mark === 'code') text = `\`${text}\``;
+        const wrap = TYPST_MARKS[mark];
+        if (wrap) text = `${wrap[0]}${text}${wrap[1]}`;
       }
       return text;
     }
