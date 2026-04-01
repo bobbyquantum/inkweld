@@ -148,8 +148,7 @@ test.describe('User Registration', () => {
       page.locator('mat-dialog-container [data-testid="register-button"]')
     ).toBeDisabled();
 
-    // Now fix the password to match
-    await page.getByTestId('confirm-password-input').clear();
+    // Now fix the password to match (fill() already clears existing value)
     await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
 
     // Button should now be enabled

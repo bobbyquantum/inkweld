@@ -63,6 +63,8 @@ test.describe('Error Handling and Edge Cases', () => {
       await openRegisterDialog(page);
 
       await page.getByTestId('username-input').fill('user👨‍💻😀');
+      // Blur to end any IME/composition state from emoji input before filling next field
+      await page.getByTestId('username-input').blur();
       await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
       await page
         .getByTestId('confirm-password-input')

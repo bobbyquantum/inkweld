@@ -74,6 +74,9 @@ test.describe('Find in Document', () => {
     await pressShortcut(page, 'f');
     await expect(page.getByTestId('find-bar')).toBeVisible();
 
+    // Wait for find input to be focused (auto-focus uses setTimeout)
+    await expect(page.getByTestId('find-input')).toBeFocused();
+
     // Press Escape to close
     await page.keyboard.press('Escape');
 
