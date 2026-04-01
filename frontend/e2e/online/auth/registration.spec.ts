@@ -193,7 +193,6 @@ test.describe('User Registration', () => {
     // Fill confirm password - now all fields are filled
     await page.getByTestId('confirm-password-input').click();
     await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
-    await page.keyboard.press('Tab');
 
     // Now button should be enabled
     await expect(
@@ -235,7 +234,6 @@ test.describe('User Registration', () => {
     await page.keyboard.press('Tab'); // Move to confirm password
 
     await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
-    await page.keyboard.press('Tab'); // Blur confirm password
 
     // Now button should be enabled
     await expect(
@@ -295,7 +293,6 @@ test.describe('User Registration', () => {
     await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
     await page.keyboard.press('Tab');
     await page.getByTestId('confirm-password-input').fill(TEST_PASSWORDS.VALID);
-    await page.keyboard.press('Tab');
 
     // Wait for the button to be enabled (gives time for async validation and providers loaded signal)
     await expect(

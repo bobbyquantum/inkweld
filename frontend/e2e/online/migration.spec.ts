@@ -468,10 +468,11 @@ test.describe('Offline to Server Migration', () => {
 
     await offlinePage.waitForTimeout(2000);
     await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle');
 
-    // Verify project A exists on server
-    await expect(offlinePage.locator('body')).toContainText('Project A');
+    // Verify project A exists on server (wait for project list to load)
+    await expect(
+      offlinePage.getByRole('button', { name: /Open project Project A/i })
+    ).toBeVisible({ timeout: 45000 });
 
     // ════════════════════════════════════════════════════════════════════════
     // PHASE 2: Create project B on server (to test rename conflict)
