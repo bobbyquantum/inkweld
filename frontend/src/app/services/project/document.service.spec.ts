@@ -7,7 +7,6 @@ import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
 import { type IndexeddbPersistence } from 'y-indexeddb';
-import * as yIndexeddb from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
@@ -712,79 +711,46 @@ describe('DocumentService', () => {
         disconnect: vi.fn(),
         destroy: vi.fn(),
       };
-      const indexeddbProvider = {
-        destroy: vi.fn().mockResolvedValue(undefined),
-      } as unknown as DeepMockProxy<IndexeddbPersistence>;
       const privateService = service as unknown as {
         connections: Map<string, unknown>;
       };
 
+      // A throwing getter on indexeddbProvider triggers the try/catch that
+      // wraps `storeState(connection.indexeddbProvider, …)` in cleanupProviders,
+      // because JS evaluates the argument expression before calling the function.
       privateService.connections.set(testDocumentId, {
         ydoc,
         provider,
         type: ydoc.getXmlFragment('prosemirror'),
-        indexeddbProvider,
-      });
-
-      // Make storeState throw synchronously by temporarily replacing the mock export.
-      // Object.defineProperty bypasses esbuild's ESM immutability check.
-      const original = yIndexeddb.storeState;
-      Object.defineProperty(yIndexeddb, 'storeState', {
-        value: () => {
+        get indexeddbProvider(): never {
           throw new Error('Provider already destroyed');
         },
-        writable: true,
-        configurable: true,
       });
 
       // Should not throw — the catch block handles it
       expect(() => service.disconnect(testDocumentId)).not.toThrow();
       expect(service.isConnected(testDocumentId)).toBe(false);
-
-      // Restore
-      Object.defineProperty(yIndexeddb, 'storeState', {
-        value: original,
-        writable: true,
-        configurable: true,
-      });
     });
 
     it('should handle synchronous storeState error on disconnect-all', () => {
       const ydoc = new Y.Doc();
-      const indexeddbProvider = {
-        destroy: vi.fn().mockResolvedValue(undefined),
-      } as unknown as DeepMockProxy<IndexeddbPersistence>;
       const privateService = service as unknown as {
         connections: Map<string, unknown>;
       };
 
+      // Same throwing-getter trick, but exercising the disconnectAll path
       privateService.connections.set(testDocumentId, {
         ydoc,
         provider: null,
         type: ydoc.getXmlFragment('prosemirror'),
-        indexeddbProvider,
-      });
-
-      // Make storeState throw synchronously by temporarily replacing the mock export
-      const original = yIndexeddb.storeState;
-      Object.defineProperty(yIndexeddb, 'storeState', {
-        value: () => {
+        get indexeddbProvider(): never {
           throw new Error('Provider already destroyed');
         },
-        writable: true,
-        configurable: true,
       });
 
       // Should not throw — the catch block handles it
       expect(() => service.disconnect()).not.toThrow();
       expect(service.isConnected(testDocumentId)).toBe(false);
-
-      // Restore
-      Object.defineProperty(yIndexeddb, 'storeState', {
-        value: original,
-        writable: true,
-        configurable: true,
-      });
     });
 
     it.skip('should connect websocket in the background and react to status changes', async () => {
