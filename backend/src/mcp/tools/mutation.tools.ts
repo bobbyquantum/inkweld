@@ -1814,7 +1814,7 @@ async function extractSnapshotContent(
       xmlContent = xmlFragment.toString();
 
       const textContent = extractTextContent(xmlFragment);
-      wordCount = textContent.split(/\\s+/).filter((w) => w.length > 0).length;
+      wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
 
       if (elementType === 'WORLDBUILDING') {
         const dataMap = contentDoc.doc.getMap('worldbuilding');

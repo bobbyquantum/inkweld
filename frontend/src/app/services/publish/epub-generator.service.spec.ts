@@ -22,28 +22,10 @@ import {
   type EpubResult,
 } from './epub-generator.service';
 
-// Mock JSZip - epub generator uses file() and generateAsync() methods
-vi.mock('@progress/jszip-esm', () => {
-  return {
-    default: class MockJSZip {
-      private readonly files: Map<string, string | Blob> = new Map();
-
-      file(path: string, content: string | Blob): this {
-        this.files.set(path, content);
-        return this;
-      }
-
-      generateAsync(_options: {
-        type: string;
-        mimeType?: string;
-      }): Promise<Blob> {
-        return Promise.resolve(
-          new Blob(['epub content'], { type: 'application/epub+zip' })
-        );
-      }
-    },
-  };
-});
+// Uses real JSZip (same as project-export and project-import specs).
+// Avoids vi.mock('@progress/jszip-esm') which intermittently fails with
+// "Cannot read properties of undefined (reading 'trim')" in Angular's
+// vitest-mock-patch when isolate: false shares module cache across files.
 
 describe('EpubGeneratorService', () => {
   let service: EpubGeneratorService;

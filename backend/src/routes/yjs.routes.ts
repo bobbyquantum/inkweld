@@ -188,7 +188,9 @@ app.get(
             doc = await yjsService.handleConnection(ws.raw, documentId);
 
             for (const data of pendingMessages) {
-              yjsService.handleMessage(ws.raw, doc, Buffer.from(data));
+              const buffer = Buffer.from(data);
+              if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
+              yjsService.handleMessage(ws.raw, doc, buffer);
             }
             pendingMessages = [];
 

@@ -161,14 +161,14 @@ export class DocumentImportService {
       if (!nestedMap) return;
       if (Array.isArray(value)) {
         const yArray = new Y.Array<unknown>();
-        yArray.push(value);
+        value.forEach(item => yArray.push([item]));
         nestedMap.set(childKey, yArray);
       } else {
         nestedMap.set(childKey, value);
       }
     } else if (Array.isArray(value)) {
       const yArray = new Y.Array<unknown>();
-      yArray.push(value);
+      value.forEach(item => yArray.push([item]));
       dataMap.set(key, yArray);
     } else if (typeof value !== 'object' || value === null) {
       dataMap.set(key, value);

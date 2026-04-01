@@ -199,7 +199,7 @@ export function parseModelSchema(model: FalModelMetadata): ParsedFalModelInfo {
 
   const resolutionProp = inputSchema.properties['resolution'];
   if (resolutionProp?.enum) {
-    info.supportedResolutions = resolutionProp.enum as string[];
+    info.supportedResolutions = resolutionProp.enum.map((value: unknown) => String(value));
   }
 
   if (inputSchema.properties['image'] || inputSchema.properties['image_url']) {
@@ -209,15 +209,13 @@ export function parseModelSchema(model: FalModelMetadata): ParsedFalModelInfo {
   return info;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function findInputSchema(model: FalModelMetadata): any {
+function findInputSchema(model: FalModelMetadata): SchemaObject | null {
   const schemas = model.openapi?.components?.schemas;
   if (!schemas) return null;
   return schemas['Input'] || schemas['TextToImageInput'] || schemas['ImageToImageInput'] || null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseImageSizeProperty(info: ParsedFalModelInfo, prop: any): void {
+function parseImageSizeProperty(info: ParsedFalModelInfo, prop?: PropertySchema): void {
   if (!prop) return;
 
   info.sizeMode = 'dimensions';
@@ -243,12 +241,11 @@ function parseImageSizeProperty(info: ParsedFalModelInfo, prop: any): void {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAspectRatioProperty(info: ParsedFalModelInfo, prop: any): void {
+function parseAspectRatioProperty(info: ParsedFalModelInfo, prop?: PropertySchema): void {
   if (!prop) return;
   info.sizeMode = 'aspect_ratio';
   if (prop.enum) {
-    info.supportedAspectRatios = prop.enum as string[];
+    info.supportedAspectRatios = prop.enum.map((value: unknown) => String(value));
   }
 }
 

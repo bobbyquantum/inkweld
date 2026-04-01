@@ -428,7 +428,7 @@ function parseElement(
     return parseMarkTag(Y, xml, cursor, rawTagName, markName, attrs, marks);
   }
 
-  return parseRegularElement(Y, xml, cursor, rawTagName, attrs);
+  return parseRegularElement(Y, xml, cursor, rawTagName, attrs, marks);
 }
 
 function parseAttributes(
@@ -489,7 +489,8 @@ function parseRegularElement(
   xml: string,
   cursor: number,
   rawTagName: string,
-  attrs: Record<string, string>
+  attrs: Record<string, string>,
+  marks: Record<string, unknown> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): { nodes: any[]; pos: number } {
   const tagName = NODE_TAG_ALIASES[rawTagName] ?? rawTagName;
@@ -506,7 +507,7 @@ function parseRegularElement(
 
   if (xml[cursor] === '>') cursor++;
 
-  const { children, cursor: afterChildren } = parseChildren(Y, xml, cursor, rawTagName);
+  const { children, cursor: afterChildren } = parseChildren(Y, xml, cursor, rawTagName, marks);
 
   const yElement = new Y.XmlElement(tagName);
   for (const [key, value] of Object.entries(attrs)) {

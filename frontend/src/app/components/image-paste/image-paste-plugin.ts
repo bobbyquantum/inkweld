@@ -371,6 +371,13 @@ export class MediaImageNodeView {
       if (this.destroyed) return;
       if (blobUrl) {
         this.img.src = blobUrl;
+        this.img.style.opacity = '';
+        if (
+          this.img.alt === 'Image not found' ||
+          this.img.alt === 'Failed to load image'
+        ) {
+          this.img.alt = '';
+        }
       } else {
         this.img.alt = 'Image not found';
         this.img.style.opacity = '0.5';

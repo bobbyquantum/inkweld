@@ -1330,26 +1330,6 @@ export class DocumentService {
     this.connections.clear();
 
     for (const [docId, connection] of connectionsToClose) {
-      try {
-        connection.ydoc.destroy();
-      } catch (error) {
-        this.logger.warn(
-          'DocumentService',
-          `Error destroying Yjs doc for ${docId}`,
-          error
-        );
-      }
-
-      void storeState(connection.indexeddbProvider, true)
-        .then(() => connection.indexeddbProvider.destroy())
-        .catch(error => {
-          this.logger.warn(
-            'DocumentService',
-            `Error flushing/destroying IndexedDB provider for ${docId}`,
-            error
-          );
-        });
-
       if (connection.provider) {
         try {
           connection.provider.destroy();
@@ -1361,6 +1341,17 @@ export class DocumentService {
           );
         }
       }
+
+      void storeState(connection.indexeddbProvider, true)
+        .then(() => connection.indexeddbProvider.destroy())
+        .then(() => connection.ydoc.destroy())
+        .catch(error => {
+          this.logger.warn(
+            'DocumentService',
+            `Error flushing/destroying IndexedDB or Yjs doc for ${docId}`,
+            error
+          );
+        });
 
       this.cleanupSyncState(docId);
     }
