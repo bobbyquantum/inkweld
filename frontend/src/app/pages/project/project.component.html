@@ -41,17 +41,14 @@
       <div class="mobile-sidenav-content">
         <div class="mobile-open-tabs">
           <div class="mobile-tabs-list">
-            <div
+            <button
+              type="button"
               class="mobile-tab-item"
               (click)="goHome()"
-              tabindex="0"
-              role="button"
-              (keydown.enter)="goHome()"
-              (keydown.space)="goHome()"
               [class.active]="projectState.selectedTabIndex() === 0">
               <mat-icon>home</mat-icon>
               <span class="mobile-tab-name">Home</span>
-            </div>
+            </button>
           </div>
         </div>
         @defer (on idle) {
@@ -275,41 +272,35 @@
                 }
                 <!-- Fixed bottom navigation -->
                 <div class="sidebar-bottom-nav">
-                  <div
+                  <button
+                    type="button"
                     class="sidebar-nav-item"
                     [class.selected-item]="isSystemTabSelected('media')"
                     data-testid="sidebar-media-button"
-                    tabindex="0"
-                    role="button"
                     (click)="onShowMediaLibrary()"
-                    (keyup.enter)="onShowMediaLibrary()"
                     aria-label="Media Library">
                     <mat-icon>perm_media</mat-icon>
                     <span class="nav-title">Media Library</span>
-                  </div>
-                  <div
+                  </button>
+                  <button
+                    type="button"
                     class="sidebar-nav-item"
                     [class.selected-item]="isSystemTabSelected('settings')"
                     data-testid="sidebar-settings-button"
-                    tabindex="0"
-                    role="button"
                     (click)="onShowSettings()"
-                    (keyup.enter)="onShowSettings()"
                     aria-label="Project Settings">
                     <mat-icon>settings</mat-icon>
                     <span class="nav-title">Project Settings</span>
-                  </div>
-                  <div
+                  </button>
+                  <button
+                    type="button"
                     class="sidebar-nav-item exit-item"
                     data-testid="sidebar-exit-button"
-                    tabindex="0"
-                    role="button"
                     (click)="exitProject()"
-                    (keyup.enter)="exitProject()"
                     aria-label="Exit Project">
                     <mat-icon>exit_to_app</mat-icon>
                     <span class="nav-title">Exit Project</span>
-                  </div>
+                  </button>
                 </div>
               </div>
             </as-split-area>

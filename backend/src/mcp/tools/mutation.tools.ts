@@ -1211,19 +1211,18 @@ The content replaces the entire document. Use get_document_content first to read
     const { username, slug } = result.project;
 
     const elementId = (typeof args.elementId === 'string' ? args.elementId : '').trim();
-    const content = typeof args.content === 'string' ? args.content : '';
+    if (typeof args.content !== 'string') {
+      return {
+        content: [{ type: 'text', text: 'Error: content must be a string' }],
+        isError: true,
+      };
+    }
+    const content = args.content;
     const format = (args.format as string) ?? 'xml';
 
     if (!elementId) {
       return {
         content: [{ type: 'text', text: 'Error: elementId is required' }],
-        isError: true,
-      };
-    }
-
-    if (!content && content !== '') {
-      return {
-        content: [{ type: 'text', text: 'Error: content is required' }],
         isError: true,
       };
     }

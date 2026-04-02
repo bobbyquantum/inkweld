@@ -96,6 +96,12 @@ as-split {
   flex-shrink: 0;
 
   .sidebar-nav-item {
+    appearance: none;
+    background: transparent;
+    border: none;
+    font: inherit;
+    width: 100%;
+    text-align: left;
     display: flex;
     align-items: center;
     min-height: 36px;
@@ -259,6 +265,10 @@ as-split {
 }
 
 .mobile-tab-item {
+  appearance: none;
+  background: transparent;
+  border: none;
+  font: inherit;
   display: flex;
   align-items: center;
   gap: 12px;

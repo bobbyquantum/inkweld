@@ -81,7 +81,7 @@ function detectEnvironment(): { isDev: boolean; isWorkers: boolean } {
   const nodeEnv = (
     typeof process === 'undefined' ? undefined : process.env?.NODE_ENV
   )?.toLowerCase();
-  const isDev = nodeEnv === 'development' || nodeEnv === 'test' || !nodeEnv;
+  const isDev = nodeEnv === 'development' || nodeEnv === 'test';
 
   // Detect Cloudflare Workers
   const isWorkers =

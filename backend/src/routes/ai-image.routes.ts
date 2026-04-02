@@ -19,6 +19,7 @@ import {
   getElementImageUrls,
 } from '../utils/reference-image-loader';
 import type { AppContext } from '../types/context';
+import type { ImageModelProfile } from '../db/schema/image-model-profiles';
 import type {
   ImageProviderType,
   ImageSize,
@@ -328,12 +329,10 @@ const generateRoute = createRoute({
 type ValidatedBody = z.infer<typeof GenerateRequestSchema>;
 
 interface ResolvedProfile {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  profile: any;
+  profile: ImageModelProfile;
   provider: ImageProviderType;
   model: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  profileConfig: any;
+  profileConfig: Record<string, unknown> | null | undefined;
   size: ImageSize | undefined;
   quality: 'standard' | 'hd' | undefined;
   style: 'vivid' | 'natural' | undefined;
