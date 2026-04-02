@@ -6,6 +6,11 @@ import { QuickOpenDialogComponent } from '../../dialogs/quick-open-dialog/quick-
 import { ProjectStateService } from '../project/project-state.service';
 import { RecentFilesService } from '../project/recent-files.service';
 
+/** Navigator with User-Agent Client Hints (not yet in TS lib.dom) */
+interface NavigatorWithUAData extends Navigator {
+  userAgentData?: { platform: string };
+}
+
 /**
  * Result item from quick open search
  */
@@ -57,8 +62,13 @@ export class QuickOpenService {
     }
 
     this.keydownListener = (event: KeyboardEvent) => {
-      // Check for Cmd/Ctrl + P
-      const isMac = /mac/i.test(navigator.userAgent);
+      // Check for Cmd/Ctrl + P — detect Apple platforms the same way ProseMirror does.
+      // Prefer the modern User-Agent Client Hints API; fall back to the legacy
+      // navigator.platform that ProseMirror still uses at runtime.
+      const platform =
+        (navigator as NavigatorWithUAData).userAgentData?.platform ??
+        navigator.platform;
+      const isMac = /Mac|iP(hone|[oa]d)/i.test(platform);
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 
       if (modifierKey && event.key.toLowerCase() === 'p') {

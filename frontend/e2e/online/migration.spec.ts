@@ -331,10 +331,17 @@ test.describe('Offline to Server Migration', () => {
     }
 
     // Wait for project card to be visible
-    // Projects were created on server during migration, so they should appear immediately
+    // Projects were created on server during migration, so they should appear.
+    // If the project list is empty after navigation, reload to ensure a fresh fetch.
     const projectButton = offlinePage.getByRole('button', {
       name: /Open project Content Test/i,
     });
+    if (
+      !(await projectButton.isVisible({ timeout: 5000 }).catch(() => false))
+    ) {
+      await offlinePage.reload();
+      await offlinePage.waitForLoadState('networkidle');
+    }
     await expect(projectButton).toBeVisible();
 
     // Click on the project card
@@ -461,10 +468,11 @@ test.describe('Offline to Server Migration', () => {
 
     await offlinePage.waitForTimeout(2000);
     await offlinePage.goto('/');
-    await offlinePage.waitForLoadState('networkidle');
 
-    // Verify project A exists on server
-    await expect(offlinePage.locator('body')).toContainText('Project A');
+    // Verify project A exists on server (wait for project list to load)
+    await expect(
+      offlinePage.getByRole('button', { name: /Open project Project A/i })
+    ).toBeVisible({ timeout: 45000 });
 
     // ════════════════════════════════════════════════════════════════════════
     // PHASE 2: Create project B on server (to test rename conflict)

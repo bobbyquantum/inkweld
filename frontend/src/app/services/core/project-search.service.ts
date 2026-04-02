@@ -9,6 +9,11 @@ import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';
 import { TagService } from '../tag/tag.service';
 
+/** Navigator with User-Agent Client Hints (not yet in TS lib.dom) */
+interface NavigatorWithUAData extends Navigator {
+  userAgentData?: { platform: string };
+}
+
 /** A highlighted text snippet showing context around a match */
 export interface SearchSnippet {
   /** Text before the match (may be truncated with …) */
@@ -223,7 +228,13 @@ export class ProjectSearchService {
   }
 
   private isMacPlatform(): boolean {
-    return typeof navigator !== 'undefined' && /mac/i.test(navigator.userAgent);
+    if (typeof navigator === 'undefined') return false;
+    // Prefer the modern User-Agent Client Hints API; fall back to the legacy
+    // navigator.platform that ProseMirror still uses at runtime.
+    const platform =
+      (navigator as NavigatorWithUAData).userAgentData?.platform ??
+      navigator.platform;
+    return /Mac|iP(hone|[oa]d)/i.test(platform);
   }
 
   private buildSearchableElements(

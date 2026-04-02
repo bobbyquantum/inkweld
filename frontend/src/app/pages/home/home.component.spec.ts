@@ -42,9 +42,6 @@ import {
 
 import { HomeComponent } from './home.component';
 
-vi.mock('@themes/theme.service');
-vi.mock('@angular/cdk/layout');
-
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;

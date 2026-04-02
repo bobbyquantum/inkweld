@@ -5,43 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoggerService } from '../core/logger.service';
 import { DocumentImportService } from './document-import.service';
 
-// y-indexeddb is mocked globally in setup-vitest.ts with full on/off support
-
-// Mock yjs with vi.hoisted
-const { mockMapSet, mockTransact, mockDocDestroy } = vi.hoisted(() => ({
-  mockMapSet: vi.fn(),
-  mockTransact: vi.fn((callback: () => void) => callback()),
-  mockDocDestroy: vi.fn(),
-}));
-vi.mock('yjs', () => ({
-  Doc: class MockDoc {
-    getMap = vi.fn().mockReturnValue({ set: mockMapSet });
-    getXmlFragment = vi.fn().mockReturnValue({});
-    transact = mockTransact;
-    destroy = mockDocDestroy;
-  },
-  Array: class MockArray {
-    private items: unknown[] = [];
-    push(items: unknown[]) {
-      this.items.push(...items);
-    }
-    toArray() {
-      return this.items;
-    }
-  },
-  Map: class MockMap {
-    private data: Record<string, unknown> = {};
-    set(key: string, value: unknown) {
-      this.data[key] = value;
-    }
-    get(key: string) {
-      return this.data[key];
-    }
-    toJSON() {
-      return this.data;
-    }
-  },
-}));
+// y-indexeddb is mocked globally in setup-vitest.ts with full on/off support.
+// Real yjs is used here (not mocked) because vi.mock('yjs') is unreliable with
+// isolate: false — the service may already have a bound reference to the real
+// module from another test file's import. Real yjs is fine since it only does
+// in-memory CRDT operations; the storage layer (y-indexeddb) is the mock.
 
 describe('DocumentImportService', () => {
   let service: DocumentImportService;

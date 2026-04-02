@@ -71,6 +71,13 @@ if (!getTestBed().platform) {
 // This global cleanup runs last and ensures TestBed is reset
 
 afterEach(() => {
+  // Restore any globals stubbed by test files (e.g., indexedDB, fetch)
+  // This prevents cross-test contamination with isolate: false
+  vi.unstubAllGlobals();
+
+  // Ensure fake timers are restored so subsequent tests aren't affected
+  vi.useRealTimers();
+
   // Use destroyAfterEach instead of resetTestingModule for better cleanup
   try {
     getTestBed().resetTestingModule();
@@ -177,6 +184,106 @@ vi.mock('prosemirror-commands', () => ({
       return true;
     },
 }));
+
+// Mock prosemirror-history for editor-toolbar
+vi.mock('prosemirror-history', () => ({
+  undo: (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
+    if (dispatch) dispatch({});
+    return true;
+  },
+  redo: (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
+    if (dispatch) dispatch({});
+    return true;
+  },
+}));
+
+// Mock @bobbyquantum/ngx-editor globally to avoid intermittent vi.mock failures
+// from Angular's vitest-mock-patch with isolate: false. Individual specs used to
+// mock this per-file, but the hoisted vi.mock races with the shared module cache.
+vi.mock('@bobbyquantum/ngx-editor', () => {
+  const { Subject } = require('rxjs');
+
+  const createMockMark = (name: string) => ({
+    name,
+    isInSet: () => false,
+    create: () => ({ type: { name } }),
+  });
+
+  const mockSchema = {
+    marks: {
+      strong: createMockMark('strong'),
+      em: createMockMark('em'),
+      u: createMockMark('u'),
+      s: createMockMark('s'),
+      link: createMockMark('link'),
+    },
+    nodes: {
+      ordered_list: { name: 'ordered_list' },
+      bullet_list: { name: 'bullet_list' },
+      list_item: { name: 'list_item' },
+      heading: { name: 'heading' },
+      blockquote: { name: 'blockquote' },
+      paragraph: { name: 'paragraph' },
+    },
+  };
+
+  class MockEditor {
+    view = {
+      state: {
+        plugins: [],
+        doc: {
+          textBetween: () => '',
+          content: { size: 0 },
+          nodeSize: 0,
+          rangeHasMark: () => false,
+        },
+        selection: {
+          from: 0,
+          to: 0,
+          $from: { marks: () => [] },
+          empty: true,
+          ranges: [],
+        },
+        reconfigure: () => ({}),
+        schema: mockSchema,
+        storedMarks: null,
+        tr: {
+          addMark: () => ({}),
+          removeMark: () => ({}),
+        },
+      },
+      updateState: () => {},
+      dispatch: () => {},
+      focus: () => {},
+      coordsAtPos: () => ({ left: 0, top: 0, right: 0, bottom: 0 }),
+      hasFocus: () => false,
+    };
+    update = new Subject();
+    destroy = () => {};
+  }
+
+  return {
+    Editor: MockEditor,
+    Toolbar: Array,
+    NgxEditorModule: Object,
+    NgxEditorComponent: Object,
+    NgxEditorMenuComponent: Object,
+    NgxEditorFloatingMenuComponent: Object,
+    NgxEditorService: Object,
+    ImageViewComponent: Object,
+    DEFAULT_TOOLBAR: [],
+    TOOLBAR_FULL: [],
+    TOOLBAR_MINIMAL: [],
+    Validators: {},
+    emptyDoc: () => {},
+    getKeyboardShortcuts: () => {},
+    parseContent: () => {},
+    toDoc: () => {},
+    toHTML: () => {},
+    NGX_EDITOR_CONFIG_TOKEN: Symbol('NGX_EDITOR_CONFIG_TOKEN'),
+    provideMyServiceOptions: () => {},
+  };
+});
 
 // Mock prosemirror-schema-list for list operations (wrapInList, liftListItem, etc.)
 vi.mock('prosemirror-schema-list', () => ({
