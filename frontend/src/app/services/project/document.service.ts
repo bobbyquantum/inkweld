@@ -1342,16 +1342,24 @@ export class DocumentService {
         }
       }
 
-      void storeState(connection.indexeddbProvider, true)
-        .then(() => connection.indexeddbProvider.destroy())
-        .then(() => connection.ydoc.destroy())
-        .catch(error => {
-          this.logger.warn(
-            'DocumentService',
-            `Error flushing/destroying IndexedDB or Yjs doc for ${docId}`,
-            error
-          );
-        });
+      try {
+        void storeState(connection.indexeddbProvider, true)
+          .then(() => connection.indexeddbProvider.destroy())
+          .then(() => connection.ydoc.destroy())
+          .catch(error => {
+            this.logger.warn(
+              'DocumentService',
+              `Error flushing/destroying IndexedDB or Yjs doc for ${docId}`,
+              error
+            );
+          });
+      } catch (error) {
+        this.logger.warn(
+          'DocumentService',
+          `Error starting IndexedDB flush for ${docId}`,
+          error
+        );
+      }
 
       this.cleanupSyncState(docId);
     }
@@ -1380,15 +1388,23 @@ export class DocumentService {
       }
     }
 
-    void storeState(connection.indexeddbProvider, true)
-      .then(() => connection.indexeddbProvider.destroy())
-      .catch(error => {
-        this.logger.warn(
-          'DocumentService',
-          `Error flushing/destroying IndexedDB provider for ${documentId}`,
-          error
-        );
-      });
+    try {
+      void storeState(connection.indexeddbProvider, true)
+        .then(() => connection.indexeddbProvider.destroy())
+        .catch(error => {
+          this.logger.warn(
+            'DocumentService',
+            `Error flushing/destroying IndexedDB provider for ${documentId}`,
+            error
+          );
+        });
+    } catch (error) {
+      this.logger.warn(
+        'DocumentService',
+        `Error starting IndexedDB flush for ${documentId}`,
+        error
+      );
+    }
 
     try {
       connection.ydoc.destroy();

@@ -176,25 +176,29 @@ describe('DocumentService', () => {
 
     // Mock window location for WebSocket URL
     // Include reload() to prevent unhandled exceptions from leaked timers
-    Object.defineProperty(globalThis, 'location', {
-      value: {
-        protocol: 'http:',
-        host: 'localhost:4200',
-        reload: () => {},
-        href: 'http://localhost:4200/',
-        origin: 'http://localhost:4200',
-        pathname: '/',
-        search: '',
-        hash: '',
-      },
-      writable: true,
-      configurable: true,
+    // Use vi.stubGlobal so vi.unstubAllGlobals() in global afterEach restores it
+    vi.stubGlobal('location', {
+      protocol: 'http:',
+      host: 'localhost:4200',
+      reload: () => {},
+      href: 'http://localhost:4200/',
+      origin: 'http://localhost:4200',
+      pathname: '/',
+      search: '',
+      hash: '',
     });
   });
 
   afterEach(() => {
-    // Clean up all document connections to prevent memory leaks and async issues
-    service.disconnect();
+    // Clean up all document connections to prevent memory leaks and async issues.
+    // Wrapped in try-catch because with isolate:false, storeState may reference
+    // the real y-indexeddb module (instead of the mock) depending on fork ordering.
+    try {
+      service.disconnect();
+    } catch {
+      // Ignore disconnect errors in cleanup
+    }
+    vi.restoreAllMocks();
   });
 
   describe('Document Connection Management', () => {
@@ -698,6 +702,55 @@ describe('DocumentService', () => {
       expect(privateService.syncStatusSignals.has(testDocumentId)).toBe(false);
       expect(privateService.unsyncedChanges.has(testDocumentId)).toBe(false);
       expect(privateService.wordCountSignals.has(testDocumentId)).toBe(false);
+    });
+
+    it('should handle synchronous storeState error on single-document disconnect', () => {
+      const ydoc = new Y.Doc();
+      const provider = {
+        awareness: { setLocalState: vi.fn(), clientID: 123 },
+        disconnect: vi.fn(),
+        destroy: vi.fn(),
+      };
+      const privateService = service as unknown as {
+        connections: Map<string, unknown>;
+      };
+
+      // A throwing getter on indexeddbProvider triggers the try/catch that
+      // wraps `storeState(connection.indexeddbProvider, …)` in cleanupProviders,
+      // because JS evaluates the argument expression before calling the function.
+      privateService.connections.set(testDocumentId, {
+        ydoc,
+        provider,
+        type: ydoc.getXmlFragment('prosemirror'),
+        get indexeddbProvider(): never {
+          throw new Error('Provider already destroyed');
+        },
+      });
+
+      // Should not throw — the catch block handles it
+      expect(() => service.disconnect(testDocumentId)).not.toThrow();
+      expect(service.isConnected(testDocumentId)).toBe(false);
+    });
+
+    it('should handle synchronous storeState error on disconnect-all', () => {
+      const ydoc = new Y.Doc();
+      const privateService = service as unknown as {
+        connections: Map<string, unknown>;
+      };
+
+      // Same throwing-getter trick, but exercising the disconnectAll path
+      privateService.connections.set(testDocumentId, {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        get indexeddbProvider(): never {
+          throw new Error('Provider already destroyed');
+        },
+      });
+
+      // Should not throw — the catch block handles it
+      expect(() => service.disconnect()).not.toThrow();
+      expect(service.isConnected(testDocumentId)).toBe(false);
     });
 
     it.skip('should connect websocket in the background and react to status changes', async () => {

@@ -4,6 +4,7 @@
  * Tests that verify the quick file open functionality (Cmd/Ctrl + P)
  * works correctly for fast navigation within projects.
  */
+import { pressShortcut } from '../common';
 import { expect, test } from './fixtures';
 
 test.describe('Quick Open', () => {
@@ -15,8 +16,7 @@ test.describe('Quick Open', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Press Cmd/Ctrl + P to open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
 
     // Quick open dialog should appear
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
@@ -32,8 +32,7 @@ test.describe('Quick Open', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Press Escape to close
@@ -69,8 +68,7 @@ test.describe('Quick Open', () => {
     }
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Results should be visible (even with empty project, at least the container)
@@ -101,8 +99,7 @@ test.describe('Quick Open', () => {
     await page.waitForTimeout(500);
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Type in search query
@@ -138,8 +135,7 @@ test.describe('Quick Open', () => {
     }
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Type to get results
@@ -186,8 +182,7 @@ test.describe('Quick Open', () => {
     await page.waitForTimeout(200);
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Search for the document
@@ -231,8 +226,7 @@ test.describe('Quick Open', () => {
     await page.waitForTimeout(200);
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Search and click on result
@@ -253,8 +247,7 @@ test.describe('Quick Open', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Type something that won't match anything
@@ -273,8 +266,7 @@ test.describe('Quick Open', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Open quick open
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+p' : 'Control+p');
+    await pressShortcut(page, 'p');
     await expect(page.getByTestId('quick-open-dialog')).toBeVisible();
 
     // Type something

@@ -35,6 +35,18 @@ export default defineConfig({
 
     // Reporters - use dot reporter in CI for cleaner output
     reporters: isCI ? ['dot'] : ['default'],
+
+    // Suppress EnvironmentTeardownError from isolate:false console log race.
+    // With isolate:false, pending console.log RPC messages can arrive after
+    // the worker starts tearing down. This is harmless and non-deterministic.
+    onUnhandledError(error) {
+      if (
+        error.name === 'EnvironmentTeardownError' &&
+        error.message?.includes('onUserConsoleLog')
+      ) {
+        return false;
+      }
+    },
   },
 
   // Vitest 4+ pool options are now top-level

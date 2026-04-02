@@ -9,75 +9,12 @@ import { type Element, type Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { Subject } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 
-// Mock ngx-editor module with all required exports
-vi.mock('@bobbyquantum/ngx-editor', () => {
-  const createMockMark = (name: string) => ({
-    name,
-    isInSet: vi.fn().mockReturnValue(false),
-    create: vi.fn().mockReturnValue({ type: { name } }),
-  });
-
-  const mockEditorView = {
-    state: {
-      plugins: [],
-      doc: {
-        textBetween: vi.fn().mockReturnValue(''),
-        content: { size: 0 },
-        nodeSize: 0,
-        rangeHasMark: vi.fn().mockReturnValue(false),
-      },
-      selection: { from: 0, to: 0, $from: { marks: () => [] }, empty: true },
-      reconfigure: vi.fn().mockReturnValue({}),
-      schema: {
-        marks: {
-          strong: createMockMark('strong'),
-          em: createMockMark('em'),
-          u: createMockMark('u'),
-          s: createMockMark('s'),
-          link: createMockMark('link'),
-        },
-      },
-      storedMarks: null,
-    },
-    updateState: vi.fn(),
-  };
-
-  // Create a proper class that can be instantiated with 'new'
-  class MockEditor {
-    view = mockEditorView;
-    update = new Subject<void>();
-    destroy = vi.fn();
-    constructor() {}
-  }
-
-  return {
-    Editor: MockEditor,
-    Toolbar: Array,
-    NgxEditorModule: class {},
-    NgxEditorComponent: class {},
-    NgxEditorMenuComponent: class {},
-    NgxEditorFloatingMenuComponent: class {},
-    NgxEditorService: class {},
-    ImageViewComponent: class {},
-    DEFAULT_TOOLBAR: [],
-    TOOLBAR_FULL: [],
-    TOOLBAR_MINIMAL: [],
-    Validators: {},
-    emptyDoc: vi.fn(),
-    getKeyboardShortcuts: vi.fn(),
-    parseContent: vi.fn(),
-    toDoc: vi.fn(),
-    toHTML: vi.fn(),
-    NGX_EDITOR_CONFIG_TOKEN: Symbol('NGX_EDITOR_CONFIG_TOKEN'),
-    provideMyServiceOptions: vi.fn(),
-  };
-});
+// @bobbyquantum/ngx-editor is mocked globally in setup-vitest.ts
 
 describe('DocumentElementEditorComponent', () => {
   let component: DocumentElementEditorComponent;
@@ -136,6 +73,11 @@ describe('DocumentElementEditorComponent', () => {
 
     fixture = TestBed.createComponent(DocumentElementEditorComponent);
     component = fixture.componentInstance;
+  });
+
+  afterEach(() => {
+    fixture?.destroy();
+    vi.restoreAllMocks();
   });
 
   it('should create', () => {

@@ -175,7 +175,7 @@ describe('ProjectRenameMigrationService', () => {
       const provider = new IndexeddbPersistence(oldDocId, doc);
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Mock databases() to return the database we created
       vi.spyOn(indexedDB, 'databases').mockResolvedValue([
@@ -202,7 +202,7 @@ describe('ProjectRenameMigrationService', () => {
       const provider = new IndexeddbPersistence(oldDocId, doc);
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Mock databases() to return our database
       vi.spyOn(indexedDB, 'databases').mockResolvedValue([
@@ -223,29 +223,15 @@ describe('ProjectRenameMigrationService', () => {
     });
 
     it('should handle migration errors and record them', async () => {
-      // Create a database that will fail migration
-      const oldDocId = 'testuser:old-project:elements';
-
-      // Create a plain IndexedDB database (not y-indexeddb format)
-      // This will cause the migration to fail when Yjs tries to read it
-      await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open(oldDocId, 1);
-        request.onupgradeneeded = () => {
-          const db = request.result;
-          db.createObjectStore('invalid-store'); // Wrong format for y-indexeddb
-        };
-        request.onsuccess = () => {
-          request.result.close();
-          resolve();
-        };
-        request.onerror = () =>
-          reject(request.error ?? new Error('Failed to create database'));
-      });
-
-      // Mock databases() to return this database
+      // Mock databases() to return a database matching the prefix
       vi.spyOn(indexedDB, 'databases').mockResolvedValue([
-        { name: oldDocId, version: 1 },
+        { name: 'testuser:old-project:elements', version: 1 },
       ]);
+
+      // Spy on private migrateDatabase to simulate a real migration error
+      vi.spyOn(service as any, 'migrateDatabase').mockRejectedValue(
+        new Error('Simulated migration failure')
+      );
 
       const result = await service.migrateProject(
         'testuser',
@@ -255,10 +241,10 @@ describe('ProjectRenameMigrationService', () => {
 
       // Should handle the error gracefully
       expect(result).toBeDefined();
-      // The migration might succeed or fail depending on y-indexeddb behavior
-      // but it should always return a proper result
-      expect(typeof result.documentsMigrated).toBe('number');
-      expect(typeof result.documentsFailed).toBe('number');
+      expect(result.documentsFailed).toBe(1);
+      expect(result.errors.length).toBe(1);
+      expect(result.errors[0]).toContain('Simulated migration failure');
+      expect(result.success).toBe(false);
     });
 
     it('should process Yjs databases with data', async () => {
@@ -270,7 +256,7 @@ describe('ProjectRenameMigrationService', () => {
       const provider = new IndexeddbPersistence(oldDocId, doc);
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Run migration
       const result = await service.migrateProject(
@@ -290,7 +276,7 @@ describe('ProjectRenameMigrationService', () => {
       const emptyDoc = new Y.Doc();
       const provider = new IndexeddbPersistence(oldDocId, emptyDoc);
       await provider.whenSynced;
-      void provider.destroy();
+      await provider.destroy();
 
       // Run migration
       const result = await service.migrateProject(
@@ -322,7 +308,7 @@ describe('ProjectRenameMigrationService', () => {
 
       // Clean up providers before migration
       for (const { provider } of docs) {
-        void provider.destroy();
+        await provider.destroy();
       }
 
       // Run migration
@@ -366,23 +352,14 @@ describe('ProjectRenameMigrationService', () => {
 
       delete (indexedDB as any)['databases'];
 
-      // Create a database with the known pattern that has object stores
-      // This will exercise the databaseExists() check
-      await new Promise<void>((resolve, reject) => {
-        const dbName = 'testuser:old-project:elements';
-        const request = indexedDB.open(dbName, 1);
-        request.onupgradeneeded = () => {
-          const db = request.result;
-          // Create an object store so databaseExists returns true
-          db.createObjectStore('updates');
-        };
-        request.onsuccess = () => {
-          request.result.close();
-          resolve();
-        };
-        request.onerror = () =>
-          reject(request.error ?? new Error('Failed to create database'));
-      });
+      // Create a proper y-indexeddb database so IndexeddbPersistence can read it
+      const dbName = 'testuser:old-project:elements';
+      const doc = new Y.Doc();
+      doc.getText('content').insert(0, 'Fallback test content');
+      const provider = new IndexeddbPersistence(dbName, doc);
+      await provider.whenSynced;
+      await storeState(provider, false);
+      await provider.destroy();
 
       const result = await service.migrateProject(
         'testuser',
@@ -413,7 +390,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       const result = await service.migrateProject(
         'testuser',
@@ -542,7 +519,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       await service.migrateProject('testuser', 'old-project', 'new-project');
 
@@ -564,7 +541,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       await service.migrateProject('testuser', 'old-project', 'new-project');
 
@@ -658,7 +635,7 @@ describe('ProjectRenameMigrationService', () => {
       );
       await provider.whenSynced;
       await storeState(provider, false);
-      void provider.destroy();
+      await provider.destroy();
 
       // Run migration - it should find and process the database
       const result = await service.migrateProject(

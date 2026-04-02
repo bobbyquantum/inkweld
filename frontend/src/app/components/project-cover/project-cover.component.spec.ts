@@ -90,6 +90,8 @@ describe('ProjectCoverComponent', () => {
 
   afterEach(() => {
     httpTestingController.verify();
+    fixture?.destroy();
+    vi.restoreAllMocks();
   });
 
   it('should create', () => {
@@ -334,6 +336,7 @@ describe('ProjectCoverComponent', () => {
       mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
 
       const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL');
+      revokeObjectURLSpy.mockClear();
 
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
@@ -354,6 +357,7 @@ describe('ProjectCoverComponent', () => {
       const mockBlobUrl2 = 'blob:http://localhost/def456';
 
       const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL');
+      revokeObjectURLSpy.mockClear();
 
       // Load first project
       mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl1);

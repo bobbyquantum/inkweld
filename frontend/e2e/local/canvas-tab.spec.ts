@@ -424,7 +424,8 @@ test.describe('Canvas Tab', () => {
     // Click zoom-in
     await toolbar.getByRole('button', { name: /zoom in/i }).click();
 
-    // Zoom label should now show a value > 100%
+    // Zoom label should now show a value > 100% (use auto-retrying assertion)
+    await expect(zoomLabel).not.toHaveText('100%');
     const text = await zoomLabel.textContent();
     const value = Number.parseInt(text?.replaceAll('%', '') ?? '100', 10);
     expect(value).toBeGreaterThan(100);
@@ -443,7 +444,8 @@ test.describe('Canvas Tab', () => {
     // Click zoom-out
     await toolbar.getByRole('button', { name: /zoom out/i }).click();
 
-    // Zoom label should now show a value < 100%
+    // Zoom label should now show a value < 100% (use auto-retrying assertion)
+    await expect(zoomLabel).not.toHaveText('100%');
     const text = await zoomLabel.textContent();
     const value = Number.parseInt(text?.replaceAll('%', '') ?? '100', 10);
     expect(value).toBeLessThan(100);

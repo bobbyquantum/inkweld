@@ -3,6 +3,21 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 
 /**
+ * Press a keyboard shortcut using the Control modifier key.
+ *
+ * All E2E test pages override `navigator.platform` to `'Linux x86_64'` via
+ * `addInitScript`, so the Angular app always checks `event.ctrlKey`. This
+ * avoids the macOS issue where Chromium intercepts Cmd+P (print) and
+ * Cmd+Shift+F (find-in-page) at the browser level before they reach JS.
+ *
+ * @param page - Playwright page
+ * @param key - Key combo without modifier, e.g. `'p'`, `'Shift+f'`, `'Shift+KeyI'`
+ */
+export async function pressShortcut(page: Page, key: string): Promise<void> {
+  await page.keyboard.press(`Control+${key}`);
+}
+
+/**
  * Demo asset paths (relative to workspace root)
  */
 export const DEMO_ASSETS = {

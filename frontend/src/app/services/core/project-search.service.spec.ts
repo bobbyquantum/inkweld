@@ -203,6 +203,57 @@ describe('ProjectSearchService', () => {
       document.dispatchEvent(event);
       expect(mockDialog.open).toHaveBeenCalledOnce();
     });
+
+    it('should open search dialog on Meta+Shift+F when platform is Mac', () => {
+      const originalPlatform = navigator.platform;
+      const originalUAData = (navigator as any).userAgentData;
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: undefined,
+        configurable: true,
+      });
+      Object.defineProperty(navigator, 'platform', {
+        value: 'MacIntel',
+        configurable: true,
+      });
+      service.initialize();
+      const event = new KeyboardEvent('keydown', {
+        key: 'f',
+        metaKey: true,
+        shiftKey: true,
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      Object.defineProperty(navigator, 'platform', {
+        value: originalPlatform,
+        configurable: true,
+      });
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: originalUAData,
+        configurable: true,
+      });
+    });
+
+    it('should use userAgentData.platform when available', () => {
+      const originalUAData = (navigator as any).userAgentData;
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: { platform: 'macOS' },
+        configurable: true,
+      });
+      service.initialize();
+      const event = new KeyboardEvent('keydown', {
+        key: 'f',
+        metaKey: true,
+        shiftKey: true,
+        bubbles: true,
+      });
+      document.dispatchEvent(event);
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: originalUAData,
+        configurable: true,
+      });
+    });
   });
 
   describe('dialog management', () => {
