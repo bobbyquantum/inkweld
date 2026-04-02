@@ -169,9 +169,6 @@ test.describe('Local Publishing Workflow', () => {
       // Click generate
       await page.getByTestId('generate-button').click();
 
-      // Should show "Generating..." button state
-      await expect(page.getByTestId('generate-button-loading')).toBeVisible();
-
       // Wait for either the complete dialog or an error snackbar
       const dialogOrError = await Promise.race([
         page

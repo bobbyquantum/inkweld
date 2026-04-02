@@ -80,6 +80,7 @@ test.describe('Local Project Export', () => {
     // Save the file and verify its contents
     const downloadPath = path.join(tmpDir, filename);
     await download.saveAs(downloadPath);
+    expect(await download.failure()).toBeNull();
 
     // Verify it's a valid ZIP file with expected contents
     const { files, manifest } = await verifyZipContents(downloadPath);
@@ -92,7 +93,7 @@ test.describe('Local Project Export', () => {
     expect(manifest?.['projectTitle']).toBe('Test Project');
 
     // Cleanup
-    fs.unlinkSync(downloadPath);
+    if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath);
   });
 
   test('should include all project elements in export', async ({
@@ -126,7 +127,7 @@ test.describe('Local Project Export', () => {
     expect(files).toContain('manifest.json');
 
     // Cleanup
-    fs.unlinkSync(downloadPath);
+    if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath);
   });
 });
 
@@ -238,7 +239,7 @@ test.describe('Local Project Import', () => {
     await expect(projectCards).toHaveCount(2);
 
     // Cleanup
-    fs.unlinkSync(exportedFile);
+    if (fs.existsSync(exportedFile)) fs.unlinkSync(exportedFile);
   });
 
   test('should show error for invalid ZIP file', async ({
@@ -266,7 +267,7 @@ test.describe('Local Project Import', () => {
     await expect(page.getByTestId('import-parse-error')).toBeVisible();
 
     // Cleanup
-    fs.unlinkSync(invalidZipPath);
+    if (fs.existsSync(invalidZipPath)) fs.unlinkSync(invalidZipPath);
   });
 
   test('should validate slug format in import dialog', async ({
@@ -306,7 +307,7 @@ test.describe('Local Project Import', () => {
     await expect(page.getByTestId('import-start-button')).toBeEnabled();
 
     // Cleanup
-    fs.unlinkSync(exportedFile);
+    if (fs.existsSync(exportedFile)) fs.unlinkSync(exportedFile);
   });
 
   test('should detect slug collision on import', async ({
@@ -345,7 +346,7 @@ test.describe('Local Project Import', () => {
     await expect(page.getByTestId('import-start-button')).toBeDisabled();
 
     // Cleanup
-    fs.unlinkSync(exportedFile);
+    if (fs.existsSync(exportedFile)) fs.unlinkSync(exportedFile);
   });
 });
 
@@ -413,6 +414,6 @@ test.describe('Export/Import Round-Trip', () => {
     expect(found).toBe(true);
 
     // Cleanup
-    fs.unlinkSync(exportedFile);
+    if (fs.existsSync(exportedFile)) fs.unlinkSync(exportedFile);
   });
 });

@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import {
@@ -821,6 +821,11 @@ describe('WorldbuildingService', () => {
       onlineService = TestBed.inject(WorldbuildingService);
     });
 
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    });
+
     it('should return undefined when auth token is missing', async () => {
       (
         mockAuthTokenService.getToken as ReturnType<typeof vi.fn>
@@ -920,8 +925,11 @@ describe('WorldbuildingService', () => {
         slug
       );
 
-      // Advance past the 10s safety timeout
-      await vi.advanceTimersByTimeAsync(10000);
+      // Advance past IndexedDB sync timeout (5s), then WebSocket safety timeout (10s).
+      // When IndexedDB doesn't sync immediately, the WebSocket timeout is created
+      // at t=5000 and fires at t=15000, so we need to advance in two steps.
+      await vi.advanceTimersByTimeAsync(5500);
+      await vi.advanceTimersByTimeAsync(11000);
 
       const data = await dataPromise;
 

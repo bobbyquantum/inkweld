@@ -5,6 +5,7 @@
  * (Cmd/Ctrl + Shift + F) works correctly for finding content across
  * all documents in a project.
  */
+import { pressShortcut } from '../common';
 import { expect, test } from './fixtures';
 
 test.describe('Project Search', () => {
@@ -27,8 +28,7 @@ test.describe('Project Search', () => {
     await page.getByTestId('project-card').first().click();
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+Shift+f' : 'Control+Shift+F');
+    await pressShortcut(page, 'Shift+f');
 
     await expect(page.getByTestId('project-search-dialog')).toBeVisible();
   });
@@ -98,8 +98,7 @@ test.describe('Project Search', () => {
     await page.waitForTimeout(500);
 
     // Open project search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+Shift+f' : 'Control+Shift+F');
+    await pressShortcut(page, 'Shift+f');
     await expect(page.getByTestId('project-search-dialog')).toBeVisible();
 
     // Type the search query
@@ -141,8 +140,7 @@ test.describe('Project Search', () => {
     }
 
     // Open project search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+Shift+f' : 'Control+Shift+F');
+    await pressShortcut(page, 'Shift+f');
     await expect(page.getByTestId('project-search-dialog')).toBeVisible();
 
     // Type query that matches both docs
@@ -200,8 +198,7 @@ test.describe('Project Search', () => {
     await page.keyboard.press('Escape');
 
     // Open project search
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+Shift+f' : 'Control+Shift+F');
+    await pressShortcut(page, 'Shift+f');
     await expect(page.getByTestId('project-search-dialog')).toBeVisible();
 
     await page.getByTestId('project-search-input').fill('starfish');
@@ -220,8 +217,7 @@ test.describe('Project Search', () => {
     localPage: page,
   }) => {
     // We are on the projects list page, not inside a project
-    const isMac = process.platform === 'darwin';
-    await page.keyboard.press(isMac ? 'Meta+Shift+f' : 'Control+Shift+F');
+    await pressShortcut(page, 'Shift+f');
 
     // No dialog should appear
     await page.waitForTimeout(300);

@@ -17,18 +17,7 @@ import {
 
 import { EditorFloatingMenuComponent } from './editor-floating-menu.component';
 
-// Mock @bobbyquantum/ngx-editor
-vi.mock('@bobbyquantum/ngx-editor', () => {
-  return {
-    Editor: vi.fn().mockImplementation(() => ({
-      view: null,
-      update: new Subject(),
-      destroy: vi.fn(),
-    })),
-  };
-});
-
-// prosemirror-commands is mocked globally in setup-vitest.ts
+// @bobbyquantum/ngx-editor and prosemirror-commands are mocked globally in setup-vitest.ts
 
 describe('EditorFloatingMenuComponent', () => {
   let component: EditorFloatingMenuComponent;

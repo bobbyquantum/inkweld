@@ -15,33 +15,8 @@ import {
 
 import { EditorToolbarComponent } from './editor-toolbar.component';
 
-// Mock @bobbyquantum/ngx-editor
-vi.mock('@bobbyquantum/ngx-editor', () => {
-  return {
-    Editor: vi.fn().mockImplementation(() => ({
-      view: null,
-      update: new Subject(),
-      destroy: vi.fn(),
-    })),
-    NgxEditorModule: class {},
-  };
-});
-
-// prosemirror-commands is mocked globally in setup-vitest.ts
-
-// Mock prosemirror-history
-vi.mock('prosemirror-history', () => ({
-  undo: (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
-    if (dispatch) dispatch({});
-    return true;
-  },
-  redo: (_state: unknown, dispatch?: (tr: unknown) => void): boolean => {
-    if (dispatch) dispatch({});
-    return true;
-  },
-}));
-
-// prosemirror-schema-list is mocked globally in setup-vitest.ts
+// @bobbyquantum/ngx-editor, prosemirror-commands, prosemirror-history,
+// and prosemirror-schema-list are all mocked globally in setup-vitest.ts
 
 describe('EditorToolbarComponent', () => {
   let component: EditorToolbarComponent;

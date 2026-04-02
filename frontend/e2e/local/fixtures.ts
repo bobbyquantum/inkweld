@@ -59,6 +59,15 @@ export const test = base.extend<LocalTestFixtures>({
       await route.abort('failed');
     });
 
+    // Override navigator.platform so the Angular app always checks ctrlKey.
+    // This avoids macOS Chromium intercepting Cmd+P (print) and Cmd+Shift+F
+    // (find-in-page) at the browser level before they reach JavaScript.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'Linux x86_64',
+      });
+    });
+
     // Set up app configuration for local mode
     await page.addInitScript(() => {
       const userProfile = {
@@ -134,6 +143,15 @@ export const test = base.extend<LocalTestFixtures>({
       await route.abort('failed');
     });
 
+    // Override navigator.platform so the Angular app always checks ctrlKey.
+    // This avoids macOS Chromium intercepting Cmd+P (print) and Cmd+Shift+F
+    // (find-in-page) at the browser level before they reach JavaScript.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'Linux x86_64',
+      });
+    });
+
     // Set up app configuration for local mode
     await page.addInitScript(() => {
       const userProfile = {
@@ -185,9 +203,9 @@ export const test = base.extend<LocalTestFixtures>({
     await page.getByTestId('create-new-project-menu-item').click();
 
     // Step 1: Template Selection
-    // Wait for template to be selected (defaults to 'empty')
+    // Wait for the wizard dialog to fully render before interacting
     const nextButton = page.getByRole('button', { name: /next/i });
-    await nextButton.waitFor();
+    await nextButton.waitFor({ timeout: 30_000 });
     await nextButton.click();
 
     // Step 2: Fill in project details
@@ -229,6 +247,13 @@ export const test = base.extend<LocalTestFixtures>({
   // Local browser context
   localContext: async ({ browser }, use) => {
     const context = await browser.newContext();
+
+    // Override navigator.platform so the Angular app always checks ctrlKey.
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'Linux x86_64',
+      });
+    });
 
     // Set up local mode for all pages in this context
     await context.addInitScript(() => {
