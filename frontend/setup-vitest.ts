@@ -17,6 +17,32 @@ import '@angular/compiler'; // Required for JIT compilation in tests
 
 import { afterEach, vi } from 'vitest';
 
+// ---------------------------------------------------------------------------
+// Fix for Angular vitest-mock-patch + Vitest 4.x stack-trace overflow
+// ---------------------------------------------------------------------------
+// Angular's vitest-mock-patch wraps vi.mock/vi.doMock with an extra stack
+// frame.  Vitest 4.x's getImporter() uses createSimpleStackTrace with
+// stackTraceLimit: 5, which isn't enough with the extra frame — causing
+// parseSingleStack to receive undefined and crash with:
+//   "Cannot read properties of undefined (reading 'trim')"
+//
+// Fix: intercept Error.stackTraceLimit so it never goes below 10, giving
+// enough room for the Angular wrapper frame.  The interceptor is transparent
+// to all other code and is removed after all vi.mock/vi.doMock calls.
+// ---------------------------------------------------------------------------
+let _stackTraceLimit = Error.stackTraceLimit;
+const MIN_STACK_TRACE_LIMIT = 10;
+
+Object.defineProperty(Error, 'stackTraceLimit', {
+  get() {
+    return _stackTraceLimit;
+  },
+  set(value: number) {
+    _stackTraceLimit = Math.max(value, MIN_STACK_TRACE_LIMIT);
+  },
+  configurable: true,
+});
+
 // Mock @myriaddreamin/typst.ts globally BEFORE any imports that might use it
 // This is needed for non-isolated test mode where module cache is shared
 const mockTypstGlobal = {
@@ -103,7 +129,10 @@ vi.mock('y-indexeddb', () => {
     IndexeddbPersistence: class IndexeddbPersistence {
       whenSynced = Promise.resolve();
       synced = true;
-      private readonly _listeners = new Map<string, Set<(...args: any[]) => void>>();
+      private readonly _listeners = new Map<
+        string,
+        Set<(...args: any[]) => void>
+      >();
 
       constructor(_name: string, _doc: any) {}
 
@@ -144,7 +173,10 @@ vi.mock('y-websocket', () => {
         getStates: () => new Map(),
         clientID: 123,
       };
-      private readonly _listeners = new Map<string, Set<(...args: any[]) => void>>();
+      private readonly _listeners = new Map<
+        string,
+        Set<(...args: any[]) => void>
+      >();
 
       constructor(_url: string, _room: string, _doc: any, _options?: any) {}
 
@@ -313,6 +345,15 @@ vi.mock('prosemirror-schema-list', () => ({
     },
 }));
 
+// ---------------------------------------------------------------------------
+// Restore normal Error.stackTraceLimit behavior now that all vi.mock calls
+// in this setup file are done.  Test files that call vi.mock for third-party
+// packages also benefit because the interceptor stays active, but we leave
+// it in place intentionally — removing it would re-expose the bug if any
+// spec file calls vi.mock for a non-relative package.
+// ---------------------------------------------------------------------------
+// (intentionally kept active — see comment above)
+
 // Mock File.arrayBuffer for jsdom (only if not already defined)
 if (!File.prototype.arrayBuffer) {
   Object.defineProperty(File.prototype, 'arrayBuffer', {
@@ -385,6 +426,22 @@ Object.defineProperty(globalThis, 'sessionStorage', {
   value: localStorageMock,
   writable: true,
 });
+
+// ---------------------------------------------------------------------------
+// Suppress noisy console output during tests
+// ---------------------------------------------------------------------------
+// Many source files use raw console.log/debug/info instead of LoggerService.
+// Migrating ~150+ calls is a separate effort; for now, silence them globally
+// so test output stays clean.  console.warn and console.error are kept visible
+// because they tend to surface real issues.
+//
+// Uses plain no-op replacement (not vi.spyOn) so that vi.restoreAllMocks()
+// in individual spec files doesn't re-enable the noise.
+// ---------------------------------------------------------------------------
+const noop = () => {};
+console.log = noop;
+console.debug = noop;
+console.info = noop;
 
 // Mock matchMedia for Angular CDK BreakpointObserver
 // This is required for components using BreakpointObserver (dialogs, responsive components)
