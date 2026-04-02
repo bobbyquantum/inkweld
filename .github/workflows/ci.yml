@@ -77,7 +77,7 @@ jobs:
         run: node --version && bun --version
 
       - name: Run frontend tests
-        run: cd frontend && npm test
+        run: cd frontend && npm run test:coverage
 
       - name: Upload frontend coverage
         if: always()
@@ -115,7 +115,7 @@ jobs:
         run: bun install
 
       - name: Run backend tests
-        run: cd backend && DB_DATABASE=":memory:" USER_APPROVAL_REQUIRED="false" bun test
+        run: cd backend && DB_DATABASE=":memory:" USER_APPROVAL_REQUIRED="false" bun run test:coverage
 
       - name: Upload backend coverage
         if: always()
