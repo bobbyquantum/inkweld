@@ -473,16 +473,17 @@ export function buildVisualTree(elements: Element[]): TreeNode[] {
     };
 
     // Pop from stack until we find the parent level
-    while (stack.length > 0 && stack.at(-1)!.level >= el.level) {
+    while (stack.length > 0 && (stack.at(-1)?.level ?? -1) >= el.level) {
       stack.pop();
     }
 
-    if (stack.length === 0) {
+    const parent = stack.at(-1);
+    if (parent) {
+      // Add as child of current stack top
+      parent.node.children.push(node);
+    } else {
       // Root level
       result.push(node);
-    } else {
-      // Add as child of current stack top
-      stack.at(-1)!.node.children.push(node);
     }
 
     // Push this node onto stack if it could have children
