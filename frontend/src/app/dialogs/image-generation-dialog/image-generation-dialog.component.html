@@ -448,16 +448,11 @@
                 <!-- Vertical scrollable thumbnails on the right -->
                 <div class="thumbnail-column">
                   @for (image of currentJob()!.images; track $index) {
-                    <div
+                    <button
+                      type="button"
                       class="thumbnail-item"
                       [class.selected]="selectedImageIndex() === $index"
-                      (click)="selectImage($index)"
-                      (keydown.enter)="selectImage($index)"
-                      (keydown.space)="
-                        selectImage($index); $event.preventDefault()
-                      "
-                      tabindex="0"
-                      role="button">
+                      (click)="selectImage($index)">
                       <img
                         [src]="getImageUrl(image)"
                         alt="Generated result {{ $index + 1 }}" />
@@ -466,7 +461,7 @@
                           <mat-icon>check_circle</mat-icon>
                         </div>
                       }
-                    </div>
+                    </button>
                   }
                 </div>
               </div>

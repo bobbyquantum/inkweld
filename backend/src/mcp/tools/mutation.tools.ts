@@ -68,7 +68,7 @@ function parseProjectParam(
   projectArg: unknown,
   permission: string
 ): { project: ActiveProjectContext } | { error: McpToolResult } {
-  const projectStr = String(projectArg ?? '').trim();
+  const projectStr = (typeof projectArg === 'string' ? projectArg : '').trim();
   if (!projectStr) {
     return {
       error: {
@@ -162,8 +162,10 @@ function resolveReorderTarget(
   if (position === 0) return null; // first position
   if (position === -1 || position >= siblings.length - 1) {
     const lastSibling = siblings.at(-1);
-    if (!lastSibling) return undefined;
-    return lastSibling.element.id !== elementId ? lastSibling.element.id : undefined;
+    if (lastSibling) {
+      return lastSibling.element.id !== elementId ? lastSibling.element.id : undefined;
+    }
+    return undefined;
   }
   const siblingBefore = siblings[position - 1];
   if (siblingBefore && siblingBefore.element.id !== elementId) {
@@ -223,10 +225,10 @@ Use move_elements or reorder_element to reposition after creation.`,
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const name = String(args.name ?? '').trim();
-    const type = String(args.type ?? 'ITEM') as ElementType;
-    const schemaId = args.schemaId === undefined ? undefined : String(args.schemaId).trim();
-    const parentId = args.parentId ? String(args.parentId) : null;
+    const name = (typeof args.name === 'string' ? args.name : '').trim();
+    const type = (typeof args.type === 'string' ? args.type : 'ITEM') as ElementType;
+    const schemaId = typeof args.schemaId === 'string' ? args.schemaId.trim() : undefined;
+    const parentId = typeof args.parentId === 'string' ? args.parentId : null;
 
     // Validate
     if (!name) {
@@ -1208,8 +1210,8 @@ The content replaces the entire document. Use get_document_content first to read
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const elementId = String(args.elementId ?? '').trim();
-    const content = String(args.content ?? '');
+    const elementId = (typeof args.elementId === 'string' ? args.elementId : '').trim();
+    const content = typeof args.content === 'string' ? args.content : '';
     const format = (args.format as string) ?? 'xml';
 
     if (!elementId) {
@@ -1550,8 +1552,11 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const elementId = String(args.elementId ?? '');
-    const action = String(args.action ?? 'add') as 'add' | 'remove' | 'set';
+    const elementId = typeof args.elementId === 'string' ? args.elementId : '';
+    const action = (typeof args.action === 'string' ? args.action : 'add') as
+      | 'add'
+      | 'remove'
+      | 'set';
     const tags = (args.tags as string[]) ?? [];
 
     if (!elementId) {
@@ -1678,9 +1683,9 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug, projectId } = result.project;
 
-    const elementId = String(args.elementId ?? '');
-    const name = String(args.name ?? '');
-    const description = args.description ? String(args.description) : undefined;
+    const elementId = typeof args.elementId === 'string' ? args.elementId : '';
+    const name = typeof args.name === 'string' ? args.name : '';
+    const description = typeof args.description === 'string' ? args.description : undefined;
 
     if (!elementId) {
       return {

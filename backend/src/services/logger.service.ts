@@ -79,7 +79,7 @@ function parseLogLevel(level: string | undefined): LogLevel {
  */
 function detectEnvironment(): { isDev: boolean; isWorkers: boolean } {
   const nodeEnv = (
-    typeof process !== 'undefined' ? process.env?.NODE_ENV : undefined
+    typeof process === 'undefined' ? undefined : process.env?.NODE_ENV
   )?.toLowerCase();
   const isDev = nodeEnv === 'development' || nodeEnv === 'test' || !nodeEnv;
 
@@ -96,7 +96,7 @@ function detectEnvironment(): { isDev: boolean; isWorkers: boolean } {
  */
 function getMinLevel(): LogLevel {
   const { isDev } = detectEnvironment();
-  const envLevel = typeof process !== 'undefined' ? process.env?.LOG_LEVEL : undefined;
+  const envLevel = typeof process === 'undefined' ? undefined : process.env?.LOG_LEVEL;
 
   // In development, default to DEBUG; in production, default to INFO
   if (envLevel) {
@@ -222,7 +222,7 @@ function logDev(
   level: LogLevel,
   context: string,
   message: string,
-  error: unknown | undefined,
+  error: unknown,
   data: Record<string, unknown> | undefined,
   correlationId: string | null | undefined,
   timestamp: string,
@@ -261,7 +261,7 @@ function logProduction(
   level: LogLevel,
   context: string,
   message: string,
-  error: unknown | undefined,
+  error: unknown,
   data: Record<string, unknown> | undefined,
   correlationId: string | null | undefined,
   timestamp: string,

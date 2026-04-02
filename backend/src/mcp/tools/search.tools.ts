@@ -63,7 +63,7 @@ function parseProjectParam(
   projectArg: unknown,
   permission: string
 ): { project: ActiveProjectContext } | { error: McpToolResult } {
-  const projectStr = String(projectArg ?? '').trim();
+  const projectStr = (typeof projectArg === 'string' ? projectArg : '').trim();
 
   if (!projectStr) {
     return {
@@ -838,7 +838,7 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const elementId = String(args.elementId ?? '');
+    const elementId = typeof args.elementId === 'string' ? args.elementId : '';
     if (!elementId) {
       return {
         content: [{ type: 'text', text: 'Error: elementId is required' }],
@@ -951,7 +951,7 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const elementId = String(args.elementId ?? '');
+    const elementId = typeof args.elementId === 'string' ? args.elementId : '';
     const format = (args.format as string) ?? 'text';
 
     if (!elementId) {

@@ -68,9 +68,9 @@ async function readSchemas(ctx: McpContext, username: string, slug: string): Pro
         const schema = value as Record<string, unknown>;
         schemas.push({
           id: key,
-          name: String(schema.name ?? key),
-          description: String(schema.description ?? ''),
-          icon: String(schema.icon ?? 'description'),
+          name: (schema.name as string | undefined) ?? String(key),
+          description: (schema.description as string | undefined) ?? '',
+          icon: (schema.icon as string | undefined) ?? 'description',
           isBuiltIn: Boolean(schema.isBuiltIn ?? false),
         });
       }

@@ -325,12 +325,11 @@ const generateRoute = createRoute({
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ProfileRecord = any;
 type ValidatedBody = z.infer<typeof GenerateRequestSchema>;
 
 interface ResolvedProfile {
-  profile: ProfileRecord;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  profile: any;
   provider: ImageProviderType;
   model: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -416,8 +415,8 @@ async function recordGenerationAudit(
   db: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any,
-
-  profile: ProfileRecord,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  profile: any,
   prompt: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   result: any,

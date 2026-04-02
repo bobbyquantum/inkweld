@@ -77,6 +77,11 @@
 }
 
 .app-info {
+  appearance: none;
+  background: transparent;
+  border: none;
+  font: inherit;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 12px;

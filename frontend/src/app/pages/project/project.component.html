@@ -76,41 +76,35 @@
         }
         <!-- Fixed bottom navigation -->
         <div class="mobile-sidenav-bottom-nav">
-          <div
+          <button
+            type="button"
             class="mobile-nav-item"
             [class.selected-item]="isSystemTabSelected('media')"
             data-testid="mobile-media-button"
-            tabindex="0"
-            role="button"
             (click)="onShowMediaLibrary(); toggleSidebar()"
-            (keyup.enter)="onShowMediaLibrary(); toggleSidebar()"
             aria-label="Media Library">
             <mat-icon>perm_media</mat-icon>
             <span class="nav-title">Media Library</span>
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             class="mobile-nav-item"
             [class.selected-item]="isSystemTabSelected('settings')"
             data-testid="mobile-settings-button"
-            tabindex="0"
-            role="button"
             (click)="onShowSettings(); toggleSidebar()"
-            (keyup.enter)="onShowSettings(); toggleSidebar()"
             aria-label="Project Settings">
             <mat-icon>settings</mat-icon>
             <span class="nav-title">Project Settings</span>
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             class="mobile-nav-item exit-item"
             data-testid="mobile-exit-button"
-            tabindex="0"
-            role="button"
             (click)="exitProject()"
-            (keyup.enter)="exitProject()"
             aria-label="Exit Project">
             <mat-icon>exit_to_app</mat-icon>
             <span class="nav-title">Exit Project</span>
-          </div>
+          </button>
         </div>
       </div>
     </mat-sidenav>

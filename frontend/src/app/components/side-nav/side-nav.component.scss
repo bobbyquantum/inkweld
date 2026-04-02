@@ -209,6 +209,11 @@
   }
 
   .project-tile {
+    appearance: none;
+    border: none;
+    font: inherit;
+    text-align: left;
+    width: 100%;
     display: flex;
     align-items: center;
     gap: 10px;

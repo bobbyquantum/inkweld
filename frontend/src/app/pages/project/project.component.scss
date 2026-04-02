@@ -186,6 +186,12 @@ as-split {
   flex-shrink: 0; // Never shrink - always visible at bottom
 
   .mobile-nav-item {
+    appearance: none;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font: inherit;
     display: flex;
     align-items: center;
     min-height: 44px; // Larger touch target for mobile
