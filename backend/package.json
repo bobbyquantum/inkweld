@@ -18,7 +18,7 @@
     "generate:frontend-imports": "bun run scripts/generate-frontend-imports.ts",
     "start": "NODE_ENV=production bun dist/bun-runner.js",
     "start:node": "NODE_ENV=production node dist/node-runner.js",
-    "test": "NODE_ENV=test bun test --coverage",
+    "test": "NODE_ENV=test bun test",
     "test:watch": "NODE_ENV=test bun test --watch",
     "test:coverage": "NODE_ENV=test bun test --coverage",
     "lint": "eslint .",

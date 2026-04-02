@@ -161,7 +161,8 @@ function resolveReorderTarget(
   if (position === undefined) return undefined;
   if (position === 0) return null; // first position
   if (position === -1 || position >= siblings.length - 1) {
-    const lastSibling = siblings.at(-1)!;
+    const lastSibling = siblings.at(-1);
+    if (!lastSibling) return undefined;
     return lastSibling.element.id !== elementId ? lastSibling.element.id : undefined;
   }
   const siblingBefore = siblings[position - 1];
