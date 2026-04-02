@@ -427,6 +427,22 @@ Object.defineProperty(globalThis, 'sessionStorage', {
   writable: true,
 });
 
+// ---------------------------------------------------------------------------
+// Suppress noisy console output during tests
+// ---------------------------------------------------------------------------
+// Many source files use raw console.log/debug/info instead of LoggerService.
+// Migrating ~150+ calls is a separate effort; for now, silence them globally
+// so test output stays clean.  console.warn and console.error are kept visible
+// because they tend to surface real issues.
+//
+// Uses plain no-op replacement (not vi.spyOn) so that vi.restoreAllMocks()
+// in individual spec files doesn't re-enable the noise.
+// ---------------------------------------------------------------------------
+const noop = () => {};
+console.log = noop;
+console.debug = noop;
+console.info = noop;
+
 // Mock matchMedia for Angular CDK BreakpointObserver
 // This is required for components using BreakpointObserver (dialogs, responsive components)
 // Uses plain functions (not vi.fn()) so vi.restoreAllMocks() doesn't clear them
