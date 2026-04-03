@@ -230,10 +230,10 @@ export class ProjectSearchService {
   private isMacPlatform(): boolean {
     if (typeof navigator === 'undefined') return false;
     // Prefer the modern User-Agent Client Hints API; fall back to the legacy
-    // navigator.platform that ProseMirror still uses at runtime.
+    // navigator.userAgent string that remains supported across browsers.
     const platform =
       (navigator as NavigatorWithUAData).userAgentData?.platform ??
-      navigator.platform;
+      navigator.userAgent;
     return /Mac|iP(hone|[oa]d)/i.test(platform);
   }
 
