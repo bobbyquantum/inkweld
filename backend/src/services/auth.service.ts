@@ -174,7 +174,7 @@ class AuthService {
   /**
    * Destroy session (no-op for JWT tokens - client removes token)
    */
-  destroySession(c: Context): void {
+  destroySession(_c: Context): void {
     // With JWT tokens, logout is handled client-side by removing the token
   }
 
