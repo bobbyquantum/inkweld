@@ -2,12 +2,11 @@
  * Worldbuilding Mobile Screenshot Tests
  *
  * Captures screenshots of worldbuilding screens at mobile viewport sizes
- * to verify the drill-in navigation system works correctly on phones and
- * small tablets.
+ * to verify the accordion layout works correctly on phones and small tablets.
  *
- * Mobile layout uses a drill-in pattern:
- * - Overview: compact header + section cards (Identity, tabs, Relationships)
- * - Detail: back header + full section content
+ * Mobile layout uses an accordion pattern:
+ * - All sections rendered as collapsible mat-expansion-panels
+ * - Identity & Details (expanded by default), schema tabs, Relationships
  *
  * Strategy: Set up the project and elements at desktop viewport (so sidebar
  * is visible), then resize to mobile viewport for screenshots.
@@ -42,7 +41,7 @@ const MOBILE_VIEWPORTS = {
 /**
  * Create a project and worldbuilding element at desktop viewport,
  * then open the element and resize to mobile for testing.
- * On mobile, the editor opens to the drill-in overview.
+ * On mobile, the editor shows an accordion layout.
  */
 async function setupWorldbuildingAtMobile(
   page: Page,
@@ -78,12 +77,14 @@ async function setupWorldbuildingAtMobile(
   await page.getByTestId(`element-${elementName}`).click();
   await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
-  // Upload a REAL image through the dialog (not CSS faking)
-  await uploadRealImage(page);
-
-  // Now resize to mobile viewport — this triggers drill-in overview mode
+  // Resize to mobile viewport first — accordion mode shows the image placeholder
   await page.setViewportSize(mobileViewport);
-  await expect(page.getByTestId('mobile-section-list')).toBeVisible();
+
+  // Wait for accordion layout to appear
+  await expect(page.getByTestId('accordion-identity')).toBeVisible();
+
+  // Upload a REAL image through the dialog (image placeholder is visible in accordion mode)
+  await uploadRealImage(page);
 }
 
 /**
@@ -159,7 +160,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
 
   for (const [viewportName, viewport] of Object.entries(MOBILE_VIEWPORTS)) {
     test.describe(`${viewportName} (${viewport.width}x${viewport.height})`, () => {
-      test(`drill-in overview`, async ({ offlinePage: page }) => {
+      test(`accordion overview`, async ({ offlinePage: page }) => {
         await setupWorldbuildingAtMobile(
           page,
           `mobile-overview-${viewportName.toLowerCase()}`,
@@ -168,62 +169,24 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           viewport
         );
 
-        // On mobile, the editor should show the drill-in overview
-        const sectionList = page.getByTestId('mobile-section-list');
-        await expect(sectionList).toBeVisible();
+        // On mobile, the editor should show accordion panels
+        await expect(page.getByTestId('accordion-identity')).toBeVisible();
+        await expect(page.getByTestId('accordion-relationships')).toBeVisible();
 
-        // Verify section cards are present
-        await expect(page.getByTestId('drill-identity')).toBeVisible();
-        await expect(page.getByTestId('drill-relationships')).toBeVisible();
-
-        // Verify identity panel and editor section are hidden
-        await expect(page.locator('app-identity-panel')).toBeHidden();
-        await expect(page.locator('.editor-section')).toBeHidden();
-
-        // Screenshot: overview with section cards
-        await page.screenshot({
-          path: join(
-            screenshotsDir,
-            `worldbuilding-overview-${viewportName}.png`
-          ),
-          fullPage: false,
-        });
-      });
-
-      test(`drill into identity`, async ({ offlinePage: page }) => {
-        await setupWorldbuildingAtMobile(
-          page,
-          `mobile-identity-${viewportName.toLowerCase()}`,
-          'character-v1',
-          'Identity Test',
-          viewport
-        );
-
-        // Drill into identity section
-        await page.getByTestId('drill-identity').click();
-
-        // Verify detail header with back button
-        await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
-        await expect(page.getByTestId('mobile-back-button')).toBeVisible();
-
-        // Verify identity panel is visible in full layout
+        // Verify the identity panel content is visible (expanded by default)
         await expect(page.locator('app-identity-panel')).toBeVisible();
 
-        // Screenshot: identity panel drilled in
+        // Screenshot: accordion overview
         await page.screenshot({
           path: join(
             screenshotsDir,
-            `worldbuilding-identity-${viewportName}.png`
+            `worldbuilding-accordion-${viewportName}.png`
           ),
           fullPage: false,
         });
-
-        // Verify back button returns to overview
-        await page.getByTestId('mobile-back-button').click();
-        await expect(page.getByTestId('mobile-section-list')).toBeVisible();
       });
 
-      test(`drill into tab fields`, async ({ offlinePage: page }) => {
+      test(`expand tab panel`, async ({ offlinePage: page }) => {
         await setupWorldbuildingAtMobile(
           page,
           `mobile-tab-${viewportName.toLowerCase()}`,
@@ -232,24 +195,23 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           viewport
         );
 
-        // Find and click the first tab section card (e.g., "Basic Info")
-        const firstTabCard = page.locator(
-          '.mobile-section-card:not([data-testid="drill-identity"]):not([data-testid="drill-relationships"])'
+        // Find and expand the first schema tab panel (e.g., "Basic Info")
+        const firstTabPanel = page.locator(
+          'mat-expansion-panel:not([data-testid="accordion-identity"]):not([data-testid="accordion-relationships"])'
         );
-        await firstTabCard.first().click();
+        await firstTabPanel.first().click();
 
-        // Verify detail header is visible
-        await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
-
-        // Verify editor section is visible (with tab bar hidden)
-        await expect(page.locator('.editor-section')).toBeVisible();
+        // Wait for panel to expand and form fields to appear
+        await expect(
+          firstTabPanel.first().locator('.field-container').first()
+        ).toBeVisible();
 
         // Verify form fields are visible
-        const formFields = page.locator('.field-container');
+        const formFields = firstTabPanel.first().locator('.field-container');
         const fieldCount = await formFields.count();
         expect(fieldCount).toBeGreaterThan(0);
 
-        // Screenshot: tab fields drilled in
+        // Screenshot: expanded tab panel
         await page.screenshot({
           path: join(
             screenshotsDir,
@@ -259,7 +221,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
         });
       });
 
-      test(`no overflow in drilled tab`, async ({ offlinePage: page }) => {
+      test(`no overflow in expanded panel`, async ({ offlinePage: page }) => {
         await setupWorldbuildingAtMobile(
           page,
           `mobile-ovf-${viewportName.toLowerCase()}`,
@@ -268,12 +230,14 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           viewport
         );
 
-        // Drill into a tab to check field overflow
-        const firstTabCard = page.locator(
-          '.mobile-section-card:not([data-testid="drill-identity"]):not([data-testid="drill-relationships"])'
+        // Expand a tab panel to check field overflow
+        const firstTabPanel = page.locator(
+          'mat-expansion-panel:not([data-testid="accordion-identity"]):not([data-testid="accordion-relationships"])'
         );
-        await firstTabCard.first().click();
-        await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
+        await firstTabPanel.first().click();
+        await expect(
+          firstTabPanel.first().locator('.field-container').first()
+        ).toBeVisible();
 
         // Verify no horizontal overflow
         const hasHorizontalOverflow = await page.evaluate(() => {
@@ -291,7 +255,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
         }
 
         // Verify all visible form fields are within viewport bounds
-        const formFields = page.locator('.field-container');
+        const formFields = firstTabPanel.first().locator('.field-container');
         const fieldCount = await formFields.count();
         for (let i = 0; i < Math.min(fieldCount, 5); i++) {
           const fieldBox = await formFields.nth(i).boundingBox();
@@ -311,7 +275,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
   const darkViewport = MOBILE_VIEWPORTS.iPhone14Pro;
 
   test.describe('Dark Mode', () => {
-    test('drill-in overview - dark mode', async ({ offlinePage: page }) => {
+    test('accordion overview - dark mode', async ({ offlinePage: page }) => {
       await setupWorldbuildingAtMobile(
         page,
         'mobile-dark-overview',
@@ -324,40 +288,17 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
       await page.emulateMedia({ colorScheme: 'dark' });
       await page.waitForTimeout(400);
 
-      // Verify overview is visible
-      await expect(page.getByTestId('mobile-section-list')).toBeVisible();
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'worldbuilding-overview-dark.png'),
-        fullPage: false,
-      });
-    });
-
-    test('drill into identity - dark mode', async ({ offlinePage: page }) => {
-      await setupWorldbuildingAtMobile(
-        page,
-        'mobile-dark-identity',
-        'character-v1',
-        'Dark Identity',
-        darkViewport
-      );
-
-      await page.emulateMedia({ colorScheme: 'dark' });
-      await page.waitForTimeout(400);
-
-      // Drill into identity
-      await page.getByTestId('drill-identity').click();
-
-      await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
+      // Verify accordion panels are visible
+      await expect(page.getByTestId('accordion-identity')).toBeVisible();
       await expect(page.locator('app-identity-panel')).toBeVisible();
 
       await page.screenshot({
-        path: join(screenshotsDir, 'worldbuilding-identity-dark.png'),
+        path: join(screenshotsDir, 'worldbuilding-accordion-dark.png'),
         fullPage: false,
       });
     });
 
-    test('drill into tab fields - dark mode', async ({ offlinePage: page }) => {
+    test('expand tab panel - dark mode', async ({ offlinePage: page }) => {
       await setupWorldbuildingAtMobile(
         page,
         'mobile-dark-tab',
@@ -369,14 +310,15 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
       await page.emulateMedia({ colorScheme: 'dark' });
       await page.waitForTimeout(400);
 
-      // Drill into the first tab
-      const firstTabCard = page.locator(
-        '.mobile-section-card:not([data-testid="drill-identity"]):not([data-testid="drill-relationships"])'
+      // Expand the first schema tab panel
+      const firstTabPanel = page.locator(
+        'mat-expansion-panel:not([data-testid="accordion-identity"]):not([data-testid="accordion-relationships"])'
       );
-      await firstTabCard.first().click();
+      await firstTabPanel.first().click();
 
-      await expect(page.getByTestId('mobile-detail-header')).toBeVisible();
-      await expect(page.locator('.editor-section')).toBeVisible();
+      await expect(
+        firstTabPanel.first().locator('.field-container').first()
+      ).toBeVisible();
 
       await page.screenshot({
         path: join(screenshotsDir, 'worldbuilding-tab-fields-dark.png'),

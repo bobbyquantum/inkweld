@@ -138,24 +138,25 @@ describe('IdentityPanelComponent', () => {
   });
 
   describe('viewImage', () => {
-    it('should open image viewer dialog when image URL is available', () => {
+    it('should open image viewer dialog when image URL is available', async () => {
       fixture.detectChanges();
       // Set a resolved image URL
       component.resolvedImageUrl.set('http://example.com/image.png');
 
-      component.viewImage();
+      await component.viewImage();
 
       expect(dialogGatewayService.openImageViewerDialog).toHaveBeenCalledWith({
         imageUrl: 'http://example.com/image.png',
         fileName: 'Test Element',
+        canEdit: true,
       });
     });
 
-    it('should not open dialog when no image URL is available', () => {
+    it('should not open dialog when no image URL is available', async () => {
       fixture.detectChanges();
       component.resolvedImageUrl.set(null);
 
-      component.viewImage();
+      await component.viewImage();
 
       expect(dialogGatewayService.openImageViewerDialog).not.toHaveBeenCalled();
     });

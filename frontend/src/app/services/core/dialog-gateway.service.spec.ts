@@ -159,13 +159,13 @@ describe('DialogGatewayService', () => {
     expect(result).toBeNull();
   });
 
-  it('should open image viewer dialog', () => {
+  it('should open image viewer dialog', async () => {
     const data: ImageViewerDialogData = {
       imageUrl: 'https://example.com/image.png',
       fileName: 'test-image.png',
     };
 
-    service.openImageViewerDialog(data);
+    await service.openImageViewerDialog(data);
 
     expect(dialogMock.open).toHaveBeenCalledWith(ImageViewerDialogComponent, {
       data,

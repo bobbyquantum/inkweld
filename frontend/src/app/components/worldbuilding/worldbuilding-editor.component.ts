@@ -24,6 +24,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime } from 'rxjs';
@@ -50,11 +51,6 @@ import { ProjectStateService } from '../../services/project/project-state.servic
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
 import { TagService } from '../../services/tag/tag.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
-import {
-  type AriaTabConfig,
-  AriaTabPanelComponent,
-  AriaTabsComponent,
-} from '../aria-tabs';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { type ResolvedTag } from '../tags/tag.model';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
@@ -75,10 +71,9 @@ import { IdentityPanelComponent } from './identity-panel/identity-panel.componen
     MatButtonModule,
     MatIconModule,
     MatExpansionModule,
+    MatListModule,
     MatTooltipModule,
     MetaPanelComponent,
-    AriaTabsComponent,
-    AriaTabPanelComponent,
     IdentityPanelComponent,
   ],
   templateUrl: './worldbuilding-editor.component.html',
@@ -140,44 +135,47 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   /** Reference to the meta panel for controlling expanded state on mobile */
   metaPanel = viewChild(MetaPanelComponent);
 
-  /** Currently selected tab index for the aria tabs */
-  selectedTabIndex = signal(0);
+  /** Currently selected section in the sidenav/accordion */
+  selectedSection = signal<string>('identity');
 
-  /** Whether the viewport is mobile-sized (< 760px) */
-  isMobile = signal(false);
-
-  /** Current drill-in section on mobile (null = overview) */
-  mobileDrillInSection = signal<string | null>(null);
+  /** Whether to use sidenav layout (true) or accordion layout (false) */
+  useSidenav = signal(true);
 
   private unsubscribeObserver: (() => void) | null = null;
   private readonly resizeCleanup: (() => void) | null = null;
   private formSubscription: (() => void) | null = null;
   private isUpdatingFromRemote = false;
-  private popstateHandler: ((event: PopStateEvent) => void) | null = null;
 
   constructor() {
-    // Mobile detection via resize listener
+    // Layout detection: sidenav for large desktop + tablet landscape, accordion otherwise
     const browserWindow = globalThis.window;
     if (browserWindow) {
-      const updateMobile = () => {
-        const nowMobile = browserWindow.innerWidth < 760;
-        if (this.isMobile() !== nowMobile) {
-          this.isMobile.set(nowMobile);
-          if (!nowMobile) {
-            this.mobileDrillInSection.set(null);
-          }
-        }
+      const updateLayout = () => {
+        const width = browserWindow.innerWidth;
+        const isLandscape = browserWindow.matchMedia(
+          '(orientation: landscape)'
+        ).matches;
+        const shouldUseSidenav = width >= 1024 || (width >= 768 && isLandscape);
+        this.useSidenav.set(shouldUseSidenav);
       };
-      updateMobile();
-      browserWindow.addEventListener('resize', updateMobile);
+      updateLayout();
+      browserWindow.addEventListener('resize', updateLayout);
       this.resizeCleanup = () =>
-        browserWindow.removeEventListener('resize', updateMobile);
+        browserWindow.removeEventListener('resize', updateLayout);
     }
 
-    // Reset drill-in when navigating to a different element
+    // Reset selected section when navigating to a different element
     effect(() => {
       this.elementId();
-      this.mobileDrillInSection.set(null);
+      this.selectedSection.set('identity');
+    });
+
+    // Keep meta panel expanded when visible in the new layout
+    effect(() => {
+      const panel = this.metaPanel();
+      if (panel) {
+        panel.isExpanded.set(true);
+      }
     });
 
     effect(() => {
@@ -218,7 +216,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.resizeCleanup) {
       this.resizeCleanup();
     }
-    this.removePopstateListener();
   }
 
   private async loadElementData(elementId: string): Promise<void> {
@@ -483,100 +480,23 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return this.schema()?.tabs || [];
   }
 
-  /** Get tab configs for aria-tabs component */
-  getTabConfigs(): AriaTabConfig[] {
-    return this.getTabs().map(tab => ({
-      key: tab.key,
-      label: tab.label,
-    }));
+  /** Select a section in the sidenav/accordion */
+  selectSection(section: string): void {
+    this.selectedSection.set(section);
   }
 
-  /** Get the currently selected tab key */
-  getSelectedTabKey(): string {
-    const tabs = this.getTabs();
-    return tabs[this.selectedTabIndex()]?.key || '';
+  /** Whether the currently selected section is a schema tab */
+  isTabSection(): boolean {
+    const section = this.selectedSection();
+    return !!section && section !== 'identity' && section !== 'relationships';
   }
 
-  /** Navigate into a section on mobile */
-  drillInto(section: string): void {
-    this.mobileDrillInSection.set(section);
-    const tabs = this.getTabs();
-    const tabIndex = tabs.findIndex(t => t.key === section);
-    if (tabIndex >= 0) {
-      this.selectedTabIndex.set(tabIndex);
-    }
-    // Auto-expand meta panel when drilling into relationships on mobile
-    if (section === 'relationships') {
-      this.metaPanel()?.isExpanded.set(true);
-    }
-    // Push history state so device back button drills back instead of navigating away
-    this.pushDrillInHistoryState(section);
-  }
-
-  /** Navigate back to overview on mobile (called by in-app back button) */
-  drillBack(): void {
-    if (!this.mobileDrillInSection()) return;
-    // Collapse meta panel when leaving relationships on mobile
-    if (this.mobileDrillInSection() === 'relationships') {
-      this.metaPanel()?.isExpanded.set(false);
-    }
-    this.mobileDrillInSection.set(null);
-    // Pop the history entry we pushed (if it wasn't already popped by popstate)
-    if (this.popstateHandler) {
-      this.removePopstateListener();
-      if (typeof history !== 'undefined') {
-        history.back();
-      }
-    }
-  }
-
-  /**
-   * Push a history entry when drilling into a section so the device
-   * back button returns to the overview instead of leaving the page.
-   */
-  private pushDrillInHistoryState(section: string): void {
-    const browserWindow = globalThis.window;
-    const browserHistory = globalThis.history;
-    if (!browserWindow || !browserHistory) return;
-
-    this.removePopstateListener();
-    browserHistory.pushState({ wbDrillIn: section }, '');
-    this.popstateHandler = (_event: PopStateEvent) => {
-      // Popstate fired = browser already popped the entry.
-      // Remove listener first so drillBack doesn't call history.back() again.
-      this.removePopstateListener();
-      // Collapse meta panel when leaving relationships on mobile
-      if (this.mobileDrillInSection() === 'relationships') {
-        this.metaPanel()?.isExpanded.set(false);
-      }
-      this.mobileDrillInSection.set(null);
-    };
-    browserWindow.addEventListener('popstate', this.popstateHandler);
-  }
-
-  /** Remove the popstate listener if active */
-  private removePopstateListener(): void {
-    const browserWindow = globalThis.window;
-    if (this.popstateHandler && browserWindow) {
-      browserWindow.removeEventListener('popstate', this.popstateHandler);
-      this.popstateHandler = null;
-    }
-  }
-
-  /** Get the display label for the currently drilled-in section */
-  getActiveSectionLabel(): string {
-    const section = this.mobileDrillInSection();
-    if (!section) return '';
+  /** Get the display label for a section */
+  getSectionLabel(section: string): string {
     if (section === 'identity') return 'Identity & Details';
     if (section === 'relationships') return 'Relationships';
     const tab = this.getTabs().find(t => t.key === section);
     return tab?.label || section;
-  }
-
-  /** Whether the current drill-in section is a schema tab */
-  isDrilledIntoTab(): boolean {
-    const section = this.mobileDrillInSection();
-    return !!section && section !== 'identity' && section !== 'relationships';
   }
 
   /** Get icon for a tab schema */

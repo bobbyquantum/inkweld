@@ -114,8 +114,10 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  openImageViewerDialog(data: ImageViewerDialogData): void {
-    this.dialog.open(ImageViewerDialogComponent, {
+  openImageViewerDialog(
+    data: ImageViewerDialogData
+  ): Promise<string | undefined> {
+    const dialogRef = this.dialog.open(ImageViewerDialogComponent, {
       data,
       width: '100vw',
       height: '100vh',
@@ -123,6 +125,7 @@ export class DialogGatewayService {
       maxHeight: '100vh',
       panelClass: 'image-viewer-dialog-panel',
     });
+    return firstValueFrom(dialogRef.afterClosed());
   }
 
   openEditAvatarDialog(): Promise<boolean> {

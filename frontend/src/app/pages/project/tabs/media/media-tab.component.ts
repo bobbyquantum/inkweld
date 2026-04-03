@@ -358,7 +358,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
    */
   viewImage(item: MediaItem): void {
     if (item.url && item.isImage) {
-      this.dialogGateway.openImageViewerDialog({
+      void this.dialogGateway.openImageViewerDialog({
         imageUrl: item.url,
         fileName: item.filename || item.mediaId,
       });

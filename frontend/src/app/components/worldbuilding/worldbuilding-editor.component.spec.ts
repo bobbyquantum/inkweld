@@ -465,181 +465,74 @@ describe('WorldbuildingEditorComponent', () => {
     });
   });
 
-  describe('mobile drill-in navigation', () => {
+  describe('section navigation', () => {
     beforeEach(() => {
       component['schema'].set(mockCharacterSchema);
     });
 
-    describe('drillInto', () => {
-      it('should set mobileDrillInSection to the given section', () => {
-        component.drillInto('identity');
-        expect(component.mobileDrillInSection()).toBe('identity');
+    describe('selectSection', () => {
+      it('should set selectedSection to the given section', () => {
+        component.selectSection('identity');
+        expect(component.selectedSection()).toBe('identity');
       });
 
-      it('should set selectedTabIndex when drilling into a tab', () => {
-        component.drillInto('appearance');
-        expect(component.mobileDrillInSection()).toBe('appearance');
-        expect(component.selectedTabIndex()).toBe(1);
+      it('should switch to a tab section', () => {
+        component.selectSection('appearance');
+        expect(component.selectedSection()).toBe('appearance');
       });
 
-      it('should not change selectedTabIndex for non-tab sections', () => {
-        component.selectedTabIndex.set(0);
-        component.drillInto('identity');
-        expect(component.selectedTabIndex()).toBe(0);
-      });
-
-      it('should set selectedTabIndex to 0 for first tab', () => {
-        component.drillInto('basic');
-        expect(component.selectedTabIndex()).toBe(0);
-      });
-
-      it('should auto-expand meta panel when drilling into relationships', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          metaPanel.isExpanded.set(false);
-          component.drillInto('relationships');
-          expect(metaPanel.isExpanded()).toBe(true);
-        }
-      });
-
-      it('should not expand meta panel when drilling into non-relationships section', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          metaPanel.isExpanded.set(false);
-          component.drillInto('identity');
-          expect(metaPanel.isExpanded()).toBe(false);
-        }
+      it('should switch to relationships section', () => {
+        component.selectSection('relationships');
+        expect(component.selectedSection()).toBe('relationships');
       });
     });
 
-    describe('drillBack', () => {
-      it('should reset mobileDrillInSection to null', () => {
-        component.drillInto('identity');
-        component.drillBack();
-        expect(component.mobileDrillInSection()).toBeNull();
-      });
-
-      it('should collapse meta panel when drilling back from relationships', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          component.drillInto('relationships');
-          expect(metaPanel.isExpanded()).toBe(true);
-          component.drillBack();
-          expect(metaPanel.isExpanded()).toBe(false);
-        }
-      });
-
-      it('should not affect meta panel when drilling back from non-relationships section', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          metaPanel.isExpanded.set(true);
-          component.drillInto('identity');
-          component.drillBack();
-          expect(metaPanel.isExpanded()).toBe(true);
-        }
-      });
-
-      it('should do nothing when not drilled in', () => {
-        component.mobileDrillInSection.set(null);
-        component.drillBack();
-        expect(component.mobileDrillInSection()).toBeNull();
-      });
-    });
-
-    describe('device back button (history state)', () => {
-      it('should push history state when drilling in', () => {
-        const pushStateSpy = vi.spyOn(history, 'pushState');
-        component.drillInto('identity');
-        expect(pushStateSpy).toHaveBeenCalledWith(
-          { wbDrillIn: 'identity' },
-          ''
-        );
-        pushStateSpy.mockRestore();
-      });
-
-      it('should drill back when popstate fires (device back)', () => {
-        component.drillInto('identity');
-        expect(component.mobileDrillInSection()).toBe('identity');
-
-        // Simulate device back button
-        globalThis.dispatchEvent(new PopStateEvent('popstate'));
-        expect(component.mobileDrillInSection()).toBeNull();
-      });
-
-      it('should call history.back when using in-app back button', () => {
-        component.drillInto('identity');
-        const backSpy = vi.spyOn(history, 'back');
-        component.drillBack();
-        expect(backSpy).toHaveBeenCalled();
-        backSpy.mockRestore();
-      });
-
-      it('should not call history.back when popstate already popped', () => {
-        component.drillInto('identity');
-        // Simulate device back button (popstate already popped the entry)
-        globalThis.dispatchEvent(new PopStateEvent('popstate'));
-        const backSpy = vi.spyOn(history, 'back');
-        // drillBack was already called by popstate, so calling again should be a no-op
-        component.drillBack();
-        expect(backSpy).not.toHaveBeenCalled();
-        backSpy.mockRestore();
-      });
-
-      it('should clean up popstate listener on destroy', () => {
-        const removeListenerSpy = vi.spyOn(globalThis, 'removeEventListener');
-        component.drillInto('identity');
-        component.ngOnDestroy();
-        expect(
-          removeListenerSpy.mock.calls.some(([event]) => event === 'popstate')
-        ).toBe(true);
-        removeListenerSpy.mockRestore();
-      });
-    });
-
-    describe('getActiveSectionLabel', () => {
-      it('should return empty string when not drilled in', () => {
-        expect(component.getActiveSectionLabel()).toBe('');
-      });
-
-      it('should return "Identity & Details" for identity section', () => {
-        component.mobileDrillInSection.set('identity');
-        expect(component.getActiveSectionLabel()).toBe('Identity & Details');
-      });
-
-      it('should return "Relationships" for relationships section', () => {
-        component.mobileDrillInSection.set('relationships');
-        expect(component.getActiveSectionLabel()).toBe('Relationships');
-      });
-
-      it('should return tab label for a tab section', () => {
-        component.mobileDrillInSection.set('basic');
-        expect(component.getActiveSectionLabel()).toBe('Basic Info');
-      });
-
-      it('should return section key as fallback for unknown tab', () => {
-        component.mobileDrillInSection.set('unknown');
-        expect(component.getActiveSectionLabel()).toBe('unknown');
-      });
-    });
-
-    describe('isDrilledIntoTab', () => {
-      it('should return false when not drilled in', () => {
-        expect(component.isDrilledIntoTab()).toBe(false);
-      });
-
+    describe('isTabSection', () => {
       it('should return false for identity section', () => {
-        component.mobileDrillInSection.set('identity');
-        expect(component.isDrilledIntoTab()).toBe(false);
+        component.selectedSection.set('identity');
+        expect(component.isTabSection()).toBe(false);
       });
 
       it('should return false for relationships section', () => {
-        component.mobileDrillInSection.set('relationships');
-        expect(component.isDrilledIntoTab()).toBe(false);
+        component.selectedSection.set('relationships');
+        expect(component.isTabSection()).toBe(false);
       });
 
-      it('should return true for a tab section', () => {
-        component.mobileDrillInSection.set('basic');
-        expect(component.isDrilledIntoTab()).toBe(true);
+      it('should return true for a schema tab section', () => {
+        component.selectedSection.set('basic');
+        expect(component.isTabSection()).toBe(true);
+      });
+    });
+
+    describe('getSectionLabel', () => {
+      it('should return "Identity & Details" for identity section', () => {
+        expect(component.getSectionLabel('identity')).toBe(
+          'Identity & Details'
+        );
+      });
+
+      it('should return "Relationships" for relationships section', () => {
+        expect(component.getSectionLabel('relationships')).toBe(
+          'Relationships'
+        );
+      });
+
+      it('should return tab label for a tab section', () => {
+        expect(component.getSectionLabel('basic')).toBe('Basic Info');
+      });
+
+      it('should return section key as fallback for unknown tab', () => {
+        expect(component.getSectionLabel('unknown')).toBe('unknown');
+      });
+    });
+    describe('layout mode', () => {
+      it('should default useSidenav to true for desktop', () => {
+        // In test environment, window.innerWidth should be >= 1024
+        expect(component.useSidenav()).toBe(true);
+      });
+
+      it('should default selectedSection to identity', () => {
+        expect(component.selectedSection()).toBe('identity');
       });
     });
 

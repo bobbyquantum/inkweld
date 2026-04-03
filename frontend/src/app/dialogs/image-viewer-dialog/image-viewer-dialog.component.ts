@@ -12,10 +12,12 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 export interface ImageViewerDialogData {
   imageUrl: string;
   fileName: string;
+  canEdit?: boolean;
 }
 
 const MIN_ZOOM = 1;
@@ -23,7 +25,7 @@ const MAX_ZOOM = 5;
 
 @Component({
   selector: 'app-image-viewer-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule],
   templateUrl: './image-viewer-dialog.component.html',
   styleUrl: './image-viewer-dialog.component.scss',
 })
@@ -52,6 +54,10 @@ export class ImageViewerDialogComponent {
 
   closeDialog(): void {
     this.dialogRef.close();
+  }
+
+  changeImage(): void {
+    this.dialogRef.close('change-image');
   }
 
   /**

@@ -1,332 +1,346 @@
-// Main container with identity panel + editor + meta panel
+// ==========================================
+// Worldbuilding Editor — Sidenav / Accordion Layout
+// ==========================================
+// Desktop + tablet landscape: sidenav tabs on the left, content on the right
+// Mobile + tablet portrait: accordion with expandable sections
+// Status bar always spans full width at the bottom
+
+// Main container: flex column to stack layout + status bar
 .worldbuilding-editor-container {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   height: var(--app-height-offset-50);
   overflow: hidden;
-
-  // Mobile: stack vertically
-  @media (max-width: 759px) {
-    flex-direction: column;
-    height: var(--app-height-offset-82);
-    overflow-x: hidden;
-  }
-
-  // --- Mobile drill-in visibility control ---
-
-  // OVERVIEW: Show compact header + section list, hide identity/editor/meta
-  &.mobile-overview {
-    app-identity-panel,
-    .editor-section,
-    .meta-panel-container {
-      display: none !important;
-    }
-  }
-
-  // DRILLED INTO IDENTITY: Show identity panel full-screen, hide editor + meta
-  &.mobile-drilled-identity {
-    .editor-section,
-    .meta-panel-container {
-      display: none !important;
-    }
-
-    app-identity-panel {
-      flex: 1;
-      overflow-y: auto;
-      border-bottom: none;
-
-      // Override mobile compact styles to show full vertical layout
-      ::ng-deep {
-        .identity-panel {
-          flex-direction: column !important;
-          flex-wrap: nowrap !important;
-          align-items: stretch !important;
-
-          .collapse-toggle {
-            display: none !important;
-          }
-        }
-
-        .identity-content {
-          flex-direction: column !important;
-          flex-wrap: nowrap !important;
-          gap: 16px !important;
-
-          .image-section {
-            flex: initial !important;
-            margin: 0 -16px 8px -16px !important;
-            width: calc(100% + 32px) !important;
-
-            &.no-image-container {
-              margin: 0 0 16px 0 !important;
-              width: 100% !important;
-            }
-          }
-
-          .name-section {
-            flex: initial !important;
-            min-width: initial !important;
-            justify-content: center !important;
-          }
-
-          .description-section,
-          .tags-section {
-            flex: initial !important;
-          }
-        }
-
-        .image-placeholder {
-          width: 100% !important;
-          height: auto !important;
-          aspect-ratio: 1 / 1 !important;
-          border-radius: 0 !important;
-
-          // In drilled-in view, no-image should also be a square container
-          // (not the compact button style used in the horizontal mobile layout)
-          &.no-image {
-            width: 100% !important;
-            height: auto !important;
-            aspect-ratio: 1 / 1 !important;
-            display: grid !important;
-            place-items: center !important;
-            padding: 0 !important;
-            border: 1px dashed var(--sys-outline) !important;
-            border-radius: 0 !important;
-          }
-
-          .placeholder-icon {
-            font-size: 48px !important;
-            width: 48px !important;
-            height: 48px !important;
-          }
-
-          .placeholder-text {
-            display: block !important;
-          }
-        }
-
-        .element-name {
-          font-size: 18px !important;
-        }
-
-        textarea {
-          min-height: 80px !important;
-        }
-
-        .view-image-button {
-          width: 36px !important;
-          height: 36px !important;
-          bottom: 8px !important;
-          left: 8px !important;
-
-          mat-icon {
-            font-size: 20px !important;
-            width: 20px !important;
-            height: 20px !important;
-          }
-        }
-
-        .change-image-button {
-          width: 36px !important;
-          height: 36px !important;
-          bottom: 8px !important;
-          right: 8px !important;
-
-          mat-icon {
-            font-size: 20px !important;
-            width: 20px !important;
-            height: 20px !important;
-          }
-        }
-      }
-    }
-  }
-
-  // DRILLED INTO TAB: Show editor without tab bar, hide identity + meta
-  &.mobile-drilled-tab {
-    app-identity-panel,
-    .meta-panel-container {
-      display: none !important;
-    }
-
-    .editor-section {
-      flex: 1;
-    }
-
-    // Hide the tab bar navigation (keep tab panels visible)
-    ::ng-deep .aria-tabs-container {
-      display: none !important;
-    }
-  }
-
-  // DRILLED INTO RELATIONSHIPS: Show meta panel full, hide identity + editor
-  &.mobile-drilled-relationships {
-    app-identity-panel,
-    .editor-section {
-      display: none !important;
-    }
-
-    .meta-panel-container {
-      flex: 1;
-      border-left: none;
-      border-top: none;
-      max-height: none !important;
-      overflow-y: auto;
-
-      ::ng-deep .meta-panel {
-        width: 100% !important;
-        min-width: unset;
-
-        // Hide the collapse toggle — panel should always be expanded on mobile drill-in
-        .collapse-toggle {
-          display: none;
-        }
-      }
-    }
-  }
 }
 
-// Identity panel (left side on desktop)
-app-identity-panel {
-  flex-shrink: 0;
-
-  @media (min-width: 760px) {
-    border-right: 1px solid var(--sys-outline-variant);
-  }
-
-  @media (max-width: 759px) {
-    border-bottom: 1px solid var(--sys-outline-variant);
-  }
-}
-
-// Editor section (center)
-.editor-section {
-  display: flex;
-  flex-direction: column;
+// Layout area: sidenav + content (flex row) or just content (accordion)
+.wb-layout {
   flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
+
+  // Accordion mode: single column
+  .worldbuilding-editor-container:not(.sidenav-mode) & {
+    flex-direction: column;
+  }
+}
+
+// ==========================================
+// Sidenav Navigation
+// ==========================================
+
+.wb-sidenav {
+  width: 220px;
+  min-width: 220px;
+  border-right: 1px solid var(--sys-outline-variant);
+  overflow-y: auto;
+
+  .sidenav-thumbnail {
+    display: block;
+    width: calc(100% - 16px);
+    margin: 8px auto 0;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 12px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    &:hover {
+      opacity: 0.85;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--sys-primary);
+      outline-offset: 2px;
+      border-radius: 12px;
+    }
+
+    &--empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed var(--sys-outline-variant);
+      color: var(--sys-on-surface-variant);
+
+      mat-icon {
+        font-size: 36px;
+        width: 36px;
+        height: 36px;
+      }
+
+      &:hover {
+        opacity: 1;
+        border-color: var(--sys-primary);
+        color: var(--sys-primary);
+      }
+    }
+  }
+
+  mat-nav-list {
+    padding: 8px;
+
+    .mat-mdc-list-item {
+      border-radius: 8px;
+      margin-bottom: 2px;
+      transition: background-color 0.2s ease;
+
+      &.active {
+        background: var(--sys-secondary-container);
+        color: var(--sys-on-secondary-container);
+
+        mat-icon {
+          color: var(--sys-on-secondary-container);
+        }
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--sys-primary);
+        outline-offset: -2px;
+      }
+    }
+  }
+}
+
+// ==========================================
+// Content Area
+// ==========================================
+
+.wb-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  transition: flex 200ms ease-out;
 }
 
-.dynamic-worldbuilding-editor {
-  flex: 1;
+.section-content {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 
-  form {
-    flex: 1;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-
-    // Improve disabled state styling for read-only viewers
-    // Make it look more like the readonly description field
-    &.ng-invalid,
-    &[class] {
-      .mat-mdc-form-field.mat-form-field-disabled {
-        opacity: 1;
-
-        .mdc-text-field--disabled {
-          background-color: transparent;
-        }
-
-        .mat-mdc-input-element:disabled,
-        textarea:disabled {
-          color: var(--sys-on-surface);
-          -webkit-text-fill-color: var(--sys-on-surface);
-        }
-
-        .mdc-floating-label--float-above {
-          color: var(--sys-on-surface-variant);
-        }
-
-        .mdc-notched-outline__leading,
-        .mdc-notched-outline__notch,
-        .mdc-notched-outline__trailing {
-          border-color: var(--sys-outline-variant);
-        }
-      }
-    }
-  }
-
-  // Aria tabs styling
-  app-aria-tabs {
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .tab-content {
-    padding: 1.5rem;
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 1rem;
-    min-height: 0;
-
-    // Mobile: reduce padding and force single-column layout
-    @media (max-width: 759px) {
-      padding: 0.75rem;
-      gap: 0.75rem;
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .field-container {
-    grid-column: span 12;
-
-    // Mobile: always span full width regardless of layout.span
-    @media (max-width: 759px) {
-      grid-column: span 1 !important;
-    }
-  }
-  .full-width {
-    width: 100%;
-  }
-  .array-field {
-    width: 100%;
-    margin-bottom: 1rem;
-  }
-  .array-item {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    align-items: center;
-
-    // Mobile: ensure items don't overflow
-    @media (max-width: 759px) {
-      mat-form-field {
-        flex: 1;
-        min-width: 0;
-      }
-    }
-  }
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
+  &.section-hidden {
+    display: none;
   }
 }
 
-// Status bar at the bottom of the editor section
+.tab-section-content {
+  overflow-y: auto;
+  height: 100%;
+}
+
+// ==========================================
+// Identity Panel — Inline Overrides
+// ==========================================
+// When identity panel is shown as section content (not as a sidebar),
+// override its internal sizing and hide its collapse toggle.
+
+.identity-inline {
+  ::ng-deep {
+    .identity-panel {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: unset !important;
+      flex-direction: column !important;
+      flex-wrap: nowrap !important;
+      align-items: stretch !important;
+      height: auto !important;
+      background: transparent !important;
+      border-radius: 0 !important;
+
+      .collapse-toggle {
+        display: none !important;
+      }
+    }
+
+    .identity-content {
+      flex-direction: column !important;
+      flex-wrap: nowrap !important;
+      gap: 16px !important;
+
+      .image-section {
+        flex: initial !important;
+        max-width: 400px;
+      }
+
+      .name-section {
+        flex: initial !important;
+        min-width: initial !important;
+      }
+
+      .description-section,
+      .tags-section {
+        flex: initial !important;
+        max-width: 600px;
+      }
+    }
+  }
+}
+
+// ==========================================
+// Relationships Panel — Inline Overrides
+// ==========================================
+// When meta panel is shown as section content, force expanded state
+// and hide its own collapse/expand chrome.
+
+.relationships-inline {
+  height: 100%;
+
+  ::ng-deep {
+    .meta-panel {
+      width: 100% !important;
+      min-width: unset !important;
+      background: transparent !important;
+
+      &.collapsed {
+        width: 100% !important;
+      }
+    }
+
+    // Hide the collapsed icon bar since we always show expanded
+    .collapsed-panel {
+      display: none !important;
+    }
+
+    // Hide the collapse toggle in the expanded header
+    .panel-header .collapse-toggle {
+      display: none !important;
+    }
+  }
+}
+
+// ==========================================
+// Accordion Layout (Mobile / Tablet Portrait)
+// ==========================================
+
+mat-accordion {
+  display: block;
+
+  .panel-title-icon {
+    margin-right: 8px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+  }
+
+  mat-panel-description {
+    color: var(--sys-on-surface-variant);
+    font-size: 13px;
+  }
+}
+
+// ==========================================
+// Tab Content (Shared — used in both modes)
+// ==========================================
+
+.tab-content {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+  min-height: 0;
+
+  // Smaller screens: reduce padding and single column
+  @media (max-width: 767px) {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+  }
+}
+
+.field-container {
+  grid-column: span 12;
+
+  // Smaller screens: always full width
+  @media (max-width: 767px) {
+    grid-column: span 1 !important;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.array-field {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.array-item {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+// Improve disabled state styling for read-only viewers
+form {
+  &.ng-invalid,
+  &[class] {
+    .mat-mdc-form-field.mat-form-field-disabled {
+      opacity: 1;
+
+      .mdc-text-field--disabled {
+        background-color: transparent;
+      }
+
+      .mat-mdc-input-element:disabled,
+      textarea:disabled {
+        color: var(--sys-on-surface);
+        -webkit-text-fill-color: var(--sys-on-surface);
+      }
+
+      .mdc-floating-label--float-above {
+        color: var(--sys-on-surface-variant);
+      }
+
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: var(--sys-outline-variant);
+      }
+    }
+  }
+}
+
+// ==========================================
+// Status Bar — Full Width
+// ==========================================
+
 .editor-status-bar {
   flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 0 16px;
-  height: 24px;
-  background-color: var(--sys-surface-container);
+  height: 28px;
   border-top: 1px solid var(--sys-outline-variant);
   font-size: 0.875rem;
   color: var(--sys-on-surface);
+  gap: 8px;
 
   .status-stats {
     display: flex;
@@ -366,6 +380,22 @@ app-identity-panel {
     }
   }
 
+  .status-actions {
+    margin-left: auto;
+
+    .snapshots-btn {
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
   .sync-status {
     display: flex;
     align-items: center;
@@ -378,16 +408,20 @@ app-identity-panel {
       margin-right: 4px;
       flex-shrink: 0;
     }
+
     .sync-dot.unavailable {
       background-color: var(--sync-dot-unavailable-color);
     }
+
     .sync-dot.offline {
       background-color: var(--sync-dot-offline-color);
     }
+
     .sync-dot.syncing {
       background-color: var(--sync-dot-syncing-color);
       animation: wb-pulse 1.5s infinite;
     }
+
     .sync-dot.synced {
       background-color: var(--sync-dot-synced-color);
     }
@@ -402,253 +436,4 @@ app-identity-panel {
   50% {
     opacity: 1;
   }
-}
-
-// Meta panel container (right side) - panel manages its own collapsed/expanded state
-.meta-panel-container {
-  flex-shrink: 0;
-  border-left: 1px solid var(--sys-outline-variant);
-  background: var(--sys-surface-container);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-
-  // Mobile: switch from right side panel to bottom section
-  @media (max-width: 759px) {
-    border-left: none;
-    border-top: 1px solid var(--sys-outline-variant);
-    width: 100%;
-    max-height: 40vh;
-    min-height: 48px;
-    overflow-y: auto;
-
-    // Override meta-panel internal width constraints for mobile
-    ::ng-deep .meta-panel {
-      width: 100% !important;
-      min-width: unset;
-    }
-  }
-}
-
-// ==========================================
-// Mobile Drill-in Navigation
-// ==========================================
-// On mobile, instead of showing everything stacked vertically,
-// we show a section overview with tappable cards. Users drill into
-// a section to see its content, with a back button to return.
-
-// --- Hero card (overview mode) ---
-.mobile-hero-card {
-  display: flex;
-  align-items: stretch;
-  gap: 14px;
-  padding: 16px;
-  background: var(--sys-surface-container);
-  border-bottom: 1px solid var(--sys-outline-variant);
-  flex-shrink: 0;
-}
-
-.mobile-hero-image-col {
-  flex-shrink: 0;
-}
-
-.mobile-hero-image {
-  width: 88px;
-  height: 88px;
-  aspect-ratio: 1 / 1;
-  border-radius: 12px;
-  object-fit: cover;
-  display: block;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.mobile-hero-image-placeholder {
-  width: 88px;
-  height: 88px;
-  aspect-ratio: 1 / 1;
-  border-radius: 12px;
-  background: var(--sys-surface-container-highest);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-  mat-icon {
-    font-size: 36px;
-    width: 36px;
-    height: 36px;
-    color: var(--sys-on-surface-variant);
-  }
-}
-
-.mobile-hero-info-col {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-}
-
-.mobile-hero-name-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.mobile-hero-name {
-  flex: 1;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--sys-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  line-height: 1.3;
-}
-
-.mobile-hero-actions {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  margin-right: -8px;
-
-  .mobile-hero-action-btn {
-    width: 32px;
-    height: 32px;
-    line-height: 32px;
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-  }
-}
-
-.mobile-hero-description {
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--sys-on-surface-variant);
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-
-  &--empty {
-    font-style: italic;
-    opacity: 0.5;
-  }
-}
-
-.mobile-hero-type {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--sys-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
-}
-
-.mobile-hero-type-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-}
-
-// --- Detail header (drilled-in mode) ---
-.mobile-detail-header {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  gap: 4px;
-  background: var(--sys-surface-container);
-  border-bottom: 1px solid var(--sys-outline-variant);
-  flex-shrink: 0;
-}
-
-.mobile-detail-title {
-  flex: 1;
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--sys-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-// --- Section list (overview mode) ---
-.mobile-section-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.mobile-section-card {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 16px;
-  background: var(--sys-surface-container);
-  border: 1px solid var(--sys-outline-variant);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  text-align: left;
-  color: var(--sys-on-surface);
-  font-family: inherit;
-  font-size: inherit;
-
-  &:hover,
-  &:focus-visible {
-    background: var(--sys-surface-container-high);
-  }
-
-  &:active {
-    background: var(--sys-surface-container-highest);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--sys-primary);
-    outline-offset: 2px;
-  }
-}
-
-.section-icon {
-  color: var(--sys-primary);
-  margin-right: 16px;
-  flex-shrink: 0;
-}
-
-.section-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.section-label {
-  display: block;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--sys-on-surface);
-}
-
-.section-hint {
-  display: block;
-  font-size: 13px;
-  color: var(--sys-on-surface-variant);
-  margin-top: 2px;
-}
-
-.section-chevron {
-  color: var(--sys-on-surface-variant);
-  flex-shrink: 0;
-  margin-left: 8px;
 }

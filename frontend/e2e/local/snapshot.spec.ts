@@ -271,6 +271,14 @@ test.describe('Worldbuilding Snapshots', () => {
     // Click on the character to open it
     await page.getByTestId('element-Test Character').click();
 
+    // In sidenav mode, click the first schema tab to see form fields
+    const firstSchemaTab = page
+      .locator(
+        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
+      )
+      .first();
+    await firstSchemaTab.click();
+
     // Fill in some character data (e.g., name field in Basic Info tab)
     const nameField = page.locator('input[placeholder*="name"]').first();
     await expect(nameField).toBeVisible();
@@ -334,6 +342,14 @@ test.describe('Worldbuilding Snapshots', () => {
 
     // Click on the location to open it
     await page.getByTestId('element-Test Location').click();
+
+    // In sidenav mode, click the first schema tab to see form fields
+    const firstSchemaTab = page
+      .locator(
+        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
+      )
+      .first();
+    await firstSchemaTab.click();
 
     // Fill in the Summary field (a worldbuilding field, not identity)
     const summaryField = page.getByRole('textbox', { name: 'Summary' });
