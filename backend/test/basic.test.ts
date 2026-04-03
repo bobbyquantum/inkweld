@@ -113,13 +113,4 @@ describe('Root', () => {
     expect(data.providers).toHaveProperty('github');
     expect(typeof data.providers.github).toBe('boolean');
   });
-
-  it('should return CSRF token at /api/v1/csrf/token path', async () => {
-    const { response, json } = await client.request('/api/v1/csrf/token');
-    expect(response.status).toBe(200);
-    const data = await json();
-    expect(data).toHaveProperty('token');
-    expect(typeof data.token).toBe('string');
-    expect(data.token.length).toBeGreaterThan(0);
-  });
 });

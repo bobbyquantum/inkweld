@@ -3,7 +3,6 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
-import { XsrfService } from '../auth/xsrf.service';
 import { SetupService } from '../core/setup.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
@@ -110,7 +109,6 @@ export class ProjectService {
   private readonly imagesApi = inject(ImagesService);
   private readonly http = inject(HttpClient);
   private readonly storage = inject(StorageService);
-  private readonly xsrfService = inject(XsrfService);
   private readonly setupService = inject(SetupService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSync = inject(ProjectSyncService);
