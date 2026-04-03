@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'bun:test';
+import { coerceToString } from '../src/services/yjs.service';
 
 /**
  * Tests for the element field coercion helpers used in yjs.service.ts.
@@ -6,12 +7,6 @@ import { describe, it, expect } from 'bun:test';
  * The helpers delegate to a shared `coerceToString` utility that avoids the
  * '[object Object]' pitfall by using JSON.stringify for object values.
  */
-
-function coerceToString(value: NonNullable<unknown>): string {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value as number | boolean | bigint);
-}
 
 function coerceNullableString(value: unknown): string | null {
   if (value == null) return null;
