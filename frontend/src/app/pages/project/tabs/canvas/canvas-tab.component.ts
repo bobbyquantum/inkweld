@@ -602,7 +602,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       draggable: !obj.locked,
     };
 
-    let node: Konva.Group | Konva.Shape | null = null;
+    let node: Konva.Node | null = null;
 
     switch (obj.type) {
       case 'image':
@@ -623,42 +623,40 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     }
 
     if (node) {
-      // Upcast to base Node for event registration (Group|Shape union overloads clash)
-      const n: Konva.Node = node;
-
       // Click to select
-      n.on('click tap', () => {
+      node.on('click tap', () => {
         this.onSelectObject(obj.id);
-        this.selectKonvaNode(n);
+        this.selectKonvaNode(node);
       });
 
       // Drag end → save position
-      n.on('dragend', () => {
+      node.on('dragend', () => {
+        const pos = node.position();
         this.canvasService.updateObject(obj.id, {
-          x: n.x(),
-          y: n.y(),
+          x: pos.x,
+          y: pos.y,
         });
       });
 
       // Transform end → save scale/rotation
-      n.on('transformend', () => {
+      node.on('transformend', () => {
         this.canvasService.updateObject(obj.id, {
-          x: n.x(),
-          y: n.y(),
-          scaleX: n.scaleX(),
-          scaleY: n.scaleY(),
-          rotation: n.rotation(),
+          x: node.x(),
+          y: node.y(),
+          scaleX: node.scaleX(),
+          scaleY: node.scaleY(),
+          rotation: node.rotation(),
         });
       });
     }
 
-    return node;
+    return node as Konva.Group | Konva.Shape | null;
   }
 
   private createImageNode(
     obj: CanvasImage,
     attrs: Konva.NodeConfig
-  ): Konva.Group {
+  ): Konva.Node {
     // Create a placeholder rect first; load image async
     const group = new Konva.Group({
       ...attrs,
@@ -752,7 +750,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private createShapeNode(
     obj: CanvasShape,
     attrs: Konva.NodeConfig
-  ): Konva.Shape {
+  ): Konva.Node {
     switch (obj.shapeType) {
       case 'rect':
         return new Konva.Rect({
