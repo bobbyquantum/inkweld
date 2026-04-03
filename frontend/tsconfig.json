@@ -16,15 +16,15 @@
     "importHelpers": true,
     "target": "ES2022",
     "resolveJsonModule": true,
-    "baseUrl": "src",
     "paths": {
-      "@inkweld/*": ["api-client/*"],
-      "@components/*": ["app/components/*"],
-      "@dialogs/*": ["app/dialogs/*"],
-      "@services/*": ["app/services/*"],
-      "@models/*": ["app/models/*"],
-      "@themes/*": ["themes/*"],
-      "@package": ["../package.json"]
+      "api-client": ["./src/api-client"],
+      "@inkweld/*": ["./src/api-client/*"],
+      "@components/*": ["./src/app/components/*"],
+      "@dialogs/*": ["./src/app/dialogs/*"],
+      "@services/*": ["./src/app/services/*"],
+      "@models/*": ["./src/app/models/*"],
+      "@themes/*": ["./src/themes/*"],
+      "@package": ["./package.json"]
     },
 
     "module": "preserve"

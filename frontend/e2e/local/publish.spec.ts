@@ -190,6 +190,7 @@ test.describe('Local Publishing Workflow', () => {
       if (dialogOrError === 'error') {
         const errorText = await page
           .locator('.mat-mdc-snack-bar-label')
+          .first()
           .textContent();
         throw new Error(
           `Publication generation failed with error: ${errorText}`
@@ -198,7 +199,7 @@ test.describe('Local Publishing Workflow', () => {
 
       if (dialogOrError === 'button-back') {
         // Check if there was an error snackbar
-        const snackbar = page.locator('.mat-mdc-snack-bar-label');
+        const snackbar = page.locator('.mat-mdc-snack-bar-label').first();
         if (await snackbar.isVisible()) {
           const text = await snackbar.textContent();
           if (text?.toLowerCase().includes('error')) {
