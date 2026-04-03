@@ -1,0 +1,16 @@
+#!/bin/sh
+# Block direct pushes to main — all changes must go through a PR.
+branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branch" = "main" ]; then
+  echo ""
+  echo "❌ Direct push to 'main' is not allowed."
+  echo ""
+  echo "   Create a branch and open a PR instead:"
+  echo "     git checkout -b fix/your-change-name"
+  echo "     git push -u origin fix/your-change-name"
+  echo ""
+  echo "   If you need to bypass this for a genuine emergency:"
+  echo "     git push --no-verify"
+  echo ""
+  exit 1
+fi
