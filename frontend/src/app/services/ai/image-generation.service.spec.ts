@@ -12,7 +12,6 @@ import {
   type ImageProviderType,
 } from '../../../api-client/model/models';
 import { AuthTokenService } from '../auth/auth-token.service';
-import { XsrfService } from '../auth/xsrf.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
 import { ImageGenerationService } from './image-generation.service';
@@ -60,7 +59,6 @@ describe('ImageGenerationService', () => {
   let mockOfflineStorage: MockedObject<LocalStorageService>;
   let mockProjectService: MockedObject<ProjectService>;
   let mockAuthTokenService: MockedObject<AuthTokenService>;
-  let mockXsrfService: MockedObject<XsrfService>;
 
   const createMockRequest = (
     overrides: Partial<ImageGenerateRequest> = {}
@@ -104,10 +102,6 @@ describe('ImageGenerationService', () => {
       getToken: vi.fn().mockReturnValue('mock-token'),
     } as unknown as MockedObject<AuthTokenService>;
 
-    mockXsrfService = {
-      getXsrfToken: vi.fn().mockReturnValue('mock-csrf-token'),
-    } as unknown as MockedObject<XsrfService>;
-
     await TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -116,7 +110,6 @@ describe('ImageGenerationService', () => {
         { provide: LocalStorageService, useValue: mockOfflineStorage },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: AuthTokenService, useValue: mockAuthTokenService },
-        { provide: XsrfService, useValue: mockXsrfService },
       ],
     }).compileComponents();
 
@@ -795,7 +788,7 @@ describe('ImageGenerationService', () => {
       expect(job?.error).toBe('Network error');
     });
 
-    it('should include auth and CSRF headers in fetch request', async () => {
+    it('should include auth headers in fetch request', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true,
         status: 200,
@@ -819,7 +812,6 @@ describe('ImageGenerationService', () => {
           method: 'POST',
           headers: expect.objectContaining({
             Authorization: 'Bearer mock-token',
-            'X-CSRF-TOKEN': 'mock-csrf-token',
           }),
         })
       );

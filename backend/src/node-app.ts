@@ -19,6 +19,7 @@ import { setupBetterSqliteDatabase } from './db/better-sqlite';
 
 // Import common route registration (no WebSocket/Yjs routes - Node doesn't support those easily)
 import { registerCommonRoutes } from './config/routes';
+import { isCrossOriginPath, registerOpenOriginRoutes } from './middleware/open-origin';
 
 const app = new OpenAPIHono<BetterSqliteAppContext>();
 
@@ -30,11 +31,14 @@ app.use('*', secureHeaders());
 // Database middleware - attaches better-sqlite3 DB instance to context
 app.use('*', betterSqliteDatabaseMiddleware);
 
+// OAuth/MCP/discovery endpoints need permissive CORS from any origin
+registerOpenOriginRoutes(app);
+
 // CORS configuration
 const allowedOrigins = config.allowedOrigins;
-app.use(
-  '*',
-  cors({
+app.use('*', async (c, next) => {
+  if (isCrossOriginPath(c.req.path)) return next();
+  return cors({
     origin: (origin) => {
       if (!origin || allowedOrigins.includes(origin)) {
         return origin || '*';
@@ -43,18 +47,18 @@ app.use(
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-  })
-);
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })(c, next);
+});
 
 // CSRF protection
 if (config.nodeEnv !== 'test') {
-  app.use(
-    '*',
-    csrf({
+  app.use('*', async (c, next) => {
+    if (isCrossOriginPath(c.req.path)) return next();
+    return csrf({
       origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
-    })
-  );
+    })(c, next);
+  });
 }
 
 // Register common routes (no WebSocket routes for Node.js)
