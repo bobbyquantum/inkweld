@@ -374,13 +374,17 @@ mat-expansion-panel {
 }
 
 .thumbnail-item {
+  appearance: none;
+  padding: 0;
   position: relative;
   aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: border-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
   flex-shrink: 0;
 
   &:hover {
@@ -434,7 +438,9 @@ mat-expansion-panel {
   overflow: hidden;
   cursor: pointer;
   border: 2px solid transparent;
-  transition: border-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
 
   &:hover {
     transform: scale(1.02);

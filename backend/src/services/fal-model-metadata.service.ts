@@ -199,7 +199,7 @@ export function parseModelSchema(model: FalModelMetadata): ParsedFalModelInfo {
 
   const resolutionProp = inputSchema.properties['resolution'];
   if (resolutionProp?.enum) {
-    info.supportedResolutions = resolutionProp.enum.map((value: unknown) => String(value));
+    info.supportedResolutions = resolutionProp.enum.map(String);
   }
 
   if (inputSchema.properties['image'] || inputSchema.properties['image_url']) {
@@ -245,7 +245,7 @@ function parseAspectRatioProperty(info: ParsedFalModelInfo, prop?: PropertySchem
   if (!prop) return;
   info.sizeMode = 'aspect_ratio';
   if (prop.enum) {
-    info.supportedAspectRatios = prop.enum.map((value: unknown) => String(value));
+    info.supportedAspectRatios = prop.enum.map(String);
   }
 }
 

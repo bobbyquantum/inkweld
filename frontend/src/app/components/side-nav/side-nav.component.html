@@ -27,13 +27,11 @@
         </div>
         <div class="project-tiles">
           @for (item of projectItems; track item.project.id) {
-            <div
+            <button
+              type="button"
               class="project-tile"
               (click)="onProjectClick(item.project)"
-              (keyup.enter)="onProjectClick(item.project)"
               [class.selected]="selectedProject?.id === item.project.id"
-              tabindex="0"
-              role="button"
               [attr.data-testid]="'project-' + item.project.slug"
               [title]="item.project.title">
               <div class="tile-cover">
@@ -76,7 +74,7 @@
                 <span class="tile-title">{{ item.project.title }}</span>
                 <span class="tile-author">{{ item.project.username }}</span>
               </div>
-            </div>
+            </button>
           }
         </div>
       </div>

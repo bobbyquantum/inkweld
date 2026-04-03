@@ -298,7 +298,9 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   private triggerCoverSync(): void {
     if (this.isServerMode() && this.isAuthenticated()) {
-      void this.coverSyncService.syncCovers(this.projectService.projects());
+      this.coverSyncService
+        .syncCovers(this.projectService.projects())
+        .catch(() => {});
     }
   }
 
