@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/e2e",
+    "rootDir": "./e2e",
     "types": ["node", "@playwright/test"],
     "paths": {
       "@inkweld/*": ["./src/api-client/*"],
