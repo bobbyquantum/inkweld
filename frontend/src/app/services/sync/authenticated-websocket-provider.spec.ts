@@ -185,6 +185,138 @@ describe('authenticated-websocket-provider', () => {
       );
     });
 
+    it('should reject with Error.message when connection-error is an Error object', async () => {
+      const authToken = 'test-token';
+      const wsUrl = 'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id';
+
+      const providerPromise = createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        mockDoc,
+        authToken
+      );
+
+      const mockProvider = mockProviderInstances[0];
+      expect(mockProvider).toBeDefined();
+
+      // Emit connection-error with an Error object before auth completes
+      const errorListeners = mockProvider._listeners.get('connection-error');
+      errorListeners?.forEach(cb => cb(new Error('SSL handshake failed')));
+
+      await expect(providerPromise).rejects.toThrow(
+        'WebSocket connection error: SSL handshake failed'
+      );
+    });
+
+    it('should reject with string message when connection-error is a string', async () => {
+      const authToken = 'test-token';
+      const wsUrl = 'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id';
+
+      const providerPromise = createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        mockDoc,
+        authToken
+      );
+
+      const mockProvider = mockProviderInstances[0];
+      expect(mockProvider).toBeDefined();
+
+      // Emit connection-error with a plain string
+      const errorListeners = mockProvider._listeners.get('connection-error');
+      errorListeners?.forEach(cb => cb('Network timeout'));
+
+      await expect(providerPromise).rejects.toThrow(
+        'WebSocket connection error: Network timeout'
+      );
+    });
+
+    it('should reject with generic message when connection-error is an Event', async () => {
+      const authToken = 'test-token';
+      const wsUrl = 'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id';
+
+      const providerPromise = createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        mockDoc,
+        authToken
+      );
+
+      const mockProvider = mockProviderInstances[0];
+      expect(mockProvider).toBeDefined();
+
+      // Emit connection-error with an Event-like object (neither Error nor string)
+      const errorListeners = mockProvider._listeners.get('connection-error');
+      errorListeners?.forEach(cb => cb({ type: 'error', target: null }));
+
+      await expect(providerPromise).rejects.toThrow(
+        'WebSocket connection error: Connection error'
+      );
+    });
+
+    it('should reject when WebSocket is not available after connect', async () => {
+      const authToken = 'test-token';
+      const wsUrl = 'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id';
+
+      const providerPromise = createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        mockDoc,
+        authToken
+      );
+
+      const mockProvider = mockProviderInstances[0];
+      expect(mockProvider).toBeDefined();
+
+      // Set ws to null to simulate unavailable WebSocket after connect
+      mockProvider.ws = null;
+
+      // Emit connected status — handleStatus will see ws is null and reject
+      mockProvider._emitStatus('connected');
+
+      await expect(providerPromise).rejects.toThrow(
+        'WebSocket not available after connect'
+      );
+    });
+
+    it('should pass binary messages through original handler during auth', async () => {
+      const authToken = 'test-token';
+      const wsUrl = 'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id';
+
+      const providerPromise = createAuthenticatedWebsocketProvider(
+        wsUrl,
+        '',
+        mockDoc,
+        authToken
+      );
+
+      const mockProvider = mockProviderInstances[0];
+      expect(mockProvider).toBeDefined();
+
+      // createAuthenticatedWebsocketProvider calls provider.connect() internally,
+      // so mockProvider.ws is already set. Store an original handler on it.
+      const originalHandler = vi.fn();
+      mockProvider.ws!.onmessage = originalHandler;
+
+      // Emit connected status to trigger auth token send + replace onmessage
+      mockProvider._emitStatus('connected');
+
+      // Verify token was sent
+      expect(mockProvider.ws?.send).toHaveBeenCalledWith(authToken);
+
+      // Send a binary (non-string) message event — should pass through to original
+      const binaryEvent = new MessageEvent('message', {
+        data: new ArrayBuffer(4),
+      });
+      mockProvider.ws?.onmessage?.(binaryEvent);
+
+      expect(originalHandler).toHaveBeenCalledWith(binaryEvent);
+
+      // Clean up — reject the promise to avoid unhandled rejection
+      mockProvider._emitStatus('disconnected');
+      await expect(providerPromise).rejects.toThrow();
+    });
+
     it('should pass options to WebsocketProvider', () => {
       const authToken = 'test-token';
       const wsUrl = 'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id';
@@ -302,6 +434,36 @@ describe('authenticated-websocket-provider', () => {
 
       // Should NOT send auth token (first connect is handled by createAuthenticatedWebsocketProvider)
       expect(mockProvider.ws?.send).not.toHaveBeenCalled();
+    });
+
+    it('should pass binary messages through original handler during reauth', () => {
+      const authToken = 'reauth-token';
+      const getAuthToken = vi.fn().mockReturnValue(authToken);
+
+      const mockProvider = new MockWebsocketProvider();
+
+      setupReauthentication(
+        mockProvider as unknown as Parameters<typeof setupReauthentication>[0],
+        getAuthToken
+      );
+
+      mockProvider.connect();
+      const originalHandler = vi.fn();
+      mockProvider.ws!.onmessage = originalHandler;
+
+      mockProvider._emitStatus('disconnected');
+      mockProvider._emitStatus('connected');
+
+      // Verify token was sent
+      expect(mockProvider.ws?.send).toHaveBeenCalledWith(authToken);
+
+      // Send a binary (non-string) message — should pass through to original handler
+      const binaryEvent = new MessageEvent('message', {
+        data: new ArrayBuffer(4),
+      });
+      mockProvider.ws?.onmessage?.(binaryEvent);
+
+      expect(originalHandler).toHaveBeenCalledWith(binaryEvent);
     });
   });
 });

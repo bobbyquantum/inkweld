@@ -683,10 +683,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.doc.transact(() => {
         metaMap.set('name', updated.name);
         metaMap.set('description', updated.description);
-        if (updated.coverMediaId !== undefined) {
-          metaMap.set('coverMediaId', updated.coverMediaId);
-        } else {
+        if (updated.coverMediaId === undefined) {
           metaMap.delete('coverMediaId');
+        } else {
+          metaMap.set('coverMediaId', updated.coverMediaId);
         }
         metaMap.set('updatedAt', updated.updatedAt);
       });

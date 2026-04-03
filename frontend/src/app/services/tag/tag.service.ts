@@ -43,11 +43,11 @@ export class TagService {
   // ─────────────────────────────────────────────────────────────────────────
 
   /** All element tags in the project (reactive) */
-  private elementTagsSignal = signal<ElementTag[]>([]);
+  private readonly elementTagsSignal = signal<ElementTag[]>([]);
   readonly elementTags = this.elementTagsSignal.asReadonly();
 
   /** Custom tag definitions from the project */
-  private customTagsSignal = signal<TagDefinition[]>([]);
+  private readonly customTagsSignal = signal<TagDefinition[]>([]);
   readonly customTags = this.customTagsSignal.asReadonly();
 
   /** All available tag definitions (project-local) */

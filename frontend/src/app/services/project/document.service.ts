@@ -433,8 +433,7 @@ export class DocumentService {
       fragment.delete(0, fragment.length);
       this.logger.debug('DocumentService', 'Cleared previous doc');
       // Traverse each child element of our temporary root.
-      for (let i = 0; i < root.childNodes.length; i++) {
-        const node = root.childNodes[i];
+      for (const node of Array.from(root.childNodes)) {
         const yNode = this.domNodeToYjsNode(node);
         if (yNode) {
           // Append the created node to the fragment using forward CRDT operation.

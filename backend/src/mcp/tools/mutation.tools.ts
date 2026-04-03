@@ -503,8 +503,8 @@ This tool only updates name and type without changing position.`,
     const { username, slug } = result.project;
 
     const elementId = String(args.elementId);
-    const newName = args.name === undefined ? undefined : String(args.name).trim();
-    const newType = args.type === undefined ? undefined : (String(args.type) as ElementType);
+    const newName = typeof args.name === 'string' ? args.name.trim() : undefined;
+    const newType = typeof args.type === 'string' ? (args.type as ElementType) : undefined;
 
     if (!elementId) {
       return {
@@ -839,7 +839,8 @@ to a new position among its siblings.`,
     const { username, slug } = result.project;
 
     const elementId = String(args.elementId);
-    const afterElementId = args.afterElementId ? String(args.afterElementId) : undefined;
+    const afterElementId =
+      typeof args.afterElementId === 'string' ? args.afterElementId : undefined;
     const position = args.position === undefined ? undefined : Number(args.position);
 
     if (!elementId) {
@@ -908,7 +909,9 @@ to a new position among its siblings.`,
         content: [
           {
             type: 'text',
-            text: `Reordered element "${element.name}"${afterElementId ? ` after "${afterElementId}"` : ` to position ${position}`}`,
+            text: afterElementId
+              ? `Reordered element "${element.name}" after "${afterElementId}"`
+              : `Reordered element "${element.name}" to position ${position}`,
           },
         ],
         structuredContent: {
@@ -1113,7 +1116,7 @@ registerTool({
 
     try {
       // Special identity fields that go to the identity map
-      const IDENTITY_FIELDS = ['description', 'image'];
+      const IDENTITY_FIELDS = new Set(['description', 'image']);
 
       // Separate fields into identity and worldbuilding
       const identityUpdates: Record<string, unknown> = {};
@@ -1123,7 +1126,7 @@ registerTool({
         if (key.startsWith('identity.')) {
           const identityKey = key.replaceAll('identity.', '');
           identityUpdates[identityKey] = value;
-        } else if (IDENTITY_FIELDS.includes(key)) {
+        } else if (IDENTITY_FIELDS.has(key)) {
           identityUpdates[key] = value;
         } else {
           worldbuildingUpdates[key] = value;
@@ -1392,7 +1395,7 @@ registerTool({
     const sourceId = String(args.sourceId);
     const targetId = String(args.targetId);
     const type = String(args.type);
-    const details = args.details ? String(args.details) : undefined;
+    const details = typeof args.details === 'string' ? args.details : undefined;
 
     if (!sourceId || !targetId || !type) {
       return {
