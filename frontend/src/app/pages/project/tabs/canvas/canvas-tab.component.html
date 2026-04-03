@@ -62,14 +62,18 @@
               <mat-icon>add</mat-icon>
             </button>
           </div>
-          <div class="layers-list">
+          <ul class="layers-list" role="listbox" aria-label="Layers">
             @for (layer of sortedLayers(); track layer.id) {
-              <div
+              <li
+                role="option"
                 class="layer-item"
                 data-testid="layer-item"
                 [class.active]="layer.id === activeLayerId()"
                 tabindex="0"
-                role="button"
+                [attr.aria-selected]="layer.id === activeLayerId()"
+                [attr.aria-current]="
+                  layer.id === activeLayerId() ? 'location' : null
+                "
                 (click)="onSelectLayer(layer.id)"
                 (keydown.enter)="onSelectLayer(layer.id)">
                 <button
@@ -102,9 +106,9 @@
                   (click)="$event.stopPropagation()">
                   <mat-icon>more_vert</mat-icon>
                 </button>
-              </div>
+              </li>
             }
-          </div>
+          </ul>
         </div>
 
         <!-- Objects section -->
@@ -113,13 +117,17 @@
             <span class="section-title">Objects</span>
             <span class="object-count">{{ activeLayerObjects().length }}</span>
           </div>
-          <div class="objects-list">
+          <ul class="objects-list" role="listbox" aria-label="Objects">
             @for (obj of activeLayerObjects(); track obj.id) {
-              <div
+              <li
+                role="option"
                 class="object-item"
                 [class.selected]="obj.id === selectedObjectId()"
                 tabindex="0"
-                role="button"
+                [attr.aria-selected]="obj.id === selectedObjectId()"
+                [attr.aria-current]="
+                  obj.id === selectedObjectId() ? 'location' : null
+                "
                 (click)="onSelectObject(obj.id)"
                 (keydown.enter)="onSelectObject(obj.id)">
                 <mat-icon class="object-icon">{{
@@ -135,7 +143,7 @@
                   (click)="onDeleteObject(obj.id, $event)">
                   <mat-icon>delete</mat-icon>
                 </button>
-              </div>
+              </li>
             } @empty {
               <div class="empty-state" data-testid="objects-empty">
                 <p>No objects on this layer.</p>
@@ -144,7 +152,7 @@
                 </p>
               </div>
             }
-          </div>
+          </ul>
         </div>
       </aside>
     }

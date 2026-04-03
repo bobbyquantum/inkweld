@@ -44,11 +44,11 @@ export class RelationshipService {
   // ─────────────────────────────────────────────────────────────────────────
 
   /** All relationships in the project (reactive) */
-  private relationshipsSignal = signal<ElementRelationship[]>([]);
+  private readonly relationshipsSignal = signal<ElementRelationship[]>([]);
   readonly relationships = this.relationshipsSignal.asReadonly();
 
   /** Custom relationship types from the project (new format) */
-  private customTypesSignal = signal<RelationshipTypeDefinition[]>([]);
+  private readonly customTypesSignal = signal<RelationshipTypeDefinition[]>([]);
   readonly customTypes = this.customTypesSignal.asReadonly();
 
   /** Alias for backwards compatibility */

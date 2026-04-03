@@ -354,7 +354,11 @@ export class ProjectStateService implements OnDestroy {
     const connected = await this.connectSyncProvider(username, slug);
 
     // Handle offline/degraded mode
-    this.handleOfflineMode(project, connected, username, slug, serverError);
+    if (!project && !connected) {
+      throw serverError || new Error('Failed to load project');
+    } else if (connected) {
+      this.applyOfflineFallback(project, username, slug);
+    }
   }
 
   private async syncPendingCreation(projectKey: string): Promise<void> {
@@ -387,14 +391,12 @@ export class ProjectStateService implements OnDestroy {
     }
   }
 
-  private handleOfflineMode(
+  private applyOfflineFallback(
     project: Project | null,
-    connected: boolean,
     username: string,
-    slug: string,
-    serverError: Error | null
+    slug: string
   ): void {
-    if (!project && connected && this.syncProvider?.isConnected()) {
+    if (!project && this.syncProvider?.isConnected()) {
       this.logger.info(
         'ProjectState',
         'Operating in offline mode - server unavailable but local data loaded'
@@ -409,8 +411,6 @@ export class ProjectStateService implements OnDestroy {
         updatedDate: new Date().toISOString(),
       });
       this.docSyncState.set(DocumentSyncState.Local);
-    } else if (!project && !connected) {
-      throw serverError || new Error('Failed to load project');
     }
   }
 
@@ -526,8 +526,8 @@ export class ProjectStateService implements OnDestroy {
     // Clean up any existing subscriptions
     this.cleanupProviderSubscriptions();
 
-    // Elements changes - wrap in NgZone for proper change detection
     this.providerSubscriptions.push(
+      // Elements changes - wrap in NgZone for proper change detection
       this.syncProvider.elements$.subscribe(elements => {
         this.ngZone.run(() => {
           this.elements.set(elements);
@@ -536,39 +536,27 @@ export class ProjectStateService implements OnDestroy {
           // Update any open tabs whose element names may have changed
           this.syncTabsWithElements(elements);
         });
-      })
-    );
-
-    // Publish plans changes
-    this.providerSubscriptions.push(
+      }),
+      // Publish plans changes
       this.syncProvider.publishPlans$.subscribe(plans => {
         this.ngZone.run(() => {
           this.publishPlans.set(plans);
         });
-      })
-    );
-
-    // Sync state changes
-    this.providerSubscriptions.push(
+      }),
+      // Sync state changes
       this.syncProvider.syncState$.subscribe(state => {
         this.ngZone.run(() => {
           this.docSyncState.set(state);
         });
-      })
-    );
-
-    // Last connection error for tooltip display
-    this.providerSubscriptions.push(
+      }),
+      // Last connection error for tooltip display
       this.syncProvider.lastConnectionError$.subscribe(error => {
         this.ngZone.run(() => {
           this.lastConnectionError.set(error);
         });
-      })
-    );
-
-    // Project metadata changes (name, description, cover)
-    // This receives updates from Yjs (both local and remote changes)
-    this.providerSubscriptions.push(
+      }),
+      // Project metadata changes (name, description, cover)
+      // This receives updates from Yjs (both local and remote changes)
       this.syncProvider.projectMeta$.subscribe(meta => {
         // Skip if we're the source of this change (prevents feedback loop)
         // We already updated signals directly in updateProject()
@@ -599,11 +587,8 @@ export class ProjectStateService implements OnDestroy {
             }
           });
         });
-      })
-    );
-
-    // Errors - only set error if it's a critical error, not transient connection issues
-    this.providerSubscriptions.push(
+      }),
+      // Errors - only set error if it's a critical error, not transient connection issues
       this.syncProvider.errors$.subscribe(errorMsg => {
         this.ngZone.run(() => {
           this.logger.error('ProjectState', 'Sync provider error', errorMsg);

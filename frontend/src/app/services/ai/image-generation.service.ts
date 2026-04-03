@@ -9,7 +9,6 @@ import {
 } from '../../../api-client/model/models';
 import { environment } from '../../../environments/environment';
 import { AuthTokenService } from '../auth/auth-token.service';
-import { XsrfService } from '../auth/xsrf.service';
 import {
   type GenerationMetadata,
   LocalStorageService,
@@ -108,7 +107,6 @@ export class ImageGenerationService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectService = inject(ProjectService);
   private readonly authTokenService = inject(AuthTokenService);
-  private readonly xsrfService = inject(XsrfService);
 
   /** All active and recent generation jobs */
   readonly jobs = signal<GenerationJob[]>([]);
@@ -433,11 +431,6 @@ export class ImageGenerationService {
     const token = this.authTokenService.getToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const csrfToken = this.xsrfService.getXsrfToken();
-    if (csrfToken) {
-      headers['X-CSRF-TOKEN'] = csrfToken;
     }
 
     return headers;

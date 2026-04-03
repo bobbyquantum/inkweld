@@ -109,15 +109,14 @@
             </div>
 
             <div class="tag-meta">
-              <span
+              <button
                 class="element-count"
-                tabindex="0"
-                role="button"
+                type="button"
                 (click)="viewTaggedElements(tag)"
                 (keyup.enter)="viewTaggedElements(tag)">
                 <mat-icon>inventory_2</mat-icon>
                 {{ tag.count }} element{{ tag.count !== 1 ? 's' : '' }}
-              </span>
+              </button>
             </div>
 
             @if (tag.description) {

@@ -162,8 +162,18 @@ export class YjsService {
    */
   private normalizeElement(elem: Record<string, unknown>): Element {
     return {
-      id: typeof elem.id === 'string' ? elem.id : String(elem.id ?? ''),
-      name: typeof elem.name === 'string' ? elem.name : String(elem.name ?? ''),
+      id:
+        typeof elem.id === 'string'
+          ? elem.id
+          : typeof elem.id === 'object'
+            ? ''
+            : String(elem.id ?? ''),
+      name:
+        typeof elem.name === 'string'
+          ? elem.name
+          : typeof elem.name === 'object'
+            ? ''
+            : String(elem.name ?? ''),
       type: (elem.type as ElementType) ?? 'ITEM',
       parentId: this.coerceNullableString(elem.parentId),
       order: Number(elem.order ?? 0),

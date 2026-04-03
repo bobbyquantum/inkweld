@@ -5,7 +5,6 @@ import { userService } from './user.service';
 import type { User } from '../db/schema/users';
 import type { DatabaseInstance } from '../types/context';
 import { logger } from './logger.service';
-import { removeCSRFToken } from '../middleware/csrf';
 
 const authLog = logger.child('Auth');
 
@@ -39,12 +38,12 @@ class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const env = (c as any).env;
     // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
-    const envSecret =
-      env && typeof env.DATABASE_KEY === 'string'
-        ? env.DATABASE_KEY
-        : env && typeof env.SESSION_SECRET === 'string'
-          ? env.SESSION_SECRET
-          : undefined;
+    let envSecret: string | undefined;
+    if (env && typeof env.DATABASE_KEY === 'string') {
+      envSecret = env.DATABASE_KEY;
+    } else if (env && typeof env.SESSION_SECRET === 'string') {
+      envSecret = env.SESSION_SECRET;
+    }
 
     if (envSecret && envSecret.length >= 32) {
       return envSecret;
@@ -175,13 +174,8 @@ class AuthService {
   /**
    * Destroy session (no-op for JWT tokens - client removes token)
    */
-  destroySession(c: Context): void {
+  destroySession(_c: Context): void {
     // With JWT tokens, logout is handled client-side by removing the token
-    // Clean up server-side CSRF token state
-    const session = c.get('session') as { userId?: string } | undefined;
-    if (session?.userId) {
-      removeCSRFToken(session.userId);
-    }
   }
 
   /**

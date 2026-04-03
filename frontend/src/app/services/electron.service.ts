@@ -62,9 +62,7 @@ export interface OpenDialogReturnValue {
 }
 
 declare global {
-  interface Window {
-    electronAPI?: ElectronAPI;
-  }
+  var electronAPI: ElectronAPI | undefined;
 }
 
 /**
@@ -81,14 +79,14 @@ export class ElectronService {
    * Check if the app is running in Electron
    */
   get isElectron(): boolean {
-    return !!window.electronAPI?.isElectron;
+    return !!globalThis.electronAPI?.isElectron;
   }
 
   /**
    * Get the Electron API (only available when running in Electron)
    */
   private get api(): ElectronAPI | undefined {
-    return window.electronAPI;
+    return globalThis.electronAPI;
   }
 
   constructor() {

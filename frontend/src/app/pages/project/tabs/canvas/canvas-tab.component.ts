@@ -505,7 +505,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       const node = this.createKonvaNode(obj);
       if (node) {
         this.konvaNodes.set(obj.id, node);
-        kLayer.add(node as Konva.Group | Konva.Shape);
+        kLayer.add(node);
       }
     }
     // Redraw all layers
@@ -590,7 +590,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /**
    * Create a Konva node from a CanvasObject definition.
    */
-  private createKonvaNode(obj: CanvasObject): Konva.Node | null {
+  private createKonvaNode(obj: CanvasObject): Konva.Group | Konva.Shape | null {
     const commonAttrs: Konva.NodeConfig = {
       id: obj.id,
       x: obj.x,
@@ -650,7 +650,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       });
     }
 
-    return node;
+    return node as Konva.Group | Konva.Shape | null;
   }
 
   private createImageNode(
@@ -1372,10 +1372,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           pos.x,
           pos.y,
           result.label,
-          result.color,
-          'place',
-          result.linkedElementId,
-          relationshipId
+          {
+            color: result.color,
+            linkedElementId: result.linkedElementId,
+            relationshipId,
+          }
         );
         this.canvasService.addObject(pin);
       });

@@ -123,9 +123,22 @@ function formatError(
   }
 
   // Handle non-Error objects
+  const safeMessage = (() => {
+    try {
+      const json = JSON.stringify(error);
+      if (json !== undefined) return json;
+    } catch {
+      // JSON.stringify throws for BigInt, circular references, etc.
+    }
+    if (typeof error === 'object' && error !== null) {
+      return '[object Object]';
+    }
+    return String(error);
+  })();
+
   return {
     name: 'UnknownError',
-    message: String(error),
+    message: typeof error === 'string' ? error : safeMessage,
   };
 }
 
@@ -192,6 +205,13 @@ export function withCorrelationId<T>(correlationId: string, fn: () => T): T {
   return fn();
 }
 
+/** Shared pre-computed metadata threaded from log() into logDev/logProduction. */
+type LogMeta = {
+  correlationId: string | null | undefined;
+  timestamp: string;
+  levelStr: LogLevelString;
+};
+
 /**
  * Core logging function
  */
@@ -207,14 +227,16 @@ function log(
   if (level < minLevel) return;
 
   const { isDev } = detectEnvironment();
-  const correlationId = explicitCorrelationId ?? getCorrelationId();
-  const timestamp = getTimestamp();
-  const levelStr = levelToString(level);
+  const meta: LogMeta = {
+    correlationId: explicitCorrelationId ?? getCorrelationId(),
+    timestamp: getTimestamp(),
+    levelStr: levelToString(level),
+  };
 
   if (isDev) {
-    logDev(level, context, message, error, data, correlationId, timestamp, levelStr);
+    logDev(level, context, message, error, data, meta);
   } else {
-    logProduction(level, context, message, error, data, correlationId, timestamp, levelStr);
+    logProduction(level, context, message, error, data, meta);
   }
 }
 
@@ -224,10 +246,9 @@ function logDev(
   message: string,
   error: unknown,
   data: Record<string, unknown> | undefined,
-  correlationId: string | null | undefined,
-  timestamp: string,
-  levelStr: LogLevelString
+  meta: LogMeta
 ): void {
+  const { correlationId, timestamp, levelStr } = meta;
   const levelColor = colors[levelStr];
   const timeStr = colors.dim + timestamp.split('T')[1].replaceAll('Z', '') + colors.reset;
   const levelLabel = levelColor + colors.bright + levelStr.toUpperCase().padEnd(5) + colors.reset;
@@ -263,10 +284,9 @@ function logProduction(
   message: string,
   error: unknown,
   data: Record<string, unknown> | undefined,
-  correlationId: string | null | undefined,
-  timestamp: string,
-  levelStr: LogLevelString
+  meta: LogMeta
 ): void {
+  const { correlationId, timestamp, levelStr } = meta;
   const entry: LogEntry = {
     timestamp,
     level: levelStr,

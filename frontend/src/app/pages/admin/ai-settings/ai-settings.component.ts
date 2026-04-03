@@ -242,7 +242,9 @@ export class AdminAiSettingsComponent implements OnInit {
       .map(([providerId, providerModels]) => ({
         providerId,
         providerName: providerModels[0]?.providerName || providerId,
-        models: providerModels.sort((a, b) => a.name.localeCompare(b.name)),
+        models: [...providerModels].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        ),
       }))
       .sort((a, b) => a.providerName.localeCompare(b.providerName));
   });
