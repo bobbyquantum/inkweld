@@ -531,22 +531,19 @@ describe('CanvasService', () => {
     });
 
     it('should accept custom color and icon', () => {
-      const pin = service.createPin('l1', 0, 0, 'Custom', '#00FF00', 'star');
+      const pin = service.createPin('l1', 0, 0, 'Custom', {
+        color: '#00FF00',
+        icon: 'star',
+      });
 
       expect((pin as CanvasPin).color).toBe('#00FF00');
       expect((pin as CanvasPin).icon).toBe('star');
     });
 
     it('should accept linkedElementId', () => {
-      const pin = service.createPin(
-        'l1',
-        5,
-        10,
-        'Linked Pin',
-        '#E53935',
-        'place',
-        'element-abc'
-      );
+      const pin = service.createPin('l1', 5, 10, 'Linked Pin', {
+        linkedElementId: 'element-abc',
+      });
 
       expect((pin as CanvasPin).linkedElementId).toBe('element-abc');
     });
@@ -558,16 +555,10 @@ describe('CanvasService', () => {
     });
 
     it('should accept relationshipId', () => {
-      const pin = service.createPin(
-        'l1',
-        5,
-        10,
-        'Linked Pin',
-        '#E53935',
-        'place',
-        'element-abc',
-        'rel-123'
-      );
+      const pin = service.createPin('l1', 5, 10, 'Linked Pin', {
+        linkedElementId: 'element-abc',
+        relationshipId: 'rel-123',
+      });
 
       expect((pin as CanvasPin).relationshipId).toBe('rel-123');
     });

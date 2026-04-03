@@ -149,6 +149,9 @@
 .layers-list {
   display: flex;
   flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .layer-item {
@@ -218,6 +221,9 @@
   overflow-y: auto;
   min-height: 0;
   flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .object-item {
