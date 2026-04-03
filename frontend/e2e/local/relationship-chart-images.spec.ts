@@ -77,12 +77,10 @@ test.describe('Relationship Chart Element Images', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
-    // The identity panel renders the image inside:
-    //   .identity-panel .image-section button.image-placeholder > img
-    const identityImage = page.locator(
-      '.identity-panel .image-section .image-placeholder img'
-    );
-    await expect(identityImage).toBeVisible({ timeout: 10_000 });
+    // The identity panel hides the image in sidenav mode (showImage=false),
+    // but the sidenav thumbnail shows the image when it exists.
+    const sidenavThumbnail = page.getByTestId('sidenav-thumbnail');
+    await expect(sidenavThumbnail).toBeVisible({ timeout: 10_000 });
 
     // ── Navigate to the Character Web chart ──────────────────────────────
     await page.getByTestId('element-Character Web').click({ timeout: 10_000 });
