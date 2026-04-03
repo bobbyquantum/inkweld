@@ -19,6 +19,7 @@ import {
   getElementImageUrls,
 } from '../utils/reference-image-loader';
 import type { AppContext } from '../types/context';
+import type { ImageModelProfile } from '../db/schema/image-model-profiles';
 import type {
   ImageProviderType,
   ImageSize,
@@ -325,16 +326,13 @@ const generateRoute = createRoute({
   },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ProfileRecord = any;
 type ValidatedBody = z.infer<typeof GenerateRequestSchema>;
 
 interface ResolvedProfile {
-  profile: ProfileRecord;
+  profile: ImageModelProfile;
   provider: ImageProviderType;
   model: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  profileConfig: any;
+  profileConfig: Record<string, unknown> | null | undefined;
   size: ImageSize | undefined;
   quality: 'standard' | 'hd' | undefined;
   style: 'vivid' | 'natural' | undefined;
@@ -416,8 +414,8 @@ async function recordGenerationAudit(
   db: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any,
-
-  profile: ProfileRecord,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  profile: any,
   prompt: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   result: any,

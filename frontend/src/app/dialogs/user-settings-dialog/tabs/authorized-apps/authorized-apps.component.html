@@ -26,13 +26,10 @@
           [class.expanded]="expandedSession()?.session?.id === session.id"
           data-testid="authorized-app-card">
           <div class="session-header">
-            <div
+            <button
+              type="button"
               class="app-info"
-              role="button"
-              tabindex="0"
-              (click)="loadSessionDetails(session.id)"
-              (keydown.enter)="loadSessionDetails(session.id)"
-              (keydown.space)="loadSessionDetails(session.id)">
+              (click)="loadSessionDetails(session.id)">
               @if (session.client.logoUri) {
                 <img
                   [src]="session.client.logoUri"
@@ -49,7 +46,7 @@
                   {{ session.projectCount === 1 ? 'project' : 'projects' }}
                 </span>
               </div>
-            </div>
+            </button>
             <div class="session-actions">
               <button
                 mat-icon-button

@@ -1302,11 +1302,11 @@ export class ProjectStateService implements OnDestroy {
     const systemType = ProjectStateService.URL_TO_SYSTEM_TAB[lastSegment];
     if (systemType) {
       const idx = tabs.findIndex(t => t.systemType === systemType);
-      return idx !== -1 ? idx : 0;
+      return idx === -1 ? 0 : idx;
     }
 
     const idx = tabs.findIndex(t => t.id === lastSegment);
-    return idx !== -1 ? idx : 0;
+    return idx === -1 ? 0 : idx;
   }
 
   async restoreOpenedDocumentsFromCache(): Promise<void> {

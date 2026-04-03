@@ -151,6 +151,21 @@ describe('LoggerService', () => {
   });
 
   describe('production mode (JSON output)', () => {
+    it('should use production JSON logging when NODE_ENV is not set', () => {
+      delete process.env.NODE_ENV;
+      process.env.LOG_LEVEL = 'info';
+
+      logger.info('TestContext', 'No env log message');
+
+      expect(consoleLogSpy).toHaveBeenCalled();
+      const logCall = consoleLogSpy.mock.calls[0][0] as string;
+
+      // Without NODE_ENV, should use production JSON mode (not ANSI dev mode)
+      const parsed = JSON.parse(logCall);
+      expect(parsed.level).toBe('info');
+      expect(parsed.context).toBe('TestContext');
+    });
+
     it('should output valid JSON in production mode', () => {
       process.env.LOG_LEVEL = 'info';
       process.env.NODE_ENV = 'production';
