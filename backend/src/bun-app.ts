@@ -143,11 +143,23 @@ registerOpenOriginRoutes(app);
 
 // CORS configuration for other routes
 const allowedOrigins = config.allowedOrigins;
+const isAllowedOrigin = (requestOrigin: string): boolean =>
+  allowedOrigins.some((allowed) => {
+    if (allowed === requestOrigin) return true;
+    if (allowed.startsWith('*.')) {
+      return requestOrigin.endsWith(allowed.slice(1));
+    }
+    return false;
+  });
+
 app.use('*', async (c, next) => {
   if (isCrossOriginPath(c.req.path)) return next();
 
   const corsMiddleware = cors({
-    origin: allowedOrigins,
+    origin: (requestOrigin) => {
+      if (!requestOrigin || isAllowedOrigin(requestOrigin)) return requestOrigin || '*';
+      return allowedOrigins[0] || '*';
+    },
     credentials: true, // Enable credentials for session-based auth
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
@@ -163,7 +175,8 @@ if (config.nodeEnv !== 'test') {
   app.use('*', async (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
     return csrf({
-      origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+      origin:
+        allowedOrigins.length > 0 ? (requestOrigin) => isAllowedOrigin(requestOrigin) : undefined,
     })(c, next);
   });
 }
@@ -209,7 +222,6 @@ app.get('/api', (c) => {
       snapshots: '/api/v1/snapshots',
       health: '/api/v1/health',
       config: '/api/v1/config',
-      csrf: '/api/v1/csrf',
       lint: '/api/v1/lint',
       aiImage: '/api/v1/image',
       mcp: '/api/v1/mcp',

@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'bun:test';
 import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
+import { isCrossOriginPath } from '../src/middleware/open-origin';
 
 const ALLOWED_ORIGINS = ['http://localhost:4200', 'https://inkweld.example.com'];
 
@@ -16,17 +17,9 @@ const ALLOWED_ORIGINS = ['http://localhost:4200', 'https://inkweld.example.com']
 function createCsrfTestApp() {
   const app = new Hono();
 
-  // CSRF middleware with skip logic for OAuth/MCP paths (matching production)
+  // CSRF middleware using the same isCrossOriginPath predicate as production
   app.use('*', async (c, next) => {
-    const path = c.req.path;
-    if (
-      path.startsWith('/.well-known/') ||
-      path.startsWith('/oauth/') ||
-      path === '/register' ||
-      path.startsWith('/api/v1/ai/mcp')
-    ) {
-      return next();
-    }
+    if (isCrossOriginPath(c.req.path)) return next();
     return csrf({
       origin: ALLOWED_ORIGINS,
     })(c, next);
@@ -230,9 +223,9 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          // "evil-inkweld.pages.dev" doesn't match "*.inkweld.pages.dev"
-          // because the wildcard expects a dot before the suffix
-          Origin: 'https://evil-fakepages.dev',
+          // "evilinkweld.pages.dev" doesn't match "*.inkweld.pages.dev"
+          // because the suffix check requires a dot before "inkweld.pages.dev"
+          Origin: 'https://evilinkweld.pages.dev',
         },
         body: 'data=malicious',
       });

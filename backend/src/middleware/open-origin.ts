@@ -5,7 +5,12 @@
  * Claude.ai) fetch them without a matching Origin.  All other API routes use
  * origin-restricted CORS + CSRF.
  */
+import type { MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
+
+type AppWithUse = {
+  use: (path: string, ...handlers: MiddlewareHandler[]) => unknown;
+};
 
 /** Paths that have already received permissive CORS treatment. */
 export function isCrossOriginPath(path: string): boolean {
@@ -13,7 +18,8 @@ export function isCrossOriginPath(path: string): boolean {
     path.startsWith('/.well-known/') ||
     path.startsWith('/oauth/') ||
     path === '/register' ||
-    path.startsWith('/api/v1/ai/mcp')
+    path === '/api/v1/ai/mcp' ||
+    path.startsWith('/api/v1/ai/mcp/')
   );
 }
 
@@ -22,8 +28,7 @@ export function isCrossOriginPath(path: string): boolean {
  * Call this before the standard CORS and CSRF middleware so those can safely
  * skip paths already handled here.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function registerOpenOriginRoutes(app: any): void {
+export function registerOpenOriginRoutes(app: AppWithUse): void {
   app.use('/.well-known/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
   app.use(
     '/oauth/*',
