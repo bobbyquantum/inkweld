@@ -18,7 +18,6 @@ import {
 } from 'rxjs';
 
 import { AuthTokenService } from '../auth/auth-token.service';
-import { XsrfService } from '../auth/xsrf.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageService } from '../local/storage.service';
 
@@ -55,7 +54,6 @@ export class UserService {
   private readonly dialog = inject(MatDialog);
   private readonly http = inject(HttpClient);
   private readonly userAPI = inject(UsersService);
-  private readonly xsrfService = inject(XsrfService);
   private readonly authenticationService = inject(AuthenticationService);
   private readonly router = inject(Router);
   private readonly storage = inject(StorageService);

@@ -5,6 +5,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
+import { csrf } from 'hono/csrf';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { requestLogger } from './middleware/request-logger';
@@ -30,6 +31,7 @@ import { setupBunDatabase } from './db/bun-sqlite';
 // Import common route registration + specialized routes
 import { registerCommonRoutes } from './config/routes';
 import yjsRoutes from './routes/yjs.routes';
+import { isCrossOriginPath, registerOpenOriginRoutes } from './middleware/open-origin';
 
 // Import frontend assets for embedding (only used in compiled mode)
 let getFrontendAssets: (() => Map<string, string>) | undefined;
@@ -136,51 +138,48 @@ app.use('*', secureHeaders());
 // Database middleware - attaches Bun SQLite DB instance to context
 app.use('*', bunSqliteDatabaseMiddleware);
 
-// OAuth/MCP discovery endpoints need permissive CORS since MCP clients (like Claude.ai)
-// need to fetch them from any origin. These endpoints are public metadata.
-app.use('/.well-known/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
-// OAuth endpoints need permissive CORS for MCP clients from any origin
-// Use wildcard to ensure all OAuth paths are covered
-app.use(
-  '/oauth/*',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] })
-);
-// Also allow /register alias (some MCP clients use this)
-app.use('/register', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'] }));
-app.use(
-  '/api/v1/ai/mcp',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
-);
-app.use(
-  '/api/v1/ai/mcp/*',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
-);
+// OAuth/MCP/discovery endpoints need permissive CORS from any origin
+registerOpenOriginRoutes(app);
 
 // CORS configuration for other routes
 const allowedOrigins = config.allowedOrigins;
+const isAllowedOrigin = (requestOrigin: string): boolean =>
+  allowedOrigins.some((allowed) => {
+    if (allowed === requestOrigin) return true;
+    if (allowed.startsWith('*.')) {
+      return requestOrigin.endsWith(allowed.slice(1));
+    }
+    return false;
+  });
+
 app.use('*', async (c, next) => {
-  // Skip if already handled by permissive CORS above
-  const path = c.req.path;
-  if (
-    path.startsWith('/.well-known/') ||
-    path.startsWith('/oauth/') ||
-    path === '/register' ||
-    path.startsWith('/api/v1/ai/mcp')
-  ) {
-    return next();
-  }
+  if (isCrossOriginPath(c.req.path)) return next();
 
   const corsMiddleware = cors({
-    origin: allowedOrigins,
+    origin: (requestOrigin) => {
+      if (!requestOrigin || isAllowedOrigin(requestOrigin)) return requestOrigin || '*';
+      return allowedOrigins[0] || '*';
+    },
     credentials: true, // Enable credentials for session-based auth
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
+    allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['Content-Type', 'Authorization'],
     maxAge: 600, // Cache preflight for 10 minutes,
   });
 
   return corsMiddleware(c, next);
 });
+
+// CSRF protection (origin-based, matches Node runtime)
+if (config.nodeEnv !== 'test') {
+  app.use('*', async (c, next) => {
+    if (isCrossOriginPath(c.req.path)) return next();
+    return csrf({
+      origin:
+        allowedOrigins.length > 0 ? (requestOrigin) => isAllowedOrigin(requestOrigin) : undefined,
+    })(c, next);
+  });
+}
 
 // Simple ping endpoint for debugging routing issues (registered before SPA handler)
 app.get('/api/v1/ping', (c) => {
@@ -223,7 +222,6 @@ app.get('/api', (c) => {
       snapshots: '/api/v1/snapshots',
       health: '/api/v1/health',
       config: '/api/v1/config',
-      csrf: '/api/v1/csrf',
       lint: '/api/v1/lint',
       aiImage: '/api/v1/image',
       mcp: '/api/v1/mcp',

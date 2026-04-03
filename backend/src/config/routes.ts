@@ -10,7 +10,7 @@ import userRoutes from '../routes/user.routes';
 import projectRoutes from '../routes/project.routes';
 import healthRoutes from '../routes/health.routes';
 import configRoutes from '../routes/config.routes';
-import csrfRoutes from '../routes/csrf.routes';
+
 import imageRoutes from '../routes/image.routes';
 import snapshotRoutes from '../routes/snapshot.routes';
 import documentRoutes from '../routes/document.routes';
@@ -70,7 +70,6 @@ export function registerCommonRoutes(app: any): void {
   // System endpoints - start with just health
   app.route('/api/v1/health', healthRoutes);
   app.route('/api/v1/config', configRoutes);
-  app.route('/api/v1/csrf', csrfRoutes);
 
   // AI services
   app.route('/api/v1/ai/lint', lintRoutes);
