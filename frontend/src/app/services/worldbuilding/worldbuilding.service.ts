@@ -47,7 +47,7 @@ export class WorldbuildingService {
   private readonly versionCompatibility = inject(VersionCompatibilityService);
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
-  private connections = new Map<string, WorldbuildingConnection>();
+  private readonly connections = new Map<string, WorldbuildingConnection>();
 
   /**
    * Emits the connection key (username:slug:elementId) whenever a local edit

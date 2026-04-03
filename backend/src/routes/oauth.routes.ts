@@ -842,9 +842,7 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
         body.client_id,
         body.client_secret,
         issuer,
-        clientIp,
-        userAgent,
-        c.env as CloudflareEnv
+        { clientIp, userAgent, env: c.env as CloudflareEnv }
       );
 
       return c.json({

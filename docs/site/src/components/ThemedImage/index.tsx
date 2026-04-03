@@ -31,7 +31,7 @@ export default function ThemedImage({
   alt,
   width,
   style,
-}: ThemedImageProps): React.ReactElement {
+}: Readonly<ThemedImageProps>): React.ReactElement {
   const { colorMode } = useColorMode();
   const suffix = colorMode === 'dark' ? '-dark.png' : '-light.png';
   const fullSrc = `${src}${suffix}`;
