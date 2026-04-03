@@ -15,7 +15,7 @@ import {
   yCursorPlugin,
   ySyncPlugin,
   yUndoPlugin,
-  yXmlFragmentToProsemirrorJSON,
+  yXmlFragmentToProsemirrorJSON, // NOSONAR - replacement API modifies the Yjs document when encountering non-standard XmlElement("text") nodes created by importXmlString, making it unsafe for read-only use
 } from 'y-prosemirror';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
@@ -114,9 +114,9 @@ export class DocumentService {
   /** @internal */
   private setupWsReauth = setupReauthentication; // NOSONAR - writable for test overrides
 
-  private connections: Map<string, DocumentConnection> = new Map();
+  private readonly connections: Map<string, DocumentConnection> = new Map();
 
-  private unsyncedChanges = new Map<string, boolean>();
+  private readonly unsyncedChanges = new Map<string, boolean>();
   /**
    * Emits the full documentId (username:slug:elementId) whenever a local edit
    * is applied to a connected document. Used by AutoSnapshotService to track
@@ -124,14 +124,14 @@ export class DocumentService {
    */
   readonly localEdit$ = new Subject<string>();
   /** Reactive sync status signals per document */
-  private syncStatusSignals = new Map<
+  private readonly syncStatusSignals = new Map<
     string,
     WritableSignal<DocumentSyncState>
   >();
   /** Reactive word count signals per document */
-  private wordCountSignals = new Map<string, WritableSignal<number>>();
+  private readonly wordCountSignals = new Map<string, WritableSignal<number>>();
   /** Track reconnect timeouts to cancel them on disconnect */
-  private reconnectTimeouts = new Map<string, number>();
+  private readonly reconnectTimeouts = new Map<string, number>();
 
   constructor() {
     // Ensure awareness is cleaned up when the browser tab/window closes
@@ -325,7 +325,7 @@ export class DocumentService {
         `Getting content from active connection: ${documentId}`
       );
       // Use y-prosemirror to convert XmlFragment to ProseMirror JSON format
-      const json = yXmlFragmentToProsemirrorJSON(connection.type);
+      const json = yXmlFragmentToProsemirrorJSON(connection.type); // NOSONAR
       return json?.['content'] ?? [];
     }
 
@@ -376,7 +376,7 @@ export class DocumentService {
       }
 
       // Use y-prosemirror to convert XmlFragment to ProseMirror JSON format
-      const json = yXmlFragmentToProsemirrorJSON(fragment);
+      const json = yXmlFragmentToProsemirrorJSON(fragment); // NOSONAR
       const content = (json?.['content'] ?? []) as unknown[];
       this.logger.debug(
         'DocumentService',
@@ -631,7 +631,7 @@ export class DocumentService {
         next: (response: string) => {
           const blob = new Blob([response], { type: 'text/html' });
           const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
+          globalThis.open(url, '_blank');
         },
       });
 
@@ -1146,13 +1146,13 @@ export class DocumentService {
               MAX_RECONNECT_DELAY
             );
 
-            reconnectTimeout = window.setTimeout(() => {
+            reconnectTimeout = setTimeout(() => {
               if (!this.connections.has(documentId)) {
                 return;
               }
               providerRef.connect();
               reconnectAttempts++;
-            }, delay);
+            }, delay) as unknown as number;
 
             this.reconnectTimeouts.set(documentId, reconnectTimeout);
           } else {

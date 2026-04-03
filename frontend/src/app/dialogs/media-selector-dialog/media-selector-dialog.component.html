@@ -59,15 +59,14 @@
     } @else {
       <div class="media-grid">
         @for (item of filteredItems(); track item.mediaId) {
-          <div
+          <button
             class="media-item"
+            type="button"
             [class.selected]="isSelected(item)"
             [class.needs-download]="needsDownload(item)"
             (click)="selectItem(item)"
             (keydown.enter)="selectItem(item)"
             (keydown.space)="selectItem(item); $event.preventDefault()"
-            tabindex="0"
-            role="button"
             [attr.aria-pressed]="isSelected(item)"
             [matTooltip]="
               needsDownload(item) ? 'Click to download from server' : ''
@@ -103,7 +102,7 @@
             <div class="item-info">
               <span class="item-name">{{ item.filename || item.mediaId }}</span>
             </div>
-          </div>
+          </button>
         }
       </div>
     }

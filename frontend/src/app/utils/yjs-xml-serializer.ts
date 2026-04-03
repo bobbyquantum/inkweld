@@ -66,8 +66,12 @@ function xmlElementToXmlString(element: Y.XmlElement): string {
   for (const [key, value] of Object.entries(attributes)) {
     if (value !== undefined && value !== null) {
       // Handle different value types
-      const strValue =
-        typeof value === 'object' ? JSON.stringify(value) : String(value);
+      let strValue: string;
+      if (typeof value === 'object') {
+        strValue = JSON.stringify(value);
+      } else {
+        strValue = String(value);
+      }
       attrs.push(`${key}="${escapeAttrValue(strValue)}"`);
     }
   }

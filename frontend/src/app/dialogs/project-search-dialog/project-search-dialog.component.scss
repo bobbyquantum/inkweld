@@ -152,7 +152,11 @@
   }
 
   &.tag-chip.selected {
-    background-color: color-mix(in srgb, var(--tag-color, var(--mat-sys-secondary)) 20%, transparent);
+    background-color: color-mix(
+      in srgb,
+      var(--tag-color, var(--mat-sys-secondary)) 20%,
+      transparent
+    );
     border-color: var(--tag-color, var(--mat-sys-secondary));
     color: var(--mat-sys-on-surface);
   }
@@ -237,6 +241,8 @@
   padding: 8px 0;
   min-height: 100px;
   max-height: 500px;
+  list-style: none;
+  margin: 0;
 }
 
 .search-result-item {

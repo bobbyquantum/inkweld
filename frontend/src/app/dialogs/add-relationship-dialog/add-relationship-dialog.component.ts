@@ -81,7 +81,7 @@ export class AddRelationshipDialogComponent implements OnInit {
   private readonly dialogRef = inject(
     MatDialogRef<AddRelationshipDialogComponent>
   );
-  private data = inject<AddRelationshipDialogData>(MAT_DIALOG_DATA);
+  private readonly data = inject<AddRelationshipDialogData>(MAT_DIALOG_DATA);
   private readonly projectState = inject(ProjectStateService);
   private readonly relationshipService = inject(RelationshipService);
 
@@ -127,7 +127,7 @@ export class AddRelationshipDialogComponent implements OnInit {
   });
 
   /** All elements in the project (for selection) */
-  private allElements = computed(() => {
+  private readonly allElements = computed(() => {
     return this.projectState.elements();
   });
 

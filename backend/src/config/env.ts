@@ -11,8 +11,8 @@
 
 // Detect if we're in Cloudflare Workers (no import.meta.url or process.cwd)
 const isCloudflareWorkers =
-  typeof (globalThis as Record<string, unknown>).caches !== 'undefined' &&
-  typeof (globalThis as Record<string, unknown>).WebSocketPair !== 'undefined';
+  (globalThis as Record<string, unknown>).caches !== undefined &&
+  (globalThis as Record<string, unknown>).WebSocketPair !== undefined;
 
 // Only load dotenv in Node.js/Bun environments (synchronously, before config is read)
 if (!isCloudflareWorkers) {

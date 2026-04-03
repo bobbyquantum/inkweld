@@ -75,7 +75,7 @@ ARG TARGETARCH
 # analyze and embed the .node file in the compiled binary.
 RUN PATCH_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "linux-arm64-glibc" || echo "linux-x64-glibc") && \
   echo "Patching native modules for: $PATCH_TARGET" && \
-  bun scripts/patch-native-modules.ts patch $PATCH_TARGET
+  bun scripts/patch-native-modules.ts patch "$PATCH_TARGET"
 
 # Copy frontend dist for binary embedding
 # When FRONTEND_PREBUILT=true, the dist was already in the build context and copied into frontend-builder
@@ -95,7 +95,7 @@ RUN BUN_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "bun-linux-arm64" || echo
   echo "Compiling with target: $BUN_TARGET" && \
   bun run build && \
   bun build --compile --minify --sourcemap \
-  --target=$BUN_TARGET \
+  --target="$BUN_TARGET" \
   ./src/bun-runner.ts \
   --outfile ./inkweld-server
 

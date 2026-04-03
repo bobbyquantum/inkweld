@@ -20,15 +20,15 @@ export const errorHandler: ErrorHandler = (err, c) => {
     err.name === 'ValidationError' ||
     (err instanceof HTTPException && err.status < 500);
 
-  if (!isExpectedError) {
-    log.error(`Unhandled error on ${method} ${path}`, err, { method, path }, correlationId);
-  } else {
+  if (isExpectedError) {
     // Log expected errors at debug level for troubleshooting
     log.debug(
       `Client error on ${method} ${path}: ${err.name}`,
       { method, path, errorName: err.name },
       correlationId
     );
+  } else {
+    log.error(`Unhandled error on ${method} ${path}`, err, { method, path }, correlationId);
   }
 
   // Handle Hono HTTPException (legacy, prefer domain errors)
