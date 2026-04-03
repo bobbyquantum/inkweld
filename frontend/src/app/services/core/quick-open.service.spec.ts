@@ -171,17 +171,18 @@ describe('QuickOpenService', () => {
       expect(secondCallCount).toBe(firstCallCount);
     });
 
-    it('should open on Meta+P when navigator.platform is Mac', () => {
-      const originalPlatform = navigator.platform;
+    it('should open on Meta+P when navigator.userAgent is Mac', () => {
+      const originalUserAgent = navigator.userAgent;
       const originalUAData = (navigator as any).userAgentData;
-      // Remove userAgentData so it falls back to platform
+      // Remove userAgentData so it falls back to userAgent
       Object.defineProperty(navigator, 'userAgentData', {
         value: undefined,
         configurable: true,
       });
-      Object.defineProperty(navigator, 'platform', {
-        value: 'MacIntel',
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
         configurable: true,
+        writable: true,
       });
       service.initialize();
       const event = new KeyboardEvent('keydown', {
@@ -191,9 +192,10 @@ describe('QuickOpenService', () => {
       });
       document.dispatchEvent(event);
       expect(mockDialog.open).toHaveBeenCalledOnce();
-      Object.defineProperty(navigator, 'platform', {
-        value: originalPlatform,
+      Object.defineProperty(navigator, 'userAgent', {
+        value: originalUserAgent,
         configurable: true,
+        writable: true,
       });
       Object.defineProperty(navigator, 'userAgentData', {
         value: originalUAData,
@@ -201,16 +203,17 @@ describe('QuickOpenService', () => {
       });
     });
 
-    it('should open on Ctrl+P when navigator.platform is not Mac', () => {
-      const originalPlatform = navigator.platform;
+    it('should open on Ctrl+P when navigator.userAgent is not Mac', () => {
+      const originalUserAgent = navigator.userAgent;
       const originalUAData = (navigator as any).userAgentData;
       Object.defineProperty(navigator, 'userAgentData', {
         value: undefined,
         configurable: true,
       });
-      Object.defineProperty(navigator, 'platform', {
-        value: 'Win32',
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
         configurable: true,
+        writable: true,
       });
       service.initialize();
       const event = new KeyboardEvent('keydown', {
@@ -220,9 +223,10 @@ describe('QuickOpenService', () => {
       });
       document.dispatchEvent(event);
       expect(mockDialog.open).toHaveBeenCalledOnce();
-      Object.defineProperty(navigator, 'platform', {
-        value: originalPlatform,
+      Object.defineProperty(navigator, 'userAgent', {
+        value: originalUserAgent,
         configurable: true,
+        writable: true,
       });
       Object.defineProperty(navigator, 'userAgentData', {
         value: originalUAData,

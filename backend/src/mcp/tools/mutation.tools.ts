@@ -173,7 +173,7 @@ function resolveReorderTarget(
   if (position === -1 || position >= siblings.length - 1) {
     const lastSibling = siblings.at(-1);
     if (lastSibling) {
-      return lastSibling.element.id !== elementId ? lastSibling.element.id : undefined;
+      return lastSibling.element.id === elementId ? undefined : lastSibling.element.id;
     }
     return undefined;
   }
