@@ -170,14 +170,26 @@ export class YjsService {
 
   /** Coerce a raw value to string, returning null for empty/whitespace-only values. */
   private coerceNullableString(value: unknown): string | null {
-    if (value == null || String(value).trim() === '') return null;
-    return typeof value === 'string' ? value : String(value);
+    if (value == null) return null;
+    const str =
+      typeof value === 'string'
+        ? value
+        : typeof value === 'object'
+          ? JSON.stringify(value)
+          : String(value as number | boolean | bigint);
+    return str.trim() === '' ? null : str;
   }
 
   /** Coerce a raw value to a trimmed string, returning undefined for empty/missing values. */
   private coerceOptionalString(value: unknown): string | undefined {
-    if (value == null || String(value).trim() === '') return undefined;
-    return typeof value === 'string' ? value : String(value);
+    if (value == null) return undefined;
+    const str =
+      typeof value === 'string'
+        ? value
+        : typeof value === 'object'
+          ? JSON.stringify(value)
+          : String(value as number | boolean | bigint);
+    return str.trim() === '' ? undefined : str;
   }
 
   /**

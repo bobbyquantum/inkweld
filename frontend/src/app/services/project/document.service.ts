@@ -2127,7 +2127,7 @@ export class DocumentService {
       );
 
       await new Promise<void>((resolve, reject) => {
-        const timeout = window.setTimeout(() => {
+        const timeout = globalThis.setTimeout(() => {
           reject(new Error(`Sync timeout for ${params.description}`));
         }, params.timeoutMs);
 
