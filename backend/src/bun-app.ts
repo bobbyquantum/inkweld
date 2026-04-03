@@ -5,6 +5,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
+import { csrf } from 'hono/csrf';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { requestLogger } from './middleware/request-logger';
@@ -181,6 +182,25 @@ app.use('*', async (c, next) => {
 
   return corsMiddleware(c, next);
 });
+
+// CSRF protection (origin-based, matches Node runtime)
+if (config.nodeEnv !== 'test') {
+  app.use('*', async (c, next) => {
+    // Skip CSRF for endpoints that need cross-origin access (OAuth, MCP)
+    const path = c.req.path;
+    if (
+      path.startsWith('/.well-known/') ||
+      path.startsWith('/oauth/') ||
+      path === '/register' ||
+      path.startsWith('/api/v1/ai/mcp')
+    ) {
+      return next();
+    }
+    return csrf({
+      origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+    })(c, next);
+  });
+}
 
 // Simple ping endpoint for debugging routing issues (registered before SPA handler)
 app.get('/api/v1/ping', (c) => {

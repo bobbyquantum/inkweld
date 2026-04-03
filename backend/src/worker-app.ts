@@ -5,6 +5,7 @@
  */
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
+import { csrf } from 'hono/csrf';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { requestLogger } from './middleware/request-logger';
@@ -124,6 +125,39 @@ app.use('*', async (c, next) => {
 
   return corsMiddleware(c, next);
 });
+
+// CSRF protection (origin-based, matches Node and Bun runtimes)
+if (config.nodeEnv !== 'test') {
+  app.use('*', async (c, next) => {
+    // Skip CSRF for endpoints that need cross-origin access (OAuth, MCP)
+    const path = c.req.path;
+    if (
+      path.startsWith('/.well-known/') ||
+      path.startsWith('/oauth/') ||
+      path === '/register' ||
+      path.startsWith('/api/v1/ai/mcp')
+    ) {
+      return next();
+    }
+
+    const envOrigins = c.env?.ALLOWED_ORIGINS;
+    const origins = envOrigins ? envOrigins.split(',') : config.allowedOrigins;
+
+    return csrf({
+      origin: (requestOrigin) => {
+        for (const allowed of origins) {
+          if (allowed === requestOrigin) return true;
+          // Wildcard subdomain match (e.g., "*.inkweld.pages.dev")
+          if (allowed.startsWith('*.')) {
+            const suffix = allowed.slice(1); // Keep the dot
+            if (requestOrigin.endsWith(suffix)) return true;
+          }
+        }
+        return false;
+      },
+    })(c, next);
+  });
+}
 
 // Register common routes
 registerCommonRoutes(app);
