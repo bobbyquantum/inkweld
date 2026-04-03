@@ -16,6 +16,13 @@ const yjsLog = logger.child('Yjs');
 const messageSync = 0;
 const messageAwareness = 1;
 
+/** Convert a non-null value to a string without producing '[object Object]'. */
+function coerceToString(value: NonNullable<unknown>): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value as number | boolean | bigint);
+}
+
 interface WSSharedDoc {
   name: string;
   doc: Y.Doc;
@@ -171,24 +178,14 @@ export class YjsService {
   /** Coerce a raw value to string, returning null for empty/whitespace-only values. */
   private coerceNullableString(value: unknown): string | null {
     if (value == null) return null;
-    const str =
-      typeof value === 'string'
-        ? value
-        : typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value as number | boolean | bigint);
+    const str = coerceToString(value);
     return str.trim() === '' ? null : str;
   }
 
   /** Coerce a raw value to a trimmed string, returning undefined for empty/missing values. */
   private coerceOptionalString(value: unknown): string | undefined {
     if (value == null) return undefined;
-    const str =
-      typeof value === 'string'
-        ? value
-        : typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value as number | boolean | bigint);
+    const str = coerceToString(value);
     return str.trim() === '' ? undefined : str;
   }
 

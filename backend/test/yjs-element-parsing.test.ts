@@ -1,89 +1,106 @@
 import { describe, it, expect } from 'bun:test';
 
 /**
- * Tests for the element field parsing logic used in yjs.service.ts getElements().
- * Validates parentId and schemaId handling of null, empty, and whitespace values.
+ * Tests for the element field coercion helpers used in yjs.service.ts.
  *
- * The production code:
- *   parentId: elem.parentId != null && String(elem.parentId).trim() !== ''
- *     ? (typeof elem.parentId === 'string' ? elem.parentId : String(elem.parentId))
- *     : null,
- *   schemaId: elem.schemaId != null && String(elem.schemaId).trim() !== ''
- *     ? (typeof elem.schemaId === 'string' ? elem.schemaId : String(elem.schemaId))
- *     : undefined,
+ * The helpers delegate to a shared `coerceToString` utility that avoids the
+ * '[object Object]' pitfall by using JSON.stringify for object values.
  */
 
-function parseParentId(value: unknown): string | null {
-  return value != null && String(value).trim() !== ''
-    ? typeof value === 'string'
-      ? value
-      : String(value)
-    : null;
+function coerceToString(value: NonNullable<unknown>): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value as number | boolean | bigint);
 }
 
-function parseSchemaId(value: unknown): string | undefined {
-  return value != null && String(value).trim() !== ''
-    ? typeof value === 'string'
-      ? value
-      : String(value)
-    : undefined;
+function coerceNullableString(value: unknown): string | null {
+  if (value == null) return null;
+  const str = coerceToString(value);
+  return str.trim() === '' ? null : str;
 }
 
-describe('Yjs Element Field Parsing', () => {
-  describe('parseParentId', () => {
-    it('should return null for null and undefined', () => {
-      expect(parseParentId(null)).toBeNull();
-      expect(parseParentId(undefined)).toBeNull();
-    });
+function coerceOptionalString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  const str = coerceToString(value);
+  return str.trim() === '' ? undefined : str;
+}
 
-    it('should return null for empty string', () => {
-      expect(parseParentId('')).toBeNull();
-    });
-
-    it('should return null for whitespace-only string', () => {
-      expect(parseParentId(' ')).toBeNull();
-      expect(parseParentId('  \t  ')).toBeNull();
-      expect(parseParentId('\n')).toBeNull();
-    });
-
-    it('should return valid string parentId as-is', () => {
-      expect(parseParentId('abc-123')).toBe('abc-123');
-      expect(parseParentId('root')).toBe('root');
-    });
-
-    it('should convert non-string truthy values to string', () => {
-      expect(parseParentId(42)).toBe('42');
-      expect(parseParentId(true)).toBe('true');
-    });
-
-    it('should return null for 0 (stringifies to "0" which is non-empty)', () => {
-      // 0 != null is true, and String(0).trim() is "0" which is not empty
-      expect(parseParentId(0)).toBe('0');
-    });
+describe('coerceToString', () => {
+  it('returns string values as-is', () => {
+    expect(coerceToString('hello')).toBe('hello');
+    expect(coerceToString('')).toBe('');
   });
 
-  describe('parseSchemaId', () => {
-    it('should return undefined for null and undefined', () => {
-      expect(parseSchemaId(null)).toBeUndefined();
-      expect(parseSchemaId(undefined)).toBeUndefined();
-    });
+  it('uses JSON.stringify for objects', () => {
+    expect(coerceToString({ a: 1 })).toBe('{"a":1}');
+    expect(coerceToString([])).toBe('[]');
+  });
 
-    it('should return undefined for empty string', () => {
-      expect(parseSchemaId('')).toBeUndefined();
-    });
+  it('uses String() for primitives', () => {
+    expect(coerceToString(42)).toBe('42');
+    expect(coerceToString(true)).toBe('true');
+    expect(coerceToString(0)).toBe('0');
+  });
+});
 
-    it('should return undefined for whitespace-only string', () => {
-      expect(parseSchemaId(' ')).toBeUndefined();
-      expect(parseSchemaId('  \t  ')).toBeUndefined();
-    });
+describe('coerceNullableString (parentId handling)', () => {
+  it('returns null for null and undefined', () => {
+    expect(coerceNullableString(null)).toBeNull();
+    expect(coerceNullableString(undefined)).toBeNull();
+  });
 
-    it('should return valid string schemaId as-is', () => {
-      expect(parseSchemaId('schema-v1')).toBe('schema-v1');
-      expect(parseSchemaId('character')).toBe('character');
-    });
+  it('returns null for empty string', () => {
+    expect(coerceNullableString('')).toBeNull();
+  });
 
-    it('should convert non-string truthy values to string', () => {
-      expect(parseSchemaId(99)).toBe('99');
-    });
+  it('returns null for whitespace-only string', () => {
+    expect(coerceNullableString(' ')).toBeNull();
+    expect(coerceNullableString('  \t  ')).toBeNull();
+    expect(coerceNullableString('\n')).toBeNull();
+  });
+
+  it('returns valid string as-is', () => {
+    expect(coerceNullableString('abc-123')).toBe('abc-123');
+    expect(coerceNullableString('root')).toBe('root');
+  });
+
+  it('converts numbers and booleans to string', () => {
+    expect(coerceNullableString(42)).toBe('42');
+    expect(coerceNullableString(0)).toBe('0');
+    expect(coerceNullableString(true)).toBe('true');
+  });
+
+  it('serialises objects to JSON instead of [object Object]', () => {
+    expect(coerceNullableString({ id: 'x' })).toBe('{"id":"x"}');
+    expect(coerceNullableString({})).toBe('{}');
+  });
+});
+
+describe('coerceOptionalString (schemaId handling)', () => {
+  it('returns undefined for null and undefined', () => {
+    expect(coerceOptionalString(null)).toBeUndefined();
+    expect(coerceOptionalString(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for empty string', () => {
+    expect(coerceOptionalString('')).toBeUndefined();
+  });
+
+  it('returns undefined for whitespace-only string', () => {
+    expect(coerceOptionalString(' ')).toBeUndefined();
+    expect(coerceOptionalString('  \t  ')).toBeUndefined();
+  });
+
+  it('returns valid string schemaId as-is', () => {
+    expect(coerceOptionalString('schema-v1')).toBe('schema-v1');
+    expect(coerceOptionalString('character')).toBe('character');
+  });
+
+  it('converts numbers to string', () => {
+    expect(coerceOptionalString(99)).toBe('99');
+  });
+
+  it('serialises objects to JSON instead of [object Object]', () => {
+    expect(coerceOptionalString({ type: 'chapter' })).toBe('{"type":"chapter"}');
   });
 });
