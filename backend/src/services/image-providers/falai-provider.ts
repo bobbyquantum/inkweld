@@ -93,14 +93,14 @@ const GPT_IMAGE_15_RESOLUTIONS = DEFAULT_ASPECT_RESOLUTIONS;
  * Format: "ratio@resolution" (e.g., "16:9@4K")
  */
 function aspectRatioToSizeString(ratio: string, resolution: string): ImageSize {
-  return `${ratio}@${resolution}` as ImageSize;
+  return `${ratio}@${resolution}`;
 }
 
 /**
  * Parse a size string to determine if it's aspect_ratio format.
  */
 function parseAspectRatioSize(size: string): { ratio: string; resolution: string } | null {
-  const match = size.match(/^(\d+:\d+)@(\d+K)$/);
+  const match = /^(\d+:\d+)@(\d+K)$/.exec(size);
   if (match) {
     return { ratio: match[1], resolution: match[2] };
   }
@@ -292,7 +292,7 @@ export class FalAiImageProvider extends BaseImageProvider {
    * Convert a size string to width/height object for Fal.ai (dimensions mode)
    */
   private parseSize(size: string): { width: number; height: number } {
-    const match = size.match(/^(\d+)x(\d+)$/);
+    const match = /^(\d+)x(\d+)$/.exec(size);
     if (match) {
       return {
         width: Number.parseInt(match[1], 10),
@@ -330,7 +330,7 @@ export class FalAiImageProvider extends BaseImageProvider {
         };
       }
       // Fallback: if given dimensions, try to convert to aspect ratio
-      const dimMatch = size.match(/^(\d+)x(\d+)$/);
+      const dimMatch = /^(\d+)x(\d+)$/.exec(size);
       if (dimMatch) {
         const w = Number.parseInt(dimMatch[1], 10);
         const h = Number.parseInt(dimMatch[2], 10);

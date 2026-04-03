@@ -328,7 +328,7 @@ determines hierarchy by POSITION, not by parentId.`,
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const parentId = args.parentId ? String(args.parentId) : null;
+    const parentId = typeof args.parentId === 'string' ? args.parentId : null;
     const maxDepth = args.maxDepth ? Number(args.maxDepth) : Infinity;
 
     const elements = await getElements(ctx, username, slug);
@@ -427,7 +427,7 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const query = String(args.query ?? '');
+    const query = typeof args.query === 'string' ? args.query : '';
     const types = (args.types as string[] | undefined) ?? [];
     const limit = Math.min(Number(args.limit) || 20, 100);
 
@@ -457,11 +457,12 @@ registerTool({
     results.sort((a, b) => b.score - a.score);
     const topResults = results.slice(0, limit);
 
+    const filterSuffix = types.length > 0 ? ` (filtered by: ${types.join(', ')})` : '';
     return {
       content: [
         {
           type: 'text',
-          text: `Found ${results.length} elements matching "${query}"${types.length > 0 ? ` (filtered by: ${types.join(', ')})` : ''}`,
+          text: `Found ${results.length} elements matching "${query}"${filterSuffix}`,
         },
       ],
       structuredContent: {
@@ -562,7 +563,7 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const query = String(args.query ?? '');
+    const query = typeof args.query === 'string' ? args.query : '';
     const schemaTypes = (args.schemaTypes as string[] | undefined) ?? [];
     const fields = (args.fields as string[] | undefined) ?? [];
     const limit = Math.min(Number(args.limit) || 10, 50);

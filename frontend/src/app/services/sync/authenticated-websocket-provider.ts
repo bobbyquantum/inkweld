@@ -121,12 +121,14 @@ export async function createAuthenticatedWebsocketProvider(
     provider.on('connection-error', (error: Error | string | Event) => {
       if (!authCompleted) {
         provider.off('status', handleStatus);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : typeof error === 'string'
-              ? error
-              : 'Connection error';
+        let errorMessage: string;
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else {
+          errorMessage = 'Connection error';
+        }
         reject(new Error(`WebSocket connection error: ${errorMessage}`));
       }
     });

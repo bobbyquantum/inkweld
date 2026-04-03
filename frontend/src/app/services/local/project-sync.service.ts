@@ -339,7 +339,7 @@ export class ProjectSyncService {
 
     const updated: ProjectSyncState = {
       ...current,
-      pendingMetadata: { ...(current.pendingMetadata ?? {}), ...metadata },
+      pendingMetadata: { ...current.pendingMetadata, ...metadata },
       status: 'pending',
     };
     state.set(updated);

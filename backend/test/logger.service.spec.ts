@@ -200,6 +200,72 @@ describe('LoggerService', () => {
       expect(parsed.error.message).toBe('Test error message');
       expect(parsed.error.stack).toBeDefined();
     });
+
+    it('should format plain objects as JSON in error output', () => {
+      process.env.LOG_LEVEL = 'error';
+      process.env.NODE_ENV = 'production';
+
+      const objectError = { code: 500, detail: 'something went wrong' };
+      logger.error('TestContext', 'Object error', objectError);
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const logCall = consoleErrorSpy.mock.calls[0][0] as string;
+
+      const parsed = JSON.parse(logCall);
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error.name).toBe('UnknownError');
+      expect(parsed.error.message).toBe(JSON.stringify(objectError));
+    });
+
+    it('should fallback to String() when error cannot be JSON-serialized', () => {
+      process.env.LOG_LEVEL = 'error';
+      process.env.NODE_ENV = 'production';
+
+      // BigInt cannot be serialized with JSON.stringify
+      const bigIntError = BigInt(42);
+      logger.error('TestContext', 'BigInt error', bigIntError);
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const logCall = consoleErrorSpy.mock.calls[0][0] as string;
+
+      const parsed = JSON.parse(logCall);
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error.name).toBe('UnknownError');
+      expect(parsed.error.message).toBe('42');
+    });
+
+    it('should use error string directly when error is a plain string', () => {
+      process.env.LOG_LEVEL = 'error';
+      process.env.NODE_ENV = 'production';
+
+      logger.error('TestContext', 'String error', 'plain string error message');
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const logCall = consoleErrorSpy.mock.calls[0][0] as string;
+
+      const parsed = JSON.parse(logCall);
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error.name).toBe('UnknownError');
+      expect(parsed.error.message).toBe('plain string error message');
+    });
+
+    it('should handle circular references by falling back to String()', () => {
+      process.env.LOG_LEVEL = 'error';
+      process.env.NODE_ENV = 'production';
+
+      const circular: Record<string, unknown> = { name: 'circular' };
+      circular['self'] = circular; // circular reference
+      logger.error('TestContext', 'Circular error', circular);
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const logCall = consoleErrorSpy.mock.calls[0][0] as string;
+
+      const parsed = JSON.parse(logCall);
+      expect(parsed.error).toBeDefined();
+      expect(parsed.error.name).toBe('UnknownError');
+      // Falls back to String() which gives [object Object] for circular
+      expect(typeof parsed.error.message).toBe('string');
+    });
   });
 
   describe('correlation ID', () => {

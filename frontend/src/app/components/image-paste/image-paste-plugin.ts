@@ -66,7 +66,7 @@ export function isBase64ImageUrl(src: string): boolean {
  * Extract MIME type from a base64 data URL
  */
 export function extractMimeType(dataUrl: string): string {
-  const match = dataUrl.match(/^data:(image\/[^;]+);base64,/);
+  const match = /^data:(image\/[^;]+);base64,/.exec(dataUrl);
   return match?.[1] ?? 'image/png';
 }
 
@@ -305,9 +305,9 @@ export interface MediaImageNodeViewOptions {
  */
 export class MediaImageNodeView {
   dom: HTMLElement;
-  private img: HTMLImageElement;
+  private readonly img: HTMLImageElement;
   private node: ProseMirrorNode;
-  private options: MediaImageNodeViewOptions;
+  private readonly options: MediaImageNodeViewOptions;
   private destroyed = false;
 
   constructor(

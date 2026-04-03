@@ -123,9 +123,19 @@ function formatError(
   }
 
   // Handle non-Error objects
+  const safeMessage = (() => {
+    try {
+      const json = JSON.stringify(error);
+      if (json !== undefined) return json;
+    } catch {
+      // JSON.stringify throws for BigInt, circular references, etc.
+    }
+    return typeof error !== 'object' || error === null ? String(error) : '[object Object]';
+  })();
+
   return {
     name: 'UnknownError',
-    message: String(error),
+    message: typeof error === 'string' ? error : safeMessage,
   };
 }
 
