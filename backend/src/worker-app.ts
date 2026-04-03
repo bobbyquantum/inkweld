@@ -17,6 +17,7 @@ import { configService } from './services/config.service';
 // Import common route registration + Worker-specific routes
 import { registerCommonRoutes } from './config/routes';
 import yjsWorkerRoutes from './routes/yjs-worker.routes';
+import { isCrossOriginPath, registerOpenOriginRoutes } from './middleware/open-origin';
 
 // Extend D1AppContext bindings to include env vars and secrets from wrangler.toml.
 // In Cloudflare Workers, secrets set via `wrangler secret put` are only accessible
@@ -59,39 +60,13 @@ app.use('*', async (c, next) => {
   return next();
 });
 
-// OAuth/MCP discovery endpoints need permissive CORS since MCP clients (like Claude.ai)
-// need to fetch them from any origin. These endpoints are public metadata.
-app.use('/.well-known/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
-// OAuth endpoints need permissive CORS for MCP clients from any origin
-// Use wildcard to ensure all OAuth paths are covered
-app.use(
-  '/oauth/*',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] })
-);
-// Also allow /register alias (some MCP clients use this)
-app.use('/register', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'] }));
-app.use(
-  '/api/v1/ai/mcp',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
-);
-app.use(
-  '/api/v1/ai/mcp/*',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
-);
+// OAuth/MCP/discovery endpoints need permissive CORS from any origin
+registerOpenOriginRoutes(app);
 
 // CORS configuration - reads ALLOWED_ORIGINS from wrangler.toml env bindings
 // In Workers, process.env is not available at runtime, so we read from c.env
 app.use('*', async (c, next) => {
-  // Skip if already handled by permissive CORS above
-  const path = c.req.path;
-  if (
-    path.startsWith('/.well-known/') ||
-    path.startsWith('/oauth/') ||
-    path === '/register' ||
-    path.startsWith('/api/v1/ai/mcp')
-  ) {
-    return next();
-  }
+  if (isCrossOriginPath(c.req.path)) return next();
 
   // Get allowed origins from wrangler.toml bindings, fallback to static config
   const envOrigins = c.env?.ALLOWED_ORIGINS;
@@ -129,16 +104,7 @@ app.use('*', async (c, next) => {
 // CSRF protection (origin-based, matches Node and Bun runtimes)
 if (config.nodeEnv !== 'test') {
   app.use('*', async (c, next) => {
-    // Skip CSRF for endpoints that need cross-origin access (OAuth, MCP)
-    const path = c.req.path;
-    if (
-      path.startsWith('/.well-known/') ||
-      path.startsWith('/oauth/') ||
-      path === '/register' ||
-      path.startsWith('/api/v1/ai/mcp')
-    ) {
-      return next();
-    }
+    if (isCrossOriginPath(c.req.path)) return next();
 
     const envOrigins = c.env?.ALLOWED_ORIGINS;
     const origins = envOrigins ? envOrigins.split(',') : config.allowedOrigins;

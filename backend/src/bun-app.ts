@@ -31,6 +31,7 @@ import { setupBunDatabase } from './db/bun-sqlite';
 // Import common route registration + specialized routes
 import { registerCommonRoutes } from './config/routes';
 import yjsRoutes from './routes/yjs.routes';
+import { isCrossOriginPath, registerOpenOriginRoutes } from './middleware/open-origin';
 
 // Import frontend assets for embedding (only used in compiled mode)
 let getFrontendAssets: (() => Map<string, string>) | undefined;
@@ -137,39 +138,13 @@ app.use('*', secureHeaders());
 // Database middleware - attaches Bun SQLite DB instance to context
 app.use('*', bunSqliteDatabaseMiddleware);
 
-// OAuth/MCP discovery endpoints need permissive CORS since MCP clients (like Claude.ai)
-// need to fetch them from any origin. These endpoints are public metadata.
-app.use('/.well-known/*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'] }));
-// OAuth endpoints need permissive CORS for MCP clients from any origin
-// Use wildcard to ensure all OAuth paths are covered
-app.use(
-  '/oauth/*',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] })
-);
-// Also allow /register alias (some MCP clients use this)
-app.use('/register', cors({ origin: '*', allowMethods: ['POST', 'OPTIONS'] }));
-app.use(
-  '/api/v1/ai/mcp',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
-);
-app.use(
-  '/api/v1/ai/mcp/*',
-  cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
-);
+// OAuth/MCP/discovery endpoints need permissive CORS from any origin
+registerOpenOriginRoutes(app);
 
 // CORS configuration for other routes
 const allowedOrigins = config.allowedOrigins;
 app.use('*', async (c, next) => {
-  // Skip if already handled by permissive CORS above
-  const path = c.req.path;
-  if (
-    path.startsWith('/.well-known/') ||
-    path.startsWith('/oauth/') ||
-    path === '/register' ||
-    path.startsWith('/api/v1/ai/mcp')
-  ) {
-    return next();
-  }
+  if (isCrossOriginPath(c.req.path)) return next();
 
   const corsMiddleware = cors({
     origin: allowedOrigins,
@@ -186,16 +161,7 @@ app.use('*', async (c, next) => {
 // CSRF protection (origin-based, matches Node runtime)
 if (config.nodeEnv !== 'test') {
   app.use('*', async (c, next) => {
-    // Skip CSRF for endpoints that need cross-origin access (OAuth, MCP)
-    const path = c.req.path;
-    if (
-      path.startsWith('/.well-known/') ||
-      path.startsWith('/oauth/') ||
-      path === '/register' ||
-      path.startsWith('/api/v1/ai/mcp')
-    ) {
-      return next();
-    }
+    if (isCrossOriginPath(c.req.path)) return next();
     return csrf({
       origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
     })(c, next);
