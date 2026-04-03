@@ -255,8 +255,7 @@ class UserService {
 
     // If activeOnly, filter to only approved and enabled users
     if (activeOnly) {
-      conditions.push(eq(users.approved, true));
-      conditions.push(eq(users.enabled, true));
+      conditions.push(eq(users.approved, true), eq(users.enabled, true));
     }
 
     // Build query with optional search

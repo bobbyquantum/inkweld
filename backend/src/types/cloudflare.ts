@@ -9,8 +9,11 @@ type D1Database = any;
 type R2Bucket = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DurableObjectNamespace<_T = unknown> = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DurableObjectStub = any;
+
+/** Minimal Cloudflare Durable Object stub interface (placeholder until @cloudflare/workers-types is available) */
+interface DurableObjectStub {
+  fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
+}
 
 // Re-export types for use in other modules
 export type { DurableObjectNamespace, DurableObjectStub };

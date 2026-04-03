@@ -38,12 +38,12 @@ class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const env = (c as any).env;
     // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
-    const envSecret =
-      env && typeof env.DATABASE_KEY === 'string'
-        ? env.DATABASE_KEY
-        : env && typeof env.SESSION_SECRET === 'string'
-          ? env.SESSION_SECRET
-          : undefined;
+    let envSecret: string | undefined;
+    if (env && typeof env.DATABASE_KEY === 'string') {
+      envSecret = env.DATABASE_KEY;
+    } else if (env && typeof env.SESSION_SECRET === 'string') {
+      envSecret = env.SESSION_SECRET;
+    }
 
     if (envSecret && envSecret.length >= 32) {
       return envSecret;

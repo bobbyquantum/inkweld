@@ -130,7 +130,10 @@ function formatError(
     } catch {
       // JSON.stringify throws for BigInt, circular references, etc.
     }
-    return typeof error !== 'object' || error === null ? String(error) : '[object Object]';
+    if (typeof error === 'object' && error !== null) {
+      return '[object Object]';
+    }
+    return String(error);
   })();
 
   return {

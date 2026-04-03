@@ -1,4 +1,3 @@
-import { defineConfig } from '@playwright/test';
 import dockerConfig from './playwright.docker.config';
 import onlineConfig from './playwright.online.config';
 import localConfig from './playwright.local.config';

@@ -86,7 +86,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   readonly selectedItem = signal<MediaItem | null>(null);
   readonly searchQuery = signal('');
 
-  private objectUrls: string[] = [];
+  private readonly objectUrls: string[] = [];
   private projectKey = '';
 
   ngOnInit(): void {

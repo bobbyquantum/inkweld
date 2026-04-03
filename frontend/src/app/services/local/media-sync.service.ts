@@ -325,7 +325,8 @@ export class MediaSyncService {
     try {
       const currentState = state();
       const toDownload = currentState.items.filter(
-        item => item.status === 'server-only' && item.filename
+        (item): item is MediaSyncItem & { filename: string } =>
+          item.status === 'server-only' && Boolean(item.filename)
       );
 
       if (toDownload.length === 0) {
@@ -335,7 +336,7 @@ export class MediaSyncService {
 
       let downloaded = 0;
       for (const item of toDownload) {
-        await this.downloadFromServer(projectKey, item.filename!);
+        await this.downloadFromServer(projectKey, item.filename);
         downloaded++;
         state.update(s => ({
           ...s,

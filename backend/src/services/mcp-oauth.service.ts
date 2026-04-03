@@ -653,9 +653,7 @@ class McpOAuthService {
    * @param db - Database instance
    * @param refreshToken - The refresh token
    * @param issuer - The issuer URL
-   * @param clientIp - Optional client IP
-   * @param userAgent - Optional user agent
-   * @param env - Optional Cloudflare env bindings (required on Workers)
+   * @param options - Optional: clientIp, userAgent, and Cloudflare env bindings
    */
   async refreshTokens(
     db: DatabaseInstance,
@@ -663,10 +661,9 @@ class McpOAuthService {
     clientId: string,
     clientSecret: string | undefined,
     issuer: string,
-    clientIp?: string,
-    userAgent?: string,
-    env?: CloudflareEnv
+    options?: { clientIp?: string; userAgent?: string; env?: CloudflareEnv }
   ): Promise<TokenResult> {
+    const { clientIp, userAgent, env } = options ?? {};
     const refreshTokenHash = await hashString(refreshToken);
     const now = Date.now();
 

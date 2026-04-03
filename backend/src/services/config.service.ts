@@ -266,7 +266,7 @@ class ConfigService {
       (typeof CONFIG_KEYS)[ConfigKey],
     ][]) {
       if (keyConfig.category === category) {
-        result[key] = await this.get(db, key as ConfigKey);
+        result[key] = await this.get(db, key);
       }
     }
 

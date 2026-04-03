@@ -143,7 +143,7 @@ export class UserMenuComponent implements OnInit {
     }
 
     try {
-      const url = new URL(profile.serverUrl!);
+      const url = new URL(profile.serverUrl ?? '');
       return url.hostname;
     } catch {
       return 'Server';

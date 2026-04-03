@@ -27,9 +27,10 @@
   </mat-form-field>
 
   <!-- Element list -->
-  <div class="element-list" data-testid="element-picker-list">
+  <ul class="element-list" role="listbox" data-testid="element-picker-list">
     @for (element of filteredElements(); track element.id) {
-      <div
+      <!-- NOSONAR -->
+      <li
         class="element-item"
         [class.selected]="isSelected(element)"
         [class.disabled]="!isSelected(element) && !canSelectMore()"
@@ -54,9 +55,9 @@
           <span class="element-name">{{ element.name }}</span>
           <span class="element-type">{{ getTypeLabel(element.schemaId) }}</span>
         </div>
-      </div>
+      </li>
     } @empty {
-      <div class="empty-state">
+      <li class="empty-state">
         @if (searchText()) {
           <mat-icon>search_off</mat-icon>
           <p>No elements match "{{ searchText() }}"</p>
@@ -64,9 +65,9 @@
           <mat-icon>inventory_2</mat-icon>
           <p>No elements available</p>
         }
-      </div>
+      </li>
     }
-  </div>
+  </ul>
 
   <!-- Selection status -->
   <div class="selection-status">

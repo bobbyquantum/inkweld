@@ -62,13 +62,15 @@
               <mat-icon>add</mat-icon>
             </button>
           </div>
-          <ul class="layers-list" aria-label="Layers">
+          <ul class="layers-list" role="listbox" aria-label="Layers">
             @for (layer of sortedLayers(); track layer.id) {
               <li
+                role="option"
                 class="layer-item"
                 data-testid="layer-item"
                 [class.active]="layer.id === activeLayerId()"
                 tabindex="0"
+                [attr.aria-selected]="layer.id === activeLayerId()"
                 [attr.aria-current]="
                   layer.id === activeLayerId() ? 'location' : null
                 "
@@ -115,12 +117,14 @@
             <span class="section-title">Objects</span>
             <span class="object-count">{{ activeLayerObjects().length }}</span>
           </div>
-          <ul class="objects-list" aria-label="Objects">
+          <ul class="objects-list" role="listbox" aria-label="Objects">
             @for (obj of activeLayerObjects(); track obj.id) {
               <li
+                role="option"
                 class="object-item"
                 [class.selected]="obj.id === selectedObjectId()"
                 tabindex="0"
+                [attr.aria-selected]="obj.id === selectedObjectId()"
                 [attr.aria-current]="
                   obj.id === selectedObjectId() ? 'location' : null
                 "
