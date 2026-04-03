@@ -8,6 +8,7 @@ import {
   input,
   type OnDestroy,
   signal,
+  untracked,
   viewChild,
   type WritableSignal,
 } from '@angular/core';
@@ -194,7 +195,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     // React to access changes and disable/enable form accordingly
     effect(() => {
       const canWrite = this.projectState.canWrite();
-      const form = this.form();
+      const form = untracked(() => this.form());
       if (form) {
         if (canWrite) {
           form.enable({ emitEvent: false });
@@ -344,6 +345,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       case 'checkbox':
         return new FormControl(false);
       default:
+        console.warn(
+          `[WorldbuildingEditor] Unsupported field type "${field.type}" for "${field.key}"`
+        );
         return null;
     }
   }

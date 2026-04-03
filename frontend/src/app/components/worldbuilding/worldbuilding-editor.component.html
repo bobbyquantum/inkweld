@@ -10,6 +10,7 @@
           <button
             class="sidenav-thumbnail"
             (click)="identityPanel()?.viewImage()"
+            aria-label="View full size identity image"
             matTooltip="View full size"
             data-testid="sidenav-thumbnail">
             <img [src]="imageUrl" [alt]="elementName()" />
@@ -20,6 +21,7 @@
           <button
             class="sidenav-thumbnail sidenav-thumbnail--empty"
             (click)="identityPanel()?.onImageClick()"
+            aria-label="Set identity image"
             matTooltip="Set image"
             data-testid="sidenav-thumbnail-empty">
             <mat-icon>add_photo_alternate</mat-icon>
@@ -28,10 +30,11 @@
         <mat-nav-list>
           <a
             mat-list-item
-            role="tab"
             (click)="selectSection('identity')"
             (keydown.enter)="selectSection('identity')"
-            [attr.aria-selected]="selectedSection() === 'identity'"
+            [attr.aria-current]="
+              selectedSection() === 'identity' ? 'true' : null
+            "
             [class.active]="selectedSection() === 'identity'"
             tabindex="0"
             data-testid="nav-identity">
@@ -42,10 +45,11 @@
           @for (tab of getTabs(); track tab.key) {
             <a
               mat-list-item
-              role="tab"
               (click)="selectSection(tab.key)"
               (keydown.enter)="selectSection(tab.key)"
-              [attr.aria-selected]="selectedSection() === tab.key"
+              [attr.aria-current]="
+                selectedSection() === tab.key ? 'true' : null
+              "
               [class.active]="selectedSection() === tab.key"
               tabindex="0"
               [attr.data-testid]="'nav-' + tab.key">
@@ -56,10 +60,11 @@
 
           <a
             mat-list-item
-            role="tab"
             (click)="selectSection('relationships')"
             (keydown.enter)="selectSection('relationships')"
-            [attr.aria-selected]="selectedSection() === 'relationships'"
+            [attr.aria-current]="
+              selectedSection() === 'relationships' ? 'true' : null
+            "
             [class.active]="selectedSection() === 'relationships'"
             tabindex="0"
             data-testid="nav-relationships">
@@ -71,7 +76,7 @@
     }
 
     <!-- Content area -->
-    <div class="wb-content" role="tabpanel">
+    <div class="wb-content">
       @if (useSidenav()) {
         <!-- ===== Sidenav mode: show selected section ===== -->
         <div
@@ -158,6 +163,15 @@
                 </ng-container>
               </mat-expansion-panel>
             }
+          } @else {
+            <mat-expansion-panel [expanded]="false" [disabled]="true">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-title-icon">hourglass_empty</mat-icon>
+                  Loading schema...
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+            </mat-expansion-panel>
           }
 
           <!-- Relationships panel -->
@@ -187,6 +201,7 @@
       <button
         class="tag-icons"
         (click)="openTagsDialog()"
+        aria-label="Manage tags"
         matTooltip="Manage tags"
         matTooltipShowDelay="800"
         type="button">
@@ -207,6 +222,7 @@
         mat-icon-button
         class="snapshots-btn"
         (click)="openSnapshotsDialog()"
+        aria-label="Open document snapshots"
         matTooltip="Document snapshots"
         data-testid="toolbar-snapshots">
         <mat-icon>history</mat-icon>
@@ -353,7 +369,10 @@
                     mat-icon-button
                     color="warn"
                     type="button"
-                    (click)="removeArrayItem(field.key, $index)">
+                    (click)="removeArrayItem(field.key, $index)"
+                    [attr.aria-label]="
+                      'Remove ' + field.label + ' item ' + ($index + 1)
+                    ">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
