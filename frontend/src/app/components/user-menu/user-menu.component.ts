@@ -59,7 +59,7 @@ export class UserMenuComponent implements OnInit {
     if (mode !== 'server') {
       return false;
     }
-    const currentUser = this.userService.currentUser() as AdminUser | undefined;
+    const currentUser = this.userService.currentUser() as AdminUser;
     return currentUser?.isAdmin === true;
   });
 

@@ -64,10 +64,10 @@ export class QuickOpenService {
     this.keydownListener = (event: KeyboardEvent) => {
       // Check for Cmd/Ctrl + P — detect Apple platforms the same way ProseMirror does.
       // Prefer the modern User-Agent Client Hints API; fall back to the legacy
-      // navigator.platform that ProseMirror still uses at runtime.
+      // navigator.userAgent string that remains supported across browsers.
       const platform =
         (navigator as NavigatorWithUAData).userAgentData?.platform ??
-        navigator.platform;
+        navigator.userAgent;
       const isMac = /Mac|iP(hone|[oa]d)/i.test(platform);
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 

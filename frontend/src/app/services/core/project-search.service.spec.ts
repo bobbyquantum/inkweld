@@ -204,16 +204,17 @@ describe('ProjectSearchService', () => {
       expect(mockDialog.open).toHaveBeenCalledOnce();
     });
 
-    it('should open search dialog on Meta+Shift+F when platform is Mac', () => {
-      const originalPlatform = navigator.platform;
+    it('should open search dialog on Meta+Shift+F when userAgent is Mac', () => {
+      const originalUserAgent = navigator.userAgent;
       const originalUAData = (navigator as any).userAgentData;
       Object.defineProperty(navigator, 'userAgentData', {
         value: undefined,
         configurable: true,
       });
-      Object.defineProperty(navigator, 'platform', {
-        value: 'MacIntel',
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
         configurable: true,
+        writable: true,
       });
       service.initialize();
       const event = new KeyboardEvent('keydown', {
@@ -224,9 +225,10 @@ describe('ProjectSearchService', () => {
       });
       document.dispatchEvent(event);
       expect(mockDialog.open).toHaveBeenCalledOnce();
-      Object.defineProperty(navigator, 'platform', {
-        value: originalPlatform,
+      Object.defineProperty(navigator, 'userAgent', {
+        value: originalUserAgent,
         configurable: true,
+        writable: true,
       });
       Object.defineProperty(navigator, 'userAgentData', {
         value: originalUAData,
