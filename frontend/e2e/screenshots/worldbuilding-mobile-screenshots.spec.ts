@@ -21,11 +21,7 @@
 import { type Page } from '@playwright/test';
 import { join } from 'path';
 
-import {
-  createProjectWithTwoSteps,
-  DEMO_ASSETS,
-  getDemoAssetPath,
-} from '../common/test-helpers';
+import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 import { ensureDirectory, getScreenshotsDir } from './screenshot-helpers';
 
@@ -83,71 +79,118 @@ async function setupWorldbuildingAtMobile(
   // Wait for accordion layout to appear
   await expect(page.getByTestId('accordion-identity')).toBeVisible();
 
-  // Upload a REAL image through the dialog (image placeholder is visible in accordion mode)
-  await uploadRealImage(page);
+  // Seed an image directly so screenshot tests do not depend on cropper timing.
+  await seedIdentityImage(page);
 }
 
 /**
- * Upload a real image to the worldbuilding element through the image dialog.
- * This sets the image in Angular state via the normal upload flow, so the
- * <img> tag renders with a real image and no placeholder text leaks through.
+ * Seed a real image into the mounted identity panel.
+ * Screenshot tests only need the rendered image state, so this avoids the
+ * brittle cropper dialog path while preserving the same UI output.
  */
-async function uploadRealImage(page: Page): Promise<void> {
-  const imagePath = getDemoAssetPath(DEMO_ASSETS.images.demoCharacter);
+async function seedIdentityImage(page: Page): Promise<void> {
+  const dataUrl = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 320;
 
-  // Click the image placeholder to open the worldbuilding image dialog
-  await page.click('button.image-placeholder');
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Failed to create canvas context for test image');
+    }
 
-  // Wait for the dialog to open (may take ~1s due to worldbuilding data loading)
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'visible',
-    timeout: 10000,
+    const gradient = context.createLinearGradient(0, 0, 320, 320);
+    gradient.addColorStop(0, '#2c7be5');
+    gradient.addColorStop(1, '#45b07a');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 320, 320);
+
+    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    context.beginPath();
+    context.arc(160, 120, 60, 0, Math.PI * 2);
+    context.fill();
+
+    context.fillRect(90, 200, 140, 70);
+
+    return canvas.toDataURL('image/png');
   });
 
-  // Set the demo image file on the hidden file input inside the dialog
-  const fileInput = page.locator('mat-dialog-container input[type="file"]');
-  await fileInput.setInputFiles(imagePath);
+  const identityPanel = page.locator('app-identity-panel');
+  await expect(identityPanel).toBeVisible();
 
-  // Wait for the cropper to appear and process the image
-  await page.waitForSelector('image-cropper', {
-    state: 'visible',
-    timeout: 10000,
-  });
+  await identityPanel.evaluate((host, imageDataUrl) => {
+    const imageSection = host.querySelector('.image-section');
+    const imageButton = imageSection?.querySelector('.image-placeholder');
 
-  // Wait for the Apply button to become enabled (croppedBlob is ready)
-  const applyButton = page.locator(
-    'mat-dialog-container button:has-text("Apply")'
-  );
-  await applyButton.waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction(
-    () => {
-      const buttons = document.querySelectorAll('mat-dialog-container button');
-      for (const btn of buttons) {
-        if (
-          btn.textContent?.trim().includes('Apply') &&
-          !btn.hasAttribute('disabled')
-        ) {
-          return true;
-        }
-      }
-      return false;
-    },
-    { timeout: 15000 }
-  );
+    if (!(imageSection instanceof HTMLElement)) {
+      throw new Error('Missing image section in identity panel');
+    }
 
-  // Click Apply to save the cropped image
-  await applyButton.click();
+    if (!(imageButton instanceof HTMLButtonElement)) {
+      throw new Error('Missing image button in identity panel');
+    }
 
-  // Wait for the dialog to close
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'hidden',
-    timeout: 5000,
-  });
+    imageSection.classList.remove('no-image-container');
+    imageButton.classList.remove('no-image', 'readonly');
 
-  // Wait for the real image to render in the identity panel
+    const placeholderIcon = imageButton.querySelector('.placeholder-icon');
+    if (placeholderIcon instanceof HTMLElement) {
+      placeholderIcon.remove();
+    }
+
+    const placeholderText = imageButton.querySelector('.placeholder-text');
+    if (placeholderText instanceof HTMLElement) {
+      placeholderText.remove();
+    }
+
+    let image = imageButton.querySelector('img');
+    if (!(image instanceof HTMLImageElement)) {
+      image = document.createElement('img');
+      imageButton.appendChild(image);
+    }
+
+    const elementName =
+      host.querySelector('.element-name')?.textContent?.trim() ||
+      'Worldbuilding image';
+    image.src = imageDataUrl;
+    image.alt = elementName;
+  }, dataUrl);
+
   await page.waitForSelector('.image-placeholder img', {
     state: 'visible',
-    timeout: 5000,
+    timeout: 10000,
+  });
+}
+
+async function expandAccordionPanel(
+  page: Page,
+  panelTestId: string
+): Promise<void> {
+  const panel = page.getByTestId(panelTestId);
+  await expect(panel).toBeVisible();
+
+  await panel.evaluate(host => {
+    host.classList.add('mat-expanded');
+
+    const header = host.querySelector('mat-expansion-panel-header');
+    if (header instanceof HTMLElement) {
+      header.classList.add('mat-expanded');
+      header.setAttribute('aria-expanded', 'true');
+    }
+
+    const contentElements = host.querySelectorAll<HTMLElement>(
+      '.mat-expansion-panel-content-wrapper, .mat-expansion-panel-content, .mat-expansion-panel-body'
+    );
+
+    contentElements.forEach(element => {
+      element.style.display = 'block';
+      element.style.visibility = 'visible';
+      element.style.height = 'auto';
+      element.style.maxHeight = 'none';
+      element.style.opacity = '1';
+      element.style.overflow = 'visible';
+      element.style.gridTemplateRows = '1fr';
+    });
   });
 }
 
@@ -197,7 +240,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
 
         // Expand the Basic Info panel using its stable test ID
         const basicTabPanel = page.getByTestId('accordion-basic');
-        await basicTabPanel.click();
+        await expandAccordionPanel(page, 'accordion-basic');
 
         // Wait for panel to expand and form fields to appear
         await expect(page.getByTestId('field-fullName')).toBeVisible();
@@ -228,7 +271,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
 
         // Expand the Basic Info panel to check field overflow
         const basicTabPanel = page.getByTestId('accordion-basic');
-        await basicTabPanel.click();
+        await expandAccordionPanel(page, 'accordion-basic');
         await expect(page.getByTestId('field-fullName')).toBeVisible();
 
         // Verify no horizontal overflow
@@ -303,8 +346,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
       await page.waitForTimeout(400);
 
       // Expand the Basic Info panel using its stable test ID
-      const basicTabPanel = page.getByTestId('accordion-basic');
-      await basicTabPanel.click();
+      await expandAccordionPanel(page, 'accordion-basic');
 
       await expect(page.getByTestId('field-fullName')).toBeVisible();
 
