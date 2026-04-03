@@ -68,13 +68,19 @@ async function fillAndSubmitAnnouncementForm(
   await page.locator('[data-testid="announcement-type-select"]').click();
   const typeListbox = page.locator('[role="listbox"]');
   await typeListbox.waitFor({ state: 'visible' });
-  await typeListbox.getByRole('option', { name: /announcement/i }).first().click();
+  await typeListbox
+    .getByRole('option', { name: /announcement/i })
+    .first()
+    .click();
 
   // Select priority — same pattern
   await page.locator('[data-testid="announcement-priority-select"]').click();
   const priorityListbox = page.locator('[role="listbox"]');
   await priorityListbox.waitFor({ state: 'visible' });
-  await priorityListbox.getByRole('option', { name: /^normal$/i }).first().click();
+  await priorityListbox
+    .getByRole('option', { name: /^normal$/i })
+    .first()
+    .click();
 
   // Submit - Use global expect timeout
   await expect(
