@@ -195,19 +195,15 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           viewport
         );
 
-        // Find and expand the first schema tab panel (e.g., "Basic Info")
-        const firstTabPanel = page.locator(
-          'mat-expansion-panel:not([data-testid="accordion-identity"]):not([data-testid="accordion-relationships"])'
-        );
-        await firstTabPanel.first().click();
+        // Expand the Basic Info panel using its stable test ID
+        const basicTabPanel = page.getByTestId('accordion-basic');
+        await basicTabPanel.click();
 
         // Wait for panel to expand and form fields to appear
-        await expect(
-          firstTabPanel.first().locator('.field-container').first()
-        ).toBeVisible();
+        await expect(page.getByTestId('field-fullName')).toBeVisible();
 
         // Verify form fields are visible
-        const formFields = firstTabPanel.first().locator('.field-container');
+        const formFields = basicTabPanel.locator('[data-testid^="field-"]');
         const fieldCount = await formFields.count();
         expect(fieldCount).toBeGreaterThan(0);
 
@@ -230,14 +226,10 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
           viewport
         );
 
-        // Expand a tab panel to check field overflow
-        const firstTabPanel = page.locator(
-          'mat-expansion-panel:not([data-testid="accordion-identity"]):not([data-testid="accordion-relationships"])'
-        );
-        await firstTabPanel.first().click();
-        await expect(
-          firstTabPanel.first().locator('.field-container').first()
-        ).toBeVisible();
+        // Expand the Basic Info panel to check field overflow
+        const basicTabPanel = page.getByTestId('accordion-basic');
+        await basicTabPanel.click();
+        await expect(page.getByTestId('field-fullName')).toBeVisible();
 
         // Verify no horizontal overflow
         const hasHorizontalOverflow = await page.evaluate(() => {
@@ -255,7 +247,7 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
         }
 
         // Verify all visible form fields are within viewport bounds
-        const formFields = firstTabPanel.first().locator('.field-container');
+        const formFields = basicTabPanel.locator('[data-testid^="field-"]');
         const fieldCount = await formFields.count();
         for (let i = 0; i < Math.min(fieldCount, 5); i++) {
           const fieldBox = await formFields.nth(i).boundingBox();
@@ -310,15 +302,11 @@ test.describe('Worldbuilding Mobile Screenshots', () => {
       await page.emulateMedia({ colorScheme: 'dark' });
       await page.waitForTimeout(400);
 
-      // Expand the first schema tab panel
-      const firstTabPanel = page.locator(
-        'mat-expansion-panel:not([data-testid="accordion-identity"]):not([data-testid="accordion-relationships"])'
-      );
-      await firstTabPanel.first().click();
+      // Expand the Basic Info panel using its stable test ID
+      const basicTabPanel = page.getByTestId('accordion-basic');
+      await basicTabPanel.click();
 
-      await expect(
-        firstTabPanel.first().locator('.field-container').first()
-      ).toBeVisible();
+      await expect(page.getByTestId('field-fullName')).toBeVisible();
 
       await page.screenshot({
         path: join(screenshotsDir, 'worldbuilding-tab-fields-dark.png'),

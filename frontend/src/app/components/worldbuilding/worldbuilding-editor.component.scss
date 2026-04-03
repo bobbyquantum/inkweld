@@ -272,6 +272,21 @@ mat-accordion {
   width: 100%;
 }
 
+.checkbox-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0.5rem 0;
+}
+
+.field-description {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--sys-on-surface-variant);
+}
+
 .array-field {
   width: 100%;
   margin-bottom: 1rem;

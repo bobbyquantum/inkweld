@@ -14,7 +14,9 @@
             data-testid="sidenav-thumbnail">
             <img [src]="imageUrl" [alt]="elementName()" />
           </button>
-        } @else if (projectState.canWrite()) {
+        } @else if (
+          !identityPanel()?.isLoadingImage() && projectState.canWrite()
+        ) {
           <button
             class="sidenav-thumbnail sidenav-thumbnail--empty"
             (click)="identityPanel()?.onImageClick()"
@@ -270,18 +272,69 @@
               </mat-form-field>
             }
 
+            @case ('date') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <input
+                  matInput
+                  type="date"
+                  [formControlName]="field.key.split('.')[1]"
+                  [placeholder]="field.placeholder || ''" />
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
             @case ('select') {
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ field.label }}</mat-label>
                 <mat-select [formControlName]="field.key.split('.')[1]">
-                  @for (option of field.options; track option) {
-                    <mat-option [value]="option">{{ option }}</mat-option>
+                  @for (
+                    option of getFieldOptions(field);
+                    track getOptionValue(option)
+                  ) {
+                    <mat-option [value]="getOptionValue(option)">
+                      {{ getOptionLabel(option) }}
+                    </mat-option>
                   }
                 </mat-select>
                 @if (field.description) {
                   <mat-hint>{{ field.description }}</mat-hint>
                 }
               </mat-form-field>
+            }
+
+            @case ('multiselect') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <mat-select
+                  [formControlName]="field.key.split('.')[1]"
+                  [multiple]="true">
+                  @for (
+                    option of getFieldOptions(field);
+                    track getOptionValue(option)
+                  ) {
+                    <mat-option [value]="getOptionValue(option)">
+                      {{ getOptionLabel(option) }}
+                    </mat-option>
+                  }
+                </mat-select>
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('checkbox') {
+              <div class="checkbox-field">
+                <mat-checkbox [formControlName]="field.key.split('.')[1]">
+                  {{ field.label }}
+                </mat-checkbox>
+                @if (field.description) {
+                  <p class="field-description">{{ field.description }}</p>
+                }
+              </div>
             }
 
             @case ('array') {
@@ -370,18 +423,67 @@
               </mat-form-field>
             }
 
+            @case ('date') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <input
+                  matInput
+                  type="date"
+                  [formControlName]="field.key"
+                  [placeholder]="field.placeholder || ''" />
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
             @case ('select') {
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ field.label }}</mat-label>
                 <mat-select [formControlName]="field.key">
-                  @for (option of field.options; track option) {
-                    <mat-option [value]="option">{{ option }}</mat-option>
+                  @for (
+                    option of getFieldOptions(field);
+                    track getOptionValue(option)
+                  ) {
+                    <mat-option [value]="getOptionValue(option)">
+                      {{ getOptionLabel(option) }}
+                    </mat-option>
                   }
                 </mat-select>
                 @if (field.description) {
                   <mat-hint>{{ field.description }}</mat-hint>
                 }
               </mat-form-field>
+            }
+
+            @case ('multiselect') {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ field.label }}</mat-label>
+                <mat-select [formControlName]="field.key" [multiple]="true">
+                  @for (
+                    option of getFieldOptions(field);
+                    track getOptionValue(option)
+                  ) {
+                    <mat-option [value]="getOptionValue(option)">
+                      {{ getOptionLabel(option) }}
+                    </mat-option>
+                  }
+                </mat-select>
+                @if (field.description) {
+                  <mat-hint>{{ field.description }}</mat-hint>
+                }
+              </mat-form-field>
+            }
+
+            @case ('checkbox') {
+              <div class="checkbox-field">
+                <mat-checkbox [formControlName]="field.key">
+                  {{ field.label }}
+                </mat-checkbox>
+                @if (field.description) {
+                  <p class="field-description">{{ field.description }}</p>
+                }
+              </div>
             }
 
             @case ('array') {

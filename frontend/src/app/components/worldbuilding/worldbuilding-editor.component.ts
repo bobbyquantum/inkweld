@@ -19,6 +19,7 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -65,6 +66,7 @@ import { IdentityPanelComponent } from './identity-panel/identity-panel.componen
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    MatCheckboxModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -164,12 +166,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         browserWindow.removeEventListener('resize', updateLayout);
     }
 
-    // Reset selected section when navigating to a different element
-    effect(() => {
-      this.elementId();
-      this.selectedSection.set('identity');
-    });
-
     // Keep meta panel expanded when visible in the new layout
     effect(() => {
       const panel = this.metaPanel();
@@ -185,6 +181,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
       // Only load when all required values are available
       if (id && username && slug) {
+        this.selectedSection.set('identity');
+
         // Load data first, then setup realtime sync
         // This ensures the form is built before the observer can fire
         void this.loadElementData(id).then(() => {
@@ -321,6 +319,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
             case 'select':
               parentGroup.addControl(childKey, new FormControl(''));
               break;
+            case 'multiselect':
+              parentGroup.addControl(childKey, new FormControl<string[]>([]));
+              break;
             case 'array':
               parentGroup.addControl(childKey, new FormArray([]));
               break;
@@ -336,6 +337,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
             case 'date':
             case 'select':
               formGroup[fieldKey] = new FormControl('');
+              break;
+            case 'multiselect':
+              formGroup[fieldKey] = new FormControl<string[]>([]);
               break;
             case 'array':
               formGroup[fieldKey] = new FormArray([]);
@@ -536,10 +540,27 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (typeof value === 'string') {
       return value.trim().length > 0;
     }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
     if (typeof value === 'number') {
       return true;
     }
     return !!value;
+  }
+
+  getFieldOptions(
+    field: FieldSchema
+  ): Array<string | { value: string; label: string }> {
+    return field.options ?? [];
+  }
+
+  getOptionValue(option: string | { value: string; label: string }): string {
+    return typeof option === 'string' ? option : option.value;
+  }
+
+  getOptionLabel(option: string | { value: string; label: string }): string {
+    return typeof option === 'string' ? option : option.label;
   }
 
   getFormArray(fieldKey: string): FormArray {

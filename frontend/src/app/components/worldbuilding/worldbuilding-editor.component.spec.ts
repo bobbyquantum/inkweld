@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormArray, ReactiveFormsModule } from '@angular/forms';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { type Element, ElementType } from '../../../api-client';
@@ -526,12 +526,72 @@ describe('WorldbuildingEditorComponent', () => {
       });
     });
     describe('layout mode', () => {
-      it('should default useSidenav to true for desktop', () => {
-        // In test environment, window.innerWidth should be >= 1024
-        expect(component.useSidenav()).toBe(true);
+      let originalInnerWidth: number;
+      let originalMatchMedia: typeof window.matchMedia;
+
+      const recreateComponentForViewport = async (
+        width: number,
+        isLandscape: boolean
+      ): Promise<void> => {
+        fixture.destroy();
+
+        Object.defineProperty(window, 'innerWidth', {
+          configurable: true,
+          value: width,
+        });
+        window.matchMedia = vi
+          .fn()
+          .mockImplementation((query: string): MediaQueryList => {
+            const matches =
+              query === '(orientation: landscape)' ? isLandscape : false;
+            return {
+              matches,
+              media: query,
+              onchange: null,
+              addEventListener: vi.fn(),
+              removeEventListener: vi.fn(),
+              addListener: vi.fn(),
+              removeListener: vi.fn(),
+              dispatchEvent: vi.fn(),
+            } as unknown as MediaQueryList;
+          });
+
+        fixture = TestBed.createComponent(WorldbuildingEditorComponent);
+        component = fixture.componentInstance;
+
+        fixture.componentRef.setInput('elementId', 'test-element-123');
+        fixture.componentRef.setInput('username', 'testuser');
+        fixture.componentRef.setInput('slug', 'test-project');
+        fixture.componentRef.setInput('elementType', ElementType.Worldbuilding);
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+      };
+
+      beforeEach(() => {
+        originalInnerWidth = window.innerWidth;
+        originalMatchMedia = window.matchMedia;
       });
 
-      it('should default selectedSection to identity', () => {
+      afterEach(() => {
+        Object.defineProperty(window, 'innerWidth', {
+          configurable: true,
+          value: originalInnerWidth,
+        });
+        window.matchMedia = originalMatchMedia;
+      });
+
+      it('should use sidenav for desktop viewport', async () => {
+        await recreateComponentForViewport(1280, true);
+
+        expect(component.useSidenav()).toBe(true);
+        expect(component.selectedSection()).toBe('identity');
+      });
+
+      it('should use accordion for narrow portrait viewport', async () => {
+        await recreateComponentForViewport(767, false);
+
+        expect(component.useSidenav()).toBe(false);
         expect(component.selectedSection()).toBe('identity');
       });
     });

@@ -91,13 +91,8 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
-    // In sidenav mode, click the first schema tab to see form fields
-    await page
-      .locator(
-        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
-      )
-      .first()
-      .click();
+    // In sidenav mode, click the Basic Info tab to see imported character fields
+    await page.getByTestId('nav-basic').click();
 
     // Verify the character data is populated (check for specific field values)
     // The Basic Info tab should have "Full Name" field with value
@@ -146,13 +141,8 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(silverhollowElement).toBeVisible();
     await silverhollowElement.click();
 
-    // In sidenav mode, click the first schema tab to see form fields
-    await page
-      .locator(
-        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
-      )
-      .first()
-      .click();
+    // In sidenav mode, click the Overview tab to see imported location fields
+    await page.getByTestId('nav-basic').click();
 
     // Verify the location data is populated
     const nameField = page.getByLabel('Name');
@@ -202,13 +192,8 @@ test.describe('Template Worldbuilding Import', () => {
       await expect(charElement).toBeVisible();
       await charElement.click();
 
-      // In sidenav mode, click the first schema tab to see form fields
-      await page
-        .locator(
-          '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
-        )
-        .first()
-        .click();
+      // In sidenav mode, click the Basic Info tab to see imported character fields
+      await page.getByTestId('nav-basic').click();
 
       // Verify the character data is populated with correct value
       const fullNameField = page.getByLabel('Full Name');
@@ -270,13 +255,8 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
-    // In sidenav mode, click the first schema tab to see form fields
-    await page
-      .locator(
-        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
-      )
-      .first()
-      .click();
+    // In sidenav mode, click the Basic Info tab to see imported character fields
+    await page.getByTestId('nav-basic').click();
 
     // Verify Project B has the correct data (not empty, not from Project A)
     const fullNameField = page.getByLabel('Full Name');
@@ -312,13 +292,8 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElementA).toBeVisible();
     await elaraElementA.click();
 
-    // In sidenav mode, click the first schema tab to see form fields
-    await page
-      .locator(
-        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
-      )
-      .first()
-      .click();
+    // In sidenav mode, click the Basic Info tab to see imported character fields
+    await page.getByTestId('nav-basic').click();
 
     // Verify Project A still has its data
     const fullNameFieldA = page.getByLabel('Full Name');

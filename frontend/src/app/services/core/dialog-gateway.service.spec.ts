@@ -177,6 +177,19 @@ describe('DialogGatewayService', () => {
     });
   });
 
+  it('should return image viewer dialog result', async () => {
+    const data: ImageViewerDialogData = {
+      imageUrl: 'https://example.com/image.png',
+      fileName: 'test-image.png',
+      canEdit: true,
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of('change-image'));
+
+    const result = await service.openImageViewerDialog(data);
+
+    expect(result).toBe('change-image');
+  });
+
   it('should open edit avatar dialog', async () => {
     (dialogRefMock.afterClosed as Mock).mockReturnValue(of(true));
 

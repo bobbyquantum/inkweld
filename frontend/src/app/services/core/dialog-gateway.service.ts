@@ -23,6 +23,7 @@ import {
 import {
   ImageViewerDialogComponent,
   type ImageViewerDialogData,
+  type ImageViewerDialogResult,
 } from '../../dialogs/image-viewer-dialog/image-viewer-dialog.component';
 import {
   ImportProjectDialogComponent,
@@ -116,7 +117,7 @@ export class DialogGatewayService {
 
   openImageViewerDialog(
     data: ImageViewerDialogData
-  ): Promise<string | undefined> {
+  ): Promise<ImageViewerDialogResult> {
     const dialogRef = this.dialog.open(ImageViewerDialogComponent, {
       data,
       width: '100vw',

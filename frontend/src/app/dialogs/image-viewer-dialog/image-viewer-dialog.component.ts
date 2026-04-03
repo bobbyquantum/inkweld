@@ -20,6 +20,8 @@ export interface ImageViewerDialogData {
   canEdit?: boolean;
 }
 
+export type ImageViewerDialogResult = 'change-image' | undefined;
+
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 5;
 
@@ -30,7 +32,9 @@ const MAX_ZOOM = 5;
   styleUrl: './image-viewer-dialog.component.scss',
 })
 export class ImageViewerDialogComponent {
-  dialogRef = inject(MatDialogRef<ImageViewerDialogComponent>);
+  dialogRef = inject(
+    MatDialogRef<ImageViewerDialogComponent, ImageViewerDialogResult>
+  );
   data = inject<ImageViewerDialogData>(MAT_DIALOG_DATA);
 
   viewerContainer = viewChild<ElementRef<HTMLElement>>('viewerContainer');
