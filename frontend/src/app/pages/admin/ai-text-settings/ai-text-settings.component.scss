@@ -232,6 +232,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 
   .key-status {
     display: flex;
@@ -244,6 +245,11 @@
       width: 18px;
       height: 18px;
     }
+  }
+
+  .api-key-input {
+    flex: 1;
+    min-width: 250px;
   }
 }
 
@@ -400,18 +406,6 @@ h4 {
 
 .api-key-section {
   padding: 8px 0;
-}
-
-.api-key-field {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-
-  .api-key-input {
-    flex: 1;
-    min-width: 250px;
-  }
 }
 
 .key-actions {

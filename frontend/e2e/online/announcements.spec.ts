@@ -40,9 +40,12 @@ async function fillAndSubmitAnnouncementForm(
   options?: { checkPublic?: boolean }
 ): Promise<void> {
   await page.locator('[data-testid="create-announcement-btn"]').click();
-  await page
-    .locator('[data-testid="announcement-title-input"]')
-    .fill(testData.title);
+
+  // Wait for dialog to be fully open before interacting
+  const titleInput = page.locator('[data-testid="announcement-title-input"]');
+  await titleInput.waitFor({ state: 'visible' });
+
+  await titleInput.fill(testData.title);
   await page
     .locator('[data-testid="announcement-content-input"]')
     .fill(testData.content);
@@ -60,21 +63,24 @@ async function fillAndSubmitAnnouncementForm(
     }
   }
 
-  // Select type with proper waits for dropdown animation
+  // Select type — scope option click to the open listbox overlay to avoid
+  // matching unrelated page elements, and skip Tab (not needed for reactive forms)
   await page.locator('[data-testid="announcement-type-select"]').click();
-  await page
+  const typeListbox = page.locator('[role="listbox"]');
+  await typeListbox.waitFor({ state: 'visible' });
+  await typeListbox
     .getByRole('option', { name: /announcement/i })
     .first()
     .click();
-  await page.keyboard.press('Tab'); // Blur to trigger form update
 
-  // Select priority with proper waits
+  // Select priority — same pattern
   await page.locator('[data-testid="announcement-priority-select"]').click();
-  await page
-    .getByRole('option', { name: /normal/i })
+  const priorityListbox = page.locator('[role="listbox"]');
+  await priorityListbox.waitFor({ state: 'visible' });
+  await priorityListbox
+    .getByRole('option', { name: /^normal$/i })
     .first()
     .click();
-  await page.keyboard.press('Tab'); // Blur to trigger form update
 
   // Submit - Use global expect timeout
   await expect(
