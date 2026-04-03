@@ -42,11 +42,10 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
-    // Expand the meta panel to see relationships (panel starts collapsed)
-    const expandPanelButton = page.getByTestId('expand-panel-button');
-    await expect(expandPanelButton).toBeVisible();
-    await expandPanelButton.click();
+    // In sidenav mode, click Relationships nav to show the meta panel
+    await page.getByTestId('nav-relationships').click();
 
+    // In sidenav mode, the meta panel renders fully expanded (no collapse toggle)
     // Check that the meta panel is visible and has relationship panels
     // Elara has: friend with Theron, originated-from Cloudspire, colleague with Mira, located-in Thornwood
     const relationshipPanels = page.locator(
@@ -91,6 +90,9 @@ test.describe('Template Worldbuilding Import', () => {
     });
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
+
+    // In sidenav mode, click the Basic Info tab to see imported character fields
+    await page.getByTestId('nav-basic').click();
 
     // Verify the character data is populated (check for specific field values)
     // The Basic Info tab should have "Full Name" field with value
@@ -139,6 +141,9 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(silverhollowElement).toBeVisible();
     await silverhollowElement.click();
 
+    // In sidenav mode, click the Overview tab to see imported location fields
+    await page.getByTestId('nav-basic').click();
+
     // Verify the location data is populated
     const nameField = page.getByLabel('Name');
     await expect(nameField).toBeVisible();
@@ -186,6 +191,9 @@ test.describe('Template Worldbuilding Import', () => {
       const charElement = page.getByRole('treeitem', { name: char.name });
       await expect(charElement).toBeVisible();
       await charElement.click();
+
+      // In sidenav mode, click the Basic Info tab to see imported character fields
+      await page.getByTestId('nav-basic').click();
 
       // Verify the character data is populated with correct value
       const fullNameField = page.getByLabel('Full Name');
@@ -247,6 +255,9 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
+    // In sidenav mode, click the Basic Info tab to see imported character fields
+    await page.getByTestId('nav-basic').click();
+
     // Verify Project B has the correct data (not empty, not from Project A)
     const fullNameField = page.getByLabel('Full Name');
     await expect(fullNameField).toBeVisible();
@@ -280,6 +291,9 @@ test.describe('Template Worldbuilding Import', () => {
     });
     await expect(elaraElementA).toBeVisible();
     await elaraElementA.click();
+
+    // In sidenav mode, click the Basic Info tab to see imported character fields
+    await page.getByTestId('nav-basic').click();
 
     // Verify Project A still has its data
     const fullNameFieldA = page.getByLabel('Full Name');
@@ -373,11 +387,10 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(elaraElement).toBeVisible();
     await elaraElement.click();
 
-    // Expand the meta panel to see relationships (panel starts collapsed)
-    const expandPanelButton = page.getByTestId('expand-panel-button');
-    await expect(expandPanelButton).toBeVisible();
-    await expandPanelButton.click();
+    // In sidenav mode, click Relationships nav to show the meta panel
+    await page.getByTestId('nav-relationships').click();
 
+    // In sidenav mode, the meta panel renders fully expanded (no collapse toggle)
     const metaPanel = page.locator('app-meta-panel');
     await expect(metaPanel).toBeVisible();
 

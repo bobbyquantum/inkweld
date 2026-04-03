@@ -388,6 +388,13 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click(`text="${characterName}"`);
       await page.waitForTimeout(500);
 
+      // In sidenav mode, click Relationships nav to show the meta panel
+      const navRelationships = page.getByTestId('nav-relationships');
+      if (await navRelationships.isVisible().catch(() => false)) {
+        await navRelationships.click();
+        await page.waitForTimeout(300);
+      }
+
       // Expand the meta panel (panel is always visible but starts collapsed)
       const expandButton = page.getByTestId('expand-panel-button');
       if (await expandButton.isVisible().catch(() => false)) {
@@ -602,6 +609,10 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="Lord Aldric Stormwind"');
       await page.waitForTimeout(500);
 
+      // In sidenav mode, click Relationships nav to show the meta panel
+      await page.getByTestId('nav-relationships').click();
+      await page.waitForTimeout(300);
+
       // Expand the meta panel (panel is always visible but starts collapsed)
       const expandButton = page.getByTestId('expand-panel-button');
       if (await expandButton.isVisible().catch(() => false)) {
@@ -691,6 +702,10 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="Elena Stormwind"');
       await page.waitForTimeout(500);
 
+      // In sidenav mode, click Relationships nav to show the meta panel
+      await page.getByTestId('nav-relationships').click();
+      await page.waitForTimeout(300);
+
       // Expand the meta panel on the child character
       const childExpandButton = page.getByTestId('expand-panel-button');
       if (await childExpandButton.isVisible().catch(() => false)) {
@@ -730,6 +745,10 @@ test.describe('Relationships Tab Screenshots', () => {
       // Open the Hero character
       await page.click('text="Hero Knight"');
       await page.waitForTimeout(500);
+
+      // In sidenav mode, click Relationships nav to show the meta panel
+      await page.getByTestId('nav-relationships').click();
+      await page.waitForTimeout(300);
 
       // Expand the meta panel (panel is always visible but starts collapsed)
       const expandButton = page.getByTestId('expand-panel-button');
@@ -851,6 +870,10 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="King Aldric"');
       await page.waitForTimeout(500);
 
+      // In sidenav mode, click Relationships nav to show the meta panel
+      await page.getByTestId('nav-relationships').click();
+      await page.waitForTimeout(300);
+
       // Expand the meta panel (panel is always visible but starts collapsed)
       const expandButton = page.getByTestId('expand-panel-button');
       if (await expandButton.isVisible().catch(() => false)) {
@@ -927,6 +950,10 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.click('text="Prince Marcus"');
       await page.waitForTimeout(500);
 
+      // In sidenav mode, click Relationships nav to show the meta panel
+      await page.getByTestId('nav-relationships').click();
+      await page.waitForTimeout(300);
+
       // Expand the meta panel on the child character
       const childExpandButton = page.getByTestId('expand-panel-button');
       if (await childExpandButton.isVisible().catch(() => false)) {
@@ -967,6 +994,10 @@ test.describe('Relationships Tab Screenshots', () => {
       // Open the Hero character
       await page.click('text="Hero Knight"');
       await page.waitForTimeout(500);
+
+      // In sidenav mode, click Relationships nav to show the meta panel
+      await page.getByTestId('nav-relationships').click();
+      await page.waitForTimeout(300);
 
       // Expand the meta panel (panel is always visible but starts collapsed)
       const expandButton = page.getByTestId('expand-panel-button');

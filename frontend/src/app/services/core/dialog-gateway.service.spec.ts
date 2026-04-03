@@ -159,13 +159,13 @@ describe('DialogGatewayService', () => {
     expect(result).toBeNull();
   });
 
-  it('should open image viewer dialog', () => {
+  it('should open image viewer dialog', async () => {
     const data: ImageViewerDialogData = {
       imageUrl: 'https://example.com/image.png',
       fileName: 'test-image.png',
     };
 
-    service.openImageViewerDialog(data);
+    await service.openImageViewerDialog(data);
 
     expect(dialogMock.open).toHaveBeenCalledWith(ImageViewerDialogComponent, {
       data,
@@ -175,6 +175,19 @@ describe('DialogGatewayService', () => {
       maxHeight: '100vh',
       panelClass: 'image-viewer-dialog-panel',
     });
+  });
+
+  it('should return image viewer dialog result', async () => {
+    const data: ImageViewerDialogData = {
+      imageUrl: 'https://example.com/image.png',
+      fileName: 'test-image.png',
+      canEdit: true,
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of('change-image'));
+
+    const result = await service.openImageViewerDialog(data);
+
+    expect(result).toBe('change-image');
   });
 
   it('should open edit avatar dialog', async () => {
