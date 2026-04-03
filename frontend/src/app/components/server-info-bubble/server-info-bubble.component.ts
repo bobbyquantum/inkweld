@@ -60,7 +60,7 @@ export class ServerInfoBubbleComponent {
     if (profile.type === 'local') return 'Local';
     // Extract hostname from URL
     try {
-      const url = new URL(profile.serverUrl!);
+      const url = new URL(profile.serverUrl ?? '');
       return url.hostname;
     } catch {
       return profile.displayName || 'Server';

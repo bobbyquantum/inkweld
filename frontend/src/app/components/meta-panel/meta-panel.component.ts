@@ -93,7 +93,7 @@ export class MetaPanelComponent {
   private readonly dialog = inject(MatDialog);
 
   /** The effective element ID (elementId or documentId) */
-  private effectiveElementId = computed(() => {
+  private readonly effectiveElementId = computed(() => {
     return this.elementId() || this.documentId();
   });
 
@@ -107,12 +107,12 @@ export class MetaPanelComponent {
   });
 
   /** All relationships from the service */
-  private allRelationships = computed(() => {
+  private readonly allRelationships = computed(() => {
     return this.relationshipService.relationships();
   });
 
   /** Outgoing relationships (from this element to others) */
-  private outgoingRelationships = computed(() => {
+  private readonly outgoingRelationships = computed(() => {
     const targetId = this.normalizedElementId();
     return this.allRelationships().filter(
       (r: ElementRelationship) => r.sourceElementId === targetId
@@ -120,7 +120,7 @@ export class MetaPanelComponent {
   });
 
   /** Incoming relationships (backlinks from other elements) */
-  private incomingRelationships = computed(() => {
+  private readonly incomingRelationships = computed(() => {
     const targetId = this.normalizedElementId();
     return this.allRelationships().filter(
       (r: ElementRelationship) => r.targetElementId === targetId
@@ -139,15 +139,17 @@ export class MetaPanelComponent {
   );
 
   /** All relationship types */
-  private allTypes = computed(() => this.relationshipService.allTypes());
+  private readonly allTypes = computed(() =>
+    this.relationshipService.allTypes()
+  );
 
   /** Elements map for resolving names */
-  private elements = computed(() => {
+  private readonly elements = computed(() => {
     return this.projectState.elements();
   });
 
   /** The current element (for getting schema type) */
-  private currentElement = computed(() => {
+  private readonly currentElement = computed(() => {
     const id = this.effectiveElementId();
     return this.elements().find(e => e.id === this.extractElementId(id));
   });

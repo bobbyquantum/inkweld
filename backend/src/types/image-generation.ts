@@ -39,7 +39,7 @@ export type ImageSize =
   | '1600x2560' // Ebook cover (Kindle)
   | '2560x1600' // Landscape ebook/print
   | 'auto'
-  | string; // Allow custom sizes as strings (e.g., "1200x1800")
+  | (string & {}); // Allow custom sizes as strings (e.g., "1200x1800")
 
 /**
  * Custom image size profile defined by users

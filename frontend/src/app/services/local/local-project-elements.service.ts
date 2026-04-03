@@ -83,7 +83,7 @@ export class LocalProjectElementsService {
   readonly isLoading = signal(false);
 
   // Yjs connections per project (username:slug -> connection)
-  private yjsConnections = new Map<string, YjsProjectConnection>();
+  private readonly yjsConnections = new Map<string, YjsProjectConnection>();
 
   /**
    * Load elements for a specific project using Yjs + IndexedDB.

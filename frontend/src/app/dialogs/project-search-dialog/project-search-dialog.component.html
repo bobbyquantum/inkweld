@@ -146,8 +146,9 @@
   }
 
   <!-- Results -->
-  <div
+  <ul
     class="results-container"
+    role="listbox"
     data-testid="project-search-results"
     (scroll)="onResultsScroll($event)">
     @for (
@@ -155,7 +156,8 @@
       track trackByResultId($index, result);
       let i = $index
     ) {
-      <div
+      <!-- NOSONAR -->
+      <li
         class="search-result-item"
         [class.selected]="i === selectedIndex()"
         (click)="onResultClick(result, i)"
@@ -192,28 +194,28 @@
             <p class="result-snippet" [innerHTML]="getSnippetHtml(snippet)"></p>
           }
         </div>
-      </div>
+      </li>
     } @empty {
       <!-- Empty state — only show when scan is done -->
       @if (isDone) {
-        <div class="empty-state" data-testid="project-search-empty">
+        <li class="empty-state" data-testid="project-search-empty">
           <mat-icon>search_off</mat-icon>
           @if (hasQuery) {
             <p>No results for "{{ searchQuery() }}"</p>
           } @else {
             <p>No elements match the current filters</p>
           }
-        </div>
+        </li>
       }
     }
     @if (hasMoreResults()) {
-      <div class="load-more-sentinel" data-testid="load-more">
+      <li class="load-more-sentinel" data-testid="load-more">
         <button class="load-more-button" (click)="loadMore()">
           Show more ({{ totalResults - results.length }} remaining)
         </button>
-      </div>
+      </li>
     }
-  </div>
+  </ul>
 
   <!-- Footer -->
   <div class="dialog-footer">
