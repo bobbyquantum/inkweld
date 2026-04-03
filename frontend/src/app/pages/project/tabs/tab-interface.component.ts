@@ -235,8 +235,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Check if a URL path is a project route (not a reserved path) */
   private isProjectRoute(url: string): boolean {
-    const urlParts = url.split('/').filter(Boolean);
-    const firstSegment = urlParts[0] || '';
+    const firstSegment = url.split('/').find(Boolean) ?? '';
     return !this.reservedPaths.has(firstSegment);
   }
 
@@ -439,10 +438,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     const homeIndex = this.projectState
       .openTabs()
       .findIndex(tab => tab.systemType === 'home');
-    if (homeIndex !== -1) {
-      this.projectState.selectTab(homeIndex);
-    } else {
+    if (homeIndex === -1) {
       this.projectState.openHomeTab();
+    } else {
+      this.projectState.selectTab(homeIndex);
     }
   }
 

@@ -32,13 +32,13 @@ import { ProjectStateService } from './project-state.service';
 /**
  * Worldbuilding element types that have their own Yjs documents.
  */
-const WORLDBUILDING_TYPES: readonly ElementType[] = [ElementType.Worldbuilding];
+const WORLDBUILDING_TYPES = new Set<ElementType>([ElementType.Worldbuilding]);
 
 /**
  * Check if an element type is a worldbuilding type.
  */
 function isWorldbuildingType(type: ElementType): boolean {
-  return WORLDBUILDING_TYPES.includes(type);
+  return WORLDBUILDING_TYPES.has(type);
 }
 
 /**

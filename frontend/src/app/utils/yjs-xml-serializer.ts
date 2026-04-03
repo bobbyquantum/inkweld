@@ -176,10 +176,10 @@ function domNodeToYjsNode(node: Node): Y.XmlElement | Y.XmlText | null {
 
     // Process children
     const children: (Y.XmlElement | Y.XmlText)[] = [];
-    for (let i = 0; i < element.childNodes.length; i++) {
-      const childNode = domNodeToYjsNode(element.childNodes[i]);
-      if (childNode) {
-        children.push(childNode);
+    for (const childNode of Array.from(element.childNodes)) {
+      const yNode = domNodeToYjsNode(childNode);
+      if (yNode) {
+        children.push(yNode);
       }
     }
 
@@ -230,8 +230,8 @@ export function applyXmlToFragment(
 
   // Convert all children to Yjs nodes
   const children: (Y.XmlElement | Y.XmlText)[] = [];
-  for (let i = 0; i < root.childNodes.length; i++) {
-    const yNode = domNodeToYjsNode(root.childNodes[i]);
+  for (const childNode of Array.from(root.childNodes)) {
+    const yNode = domNodeToYjsNode(childNode);
     if (yNode) {
       children.push(yNode);
     }

@@ -125,7 +125,7 @@ function formatError(
   // Handle non-Error objects
   return {
     name: 'UnknownError',
-    message: String(error),
+    message: typeof error === 'string' ? error : JSON.stringify(error),
   };
 }
 

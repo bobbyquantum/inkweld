@@ -31,6 +31,9 @@ import {
 } from 'api-client';
 import { firstValueFrom } from 'rxjs';
 
+/** Supported AI text provider identifiers */
+type TextProvider = 'openai' | 'openrouter' | 'anthropic';
+
 interface ProviderConfig {
   enabled: boolean;
   apiKey: string;
@@ -239,7 +242,9 @@ export class AdminAiTextSettingsComponent implements OnInit {
       .map(([providerId, providerModels]) => ({
         providerId,
         providerName: providerModels[0]?.providerName || providerId,
-        models: providerModels.sort((a, b) => a.name.localeCompare(b.name)),
+        models: [...providerModels].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        ),
       }))
       .sort((a, b) => a.providerName.localeCompare(b.providerName));
   });
@@ -426,9 +431,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
   }
 
   /** Get default models for a provider from the cached API response */
-  private getDefaultModelsForProvider(
-    provider: 'openai' | 'openrouter' | 'anthropic'
-  ): TextModelInfo[] {
+  private getDefaultModelsForProvider(provider: TextProvider): TextModelInfo[] {
     const cache = this.defaultModelsCache();
     if (!cache?.providers) {
       return [];
@@ -453,7 +456,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
   /** Parse stored models config or use defaults from API */
   private parseModelsConfig(
     modelsJson: string | undefined,
-    provider: 'openai' | 'openrouter' | 'anthropic'
+    provider: TextProvider
   ): ModelConfig[] {
     const defaultModels = this.getDefaultModelsForProvider(provider);
 
@@ -569,7 +572,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
   // === Provider Settings ===
 
   async saveProviderEnabled(
-    provider: 'openai' | 'openrouter' | 'anthropic',
+    provider: TextProvider,
     enabled: boolean
   ): Promise<void> {
     this.isSaving.set(true);
@@ -643,11 +646,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
     // Find which provider this model belongs to
     const model = this.unifiedModels().find(m => m.id === modelId);
     if (model) {
-      this.toggleModelEnabled(
-        model.provider as 'openai' | 'openrouter' | 'anthropic',
-        modelId,
-        enabled
-      );
+      this.toggleModelEnabled(model.provider as TextProvider, modelId, enabled);
       this.unifiedModelsModified.set(true);
     }
   }
@@ -679,9 +678,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
   }
 
   /** Internal save method without UI updates */
-  private async saveModelsInternal(
-    provider: 'openai' | 'openrouter' | 'anthropic'
-  ): Promise<void> {
+  private async saveModelsInternal(provider: TextProvider): Promise<void> {
     const configKey = {
       openai: 'AI_TEXT_OPENAI_MODELS',
       openrouter: 'AI_TEXT_OPENROUTER_MODELS',
@@ -710,7 +707,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
   }
 
   toggleModelEnabled(
-    provider: 'openai' | 'openrouter' | 'anthropic',
+    provider: TextProvider,
     modelId: string,
     enabled: boolean
   ): void {
@@ -736,9 +733,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
     }
   }
 
-  async saveModels(
-    provider: 'openai' | 'openrouter' | 'anthropic'
-  ): Promise<void> {
+  async saveModels(provider: TextProvider): Promise<void> {
     this.isSaving.set(true);
     const configKey = {
       openai: 'AI_TEXT_OPENAI_MODELS',
@@ -775,7 +770,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
     }
   }
 
-  resetModels(provider: 'openai' | 'openrouter' | 'anthropic'): void {
+  resetModels(provider: TextProvider): void {
     const defaultModels = this.getDefaultModelsForProvider(provider).map(m =>
       this.apiModelToModelConfig(m)
     );
