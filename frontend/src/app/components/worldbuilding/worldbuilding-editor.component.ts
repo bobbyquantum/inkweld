@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
+  type AbstractControl,
   FormArray,
   FormControl,
   FormGroup,
@@ -304,50 +305,20 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
     schema.tabs.forEach((tab: TabSchema) => {
       tab.fields?.forEach((field: FieldSchema) => {
-        const fieldKey = field.key;
-        if (fieldKey.includes('.')) {
-          const [parentKey, childKey] = fieldKey.split('.');
-          if (!formGroup[parentKey]) {
-            formGroup[parentKey] = new FormGroup({});
+        const control = this.createControlForField(field);
+        if (!control) {
+          return;
+        }
+
+        const groupName = this.getFieldGroupName(field);
+        if (groupName) {
+          if (!formGroup[groupName]) {
+            formGroup[groupName] = new FormGroup({});
           }
-          const parentGroup = formGroup[parentKey] as FormGroup;
-          switch (field.type) {
-            case 'text':
-            case 'textarea':
-            case 'number':
-            case 'date':
-            case 'select':
-              parentGroup.addControl(childKey, new FormControl(''));
-              break;
-            case 'multiselect':
-              parentGroup.addControl(childKey, new FormControl<string[]>([]));
-              break;
-            case 'array':
-              parentGroup.addControl(childKey, new FormArray([]));
-              break;
-            case 'checkbox':
-              parentGroup.addControl(childKey, new FormControl(false));
-              break;
-          }
+          const parentGroup = formGroup[groupName] as FormGroup;
+          parentGroup.addControl(this.getFieldControlName(field), control);
         } else {
-          switch (field.type) {
-            case 'text':
-            case 'textarea':
-            case 'number':
-            case 'date':
-            case 'select':
-              formGroup[fieldKey] = new FormControl('');
-              break;
-            case 'multiselect':
-              formGroup[fieldKey] = new FormControl<string[]>([]);
-              break;
-            case 'array':
-              formGroup[fieldKey] = new FormArray([]);
-              break;
-            case 'checkbox':
-              formGroup[fieldKey] = new FormControl(false);
-              break;
-          }
+          formGroup[field.key] = control;
         }
       });
     });
@@ -356,6 +327,25 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     this.setupFormSubscription();
     // Note: Read-only state is applied AFTER data loading in loadElementData()
     // to avoid issues with disabled forms not displaying values correctly
+  }
+
+  private createControlForField(field: FieldSchema): AbstractControl | null {
+    switch (field.type) {
+      case 'text':
+      case 'textarea':
+      case 'number':
+      case 'date':
+      case 'select':
+        return new FormControl('');
+      case 'multiselect':
+        return new FormControl<string[]>([]);
+      case 'array':
+        return new FormArray([]);
+      case 'checkbox':
+        return new FormControl(false);
+      default:
+        return null;
+    }
   }
 
   private setupFormSubscription(): void {
@@ -553,6 +543,20 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     field: FieldSchema
   ): Array<string | { value: string; label: string }> {
     return field.options ?? [];
+  }
+
+  getFieldGroupName(field: FieldSchema): string | null {
+    if (!field.key.includes('.')) {
+      return null;
+    }
+
+    return field.key.split('.')[0] ?? null;
+  }
+
+  getFieldControlName(field: FieldSchema): string {
+    return field.key.includes('.')
+      ? (field.key.split('.')[1] ?? field.key)
+      : field.key;
   }
 
   getOptionValue(option: string | { value: string; label: string }): string {
