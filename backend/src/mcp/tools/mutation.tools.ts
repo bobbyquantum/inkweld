@@ -713,7 +713,7 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
     const newParentId =
       args.newParentId === '' || args.newParentId === null || args.newParentId === undefined
         ? null
-        : String(args.newParentId ?? '');
+        : String(args.newParentId);
 
     if (!elementIds || !Array.isArray(elementIds) || elementIds.length === 0) {
       return {
@@ -984,7 +984,7 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
     const parentId =
       args.parentId === '' || args.parentId === null || args.parentId === undefined
         ? null
-        : String(args.parentId ?? '');
+        : String(args.parentId);
     const sortBy = (args.sortBy as string) || 'name';
     const descending = Boolean(args.descending);
     const foldersFirst = args.foldersFirst !== false; // Default true

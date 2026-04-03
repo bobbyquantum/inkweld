@@ -125,10 +125,12 @@ function formatError(
   // Handle non-Error objects
   const safeMessage = (() => {
     try {
-      return JSON.stringify(error) ?? String(error);
+      const json = JSON.stringify(error);
+      if (json !== undefined) return json;
     } catch {
-      return String(error);
+      // JSON.stringify throws for BigInt, circular references, etc.
     }
+    return typeof error !== 'object' || error === null ? String(error) : '[object Object]';
   })();
 
   return {
