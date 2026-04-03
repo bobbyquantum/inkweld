@@ -55,6 +55,7 @@ export class IdentityPanelComponent implements OnDestroy {
   username = input.required<string>();
   slug = input.required<string>();
   canWrite = input<boolean>(true);
+  showImage = input<boolean>(true);
 
   // Outputs
   renameRequested = output<void>();
@@ -275,13 +276,17 @@ export class IdentityPanelComponent implements OnDestroy {
   /**
    * View the current image in full size viewer
    */
-  viewImage(): void {
+  async viewImage(): Promise<void> {
     const imageUrl = this.resolvedImageUrl();
     if (imageUrl) {
-      this.dialogGateway.openImageViewerDialog({
+      const result = await this.dialogGateway.openImageViewerDialog({
         imageUrl,
         fileName: this.elementName(),
+        canEdit: this.canWrite(),
       });
+      if (result === 'change-image') {
+        await this.onImageClick();
+      }
     }
   }
 

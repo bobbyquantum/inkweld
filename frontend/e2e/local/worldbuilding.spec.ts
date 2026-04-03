@@ -154,10 +154,10 @@ test.describe('Worldbuilding Templates', () => {
       {
         type: 'character-v1',
         name: 'Test Character',
-        expectedTab: 'Basic Info',
+        expectedTabKey: 'basic',
       },
-      { type: 'location-v1', name: 'Test Location', expectedTab: 'Overview' },
-      { type: 'wb-item-v1', name: 'Test Item', expectedTab: 'Properties' },
+      { type: 'location-v1', name: 'Test Location', expectedTabKey: 'basic' },
+      { type: 'wb-item-v1', name: 'Test Item', expectedTabKey: 'basic' },
     ];
 
     for (const element of elementTypes) {
@@ -209,9 +209,13 @@ test.describe('Worldbuilding Templates', () => {
       // Open element and verify schema initialization
       await page.getByTestId(`element-${element.name}`).click();
       await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-      await expect(
-        page.getByRole('tab', { name: element.expectedTab })
-      ).toBeVisible();
+
+      // Verify the expected schema tab is present in the sidenav or accordion
+      const sidenavTab = page.getByTestId(`nav-${element.expectedTabKey}`);
+      const accordionTab = page.getByTestId(
+        `accordion-${element.expectedTabKey}`
+      );
+      await expect(sidenavTab.or(accordionTab)).toBeVisible();
 
       // Go back to project view
       await page.getByTestId('toolbar-home-button').click();
@@ -367,9 +371,10 @@ test.describe('Worldbuilding Templates', () => {
       heroElement.locator('mat-icon', { hasText: 'person' })
     ).toBeVisible();
 
-    // Verify icon in tab when element is opened
+    // Verify schema loaded correctly by checking first tab is visible
     await heroElement.click();
-    const tab = page.getByRole('tab', { name: /My Hero/i });
-    await expect(tab.locator('mat-icon', { hasText: 'person' })).toBeVisible();
+    const sidenavTab = page.getByTestId('nav-basic');
+    const accordionTab = page.getByTestId('accordion-basic');
+    await expect(sidenavTab.or(accordionTab)).toBeVisible();
   });
 });

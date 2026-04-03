@@ -25,60 +25,62 @@
       </div>
 
       <!-- Image section -->
-      <div
-        class="image-section"
-        [class.no-image-container]="!resolvedImageUrl() && !isLoadingImage()">
-        <button
-          class="image-placeholder"
-          [class.no-image]="!resolvedImageUrl() && !isLoadingImage()"
-          [class.readonly]="!canWrite() && !resolvedImageUrl()"
-          (click)="
-            resolvedImageUrl()
-              ? viewImage()
-              : canWrite()
-                ? onImageClick()
-                : null
-          "
-          [matTooltip]="
-            resolvedImageUrl()
-              ? 'View full size'
-              : canWrite()
-                ? 'Click to set image'
-                : 'No image available'
-          ">
-          @if (isLoadingImage()) {
-            <mat-icon class="placeholder-icon spinning"
-              >hourglass_empty</mat-icon
-            >
-            <span class="placeholder-text">Loading...</span>
-          } @else if (resolvedImageUrl()) {
-            <img [src]="resolvedImageUrl()" [alt]="elementName()" />
-          } @else {
-            <mat-icon class="placeholder-icon">image</mat-icon>
-            <span class="placeholder-text">{{
-              canWrite() ? 'Add Image' : 'No Image'
-            }}</span>
+      @if (showImage()) {
+        <div
+          class="image-section"
+          [class.no-image-container]="!resolvedImageUrl() && !isLoadingImage()">
+          <button
+            class="image-placeholder"
+            [class.no-image]="!resolvedImageUrl() && !isLoadingImage()"
+            [class.readonly]="!canWrite() && !resolvedImageUrl()"
+            (click)="
+              resolvedImageUrl()
+                ? viewImage()
+                : canWrite()
+                  ? onImageClick()
+                  : null
+            "
+            [matTooltip]="
+              resolvedImageUrl()
+                ? 'View full size'
+                : canWrite()
+                  ? 'Click to set image'
+                  : 'No image available'
+            ">
+            @if (isLoadingImage()) {
+              <mat-icon class="placeholder-icon spinning"
+                >hourglass_empty</mat-icon
+              >
+              <span class="placeholder-text">Loading...</span>
+            } @else if (resolvedImageUrl()) {
+              <img [src]="resolvedImageUrl()" [alt]="elementName()" />
+            } @else {
+              <mat-icon class="placeholder-icon">image</mat-icon>
+              <span class="placeholder-text">{{
+                canWrite() ? 'Add Image' : 'No Image'
+              }}</span>
+            }
+          </button>
+          @if (resolvedImageUrl()) {
+            <button
+              mat-icon-button
+              class="view-image-button"
+              (click)="viewImage(); $event.stopPropagation()"
+              matTooltip="View full size">
+              <mat-icon>visibility</mat-icon>
+            </button>
           }
-        </button>
-        @if (resolvedImageUrl()) {
-          <button
-            mat-icon-button
-            class="view-image-button"
-            (click)="viewImage(); $event.stopPropagation()"
-            matTooltip="View full size">
-            <mat-icon>visibility</mat-icon>
-          </button>
-        }
-        @if (resolvedImageUrl() && canWrite()) {
-          <button
-            mat-icon-button
-            class="change-image-button"
-            (click)="onImageClick(); $event.stopPropagation()"
-            matTooltip="Change image">
-            <mat-icon>edit</mat-icon>
-          </button>
-        }
-      </div>
+          @if (resolvedImageUrl() && canWrite()) {
+            <button
+              mat-icon-button
+              class="change-image-button"
+              (click)="onImageClick(); $event.stopPropagation()"
+              matTooltip="Change image">
+              <mat-icon>edit</mat-icon>
+            </button>
+          }
+        </div>
+      }
 
       <!-- Description section -->
       <div class="description-section">

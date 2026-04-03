@@ -1,466 +1,393 @@
 <div
   class="worldbuilding-editor-container"
-  [class.mobile-mode]="isMobile()"
-  [class.mobile-overview]="isMobile() && !mobileDrillInSection()"
-  [class.mobile-drilled-identity]="mobileDrillInSection() === 'identity'"
-  [class.mobile-drilled-tab]="isDrilledIntoTab()"
-  [class.mobile-drilled-relationships]="
-    mobileDrillInSection() === 'relationships'
-  "
+  [class.sidenav-mode]="useSidenav()"
   data-testid="worldbuilding-editor">
-  <!-- Mobile: Detail header with back button (drilled-in mode) -->
-  @if (isMobile() && mobileDrillInSection()) {
-    <div class="mobile-detail-header" data-testid="mobile-detail-header">
-      <button
-        mat-icon-button
-        (click)="drillBack()"
-        data-testid="mobile-back-button">
-        <mat-icon>arrow_back</mat-icon>
-      </button>
-      <span class="mobile-detail-title">{{ getActiveSectionLabel() }}</span>
-      @if (isDrilledIntoTab()) {
-        <button
-          mat-icon-button
-          class="snapshots-btn"
-          (click)="openSnapshotsDialog()"
-          matTooltip="Document snapshots"
-          data-testid="toolbar-snapshots-mobile">
-          <mat-icon>history</mat-icon>
-        </button>
-      }
-    </div>
-  }
-
-  <!-- Mobile: Hero card with image & element info (overview mode) -->
-  @if (isMobile() && !mobileDrillInSection()) {
-    <div class="mobile-hero-card" data-testid="mobile-hero-card">
-      <div class="mobile-hero-image-col">
+  <div class="wb-layout">
+    <!-- Sidenav navigation (desktop / tablet landscape) -->
+    @if (useSidenav()) {
+      <nav class="wb-sidenav" data-testid="wb-sidenav">
         @if (identityPanel()?.resolvedImageUrl(); as imageUrl) {
-          <img
-            class="mobile-hero-image"
-            [src]="imageUrl"
-            [alt]="elementName()"
-            data-testid="mobile-overview-image" />
-        } @else {
-          <div class="mobile-hero-image-placeholder">
-            <mat-icon>person</mat-icon>
-          </div>
-        }
-      </div>
-      <div class="mobile-hero-info-col">
-        <div class="mobile-hero-name-row">
-          <span class="mobile-hero-name">{{ elementName() }}</span>
-          <div class="mobile-hero-actions">
-            @if (projectState.canWrite()) {
-              <button
-                mat-icon-button
-                class="mobile-hero-action-btn"
-                (click)="onRenameRequested()"
-                matTooltip="Rename">
-                <mat-icon>edit</mat-icon>
-              </button>
-            }
-            <button
-              mat-icon-button
-              class="mobile-hero-action-btn"
-              (click)="openSnapshotsDialog()"
-              matTooltip="Document snapshots"
-              data-testid="toolbar-snapshots">
-              <mat-icon>history</mat-icon>
-            </button>
-          </div>
-        </div>
-        @if (identityPanel()?.description(); as desc) {
-          <p class="mobile-hero-description">{{ desc }}</p>
-        } @else {
-          <p class="mobile-hero-description mobile-hero-description--empty">
-            No description yet
-          </p>
-        }
-        @if (schema(); as s) {
-          <span class="mobile-hero-type">
-            <mat-icon class="mobile-hero-type-icon">{{
-              s.icon || 'category'
-            }}</mat-icon>
-            {{ s.name }}
-          </span>
-        }
-      </div>
-    </div>
-  }
-
-  <!-- Identity panel (left side on desktop, visibility on mobile managed by CSS) -->
-  <app-identity-panel
-    [elementId]="elementId()"
-    [elementName]="elementName()"
-    [username]="username()"
-    [slug]="slug()"
-    [canWrite]="projectState.canWrite()"
-    (renameRequested)="onRenameRequested()">
-  </app-identity-panel>
-
-  <!-- Mobile: Section cards for drill-in navigation (overview mode) -->
-  @if (isMobile() && !mobileDrillInSection()) {
-    @if (schema()) {
-      <div class="mobile-section-list" data-testid="mobile-section-list">
-        <button
-          class="mobile-section-card"
-          (click)="drillInto('identity')"
-          data-testid="drill-identity">
-          <mat-icon class="section-icon">badge</mat-icon>
-          <div class="section-text">
-            <span class="section-label">Identity & Details</span>
-            <span class="section-hint">Image, description, tags</span>
-          </div>
-          <mat-icon class="section-chevron">chevron_right</mat-icon>
-        </button>
-
-        @for (tab of getTabs(); track tab.key) {
           <button
-            class="mobile-section-card"
-            (click)="drillInto(tab.key)"
-            [attr.data-testid]="'drill-' + tab.key">
-            <mat-icon class="section-icon">{{ getTabIcon(tab) }}</mat-icon>
-            <div class="section-text">
-              <span class="section-label">{{ tab.label }}</span>
-              <span class="section-hint"
-                >{{ getFilledFieldCountForTab(tab.key) }}/{{
-                  getFieldsForTab(tab.key).length
-                }}
-                fields</span
-              >
-            </div>
-            <mat-icon class="section-chevron">chevron_right</mat-icon>
+            class="sidenav-thumbnail"
+            (click)="identityPanel()?.viewImage()"
+            aria-label="View full size identity image"
+            matTooltip="View full size"
+            data-testid="sidenav-thumbnail">
+            <img [src]="imageUrl" [alt]="elementName()" />
+          </button>
+        } @else if (
+          !identityPanel()?.isLoadingImage() && projectState.canWrite()
+        ) {
+          <button
+            class="sidenav-thumbnail sidenav-thumbnail--empty"
+            (click)="identityPanel()?.onImageClick()"
+            aria-label="Set identity image"
+            matTooltip="Set image"
+            data-testid="sidenav-thumbnail-empty">
+            <mat-icon>add_photo_alternate</mat-icon>
           </button>
         }
+        <mat-nav-list>
+          <a
+            mat-list-item
+            (click)="selectSection('identity')"
+            (keydown.enter)="selectSection('identity')"
+            [attr.aria-current]="
+              selectedSection() === 'identity' ? 'true' : null
+            "
+            [class.active]="selectedSection() === 'identity'"
+            tabindex="0"
+            data-testid="nav-identity">
+            <mat-icon matListItemIcon>badge</mat-icon>
+            <span matListItemTitle>Identity</span>
+          </a>
 
-        <button
-          class="mobile-section-card"
-          (click)="drillInto('relationships')"
-          data-testid="drill-relationships">
-          <mat-icon class="section-icon">link</mat-icon>
-          <div class="section-text">
-            <span class="section-label">Relationships</span>
-            <span class="section-hint">Connections to other elements</span>
-          </div>
-          <mat-icon class="section-chevron">chevron_right</mat-icon>
-        </button>
-      </div>
-    } @else {
-      <div class="loading-state">
-        <mat-icon>hourglass_empty</mat-icon>
-        <p>Loading schema...</p>
-      </div>
+          @for (tab of getTabs(); track tab.key) {
+            <a
+              mat-list-item
+              (click)="selectSection(tab.key)"
+              (keydown.enter)="selectSection(tab.key)"
+              [attr.aria-current]="
+                selectedSection() === tab.key ? 'true' : null
+              "
+              [class.active]="selectedSection() === tab.key"
+              tabindex="0"
+              [attr.data-testid]="'nav-' + tab.key">
+              <mat-icon matListItemIcon>{{ getTabIcon(tab) }}</mat-icon>
+              <span matListItemTitle>{{ tab.label }}</span>
+            </a>
+          }
+
+          <a
+            mat-list-item
+            (click)="selectSection('relationships')"
+            (keydown.enter)="selectSection('relationships')"
+            [attr.aria-current]="
+              selectedSection() === 'relationships' ? 'true' : null
+            "
+            [class.active]="selectedSection() === 'relationships'"
+            tabindex="0"
+            data-testid="nav-relationships">
+            <mat-icon matListItemIcon>link</mat-icon>
+            <span matListItemTitle>Relationships</span>
+          </a>
+        </mat-nav-list>
+      </nav>
     }
-  }
 
-  <div class="editor-section">
-    <div class="dynamic-worldbuilding-editor">
-      @if (schema()) {
-        <form [formGroup]="form">
-          <app-aria-tabs
-            [tabs]="getTabConfigs()"
-            [selectedIndex]="selectedTabIndex()"
-            (selectedIndexChange)="selectedTabIndex.set($event)"
-            [showScrollArrows]="true">
-            <!-- Tab bar actions -->
-            <button
-              tabBarActions
-              mat-icon-button
-              class="snapshots-btn"
-              (click)="openSnapshotsDialog()"
-              matTooltip="Document snapshots"
-              data-testid="toolbar-snapshots">
-              <mat-icon>history</mat-icon>
-            </button>
-
-            @for (tab of getTabs(); track tab.key) {
-              <app-aria-tab-panel [key]="tab.key">
-                <div class="tab-content">
-                  @for (field of getFieldsForTab(tab.key); track field.key) {
-                    @if (field.key.includes('.')) {
-                      <!-- Nested field (e.g., appearance.height) -->
-                      <div
-                        [formGroupName]="field.key.split('.')[0]"
-                        class="field-container"
-                        [attr.data-testid]="'field-' + field.key"
-                        [ngClass]="'span-' + (field.layout?.span || 12)">
-                        @switch (field.type) {
-                          @case ('text') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <input
-                                matInput
-                                [formControlName]="field.key.split('.')[1]"
-                                [placeholder]="field.placeholder || ''" />
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('textarea') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <textarea
-                                matInput
-                                [formControlName]="field.key.split('.')[1]"
-                                [placeholder]="field.placeholder || ''"
-                                [rows]="field.rows || 3"></textarea>
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('number') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <input
-                                matInput
-                                type="number"
-                                [formControlName]="field.key.split('.')[1]"
-                                [placeholder]="field.placeholder || ''" />
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('select') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <mat-select
-                                [formControlName]="field.key.split('.')[1]">
-                                @for (option of field.options; track option) {
-                                  <mat-option [value]="option">{{
-                                    option
-                                  }}</mat-option>
-                                }
-                              </mat-select>
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('array') {
-                            <div class="array-field">
-                              <h4>{{ field.label }}</h4>
-                              @if (field.description) {
-                                <p class="field-description">
-                                  {{ field.description }}
-                                </p>
-                              }
-
-                              @for (
-                                control of getFormArray(field.key).controls;
-                                track $index
-                              ) {
-                                <div class="array-item">
-                                  <mat-form-field appearance="outline">
-                                    <input
-                                      matInput
-                                      [formControl]="$any(control)"
-                                      [placeholder]="
-                                        field.placeholder || 'Add item'
-                                      " />
-                                  </mat-form-field>
-                                  <button
-                                    mat-icon-button
-                                    color="warn"
-                                    type="button"
-                                    (click)="
-                                      removeArrayItem(field.key, $index)
-                                    ">
-                                    <mat-icon>delete</mat-icon>
-                                  </button>
-                                </div>
-                              }
-
-                              <button
-                                mat-raised-button
-                                type="button"
-                                (click)="addArrayItem(field.key)">
-                                <mat-icon>add</mat-icon> Add {{ field.label }}
-                              </button>
-                            </div>
-                          }
-                        }
-                      </div>
-                    } @else {
-                      <!-- Top-level field -->
-                      <div
-                        class="field-container"
-                        [attr.data-testid]="'field-' + field.key"
-                        [ngClass]="'span-' + (field.layout?.span || 12)">
-                        @switch (field.type) {
-                          @case ('text') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <input
-                                matInput
-                                [formControlName]="field.key"
-                                [placeholder]="field.placeholder || ''" />
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('textarea') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <textarea
-                                matInput
-                                [formControlName]="field.key"
-                                [placeholder]="field.placeholder || ''"
-                                [rows]="field.rows || 3"></textarea>
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('number') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <input
-                                matInput
-                                type="number"
-                                [formControlName]="field.key"
-                                [placeholder]="field.placeholder || ''" />
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('select') {
-                            <mat-form-field
-                              appearance="outline"
-                              class="full-width">
-                              <mat-label>{{ field.label }}</mat-label>
-                              <mat-select [formControlName]="field.key">
-                                @for (option of field.options; track option) {
-                                  <mat-option [value]="option">{{
-                                    option
-                                  }}</mat-option>
-                                }
-                              </mat-select>
-                              @if (field.description) {
-                                <mat-hint>{{ field.description }}</mat-hint>
-                              }
-                            </mat-form-field>
-                          }
-
-                          @case ('array') {
-                            <div class="array-field">
-                              <h4>{{ field.label }}</h4>
-                              @if (field.description) {
-                                <p class="field-description">
-                                  {{ field.description }}
-                                </p>
-                              }
-
-                              @for (
-                                control of getFormArray(field.key).controls;
-                                track $index
-                              ) {
-                                <div class="array-item">
-                                  <mat-form-field appearance="outline">
-                                    <input
-                                      matInput
-                                      [formControl]="$any(control)"
-                                      [placeholder]="
-                                        field.placeholder || 'Add item'
-                                      " />
-                                  </mat-form-field>
-                                  <button
-                                    mat-icon-button
-                                    color="warn"
-                                    type="button"
-                                    (click)="
-                                      removeArrayItem(field.key, $index)
-                                    ">
-                                    <mat-icon>delete</mat-icon>
-                                  </button>
-                                </div>
-                              }
-
-                              <button
-                                mat-raised-button
-                                type="button"
-                                (click)="addArrayItem(field.key)">
-                                <mat-icon>add</mat-icon> Add {{ field.label }}
-                              </button>
-                            </div>
-                          }
-                        }
-                      </div>
-                    }
-                  }
-                </div>
-              </app-aria-tab-panel>
-            }
-          </app-aria-tabs>
-        </form>
-      } @else {
-        <div class="loading-state">
-          <mat-icon>hourglass_empty</mat-icon>
-          <p>Loading schema...</p>
+    <!-- Content area -->
+    <div class="wb-content">
+      @if (useSidenav()) {
+        <!-- ===== Sidenav mode: show selected section ===== -->
+        <div
+          class="section-content identity-inline"
+          [class.section-hidden]="selectedSection() !== 'identity'">
+          <app-identity-panel
+            [elementId]="elementId()"
+            [elementName]="elementName()"
+            [username]="username()"
+            [slug]="slug()"
+            [canWrite]="projectState.canWrite()"
+            [showImage]="false"
+            (renameRequested)="onRenameRequested()">
+          </app-identity-panel>
         </div>
+
+        @if (selectedSection() === 'relationships') {
+          <div class="section-content relationships-inline">
+            <app-meta-panel
+              [documentId]="elementId()"
+              [elementId]="elementId()"
+              [isOpen]="true">
+            </app-meta-panel>
+          </div>
+        }
+
+        @for (tab of getTabs(); track tab.key) {
+          @if (selectedSection() === tab.key && schema()) {
+            <div class="section-content tab-section-content">
+              <ng-container
+                [ngTemplateOutlet]="tabFieldsTemplate"
+                [ngTemplateOutletContext]="{ $implicit: tab.key }">
+              </ng-container>
+            </div>
+          }
+        }
+
+        @if (!schema() && isTabSection()) {
+          <div class="loading-state">
+            <mat-icon>hourglass_empty</mat-icon>
+            <p>Loading schema...</p>
+          </div>
+        }
+      } @else {
+        <!-- ===== Accordion mode: all sections as panels ===== -->
+        <mat-accordion multi>
+          <!-- Identity panel -->
+          <mat-expansion-panel
+            [expanded]="true"
+            data-testid="accordion-identity">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="panel-title-icon">badge</mat-icon>
+                Identity & Details
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <div class="identity-inline">
+              <app-identity-panel
+                [elementId]="elementId()"
+                [elementName]="elementName()"
+                [username]="username()"
+                [slug]="slug()"
+                [canWrite]="projectState.canWrite()"
+                (renameRequested)="onRenameRequested()">
+              </app-identity-panel>
+            </div>
+          </mat-expansion-panel>
+
+          <!-- Schema tabs -->
+          @if (schema()) {
+            @for (tab of getTabs(); track tab.key) {
+              <mat-expansion-panel [attr.data-testid]="'accordion-' + tab.key">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon class="panel-title-icon">{{
+                      getTabIcon(tab)
+                    }}</mat-icon>
+                    {{ tab.label }}
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                <ng-container
+                  [ngTemplateOutlet]="tabFieldsTemplate"
+                  [ngTemplateOutletContext]="{ $implicit: tab.key }">
+                </ng-container>
+              </mat-expansion-panel>
+            }
+          } @else {
+            <mat-expansion-panel [expanded]="false" [disabled]="true">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="panel-title-icon">hourglass_empty</mat-icon>
+                  Loading schema...
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+            </mat-expansion-panel>
+          }
+
+          <!-- Relationships panel -->
+          <mat-expansion-panel data-testid="accordion-relationships">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="panel-title-icon">link</mat-icon>
+                Relationships
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <div class="relationships-inline">
+              <app-meta-panel
+                [documentId]="elementId()"
+                [elementId]="elementId()"
+                [isOpen]="true">
+              </app-meta-panel>
+            </div>
+          </mat-expansion-panel>
+        </mat-accordion>
       }
     </div>
-
-    <!-- Status bar: tags + sync status -->
-    <div class="editor-status-bar">
-      <span class="status-stats">
-        <button
-          class="tag-icons"
-          (click)="openTagsDialog()"
-          matTooltip="Manage tags"
-          matTooltipShowDelay="800"
-          type="button">
-          @for (tag of elementTags(); track tag.assignment.id) {
-            <mat-icon
-              class="tag-icon"
-              [style.color]="tag.definition.color"
-              [matTooltip]="tag.definition.name"
-              matTooltipShowDelay="600">
-              label
-            </mat-icon>
-          }
-          <mat-icon class="tag-icon tag-icon-add"> label </mat-icon>
-        </button>
-      </span>
-      <span class="sync-status">
-        <span class="sync-dot {{ syncState() }}"></span>
-        {{ syncState() }}
-      </span>
-    </div>
   </div>
 
-  <!-- Meta Panel (Relationships) - always visible, manages its own collapsed/expanded state -->
-  <div class="meta-panel-container">
-    <app-meta-panel
-      [documentId]="elementId()"
-      [elementId]="elementId()"
-      [isOpen]="true">
-    </app-meta-panel>
+  <!-- Status bar: tags + sync status — always full width -->
+  <div class="editor-status-bar" data-testid="editor-status-bar">
+    <span class="status-stats">
+      <button
+        class="tag-icons"
+        (click)="openTagsDialog()"
+        aria-label="Manage tags"
+        matTooltip="Manage tags"
+        matTooltipShowDelay="800"
+        type="button">
+        @for (tag of elementTags(); track tag.assignment.id) {
+          <mat-icon
+            class="tag-icon"
+            [style.color]="tag.definition.color"
+            [matTooltip]="tag.definition.name"
+            matTooltipShowDelay="600">
+            label
+          </mat-icon>
+        }
+        <mat-icon class="tag-icon tag-icon-add"> label </mat-icon>
+      </button>
+    </span>
+    <span class="status-actions">
+      <button
+        mat-icon-button
+        class="snapshots-btn"
+        (click)="openSnapshotsDialog()"
+        aria-label="Open document snapshots"
+        matTooltip="Document snapshots"
+        data-testid="toolbar-snapshots">
+        <mat-icon>history</mat-icon>
+      </button>
+    </span>
+    <span class="sync-status">
+      <span class="sync-dot {{ syncState() }}"></span>
+      {{ syncState() }}
+    </span>
   </div>
 </div>
+
+<!-- Shared template for rendering tab fields -->
+<ng-template #tabFieldsTemplate let-tabKey>
+  <div class="tab-content">
+    @for (field of getFieldsForTab(tabKey); track field.key) {
+      <div
+        class="field-container"
+        [attr.data-testid]="'field-' + field.key"
+        [ngClass]="'span-' + (field.layout?.span || 12)">
+        @switch (field.type) {
+          @case ('text') {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ field.label }}</mat-label>
+              <input
+                matInput
+                [formControl]="getControl(field.key)"
+                [placeholder]="field.placeholder || ''" />
+              @if (field.description) {
+                <mat-hint>{{ field.description }}</mat-hint>
+              }
+            </mat-form-field>
+          }
+
+          @case ('textarea') {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ field.label }}</mat-label>
+              <textarea
+                matInput
+                [formControl]="getControl(field.key)"
+                [placeholder]="field.placeholder || ''"
+                [rows]="field.rows || 3"></textarea>
+              @if (field.description) {
+                <mat-hint>{{ field.description }}</mat-hint>
+              }
+            </mat-form-field>
+          }
+
+          @case ('number') {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ field.label }}</mat-label>
+              <input
+                matInput
+                type="number"
+                [formControl]="getControl(field.key)"
+                [placeholder]="field.placeholder || ''" />
+              @if (field.description) {
+                <mat-hint>{{ field.description }}</mat-hint>
+              }
+            </mat-form-field>
+          }
+
+          @case ('date') {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ field.label }}</mat-label>
+              <input
+                matInput
+                type="date"
+                [formControl]="getControl(field.key)"
+                [placeholder]="field.placeholder || ''" />
+              @if (field.description) {
+                <mat-hint>{{ field.description }}</mat-hint>
+              }
+            </mat-form-field>
+          }
+
+          @case ('select') {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ field.label }}</mat-label>
+              <mat-select [formControl]="getControl(field.key)">
+                @for (
+                  option of getFieldOptions(field);
+                  track getOptionValue(option)
+                ) {
+                  <mat-option [value]="getOptionValue(option)">
+                    {{ getOptionLabel(option) }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (field.description) {
+                <mat-hint>{{ field.description }}</mat-hint>
+              }
+            </mat-form-field>
+          }
+
+          @case ('multiselect') {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ field.label }}</mat-label>
+              <mat-select
+                [formControl]="$any(getControl(field.key))"
+                [multiple]="true">
+                @for (
+                  option of getFieldOptions(field);
+                  track getOptionValue(option)
+                ) {
+                  <mat-option [value]="getOptionValue(option)">
+                    {{ getOptionLabel(option) }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (field.description) {
+                <mat-hint>{{ field.description }}</mat-hint>
+              }
+            </mat-form-field>
+          }
+
+          @case ('checkbox') {
+            <div class="checkbox-field">
+              <mat-checkbox [formControl]="$any(getControl(field.key))">
+                {{ field.label }}
+              </mat-checkbox>
+              @if (field.description) {
+                <p class="field-description">{{ field.description }}</p>
+              }
+            </div>
+          }
+
+          @case ('array') {
+            <div class="array-field">
+              <h4>{{ field.label }}</h4>
+              @if (field.description) {
+                <p class="field-description">{{ field.description }}</p>
+              }
+
+              @for (control of getFormArray(field.key).controls; track $index) {
+                <div class="array-item">
+                  <mat-form-field appearance="outline">
+                    <input
+                      matInput
+                      [formControl]="$any(control)"
+                      [placeholder]="field.placeholder || 'Add item'" />
+                  </mat-form-field>
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    type="button"
+                    (click)="removeArrayItem(field.key, $index)"
+                    [attr.aria-label]="
+                      'Remove ' + field.label + ' item ' + ($index + 1)
+                    ">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+
+              <button
+                mat-raised-button
+                type="button"
+                (click)="addArrayItem(field.key)">
+                <mat-icon>add</mat-icon> Add {{ field.label }}
+              </button>
+            </div>
+          }
+        }
+      </div>
+    }
+  </div>
+</ng-template>

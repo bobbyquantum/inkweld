@@ -2,7 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormArray, ReactiveFormsModule } from '@angular/forms';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MatDialog } from '@angular/material/dialog';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { type Element, ElementType } from '../../../api-client';
@@ -21,9 +22,16 @@ describe('WorldbuildingEditorComponent', () => {
   let component: WorldbuildingEditorComponent;
   let fixture: ComponentFixture<WorldbuildingEditorComponent>;
   let worldbuildingService: WorldbuildingMock;
+  let dialogGatewayMock: {
+    openRenameDialog: ReturnType<typeof vi.fn>;
+  };
+  let matDialogMock: {
+    open: ReturnType<typeof vi.fn>;
+  };
   let mockProjectState: {
     elements: ReturnType<typeof signal<Element[]>>;
     canWrite: ReturnType<typeof signal<boolean>>;
+    renameNode: ReturnType<typeof vi.fn>;
   };
 
   const mockCharacterSchema: ElementTypeSchema = {
@@ -55,6 +63,15 @@ describe('WorldbuildingEditorComponent', () => {
             type: 'select',
             options: ['Male', 'Female', 'Other'],
           },
+          {
+            key: 'traits',
+            label: 'Traits',
+            type: 'multiselect',
+            options: [
+              { value: 'brave', label: 'Brave' },
+              { value: 'curious', label: 'Curious' },
+            ],
+          },
           { key: 'isAlive', label: 'Is Alive', type: 'checkbox' },
           { key: 'aliases', label: 'Aliases', type: 'array' },
         ],
@@ -67,6 +84,12 @@ describe('WorldbuildingEditorComponent', () => {
         fields: [
           { key: 'appearance.height', label: 'Height', type: 'text' },
           { key: 'appearance.weight', label: 'Weight', type: 'text' },
+          {
+            key: 'appearance.palette',
+            label: 'Palette',
+            type: 'multiselect',
+            options: ['Warm', 'Cool'],
+          },
           { key: 'appearance.features', label: 'Features', type: 'array' },
         ],
       },
@@ -112,10 +135,14 @@ describe('WorldbuildingEditorComponent', () => {
     mockProjectState = {
       elements: signal<Element[]>([mockElement]),
       canWrite: signal<boolean>(true),
+      renameNode: vi.fn(),
     };
 
-    const mockDialogGateway = {
+    dialogGatewayMock = {
       openRenameDialog: vi.fn().mockResolvedValue(null),
+    };
+    matDialogMock = {
+      open: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -125,7 +152,8 @@ describe('WorldbuildingEditorComponent', () => {
         provideHttpClient(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: ProjectStateService, useValue: mockProjectState },
-        { provide: DialogGatewayService, useValue: mockDialogGateway },
+        { provide: DialogGatewayService, useValue: dialogGatewayMock },
+        { provide: MatDialog, useValue: matDialogMock },
       ],
     }).compileComponents();
 
@@ -194,32 +222,37 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count text fields as filled when non-empty', () => {
-      component.form.patchValue({ name: 'Alice' });
+      component.form().patchValue({ name: 'Alice' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should not count whitespace-only text as filled', () => {
-      component.form.patchValue({ name: '   ' });
+      component.form().patchValue({ name: '   ' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(0);
     });
 
     it('should count number fields as filled', () => {
-      component.form.patchValue({ age: 25 });
+      component.form().patchValue({ age: 25 });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count textarea fields as filled when non-empty', () => {
-      component.form.patchValue({ bio: 'A brave warrior' });
+      component.form().patchValue({ bio: 'A brave warrior' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count checkbox as filled when true', () => {
-      component.form.patchValue({ isAlive: true });
+      component.form().patchValue({ isAlive: true });
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
+    });
+
+    it('should count multiselect fields as filled when non-empty', () => {
+      component.form().patchValue({ traits: ['brave'] });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should not count checkbox as filled when false', () => {
-      component.form.patchValue({ isAlive: false });
+      component.form().patchValue({ isAlive: false });
       expect(component.getFilledFieldCountForTab('basic')).toBe(0);
     });
 
@@ -233,7 +266,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count multiple filled fields', () => {
-      component.form.patchValue({
+      component.form().patchValue({
         name: 'Alice',
         age: 30,
         bio: 'A mage',
@@ -245,7 +278,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count nested fields in appearance tab', () => {
-      component.form.patchValue({ appearance: { height: '180cm' } });
+      component.form().patchValue({ appearance: { height: '180cm' } });
       expect(component.getFilledFieldCountForTab('appearance')).toBe(1);
     });
 
@@ -285,28 +318,31 @@ describe('WorldbuildingEditorComponent', () => {
       component['buildFormFromSchema'](mockCharacterSchema);
 
       // Check text field
-      expect(component.form.get('name')).toBeDefined();
+      expect(component.form().get('name')).toBeDefined();
       // Check number field
-      expect(component.form.get('age')).toBeDefined();
+      expect(component.form().get('age')).toBeDefined();
       // Check textarea field
-      expect(component.form.get('bio')).toBeDefined();
+      expect(component.form().get('bio')).toBeDefined();
       // Check date field
-      expect(component.form.get('birthDate')).toBeDefined();
+      expect(component.form().get('birthDate')).toBeDefined();
       // Check select field
-      expect(component.form.get('gender')).toBeDefined();
+      expect(component.form().get('gender')).toBeDefined();
+      // Check multiselect field
+      expect(component.form().get('traits')?.value).toEqual([]);
       // Check checkbox field
-      expect(component.form.get('isAlive')).toBeDefined();
+      expect(component.form().get('isAlive')).toBeDefined();
       // Check array field
-      expect(component.form.get('aliases')).toBeInstanceOf(FormArray);
+      expect(component.form().get('aliases')).toBeInstanceOf(FormArray);
     });
 
     it('should handle nested fields with dot notation', () => {
       component['buildFormFromSchema'](mockCharacterSchema);
 
       // Check nested fields under 'appearance' group
-      const appearanceGroup = component.form.get('appearance');
+      const appearanceGroup = component.form().get('appearance');
       expect(appearanceGroup).toBeDefined();
       expect(appearanceGroup?.get('height')).toBeDefined();
+      expect(appearanceGroup?.get('palette')?.value).toEqual([]);
       expect(appearanceGroup?.get('weight')).toBeDefined();
     });
 
@@ -317,7 +353,7 @@ describe('WorldbuildingEditorComponent', () => {
       };
       // Should not throw
       component['buildFormFromSchema'](emptySchema);
-      expect(component.form).toBeDefined();
+      expect(component.form()).toBeDefined();
     });
   });
 
@@ -328,16 +364,16 @@ describe('WorldbuildingEditorComponent', () => {
 
     it('should update simple form values', () => {
       component['updateFormFromData']({ name: 'John Doe', age: 30 });
-      expect(component.form.get('name')?.value).toBe('John Doe');
-      expect(component.form.get('age')?.value).toBe(30);
+      expect(component.form().get('name')?.value).toBe('John Doe');
+      expect(component.form().get('age')?.value).toBe(30);
     });
 
     it('should update nested form values', () => {
       component['updateFormFromData']({
         appearance: { height: '180cm', weight: '75kg' },
       });
-      expect(component.form.get('appearance.height')?.value).toBe('180cm');
-      expect(component.form.get('appearance.weight')?.value).toBe('75kg');
+      expect(component.form().get('appearance.height')?.value).toBe('180cm');
+      expect(component.form().get('appearance.weight')?.value).toBe('75kg');
     });
 
     it('should update array form values', () => {
@@ -348,6 +384,40 @@ describe('WorldbuildingEditorComponent', () => {
       expect(aliasesArray.length).toBe(3);
       expect(aliasesArray.at(0).value).toBe('John');
       expect(aliasesArray.at(1).value).toBe('Johnny');
+    });
+
+    it('should update nested array form values', () => {
+      component['updateFormFromData']({
+        appearance: { features: ['Scar', 'Tattoo'] },
+      });
+
+      const featuresArray = component.getFormArray('appearance.features');
+      expect(featuresArray.length).toBe(2);
+      expect(featuresArray.at(0).value).toBe('Scar');
+      expect(featuresArray.at(1).value).toBe('Tattoo');
+    });
+
+    it('should update multiselect values from remote data', () => {
+      component['updateFormFromData']({
+        traits: ['brave'],
+        appearance: { palette: ['Warm'] },
+      });
+
+      expect(component.form().get('traits')?.value).toEqual(['brave']);
+      expect(component.form().get('appearance.palette')?.value).toEqual([
+        'Warm',
+      ]);
+    });
+
+    it('should warn when nested group data is not an object', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      component['updateFormFromData']({ appearance: 'unknown' });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[WorldbuildingEditor] Skipping field "appearance": FormGroup expected object but got string'
+      );
+      consoleSpy.mockRestore();
     });
 
     it('should set isUpdatingFromRemote flag during update', () => {
@@ -409,6 +479,14 @@ describe('WorldbuildingEditorComponent', () => {
       ).toHaveBeenCalled();
     });
 
+    it('should disable the form after loading when write access is unavailable', async () => {
+      mockProjectState.canWrite.set(false);
+
+      await component['loadElementData']('test-element-123');
+
+      expect(component.form().disabled).toBe(true);
+    });
+
     it('should handle errors gracefully', async () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
@@ -444,6 +522,35 @@ describe('WorldbuildingEditorComponent', () => {
 
       expect(mockUnsubscribe).toHaveBeenCalled();
     });
+
+    it('should rebuild schema from realtime sync data when schema is missing', async () => {
+      let changeHandler: ((data: Record<string, unknown>) => void) | undefined;
+
+      worldbuildingService.observeChanges.mockReset();
+      worldbuildingService.observeChanges.mockImplementation(
+        (_elementId, callback) => {
+          changeHandler = callback;
+          return Promise.resolve(() => {});
+        }
+      );
+      worldbuildingService.getSchemaForElement.mockClear();
+      worldbuildingService.getSchemaForElement.mockResolvedValue(
+        mockCharacterSchema
+      );
+      component['schema'].set(null);
+
+      await component['setupRealtimeSync']('test-element-123');
+      changeHandler?.({ schemaId: 'character', name: 'Realtime Name' });
+      await fixture.whenStable();
+
+      expect(worldbuildingService.getSchemaForElement).toHaveBeenCalledWith(
+        'test-element-123',
+        'testuser',
+        'test-project'
+      );
+      expect(component['schema']()).toEqual(mockCharacterSchema);
+      expect(component.form().get('name')?.value).toBe('Realtime Name');
+    });
   });
 
   describe('saveData', () => {
@@ -452,7 +559,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should save form data to service', async () => {
-      component.form.patchValue({ name: 'Test Name', age: 30 });
+      component.form().patchValue({ name: 'Test Name', age: 30 });
 
       await component['saveData']();
 
@@ -465,181 +572,134 @@ describe('WorldbuildingEditorComponent', () => {
     });
   });
 
-  describe('mobile drill-in navigation', () => {
+  describe('section navigation', () => {
     beforeEach(() => {
       component['schema'].set(mockCharacterSchema);
     });
 
-    describe('drillInto', () => {
-      it('should set mobileDrillInSection to the given section', () => {
-        component.drillInto('identity');
-        expect(component.mobileDrillInSection()).toBe('identity');
+    describe('selectSection', () => {
+      it('should set selectedSection to the given section', () => {
+        component.selectSection('identity');
+        expect(component.selectedSection()).toBe('identity');
       });
 
-      it('should set selectedTabIndex when drilling into a tab', () => {
-        component.drillInto('appearance');
-        expect(component.mobileDrillInSection()).toBe('appearance');
-        expect(component.selectedTabIndex()).toBe(1);
+      it('should switch to a tab section', () => {
+        component.selectSection('appearance');
+        expect(component.selectedSection()).toBe('appearance');
       });
 
-      it('should not change selectedTabIndex for non-tab sections', () => {
-        component.selectedTabIndex.set(0);
-        component.drillInto('identity');
-        expect(component.selectedTabIndex()).toBe(0);
-      });
-
-      it('should set selectedTabIndex to 0 for first tab', () => {
-        component.drillInto('basic');
-        expect(component.selectedTabIndex()).toBe(0);
-      });
-
-      it('should auto-expand meta panel when drilling into relationships', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          metaPanel.isExpanded.set(false);
-          component.drillInto('relationships');
-          expect(metaPanel.isExpanded()).toBe(true);
-        }
-      });
-
-      it('should not expand meta panel when drilling into non-relationships section', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          metaPanel.isExpanded.set(false);
-          component.drillInto('identity');
-          expect(metaPanel.isExpanded()).toBe(false);
-        }
+      it('should switch to relationships section', () => {
+        component.selectSection('relationships');
+        expect(component.selectedSection()).toBe('relationships');
       });
     });
 
-    describe('drillBack', () => {
-      it('should reset mobileDrillInSection to null', () => {
-        component.drillInto('identity');
-        component.drillBack();
-        expect(component.mobileDrillInSection()).toBeNull();
-      });
-
-      it('should collapse meta panel when drilling back from relationships', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          component.drillInto('relationships');
-          expect(metaPanel.isExpanded()).toBe(true);
-          component.drillBack();
-          expect(metaPanel.isExpanded()).toBe(false);
-        }
-      });
-
-      it('should not affect meta panel when drilling back from non-relationships section', () => {
-        const metaPanel = component.metaPanel();
-        if (metaPanel) {
-          metaPanel.isExpanded.set(true);
-          component.drillInto('identity');
-          component.drillBack();
-          expect(metaPanel.isExpanded()).toBe(true);
-        }
-      });
-
-      it('should do nothing when not drilled in', () => {
-        component.mobileDrillInSection.set(null);
-        component.drillBack();
-        expect(component.mobileDrillInSection()).toBeNull();
-      });
-    });
-
-    describe('device back button (history state)', () => {
-      it('should push history state when drilling in', () => {
-        const pushStateSpy = vi.spyOn(history, 'pushState');
-        component.drillInto('identity');
-        expect(pushStateSpy).toHaveBeenCalledWith(
-          { wbDrillIn: 'identity' },
-          ''
-        );
-        pushStateSpy.mockRestore();
-      });
-
-      it('should drill back when popstate fires (device back)', () => {
-        component.drillInto('identity');
-        expect(component.mobileDrillInSection()).toBe('identity');
-
-        // Simulate device back button
-        globalThis.dispatchEvent(new PopStateEvent('popstate'));
-        expect(component.mobileDrillInSection()).toBeNull();
-      });
-
-      it('should call history.back when using in-app back button', () => {
-        component.drillInto('identity');
-        const backSpy = vi.spyOn(history, 'back');
-        component.drillBack();
-        expect(backSpy).toHaveBeenCalled();
-        backSpy.mockRestore();
-      });
-
-      it('should not call history.back when popstate already popped', () => {
-        component.drillInto('identity');
-        // Simulate device back button (popstate already popped the entry)
-        globalThis.dispatchEvent(new PopStateEvent('popstate'));
-        const backSpy = vi.spyOn(history, 'back');
-        // drillBack was already called by popstate, so calling again should be a no-op
-        component.drillBack();
-        expect(backSpy).not.toHaveBeenCalled();
-        backSpy.mockRestore();
-      });
-
-      it('should clean up popstate listener on destroy', () => {
-        const removeListenerSpy = vi.spyOn(globalThis, 'removeEventListener');
-        component.drillInto('identity');
-        component.ngOnDestroy();
-        expect(
-          removeListenerSpy.mock.calls.some(([event]) => event === 'popstate')
-        ).toBe(true);
-        removeListenerSpy.mockRestore();
-      });
-    });
-
-    describe('getActiveSectionLabel', () => {
-      it('should return empty string when not drilled in', () => {
-        expect(component.getActiveSectionLabel()).toBe('');
-      });
-
-      it('should return "Identity & Details" for identity section', () => {
-        component.mobileDrillInSection.set('identity');
-        expect(component.getActiveSectionLabel()).toBe('Identity & Details');
-      });
-
-      it('should return "Relationships" for relationships section', () => {
-        component.mobileDrillInSection.set('relationships');
-        expect(component.getActiveSectionLabel()).toBe('Relationships');
-      });
-
-      it('should return tab label for a tab section', () => {
-        component.mobileDrillInSection.set('basic');
-        expect(component.getActiveSectionLabel()).toBe('Basic Info');
-      });
-
-      it('should return section key as fallback for unknown tab', () => {
-        component.mobileDrillInSection.set('unknown');
-        expect(component.getActiveSectionLabel()).toBe('unknown');
-      });
-    });
-
-    describe('isDrilledIntoTab', () => {
-      it('should return false when not drilled in', () => {
-        expect(component.isDrilledIntoTab()).toBe(false);
-      });
-
+    describe('isTabSection', () => {
       it('should return false for identity section', () => {
-        component.mobileDrillInSection.set('identity');
-        expect(component.isDrilledIntoTab()).toBe(false);
+        component.selectedSection.set('identity');
+        expect(component.isTabSection()).toBe(false);
       });
 
       it('should return false for relationships section', () => {
-        component.mobileDrillInSection.set('relationships');
-        expect(component.isDrilledIntoTab()).toBe(false);
+        component.selectedSection.set('relationships');
+        expect(component.isTabSection()).toBe(false);
       });
 
-      it('should return true for a tab section', () => {
-        component.mobileDrillInSection.set('basic');
-        expect(component.isDrilledIntoTab()).toBe(true);
+      it('should return true for a schema tab section', () => {
+        component.selectedSection.set('basic');
+        expect(component.isTabSection()).toBe(true);
+      });
+    });
+
+    describe('getSectionLabel', () => {
+      it('should return "Identity & Details" for identity section', () => {
+        expect(component.getSectionLabel('identity')).toBe(
+          'Identity & Details'
+        );
+      });
+
+      it('should return "Relationships" for relationships section', () => {
+        expect(component.getSectionLabel('relationships')).toBe(
+          'Relationships'
+        );
+      });
+
+      it('should return tab label for a tab section', () => {
+        expect(component.getSectionLabel('basic')).toBe('Basic Info');
+      });
+
+      it('should return section key as fallback for unknown tab', () => {
+        expect(component.getSectionLabel('unknown')).toBe('unknown');
+      });
+    });
+    describe('layout mode', () => {
+      let originalInnerWidth: number;
+      let originalMatchMedia: typeof window.matchMedia;
+
+      const recreateComponentForViewport = async (
+        width: number,
+        isLandscape: boolean
+      ): Promise<void> => {
+        fixture.destroy();
+
+        Object.defineProperty(window, 'innerWidth', {
+          configurable: true,
+          value: width,
+        });
+        window.matchMedia = vi
+          .fn()
+          .mockImplementation((query: string): MediaQueryList => {
+            const matches =
+              query === '(orientation: landscape)' ? isLandscape : false;
+            return {
+              matches,
+              media: query,
+              onchange: null,
+              addEventListener: vi.fn(),
+              removeEventListener: vi.fn(),
+              addListener: vi.fn(),
+              removeListener: vi.fn(),
+              dispatchEvent: vi.fn(),
+            } as unknown as MediaQueryList;
+          });
+
+        fixture = TestBed.createComponent(WorldbuildingEditorComponent);
+        component = fixture.componentInstance;
+
+        fixture.componentRef.setInput('elementId', 'test-element-123');
+        fixture.componentRef.setInput('username', 'testuser');
+        fixture.componentRef.setInput('slug', 'test-project');
+        fixture.componentRef.setInput('elementType', ElementType.Worldbuilding);
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+      };
+
+      beforeEach(() => {
+        originalInnerWidth = window.innerWidth;
+        originalMatchMedia = window.matchMedia;
+      });
+
+      afterEach(() => {
+        Object.defineProperty(window, 'innerWidth', {
+          configurable: true,
+          value: originalInnerWidth,
+        });
+        window.matchMedia = originalMatchMedia;
+      });
+
+      it('should use sidenav for desktop viewport', async () => {
+        await recreateComponentForViewport(1280, true);
+
+        expect(component.useSidenav()).toBe(true);
+        expect(component.selectedSection()).toBe('identity');
+      });
+
+      it('should use accordion for narrow portrait viewport', async () => {
+        await recreateComponentForViewport(767, false);
+
+        expect(component.useSidenav()).toBe(false);
+        expect(component.selectedSection()).toBe('identity');
       });
     });
 
@@ -666,6 +726,112 @@ describe('WorldbuildingEditorComponent', () => {
       });
     });
 
+    describe('field helpers', () => {
+      it('should resolve group and control names for nested fields', () => {
+        const nestedField = mockCharacterSchema.tabs[1].fields[0];
+
+        expect(component.getFieldGroupName(nestedField)).toBe('appearance');
+        expect(component.getFieldControlName(nestedField)).toBe('height');
+      });
+
+      it('should return null group name and full control name for top-level fields', () => {
+        const field = mockCharacterSchema.tabs[0].fields[0];
+
+        expect(component.getFieldGroupName(field)).toBeNull();
+        expect(component.getFieldControlName(field)).toBe('name');
+      });
+
+      it('should expose field options and labels for string and object options', () => {
+        const selectField = mockCharacterSchema.tabs[0].fields[4];
+        const multiselectField = mockCharacterSchema.tabs[0].fields[5];
+
+        expect(component.getFieldOptions(selectField)).toEqual([
+          'Male',
+          'Female',
+          'Other',
+        ]);
+        expect(component.getFieldOptions(multiselectField)).toEqual([
+          { value: 'brave', label: 'Brave' },
+          { value: 'curious', label: 'Curious' },
+        ]);
+        expect(component.getOptionValue('Male')).toBe('Male');
+        expect(
+          component.getOptionValue({ value: 'brave', label: 'Brave' })
+        ).toBe('brave');
+        expect(component.getOptionLabel('Male')).toBe('Male');
+        expect(
+          component.getOptionLabel({ value: 'brave', label: 'Brave' })
+        ).toBe('Brave');
+      });
+    });
+
+    describe('dialogs', () => {
+      it('should open the tags dialog with element context', () => {
+        component.openTagsDialog();
+
+        expect(matDialogMock.open).toHaveBeenCalledWith(
+          expect.any(Function),
+          expect.objectContaining({
+            data: {
+              elementId: 'test-element-123',
+              elementName: 'Test Character',
+            },
+            width: '450px',
+            autoFocus: false,
+          })
+        );
+      });
+
+      it('should open the snapshots dialog for the active element', () => {
+        component.openSnapshotsDialog();
+
+        expect(matDialogMock.open).toHaveBeenCalledWith(
+          expect.any(Function),
+          expect.objectContaining({
+            data: { documentId: 'test-element-123' },
+            width: '550px',
+            autoFocus: false,
+          })
+        );
+      });
+    });
+
+    describe('rename flow', () => {
+      it('should rename the active element when the dialog returns a new name', async () => {
+        dialogGatewayMock.openRenameDialog.mockResolvedValue(
+          'Renamed Character'
+        );
+
+        await component.onRenameRequested();
+
+        expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalledWith({
+          currentName: 'Test Character',
+          title: 'Rename Element',
+        });
+        expect(mockProjectState.renameNode).toHaveBeenCalledWith(
+          mockElement,
+          'Renamed Character'
+        );
+      });
+
+      it('should not rename when the dialog is cancelled', async () => {
+        dialogGatewayMock.openRenameDialog.mockResolvedValue(null);
+
+        await component.onRenameRequested();
+
+        expect(mockProjectState.renameNode).not.toHaveBeenCalled();
+      });
+
+      it('should skip rename when the active element cannot be found', async () => {
+        mockProjectState.elements.set([]);
+
+        await component.onRenameRequested();
+
+        expect(dialogGatewayMock.openRenameDialog).not.toHaveBeenCalled();
+        expect(mockProjectState.renameNode).not.toHaveBeenCalled();
+      });
+    });
+
     describe('resize cleanup', () => {
       it('should clean up resize listener on destroy', () => {
         const mockResizeCleanup = vi.fn();
@@ -686,6 +852,50 @@ describe('WorldbuildingEditorComponent', () => {
         mutableComponent.resizeCleanup = null;
         expect(() => component.ngOnDestroy()).not.toThrow();
       });
+    });
+  });
+
+  describe('initializeIfNeeded', () => {
+    it('should return null when write access is unavailable', async () => {
+      mockProjectState.canWrite.set(false);
+
+      await expect(
+        component['initializeIfNeeded'](
+          'test-element-123',
+          'testuser',
+          'test-project'
+        )
+      ).resolves.toBeNull();
+    });
+
+    it('should return null when the active element cannot be found', async () => {
+      mockProjectState.elements.set([]);
+
+      await expect(
+        component['initializeIfNeeded'](
+          'test-element-123',
+          'testuser',
+          'test-project'
+        )
+      ).resolves.toBeNull();
+    });
+
+    it('should initialize the element and return the resolved schema', async () => {
+      worldbuildingService.getSchemaForElement.mockClear();
+      worldbuildingService.getSchemaForElement.mockResolvedValue(
+        mockCharacterSchema
+      );
+
+      const result = await component['initializeIfNeeded'](
+        'test-element-123',
+        'testuser',
+        'test-project'
+      );
+
+      expect(
+        worldbuildingService.initializeWorldbuildingElement
+      ).toHaveBeenCalledWith(mockElement, 'testuser', 'test-project');
+      expect(result).toEqual(mockCharacterSchema);
     });
   });
 });
