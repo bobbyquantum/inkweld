@@ -62,14 +62,15 @@
               <mat-icon>add</mat-icon>
             </button>
           </div>
-          <div class="layers-list">
+          <div class="layers-list" role="listbox" aria-label="Layers">
             @for (layer of sortedLayers(); track layer.id) {
               <div
                 class="layer-item"
                 data-testid="layer-item"
                 [class.active]="layer.id === activeLayerId()"
                 tabindex="0"
-                role="button"
+                role="option"
+                [attr.aria-selected]="layer.id === activeLayerId()"
                 (click)="onSelectLayer(layer.id)"
                 (keydown.enter)="onSelectLayer(layer.id)">
                 <button
@@ -113,13 +114,14 @@
             <span class="section-title">Objects</span>
             <span class="object-count">{{ activeLayerObjects().length }}</span>
           </div>
-          <div class="objects-list">
+          <div class="objects-list" role="listbox" aria-label="Objects">
             @for (obj of activeLayerObjects(); track obj.id) {
               <div
                 class="object-item"
                 [class.selected]="obj.id === selectedObjectId()"
                 tabindex="0"
-                role="button"
+                role="option"
+                [attr.aria-selected]="obj.id === selectedObjectId()"
                 (click)="onSelectObject(obj.id)"
                 (keydown.enter)="onSelectObject(obj.id)">
                 <mat-icon class="object-icon">{{

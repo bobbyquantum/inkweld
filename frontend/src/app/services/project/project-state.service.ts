@@ -354,7 +354,11 @@ export class ProjectStateService implements OnDestroy {
     const connected = await this.connectSyncProvider(username, slug);
 
     // Handle offline/degraded mode
-    this.handleOfflineMode(project, connected, username, slug, serverError);
+    if (!project && !connected) {
+      throw serverError || new Error('Failed to load project');
+    } else if (connected) {
+      this.applyOfflineFallback(project, username, slug);
+    }
   }
 
   private async syncPendingCreation(projectKey: string): Promise<void> {
@@ -387,14 +391,12 @@ export class ProjectStateService implements OnDestroy {
     }
   }
 
-  private handleOfflineMode(
+  private applyOfflineFallback(
     project: Project | null,
-    connected: boolean,
     username: string,
-    slug: string,
-    serverError: Error | null
+    slug: string
   ): void {
-    if (!project && connected && this.syncProvider?.isConnected()) {
+    if (!project && this.syncProvider?.isConnected()) {
       this.logger.info(
         'ProjectState',
         'Operating in offline mode - server unavailable but local data loaded'
@@ -409,8 +411,6 @@ export class ProjectStateService implements OnDestroy {
         updatedDate: new Date().toISOString(),
       });
       this.docSyncState.set(DocumentSyncState.Local);
-    } else if (!project && !connected) {
-      throw serverError || new Error('Failed to load project');
     }
   }
 

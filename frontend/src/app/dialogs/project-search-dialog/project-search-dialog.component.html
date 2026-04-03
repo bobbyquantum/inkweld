@@ -149,6 +149,8 @@
   <div
     class="results-container"
     data-testid="project-search-results"
+    role="listbox"
+    aria-label="Search results"
     (scroll)="onResultsScroll($event)">
     @for (
       result of results;

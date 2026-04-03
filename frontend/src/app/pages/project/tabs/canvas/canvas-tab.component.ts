@@ -505,7 +505,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       const node = this.createKonvaNode(obj);
       if (node) {
         this.konvaNodes.set(obj.id, node);
-        kLayer.add(node as Konva.Group | Konva.Shape);
+        kLayer.add(node);
       }
     }
     // Redraw all layers
@@ -590,7 +590,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /**
    * Create a Konva node from a CanvasObject definition.
    */
-  private createKonvaNode(obj: CanvasObject): Konva.Node | null {
+  private createKonvaNode(obj: CanvasObject): Konva.Group | Konva.Shape | null {
     const commonAttrs: Konva.NodeConfig = {
       id: obj.id,
       x: obj.x,
@@ -602,7 +602,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       draggable: !obj.locked,
     };
 
-    let node: Konva.Node | null = null;
+    let node: Konva.Group | Konva.Shape | null = null;
 
     switch (obj.type) {
       case 'image':
@@ -623,29 +623,31 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     }
 
     if (node) {
+      // Upcast to base Node for event registration (Group|Shape union overloads clash)
+      const n: Konva.Node = node;
+
       // Click to select
-      node.on('click tap', () => {
+      n.on('click tap', () => {
         this.onSelectObject(obj.id);
-        this.selectKonvaNode(node);
+        this.selectKonvaNode(n);
       });
 
       // Drag end → save position
-      node.on('dragend', () => {
-        const pos = node.position();
+      n.on('dragend', () => {
         this.canvasService.updateObject(obj.id, {
-          x: pos.x,
-          y: pos.y,
+          x: n.x(),
+          y: n.y(),
         });
       });
 
       // Transform end → save scale/rotation
-      node.on('transformend', () => {
+      n.on('transformend', () => {
         this.canvasService.updateObject(obj.id, {
-          x: node.x(),
-          y: node.y(),
-          scaleX: node.scaleX(),
-          scaleY: node.scaleY(),
-          rotation: node.rotation(),
+          x: n.x(),
+          y: n.y(),
+          scaleX: n.scaleX(),
+          scaleY: n.scaleY(),
+          rotation: n.rotation(),
         });
       });
     }
@@ -656,7 +658,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private createImageNode(
     obj: CanvasImage,
     attrs: Konva.NodeConfig
-  ): Konva.Node {
+  ): Konva.Group {
     // Create a placeholder rect first; load image async
     const group = new Konva.Group({
       ...attrs,
@@ -750,7 +752,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private createShapeNode(
     obj: CanvasShape,
     attrs: Konva.NodeConfig
-  ): Konva.Node {
+  ): Konva.Shape {
     switch (obj.shapeType) {
       case 'rect':
         return new Konva.Rect({
@@ -1372,10 +1374,11 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           pos.x,
           pos.y,
           result.label,
-          result.color,
-          'place',
-          result.linkedElementId,
-          relationshipId
+          {
+            color: result.color,
+            linkedElementId: result.linkedElementId,
+            relationshipId,
+          }
         );
         this.canvasService.addObject(pin);
       });
