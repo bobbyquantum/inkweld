@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -10,6 +9,7 @@ import {
   type OnDestroy,
   signal,
   viewChild,
+  type WritableSignal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -93,13 +93,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
-  private readonly cdr = inject(ChangeDetectorRef);
   private readonly tagService = inject(TagService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
-  form = new FormGroup({});
+  form: WritableSignal<FormGroup> = signal(new FormGroup({}));
 
   /** Computed element name from project state */
   elementName = computed(() => {
@@ -195,11 +194,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     // React to access changes and disable/enable form accordingly
     effect(() => {
       const canWrite = this.projectState.canWrite();
-      if (this.form) {
+      const form = this.form();
+      if (form) {
         if (canWrite) {
-          this.form.enable({ emitEvent: false });
+          form.enable({ emitEvent: false });
         } else {
-          this.form.disable({ emitEvent: false });
+          form.disable({ emitEvent: false });
         }
       }
     });
@@ -258,7 +258,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
       // Apply read-only state AFTER loading data to ensure values display correctly
       if (!this.projectState.canWrite()) {
-        this.form.disable({ emitEvent: false });
+        this.form().disable({ emitEvent: false });
       }
     } catch (error) {
       console.error('[WorldbuildingEditor] Error loading element data:', error);
@@ -323,7 +323,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       });
     });
 
-    this.form = new FormGroup(formGroup);
+    this.form.set(new FormGroup(formGroup));
     this.setupFormSubscription();
     // Note: Read-only state is applied AFTER data loading in loadElementData()
     // to avoid issues with disabled forms not displaying values correctly
@@ -352,8 +352,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.formSubscription) {
       this.formSubscription();
     }
-    const subscription = this.form.valueChanges
-      .pipe(debounceTime(500))
+    const subscription = this.form()
+      .valueChanges.pipe(debounceTime(500))
       .subscribe(() => {
         if (!this.isUpdatingFromRemote) {
           void this.saveData();
@@ -365,9 +365,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateFormFromData(data: any): void {
     this.isUpdatingFromRemote = true;
+
+    const form = this.form();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     Object.entries(data).forEach(([key, value]) => {
-      const control = this.form.get(key);
+      const control = form.get(key);
       if (control) {
         try {
           if (control instanceof FormArray) {
@@ -418,8 +420,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       }
     });
     this.isUpdatingFromRemote = false;
-    // Trigger change detection so Angular Material form fields update their floating labels
-    this.cdr.markForCheck();
   }
 
   private async setupRealtimeSync(elementId: string): Promise<void> {
@@ -461,7 +461,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   }
 
   private async saveData(): Promise<void> {
-    const formValue = this.form.value;
+    const formValue = this.form().value as Record<string, unknown>;
     await this.worldbuildingService.saveWorldbuildingData(
       this.elementId(),
       formValue,
@@ -517,7 +517,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Check whether a single field has a non-empty value */
   private isFieldFilled(field: FieldSchema): boolean {
-    const control = this.form.get(field.key);
+    const control = this.form().get(field.key);
     if (!control) return false;
     if (control instanceof FormArray) {
       return control.length > 0;
@@ -567,8 +567,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return typeof option === 'string' ? option : option.label;
   }
 
+  getControl(fieldKey: string): FormControl {
+    return this.form().get(fieldKey) as FormControl;
+  }
+
   getFormArray(fieldKey: string): FormArray {
-    return this.form.get(fieldKey) as FormArray;
+    return this.form().get(fieldKey) as FormArray;
   }
 
   addArrayItem(fieldKey: string): void {

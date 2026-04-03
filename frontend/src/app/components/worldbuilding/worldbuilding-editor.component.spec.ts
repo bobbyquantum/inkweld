@@ -222,37 +222,37 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count text fields as filled when non-empty', () => {
-      component.form.patchValue({ name: 'Alice' });
+      component.form().patchValue({ name: 'Alice' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should not count whitespace-only text as filled', () => {
-      component.form.patchValue({ name: '   ' });
+      component.form().patchValue({ name: '   ' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(0);
     });
 
     it('should count number fields as filled', () => {
-      component.form.patchValue({ age: 25 });
+      component.form().patchValue({ age: 25 });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count textarea fields as filled when non-empty', () => {
-      component.form.patchValue({ bio: 'A brave warrior' });
+      component.form().patchValue({ bio: 'A brave warrior' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count checkbox as filled when true', () => {
-      component.form.patchValue({ isAlive: true });
+      component.form().patchValue({ isAlive: true });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count multiselect fields as filled when non-empty', () => {
-      component.form.patchValue({ traits: ['brave'] });
+      component.form().patchValue({ traits: ['brave'] });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should not count checkbox as filled when false', () => {
-      component.form.patchValue({ isAlive: false });
+      component.form().patchValue({ isAlive: false });
       expect(component.getFilledFieldCountForTab('basic')).toBe(0);
     });
 
@@ -266,7 +266,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count multiple filled fields', () => {
-      component.form.patchValue({
+      component.form().patchValue({
         name: 'Alice',
         age: 30,
         bio: 'A mage',
@@ -278,7 +278,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count nested fields in appearance tab', () => {
-      component.form.patchValue({ appearance: { height: '180cm' } });
+      component.form().patchValue({ appearance: { height: '180cm' } });
       expect(component.getFilledFieldCountForTab('appearance')).toBe(1);
     });
 
@@ -318,28 +318,28 @@ describe('WorldbuildingEditorComponent', () => {
       component['buildFormFromSchema'](mockCharacterSchema);
 
       // Check text field
-      expect(component.form.get('name')).toBeDefined();
+      expect(component.form().get('name')).toBeDefined();
       // Check number field
-      expect(component.form.get('age')).toBeDefined();
+      expect(component.form().get('age')).toBeDefined();
       // Check textarea field
-      expect(component.form.get('bio')).toBeDefined();
+      expect(component.form().get('bio')).toBeDefined();
       // Check date field
-      expect(component.form.get('birthDate')).toBeDefined();
+      expect(component.form().get('birthDate')).toBeDefined();
       // Check select field
-      expect(component.form.get('gender')).toBeDefined();
+      expect(component.form().get('gender')).toBeDefined();
       // Check multiselect field
-      expect(component.form.get('traits')?.value).toEqual([]);
+      expect(component.form().get('traits')?.value).toEqual([]);
       // Check checkbox field
-      expect(component.form.get('isAlive')).toBeDefined();
+      expect(component.form().get('isAlive')).toBeDefined();
       // Check array field
-      expect(component.form.get('aliases')).toBeInstanceOf(FormArray);
+      expect(component.form().get('aliases')).toBeInstanceOf(FormArray);
     });
 
     it('should handle nested fields with dot notation', () => {
       component['buildFormFromSchema'](mockCharacterSchema);
 
       // Check nested fields under 'appearance' group
-      const appearanceGroup = component.form.get('appearance');
+      const appearanceGroup = component.form().get('appearance');
       expect(appearanceGroup).toBeDefined();
       expect(appearanceGroup?.get('height')).toBeDefined();
       expect(appearanceGroup?.get('palette')?.value).toEqual([]);
@@ -353,7 +353,7 @@ describe('WorldbuildingEditorComponent', () => {
       };
       // Should not throw
       component['buildFormFromSchema'](emptySchema);
-      expect(component.form).toBeDefined();
+      expect(component.form()).toBeDefined();
     });
   });
 
@@ -364,16 +364,16 @@ describe('WorldbuildingEditorComponent', () => {
 
     it('should update simple form values', () => {
       component['updateFormFromData']({ name: 'John Doe', age: 30 });
-      expect(component.form.get('name')?.value).toBe('John Doe');
-      expect(component.form.get('age')?.value).toBe(30);
+      expect(component.form().get('name')?.value).toBe('John Doe');
+      expect(component.form().get('age')?.value).toBe(30);
     });
 
     it('should update nested form values', () => {
       component['updateFormFromData']({
         appearance: { height: '180cm', weight: '75kg' },
       });
-      expect(component.form.get('appearance.height')?.value).toBe('180cm');
-      expect(component.form.get('appearance.weight')?.value).toBe('75kg');
+      expect(component.form().get('appearance.height')?.value).toBe('180cm');
+      expect(component.form().get('appearance.weight')?.value).toBe('75kg');
     });
 
     it('should update array form values', () => {
@@ -403,8 +403,10 @@ describe('WorldbuildingEditorComponent', () => {
         appearance: { palette: ['Warm'] },
       });
 
-      expect(component.form.get('traits')?.value).toEqual(['brave']);
-      expect(component.form.get('appearance.palette')?.value).toEqual(['Warm']);
+      expect(component.form().get('traits')?.value).toEqual(['brave']);
+      expect(component.form().get('appearance.palette')?.value).toEqual([
+        'Warm',
+      ]);
     });
 
     it('should warn when nested group data is not an object', () => {
@@ -482,7 +484,7 @@ describe('WorldbuildingEditorComponent', () => {
 
       await component['loadElementData']('test-element-123');
 
-      expect(component.form.disabled).toBe(true);
+      expect(component.form().disabled).toBe(true);
     });
 
     it('should handle errors gracefully', async () => {
@@ -547,7 +549,7 @@ describe('WorldbuildingEditorComponent', () => {
         'test-project'
       );
       expect(component['schema']()).toEqual(mockCharacterSchema);
-      expect(component.form.get('name')?.value).toBe('Realtime Name');
+      expect(component.form().get('name')?.value).toBe('Realtime Name');
     });
   });
 
@@ -557,7 +559,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should save form data to service', async () => {
-      component.form.patchValue({ name: 'Test Name', age: 30 });
+      component.form().patchValue({ name: 'Test Name', age: 30 });
 
       await component['saveData']();
 
