@@ -2,7 +2,6 @@ import {
   HTTP_INTERCEPTORS,
   provideHttpClient,
   withInterceptorsFromDi,
-  withXsrfConfiguration,
 } from '@angular/common/http';
 import {
   type ApplicationConfig,
@@ -11,48 +10,33 @@ import {
 import { isDevMode } from '@angular/core';
 import { provideRouter, RouteReuseStrategy } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
-import { XsrfService } from '@services/auth/xsrf.service';
 
 import { ThemeService } from '../themes/theme.service';
 import { routes } from './app.routes';
 import { API_PROVIDERS } from './config/api.config';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
-import { CsrfInterceptor } from './interceptors/csrf.interceptor';
 import { CustomRouteReuseStrategy } from './utils/custom-route-reuse-strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
     provideRouter(routes),
-    provideHttpClient(
-      withXsrfConfiguration({
-        cookieName: 'XSRF-TOKEN',
-        headerName: 'X-CSRF-TOKEN',
-      }),
-      withInterceptorsFromDi()
-    ),
+    provideHttpClient(withInterceptorsFromDi()),
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true,
     },
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: CsrfInterceptor,
-      multi: true,
-    },
+
     {
       provide: RouteReuseStrategy,
       useClass: CustomRouteReuseStrategy,
     },
     ...API_PROVIDERS,
     ThemeService,
-    XsrfService,
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerImmediately',
     }),
   ],
 };
-
-export { XsrfService };

@@ -43,7 +43,7 @@ app.use(
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+    allowHeaders: ['Content-Type', 'Authorization'],
   })
 );
 

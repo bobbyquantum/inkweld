@@ -118,9 +118,6 @@ describe('EditProjectDialogComponent', () => {
       getSyncState: vi.fn().mockReturnValue('synced'),
     } as any;
 
-    // Mock XSRF token cookie
-    document.cookie = 'XSRF-TOKEN=test-token';
-
     await TestBed.configureTestingModule({
       imports: [EditProjectDialogComponent, ReactiveFormsModule],
       providers: [
@@ -157,8 +154,6 @@ describe('EditProjectDialogComponent', () => {
   });
 
   afterEach(() => {
-    // Clean up XSRF token cookie
-    document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     vi.restoreAllMocks();
 
     // Reset mocks between tests

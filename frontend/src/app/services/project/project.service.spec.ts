@@ -14,7 +14,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { apiErr, apiOk } from '../../../testing/utils';
-import { XsrfService } from '../auth/xsrf.service';
 import { SetupService } from '../core/setup.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
@@ -46,7 +45,6 @@ const DB = {} as IDBDatabase;
 type ApiMock = DeepMockProxy<ProjectsService>;
 type ImagesMock = DeepMockProxy<ImagesService>;
 type StoreMock = DeepMockProxy<StorageService>;
-type XsrfMock = DeepMockProxy<XsrfService>;
 type SetupMock = DeepMockProxy<SetupService>;
 type OfflineStorageMock = DeepMockProxy<LocalStorageService>;
 type ProjectSyncMock = DeepMockProxy<ProjectSyncService>;
@@ -57,7 +55,6 @@ describe('ProjectService', () => {
   let httpMock: HttpTestingController;
   let imagesApi: ImagesMock;
   let store: StoreMock;
-  let xsrf: XsrfMock;
   let setup: SetupMock;
   let localStorage: OfflineStorageMock;
   let projectSync: ProjectSyncMock;
@@ -66,7 +63,6 @@ describe('ProjectService', () => {
     api = mockDeep<ProjectsService>();
     imagesApi = mockDeep<ImagesService>();
     store = mockDeep<StorageService>() as StoreMock;
-    xsrf = mockDeep<XsrfService>() as XsrfMock;
     setup = mockDeep<SetupService>() as SetupMock;
     localStorage = mockDeep<LocalStorageService>() as OfflineStorageMock;
     projectSync = mockDeep<ProjectSyncService>() as ProjectSyncMock;
@@ -74,9 +70,6 @@ describe('ProjectService', () => {
     // Storage baseline
     store.initializeDatabase.mockResolvedValue(DB);
     store.isAvailable.mockReturnValue(true);
-
-    // XSRF baseline
-    xsrf.getXsrfToken.mockReturnValue('token');
 
     // Setup service baseline - default to server mode
     setup.getMode.mockReturnValue('server');
@@ -116,7 +109,6 @@ describe('ProjectService', () => {
         { provide: ProjectsService, useValue: api },
         { provide: ImagesService, useValue: imagesApi },
         { provide: StorageService, useValue: store },
-        { provide: XsrfService, useValue: xsrf },
         { provide: SetupService, useValue: setup },
         { provide: LocalStorageService, useValue: localStorage },
         { provide: ProjectSyncService, useValue: projectSync },
@@ -148,8 +140,6 @@ describe('ProjectService', () => {
       // Reset mocks before each test
       api.getProject.mockReset();
       store.get.mockReset();
-      xsrf.getXsrfToken.mockReset();
-      xsrf.getXsrfToken.mockReturnValue('test-token');
       service.error.set(undefined);
     });
 
@@ -358,8 +348,6 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks before each test
       api.listUserProjects.mockReset();
-      xsrf.getXsrfToken.mockReset();
-      xsrf.getXsrfToken.mockReturnValue('test-token');
       store.get.mockReset();
       store.put.mockReset();
       service.error.set(undefined);
@@ -497,8 +485,6 @@ describe('ProjectService', () => {
       // Reset mocks before each test
       api.createProject.mockReset();
       api.listUserProjects.mockReset();
-      xsrf.getXsrfToken.mockReset();
-      xsrf.getXsrfToken.mockReturnValue('test-token');
       service.error.set(undefined);
     });
 
@@ -584,8 +570,6 @@ describe('ProjectService', () => {
       // Reset mocks before each test
       api.updateProject.mockReset();
       api.listUserProjects.mockReset();
-      xsrf.getXsrfToken.mockReset();
-      xsrf.getXsrfToken.mockReturnValue('test-token');
       service.error.set(undefined);
     });
 
@@ -692,8 +676,6 @@ describe('ProjectService', () => {
       api.deleteProject.mockReset();
       api.listUserProjects.mockReset();
       store.delete.mockReset();
-      xsrf.getXsrfToken.mockReset();
-      xsrf.getXsrfToken.mockReturnValue('test-token');
       service.error.set(undefined);
     });
 
@@ -813,8 +795,6 @@ describe('ProjectService', () => {
       // Reset mocks before each test
       imagesApi.deleteProjectCover.mockReset();
       api.listUserProjects.mockReset();
-      xsrf.getXsrfToken.mockReset();
-      xsrf.getXsrfToken.mockReturnValue('test-token');
       store.delete.mockReset();
       service.error.set(undefined);
     });

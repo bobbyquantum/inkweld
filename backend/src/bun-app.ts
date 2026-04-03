@@ -175,7 +175,7 @@ app.use('*', async (c, next) => {
     origin: allowedOrigins,
     credentials: true, // Enable credentials for session-based auth
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
+    allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['Content-Type', 'Authorization'],
     maxAge: 600, // Cache preflight for 10 minutes,
   });
