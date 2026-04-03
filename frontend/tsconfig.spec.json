@@ -6,13 +6,14 @@
     "outDir": "./out-tsc/spec",
     "types": ["vitest/globals", "node"],
     "paths": {
-      "@inkweld/*": ["api-client/*"],
-      "@components/*": ["app/components/*"],
-      "@dialogs/*": ["app/dialogs/*"],
-      "@models/*": ["app/models/*"],
-      "@services/*": ["app/services/*"],
-      "@themes/*": ["themes/*"],
-      "@package": ["../package.json"]
+      "api-client": ["./src/api-client"],
+      "@inkweld/*": ["./src/api-client/*"],
+      "@components/*": ["./src/app/components/*"],
+      "@dialogs/*": ["./src/app/dialogs/*"],
+      "@models/*": ["./src/app/models/*"],
+      "@services/*": ["./src/app/services/*"],
+      "@themes/*": ["./src/themes/*"],
+      "@package": ["./package.json"]
     }
   },
   "include": [

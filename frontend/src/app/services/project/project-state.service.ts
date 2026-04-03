@@ -9,7 +9,7 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
-import { type ProjectElement } from 'app/models/project-element';
+import { type ProjectElement } from '@models/project-element';
 import { nanoid } from 'nanoid';
 import { type Subscription } from 'rxjs';
 
