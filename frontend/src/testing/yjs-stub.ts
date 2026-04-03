@@ -31,9 +31,6 @@ export class XmlFragment {
 }
 
 export class XmlElement {
-  constructor(_name: string) {
-    // Intentional no-op: stub for testing
-  }
   insert(_index: number, _content: any[]): void {
     // Intentional no-op: stub for testing
   }

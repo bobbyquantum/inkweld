@@ -573,18 +573,21 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       disableClose: false,
     });
 
-    void firstValueFrom(dialogRef.afterClosed()).then(dialogResult => {
-      if (dialogResult?.action === 'view-files') {
-        const parts = projectKey.split('/');
-        void this.router.navigate([
-          '/project',
-          parts[0],
-          parts[1],
-          'tab',
-          'published-files',
-        ]);
-      }
-    });
+    firstValueFrom(dialogRef.afterClosed())
+      .then(dialogResult => {
+        if (dialogResult?.action === 'view-files') {
+          const parts = projectKey.split('/');
+          return this.router.navigate([
+            '/project',
+            parts[0],
+            parts[1],
+            'tab',
+            'published-files',
+          ]);
+        }
+        return undefined;
+      })
+      .catch(() => {});
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

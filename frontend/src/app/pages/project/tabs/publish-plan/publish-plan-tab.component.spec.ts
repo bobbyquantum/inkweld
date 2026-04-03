@@ -1,11 +1,12 @@
 import { type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ElementType } from '@inkweld/index';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -714,6 +715,62 @@ describe('PublishPlanTabComponent', () => {
     it('should return working plan', () => {
       expect(component['workingPlan']()).toBeTruthy();
       expect(component['workingPlan']()?.name).toBe('Default Export');
+    });
+  });
+
+  describe('showPublishDialog', () => {
+    it('should open dialog and handle close without navigation', async () => {
+      const afterClosed$ = new Subject<undefined>();
+      const mockDialogRef = {
+        afterClosed: () => afterClosed$.asObservable(),
+      } as unknown as MatDialogRef<unknown>;
+      const mockDialog = TestBed.inject(MatDialog);
+      vi.spyOn(mockDialog, 'open').mockReturnValue(mockDialogRef);
+
+      const mockFile = { id: 'file-1', name: 'test.docx' } as never;
+      const mockBlob = new Blob(['test']);
+
+      component['showPublishDialog'](mockFile, mockBlob);
+      afterClosed$.next(undefined);
+      afterClosed$.complete();
+      await fixture.whenStable();
+
+      expect(mockDialog.open).toHaveBeenCalled();
+    });
+
+    it('should navigate to published-files when dialog result is view-files', async () => {
+      const afterClosed$ = new Subject<{ action: string }>();
+      const mockDialogRef = {
+        afterClosed: () => afterClosed$.asObservable(),
+      } as unknown as MatDialogRef<unknown>;
+      const mockDialog = TestBed.inject(MatDialog);
+      vi.spyOn(mockDialog, 'open').mockReturnValue(mockDialogRef);
+      const mockRouter = TestBed.inject(Router);
+      const navigateSpy = vi
+        .spyOn(mockRouter, 'navigate')
+        .mockResolvedValue(true);
+
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      const mockFile = { id: 'file-1', name: 'test.docx' } as never;
+      const mockBlob = new Blob(['test']);
+
+      component['showPublishDialog'](mockFile, mockBlob);
+      afterClosed$.next({ action: 'view-files' });
+      afterClosed$.complete();
+      await fixture.whenStable();
+
+      expect(navigateSpy).toHaveBeenCalledWith([
+        '/project',
+        'user',
+        'proj',
+        'tab',
+        'published-files',
+      ]);
     });
   });
 });

@@ -197,14 +197,12 @@
           (projectSelected)="selectProject($event)">
         </app-side-nav>
         @if (isMobile && sideNavOpen()) {
-          <div
+          <button
+            type="button"
             class="side-nav-overlay"
             (click)="toggleSideNav()"
-            (keydown.enter)="toggleSideNav()"
             (keydown.escape)="toggleSideNav()"
-            tabindex="0"
-            role="button"
-            aria-label="Close navigation"></div>
+            aria-label="Close navigation"></button>
         }
       }
 
@@ -361,14 +359,12 @@
               <!-- Responsive cover grid with unified projects -->
               <div class="covers-grid">
                 @for (item of allProjects(); track item.project.id) {
-                  <div
+                  <button
+                    type="button"
                     class="cover-item"
                     data-testid="project-card"
                     [class.selected]="selectedProject?.id === item.project.id"
                     (click)="selectProject(item.project)"
-                    (keyup.enter)="selectProject(item.project)"
-                    tabindex="0"
-                    role="button"
                     [title]="item.project.title"
                     [attr.aria-label]="'Open project ' + item.project.title">
                     <app-project-card
@@ -379,7 +375,7 @@
                       [isShared]="item.isShared"
                       [sharedByUsername]="item.sharedByUsername">
                     </app-project-card>
-                  </div>
+                  </button>
                 }
               </div>
             }
