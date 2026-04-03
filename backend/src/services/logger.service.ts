@@ -123,9 +123,17 @@ function formatError(
   }
 
   // Handle non-Error objects
+  const safeMessage = (() => {
+    try {
+      return JSON.stringify(error) ?? String(error);
+    } catch {
+      return String(error);
+    }
+  })();
+
   return {
     name: 'UnknownError',
-    message: typeof error === 'string' ? error : JSON.stringify(error),
+    message: typeof error === 'string' ? error : safeMessage,
   };
 }
 

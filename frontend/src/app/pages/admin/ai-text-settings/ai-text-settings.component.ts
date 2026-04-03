@@ -57,7 +57,7 @@ interface ModelConfig {
 interface UnifiedModel {
   id: string;
   name: string;
-  provider: string;
+  provider: TextProvider;
   providerName: string;
   description?: string;
   enabled: boolean;
@@ -646,7 +646,7 @@ export class AdminAiTextSettingsComponent implements OnInit {
     // Find which provider this model belongs to
     const model = this.unifiedModels().find(m => m.id === modelId);
     if (model) {
-      this.toggleModelEnabled(model.provider as TextProvider, modelId, enabled);
+      this.toggleModelEnabled(model.provider, modelId, enabled);
       this.unifiedModelsModified.set(true);
     }
   }
