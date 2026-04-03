@@ -1098,8 +1098,7 @@ class McpOAuthService {
       )
       .limit(1);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const session = sessions[0] as any;
+    const session = sessions[0];
     if (!session) return null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex

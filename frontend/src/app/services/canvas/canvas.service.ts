@@ -24,6 +24,14 @@ import { nanoid } from 'nanoid';
 /** Key used to store serialized canvas config in element metadata */
 const CANVAS_CONFIG_META_KEY = 'canvasConfig';
 
+/** Optional parameters for createPin */
+export interface PinOptions {
+  color?: string;
+  icon?: string;
+  linkedElementId?: string;
+  relationshipId?: string;
+}
+
 /** LocalStorage key prefix for per-user canvas viewport */
 const CANVAS_STATE_PREFIX = 'inkweld-canvas-state:';
 
@@ -284,11 +292,14 @@ export class CanvasService {
     x: number,
     y: number,
     label: string,
-    color = '#E53935',
-    icon = 'place',
-    linkedElementId?: string,
-    relationshipId?: string
+    options?: PinOptions
   ): CanvasObject {
+    const {
+      color = '#E53935',
+      icon = 'place',
+      linkedElementId,
+      relationshipId,
+    } = options ?? {};
     return {
       id: nanoid(),
       layerId,
