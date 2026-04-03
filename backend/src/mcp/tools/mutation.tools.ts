@@ -133,6 +133,23 @@ function parseProjectParam(
 }
 
 /**
+ * Collect all direct children of a given parent from a flat elements array.
+ */
+function collectSiblings(
+  elements: Element[],
+  parentId: string | null
+): { element: Element; index: number }[] {
+  const siblings: { element: Element; index: number }[] = [];
+  for (let i = 0; i < elements.length; i++) {
+    const parent = findParentByPosition(elements, i);
+    if ((parent?.id ?? null) === parentId) {
+      siblings.push({ element: elements[i], index: i });
+    }
+  }
+  return siblings;
+}
+
+/**
  * Resolve the afterSiblingId for a reorder operation.
  *
  * Returns undefined when afterElementId is given but isn't a valid sibling (caller should error).
@@ -144,14 +161,7 @@ function resolveReorderTarget(
   afterElementId: string | undefined,
   position: number | undefined
 ): string | null | undefined {
-  // Collect siblings (same parent)
-  const siblings: { element: Element; index: number }[] = [];
-  for (let i = 0; i < elements.length; i++) {
-    const parent = findParentByPosition(elements, i);
-    if ((parent?.id ?? null) === parentId) {
-      siblings.push({ element: elements[i], index: i });
-    }
-  }
+  const siblings = collectSiblings(elements, parentId);
 
   if (afterElementId) {
     const isSibling = siblings.some((s) => s.element.id === afterElementId);
