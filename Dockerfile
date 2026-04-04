@@ -25,6 +25,8 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   fi
 
 COPY frontend/bun.lock frontend/package.json ./
+# Skip Electron binary download - not needed for web frontend build in Docker
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   bun install --frozen-lockfile; \
   fi

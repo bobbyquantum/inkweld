@@ -56,7 +56,7 @@ const app = new OpenAPIHono<BunSqliteAppContext>();
 const isCompiled = typeof Bun.main === 'string' && !Bun.main.includes('node_modules');
 
 // Check for embedded frontend files (when compiled with frontend assets)
-let embeddedFrontendFiles: Map<string, string | Blob> | null = null;
+let embeddedFrontendFiles: Map<string, string | Blob> = new Map();
 
 if (isCompiled) {
   // First, try to get all generated assets

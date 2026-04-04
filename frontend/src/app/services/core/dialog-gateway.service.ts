@@ -55,12 +55,14 @@ import {
   type WorldbuildingImageDialogData,
   type WorldbuildingImageDialogResult,
 } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
+import { ProjectActivationService } from '../local/project-activation.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DialogGatewayService {
   private readonly dialog = inject(MatDialog);
+  private readonly activationService = inject(ProjectActivationService);
 
   openConfirmationDialog(data: ConfirmationDialogData): Promise<boolean> {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
@@ -185,17 +187,30 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  openImportProjectDialog(
+  async openImportProjectDialog(
     username?: string
   ): Promise<ImportProjectDialogResult | undefined> {
     const data: ImportProjectDialogData = { username };
-    const dialogRef = this.dialog.open(ImportProjectDialogComponent, {
+    const dialogRef = this.dialog.open<
+      ImportProjectDialogComponent,
+      ImportProjectDialogData,
+      ImportProjectDialogResult
+    >(ImportProjectDialogComponent, {
       data,
       disableClose: true,
       width: '500px',
       maxWidth: '95vw',
     });
-    return firstValueFrom(dialogRef.afterClosed());
+    const result = await firstValueFrom(dialogRef.afterClosed());
+
+    // Auto-activate imported project on this device
+    if (result?.success && result.slug && username) {
+      await this.activationService
+        .activate(`${username}/${result.slug}`)
+        .catch(() => {});
+    }
+
+    return result;
   }
 
   openMediaSelectorDialog(

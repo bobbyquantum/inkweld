@@ -178,4 +178,217 @@ describe('ProjectCardComponent', () => {
       expect(badge).toBeTruthy();
     });
   });
+
+  describe('long-press detection', () => {
+    it('should attach pointer event listeners on AfterViewInit', () => {
+      // Destroy and recreate to test AfterViewInit
+      const newFixture = TestBed.createComponent(ProjectCardComponent);
+      const newEl = newFixture.nativeElement as HTMLElement;
+      const addSpy = vi.spyOn(newEl, 'addEventListener');
+      newFixture.componentInstance.project = mockProject;
+      newFixture.detectChanges();
+
+      expect(addSpy).toHaveBeenCalledWith('pointerdown', expect.any(Function));
+      expect(addSpy).toHaveBeenCalledWith('pointerup', expect.any(Function));
+      expect(addSpy).toHaveBeenCalledWith('pointermove', expect.any(Function));
+      expect(addSpy).toHaveBeenCalledWith(
+        'pointercancel',
+        expect.any(Function)
+      );
+
+      newFixture.destroy();
+    });
+
+    it('should emit longPress after holding for 500ms', () => {
+      vi.useFakeTimers();
+      const longPressSpy = vi.spyOn(component.longPress, 'emit');
+      const el = fixture.nativeElement as HTMLElement;
+
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      vi.advanceTimersByTime(500);
+
+      expect(longPressSpy).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('should not emit longPress if pointer is released before 500ms', () => {
+      vi.useFakeTimers();
+      const longPressSpy = vi.spyOn(component.longPress, 'emit');
+      const el = fixture.nativeElement as HTMLElement;
+
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      vi.advanceTimersByTime(200);
+      el.dispatchEvent(new PointerEvent('pointerup'));
+      vi.advanceTimersByTime(500);
+
+      expect(longPressSpy).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('should cancel long-press if pointer moves beyond threshold', () => {
+      vi.useFakeTimers();
+      const longPressSpy = vi.spyOn(component.longPress, 'emit');
+      const el = fixture.nativeElement as HTMLElement;
+
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      // Move more than 10px away
+      el.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: 120, clientY: 100 })
+      );
+      vi.advanceTimersByTime(500);
+
+      expect(longPressSpy).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('should not cancel long-press for small pointer movements', () => {
+      vi.useFakeTimers();
+      const longPressSpy = vi.spyOn(component.longPress, 'emit');
+      const el = fixture.nativeElement as HTMLElement;
+
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      // Move less than 10px
+      el.dispatchEvent(
+        new PointerEvent('pointermove', { clientX: 105, clientY: 103 })
+      );
+      vi.advanceTimersByTime(500);
+
+      expect(longPressSpy).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('should cancel long-press on pointercancel', () => {
+      vi.useFakeTimers();
+      const longPressSpy = vi.spyOn(component.longPress, 'emit');
+      const el = fixture.nativeElement as HTMLElement;
+
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      el.dispatchEvent(new PointerEvent('pointercancel'));
+      vi.advanceTimersByTime(500);
+
+      expect(longPressSpy).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+
+    it('should report wasLongPress() as true after long-press fires', () => {
+      vi.useFakeTimers();
+      const el = fixture.nativeElement as HTMLElement;
+
+      expect(component.wasLongPress()).toBe(false);
+
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      vi.advanceTimersByTime(500);
+
+      expect(component.wasLongPress()).toBe(true);
+      vi.useRealTimers();
+    });
+
+    it('should reset wasLongPress on next pointerdown', () => {
+      vi.useFakeTimers();
+      const el = fixture.nativeElement as HTMLElement;
+
+      // Trigger first long-press
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      vi.advanceTimersByTime(500);
+      expect(component.wasLongPress()).toBe(true);
+
+      // New pointerdown resets it
+      el.dispatchEvent(
+        new PointerEvent('pointerdown', {
+          clientX: 100,
+          clientY: 100,
+          isPrimary: true,
+        })
+      );
+      expect(component.wasLongPress()).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it('should remove event listeners on destroy', () => {
+      const el = fixture.nativeElement as HTMLElement;
+      const removeSpy = vi.spyOn(el, 'removeEventListener');
+
+      fixture.destroy();
+
+      expect(removeSpy).toHaveBeenCalledWith(
+        'pointerdown',
+        expect.any(Function)
+      );
+      expect(removeSpy).toHaveBeenCalledWith('pointerup', expect.any(Function));
+      expect(removeSpy).toHaveBeenCalledWith(
+        'pointermove',
+        expect.any(Function)
+      );
+      expect(removeSpy).toHaveBeenCalledWith(
+        'pointercancel',
+        expect.any(Function)
+      );
+    });
+
+    it('should not attach listeners twice if attachLongPressListeners is called again', () => {
+      const el = fixture.nativeElement as HTMLElement;
+      const addSpy = vi.spyOn(el, 'addEventListener');
+
+      // Call it again (already called in ngAfterViewInit)
+      (component as any).attachLongPressListeners();
+
+      // Should not add any new listeners since they're already attached
+      expect(addSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deactivated state', () => {
+    it('should default isActivated to true', () => {
+      expect(component.isActivated).toBe(true);
+    });
+
+    it('should accept isActivated input as false', () => {
+      fixture.componentRef.setInput('isActivated', false);
+      fixture.detectChanges();
+
+      expect(component.isActivated).toBe(false);
+    });
+  });
 });

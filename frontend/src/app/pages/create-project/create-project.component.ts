@@ -25,6 +25,7 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Project } from '@inkweld/index';
 import { ElectronService } from '@services/electron.service';
 
+import { ProjectActivationService } from '../../services/local/project-activation.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import {
   type ProjectTemplateInfo,
@@ -57,6 +58,7 @@ interface ProjectForm {
 })
 export class CreateProjectComponent implements OnInit {
   private readonly unifiedProjectService = inject(UnifiedProjectService);
+  private readonly activationService = inject(ProjectActivationService);
   private readonly templateService = inject(ProjectTemplateService);
   private readonly electronService = inject(ElectronService);
   protected unifiedUserService = inject(UnifiedUserService);
@@ -202,6 +204,13 @@ export class CreateProjectComponent implements OnInit {
       this.snackBar.open('Project created successfully!', 'Close', {
         duration: 3000,
       });
+
+      // Auto-activate on the creating device
+      if (response?.username && response?.slug) {
+        await this.activationService.activate(
+          `${response.username}/${response.slug}`
+        );
+      }
 
       // Navigate to the new project
       if (response?.username && response?.slug) {
