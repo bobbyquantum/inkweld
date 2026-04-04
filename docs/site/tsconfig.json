@@ -1,5 +1,9 @@
 {
   // This file is not used in compilation. It is here just for a nice editor experience.
   "extends": "@docusaurus/tsconfig",
-  "exclude": [".docusaurus", "build"]
+  "compilerOptions": {
+    // baseUrl is set by @docusaurus/tsconfig; suppress the TS 6.0 deprecation warning
+    "ignoreDeprecations": "6.0"
+  },
+  "exclude": [".docusaurus", "build"],
 }
