@@ -6,7 +6,7 @@ import { BadRequestError } from '../errors';
 import { logger } from './logger.service';
 
 export class FileStorageService {
-  private basePath: string;
+  private readonly basePath: string;
 
   constructor() {
     this.basePath = config.dataPath;

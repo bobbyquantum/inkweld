@@ -24,19 +24,22 @@
           @if (loadingTemplates()) {
             <div class="loading-templates">Loading templates...</div>
           } @else {
-            <div class="template-grid" role="radiogroup">
+            <div
+              class="template-grid"
+              role="radiogroup"
+              aria-label="Choose a template">
               @for (template of templates(); track template.id) {
-                <!-- NOSONAR -->
-                <div
+                <label
                   class="template-card"
                   [class.selected]="selectedTemplateId() === template.id"
-                  (click)="selectTemplate(template.id)"
-                  (keydown.enter)="selectTemplate(template.id)"
-                  (keydown.space)="selectTemplate(template.id)"
-                  role="radio"
-                  tabindex="0"
-                  [attr.aria-checked]="selectedTemplateId() === template.id"
                   [attr.data-testid]="'template-' + template.id">
+                  <input
+                    type="radio"
+                    class="sr-only"
+                    name="template"
+                    [value]="template.id"
+                    [checked]="selectedTemplateId() === template.id"
+                    (change)="selectTemplate(template.id)" />
                   <mat-icon class="template-icon">{{ template.icon }}</mat-icon>
                   <div class="template-info">
                     <span class="template-name">{{ template.name }}</span>
@@ -47,7 +50,7 @@
                   @if (selectedTemplateId() === template.id) {
                     <mat-icon class="check-icon">check_circle</mat-icon>
                   }
-                </div>
+                </label>
               }
             </div>
           }

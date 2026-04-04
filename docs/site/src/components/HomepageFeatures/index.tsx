@@ -5,11 +5,11 @@ import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
 type FeatureItem = {
-  title: string;
-  icon: string;
-  description: ReactNode;
-  linkLabel: string;
-  href: string;
+  readonly title: string;
+  readonly icon: string;
+  readonly description: ReactNode;
+  readonly linkLabel: string;
+  readonly href: string;
 };
 
 const FeatureList: FeatureItem[] = [

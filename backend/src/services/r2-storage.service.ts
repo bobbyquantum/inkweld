@@ -6,7 +6,7 @@ import type { R2Bucket } from '@cloudflare/workers-types';
  * Replaces filesystem-based file storage for cloud compatibility
  */
 export class R2StorageService {
-  constructor(private bucket: R2Bucket) {}
+  constructor(private readonly bucket: R2Bucket) {}
 
   /**
    * Validate that a path component does not contain traversal sequences
