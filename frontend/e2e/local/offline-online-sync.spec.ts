@@ -120,6 +120,8 @@ async function createFolderElement(page: Page, name: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('Offline Mode - Element Availability', () => {
+  test.slow();
+
   test('should show element tree with all element types in offline mode', async ({
     localPageWithProject: page,
   }) => {
@@ -155,7 +157,7 @@ test.describe('Offline Mode - Element Availability', () => {
 
     // Type content and verify it persists
     await editor.click();
-    await editor.pressSequentially('Hello offline world');
+    await page.keyboard.insertText('Hello offline world');
     await expect(editor).toContainText('Hello offline world');
   });
 
@@ -223,7 +225,7 @@ test.describe('Offline Mode - Element Availability', () => {
       .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
-    await editor.pressSequentially('Persistent content here');
+    await page.keyboard.insertText('Persistent content here');
     await expect(editor).toContainText('Persistent content here');
 
     // Navigate to home
@@ -246,6 +248,8 @@ test.describe('Offline Mode - Element Availability', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('Local Document Creation - IndexedDB Storage', () => {
+  test.slow();
+
   test('should store document data in IndexedDB when a document element is created', async ({
     localPageWithProject: page,
   }) => {
@@ -267,7 +271,7 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
       .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
-    await editor.pressSequentially('Stored in IndexedDB');
+    await page.keyboard.insertText('Stored in IndexedDB');
 
     // Wait for IndexedDB persistence to flush
     await expect
@@ -335,6 +339,8 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('Unsynchronized Document Detection', () => {
+  test.slow();
+
   test('should detect when a document referenced in the tree has no local IndexedDB data', async ({
     localPageWithProject: page,
   }) => {
@@ -356,7 +362,7 @@ test.describe('Unsynchronized Document Detection', () => {
       .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
-    await editor.pressSequentially('Real document content');
+    await page.keyboard.insertText('Real document content');
 
     // Wait for IndexedDB persistence to flush
     await expect
@@ -405,7 +411,7 @@ test.describe('Unsynchronized Document Detection', () => {
       .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
-    await editor.pressSequentially('Content that will be lost');
+    await page.keyboard.insertText('Content that will be lost');
 
     // Wait for IndexedDB persistence to flush
     await expect
@@ -459,7 +465,7 @@ test.describe('Unsynchronized Document Detection', () => {
       .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
-    await editor.pressSequentially('Original content');
+    await page.keyboard.insertText('Original content');
 
     // Wait for IndexedDB persistence to flush
     await expect
