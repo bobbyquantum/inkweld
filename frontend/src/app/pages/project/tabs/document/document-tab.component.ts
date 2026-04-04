@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { SettingsService } from '@services/core/settings.service';
@@ -13,6 +13,12 @@ import { ProjectStateService } from '@services/project/project-state.service';
 export class DocumentTabComponent {
   protected readonly settingsService = inject(SettingsService);
   protected readonly projectState = inject(ProjectStateService);
+
+  /**
+   * Whether the current document is unavailable (remote element that hasn't synced).
+   * When true, a warning is shown instead of the editor.
+   */
+  protected readonly documentUnavailable = signal(false);
 
   // Computed signal that gets the document ID from the active tab
   protected readonly fullDocumentId = computed(() => {
@@ -33,6 +39,34 @@ export class DocumentTabComponent {
 
     return '';
   });
+
+  constructor() {
+    // Check document availability when the active tab changes
+    effect(() => {
+      const tabs = this.projectState.openTabs();
+      const selectedIndex = this.projectState.selectedTabIndex();
+
+      let elementId = '';
+      if (selectedIndex >= 0 && selectedIndex < tabs.length) {
+        const tab = tabs[selectedIndex];
+        elementId = tab?.element?.id ?? '';
+      }
+
+      // Reset unavailable state while checking
+      this.documentUnavailable.set(false);
+
+      if (elementId) {
+        void this.checkAvailability(elementId);
+      }
+    });
+  }
+
+  private async checkAvailability(elementId: string): Promise<void> {
+    const unavailable =
+      await this.projectState.isDocumentUnavailable(elementId);
+    this.documentUnavailable.set(unavailable);
+  }
+
   /**
    * Check if tabs are enabled in desktop mode
    */

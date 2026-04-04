@@ -23,6 +23,7 @@ describe('WorldbuildingTabComponent', () => {
     project: ReturnType<typeof signal<Project | null>>;
     elements: ReturnType<typeof signal<Element[]>>;
     canWrite: ReturnType<typeof signal<boolean>>;
+    isDocumentUnavailable: ReturnType<typeof vi.fn>;
   };
   let paramMapSubject: BehaviorSubject<any>;
 
@@ -60,6 +61,7 @@ describe('WorldbuildingTabComponent', () => {
       project: signal<Project | null>(null),
       elements: signal<Element[]>([]),
       canWrite: signal<boolean>(true),
+      isDocumentUnavailable: vi.fn().mockResolvedValue(false),
     };
 
     await TestBed.configureTestingModule({
@@ -368,6 +370,43 @@ describe('WorldbuildingTabComponent', () => {
 
       expect(errorMessage).toBeTruthy();
       expect(errorMessage.textContent).toContain('element-123');
+    });
+  });
+
+  describe('documentUnavailable', () => {
+    it('should default to false', () => {
+      fixture.detectChanges();
+      expect(component['documentUnavailable']()).toBe(false);
+    });
+
+    it('should show warning when document is unavailable', async () => {
+      mockProjectState.isDocumentUnavailable.mockResolvedValue(true);
+      fixture.detectChanges();
+
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        const compiled = fixture.nativeElement;
+        const warning = compiled.querySelector(
+          '[data-testid="unsynchronized-document-warning"]'
+        );
+        expect(warning).toBeTruthy();
+      });
+    });
+
+    it('should not show warning when document is available', async () => {
+      mockProjectState.isDocumentUnavailable.mockResolvedValue(false);
+      mockProjectState.project.set(mockProject);
+      mockProjectState.elements.set([mockElement]);
+      fixture.detectChanges();
+
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        const compiled = fixture.nativeElement;
+        const warning = compiled.querySelector(
+          '[data-testid="unsynchronized-document-warning"]'
+        );
+        expect(warning).toBeFalsy();
+      });
     });
   });
 });

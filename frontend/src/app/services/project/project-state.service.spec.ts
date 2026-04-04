@@ -565,6 +565,102 @@ describe('ProjectStateService', () => {
     });
   });
 
+  describe('Locally Created Element Tracking', () => {
+    beforeEach(async () => {
+      await service.loadProject('testuser', 'test-project');
+    });
+
+    it('should track locally created elements', () => {
+      const elementId = service.addElement(ElementType.Item, 'New Doc');
+      expect(elementId).toBeTruthy();
+      expect(service.isLocallyCreatedElement(elementId!)).toBe(true);
+    });
+
+    it('should not mark remote elements as locally created', () => {
+      expect(service.isLocallyCreatedElement('remote-element-id')).toBe(false);
+    });
+
+    it('should clear tracked elements when project state is cleared', async () => {
+      const elementId = service.addElement(ElementType.Item, 'New Doc');
+      expect(service.isLocallyCreatedElement(elementId!)).toBe(true);
+
+      // Loading a new project clears state
+      await service.loadProject('testuser', 'other-project');
+
+      expect(service.isLocallyCreatedElement(elementId!)).toBe(false);
+    });
+  });
+
+  describe('isDocumentUnavailable', () => {
+    beforeEach(async () => {
+      await service.loadProject('testuser', 'test-project');
+    });
+
+    it('should return false in local mode', async () => {
+      mockSetupService.getMode.mockReturnValue('local');
+
+      const result = await service.isDocumentUnavailable('any-id');
+      expect(result).toBe(false);
+    });
+
+    it('should return false for locally created elements', async () => {
+      const elementId = service.addElement(ElementType.Item, 'New Doc');
+      expect(elementId).toBeTruthy();
+
+      const result = await service.isDocumentUnavailable(elementId!);
+      expect(result).toBe(false);
+    });
+
+    it('should return true for remote elements with no IndexedDB content', async () => {
+      // Mock indexedDB.open to simulate empty database
+      const mockDb = {
+        objectStoreNames: { length: 0 },
+        close: vi.fn(),
+      };
+      const mockRequest = {
+        onsuccess: null as ((event: any) => void) | null,
+        onerror: null as ((event: any) => void) | null,
+        result: mockDb,
+      };
+      vi.spyOn(indexedDB, 'open').mockReturnValue(
+        mockRequest as unknown as IDBOpenDBRequest
+      );
+
+      // Trigger onsuccess callback asynchronously
+      const promise = service.isDocumentUnavailable('remote-element');
+      queueMicrotask(() => mockRequest.onsuccess?.({} as Event));
+
+      const result = await promise;
+      expect(result).toBe(true);
+
+      vi.restoreAllMocks();
+    });
+
+    it('should return false for remote elements with IndexedDB content', async () => {
+      // Mock indexedDB.open to simulate database with object stores
+      const mockDb = {
+        objectStoreNames: { length: 2 },
+        close: vi.fn(),
+      };
+      const mockRequest = {
+        onsuccess: null as ((event: any) => void) | null,
+        onerror: null as ((event: any) => void) | null,
+        result: mockDb,
+      };
+      vi.spyOn(indexedDB, 'open').mockReturnValue(
+        mockRequest as unknown as IDBOpenDBRequest
+      );
+
+      const promise = service.isDocumentUnavailable('synced-element');
+      queueMicrotask(() => mockRequest.onsuccess?.({} as Event));
+
+      const result = await promise;
+      expect(result).toBe(false);
+
+      vi.restoreAllMocks();
+    });
+  });
+
   describe('Tree Operations', () => {
     beforeEach(async () => {
       await service.loadProject('testuser', 'test-project');
