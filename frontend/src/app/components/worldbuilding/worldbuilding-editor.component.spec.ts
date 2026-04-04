@@ -696,7 +696,7 @@ describe('WorldbuildingEditorComponent', () => {
       });
 
       it('should use accordion for narrow portrait viewport', async () => {
-        await recreateComponentForViewport(767, false);
+        await recreateComponentForViewport(759, false);
 
         expect(component.useSidenav()).toBe(false);
         expect(component.selectedSection()).toBe('identity');
