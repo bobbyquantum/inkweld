@@ -26,6 +26,44 @@ import { expect, test } from './fixtures';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * List all IndexedDB database names in the browser context.
+ */
+async function listIndexedDBDatabases(page: Page): Promise<string[]> {
+  return page.evaluate(async () => {
+    if (typeof indexedDB.databases === 'function') {
+      const dbs = await indexedDB.databases();
+      return dbs.map(db => db.name).filter((n): n is string => n != null);
+    }
+    return [];
+  });
+}
+
+/**
+ * Check if an IndexedDB database exists and has object stores (i.e. has been synced).
+ */
+async function checkIndexedDBAvailability(
+  page: Page,
+  docId: string
+): Promise<boolean> {
+  return page.evaluate(async (id: string) => {
+    return new Promise<boolean>(resolve => {
+      try {
+        const request = indexedDB.open(id);
+        request.onsuccess = () => {
+          const db = request.result;
+          const hasData = db.objectStoreNames.length > 0;
+          db.close();
+          resolve(hasData);
+        };
+        request.onerror = () => resolve(false);
+      } catch {
+        resolve(false);
+      }
+    });
+  }, docId);
+}
+
+/**
  * Create a document element and wait for it to appear in the tree.
  */
 async function createDocumentElement(page: Page, name: string) {
@@ -224,14 +262,7 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
 
     // Verify that Yjs IndexedDB databases exist
     // Each document gets its own IndexedDB via y-indexeddb
-    const databases = await page.evaluate(async () => {
-      // indexedDB.databases() returns all known databases
-      if (typeof indexedDB.databases === 'function') {
-        const dbs = await indexedDB.databases();
-        return dbs.map(db => db.name).filter(n => n != null);
-      }
-      return [];
-    });
+    const databases = await listIndexedDBDatabases(page);
 
     // Should have at least one database containing project data
     // The element tree doc uses format: local:username:slug:elements
@@ -257,13 +288,7 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
     await page.waitForTimeout(500);
 
     // Verify worldbuilding IndexedDB databases exist
-    const databases = await page.evaluate(async () => {
-      if (typeof indexedDB.databases === 'function') {
-        const dbs = await indexedDB.databases();
-        return dbs.map(db => db.name).filter(n => n != null);
-      }
-      return [];
-    });
+    const databases = await listIndexedDBDatabases(page);
 
     // Worldbuilding documents use format: worldbuilding:username:slug:elementId
     const hasWorldbuildingDoc = databases.some((name: string) =>
@@ -292,13 +317,7 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
     await expect(page.getByTestId('element-Tree Folder 1')).toBeVisible();
 
     // Verify the elements tree Yjs document exists in IndexedDB
-    const databases = await page.evaluate(async () => {
-      if (typeof indexedDB.databases === 'function') {
-        const dbs = await indexedDB.databases();
-        return dbs.map(db => db.name).filter(n => n != null);
-      }
-      return [];
-    });
+    const databases = await listIndexedDBDatabases(page);
 
     // Element tree stored as: local:username:slug:elements
     const hasElementsDoc = databases.some(
@@ -331,50 +350,23 @@ test.describe('Unsynchronized Document Detection', () => {
     await editor.pressSequentially('Real document content');
     await page.waitForTimeout(500);
 
-    // Use page.evaluate to call the same detection logic the app uses
-    // (ProjectSyncService.checkDocumentAvailable equivalent)
-    const result = await page.evaluate(async () => {
-      // This replicates the checkDocumentAvailable logic from ProjectSyncService
+    // A fabricated document ID that was never synced — simulates the
+    // scenario where another user added an element to the shared tree
+    // and our browser received the reference but never got the content
+    const phantomDocId = 'testuser:test-project:phantom-element-id-12345';
+    const phantomAvailable = await checkIndexedDBAvailability(
+      page,
+      phantomDocId
+    );
 
-      // Check a document ID that DOES exist
-      const checkAvailability = (docId: string): Promise<boolean> => {
-        return new Promise(resolve => {
-          try {
-            const request = indexedDB.open(docId);
-            request.onsuccess = () => {
-              const db = request.result;
-              const hasData = db.objectStoreNames.length > 0;
-              db.close();
-              resolve(hasData);
-            };
-            request.onerror = () => resolve(false);
-          } catch {
-            resolve(false);
-          }
-        });
-      };
+    // Also get the list of databases to verify real ones exist
+    const realDatabases = await listIndexedDBDatabases(page);
 
-      // A fabricated document ID that was never synced — simulates the
-      // scenario where another user added an element to the shared tree
-      // and our browser received the reference but never got the content
-      const phantomDocId = 'testuser:test-project:phantom-element-id-12345';
-      const phantomAvailable = await checkAvailability(phantomDocId);
-
-      // Also get the list of databases to verify real ones exist
-      let realDatabases: string[] = [];
-      if (typeof indexedDB.databases === 'function') {
-        const dbs = await indexedDB.databases();
-        realDatabases = dbs
-          .map(db => db.name)
-          .filter((n): n is string => n != null);
-      }
-
-      return {
-        phantomAvailable,
-        realDatabaseCount: realDatabases.length,
-        hasRealData: realDatabases.some(name => name.includes('elements')),
-      };
-    });
+    const result = {
+      phantomAvailable,
+      realDatabaseCount: realDatabases.length,
+      hasRealData: realDatabases.some(name => name.includes('elements')),
+    };
 
     // The phantom document should NOT be available — it was never synced
     expect(result.phantomAvailable).toBe(false);
@@ -405,61 +397,40 @@ test.describe('Unsynchronized Document Detection', () => {
     await page.getByTestId('toolbar-home-button').click();
 
     // Get the document's element ID and verify it's available
-    const elementId = await page.evaluate(async () => {
-      // Find databases matching the project pattern
-      if (typeof indexedDB.databases !== 'function') return null;
-      const dbs = await indexedDB.databases();
-      const docDbs = dbs
-        .map(db => db.name)
-        .filter(
-          (n): n is string =>
-            n != null &&
-            n.includes('testuser') &&
-            !n.includes('elements') &&
-            !n.includes('worldbuilding') &&
-            !n.includes('inkweld') &&
-            !n.includes('local:')
-        );
-      return docDbs[0] ?? null;
-    });
+    const allDatabases = await listIndexedDBDatabases(page);
+    const docDbs = allDatabases.filter(
+      name =>
+        name.includes('testuser') &&
+        !name.includes('elements') &&
+        !name.includes('worldbuilding') &&
+        !name.includes('inkweld') &&
+        !name.includes('local:')
+    );
+    const elementId = docDbs[0];
 
-    if (elementId) {
-      // Delete the IndexedDB for this document — simulating the scenario where
-      // the element tree knows about this document, but the content was never
-      // synced to our browser (e.g., another user created it remotely and we
-      // lost connection before the content arrived)
-      const availability = await page.evaluate(async (docId: string) => {
-        // First verify it was available
-        const checkAvailable = (id: string): Promise<boolean> =>
-          new Promise(resolve => {
-            const req = indexedDB.open(id);
-            req.onsuccess = () => {
-              const db = req.result;
-              const has = db.objectStoreNames.length > 0;
-              db.close();
-              resolve(has);
-            };
-            req.onerror = () => resolve(false);
-          });
+    // Fail explicitly if no document database was found
+    expect(elementId).toBeDefined();
 
-        const beforeDelete = await checkAvailable(docId);
+    // Delete the IndexedDB for this document — simulating the scenario where
+    // the element tree knows about this document, but the content was never
+    // synced to our browser (e.g., another user created it remotely and we
+    // lost connection before the content arrived)
+    const beforeDelete = await checkIndexedDBAvailability(page, elementId);
 
-        // Delete the database
-        await new Promise<void>((resolve, reject) => {
-          const deleteReq = indexedDB.deleteDatabase(docId);
-          deleteReq.onsuccess = () => resolve();
-          deleteReq.onerror = () => reject(new Error(String(deleteReq.error)));
-        });
+    // Delete the database
+    await page.evaluate(async (docId: string) => {
+      await new Promise<void>((resolve, reject) => {
+        const deleteReq = indexedDB.deleteDatabase(docId);
+        deleteReq.onsuccess = () => resolve();
+        deleteReq.onerror = () => reject(new Error(String(deleteReq.error)));
+      });
+    }, elementId);
 
-        const afterDelete = await checkAvailable(docId);
+    const afterDelete = await checkIndexedDBAvailability(page, elementId);
 
-        return { beforeDelete, afterDelete };
-      }, elementId);
-
-      // Document was available before, unavailable after deletion
-      expect(availability.beforeDelete).toBe(true);
-      expect(availability.afterDelete).toBe(false);
-    }
+    // Document was available before, unavailable after deletion
+    expect(beforeDelete).toBe(true);
+    expect(afterDelete).toBe(false);
   });
 
   test('should show empty editor when opening a document with no IndexedDB data', async ({

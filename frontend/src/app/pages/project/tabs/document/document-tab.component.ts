@@ -20,6 +20,8 @@ export class DocumentTabComponent {
    */
   protected readonly documentUnavailable = signal(false);
 
+  private availabilityCheckToken = 0;
+
   // Computed signal that gets the document ID from the active tab
   protected readonly fullDocumentId = computed(() => {
     const tabs = this.projectState.openTabs();
@@ -52,18 +54,24 @@ export class DocumentTabComponent {
         elementId = tab?.element?.id ?? '';
       }
 
+      const token = ++this.availabilityCheckToken;
+
       // Reset unavailable state while checking
       this.documentUnavailable.set(false);
 
       if (elementId) {
-        void this.checkAvailability(elementId);
+        void this.checkAvailability(elementId, token);
       }
     });
   }
 
-  private async checkAvailability(elementId: string): Promise<void> {
+  private async checkAvailability(
+    elementId: string,
+    token: number
+  ): Promise<void> {
     const unavailable =
       await this.projectState.isDocumentUnavailable(elementId);
+    if (token !== this.availabilityCheckToken) return;
     this.documentUnavailable.set(unavailable);
   }
 

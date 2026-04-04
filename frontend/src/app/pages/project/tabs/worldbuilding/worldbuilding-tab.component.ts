@@ -35,6 +35,8 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
    */
   protected readonly documentUnavailable = signal(false);
 
+  private availabilityCheckToken = 0;
+
   constructor() {
     // Watch for elements loading and update element type when available
     effect(() => {
@@ -64,16 +66,21 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
     // Check document availability when the element changes
     effect(() => {
       const currentId = this.elementId();
+      const token = ++this.availabilityCheckToken;
       this.documentUnavailable.set(false);
       if (currentId) {
-        void this.checkAvailability(currentId);
+        void this.checkAvailability(currentId, token);
       }
     });
   }
 
-  private async checkAvailability(elementId: string): Promise<void> {
+  private async checkAvailability(
+    elementId: string,
+    token: number
+  ): Promise<void> {
     const unavailable =
       await this.projectState.isDocumentUnavailable(elementId);
+    if (token !== this.availabilityCheckToken) return;
     this.documentUnavailable.set(unavailable);
   }
 

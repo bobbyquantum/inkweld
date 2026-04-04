@@ -618,8 +618,8 @@ describe('ProjectStateService', () => {
         close: vi.fn(),
       };
       const mockRequest = {
-        onsuccess: null as ((event: any) => void) | null,
-        onerror: null as ((event: any) => void) | null,
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
         result: mockDb,
       };
       vi.spyOn(indexedDB, 'open').mockReturnValue(
@@ -643,8 +643,8 @@ describe('ProjectStateService', () => {
         close: vi.fn(),
       };
       const mockRequest = {
-        onsuccess: null as ((event: any) => void) | null,
-        onerror: null as ((event: any) => void) | null,
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
         result: mockDb,
       };
       vi.spyOn(indexedDB, 'open').mockReturnValue(
