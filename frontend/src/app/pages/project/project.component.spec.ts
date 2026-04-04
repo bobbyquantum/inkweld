@@ -19,6 +19,7 @@ import { ProjectSearchService } from '@services/core/project-search.service';
 import { QuickOpenService } from '@services/core/quick-open.service';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 import { DocumentService } from '@services/project/document.service';
@@ -165,6 +166,7 @@ describe('ProjectComponent', () => {
       openDocuments: openDocumentsSignal,
       visibleElements: visibleElementsSignal,
       getSyncState: syncStateSignal,
+      getLastConnectionError: signal<string | null>(null),
       loadProject: vi.fn().mockResolvedValue(undefined),
       selectTab: vi.fn().mockImplementation((index: number) => {
         selectedTabIndexSignal.set(index);
@@ -283,6 +285,13 @@ describe('ProjectComponent', () => {
             lastSyncTime: signal(null),
           },
         },
+        {
+          provide: ProjectActivationService,
+          useValue: {
+            isActivated: vi.fn().mockReturnValue(true),
+            initialize: vi.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     })
@@ -309,6 +318,8 @@ describe('ProjectComponent', () => {
     fixture = TestBed.createComponent(ProjectComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    // Wait for the async activation check in loadProjectIfActivated
+    await fixture.whenStable();
   });
 
   afterEach(() => {
@@ -321,17 +332,21 @@ describe('ProjectComponent', () => {
   });
 
   describe('initialization', () => {
-    it('should load project on init with route params', () => {
+    it('should load project on init with route params', async () => {
       component.ngOnInit();
-      expect(projectStateService.loadProject).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
-      );
+      await vi.waitFor(() => {
+        expect(projectStateService.loadProject).toHaveBeenCalledWith(
+          'testuser',
+          'test-project'
+        );
+      });
     });
 
-    it('should select home tab (0) on init', () => {
+    it('should select home tab (0) on init', async () => {
       component.ngOnInit();
-      expect(projectStateService.selectTab).toHaveBeenCalledWith(0);
+      await vi.waitFor(() => {
+        expect(projectStateService.selectTab).toHaveBeenCalledWith(0);
+      });
     });
 
     it('should initialize quick open and project search on init', () => {
@@ -951,6 +966,41 @@ describe('ProjectComponent', () => {
 
       expect(component.isSystemTabSelected('settings')).toBe(true);
       expect(component.isSystemTabSelected('media')).toBe(false);
+    });
+  });
+
+  describe('project activation guard', () => {
+    it('should redirect to home when project is not activated', async () => {
+      const activationService = TestBed.inject(ProjectActivationService);
+      (
+        activationService.isActivated as ReturnType<typeof vi.fn>
+      ).mockReturnValue(false);
+
+      // Trigger route params change
+      paramsSubject.next({ username: 'testuser', slug: 'deactivated-project' });
+
+      await vi.waitFor(() => {
+        expect(router.navigate).toHaveBeenCalledWith(['/']);
+      });
+      // Should NOT load the project
+      expect(projectStateService.loadProject).toHaveBeenCalledTimes(1); // only the initial call
+    });
+
+    it('should load project when it is activated', async () => {
+      const activationService = TestBed.inject(ProjectActivationService);
+      (
+        activationService.isActivated as ReturnType<typeof vi.fn>
+      ).mockReturnValue(true);
+
+      paramsSubject.next({ username: 'testuser', slug: 'active-project' });
+
+      await vi.waitFor(() => {
+        expect(projectStateService.loadProject).toHaveBeenCalledWith(
+          'testuser',
+          'active-project'
+        );
+      });
+      expect(router.navigate).not.toHaveBeenCalledWith(['/']);
     });
   });
 });

@@ -364,16 +364,19 @@
                     class="cover-item"
                     data-testid="project-card"
                     [class.selected]="selectedProject?.id === item.project.id"
-                    (click)="selectProject(item.project)"
+                    (click)="onProjectClick(item.project, $event, card)"
                     [title]="item.project.title"
                     [attr.aria-label]="'Open project ' + item.project.title">
                     <app-project-card
+                      #card
                       [project]="item.project"
                       [projectKey]="
                         item.project.username + '/' + item.project.slug
                       "
                       [isShared]="item.isShared"
-                      [sharedByUsername]="item.sharedByUsername">
+                      [sharedByUsername]="item.sharedByUsername"
+                      [isActivated]="isProjectActivated(item.project)"
+                      (longPress)="onProjectLongPress(item.project)">
                     </app-project-card>
                   </button>
                 }

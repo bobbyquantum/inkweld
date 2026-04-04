@@ -31,6 +31,7 @@ import { ProjectTreeComponent } from '@components/project-tree/project-tree.comp
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
+import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 import { DocumentService } from '@services/project/document.service';
@@ -99,6 +100,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly storageContext = inject(StorageContextService);
   private readonly autoSnapshotService = inject(AutoSnapshotService);
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
+  private readonly activationService = inject(ProjectActivationService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -227,20 +229,35 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     return confirmed;
   }
 
+  private async loadProjectIfActivated(
+    username: string,
+    slug: string
+  ): Promise<void> {
+    // Ensure activation state is loaded from IndexedDB (needed after full page reloads)
+    await this.activationService.initialize();
+
+    if (!this.activationService.isActivated(`${username}/${slug}`)) {
+      this.router.navigate(['/']).catch(() => {});
+      return;
+    }
+
+    console.log(`Loading project ${username}/${slug}`);
+    void this.projectState.loadProject(username, slug);
+
+    // Start automated media sync for this project
+    void this.mediaAutoSync.startAutoSync(`${username}/${slug}`);
+
+    // Ensure we're starting with tab index 0 (home tab)
+    this.projectState.selectTab(0);
+  }
+
   ngOnInit() {
     console.log('ProjectComponent init');
     this.paramsSubscription = this.route.params.subscribe(params => {
       const username = params['username'] as string;
       const slug = params['slug'] as string;
       if (username && slug) {
-        console.log(`Loading project ${username}/${slug}`);
-        void this.projectState.loadProject(username, slug);
-
-        // Start automated media sync for this project
-        void this.mediaAutoSync.startAutoSync(`${username}/${slug}`);
-
-        // Ensure we're starting with tab index 0 (home tab)
-        this.projectState.selectTab(0);
+        void this.loadProjectIfActivated(username, slug);
       }
     });
 

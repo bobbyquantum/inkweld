@@ -26,6 +26,10 @@ import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import {
+  ConfirmationDialogComponent,
+  type ConfirmationDialogData,
+} from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
@@ -36,6 +40,8 @@ import {
 } from '@inkweld/model/models';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
+import { StorageContextService } from '@services/core/storage-context.service';
+import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { CoverSyncService } from '@services/sync/cover-sync.service';
@@ -80,6 +86,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly setupService = inject(SetupService);
   readonly syncQueueService = inject(SyncQueueService);
   private readonly coverSyncService = inject(CoverSyncService);
+  private readonly storageContext = inject(StorageContextService);
+  readonly activationService = inject(ProjectActivationService);
 
   // Component state
   loadError = false;
@@ -107,12 +115,15 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   /** Whether Sync All button should be enabled */
   protected canSyncAll = computed(() => {
+    // Read activation version to re-evaluate when activations change
+    this.activationService.activationVersion();
+    const hasActivated = this.getActivatedProjects().length > 0;
     return (
       this.isServerMode() &&
       this.isAuthenticated() &&
       navigator.onLine &&
       !this.syncQueueService.isSyncing() &&
-      this.projectService.projects().length > 0
+      hasActivated
     );
   });
 
@@ -125,7 +136,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.projectService.projects().length > 0 ||
       this.collaboratedProjects().length > 0;
     if (!hasProjects) return 'No projects to sync';
-    return 'Sync all projects with server';
+    const activatedCount = this.getActivatedProjects().length;
+    if (activatedCount === 0) return 'No activated projects to sync';
+    return `Sync ${activatedCount} activated project(s)`;
   });
 
   // Computed state - unified project list combining owned and shared projects
@@ -199,6 +212,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     void this.loadProjects();
     this.setupBreakpointObserver();
     this.setupSearchObserver();
+    this.activationService.initialize().catch(() => {});
   }
 
   setupSearchObserver() {
@@ -305,13 +319,29 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Sync all projects (owned and shared) with the server
+   * Sync all activated projects (owned and shared) with the server.
+   * Only projects that have been activated on this device are synced.
    */
   syncAllProjects(): void {
+    const activated = this.getActivatedProjects();
+
+    if (activated.length === 0) {
+      this.snackBar.open('No activated projects to sync', 'Dismiss', {
+        duration: 3000,
+      });
+      return;
+    }
+
+    void this.syncQueueService.syncAllProjects(activated);
+  }
+
+  /**
+   * Get all projects (owned + shared) that are activated on this device.
+   */
+  private getActivatedProjects(): Project[] {
     const ownProjects = this.projectService.projects();
     const sharedProjects = this.collaboratedProjects();
 
-    // Convert shared projects to Project format
     const sharedAsProjects: Project[] = sharedProjects.map(cp => ({
       id: cp.projectId,
       slug: cp.projectSlug,
@@ -323,14 +353,160 @@ export class HomeComponent implements OnInit, OnDestroy {
       updatedDate: new Date(cp.acceptedAt).toISOString(),
     }));
 
-    const allProjects = [...ownProjects, ...sharedAsProjects];
+    const all = [...ownProjects, ...sharedAsProjects];
 
-    if (allProjects.length === 0) {
-      this.snackBar.open('No projects to sync', 'Dismiss', { duration: 3000 });
+    if (!this.activationService.isActivationRequired()) {
+      return all;
+    }
+
+    return all.filter(p =>
+      this.activationService.isActivated(`${p.username}/${p.slug}`)
+    );
+  }
+
+  /**
+   * Check whether a project is activated on this device.
+   */
+  isProjectActivated(project: Project): boolean {
+    return this.activationService.isActivated(
+      `${project.username}/${project.slug}`
+    );
+  }
+
+  /**
+   * Handle project card click. If deactivated in server mode, prompt to activate.
+   * Suppresses click if it was triggered by a long-press.
+   */
+  onProjectClick(
+    project: Project,
+    event: Event,
+    card?: ProjectCardComponent
+  ): void {
+    if (card?.wasLongPress()) {
+      event.preventDefault();
+      event.stopPropagation();
       return;
     }
 
-    void this.syncQueueService.syncAllProjects(allProjects);
+    if (this.isProjectActivated(project)) {
+      this.selectProject(project);
+      return;
+    }
+
+    // Deactivated project — show activation dialog
+    event.preventDefault();
+    event.stopPropagation();
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Activate Project',
+        message: `Activate "${project.title}" on this device? This will download all project data.`,
+        confirmText: 'Activate',
+        cancelText: 'Cancel',
+      } satisfies ConfirmationDialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        void this.activateAndSync(project);
+      }
+    });
+  }
+
+  /**
+   * Handle long-press on an activated project — offer to deactivate.
+   */
+  onProjectLongPress(project: Project): void {
+    if (!this.isProjectActivated(project)) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Deactivate Project',
+        message: `Deactivate "${project.title}"? All local data for this project will be removed from this device. You can reactivate it anytime.`,
+        confirmText: 'Deactivate',
+        cancelText: 'Cancel',
+      } satisfies ConfirmationDialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        void this.deactivateProject(project);
+      }
+    });
+  }
+
+  /**
+   * Activate a project and immediately sync it.
+   */
+  private async activateAndSync(project: Project): Promise<void> {
+    const projectKey = `${project.username}/${project.slug}`;
+    try {
+      await this.activationService.activate(projectKey);
+      this.syncQueueService.syncAllProjects([project]).catch(() => {});
+      this.snackBar.open(
+        `"${project.title}" activated — syncing now`,
+        'Dismiss',
+        { duration: 3000 }
+      );
+    } catch {
+      this.snackBar.open('Failed to activate project', 'Dismiss', {
+        duration: 3000,
+      });
+    }
+  }
+
+  /**
+   * Deactivate a project and purge its local data.
+   */
+  private async deactivateProject(project: Project): Promise<void> {
+    const projectKey = `${project.username}/${project.slug}`;
+    try {
+      await this.activationService.deactivate(projectKey);
+      await this.purgeProjectLocalData(project);
+      this.snackBar.open(`"${project.title}" deactivated`, 'Dismiss', {
+        duration: 3000,
+      });
+    } catch {
+      this.snackBar.open('Failed to deactivate project', 'Dismiss', {
+        duration: 3000,
+      });
+    }
+  }
+
+  /**
+   * Remove all local data for a project (Yjs databases, sync state, snapshots, media except cover).
+   */
+  private async purgeProjectLocalData(project: Project): Promise<void> {
+    const username = project.username;
+    const slug = project.slug;
+    const prefix = this.storageContext.getPrefix();
+    const projectPrefix = `${prefix}${username}:${slug}:`;
+    const worldbuildingPrefix = `${prefix}worldbuilding:${username}:${slug}:`;
+
+    // Delete Yjs IndexedDB databases for this project
+    if ('databases' in indexedDB) {
+      try {
+        const allDbs = await indexedDB.databases();
+        for (const db of allDbs) {
+          if (
+            db.name &&
+            (db.name.startsWith(projectPrefix) ||
+              db.name.startsWith(worldbuildingPrefix))
+          ) {
+            await new Promise<void>(resolve => {
+              const req = indexedDB.deleteDatabase(db.name!);
+              req.onsuccess = () => resolve();
+              req.onerror = () => resolve();
+              req.onblocked = () => resolve();
+            });
+          }
+        }
+      } catch {
+        // Best effort
+      }
+    }
   }
 
   /**

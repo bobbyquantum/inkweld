@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   ActivatedRoute,
@@ -11,6 +11,7 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
+import { type ProjectCardComponent } from '@components/project-card/project-card.component';
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
@@ -22,10 +23,13 @@ import {
 } from '@inkweld/model/models';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectServiceError } from '@services/project/project.service';
 import { CoverSyncService } from '@services/sync/cover-sync.service';
+import { SyncQueueService } from '@services/sync/sync-queue.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { ThemeService } from '@themes/theme.service';
@@ -59,6 +63,21 @@ describe('HomeComponent', () => {
   let matDialog: MockedObject<MatDialog>;
   let snackBar: MockedObject<MatSnackBar>;
   let coverSyncService: { syncCovers: ReturnType<typeof vi.fn> };
+  let mockSyncQueueService: {
+    isSyncing: ReturnType<typeof signal<boolean>>;
+    syncAllProjects: ReturnType<typeof vi.fn>;
+    cancelSync: ReturnType<typeof vi.fn>;
+    statusVersion: ReturnType<typeof signal<number>>;
+    getProjectStatus: ReturnType<typeof vi.fn>;
+  };
+  let mockActivationService: {
+    initialize: ReturnType<typeof vi.fn>;
+    isActivated: ReturnType<typeof vi.fn>;
+    isActivationRequired: ReturnType<typeof vi.fn>;
+    activate: ReturnType<typeof vi.fn>;
+    deactivate: ReturnType<typeof vi.fn>;
+    activationVersion: ReturnType<typeof signal<number>>;
+  };
 
   const mockLoadingSignal = signal(false);
   const mockProjectsSignal = signal<Project[]>([]);
@@ -211,6 +230,23 @@ describe('HomeComponent', () => {
       syncCovers: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockSyncQueueService = {
+      isSyncing: signal(false),
+      syncAllProjects: vi.fn().mockResolvedValue(undefined),
+      cancelSync: vi.fn(),
+      statusVersion: signal(0),
+      getProjectStatus: vi.fn().mockReturnValue(undefined),
+    };
+
+    mockActivationService = {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      isActivated: vi.fn().mockReturnValue(true),
+      isActivationRequired: vi.fn().mockReturnValue(false),
+      activate: vi.fn().mockResolvedValue(undefined),
+      deactivate: vi.fn().mockResolvedValue(undefined),
+      activationVersion: signal(0),
+    };
+
     await TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
@@ -234,6 +270,23 @@ describe('HomeComponent', () => {
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: CoverSyncService, useValue: coverSyncService },
+        { provide: SyncQueueService, useValue: mockSyncQueueService },
+        {
+          provide: StorageContextService,
+          useValue: {
+            getPrefix: vi.fn().mockReturnValue('srv:test:'),
+            configurations: signal([]),
+            activeConfig: signal(null),
+            isLocalMode: signal(false),
+            isConfigured: signal(false),
+            hasConfigurations: signal(false),
+            prefixDbName: vi.fn((name: string) => `srv:test:${name}`),
+          },
+        },
+        {
+          provide: ProjectActivationService,
+          useValue: mockActivationService,
+        },
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(convertToParamMap({ id: '123' })) },
@@ -819,6 +872,264 @@ describe('HomeComponent', () => {
       await component.loadProjects();
 
       expect(coverSyncService.syncCovers).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('project activation', () => {
+    beforeEach(() => {
+      mockProjectsSignal.set(mockProjects);
+      fixture.detectChanges();
+    });
+
+    describe('isProjectActivated', () => {
+      it('should return true when activation service reports activated', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        expect(component.isProjectActivated(mockProjects[0])).toBe(true);
+        expect(mockActivationService.isActivated).toHaveBeenCalledWith(
+          'testuser/test-project'
+        );
+      });
+
+      it('should return false when activation service reports not activated', () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+        expect(component.isProjectActivated(mockProjects[0])).toBe(false);
+      });
+    });
+
+    describe('onProjectClick', () => {
+      it('should navigate to project when activated', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        const event = new MouseEvent('click');
+
+        component.onProjectClick(mockProjects[0], event);
+
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['testuser', 'test-project'],
+          expect.any(Object)
+        );
+      });
+
+      it('should suppress click when card reports long-press', () => {
+        const event = new MouseEvent('click');
+        const preventSpy = vi.spyOn(event, 'preventDefault');
+        const stopSpy = vi.spyOn(event, 'stopPropagation');
+        const card = {
+          wasLongPress: () => true,
+        } as unknown as ProjectCardComponent;
+
+        component.onProjectClick(mockProjects[0], event, card);
+
+        expect(preventSpy).toHaveBeenCalled();
+        expect(stopSpy).toHaveBeenCalled();
+        expect(router.navigate).not.toHaveBeenCalled();
+      });
+
+      it('should open activation dialog for deactivated project', () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+        const event = new MouseEvent('click');
+        const preventSpy = vi.spyOn(event, 'preventDefault');
+        const afterClosedSubject = { subscribe: vi.fn() };
+        matDialog.open.mockReturnValue({
+          afterClosed: () => afterClosedSubject,
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectClick(mockProjects[0], event);
+
+        expect(preventSpy).toHaveBeenCalled();
+        expect(matDialog.open).toHaveBeenCalled();
+        const dialogData = matDialog.open.mock.calls[0][1]?.data as Record<
+          string,
+          unknown
+        >;
+        expect(dialogData['title']).toBe('Activate Project');
+      });
+
+      it('should activate and sync when activation dialog confirmed', async () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+        const event = new MouseEvent('click');
+        let afterClosedCb: (val: boolean) => void;
+        matDialog.open.mockReturnValue({
+          afterClosed: () => ({
+            subscribe: (cb: (val: boolean) => void) => {
+              afterClosedCb = cb;
+            },
+          }),
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectClick(mockProjects[0], event);
+        afterClosedCb!(true);
+
+        // Wait for async activate
+        await vi.waitFor(() => {
+          expect(mockActivationService.activate).toHaveBeenCalledWith(
+            'testuser/test-project'
+          );
+        });
+      });
+
+      it('should not activate when activation dialog cancelled', () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+        const event = new MouseEvent('click');
+        let afterClosedCb: (val: boolean) => void;
+        matDialog.open.mockReturnValue({
+          afterClosed: () => ({
+            subscribe: (cb: (val: boolean) => void) => {
+              afterClosedCb = cb;
+            },
+          }),
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectClick(mockProjects[0], event);
+        afterClosedCb!(false);
+
+        expect(mockActivationService.activate).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('onProjectLongPress', () => {
+      it('should do nothing for deactivated project', () => {
+        mockActivationService.isActivated.mockReturnValue(false);
+
+        component.onProjectLongPress(mockProjects[0]);
+
+        expect(matDialog.open).not.toHaveBeenCalled();
+      });
+
+      it('should open deactivation dialog for activated project', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        const afterClosedSubject = { subscribe: vi.fn() };
+        matDialog.open.mockReturnValue({
+          afterClosed: () => afterClosedSubject,
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectLongPress(mockProjects[0]);
+
+        expect(matDialog.open).toHaveBeenCalled();
+        const dialogData = matDialog.open.mock.calls[0][1]?.data as Record<
+          string,
+          unknown
+        >;
+        expect(dialogData['title']).toBe('Deactivate Project');
+      });
+
+      it('should deactivate when dialog confirmed', async () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        let afterClosedCb: (val: boolean) => void;
+        matDialog.open.mockReturnValue({
+          afterClosed: () => ({
+            subscribe: (cb: (val: boolean) => void) => {
+              afterClosedCb = cb;
+            },
+          }),
+        } as unknown as MatDialogRef<unknown>);
+
+        component.onProjectLongPress(mockProjects[0]);
+        afterClosedCb!(true);
+
+        await vi.waitFor(() => {
+          expect(mockActivationService.deactivate).toHaveBeenCalledWith(
+            'testuser/test-project'
+          );
+        });
+      });
+    });
+
+    describe('syncAllProjects', () => {
+      it('should show snack bar when no activated projects', () => {
+        mockActivationService.isActivationRequired.mockReturnValue(true);
+        mockActivationService.isActivated.mockReturnValue(false);
+
+        component.syncAllProjects();
+
+        expect(snackBar.open).toHaveBeenCalledWith(
+          'No activated projects to sync',
+          'Dismiss',
+          { duration: 3000 }
+        );
+      });
+
+      it('should sync only activated projects', () => {
+        mockActivationService.isActivationRequired.mockReturnValue(true);
+        mockActivationService.isActivated.mockImplementation(
+          (key: string) => key === 'testuser/test-project'
+        );
+
+        component.syncAllProjects();
+
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'test-project' }),
+          ])
+        );
+      });
+
+      it('should sync all projects when activation not required', () => {
+        mockActivationService.isActivationRequired.mockReturnValue(false);
+
+        component.syncAllProjects();
+
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ slug: 'test-project' }),
+            expect.objectContaining({ slug: 'another-project' }),
+          ])
+        );
+      });
+    });
+
+    describe('cancelSync', () => {
+      it('should cancel sync and show snack bar', () => {
+        component.cancelSync();
+
+        expect(mockSyncQueueService.cancelSync).toHaveBeenCalled();
+        expect(snackBar.open).toHaveBeenCalledWith(
+          'Sync cancelled',
+          'Dismiss',
+          { duration: 3000 }
+        );
+      });
+    });
+
+    describe('canSyncAll', () => {
+      it('should be false when sync is in progress', () => {
+        mockSyncQueueService.isSyncing.set(true);
+        expect(component['canSyncAll']()).toBe(false);
+        mockSyncQueueService.isSyncing.set(false);
+      });
+
+      it('should be false when no activated projects', () => {
+        mockActivationService.isActivationRequired.mockReturnValue(true);
+        mockActivationService.isActivated.mockReturnValue(false);
+        expect(component['canSyncAll']()).toBe(false);
+      });
+    });
+
+    describe('syncAllTooltip', () => {
+      it('should show offline message when not online', () => {
+        Object.defineProperty(navigator, 'onLine', {
+          value: false,
+          configurable: true,
+        });
+        expect(component['syncAllTooltip']()).toBe('Cannot sync while offline');
+        Object.defineProperty(navigator, 'onLine', {
+          value: true,
+          configurable: true,
+        });
+      });
+
+      it('should show sync in progress message', () => {
+        mockSyncQueueService.isSyncing.set(true);
+        expect(component['syncAllTooltip']()).toBe('Sync in progress...');
+        mockSyncQueueService.isSyncing.set(false);
+      });
+
+      it('should show no activated projects message', () => {
+        mockActivationService.isActivationRequired.mockReturnValue(true);
+        mockActivationService.isActivated.mockReturnValue(false);
+        expect(component['syncAllTooltip']()).toBe(
+          'No activated projects to sync'
+        );
+      });
     });
   });
 });

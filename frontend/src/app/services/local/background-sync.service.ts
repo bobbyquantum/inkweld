@@ -6,6 +6,7 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
 import { LocalProjectService } from './local-project.service';
+import { ProjectActivationService } from './project-activation.service';
 import { ProjectSyncService } from './project-sync.service';
 
 /**
@@ -30,6 +31,7 @@ export class BackgroundSyncService implements OnDestroy {
   private readonly projectService = inject(ProjectService);
   private readonly projectsApi = inject(ProjectsService);
   private readonly localProjectService = inject(LocalProjectService);
+  private readonly activationService = inject(ProjectActivationService);
 
   private onlineHandler: (() => void) | null = null;
   private syncInProgress = false;
@@ -280,6 +282,17 @@ export class BackgroundSyncService implements OnDestroy {
 
           // Clear the pending creation flag
           await this.projectSync.clearPendingCreation(projectKey);
+
+          // Auto-activate newly synced project on this device
+          try {
+            await this.activationService.activate(projectKey);
+          } catch (activationError) {
+            this.logger.warn(
+              'BackgroundSync',
+              `Project synced but activation failed: ${projectKey}`,
+              activationError
+            );
+          }
 
           this.logger.info(
             'BackgroundSync',
