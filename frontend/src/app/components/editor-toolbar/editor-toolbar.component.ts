@@ -67,20 +67,8 @@ export class EditorToolbarComponent implements OnDestroy {
   /** The ngx-editor Editor instance */
   @Input({ required: true }) editor!: Editor;
 
-  /** Element ID for the document (used for tag management) */
-  @Input() elementId?: string;
-
-  /** Element name for the document (used for tag dialog title) */
-  @Input() elementName?: string;
-
   /** Whether all editing actions should be disabled (read-only mode) */
   @Input() disabled = false;
-
-  /** Emitted when the tags button is clicked */
-  @Output() tagsClick = new EventEmitter<void>();
-
-  /** Emitted when the snapshots button is clicked */
-  @Output() snapshotsClick = new EventEmitter<void>();
 
   /** Emitted when the insert image button is clicked */
   @Output() insertImageClick = new EventEmitter<void>();
@@ -636,20 +624,6 @@ export class EditorToolbarComponent implements OnDestroy {
     const { from, to } = selection;
     dispatch(state.tr.removeMark(from, to, linkMark));
     this.refocusEditor();
-  }
-
-  // ========== Tags ==========
-
-  /** Open the tags editor */
-  openTags(): void {
-    this.tagsClick.emit();
-  }
-
-  // ========== Snapshots ==========
-
-  /** Open the snapshots dialog */
-  openSnapshots(): void {
-    this.snapshotsClick.emit();
   }
 
   // ========== Image Insert ==========
