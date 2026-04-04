@@ -96,6 +96,15 @@ export class ProjectStateService implements OnDestroy {
   // Document cache
   private documentCacheDb: Promise<IDBDatabase> | null = null;
 
+  /**
+   * Tracks element IDs created locally during this session.
+   * Used to distinguish "genuinely new document" from "unsynced remote document"
+   * when opening a document with empty IndexedDB.
+   *
+   * Cleared when the project is unloaded.
+   */
+  private readonly locallyCreatedElementIds = new Set<string>();
+
   // Core state signals
   readonly project = signal<Project | undefined>(undefined);
   readonly elements = signal<Element[]>([]);
@@ -663,6 +672,9 @@ export class ProjectStateService implements OnDestroy {
     this.publishPlans.set([]);
     this.expandedNodeIds.set(new Set());
 
+    // Clear locally-created element tracking
+    this.locallyCreatedElementIds.clear();
+
     // Clear error state
     this.error.set(undefined);
   }
@@ -746,6 +758,10 @@ export class ProjectStateService implements OnDestroy {
       version: 0,
       metadata: icon ? { icon } : {},
     };
+
+    // Track locally-created elements so we can distinguish them from
+    // unsynced remote elements when checking document availability
+    this.locallyCreatedElementIds.add(newElement.id);
 
     const updatedElements = [...elements];
     updatedElements.splice(parentIndex + 1, 0, newElement);
@@ -1154,6 +1170,57 @@ export class ProjectStateService implements OnDestroy {
   ): void {
     if (!documentId || !state) return;
     this.docSyncState.set(state);
+  }
+
+  /**
+   * Check whether an element was created locally during the current session.
+   * Used to distinguish genuinely new documents (safe to open even without
+   * IndexedDB content) from remotely-added documents that haven't synced yet.
+   */
+  isLocallyCreatedElement(elementId: string): boolean {
+    return this.locallyCreatedElementIds.has(elementId);
+  }
+
+  /**
+   * Check if a document should show an unavailable warning.
+   * Returns true if the document is a remote element that hasn't been synced yet
+   * (i.e. it's in server mode, wasn't created locally, and has no IndexedDB data).
+   */
+  async isDocumentUnavailable(elementId: string): Promise<boolean> {
+    // In local mode, all documents are available locally
+    if (this.setupService.getMode() !== 'server') return false;
+
+    // Locally created documents are always available (they're genuinely new)
+    if (this.locallyCreatedElementIds.has(elementId)) return false;
+
+    // Check if the document has content in IndexedDB
+    const project = this.project();
+    if (!project) return false;
+
+    const documentId = `${project.username}:${project.slug}:${elementId}`;
+    const hasContent = await this.checkDocumentInIndexedDB(documentId);
+    return !hasContent;
+  }
+
+  /**
+   * Check if a Yjs document has been persisted to IndexedDB.
+   * A document with object stores has been synced at least once.
+   */
+  private checkDocumentInIndexedDB(documentId: string): Promise<boolean> {
+    return new Promise(resolve => {
+      try {
+        const request = indexedDB.open(documentId);
+        request.onsuccess = () => {
+          const db = request.result;
+          const hasData = db.objectStoreNames.length > 0;
+          db.close();
+          resolve(hasData);
+        };
+        request.onerror = () => resolve(false);
+      } catch {
+        resolve(false);
+      }
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

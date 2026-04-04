@@ -1,4 +1,13 @@
-@if (fullDocumentId()) {
+@if (documentUnavailable()) {
+  <div class="editor-placeholder" data-testid="unsynchronized-document-warning">
+    <mat-icon>cloud_off</mat-icon>
+    <span>This document has not been synced to your browser yet.</span>
+    <span class="subtitle"
+      >Reconnect to the server and try again once the document has finished
+      syncing.</span
+    >
+  </div>
+} @else if (fullDocumentId()) {
   @defer (on idle) {
     <app-document-element-editor
       [documentId]="fullDocumentId()"

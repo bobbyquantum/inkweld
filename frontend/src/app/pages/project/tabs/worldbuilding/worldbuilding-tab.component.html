@@ -1,4 +1,12 @@
-@if (elementId() && elementType() && username() && slug()) {
+@if (documentUnavailable()) {
+  <div class="error-message" data-testid="unsynchronized-document-warning">
+    <p>This document has not been synced to your browser yet.</p>
+    <p>
+      Reconnect to the server and try again once the document has finished
+      syncing.
+    </p>
+  </div>
+} @else if (elementId() && elementType() && username() && slug()) {
   @defer (on idle) {
     <app-worldbuilding-editor
       [elementId]="elementId()"

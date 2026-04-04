@@ -23,7 +23,7 @@
         class="editor-container fit-width"
         [class.zen-mode-container]="zenMode">
         <div class="scaled-content">
-          <div class="editor-wrapper">
+          <div class="editor-wrapper" data-testid="document-editor">
             @if (editorKey > 0) {
               <ngx-editor
                 [editor]="editor"
