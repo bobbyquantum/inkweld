@@ -180,14 +180,14 @@ Yjs CRDT updates exchanged in binary format.`}</code>
           <Heading as="h2">Client Generation</Heading>
           <p>Generate type-safe API clients from the OpenAPI specification:</p>
           <pre>
-            <code>{`# TypeScript/Angular client (included in repo)
+            <code>{String.raw`# TypeScript/Angular client (included in repo)
 cd backend
 bun run generate:angular-client
 
 # Other languages via openapi-generator
-npx @openapitools/openapi-generator-cli generate \\
-  -i backend/openapi.json \\
-  -g python \\
+npx @openapitools/openapi-generator-cli generate \
+  -i backend/openapi.json \
+  -g python \
   -o ./python-client`}</code>
           </pre>
         </section>

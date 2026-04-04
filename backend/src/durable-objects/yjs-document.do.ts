@@ -79,9 +79,9 @@ interface StoredUpdate {
  * Handles WebSocket connections, syncing, and persistence
  */
 export class YjsDocument extends DurableObject {
-  private doc: Y.Doc;
-  private awareness: awarenessProtocol.Awareness;
-  private connections: Map<WebSocket, { userId?: string }>;
+  private readonly doc: Y.Doc;
+  private readonly awareness: awarenessProtocol.Awareness;
+  private readonly connections: Map<WebSocket, { userId?: string }>;
   private documentId: string;
   private lastCompaction: number;
   private lastActivityTime: number;

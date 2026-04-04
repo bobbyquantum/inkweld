@@ -1,5 +1,6 @@
 import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import { projects, type Project, type InsertProject } from '../db/schema/projects';
 import { users } from '../db/schema/users';
 import { projectSlugAliases, type ProjectSlugAlias } from '../db/schema/project-slug-aliases';
@@ -22,8 +23,9 @@ class ProjectService {
     username: string,
     slug: string
   ): Promise<(Project & { username: string }) | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (db as any)
+    // Cast to a concrete Drizzle type — TypeScript cannot resolve select(fields)
+    // on union types even when all members support it (sync vs async result kinds).
+    const result = await (db as D1DatabaseInstance)
       .select({
         id: projects.id,
         version: projects.version,
@@ -31,6 +33,8 @@ class ProjectService {
         title: projects.title,
         description: projects.description,
         userId: projects.userId,
+        coverImage: projects.coverImage,
+        minClientVersion: projects.minClientVersion,
         createdDate: projects.createdDate,
         updatedDate: projects.updatedDate,
         username: users.username,
@@ -40,8 +44,9 @@ class ProjectService {
       .where(and(eq(users.username, username), eq(projects.slug, slug)))
       .limit(1);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    return result[0] as any;
+    // Spread with the username parameter — guaranteed non-null because the
+    // WHERE clause requires users.username = the parameter value.
+    return result[0] ? { ...result[0], username } : undefined;
   }
 
   /**
@@ -51,8 +56,9 @@ class ProjectService {
     db: DatabaseInstance,
     userId: string
   ): Promise<Array<Project & { username: string }>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
+    // Cast to a concrete Drizzle type — TypeScript cannot resolve select(fields)
+    // on union types even when all members support it (sync vs async result kinds).
+    const results = await (db as D1DatabaseInstance)
       .select({
         id: projects.id,
         version: projects.version,
@@ -60,6 +66,8 @@ class ProjectService {
         title: projects.title,
         description: projects.description,
         userId: projects.userId,
+        coverImage: projects.coverImage,
+        minClientVersion: projects.minClientVersion,
         createdDate: projects.createdDate,
         updatedDate: projects.updatedDate,
         username: users.username,
@@ -69,8 +77,9 @@ class ProjectService {
       .where(eq(projects.userId, userId))
       .orderBy(desc(projects.updatedDate));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    return results as any;
+    // Filter out any rows where the user join produced a null username (FK integrity
+    // guarantees this won't happen, but this narrows the type without a cast).
+    return results.filter((r): r is typeof r & { username: string } => r.username !== null);
   }
 
   /**

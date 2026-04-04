@@ -124,17 +124,15 @@
             );
             track document.id
           ) {
-            <div
-              tabindex="0"
+            <button
+              type="button"
               class="recent-file-item"
-              role="button"
-              (keydown)="onRecentDocumentKeydown($event, document.id)"
               (click)="onRecentDocumentClick(document.id)">
               <mat-icon>{{
                 document.type === 'IMAGE' ? 'image' : 'description'
               }}</mat-icon>
               <span class="recent-file-name">{{ document.name }}</span>
-            </div>
+            </button>
           }
         </div>
       } @else {
@@ -160,18 +158,17 @@
         <div class="publish-plans-list" data-testid="publish-plans-list">
           @for (plan of projectState.publishPlans(); track plan.id) {
             <div class="publish-plan-item" data-testid="publish-plan-item">
-              <div
-                tabindex="0"
+              <button
+                type="button"
                 class="plan-content"
-                role="button"
-                (keydown)="onPublishPlanKeydown($event, plan)"
-                (click)="openPublishPlan(plan)">
+                (click)="openPublishPlan(plan)"
+                [attr.aria-label]="'Open publish plan: ' + plan.name">
                 <mat-icon>menu_book</mat-icon>
                 <div class="plan-info">
                   <span class="plan-name">{{ plan.name }}</span>
                   <span class="plan-format">{{ plan.format }}</span>
                 </div>
-              </div>
+              </button>
               <button
                 mat-icon-button
                 class="delete-plan-btn"
