@@ -155,10 +155,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (browserWindow) {
       const updateLayout = () => {
         const width = browserWindow.innerWidth;
-        const isLandscape = browserWindow.matchMedia(
-          '(orientation: landscape)'
-        ).matches;
-        const shouldUseSidenav = width >= 1024 || (width >= 768 && isLandscape);
+        const shouldUseSidenav = width >= 760;
         this.useSidenav.set(shouldUseSidenav);
       };
       updateLayout();

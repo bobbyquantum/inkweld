@@ -11,6 +11,9 @@
   flex-direction: column;
   height: var(--app-height-offset-50);
   overflow: hidden;
+  container-type: inline-size;
+  container-name: wb-editor;
+  background-color: var(--sys-surface);
 }
 
 // Layout area: sidenav + content (flex row) or just content (accordion)
@@ -32,10 +35,18 @@
 // ==========================================
 
 .wb-sidenav {
-  width: 220px;
-  min-width: 220px;
+  width: 320px;
+  min-width: 320px;
   border-right: 1px solid var(--sys-outline-variant);
   overflow-y: auto;
+  padding: 2em;
+
+  // Intermediate: tighter space but still sidenav
+  @container wb-editor (max-width: 1100px) {
+    width: 260px;
+    min-width: 260px;
+    padding: 1em;
+  }
 
   .sidenav-thumbnail {
     display: block;
@@ -89,6 +100,11 @@
 
   mat-nav-list {
     padding: 8px;
+    margin-top: 2em;
+
+    @container wb-editor (max-width: 1100px) {
+      margin-top: 1em;
+    }
 
     .mat-mdc-list-item {
       border-radius: 8px;
@@ -122,6 +138,8 @@
   overflow-x: hidden;
   min-width: 0;
   min-height: 0;
+  container-type: inline-size;
+  container-name: wb-content;
 }
 
 .section-content {
@@ -146,6 +164,12 @@
 // override its internal sizing and hide its collapse toggle.
 
 .identity-inline {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+
   ::ng-deep {
     .identity-panel {
       width: 100% !important;
@@ -181,7 +205,7 @@
       .description-section,
       .tags-section {
         flex: initial !important;
-        max-width: 600px;
+        max-width: 100%;
       }
     }
   }
@@ -250,9 +274,13 @@ mat-accordion {
   grid-template-columns: repeat(12, 1fr);
   gap: 1rem;
   min-height: 0;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
 
-  // Smaller screens: reduce padding and single column
-  @media (max-width: 767px) {
+  // Narrow container: reduce padding and single column
+  @container wb-content (max-width: 600px) {
     padding: 0.75rem;
     gap: 0.75rem;
     grid-template-columns: 1fr;
@@ -262,8 +290,8 @@ mat-accordion {
 .field-container {
   grid-column: span 12;
 
-  // Smaller screens: always full width
-  @media (max-width: 767px) {
+  // Narrow container: always full width
+  @container wb-content (max-width: 600px) {
     grid-column: span 1 !important;
   }
 }
