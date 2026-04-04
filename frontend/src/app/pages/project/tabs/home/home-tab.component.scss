@@ -270,6 +270,13 @@
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
+  // Button resets
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
 }
 
 .recent-file-item:hover,

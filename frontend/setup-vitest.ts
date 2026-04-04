@@ -459,6 +459,8 @@ Object.defineProperty(globalThis, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 });
+// Keep window in sync for environments where window !== globalThis
+(window as typeof globalThis).matchMedia = globalThis.matchMedia;
 
 // Mock window.location.reload for tests that trigger page reloads
 // (e.g., connection-settings component after server mode switch)
@@ -475,3 +477,5 @@ Object.defineProperty(globalThis, 'location', {
     hash: globalThis.location?.hash || '',
   },
 });
+// Keep window in sync for environments where window !== globalThis
+(window as typeof globalThis).location = globalThis.location;

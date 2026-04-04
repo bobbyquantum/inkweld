@@ -13,15 +13,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
 import {
   getFormatDisplayName,
   getFormatIcon,
   type PublishedFile,
   SharePermission,
-} from '../../models/published-file';
-import { SetupService } from '../../services/core/setup.service';
-import { PublishedFilesService } from '../../services/publish/published-files.service';
+} from '@models/published-file';
+import { SetupService } from '@services/core/setup.service';
+import { PublishedFilesService } from '@services/publish/published-files.service';
 
 /**
  * Data passed to the publish complete dialog

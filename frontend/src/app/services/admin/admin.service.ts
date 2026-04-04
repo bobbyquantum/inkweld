@@ -91,7 +91,7 @@ export class AdminService {
       if (options?.offset) params.set('offset', options.offset.toString());
 
       const queryString = params.toString();
-      const queryPart = queryString ? '?' + queryString : '';
+      const queryPart = queryString ? `?${queryString}` : '';
       // Use the standard users endpoint - admins get full details automatically
       const url = `${this.basePath}/api/v1/users${queryPart}`;
 

@@ -78,12 +78,6 @@ export class HomeTabComponent {
     }
   }
 
-  onRecentDocumentKeydown(event: KeyboardEvent, documentId: string): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      this.onRecentDocumentClick(documentId);
-    }
-  }
-
   onNewFileClick(): void {
     const project = this.projectState.project();
     if (project) {
@@ -289,16 +283,6 @@ export class HomeTabComponent {
       'publish-plan',
       plan.id,
     ]);
-  }
-
-  /**
-   * Opens a publish plan from keyboard event
-   */
-  onPublishPlanKeydown(event: KeyboardEvent, plan: PublishPlan): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.openPublishPlan(plan);
-    }
   }
 
   /**

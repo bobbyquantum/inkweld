@@ -4,13 +4,12 @@
  */
 import type { MiddlewareHandler } from 'hono';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
-import type { R2Bucket } from '@cloudflare/workers-types';
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
 // Context type for D1
 export type D1AppContext = {
   Bindings: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    DB: any; // Runtime-only type, avoid workers-types dependency
+    DB: D1Database;
     STORAGE?: R2Bucket;
   };
   Variables: {

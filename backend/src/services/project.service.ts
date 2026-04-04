@@ -1,5 +1,6 @@
 import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import { projects, type Project, type InsertProject } from '../db/schema/projects';
 import { users } from '../db/schema/users';
 import { projectSlugAliases, type ProjectSlugAlias } from '../db/schema/project-slug-aliases';
@@ -22,8 +23,9 @@ class ProjectService {
     username: string,
     slug: string
   ): Promise<(Project & { username: string }) | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (db as any)
+    // Cast to a concrete Drizzle type — TypeScript cannot resolve select(fields)
+    // on union types even when all members support it (sync vs async result kinds).
+    const result = await (db as D1DatabaseInstance)
       .select({
         id: projects.id,
         version: projects.version,
@@ -31,6 +33,8 @@ class ProjectService {
         title: projects.title,
         description: projects.description,
         userId: projects.userId,
+        coverImage: projects.coverImage,
+        minClientVersion: projects.minClientVersion,
         createdDate: projects.createdDate,
         updatedDate: projects.updatedDate,
         username: users.username,
@@ -40,7 +44,8 @@ class ProjectService {
       .where(and(eq(users.username, username), eq(projects.slug, slug)))
       .limit(1);
 
-    return result[0];
+    // username is always populated because the WHERE clause filters by users.username
+    return result[0] as (Project & { username: string }) | undefined;
   }
 
   /**
@@ -50,8 +55,9 @@ class ProjectService {
     db: DatabaseInstance,
     userId: string
   ): Promise<Array<Project & { username: string }>> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
+    // Cast to a concrete Drizzle type — TypeScript cannot resolve select(fields)
+    // on union types even when all members support it (sync vs async result kinds).
+    const results = await (db as D1DatabaseInstance)
       .select({
         id: projects.id,
         version: projects.version,
@@ -59,6 +65,8 @@ class ProjectService {
         title: projects.title,
         description: projects.description,
         userId: projects.userId,
+        coverImage: projects.coverImage,
+        minClientVersion: projects.minClientVersion,
         createdDate: projects.createdDate,
         updatedDate: projects.updatedDate,
         username: users.username,
@@ -68,7 +76,8 @@ class ProjectService {
       .where(eq(projects.userId, userId))
       .orderBy(desc(projects.updatedDate));
 
-    return results;
+    // username is always populated because the WHERE clause filters by userId (FK constraint)
+    return results as Array<Project & { username: string }>;
   }
 
   /**

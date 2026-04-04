@@ -104,7 +104,7 @@ if (isCompiled) {
 
   if (bunEmbedded.length > 0) {
     embeddedFrontendFiles ??= new Map();
-    bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles?.set(name, blob));
+    bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles.set(name, blob));
     logger.info('SPA', `Added ${bunEmbedded.length} files from Bun.embeddedFiles`);
   }
 

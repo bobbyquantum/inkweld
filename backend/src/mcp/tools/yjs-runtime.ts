@@ -31,7 +31,7 @@ export async function getElements(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -58,7 +58,7 @@ export async function replaceAllElements(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -98,7 +98,7 @@ export async function getWorldbuildingDoc(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -174,7 +174,7 @@ export async function updateWorldbuilding(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -226,7 +226,7 @@ export async function updateDocumentContent(
     // Cloudflare Workers: Send XML to the DO which handles
     // the Yjs XmlFragment operations directly
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -597,7 +597,7 @@ export async function getRelationships(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API to get document and read relationships array
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -633,7 +633,7 @@ export async function replaceAllRelationships(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -664,7 +664,7 @@ export async function addRelationship(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);
@@ -698,7 +698,7 @@ export async function updateProjectMetaCoverMediaId(
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API with path-based updates
     const workerCtx: YjsWorkerContext = {
-      env: ctx.env as { YJS_PROJECTS: NonNullable<typeof ctx.env>['YJS_PROJECTS'] },
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
       authToken: ctx.authToken ?? '',
     };
     const workerService = new YjsWorkerService(workerCtx);

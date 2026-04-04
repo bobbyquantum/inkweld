@@ -1,13 +1,29 @@
 /**
  * Cloudflare Workers type definitions
  */
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import type { D1DatabaseInstance } from '../db/d1';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DurableObjectNamespace<_T = unknown> = any;
+/** Minimal Durable Object identifier interface */
+interface DurableObjectId {
+  toString(): string;
+}
 
-/** Minimal Cloudflare Durable Object stub interface (placeholder until @cloudflare/workers-types is available) */
+/**
+ * Minimal Cloudflare Durable Object stub interface.
+ * Uses the standard Request type for compatibility with Hono's c.req.raw.
+ */
 interface DurableObjectStub {
   fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
+}
+
+/**
+ * Minimal Cloudflare Durable Object namespace interface.
+ * Typed for the operations actually used in this codebase.
+ */
+interface DurableObjectNamespace {
+  idFromName(name: string): DurableObjectId;
+  get(id: DurableObjectId): DurableObjectStub;
 }
 
 // Re-export types for use in other modules
@@ -18,16 +34,13 @@ export type { DurableObjectNamespace, DurableObjectStub };
  */
 export interface CloudflareEnv {
   // D1 Database
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  DB: any;
+  DB: D1Database;
 
   // R2 Storage
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  STORAGE: any;
+  STORAGE: R2Bucket;
 
   // Durable Objects
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  YJS_PROJECTS: DurableObjectNamespace<any>;
+  YJS_PROJECTS: DurableObjectNamespace;
 
   // Environment variables
   NODE_ENV: string;
@@ -49,8 +62,7 @@ export interface CloudflareEnv {
 export type CloudflareAppContext = {
   Bindings: CloudflareEnv;
   Variables: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    db: any;
+    db: D1DatabaseInstance;
     userId?: string;
   };
 };

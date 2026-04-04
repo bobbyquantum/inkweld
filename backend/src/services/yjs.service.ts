@@ -157,10 +157,14 @@ export class YjsService {
     return elements.sort((a, b) => a.order - b.order);
   }
 
-  /** Coerce an unknown value to a primitive string, returning '' for objects. */
+  /**
+   * Coerce an unknown value to a primitive string, returning '' for objects or
+   * symbols (which cannot be coerced to strings via template literals).
+   */
   private coerceFieldString(value: unknown): string {
     if (typeof value === 'string') return value;
     if (typeof value === 'object') return '';
+    if (typeof value === 'symbol') return '';
     return `${value ?? ''}`;
   }
 

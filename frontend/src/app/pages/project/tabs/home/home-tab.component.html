@@ -124,17 +124,15 @@
             );
             track document.id
           ) {
-            <div
-              tabindex="0"
+            <button
+              type="button"
               class="recent-file-item"
-              role="button"
-              (keydown)="onRecentDocumentKeydown($event, document.id)"
               (click)="onRecentDocumentClick(document.id)">
               <mat-icon>{{
                 document.type === 'IMAGE' ? 'image' : 'description'
               }}</mat-icon>
               <span class="recent-file-name">{{ document.name }}</span>
-            </div>
+            </button>
           }
         </div>
       } @else {
