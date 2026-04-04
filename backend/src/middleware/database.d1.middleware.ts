@@ -9,7 +9,8 @@ import type { R2Bucket } from '@cloudflare/workers-types';
 // Context type for D1
 export type D1AppContext = {
   Bindings: {
-    DB: D1Database;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    DB: any; // Runtime-only type, avoid workers-types dependency
     STORAGE?: R2Bucket;
   };
   Variables: {
@@ -18,9 +19,6 @@ export type D1AppContext = {
     storage?: R2Bucket;
   };
 };
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type D1Database = any; // Runtime-only type, avoid workers-types dependency
 
 /**
  * Middleware that attaches D1 database and R2 storage to Hono context

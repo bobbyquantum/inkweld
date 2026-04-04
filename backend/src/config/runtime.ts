@@ -26,7 +26,7 @@ export function detectRuntime(): RuntimePlatform {
   }
 
   // Check for Node.js
-  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+  if (typeof process !== 'undefined' && process.versions?.node) {
     return RuntimePlatform.NODE;
   }
 

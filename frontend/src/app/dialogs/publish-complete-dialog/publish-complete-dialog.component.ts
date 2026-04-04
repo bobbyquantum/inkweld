@@ -73,7 +73,7 @@ export class PublishCompleteDialogComponent {
   private readonly dialogRef = inject(
     MatDialogRef<PublishCompleteDialogComponent>
   );
-  private data = inject<PublishCompleteDialogData>(MAT_DIALOG_DATA);
+  private readonly data = inject<PublishCompleteDialogData>(MAT_DIALOG_DATA);
   private readonly publishedFilesService = inject(PublishedFilesService);
   private readonly setupService = inject(SetupService);
   private readonly snackBar = inject(MatSnackBar);

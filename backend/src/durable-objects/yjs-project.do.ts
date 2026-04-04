@@ -65,8 +65,8 @@ type YjsEnv = {
  * Extends y-durableobjects to support multiple documents per DO instance
  */
 export class YjsProject extends YDurableObjects<YjsEnv> {
-  private documents: Map<string, WSSharedDoc> = new Map();
-  private connections: Map<WebSocket, ConnectionInfo> = new Map();
+  private readonly documents: Map<string, WSSharedDoc> = new Map();
+  private readonly connections: Map<WebSocket, ConnectionInfo> = new Map();
   private projectId: string = '';
 
   /**

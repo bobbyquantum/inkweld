@@ -40,8 +40,7 @@ class ProjectService {
       .where(and(eq(users.username, username), eq(projects.slug, slug)))
       .limit(1);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    return result[0] as any;
+    return result[0];
   }
 
   /**
@@ -69,8 +68,7 @@ class ProjectService {
       .where(eq(projects.userId, userId))
       .orderBy(desc(projects.updatedDate));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    return results as any;
+    return results;
   }
 
   /**

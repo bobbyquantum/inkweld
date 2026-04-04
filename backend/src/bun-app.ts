@@ -103,9 +103,7 @@ if (isCompiled) {
     .map((f) => [f.name ?? '', f] as [string, Blob]);
 
   if (bunEmbedded.length > 0) {
-    if (!embeddedFrontendFiles) {
-      embeddedFrontendFiles = new Map();
-    }
+    embeddedFrontendFiles ??= new Map();
     bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles?.set(name, blob));
     logger.info('SPA', `Added ${bunEmbedded.length} files from Bun.embeddedFiles`);
   }

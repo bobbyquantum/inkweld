@@ -160,18 +160,17 @@
         <div class="publish-plans-list" data-testid="publish-plans-list">
           @for (plan of projectState.publishPlans(); track plan.id) {
             <div class="publish-plan-item" data-testid="publish-plan-item">
-              <div
-                tabindex="0"
+              <button
+                type="button"
                 class="plan-content"
-                role="button"
-                (keydown)="onPublishPlanKeydown($event, plan)"
-                (click)="openPublishPlan(plan)">
+                (click)="openPublishPlan(plan)"
+                [attr.aria-label]="'Open publish plan: ' + plan.name">
                 <mat-icon>menu_book</mat-icon>
                 <div class="plan-info">
                   <span class="plan-name">{{ plan.name }}</span>
                   <span class="plan-format">{{ plan.format }}</span>
                 </div>
-              </div>
+              </button>
               <button
                 mat-icon-button
                 class="delete-plan-btn"

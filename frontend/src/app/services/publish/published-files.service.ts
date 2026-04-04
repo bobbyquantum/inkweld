@@ -44,7 +44,7 @@ export class PublishedFilesService {
   private readonly setupService = inject(SetupService);
 
   /** Current project's published files (reactive) */
-  private filesSubject = new BehaviorSubject<PublishedFile[]>([]);
+  private readonly filesSubject = new BehaviorSubject<PublishedFile[]>([]);
   readonly files$ = this.filesSubject.asObservable();
 
   /** Loading state */
@@ -67,7 +67,7 @@ export class PublishedFilesService {
    * Get the server base URL
    */
   private getServerUrl(): string {
-    return this.setupService.getServerUrl() || window.location.origin;
+    return this.setupService.getServerUrl() || globalThis.location.origin;
   }
 
   /**

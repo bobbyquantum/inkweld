@@ -710,12 +710,14 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
     const { username, slug } = result.project;
 
     const elementIds = args.elementIds as string[] | undefined;
-    const newParentId =
-      args.newParentId === '' || args.newParentId === null || args.newParentId === undefined
-        ? null
-        : typeof args.newParentId === 'object'
-          ? null
-          : String(args.newParentId);
+    let newParentId: string | null = null;
+    if (
+      args.newParentId !== '' &&
+      args.newParentId != null &&
+      typeof args.newParentId !== 'object'
+    ) {
+      newParentId = `${args.newParentId}`;
+    }
 
     if (!elementIds || !Array.isArray(elementIds) || elementIds.length === 0) {
       return {
@@ -983,12 +985,10 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const parentId =
-      args.parentId === '' || args.parentId === null || args.parentId === undefined
-        ? null
-        : typeof args.parentId === 'object'
-          ? null
-          : String(args.parentId);
+    let parentId: string | null = null;
+    if (args.parentId !== '' && args.parentId != null && typeof args.parentId !== 'object') {
+      parentId = `${args.parentId}`;
+    }
     const sortBy = (args.sortBy as string) || 'name';
     const descending = Boolean(args.descending);
     const foldersFirst = args.foldersFirst !== false; // Default true

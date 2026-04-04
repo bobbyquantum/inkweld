@@ -33,20 +33,20 @@ interface LintResponseDto {
 
 export class OpenAILintService {
   private openai: OpenAI | null = null;
-  private isEnabled: boolean = false;
-  private cache = new Map<string, CacheEntry<LintResponseDto>>();
+  private readonly isEnabled: boolean = false;
+  private readonly cache = new Map<string, CacheEntry<LintResponseDto>>();
   private readonly CACHE_TTL = 300000; // 5 minutes
   private readonly MODEL = 'gpt-4-turbo-preview';
 
   constructor() {
     const apiKey = config.openai.apiKey;
-    if (!apiKey) {
-      lintLog.warn('OPENAI_API_KEY not configured. AI linting disabled.');
-      this.isEnabled = false;
-    } else {
+    if (apiKey) {
       this.openai = new OpenAI({ apiKey });
       this.isEnabled = true;
       lintLog.info('OpenAI lint service initialized');
+    } else {
+      lintLog.warn('OPENAI_API_KEY not configured. AI linting disabled.');
+      this.isEnabled = false;
     }
   }
 

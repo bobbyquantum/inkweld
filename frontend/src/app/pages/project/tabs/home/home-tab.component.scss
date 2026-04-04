@@ -95,7 +95,7 @@
   }
 
   &.has-no-cover {
-    // We no longer use the background image here to avoid redundancy 
+    // We no longer use the background image here to avoid redundancy
     // with the project cover component and to improve theme consistency.
     // The theme-aware surface color provides better contrast.
   }
@@ -124,7 +124,9 @@
   overflow: hidden;
   position: relative;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   @media (max-width: 759px) {
     width: 140px;
@@ -228,6 +230,13 @@
   border-bottom: 1px solid var(--sys-outline-variant);
   padding-bottom: 8px;
   font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h3 {
+    margin: 0;
+  }
 }
 
 .start-actions {
@@ -280,16 +289,6 @@
 // Publish Plans
 // ─────────────────────────────────────────────────────────────────────────────
 
-.home-column-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  h3 {
-    margin: 0;
-  }
-}
-
 .publish-plans-list {
   display: flex;
   flex-direction: column;
@@ -317,6 +316,11 @@
   padding: 8px;
   cursor: pointer;
   border-radius: 4px;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 
   &:focus {
     outline: 2px solid var(--sys-primary);

@@ -2,11 +2,6 @@
  * Cloudflare Workers type definitions
  */
 
-// Re-export Cloudflare Worker types when available
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type D1Database = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type R2Bucket = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DurableObjectNamespace<_T = unknown> = any;
 
@@ -23,10 +18,12 @@ export type { DurableObjectNamespace, DurableObjectStub };
  */
 export interface CloudflareEnv {
   // D1 Database
-  DB: D1Database;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DB: any;
 
   // R2 Storage
-  STORAGE: R2Bucket;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  STORAGE: any;
 
   // Durable Objects
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +49,8 @@ export interface CloudflareEnv {
 export type CloudflareAppContext = {
   Bindings: CloudflareEnv;
   Variables: {
-    db: D1Database;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    db: any;
     userId?: string;
   };
 };

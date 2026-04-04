@@ -46,7 +46,7 @@ export interface StorageService {
  * Storage adapter that wraps FileStorageService to match the interface
  */
 class FileStorageAdapter implements StorageService {
-  constructor(private fileStorage: FileStorageService) {}
+  constructor(private readonly fileStorage: FileStorageService) {}
 
   async saveProjectFile(
     username: string,
@@ -55,12 +55,14 @@ class FileStorageAdapter implements StorageService {
     data: Buffer | ArrayBuffer | Uint8Array,
     _contentType?: string
   ): Promise<void> {
-    const buffer =
-      data instanceof Buffer
-        ? data
-        : data instanceof ArrayBuffer
-          ? Buffer.from(new Uint8Array(data))
-          : Buffer.from(data);
+    let buffer: Buffer;
+    if (data instanceof Buffer) {
+      buffer = data;
+    } else if (data instanceof ArrayBuffer) {
+      buffer = Buffer.from(new Uint8Array(data));
+    } else {
+      buffer = Buffer.from(data);
+    }
     await this.fileStorage.saveProjectFile(username, projectSlug, filename, buffer);
   }
 
@@ -93,12 +95,14 @@ class FileStorageAdapter implements StorageService {
   }
 
   async saveUserAvatar(username: string, data: Buffer | ArrayBuffer | Uint8Array): Promise<void> {
-    const buffer =
-      data instanceof Buffer
-        ? data
-        : data instanceof ArrayBuffer
-          ? Buffer.from(new Uint8Array(data))
-          : Buffer.from(data);
+    let buffer: Buffer;
+    if (data instanceof Buffer) {
+      buffer = data;
+    } else if (data instanceof ArrayBuffer) {
+      buffer = Buffer.from(new Uint8Array(data));
+    } else {
+      buffer = Buffer.from(data);
+    }
     await this.fileStorage.saveUserAvatar(username, buffer);
   }
 
@@ -131,8 +135,7 @@ class FileStorageAdapter implements StorageService {
  * Storage adapter that wraps R2StorageService to match the interface
  */
 class R2StorageAdapter implements StorageService {
-  constructor(private r2Storage: R2StorageService) {}
-
+  constructor(private readonly r2Storage: R2StorageService) {}
   async saveProjectFile(
     username: string,
     projectSlug: string,
