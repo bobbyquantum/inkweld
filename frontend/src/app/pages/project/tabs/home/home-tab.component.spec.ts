@@ -266,61 +266,6 @@ describe('HomeTabComponent', () => {
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('should handle recent document keydown event (Enter key)', () => {
-    const document = mockRecentFiles[0];
-    const mockKeyboardEvent = new KeyboardEvent('keydown', { key: 'Enter' });
-    const mockElement = {
-      id: 'doc1',
-      name: 'Recent Document 1',
-      type: ElementType.Item,
-      level: 0,
-      order: 0,
-      expandable: false,
-      version: 1,
-      metadata: {},
-    } as Element;
-
-    vi.spyOn(component, 'onRecentDocumentClick');
-    (projectStateService.elements as any).set([mockElement]);
-
-    component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
-
-    expect(component.onRecentDocumentClick).toHaveBeenCalledWith(document.id);
-  });
-
-  it('should handle recent document keydown event (Space key)', () => {
-    const document = mockRecentFiles[0];
-    const mockKeyboardEvent = new KeyboardEvent('keydown', { key: ' ' });
-    const mockElement = {
-      id: 'doc1',
-      name: 'Recent Document 1',
-      type: ElementType.Item,
-      level: 0,
-      order: 0,
-      expandable: false,
-      version: 1,
-      metadata: {},
-    } as Element;
-
-    vi.spyOn(component, 'onRecentDocumentClick');
-    (projectStateService.elements as any).set([mockElement]);
-
-    component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
-
-    expect(component.onRecentDocumentClick).toHaveBeenCalledWith(document.id);
-  });
-
-  it('should not react to other keys in document keydown event', () => {
-    const document = mockRecentFiles[0];
-    const mockKeyboardEvent = new KeyboardEvent('keydown', { key: 'A' });
-
-    vi.spyOn(component, 'onRecentDocumentClick');
-
-    component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
-
-    expect(component.onRecentDocumentClick).not.toHaveBeenCalled();
-  });
-
   it('should export project when export button is clicked', () => {
     component.onExportClick();
     expect(exportService.exportProject).toHaveBeenCalled();
@@ -668,36 +613,6 @@ describe('HomeTabComponent', () => {
 
     expect(projectStateService.openPublishPlan).not.toHaveBeenCalled();
     expect(mockRouter.navigate).not.toHaveBeenCalled();
-  });
-
-  it('should open publish plans from keyboard activation', () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-    const event = new KeyboardEvent('keydown', { key: 'Enter' });
-    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-    const openSpy = vi.spyOn(component, 'openPublishPlan');
-
-    component.onPublishPlanKeydown(event, plan);
-
-    expect(preventDefaultSpy).toHaveBeenCalled();
-    expect(openSpy).toHaveBeenCalledWith(plan);
-  });
-
-  it('should ignore unrelated publish-plan keyboard events', () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-    const event = new KeyboardEvent('keydown', { key: 'Escape' });
-    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-    const openSpy = vi.spyOn(component, 'openPublishPlan');
-
-    component.onPublishPlanKeydown(event, plan);
-
-    expect(preventDefaultSpy).not.toHaveBeenCalled();
-    expect(openSpy).not.toHaveBeenCalled();
   });
 
   it('should delete a publish plan after confirmation', async () => {

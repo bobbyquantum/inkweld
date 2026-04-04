@@ -354,9 +354,9 @@ export class HtmlGeneratorService {
     const year = new Date().getFullYear();
     const parts: string[] = ['<section class="copyright">'];
 
-    parts.push(
-      `<p>${this.escapeHtml(metadata.copyright || `Copyright © ${year} ${metadata.author}`)}</p>`
-    );
+    const copyrightText =
+      metadata.copyright || `Copyright © ${year} ${metadata.author}`;
+    parts.push(`<p>${this.escapeHtml(copyrightText)}</p>`);
     parts.push('<p>All rights reserved.</p>');
 
     if (metadata.publisher) {
@@ -468,13 +468,14 @@ export class HtmlGeneratorService {
     };
 
     if (typeof node === 'object' && node) {
-      const name = (
-        'nodeName' in node
-          ? node['nodeName']
-          : 'type' in node
-            ? node['type']
-            : ''
-      ) as string;
+      let name: string;
+      if ('nodeName' in node) {
+        name = node['nodeName'] as string;
+      } else if ('type' in node) {
+        name = node['type'] as string;
+      } else {
+        name = '';
+      }
       return typeMap[name.toLowerCase()] || name.toLowerCase() || 'div';
     }
     return 'span';

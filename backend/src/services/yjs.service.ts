@@ -158,22 +158,23 @@ export class YjsService {
   }
 
   /**
+   * Coerce an unknown value to a primitive string, returning '' for objects or
+   * symbols (which cannot be coerced to strings via template literals).
+   */
+  private coerceFieldString(value: unknown): string {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' || typeof value === 'symbol') return '';
+    if (value == null) return '';
+    return String(value);
+  }
+
+  /**
    * Normalize a raw Yjs record into a typed Element with coercion and fallbacks.
    */
   private normalizeElement(elem: Record<string, unknown>): Element {
     return {
-      id:
-        typeof elem.id === 'string'
-          ? elem.id
-          : typeof elem.id === 'object'
-            ? ''
-            : String(elem.id ?? ''),
-      name:
-        typeof elem.name === 'string'
-          ? elem.name
-          : typeof elem.name === 'object'
-            ? ''
-            : String(elem.name ?? ''),
+      id: this.coerceFieldString(elem.id),
+      name: this.coerceFieldString(elem.name),
       type: (elem.type as ElementType) ?? 'ITEM',
       parentId: this.coerceNullableString(elem.parentId),
       order: Number(elem.order ?? 0),

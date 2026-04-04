@@ -62,9 +62,9 @@
               <mat-icon>add</mat-icon>
             </button>
           </div>
-          <ul class="layers-list" role="listbox" aria-label="Layers">
+          <div class="layers-list" role="listbox" aria-label="Layers">
             @for (layer of sortedLayers(); track layer.id) {
-              <li
+              <div
                 role="option"
                 class="layer-item"
                 data-testid="layer-item"
@@ -106,9 +106,9 @@
                   (click)="$event.stopPropagation()">
                   <mat-icon>more_vert</mat-icon>
                 </button>
-              </li>
+              </div>
             }
-          </ul>
+          </div>
         </div>
 
         <!-- Objects section -->
@@ -117,9 +117,9 @@
             <span class="section-title">Objects</span>
             <span class="object-count">{{ activeLayerObjects().length }}</span>
           </div>
-          <ul class="objects-list" role="listbox" aria-label="Objects">
+          <div class="objects-list" role="listbox" aria-label="Objects">
             @for (obj of activeLayerObjects(); track obj.id) {
-              <li
+              <div
                 role="option"
                 class="object-item"
                 [class.selected]="obj.id === selectedObjectId()"
@@ -143,7 +143,7 @@
                   (click)="onDeleteObject(obj.id, $event)">
                   <mat-icon>delete</mat-icon>
                 </button>
-              </li>
+              </div>
             } @empty {
               <div class="empty-state" data-testid="objects-empty">
                 <p>No objects on this layer.</p>
@@ -152,7 +152,7 @@
                 </p>
               </div>
             }
-          </ul>
+          </div>
         </div>
       </aside>
     }

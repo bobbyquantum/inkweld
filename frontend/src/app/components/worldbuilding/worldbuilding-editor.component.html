@@ -24,7 +24,7 @@
             aria-label="Set identity image"
             matTooltip="Set image"
             data-testid="sidenav-thumbnail-empty">
-            <mat-icon>add_photo_alternate</mat-icon>
+            <mat-icon aria-hidden="true">add_photo_alternate</mat-icon>
           </button>
         }
         <mat-nav-list>
@@ -207,6 +207,7 @@
         type="button">
         @for (tag of elementTags(); track tag.assignment.id) {
           <mat-icon
+            aria-hidden="true"
             class="tag-icon"
             [style.color]="tag.definition.color"
             [matTooltip]="tag.definition.name"
@@ -214,7 +215,9 @@
             label
           </mat-icon>
         }
-        <mat-icon class="tag-icon tag-icon-add"> label </mat-icon>
+        <mat-icon aria-hidden="true" class="tag-icon tag-icon-add">
+          label
+        </mat-icon>
       </button>
     </span>
     <span class="status-actions">

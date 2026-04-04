@@ -376,7 +376,7 @@ if (!Blob.prototype.text) {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
-        reader.readAsText(this);
+        reader.readAsText(this); // NOSONAR — this IS the Blob.text() polyfill, FileReader is the only option here
       });
     },
   });
@@ -446,7 +446,7 @@ console.info = noop;
 // Mock matchMedia for Angular CDK BreakpointObserver
 // This is required for components using BreakpointObserver (dialogs, responsive components)
 // Uses plain functions (not vi.fn()) so vi.restoreAllMocks() doesn't clear them
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(globalThis, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
     matches: false,
@@ -463,15 +463,15 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock window.location.reload for tests that trigger page reloads
 // (e.g., connection-settings component after server mode switch)
 // Uses plain functions so vi.restoreAllMocks() doesn't clear them
-Object.defineProperty(window, 'location', {
+Object.defineProperty(globalThis, 'location', {
   writable: true,
   value: {
-    ...window.location,
+    ...globalThis.location,
     reload: () => {},
-    href: window.location?.href || 'http://localhost/',
-    origin: window.location?.origin || 'http://localhost',
-    pathname: window.location?.pathname || '/',
-    search: window.location?.search || '',
-    hash: window.location?.hash || '',
+    href: globalThis.location?.href || 'http://localhost/',
+    origin: globalThis.location?.origin || 'http://localhost',
+    pathname: globalThis.location?.pathname || '/',
+    search: globalThis.location?.search || '',
+    hash: globalThis.location?.hash || '',
   },
 });

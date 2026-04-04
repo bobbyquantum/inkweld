@@ -23,7 +23,10 @@
   </div>
 
   <!-- Results List -->
-  <ul class="results-container" role="listbox" data-testid="quick-open-results">
+  <div
+    class="results-container"
+    role="listbox"
+    data-testid="quick-open-results">
     @if (showingRecent() && results().length > 0) {
       <div class="results-header">Recent Files</div>
     }
@@ -33,8 +36,7 @@
       track trackByElementId($index, result);
       let i = $index
     ) {
-      <!-- NOSONAR -->
-      <li
+      <div
         class="result-item"
         [class.selected]="i === selectedIndex()"
         (click)="onResultClick(result, i)"
@@ -63,9 +65,9 @@
             >schedule</mat-icon
           >
         }
-      </li>
+      </div>
     } @empty {
-      <li class="empty-state">
+      <div class="empty-state">
         @if (searchQuery()) {
           <mat-icon>search_off</mat-icon>
           <p>No files match "{{ searchQuery() }}"</p>
@@ -73,9 +75,9 @@
           <mat-icon>folder_open</mat-icon>
           <p>No documents in project</p>
         }
-      </li>
+      </div>
     }
-  </ul>
+  </div>
 
   <!-- Footer with hints -->
   <div class="dialog-footer">

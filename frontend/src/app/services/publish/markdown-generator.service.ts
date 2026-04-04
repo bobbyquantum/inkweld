@@ -177,9 +177,8 @@ export class MarkdownGeneratorService {
       lines.push(`description: "${metadata.description}"`);
     if (metadata.language) lines.push(`language: ${metadata.language}`);
     if (metadata.keywords?.length) {
-      lines.push(
-        `keywords: [${metadata.keywords.map(k => `"${k}"`).join(', ')}]`
-      );
+      const keywordList = metadata.keywords.map(k => '"' + k + '"').join(', ');
+      lines.push(`keywords: [${keywordList}]`);
     }
     lines.push('---');
     return lines.join('\n');
