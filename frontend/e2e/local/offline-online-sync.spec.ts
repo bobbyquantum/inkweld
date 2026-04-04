@@ -503,4 +503,52 @@ test.describe('Unsynchronized Document Detection', () => {
     // The original content should NOT be present
     await expect(editorAfter).not.toContainText('Original content');
   });
+
+  test('should NOT show unsynchronized warning for worldbuilding elements that have been synced', async ({
+    localPageWithProject: page,
+  }) => {
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
+
+    // Create a worldbuilding character and open it
+    await createCharacterElement(page, 'Synced Character');
+    await page.getByTestId('element-Synced Character').click();
+    await expect(page).toHaveURL(/worldbuilding\/.+/);
+
+    // Worldbuilding editor should be visible
+    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
+
+    // The unsynchronized document warning should NOT be shown —
+    // this is the regression check: worldbuilding elements use a different
+    // IndexedDB key format (worldbuilding:user:slug:id) than regular
+    // documents (user:slug:id), so the availability check must account
+    // for this difference. If it doesn't, ALL worldbuilding elements
+    // will falsely show as unavailable.
+    await expect(
+      page.getByTestId('unsynchronized-document-warning')
+    ).not.toBeVisible();
+  });
+
+  test('should NOT show unsynchronized warning for document elements that have been synced', async ({
+    localPageWithProject: page,
+  }) => {
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
+
+    // Create a document and open it
+    await createDocumentElement(page, 'Synced Document');
+    await page.getByTestId('element-Synced Document').click();
+    await expect(page).toHaveURL(/document\/.+/);
+
+    // Editor should be visible
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
+    await expect(editor).toBeVisible();
+
+    // The unsynchronized document warning should NOT be shown
+    await expect(
+      page.getByTestId('unsynchronized-document-warning')
+    ).not.toBeVisible();
+  });
 });
