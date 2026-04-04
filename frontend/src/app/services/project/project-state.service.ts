@@ -1185,8 +1185,14 @@ export class ProjectStateService implements OnDestroy {
    * Check if a document should show an unavailable warning.
    * Returns true if the document is a remote element that hasn't been synced yet
    * (i.e. it's in server mode, wasn't created locally, and has no IndexedDB data).
+   *
+   * @param elementType - 'worldbuilding' for worldbuilding elements (which use
+   *   a different IndexedDB key format), or 'document' (default) for regular documents.
    */
-  async isDocumentUnavailable(elementId: string): Promise<boolean> {
+  async isDocumentUnavailable(
+    elementId: string,
+    elementType: 'document' | 'worldbuilding' = 'document'
+  ): Promise<boolean> {
     // In local mode, all documents are available locally
     if (this.setupService.getMode() !== 'server') return false;
 
@@ -1197,7 +1203,11 @@ export class ProjectStateService implements OnDestroy {
     const project = this.project();
     if (!project) return false;
 
-    const documentId = `${project.username}:${project.slug}:${elementId}`;
+    // Worldbuilding elements use a different IndexedDB key format
+    const documentId =
+      elementType === 'worldbuilding'
+        ? `worldbuilding:${project.username}:${project.slug}:${elementId}`
+        : `${project.username}:${project.slug}:${elementId}`;
     const hasContent = await this.checkDocumentInIndexedDB(documentId);
     return !hasContent;
   }
