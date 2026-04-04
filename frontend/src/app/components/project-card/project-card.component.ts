@@ -1,4 +1,16 @@
-import { Component, computed, inject, Input, input } from '@angular/core';
+import {
+  type AfterViewInit,
+  Component,
+  computed,
+  ElementRef,
+  EventEmitter,
+  inject,
+  Input,
+  input,
+  NgZone,
+  type OnDestroy,
+  Output,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +21,11 @@ import { type Project } from '@inkweld/index';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
 
 import { ProjectCoverComponent } from '../project-cover/project-cover.component';
+
+/** Long-press threshold in milliseconds */
+const LONG_PRESS_MS = 500;
+/** Pointer move threshold in pixels before cancelling long-press */
+const MOVE_THRESHOLD = 10;
 
 @Component({
   selector: 'app-project-card',
@@ -24,8 +41,10 @@ import { ProjectCoverComponent } from '../project-cover/project-cover.component'
   templateUrl: './project-card.component.html',
   styleUrl: './project-card.component.scss',
 })
-export class ProjectCardComponent {
+export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   private readonly syncQueueService = inject(SyncQueueService);
+  private readonly el = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly zone = inject(NgZone);
 
   @Input()
   public project!: Project;
@@ -38,8 +57,115 @@ export class ProjectCardComponent {
   @Input()
   public sharedByUsername?: string;
 
+  /** Whether this project is activated on this device */
+  @Input()
+  public isActivated = true;
+
+  /** Emitted on long-press (~500ms hold) */
+  @Output()
+  public longPress = new EventEmitter<void>();
+
   /** Project key for looking up sync status */
   readonly projectKey = input<string>();
+
+  // Long-press tracking
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressFired = false;
+  private startX = 0;
+  private startY = 0;
+  private activePointerId: number | null = null;
+
+  // Bound handlers for cleanup
+  private readonly boundPointerDown = this.onPointerDown.bind(this);
+  private readonly boundPointerUp = this.onPointerUp.bind(this);
+  private readonly boundPointerMove = this.onPointerMove.bind(this);
+  private readonly boundPointerCancel = this.onPointerCancel.bind(this);
+  private listenersAttached = false;
+
+  /**
+   * Attach long-press listeners. Called once the component initializes.
+   * Runs outside Angular zone for performance.
+   */
+  ngAfterViewInit(): void {
+    this.attachLongPressListeners();
+  }
+
+  private attachLongPressListeners(): void {
+    if (this.listenersAttached) return;
+    this.listenersAttached = true;
+    const el = this.el.nativeElement;
+    this.zone.runOutsideAngular(() => {
+      el.addEventListener('pointerdown', this.boundPointerDown);
+      el.addEventListener('pointerup', this.boundPointerUp);
+      el.addEventListener('pointermove', this.boundPointerMove);
+      el.addEventListener('pointercancel', this.boundPointerCancel);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.cancelLongPress();
+    if (this.listenersAttached) {
+      const el = this.el.nativeElement;
+      el.removeEventListener('pointerdown', this.boundPointerDown);
+      el.removeEventListener('pointerup', this.boundPointerUp);
+      el.removeEventListener('pointermove', this.boundPointerMove);
+      el.removeEventListener('pointercancel', this.boundPointerCancel);
+    }
+  }
+
+  /** Whether the last interaction was a long-press (to suppress click) */
+  wasLongPress(): boolean {
+    return this.longPressFired;
+  }
+
+  private onPointerDown(event: PointerEvent): void {
+    if (!event.isPrimary || event.button !== 0) return;
+    this.activePointerId = event.pointerId;
+    this.startX = event.clientX;
+    this.startY = event.clientY;
+    this.longPressFired = false;
+
+    this.longPressTimer = setTimeout(() => {
+      this.longPressFired = true;
+      this.zone.run(() => this.longPress.emit());
+    }, LONG_PRESS_MS);
+  }
+
+  private onPointerUp(event: PointerEvent): void {
+    if (
+      this.activePointerId !== null &&
+      event.pointerId !== this.activePointerId
+    )
+      return;
+    this.activePointerId = null;
+    this.cancelLongPress();
+  }
+
+  private onPointerMove(event: PointerEvent): void {
+    if (
+      this.activePointerId !== null &&
+      event.pointerId !== this.activePointerId
+    )
+      return;
+    if (!this.longPressTimer) return;
+    const dx = event.clientX - this.startX;
+    const dy = event.clientY - this.startY;
+    if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {
+      this.cancelLongPress();
+    }
+  }
+
+  private onPointerCancel(): void {
+    this.activePointerId = null;
+    this.cancelLongPress();
+  }
+
+  private cancelLongPress(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+  }
 
   /** Current sync status for this project */
   readonly syncStatus = computed(() => {

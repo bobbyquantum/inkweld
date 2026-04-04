@@ -19,6 +19,7 @@ import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
 import { BackgroundSyncService } from './background-sync.service';
 import { LocalProjectService } from './local-project.service';
+import { ProjectActivationService } from './project-activation.service';
 import { ProjectSyncService } from './project-sync.service';
 import { StorageService } from './storage.service';
 
@@ -44,6 +45,10 @@ describe('BackgroundSyncService', () => {
 
   const mockLocalProjectService = {
     deleteProject: vi.fn(),
+  };
+
+  const mockActivationService = {
+    activate: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockSetupService = {
@@ -82,6 +87,7 @@ describe('BackgroundSyncService', () => {
         { provide: ProjectsService, useValue: mockProjectsApi },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: LocalProjectService, useValue: mockLocalProjectService },
+        { provide: ProjectActivationService, useValue: mockActivationService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     });
@@ -521,6 +527,32 @@ describe('BackgroundSyncService', () => {
 
       // Should not have called checkTombstones
       expect(mockProjectsApi.checkTombstones).not.toHaveBeenCalled();
+    });
+
+    it('should auto-activate project after successful creation sync', async () => {
+      const projectKey = 'alice/auto-activate-project';
+      await projectSyncService.markPendingCreation(projectKey, {
+        title: 'Auto Activate',
+        slug: 'auto-activate-project',
+        description: 'Test',
+      });
+
+      mockProjectsApi.createProject.mockReturnValue(
+        of({
+          id: 'server-id-auto',
+          title: 'Auto Activate',
+          slug: 'auto-activate-project',
+          description: 'Test',
+          username: 'alice',
+        })
+      );
+      mockProjectService.updateLocalProjectWithServerData.mockResolvedValue(
+        undefined
+      );
+
+      await service.syncPendingItems();
+
+      expect(mockActivationService.activate).toHaveBeenCalledWith(projectKey);
     });
   });
 });

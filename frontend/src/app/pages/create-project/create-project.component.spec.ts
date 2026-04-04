@@ -20,6 +20,7 @@ import {
   Router,
 } from '@angular/router';
 import { type Project } from '@inkweld/index';
+import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectTemplateService } from '@services/project/project-template.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
@@ -121,6 +122,10 @@ describe('CreateProjectComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: { paramMap: of(convertToParamMap({})) },
+        },
+        {
+          provide: ProjectActivationService,
+          useValue: { activate: vi.fn().mockResolvedValue(undefined) },
         },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
