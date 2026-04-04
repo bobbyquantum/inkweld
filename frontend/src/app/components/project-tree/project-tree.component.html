@@ -15,6 +15,24 @@
 
   <!-- Toolbar with action buttons -->
   <div class="tree-toolbar">
+    <button
+      mat-icon-button
+      class="home-button"
+      [class.active]="isHomeSelected()"
+      (click)="goHome()"
+      matTooltip="Home"
+      data-testid="toolbar-home-button">
+      <mat-icon>home</mat-icon>
+    </button>
+    <button
+      mat-icon-button
+      class="search-button"
+      (click)="openProjectSearch()"
+      matTooltip="Search in Project (Ctrl+Shift+F)"
+      data-testid="toolbar-project-search-button">
+      <mat-icon>manage_search</mat-icon>
+    </button>
+    <span class="toolbar-spacer"></span>
     @if (showCollapseButton()) {
       <button
         mat-icon-button
@@ -28,24 +46,6 @@
         >
       </button>
     }
-    <button
-      mat-icon-button
-      class="home-button"
-      [class.active]="isHomeSelected()"
-      (click)="goHome()"
-      matTooltip="Home"
-      data-testid="toolbar-home-button">
-      <mat-icon>home</mat-icon>
-    </button>
-    <span class="toolbar-spacer"></span>
-    <button
-      mat-icon-button
-      class="search-button"
-      (click)="openProjectSearch()"
-      matTooltip="Search in Project (Ctrl+Shift+F)"
-      data-testid="toolbar-project-search-button">
-      <mat-icon>manage_search</mat-icon>
-    </button>
   </div>
 
   <!-- Project Tree with ARIA attributes for accessibility -->
