@@ -178,6 +178,28 @@ mat-expansion-panel {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 64px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+
+  &.empty {
+    min-height: 120px;
+  }
+
+  &.cdk-drop-list-receiving {
+    background-color: color-mix(in srgb, var(--sys-primary) 8%, transparent);
+    outline: 2px dashed var(--sys-primary);
+    outline-offset: -2px;
+
+    .empty-state {
+      border-color: var(--sys-primary);
+      color: var(--sys-primary);
+
+      mat-icon {
+        opacity: 1;
+      }
+    }
+  }
 }
 
 .content-item {
