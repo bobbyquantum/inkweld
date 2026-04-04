@@ -163,9 +163,9 @@ export class YjsService {
    */
   private coerceFieldString(value: unknown): string {
     if (typeof value === 'string') return value;
-    if (typeof value === 'object') return '';
-    if (typeof value === 'symbol') return '';
-    return `${value ?? ''}`;
+    if (typeof value === 'object' || typeof value === 'symbol') return '';
+    if (value == null) return '';
+    return String(value);
   }
 
   /**

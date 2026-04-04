@@ -44,8 +44,9 @@ class ProjectService {
       .where(and(eq(users.username, username), eq(projects.slug, slug)))
       .limit(1);
 
-    // username is always populated because the WHERE clause filters by users.username
-    return result[0] as (Project & { username: string }) | undefined;
+    // Spread with the username parameter — guaranteed non-null because the
+    // WHERE clause requires users.username = the parameter value.
+    return result[0] ? { ...result[0], username } : undefined;
   }
 
   /**
@@ -76,8 +77,9 @@ class ProjectService {
       .where(eq(projects.userId, userId))
       .orderBy(desc(projects.updatedDate));
 
-    // username is always populated because the WHERE clause filters by userId (FK constraint)
-    return results as Array<Project & { username: string }>;
+    // Filter out any rows where the user join produced a null username (FK integrity
+    // guarantees this won't happen, but this narrows the type without a cast).
+    return results.filter((r): r is typeof r & { username: string } => r.username !== null);
   }
 
   /**

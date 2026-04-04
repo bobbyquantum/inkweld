@@ -711,12 +711,8 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
 
     const elementIds = args.elementIds as string[] | undefined;
     let newParentId: string | null = null;
-    if (
-      args.newParentId !== '' &&
-      args.newParentId != null &&
-      typeof args.newParentId !== 'object'
-    ) {
-      newParentId = `${args.newParentId}`;
+    if (typeof args.newParentId === 'string' && args.newParentId !== '') {
+      newParentId = args.newParentId;
     }
 
     if (!elementIds || !Array.isArray(elementIds) || elementIds.length === 0) {
@@ -986,8 +982,8 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
     const { username, slug } = result.project;
 
     let parentId: string | null = null;
-    if (args.parentId !== '' && args.parentId != null && typeof args.parentId !== 'object') {
-      parentId = `${args.parentId}`;
+    if (typeof args.parentId === 'string' && args.parentId !== '') {
+      parentId = args.parentId;
     }
     const sortBy = (args.sortBy as string) || 'name';
     const descending = Boolean(args.descending);
