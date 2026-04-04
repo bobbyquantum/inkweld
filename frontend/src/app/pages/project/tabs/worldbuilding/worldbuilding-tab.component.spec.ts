@@ -392,6 +392,11 @@ describe('WorldbuildingTabComponent', () => {
         );
         expect(warning).toBeTruthy();
       });
+
+      expect(mockProjectState.isDocumentUnavailable).toHaveBeenCalledWith(
+        'element-123',
+        'worldbuilding'
+      );
     });
 
     it('should not show warning when document is available', async () => {
