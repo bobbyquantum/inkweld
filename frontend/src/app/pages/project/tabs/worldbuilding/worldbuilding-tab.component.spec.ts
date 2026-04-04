@@ -381,6 +381,7 @@ describe('WorldbuildingTabComponent', () => {
 
     it('should show warning when document is unavailable', async () => {
       mockProjectState.isDocumentUnavailable.mockResolvedValue(true);
+      mockProjectState.project.set(mockProject);
       fixture.detectChanges();
 
       await vi.waitFor(() => {

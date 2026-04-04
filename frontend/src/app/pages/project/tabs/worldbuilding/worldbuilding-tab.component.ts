@@ -63,12 +63,13 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Check document availability when the element changes
+    // Check document availability when the element or project changes
     effect(() => {
       const currentId = this.elementId();
+      const project = this.projectState.project();
       const token = ++this.availabilityCheckToken;
       this.documentUnavailable.set(false);
-      if (currentId) {
+      if (currentId && project) {
         void this.checkAvailability(currentId, token);
       }
     });

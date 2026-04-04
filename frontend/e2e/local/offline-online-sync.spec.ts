@@ -148,7 +148,9 @@ test.describe('Offline Mode - Element Availability', () => {
     await expect(page).toHaveURL(/document\/.+/);
 
     // ProseMirror editor should be visible and editable
-    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
 
     // Type content and verify it persists
@@ -216,7 +218,9 @@ test.describe('Offline Mode - Element Availability', () => {
     await page.getByTestId('element-Persistent Doc').click();
     await expect(page).toHaveURL(/document\/.+/);
 
-    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
     await editor.pressSequentially('Persistent content here');
@@ -230,7 +234,9 @@ test.describe('Offline Mode - Element Availability', () => {
     await expect(page).toHaveURL(/document\/.+/);
 
     // Content should still be there (loaded from IndexedDB)
-    const editorAgain = page.locator('.ProseMirror[contenteditable="true"]');
+    const editorAgain = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editorAgain).toContainText('Persistent content here');
   });
 });
@@ -251,25 +257,25 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
     await page.getByTestId('element-IndexedDB Doc').click();
     await expect(page).toHaveURL(/document\/.+/);
 
+    // Extract element ID from URL to construct exact DB name
+    const elementId = new URL(page.url()).pathname.split('/').pop()!;
+    const expectedDocDb = `testuser:test-project:${elementId}`;
+
     // Type some content to trigger a Yjs update + IndexedDB persist
-    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
     await editor.pressSequentially('Stored in IndexedDB');
 
-    // Small wait to allow IndexedDB persistence to flush
-    await page.waitForTimeout(500);
-
-    // Verify that Yjs IndexedDB databases exist
-    // Each document gets its own IndexedDB via y-indexeddb
-    const databases = await listIndexedDBDatabases(page);
-
-    // Should have at least one database containing project data
-    // The element tree doc uses format: local:username:slug:elements
-    const hasElementsDoc = databases.some((name: string) =>
-      name.includes('elements')
-    );
-    expect(hasElementsDoc).toBe(true);
+    // Wait for IndexedDB persistence to flush
+    await expect
+      .poll(async () => {
+        const dbs = await listIndexedDBDatabases(page);
+        return dbs.includes(expectedDocDb);
+      })
+      .toBe(true);
   });
 
   test('should store worldbuilding data in IndexedDB when a worldbuilding element is opened', async ({
@@ -284,17 +290,17 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
     await expect(page).toHaveURL(/worldbuilding\/.+/);
     await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
-    // Small wait to allow IndexedDB persistence to flush
-    await page.waitForTimeout(500);
+    // Extract element ID from URL to construct exact DB name
+    const elementId = new URL(page.url()).pathname.split('/').pop()!;
+    const expectedWbDb = `worldbuilding:testuser:test-project:${elementId}`;
 
-    // Verify worldbuilding IndexedDB databases exist
-    const databases = await listIndexedDBDatabases(page);
-
-    // Worldbuilding documents use format: worldbuilding:username:slug:elementId
-    const hasWorldbuildingDoc = databases.some((name: string) =>
-      name.includes('worldbuilding:')
-    );
-    expect(hasWorldbuildingDoc).toBe(true);
+    // Wait for IndexedDB persistence to flush
+    await expect
+      .poll(async () => {
+        const dbs = await listIndexedDBDatabases(page);
+        return dbs.includes(expectedWbDb);
+      })
+      .toBe(true);
   });
 
   test('should store element tree in IndexedDB as a unified Yjs document', async ({
@@ -308,22 +314,19 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
     await createCharacterElement(page, 'Tree Char 1');
     await createFolderElement(page, 'Tree Folder 1');
 
-    // Small wait for IndexedDB to flush
-    await page.waitForTimeout(500);
-
     // All elements should be visible in the tree
     await expect(page.getByTestId('element-Tree Doc 1')).toBeVisible();
     await expect(page.getByTestId('element-Tree Char 1')).toBeVisible();
     await expect(page.getByTestId('element-Tree Folder 1')).toBeVisible();
 
     // Verify the elements tree Yjs document exists in IndexedDB
-    const databases = await listIndexedDBDatabases(page);
-
-    // Element tree stored as: local:username:slug:elements
-    const hasElementsDoc = databases.some(
-      (name: string) => name.includes('testuser') && name.includes('elements')
-    );
-    expect(hasElementsDoc).toBe(true);
+    const expectedElementsDb = 'local:testuser:test-project:elements';
+    await expect
+      .poll(async () => {
+        const dbs = await listIndexedDBDatabases(page);
+        return dbs.includes(expectedElementsDb);
+      })
+      .toBe(true);
   });
 });
 
@@ -343,12 +346,24 @@ test.describe('Unsynchronized Document Detection', () => {
     await page.getByTestId('element-Synced Doc').click();
     await expect(page).toHaveURL(/document\/.+/);
 
+    // Extract element ID from URL to construct exact DB name
+    const elementId = new URL(page.url()).pathname.split('/').pop()!;
+    const expectedDocDb = `testuser:test-project:${elementId}`;
+
     // Type content so the doc has data in IndexedDB
-    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
     await editor.pressSequentially('Real document content');
-    await page.waitForTimeout(500);
+
+    // Wait for IndexedDB persistence to flush
+    await expect
+      .poll(async () => {
+        return checkIndexedDBAvailability(page, expectedDocDb);
+      })
+      .toBe(true);
 
     // A fabricated document ID that was never synced — simulates the
     // scenario where another user added an element to the shared tree
@@ -359,21 +374,15 @@ test.describe('Unsynchronized Document Detection', () => {
       phantomDocId
     );
 
-    // Also get the list of databases to verify real ones exist
-    const realDatabases = await listIndexedDBDatabases(page);
-
-    const result = {
-      phantomAvailable,
-      realDatabaseCount: realDatabases.length,
-      hasRealData: realDatabases.some(name => name.includes('elements')),
-    };
-
     // The phantom document should NOT be available — it was never synced
-    expect(result.phantomAvailable).toBe(false);
+    expect(phantomAvailable).toBe(false);
 
-    // But real data should exist
-    expect(result.realDatabaseCount).toBeGreaterThan(0);
-    expect(result.hasRealData).toBe(true);
+    // But the real document should be available
+    const realDocAvailable = await checkIndexedDBAvailability(
+      page,
+      expectedDocDb
+    );
+    expect(realDocAvailable).toBe(true);
   });
 
   test('should detect unavailability after deleting a documents IndexedDB data', async ({
@@ -387,35 +396,32 @@ test.describe('Unsynchronized Document Detection', () => {
     await page.getByTestId('element-To Be Removed').click();
     await expect(page).toHaveURL(/document\/.+/);
 
-    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    // Extract element ID from URL to construct exact DB name
+    const elementId = new URL(page.url()).pathname.split('/').pop()!;
+    const expectedDocDb = `testuser:test-project:${elementId}`;
+
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
     await editor.pressSequentially('Content that will be lost');
-    await page.waitForTimeout(500);
+
+    // Wait for IndexedDB persistence to flush
+    await expect
+      .poll(async () => {
+        return checkIndexedDBAvailability(page, expectedDocDb);
+      })
+      .toBe(true);
 
     // Navigate away from the document
     await page.getByTestId('toolbar-home-button').click();
-
-    // Get the document's element ID and verify it's available
-    const allDatabases = await listIndexedDBDatabases(page);
-    const docDbs = allDatabases.filter(
-      name =>
-        name.includes('testuser') &&
-        !name.includes('elements') &&
-        !name.includes('worldbuilding') &&
-        !name.includes('inkweld') &&
-        !name.includes('local:')
-    );
-    const elementId = docDbs[0];
-
-    // Fail explicitly if no document database was found
-    expect(elementId).toBeDefined();
 
     // Delete the IndexedDB for this document — simulating the scenario where
     // the element tree knows about this document, but the content was never
     // synced to our browser (e.g., another user created it remotely and we
     // lost connection before the content arrived)
-    const beforeDelete = await checkIndexedDBAvailability(page, elementId);
+    const beforeDelete = await checkIndexedDBAvailability(page, expectedDocDb);
 
     // Delete the database
     await page.evaluate(async (docId: string) => {
@@ -424,9 +430,9 @@ test.describe('Unsynchronized Document Detection', () => {
         deleteReq.onsuccess = () => resolve();
         deleteReq.onerror = () => reject(new Error(String(deleteReq.error)));
       });
-    }, elementId);
+    }, expectedDocDb);
 
-    const afterDelete = await checkIndexedDBAvailability(page, elementId);
+    const afterDelete = await checkIndexedDBAvailability(page, expectedDocDb);
 
     // Document was available before, unavailable after deletion
     expect(beforeDelete).toBe(true);
@@ -444,39 +450,36 @@ test.describe('Unsynchronized Document Detection', () => {
     await page.getByTestId('element-Phantom Test').click();
     await expect(page).toHaveURL(/document\/.+/);
 
-    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    // Extract element ID from URL to construct exact DB name
+    const elementId = new URL(page.url()).pathname.split('/').pop()!;
+    const expectedDocDb = `testuser:test-project:${elementId}`;
+
+    const editor = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editor).toBeVisible();
     await editor.click();
     await editor.pressSequentially('Original content');
-    await page.waitForTimeout(500);
+
+    // Wait for IndexedDB persistence to flush
+    await expect
+      .poll(async () => {
+        return checkIndexedDBAvailability(page, expectedDocDb);
+      })
+      .toBe(true);
 
     // Navigate to home to close the document tab
     await page.getByTestId('toolbar-home-button').click();
-    await page.waitForTimeout(200);
+    await expect(page.getByTestId('project-card').first()).toBeVisible();
 
-    // Delete the document's IndexedDB to simulate unsynced state
-    await page.evaluate(async () => {
-      if (typeof indexedDB.databases !== 'function') return;
-      const dbs = await indexedDB.databases();
-      const docDbs = dbs
-        .map(db => db.name)
-        .filter(
-          (n): n is string =>
-            n != null &&
-            n.includes('testuser') &&
-            !n.includes('elements') &&
-            !n.includes('worldbuilding') &&
-            !n.includes('inkweld') &&
-            !n.includes('local:')
-        );
-      for (const dbName of docDbs) {
-        await new Promise<void>(resolve => {
-          const req = indexedDB.deleteDatabase(dbName);
-          req.onsuccess = () => resolve();
-          req.onerror = () => resolve();
-        });
-      }
-    });
+    // Delete only this document's IndexedDB to simulate unsynced state
+    await page.evaluate(async (docId: string) => {
+      await new Promise<void>(resolve => {
+        const req = indexedDB.deleteDatabase(docId);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+      });
+    }, expectedDocDb);
 
     // Re-open the document — it still exists in the element tree
     // but has no IndexedDB backing (simulates unsynchronized state)
@@ -485,7 +488,9 @@ test.describe('Unsynchronized Document Detection', () => {
 
     // The editor should load but with empty content
     // (the original content was in the deleted IndexedDB)
-    const editorAfter = page.locator('.ProseMirror[contenteditable="true"]');
+    const editorAfter = page
+      .getByTestId('document-editor')
+      .locator('[contenteditable="true"]');
     await expect(editorAfter).toBeVisible();
 
     // The original content should NOT be present
