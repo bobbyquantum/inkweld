@@ -659,6 +659,57 @@ describe('ProjectStateService', () => {
 
       vi.restoreAllMocks();
     });
+
+    it('should use worldbuilding DB key format when elementType is worldbuilding', async () => {
+      const mockDb = {
+        objectStoreNames: { length: 2 },
+        close: vi.fn(),
+      };
+      const mockRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: mockDb,
+      };
+      const openSpy = vi
+        .spyOn(indexedDB, 'open')
+        .mockReturnValue(mockRequest as unknown as IDBOpenDBRequest);
+
+      const promise = service.isDocumentUnavailable(
+        'wb-element',
+        'worldbuilding'
+      );
+      queueMicrotask(() => mockRequest.onsuccess?.({} as Event));
+
+      await promise;
+      expect(openSpy).toHaveBeenCalledWith(
+        'worldbuilding:testuser:test-project:wb-element'
+      );
+
+      vi.restoreAllMocks();
+    });
+
+    it('should use default document DB key format when elementType is document', async () => {
+      const mockDb = {
+        objectStoreNames: { length: 2 },
+        close: vi.fn(),
+      };
+      const mockRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: mockDb,
+      };
+      const openSpy = vi
+        .spyOn(indexedDB, 'open')
+        .mockReturnValue(mockRequest as unknown as IDBOpenDBRequest);
+
+      const promise = service.isDocumentUnavailable('doc-element', 'document');
+      queueMicrotask(() => mockRequest.onsuccess?.({} as Event));
+
+      await promise;
+      expect(openSpy).toHaveBeenCalledWith('testuser:test-project:doc-element');
+
+      vi.restoreAllMocks();
+    });
   });
 
   describe('Tree Operations', () => {

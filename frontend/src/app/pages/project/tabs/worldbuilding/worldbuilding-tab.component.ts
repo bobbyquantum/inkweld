@@ -79,8 +79,10 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
     elementId: string,
     token: number
   ): Promise<void> {
-    const unavailable =
-      await this.projectState.isDocumentUnavailable(elementId);
+    const unavailable = await this.projectState.isDocumentUnavailable(
+      elementId,
+      'worldbuilding'
+    );
     if (token !== this.availabilityCheckToken) return;
     this.documentUnavailable.set(unavailable);
   }
