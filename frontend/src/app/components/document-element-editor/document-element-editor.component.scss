@@ -40,7 +40,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  background-color: var(--sys-surface-container);
+  background-color: var(--sys-surface-container-lowest);
   transition: opacity 0.3s ease;
 
   .zen-mode & {

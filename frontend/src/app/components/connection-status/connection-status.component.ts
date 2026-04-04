@@ -113,7 +113,6 @@ import { type MediaSyncState } from '../../services/local/media-sync.service';
         flex-direction: column;
         padding: 4px 8px;
         gap: 2px;
-        background-color: var(--sys-surface-container-lowest);
       }
 
       .status-row {
