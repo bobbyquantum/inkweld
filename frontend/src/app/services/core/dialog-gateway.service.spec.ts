@@ -35,6 +35,7 @@ import {
 } from '../../dialogs/rename-dialog/rename-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
+import { ProjectActivationService } from '../local/project-activation.service';
 import { DialogGatewayService } from './dialog-gateway.service';
 
 describe('DialogGatewayService', () => {
@@ -42,7 +43,13 @@ describe('DialogGatewayService', () => {
   let dialogMock: MockedObject<MatDialog>;
   let dialogRefMock: Partial<MatDialogRef<any>>;
 
+  const mockActivationService = {
+    activate: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(() => {
+    vi.clearAllMocks();
+
     dialogRefMock = {
       afterClosed: vi.fn().mockReturnValue(of(null)),
     };
@@ -56,6 +63,7 @@ describe('DialogGatewayService', () => {
         provideZonelessChangeDetection(),
         DialogGatewayService,
         { provide: MatDialog, useValue: dialogMock },
+        { provide: ProjectActivationService, useValue: mockActivationService },
       ],
     });
 
@@ -334,6 +342,26 @@ describe('DialogGatewayService', () => {
       width: '500px',
       maxWidth: '95vw',
     });
+  });
+
+  it('should auto-activate project on successful import', async () => {
+    const result = { success: true, slug: 'imported-novel' };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    await service.openImportProjectDialog('testuser');
+
+    expect(mockActivationService.activate).toHaveBeenCalledWith(
+      'testuser/imported-novel'
+    );
+  });
+
+  it('should not auto-activate on failed import', async () => {
+    const result = { success: false };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    await service.openImportProjectDialog('testuser');
+
+    expect(mockActivationService.activate).not.toHaveBeenCalled();
   });
 
   it('should open media selector dialog', async () => {
