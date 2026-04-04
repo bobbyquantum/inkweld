@@ -474,9 +474,10 @@ test.describe('Unsynchronized Document Detection', () => {
       })
       .toBe(true);
 
-    // Navigate to home to close the document tab
+    // Navigate to project home to close the document editor
     await page.getByTestId('toolbar-home-button').click();
-    await expect(page.getByTestId('project-card').first()).toBeVisible();
+    // Wait for the document tab to be deselected (home tab visible)
+    await expect(page.getByTestId('element-Phantom Test')).toBeVisible();
 
     // Delete only this document's IndexedDB to simulate unsynced state
     await page.evaluate(async (docId: string) => {
