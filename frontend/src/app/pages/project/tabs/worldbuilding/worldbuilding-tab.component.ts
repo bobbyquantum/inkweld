@@ -29,6 +29,14 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   protected username = signal<string | undefined>(undefined);
   protected slug = signal<string | undefined>(undefined);
 
+  /**
+   * Whether the current worldbuilding element is unavailable (remote element
+   * that hasn't synced). When true, a warning is shown instead of the editor.
+   */
+  protected readonly documentUnavailable = signal(false);
+
+  private availabilityCheckToken = 0;
+
   constructor() {
     // Watch for elements loading and update element type when available
     effect(() => {
@@ -54,6 +62,27 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
         this.slug.set(project.slug);
       }
     });
+
+    // Check document availability when the element or project changes
+    effect(() => {
+      const currentId = this.elementId();
+      const project = this.projectState.project();
+      const token = ++this.availabilityCheckToken;
+      this.documentUnavailable.set(false);
+      if (currentId && project) {
+        void this.checkAvailability(currentId, token);
+      }
+    });
+  }
+
+  private async checkAvailability(
+    elementId: string,
+    token: number
+  ): Promise<void> {
+    const unavailable =
+      await this.projectState.isDocumentUnavailable(elementId);
+    if (token !== this.availabilityCheckToken) return;
+    this.documentUnavailable.set(unavailable);
   }
 
   ngOnInit(): void {

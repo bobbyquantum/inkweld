@@ -66,6 +66,7 @@ describe('DocumentTabComponent', () => {
       project: signal(mockProject),
       openTabs: signal([]),
       selectedTabIndex: signal(0),
+      isDocumentUnavailable: vi.fn().mockResolvedValue(false),
     };
 
     settingsService = {
@@ -200,6 +201,68 @@ describe('DocumentTabComponent', () => {
         true
       );
       expect(result).toBe(true);
+    });
+  });
+
+  describe('documentUnavailable', () => {
+    it('should default to false', () => {
+      expect((component as any).documentUnavailable()).toBe(false);
+    });
+
+    it('should set documentUnavailable to true when isDocumentUnavailable returns true', async () => {
+      (
+        projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(true);
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'remote-doc' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      // Wait for the async check to complete
+      await vi.waitFor(() => {
+        expect((component as any).documentUnavailable()).toBe(true);
+      });
+    });
+
+    it('should set documentUnavailable to false when isDocumentUnavailable returns false', async () => {
+      (
+        projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(false);
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'local-doc' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      // Wait for the async check to complete
+      await vi.waitFor(() => {
+        expect(projectStateService.isDocumentUnavailable).toHaveBeenCalledWith(
+          'local-doc'
+        );
+      });
+      expect((component as any).documentUnavailable()).toBe(false);
+    });
+
+    it('should reset documentUnavailable when switching to a tab without element', async () => {
+      // First set to unavailable
+      (
+        projectStateService.isDocumentUnavailable as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(true);
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'remote-doc' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      await vi.waitFor(() => {
+        expect((component as any).documentUnavailable()).toBe(true);
+      });
+
+      // Switch to tab without element
+      (projectStateService.openTabs as any).set([{}]);
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      await vi.waitFor(() => {
+        expect((component as any).documentUnavailable()).toBe(false);
+      });
     });
   });
 });
