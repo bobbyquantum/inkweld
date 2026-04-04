@@ -11,11 +11,7 @@
       @if (!zenMode) {
         <app-editor-toolbar
           [editor]="editor"
-          [elementId]="documentId"
-          [elementName]="elementName()"
           [disabled]="!projectState.canWrite()"
-          (tagsClick)="openTagsDialog()"
-          (snapshotsClick)="openSnapshotsDialog()"
           (insertImageClick)="openInsertImageDialog()">
         </app-editor-toolbar>
       }
@@ -66,6 +62,17 @@
                 </mat-icon>
               }
               <mat-icon class="tag-icon tag-icon-add"> label </mat-icon>
+            </button>
+          </span>
+          <span class="status-actions">
+            <button
+              mat-icon-button
+              class="snapshots-btn"
+              (click)="openSnapshotsDialog()"
+              aria-label="Open document snapshots"
+              matTooltip="Document snapshots"
+              data-testid="toolbar-snapshots">
+              <mat-icon>history</mat-icon>
             </button>
           </span>
           <span class="sync-status">
