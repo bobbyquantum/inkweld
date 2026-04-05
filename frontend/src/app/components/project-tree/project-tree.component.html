@@ -54,6 +54,7 @@
     class="aria-tree"
     cdkDropList
     [cdkDropListData]="treeElements()"
+    [cdkDropListConnectedTo]="connectedDropLists()"
     (cdkDropListSorted)="sorted($event)"
     (cdkDropListDropped)="drop($event)">
     @for (node of treeElements(); track node.id) {

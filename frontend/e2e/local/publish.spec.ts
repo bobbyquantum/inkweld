@@ -295,4 +295,206 @@ test.describe('Local Publishing Workflow', () => {
       );
     });
   });
+
+  test.describe('Drag from Project Tree to Publish Plan', () => {
+    /**
+     * Helper: create a document element in the project tree.
+     */
+    async function createDocumentElement(
+      page: import('@playwright/test').Page,
+      name: string
+    ): Promise<void> {
+      await page.getByTestId('create-new-element').click();
+      await page.getByTestId('element-type-item').click();
+      const nameInput = page.getByTestId('element-name-input');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill(name);
+      await page.getByTestId('create-element-button').click();
+      await expect(page.getByTestId(`element-${name}`)).toBeVisible();
+    }
+
+    /**
+     * Helper: create a folder element in the project tree.
+     */
+    async function createFolderElement(
+      page: import('@playwright/test').Page,
+      name: string
+    ): Promise<void> {
+      await page.getByTestId('create-new-element').click();
+      await page.getByTestId('element-type-folder').click();
+      const nameInput = page.getByTestId('element-name-input');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill(name);
+      await page.getByTestId('create-element-button').click();
+      await expect(page.getByTestId(`element-${name}`)).toBeVisible();
+    }
+
+    /**
+     * Helper: perform a CDK-compatible drag using mouse events.
+     * Angular CDK uses pointer/mouse events, not HTML5 drag events,
+     * so Playwright's dragTo() doesn't work. Uses deliberate timing
+     * to ensure CDK processes each phase through requestAnimationFrame.
+     */
+    async function cdkDragTo(
+      page: import('@playwright/test').Page,
+      source: import('@playwright/test').Locator,
+      target: import('@playwright/test').Locator
+    ): Promise<void> {
+      // Ensure both elements are scrolled into view
+      await source.scrollIntoViewIfNeeded();
+      await target.scrollIntoViewIfNeeded();
+
+      const sourceBox = await source.boundingBox();
+      const targetBox = await target.boundingBox();
+      if (!sourceBox || !targetBox) {
+        throw new Error('Could not get bounding boxes for drag operation');
+      }
+
+      const srcX = sourceBox.x + sourceBox.width / 2;
+      const srcY = sourceBox.y + sourceBox.height / 2;
+      const tgtX = targetBox.x + targetBox.width / 2;
+      const tgtY = targetBox.y + targetBox.height / 2;
+
+      // 1. Hover over source to ensure CDK registers the element
+      await page.mouse.move(srcX, srcY);
+      await page.waitForTimeout(200);
+
+      // 2. Press and hold on source
+      await page.mouse.down();
+      await page.waitForTimeout(200);
+
+      // 3. Move past CDK's 5px drag-start threshold slowly
+      for (let i = 1; i <= 5; i++) {
+        await page.mouse.move(srcX + i * 4, srcY, { steps: 2 });
+        await page.waitForTimeout(50);
+      }
+
+      // 4. Wait for CDK to create the drag preview
+      await page.waitForTimeout(300);
+
+      // 5. Move toward the target in many small steps
+      await page.mouse.move(tgtX, tgtY, { steps: 30 });
+
+      // 6. Hover over target to let CDK detect entry into the drop list
+      await page.waitForTimeout(500);
+
+      // 7. Drop
+      await page.mouse.up();
+      await page.waitForTimeout(200);
+    }
+
+    /**
+     * Helper: navigate into the project, create a document, then open a publish plan.
+     */
+    async function setupProjectWithDocAndPlan(
+      page: import('@playwright/test').Page,
+      docName: string
+    ): Promise<void> {
+      // Open the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+
+      // Create a document element
+      await createDocumentElement(page, docName);
+
+      // Go home and navigate to publish plan
+      await page.getByTestId('toolbar-home-button').click();
+      await expect(
+        page.getByRole('heading', { name: 'Publish Plans' })
+      ).toBeVisible();
+      await page.getByTestId('create-publish-plan-button').click();
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+    }
+
+    test('should add document to publish plan by dragging from project tree', async ({
+      localPageWithProject: page,
+    }) => {
+      const docName = 'DragTestDoc';
+      await setupProjectWithDocAndPlan(page, docName);
+
+      // The tree element and the publish plan drop list should both be visible
+      const treeItem = page.getByTestId(`element-${docName}`);
+      await expect(treeItem).toBeVisible();
+
+      const dropTarget = page.getByTestId('content-items-list');
+      await expect(dropTarget).toBeVisible();
+
+      // Drag the tree item onto the publish plan items list using CDK-compatible mouse events
+      await cdkDragTo(page, treeItem, dropTarget);
+
+      // Verify the document was added to the plan
+      await expect(page.getByTestId('content-item-0')).toBeVisible();
+      await expect(
+        page.getByTestId('content-item-0').getByTestId('item-name')
+      ).toContainText(docName);
+
+      // Save button should appear (changes made)
+      await expect(page.getByTestId('save-changes-button')).toBeVisible();
+    });
+
+    test('should not allow dragging folder into publish plan', async ({
+      localPageWithProject: page,
+    }) => {
+      // Open the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+
+      // Create a folder
+      await createFolderElement(page, 'TestFolder');
+
+      // Navigate to publish plan
+      await page.getByTestId('toolbar-home-button').click();
+      await expect(
+        page.getByRole('heading', { name: 'Publish Plans' })
+      ).toBeVisible();
+      await page.getByTestId('create-publish-plan-button').click();
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+      // Attempt to drag folder onto the plan
+      const folderItem = page.getByTestId('element-TestFolder');
+      const dropTarget = page.getByTestId('content-items-list');
+      await cdkDragTo(page, folderItem, dropTarget);
+
+      // Plan should still be empty — folder should be rejected
+      await expect(page.getByTestId('empty-content-state')).toBeVisible();
+    });
+
+    test('should allow dragging multiple documents into publish plan', async ({
+      localPageWithProject: page,
+    }) => {
+      // Open the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+
+      // Create two document elements
+      await createDocumentElement(page, 'Chapter1');
+      await createDocumentElement(page, 'Chapter2');
+
+      // Navigate to publish plan
+      await page.getByTestId('toolbar-home-button').click();
+      await expect(
+        page.getByRole('heading', { name: 'Publish Plans' })
+      ).toBeVisible();
+      await page.getByTestId('create-publish-plan-button').click();
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+      const dropTarget = page.getByTestId('content-items-list');
+
+      // Drag first document
+      await cdkDragTo(page, page.getByTestId('element-Chapter1'), dropTarget);
+      await expect(page.getByTestId('content-item-0')).toBeVisible();
+
+      // Drag second document
+      await cdkDragTo(page, page.getByTestId('element-Chapter2'), dropTarget);
+      await expect(page.getByTestId('content-item-1')).toBeVisible();
+
+      // Verify both items are in the list
+      await expect(
+        page.getByTestId('content-item-0').getByTestId('item-name')
+      ).toContainText('Chapter1');
+      await expect(
+        page.getByTestId('content-item-1').getByTestId('item-name')
+      ).toContainText('Chapter2');
+    });
+  });
 });

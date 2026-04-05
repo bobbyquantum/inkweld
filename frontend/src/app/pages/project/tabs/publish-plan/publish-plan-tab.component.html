@@ -149,64 +149,66 @@
         </div>
 
         <!-- Content Items List -->
-        @if (plan.items.length === 0) {
-          <div class="empty-state" data-testid="empty-content-state">
-            <mat-icon>library_books</mat-icon>
-            <p>No items added yet</p>
-            <p class="hint">
-              Use the dropdown above to add documents to your publication
-            </p>
-          </div>
-        } @else {
-          <div
-            class="items-list"
-            data-testid="content-items-list"
-            cdkDropList
-            [cdkDropListData]="plan.items"
-            (cdkDropListDropped)="dropItem($event)">
-            @for (item of plan.items; track item.id; let i = $index) {
-              <div
-                class="content-item"
-                cdkDrag
-                [attr.data-testid]="'content-item-' + i">
-                <mat-icon class="drag-handle" cdkDragHandle
-                  >drag_indicator</mat-icon
-                >
-                <span class="item-order">{{ i + 1 }}</span>
-                <mat-icon class="item-icon">{{ getItemIcon(item) }}</mat-icon>
-                <span class="item-name" data-testid="item-name">{{
-                  getItemLabel(item)
-                }}</span>
-                <div class="item-actions">
-                  <button
-                    mat-icon-button
-                    (click)="moveItemUp(i)"
-                    [disabled]="i === 0"
-                    matTooltip="Move up"
-                    data-testid="move-up-button">
-                    <mat-icon>arrow_upward</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    (click)="moveItemDown(i)"
-                    [disabled]="i === plan.items.length - 1"
-                    matTooltip="Move down"
-                    data-testid="move-down-button">
-                    <mat-icon>arrow_downward</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    color="warn"
-                    (click)="removeItem(item.id)"
-                    matTooltip="Remove item"
-                    data-testid="remove-item-button">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
+        <div
+          class="items-list"
+          [class.empty]="plan.items.length === 0"
+          data-testid="content-items-list"
+          cdkDropList
+          id="publish-plan-items"
+          [cdkDropListData]="plan.items"
+          [cdkDropListEnterPredicate]="canEnterPublishList"
+          (cdkDropListDropped)="dropItem($event)">
+          @if (plan.items.length === 0) {
+            <div class="empty-state" data-testid="empty-content-state">
+              <mat-icon>library_books</mat-icon>
+              <p>No items added yet</p>
+              <p class="hint">
+                Use the dropdown above or drag documents from the project tree
+              </p>
+            </div>
+          }
+          @for (item of plan.items; track item.id; let i = $index) {
+            <div
+              class="content-item"
+              cdkDrag
+              [attr.data-testid]="'content-item-' + i">
+              <mat-icon class="drag-handle" cdkDragHandle
+                >drag_indicator</mat-icon
+              >
+              <span class="item-order">{{ i + 1 }}</span>
+              <mat-icon class="item-icon">{{ getItemIcon(item) }}</mat-icon>
+              <span class="item-name" data-testid="item-name">{{
+                getItemLabel(item)
+              }}</span>
+              <div class="item-actions">
+                <button
+                  mat-icon-button
+                  (click)="moveItemUp(i)"
+                  [disabled]="i === 0"
+                  matTooltip="Move up"
+                  data-testid="move-up-button">
+                  <mat-icon>arrow_upward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  (click)="moveItemDown(i)"
+                  [disabled]="i === plan.items.length - 1"
+                  matTooltip="Move down"
+                  data-testid="move-down-button">
+                  <mat-icon>arrow_downward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="removeItem(item.id)"
+                  matTooltip="Remove item"
+                  data-testid="remove-item-button">
+                  <mat-icon>delete</mat-icon>
+                </button>
               </div>
-            }
-          </div>
-        }
+            </div>
+          }
+        </div>
       </mat-expansion-panel>
 
       <!-- Options Section -->
