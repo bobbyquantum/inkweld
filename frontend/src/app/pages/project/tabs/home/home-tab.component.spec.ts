@@ -285,7 +285,7 @@ describe('HomeTabComponent', () => {
     expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
       'publish-plans'
     );
-    expect(projectStateService.selectTab).toHaveBeenCalled();
+    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
     expect(mockRouter.navigate).toHaveBeenCalledWith([
       '/',
       mockProject.username,

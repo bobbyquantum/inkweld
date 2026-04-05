@@ -921,6 +921,7 @@ export class PdfGeneratorService {
    * Returns an SVG markup string suitable for direct DOM injection.
    */
   async renderSvgPreview(plan: PublishPlan): Promise<string> {
+    this.isCancelled = false;
     this.initTypst();
     this.coverImageData = null;
 

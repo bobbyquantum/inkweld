@@ -291,7 +291,7 @@ test.describe('Relationships Tab', () => {
       await customCard.locator('[data-testid="type-menu-button"]').click();
 
       // Click Edit from the menu
-      await page.getByRole('menuitem', { name: 'Edit' }).click();
+      await page.getByTestId('edit-type-button').click();
 
       // Edit the name
       await expect(page.locator('app-rename-dialog')).toBeVisible();
@@ -361,7 +361,7 @@ test.describe('Relationships Tab', () => {
       await expect(menu).toBeVisible();
 
       // Should see Edit option (all types are now editable per-project)
-      await expect(menu.locator('button:has-text("Edit")')).toBeVisible();
+      await expect(menu.getByTestId('edit-type-button')).toBeVisible();
 
       // Should also see Clone and Delete options
       await expect(menu.locator('button:has-text("Clone")')).toBeVisible();

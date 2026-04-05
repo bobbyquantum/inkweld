@@ -178,10 +178,16 @@ test.describe('Local Publishing Workflow', () => {
       await expect(page.getByTestId('content-items-list')).toBeVisible();
 
       // Remove all items until empty
-      while (await page.getByTestId('remove-item-button').first().isVisible()) {
+      const MAX_REMOVALS = 50;
+      let removals = 0;
+      while (
+        removals < MAX_REMOVALS &&
+        (await page.getByTestId('remove-item-button').first().isVisible())
+      ) {
         await page.getByTestId('remove-item-button').first().click();
         // Wait for Angular to process the removal
         await page.waitForTimeout(300);
+        removals++;
       }
 
       // Should show empty state again

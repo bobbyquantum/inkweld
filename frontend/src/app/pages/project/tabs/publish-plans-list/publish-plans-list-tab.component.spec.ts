@@ -3,16 +3,17 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import {
   createDefaultPublishPlan,
   PublishFormat,
   type PublishPlan,
-} from '../../../../models/publish-plan';
-import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
-import { ProjectStateService } from '../../../../services/project/project-state.service';
-import { PublishedFilesService } from '../../../../services/publish/published-files.service';
+} from '@models/publish-plan';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { PublishedFilesService } from '@services/publish/published-files.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 import { PublishPlansListTabComponent } from './publish-plans-list-tab.component';
 
 describe('PublishPlansListTabComponent', () => {
@@ -139,10 +140,11 @@ describe('PublishPlansListTabComponent', () => {
     expect(component['expandedPlanId']()).toBeNull();
   });
 
-  it('should format file size', () => {
-    expect(component.formatSize(500)).toBe('500 B');
-    expect(component.formatSize(1024)).toBe('1.0 KB');
-    expect(component.formatSize(1048576)).toBe('1.0 MB');
+  it('should format file size via FileSizePipe', () => {
+    const pipe = new FileSizePipe();
+    expect(pipe.transform(500)).toBe('500 Bytes');
+    expect(pipe.transform(1024)).toBe('1 KB');
+    expect(pipe.transform(1048576)).toBe('1 MB');
   });
 
   it('should format format names', () => {

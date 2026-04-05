@@ -129,6 +129,8 @@ export class PublishPreviewComponent implements AfterViewInit, OnDestroy {
 
   private async generatePdfPreview(): Promise<void> {
     const svg = await this.pdfGenerator.renderSvgPreview(this.plan);
+    // SECURITY: SVG is generated internally by the Typst WASM compiler from
+    // trusted plan data — it does not contain user-supplied HTML/script content.
     this.svgContent.set(this.sanitizer.bypassSecurityTrustHtml(svg));
     this.htmlBlobUrl.set(null);
     this.markdownText.set(null);
@@ -141,6 +143,8 @@ export class PublishPreviewComponent implements AfterViewInit, OnDestroy {
     }
     const url = URL.createObjectURL(result.file);
     this.currentBlobUrl = url;
+    // SECURITY: Blob URL points to locally generated HTML content from the
+    // HtmlGeneratorService — it does not embed external or user-supplied scripts.
     this.htmlBlobUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
     this.svgContent.set(null);
     this.markdownText.set(null);

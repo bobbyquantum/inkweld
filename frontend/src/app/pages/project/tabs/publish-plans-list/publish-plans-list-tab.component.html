@@ -46,6 +46,8 @@
               (click)="toggleHistory(plan.id)"
               matTooltip="Publish history"
               [attr.aria-label]="'Show publish history for ' + plan.name"
+              [attr.aria-expanded]="expandedPlanId() === plan.id"
+              [attr.aria-controls]="'history-' + plan.id"
               data-testid="toggle-history-button">
               <mat-icon>{{
                 expandedPlanId() === plan.id ? 'expand_less' : 'history'
@@ -63,10 +65,13 @@
           </div>
 
           @if (expandedPlanId() === plan.id) {
-            <div class="plan-history" data-testid="plan-history">
-              @if (getHistoryForPlan(plan.name).length > 0) {
+            <div
+              class="plan-history"
+              [id]="'history-' + plan.id"
+              data-testid="plan-history">
+              @if (getHistoryForPlan(plan.id).length > 0) {
                 <div class="history-list">
-                  @for (file of getHistoryForPlan(plan.name); track file.id) {
+                  @for (file of getHistoryForPlan(plan.id); track file.id) {
                     <div class="history-item" data-testid="history-item">
                       <mat-icon class="history-icon">download</mat-icon>
                       <div class="history-details">
@@ -75,7 +80,7 @@
                         }}</span>
                         <span class="history-meta">
                           {{ formatDate(file.createdAt) }} ·
-                          {{ formatSize(file.size) }}
+                          {{ file.size | fileSize }}
                         </span>
                       </div>
                     </div>

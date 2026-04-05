@@ -1,5 +1,12 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  type OnDestroy,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -77,10 +84,11 @@ import { TemplatesTabComponent } from '../templates/templates-tab.component';
     TemplatesTabComponent,
   ],
 })
-export class SettingsTabComponent {
+export class SettingsTabComponent implements OnDestroy {
   // Sidenav / responsive layout
   protected useSidenav = signal(true);
   protected readonly selectedSection = signal<string>('actions');
+  private resizeCleanup: (() => void) | null = null;
 
   // Section definitions — dynamically computed based on access level
   protected readonly sections = computed(() => {
@@ -234,12 +242,21 @@ export class SettingsTabComponent {
     });
 
     // Responsive layout: sidenav on >= 760px, accordion on mobile
-    const browserWindow = typeof window !== 'undefined' ? window : undefined;
+    const browserWindow = globalThis.window;
     if (browserWindow) {
-      this.useSidenav.set(browserWindow.innerWidth >= 760);
-      browserWindow.addEventListener('resize', () => {
+      const updateLayout = (): void => {
         this.useSidenav.set(browserWindow.innerWidth >= 760);
-      });
+      };
+      updateLayout();
+      browserWindow.addEventListener('resize', updateLayout);
+      this.resizeCleanup = () =>
+        browserWindow.removeEventListener('resize', updateLayout);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.resizeCleanup) {
+      this.resizeCleanup();
     }
   }
 

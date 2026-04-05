@@ -129,6 +129,18 @@ describe('PublishPreviewComponent', () => {
     expect(component['error']()).toBe('Test error');
   });
 
+  it('should show error when PDF preview generation fails', async () => {
+    component.plan = { ...mockPlan, format: PublishFormat.PDF_SIMPLE };
+    mockPdfGenerator.renderSvgPreview = vi
+      .fn()
+      .mockRejectedValue(new Error('Typst compilation failed'));
+    await component.generatePreview();
+    fixture.detectChanges();
+    expect(component['error']()).toBe('Typst compilation failed');
+    expect(component['hasPreview']()).toBe(false);
+    expect(component['svgContent']()).toBeNull();
+  });
+
   it('should show outdated banner when outdated', async () => {
     component.outdated = true;
     await component.generatePreview();

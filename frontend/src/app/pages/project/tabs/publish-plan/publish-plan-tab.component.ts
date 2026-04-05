@@ -27,16 +27,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ElementType } from '@inkweld/index';
-import { firstValueFrom, type Subscription } from 'rxjs';
-
-import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
-import { PublishPreviewComponent } from '../../../../components/publish-preview/publish-preview.component';
+import { ProjectCoverComponent } from '@components/project-cover/project-cover.component';
+import { PublishPreviewComponent } from '@components/publish-preview/publish-preview.component';
 import {
   PublishCompleteDialogComponent,
   type PublishCompleteDialogData,
   type PublishCompleteDialogResult,
-} from '../../../../dialogs/publish-complete-dialog/publish-complete-dialog.component';
+} from '@dialogs/publish-complete-dialog/publish-complete-dialog.component';
+import { ElementType } from '@inkweld/index';
 import {
   BackmatterType,
   ChapterNumbering,
@@ -47,16 +45,18 @@ import {
   type PublishPlanItem,
   PublishPlanItemType,
   SeparatorStyle,
-} from '../../../../models/publish-plan';
-import { type PublishedFile } from '../../../../models/published-file';
-import { FileSizePipe } from '../../../../pipes/file-size.pipe';
-import { ProjectStateService } from '../../../../services/project/project-state.service';
+} from '@models/publish-plan';
+import { type PublishedFile } from '@models/published-file';
+import { ProjectStateService } from '@services/project/project-state.service';
 import {
   type PublishingResult,
   PublishService,
-} from '../../../../services/publish/publish.service';
-import { PublishedFilesService } from '../../../../services/publish/published-files.service';
-import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
+} from '@services/publish/publish.service';
+import { PublishedFilesService } from '@services/publish/published-files.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { firstValueFrom, type Subscription } from 'rxjs';
+
+import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 
 type PlanSection =
   | 'metadata'
@@ -98,8 +98,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private paramSubscription: Subscription | null = null;
-  private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-  private resizeCleanup: (() => void) | null = null;
+  private readonly resizeCleanup: (() => void) | null = null;
 
   /** Expose ElementType for template */
   protected readonly ElementType = ElementType;
@@ -190,7 +189,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       const project = this.projectState.project();
       if (project) {
         const projectKey = `${project.username}/${project.slug}`;
-        void this.publishedFilesService.loadFiles(projectKey);
+        this.publishedFilesService.loadFiles(projectKey).catch(() => {});
       }
     });
   }
@@ -218,7 +217,6 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.flushAutoSave();
     if (this.paramSubscription) {
       this.paramSubscription.unsubscribe();
       this.paramSubscription = null;
@@ -232,43 +230,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Persist plan changes with debounce */
-  private scheduleAutoSave(updatedPlan: PublishPlan): void {
-    if (this.autoSaveTimer) {
-      clearTimeout(this.autoSaveTimer);
-    }
-    this.autoSaveTimer = setTimeout(() => {
-      this.projectState.updatePublishPlan(updatedPlan);
-      this.autoSaveTimer = null;
-    }, 500);
-    this.previewOutdated.set(true);
-  }
-
-  /** Flush any pending auto-save immediately */
-  private flushAutoSave(): void {
-    if (this.autoSaveTimer) {
-      clearTimeout(this.autoSaveTimer);
-      this.autoSaveTimer = null;
-      const plan = this.plan();
-      if (plan) {
-        this.projectState.updatePublishPlan(plan);
-      }
-    }
-  }
-
-  /** Helper: update plan in state and schedule auto-save */
+  /** Helper: update plan in state */
   private updatePlan(changes: Partial<PublishPlan>): void {
     const plan = this.plan();
     if (!plan) return;
     const updated = { ...plan, ...changes };
-    // Write to projectState immediately for reactive UI, debounce persistence
     this.projectState.updatePublishPlan(updated);
     this.previewOutdated.set(true);
-    // Cancel any pending timer since we wrote directly
-    if (this.autoSaveTimer) {
-      clearTimeout(this.autoSaveTimer);
-      this.autoSaveTimer = null;
-    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

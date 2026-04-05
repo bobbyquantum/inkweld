@@ -117,7 +117,7 @@
   &.pdf-preview {
     padding: 0;
 
-    ::ng-deep svg {
+    :host ::ng-deep svg {
       display: block;
       max-width: 100%;
       height: auto;
@@ -143,8 +143,8 @@
       margin: 0;
       padding: 24px;
       white-space: pre-wrap;
-      word-wrap: break-word;
-      font-family: 'Georgia', 'Times New Roman', serif;
+      overflow-wrap: break-word;
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 14px;
       line-height: 1.6;
       color: #333;

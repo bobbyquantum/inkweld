@@ -539,12 +539,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.projectState.selectTab(result.index);
     const project = this.projectState.project();
     if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'publish-plans',
-      ]);
+      this.router
+        .navigate(['/', project.username, project.slug, 'publish-plans'])
+        .catch(() => {});
     }
   }
 
