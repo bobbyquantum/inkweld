@@ -119,7 +119,7 @@ export class ProjectService {
   readonly hasProjects = computed(() => this.projects().length > 0);
   readonly initialized = signal(false);
 
-  private db: Promise<IDBDatabase>;
+  private readonly db: Promise<IDBDatabase>;
 
   constructor() {
     this.db = this.storage
@@ -188,9 +188,7 @@ export class ProjectService {
             ) {
               console.warn(
                 'Network/server error, using cached projects:',
-                error instanceof HttpErrorResponse
-                  ? `${error.status} ${error.statusText}`
-                  : error
+                error instanceof HttpErrorResponse ? `${error.status}` : error
               );
               return throwError(() => new Error('Refresh failed, using cache'));
             }
