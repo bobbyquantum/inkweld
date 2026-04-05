@@ -1089,109 +1089,14 @@ describe('SettingsTabComponent', () => {
     });
   });
 
-  describe('Navigation helpers', () => {
-    it('should update scroll state when the tab bar can scroll in both directions', () => {
-      component.tabNavBar = {
-        nativeElement: {
-          scrollLeft: 40,
-          scrollWidth: 500,
-          clientWidth: 200,
-          querySelector: vi.fn().mockReturnValue(null),
-        },
-      } as any;
-
-      component.updateScrollState();
-
-      expect(component['canScrollLeft']()).toBe(true);
-      expect(component['canScrollRight']()).toBe(true);
+  describe('Section Navigation', () => {
+    it('should select a section', () => {
+      component.selectSection('sync');
+      expect(component['selectedSection']()).toBe('sync');
     });
 
-    it('should do nothing when scroll helpers have no tab bar element', () => {
-      component.tabNavBar = undefined as any;
-
-      component.scrollLeft();
-      component.scrollRight();
-      component.scrollToActiveTab();
-
-      expect(component['canScrollLeft']()).toBe(false);
-      expect(component['canScrollRight']()).toBe(false);
-    });
-
-    it('should scroll the tab bar left and right', () => {
-      const scrollBy = vi.fn();
-      component.tabNavBar = {
-        nativeElement: {
-          scrollBy,
-          scrollLeft: 0,
-          scrollWidth: 300,
-          clientWidth: 200,
-          querySelector: vi.fn().mockReturnValue(null),
-        },
-      } as any;
-
-      component.scrollLeft();
-      component.scrollRight();
-
-      expect(scrollBy).toHaveBeenNthCalledWith(1, {
-        left: -150,
-        behavior: 'smooth',
-      });
-      expect(scrollBy).toHaveBeenNthCalledWith(2, {
-        left: 150,
-        behavior: 'smooth',
-      });
-    });
-
-    it('should scroll the active tab into view on the left', () => {
-      vi.useFakeTimers();
-      const scrollBy = vi.fn();
-      component.tabNavBar = {
-        nativeElement: {
-          querySelector: vi.fn().mockReturnValue({
-            getBoundingClientRect: () => ({ left: 20, right: 80 }),
-          }),
-          getBoundingClientRect: () => ({ left: 50, right: 250 }),
-          scrollBy,
-        },
-      } as any;
-
-      component.scrollToActiveTab();
-      vi.runAllTimers();
-
-      expect(scrollBy).toHaveBeenCalledWith({ left: -38, behavior: 'smooth' });
-      vi.useRealTimers();
-    });
-
-    it('should scroll the active tab into view on the right', () => {
-      vi.useFakeTimers();
-      const scrollBy = vi.fn();
-      component.tabNavBar = {
-        nativeElement: {
-          querySelector: vi.fn().mockReturnValue({
-            getBoundingClientRect: () => ({ left: 220, right: 320 }),
-          }),
-          getBoundingClientRect: () => ({ left: 50, right: 250 }),
-          scrollBy,
-        },
-      } as any;
-
-      component.scrollToActiveTab();
-      vi.runAllTimers();
-
-      expect(scrollBy).toHaveBeenCalledWith({ left: 78, behavior: 'smooth' });
-      vi.useRealTimers();
-    });
-
-    it('should update the selected tab when the tab changes', () => {
-      vi.useFakeTimers();
-      const scrollSpy = vi.spyOn(component, 'scrollToActiveTab');
-
-      component.onTabChange('collaboration');
-      vi.runAllTimers();
-
-      expect(component['selectedTab']()).toBe('collaboration');
-      expect(scrollSpy).toHaveBeenCalled();
-      vi.useRealTimers();
+    it('should default to actions section', () => {
+      expect(component['selectedSection']()).toBe('actions');
     });
   });
 
@@ -1505,50 +1410,6 @@ describe('SettingsTabComponent', () => {
         'testuser',
         'imported-project',
       ]);
-    });
-
-    it('should open publish plan when plans exist', () => {
-      const mockPlan = {
-        id: 'plan-1',
-        title: 'Default',
-        author: 'testuser',
-      };
-      (
-        projectStateService.getPublishPlans as ReturnType<typeof vi.fn>
-      ).mockReturnValue([mockPlan]);
-
-      component.openPublishPlan();
-
-      expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(
-        mockPlan
-      );
-      expect(router.navigate).toHaveBeenCalledWith([
-        '/',
-        'testuser',
-        'test-project',
-        'publish-plan',
-        'plan-1',
-      ]);
-    });
-
-    it('should create a publish plan when none exist', () => {
-      (
-        projectStateService.getPublishPlans as ReturnType<typeof vi.fn>
-      ).mockReturnValue([]);
-
-      component.openPublishPlan();
-
-      expect(projectStateService.createPublishPlan).toHaveBeenCalled();
-      expect(projectStateService.openPublishPlan).toHaveBeenCalled();
-    });
-
-    it('should do nothing when opening publish plans without a project', () => {
-      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
-
-      component.openPublishPlan();
-
-      expect(projectStateService.createPublishPlan).not.toHaveBeenCalled();
-      expect(projectStateService.openPublishPlan).not.toHaveBeenCalled();
     });
 
     it('should show document list', () => {

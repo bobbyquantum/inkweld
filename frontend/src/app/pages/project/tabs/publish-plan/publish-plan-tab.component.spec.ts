@@ -6,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ElementType } from '@inkweld/index';
-import { of, Subject } from 'rxjs';
+import { BehaviorSubject, of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -27,17 +27,20 @@ import {
 } from '../../../../models/publish-plan';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { PublishService } from '../../../../services/publish/publish.service';
+import { PublishedFilesService } from '../../../../services/publish/published-files.service';
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { PublishPlanTabComponent } from './publish-plan-tab.component';
 
 describe('PublishPlanTabComponent', () => {
   let component: PublishPlanTabComponent;
   let fixture: ComponentFixture<PublishPlanTabComponent>;
+  let currentPlan: ReturnType<typeof signal<PublishPlan | null>>;
   let mockProjectState: {
     elements: ReturnType<typeof signal<any[]>>;
     project: ReturnType<typeof signal<any>>;
     getPublishPlan: ReturnType<typeof vi.fn>;
     updatePublishPlan: ReturnType<typeof vi.fn>;
+    coverMediaId: ReturnType<typeof signal<string | null>>;
   };
   let mockPublishService: {
     publish: ReturnType<typeof vi.fn>;
@@ -45,10 +48,17 @@ describe('PublishPlanTabComponent', () => {
   let mockSnackBar: {
     open: ReturnType<typeof vi.fn>;
   };
+  let mockPublishedFilesService: {
+    files$: BehaviorSubject<any[]>;
+    loadFiles: ReturnType<typeof vi.fn>;
+    downloadFile: ReturnType<typeof vi.fn>;
+    deleteFile: ReturnType<typeof vi.fn>;
+  };
   let testPlan: PublishPlan;
 
   beforeEach(async () => {
     testPlan = createDefaultPublishPlan('Test Project', 'Test Author');
+    currentPlan = signal<PublishPlan | null>(testPlan);
 
     mockProjectState = {
       elements: signal([
@@ -57,8 +67,11 @@ describe('PublishPlanTabComponent', () => {
         { id: 'folder-1', name: 'Folder', type: ElementType.Folder },
       ]),
       project: signal({ title: 'Test Project', coverImage: null }),
-      getPublishPlan: vi.fn().mockReturnValue(testPlan),
-      updatePublishPlan: vi.fn(),
+      getPublishPlan: vi.fn().mockImplementation(() => currentPlan()),
+      updatePublishPlan: vi.fn().mockImplementation((plan: PublishPlan) => {
+        currentPlan.set(plan);
+      }),
+      coverMediaId: signal(null),
     };
 
     mockPublishService = {
@@ -72,6 +85,13 @@ describe('PublishPlanTabComponent', () => {
       open: vi.fn(),
     };
 
+    mockPublishedFilesService = {
+      files$: new BehaviorSubject<any[]>([]),
+      loadFiles: vi.fn().mockResolvedValue([]),
+      downloadFile: vi.fn().mockResolvedValue(undefined),
+      deleteFile: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [PublishPlanTabComponent, NoopAnimationsModule],
       providers: [
@@ -79,6 +99,10 @@ describe('PublishPlanTabComponent', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: PublishService, useValue: mockPublishService },
         { provide: MatSnackBar, useValue: mockSnackBar },
+        {
+          provide: PublishedFilesService,
+          useValue: mockPublishedFilesService,
+        },
         {
           provide: WorldbuildingService,
           useValue: {
@@ -105,133 +129,149 @@ describe('PublishPlanTabComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should display plan name', () => {
-    const header = fixture.nativeElement.querySelector('.plan-header h2');
-    expect(header?.textContent).toContain('Default Export');
+  it('should display plan name input', () => {
+    const input = fixture.nativeElement.querySelector(
+      '[data-testid="plan-name-input"]'
+    );
+    expect(input).toBeTruthy();
+    expect(input.value).toContain('Default Export');
   });
 
-  it('should show save button when changes are made', () => {
-    let saveBtn = fixture.nativeElement.querySelector(
-      '.header-actions button[color="primary"]'
-    );
-    expect(saveBtn).toBeNull();
-
-    component['hasChanges'].set(true);
-    fixture.detectChanges();
-
-    saveBtn = fixture.nativeElement.querySelector(
-      '.header-actions button[color="primary"]'
-    );
-    expect(saveBtn).toBeTruthy();
-    expect(saveBtn.textContent).toContain('Save Changes');
+  it('should show sidenav navigation sections', () => {
+    expect(component['sections'].length).toBe(5);
+    expect(component['sections'].map((s: { key: string }) => s.key)).toEqual([
+      'metadata',
+      'contents',
+      'formatting',
+      'preview',
+      'publish',
+    ]);
   });
 
-  it('should call updatePublishPlan when saving', async () => {
-    component['hasChanges'].set(true);
-    fixture.detectChanges();
+  it('should switch sections via selectSection', () => {
+    expect(component['selectedSection']()).toBe('metadata');
+    component.selectSection('contents');
+    expect(component['selectedSection']()).toBe('contents');
+    component.selectSection('preview');
+    expect(component['selectedSection']()).toBe('preview');
+  });
 
-    const saveBtn = fixture.nativeElement.querySelector(
-      '.header-actions button[color="primary"]'
+  it('should auto-save when making changes', () => {
+    const event = { target: { value: 'Updated Name' } } as unknown as Event;
+    component.updateName(event);
+
+    expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Updated Name' })
     );
-    saveBtn.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(mockProjectState.updatePublishPlan).toHaveBeenCalled();
   });
 
   describe('updateName', () => {
-    it('should update plan name and set hasChanges', () => {
+    it('should auto-save plan name', () => {
       const event = { target: { value: 'New Name' } } as unknown as Event;
       component.updateName(event);
 
-      expect(component['localPlan']()?.name).toBe('New Name');
-      expect(component['hasChanges']()).toBe(true);
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'New Name' })
+      );
     });
 
-    it('should not update if no local plan', () => {
-      component['localPlan'].set(null);
+    it('should not update if no plan', () => {
+      currentPlan.set(null);
       const event = { target: { value: 'New Name' } } as unknown as Event;
       component.updateName(event);
 
-      expect(component['hasChanges']()).toBe(false);
+      expect(mockProjectState.updatePublishPlan).not.toHaveBeenCalled();
     });
   });
 
   describe('updateFormat', () => {
-    it('should update plan format', () => {
+    it('should auto-save plan format', () => {
       const event = {
         target: { value: PublishFormat.PDF_SIMPLE },
       } as unknown as Event;
       component.updateFormat(event);
 
-      expect(component['localPlan']()?.format).toBe(PublishFormat.PDF_SIMPLE);
-      expect(component['hasChanges']()).toBe(true);
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({ format: PublishFormat.PDF_SIMPLE })
+      );
     });
   });
 
   describe('updateFormatSelect', () => {
-    it('should update format from mat-select', () => {
+    it('should auto-save format from mat-select', () => {
       component.updateFormatSelect({ value: PublishFormat.HTML });
 
-      expect(component['localPlan']()?.format).toBe(PublishFormat.HTML);
-      expect(component['hasChanges']()).toBe(true);
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({ format: PublishFormat.HTML })
+      );
     });
   });
 
   describe('updateMetadata', () => {
-    it('should update metadata field', () => {
+    it('should auto-save metadata field', () => {
       const event = {
         target: { value: 'New Title' },
       } as unknown as Event;
       component.updateMetadata('title', event);
 
-      expect(component['localPlan']()?.metadata.title).toBe('New Title');
-      expect(component['hasChanges']()).toBe(true);
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({ title: 'New Title' }),
+        })
+      );
     });
   });
 
   describe('updateOption', () => {
-    it('should update boolean option from checkbox', () => {
+    it('should auto-save boolean option from checkbox', () => {
       const event = {
         target: { type: 'checkbox', checked: true },
       } as unknown as Event;
       component.updateOption('includeToc', event);
 
-      expect(component['localPlan']()?.options.includeToc).toBe(true);
-      expect(component['hasChanges']()).toBe(true);
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({ includeToc: true }),
+        })
+      );
     });
 
-    it('should update string option from input', () => {
+    it('should auto-save string option from input', () => {
       const event = {
         target: { type: 'text', value: '---' },
       } as unknown as Event;
       component.updateOption('sceneBreakText', event);
 
-      expect(component['localPlan']()?.options.sceneBreakText).toBe('---');
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({ sceneBreakText: '---' }),
+        })
+      );
     });
   });
 
   describe('updateOptionCheckbox', () => {
-    it('should update option from mat-checkbox', () => {
+    it('should auto-save option from mat-checkbox', () => {
       component.updateOptionCheckbox('includeCover', { checked: true });
 
-      expect(component['localPlan']()?.options.includeCover).toBe(true);
-      expect(component['hasChanges']()).toBe(true);
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({ includeCover: true }),
+        })
+      );
     });
   });
 
   describe('addElement', () => {
     it('should add element item to plan', () => {
-      const initialLength = component['localPlan']()?.items.length ?? 0;
+      const initialLength = currentPlan()?.items.length ?? 0;
       component.addElement('elem-1');
 
-      const plan = component['localPlan']();
-      expect(plan?.items.length).toBe(initialLength + 1);
-      const lastItem = plan?.items[plan.items.length - 1];
+      const updatedPlan = currentPlan();
+      expect(updatedPlan?.items.length).toBe(initialLength + 1);
+      const lastItem = updatedPlan?.items[updatedPlan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Element);
       expect((lastItem as { elementId: string }).elementId).toBe('elem-1');
-      expect(component['hasChanges']()).toBe(true);
       expect(component['showAddItemMenu']()).toBe(false);
     });
 
@@ -240,7 +280,7 @@ describe('PublishPlanTabComponent', () => {
       component.addElement('elem-2');
       component.addElement('elem-new', 1);
 
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       expect(plan?.items.length).toBe(3);
       expect((plan?.items[1] as { elementId: string }).elementId).toBe(
         'elem-new'
@@ -251,7 +291,7 @@ describe('PublishPlanTabComponent', () => {
       component.addElement('elem-1');
       component.addElement('elem-2');
 
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       expect(
         (plan?.items[plan.items.length - 1] as { elementId: string }).elementId
       ).toBe('elem-2');
@@ -261,7 +301,7 @@ describe('PublishPlanTabComponent', () => {
       component.addElement('elem-1');
       component.addElement('elem-2', 999);
 
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       expect(
         (plan?.items[plan.items.length - 1] as { elementId: string }).elementId
       ).toBe('elem-2');
@@ -270,10 +310,10 @@ describe('PublishPlanTabComponent', () => {
 
   describe('addFrontmatter', () => {
     it('should add frontmatter item', () => {
-      const initialLength = component['localPlan']()?.items.length ?? 0;
+      const initialLength = currentPlan()?.items.length ?? 0;
       component.addFrontmatter(FrontmatterType.TitlePage);
 
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       expect(plan?.items.length).toBe(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Frontmatter);
@@ -282,10 +322,10 @@ describe('PublishPlanTabComponent', () => {
 
   describe('addBackmatter', () => {
     it('should add backmatter item', () => {
-      const initialLength = component['localPlan']()?.items.length ?? 0;
+      const initialLength = currentPlan()?.items.length ?? 0;
       component.addBackmatter(BackmatterType.Acknowledgments);
 
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       expect(plan?.items.length).toBe(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Backmatter);
@@ -294,10 +334,10 @@ describe('PublishPlanTabComponent', () => {
 
   describe('addSeparator', () => {
     it('should add separator item', () => {
-      const initialLength = component['localPlan']()?.items.length ?? 0;
+      const initialLength = currentPlan()?.items.length ?? 0;
       component.addSeparator(SeparatorStyle.PageBreak);
 
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       expect(plan?.items.length).toBe(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.Separator);
@@ -306,13 +346,39 @@ describe('PublishPlanTabComponent', () => {
 
   describe('addTableOfContents', () => {
     it('should add TOC item', () => {
-      const initialLength = component['localPlan']()?.items.length ?? 0;
+      const initialLength = currentPlan()?.items.length ?? 0;
       component.addTableOfContents();
 
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       expect(plan?.items.length).toBe(initialLength + 1);
       const lastItem = plan?.items[plan.items.length - 1];
       expect(lastItem?.type).toBe(PublishPlanItemType.TableOfContents);
+    });
+  });
+
+  describe('addEverything', () => {
+    it('should add all non-folder elements in order', () => {
+      const initialLength = currentPlan()?.items.length ?? 0;
+      component.addEverything();
+
+      const plan = currentPlan();
+      // Should add elem-1 and elem-2 (not folder-1)
+      expect(plan?.items.length).toBe(initialLength + 2);
+      const addedItems = plan!.items.slice(initialLength);
+      expect(addedItems[0].type).toBe(PublishPlanItemType.Element);
+      expect((addedItems[0] as ElementItem).elementId).toBe('elem-1');
+      expect((addedItems[1] as ElementItem).elementId).toBe('elem-2');
+    });
+
+    it('should not add items when no document elements exist', () => {
+      mockProjectState.elements.set([
+        { id: 'folder-1', name: 'Folder', type: ElementType.Folder },
+      ]);
+
+      const initialLength = currentPlan()?.items.length ?? 0;
+      component.addEverything();
+
+      expect(currentPlan()?.items.length).toBe(initialLength);
     });
   });
 
@@ -320,14 +386,14 @@ describe('PublishPlanTabComponent', () => {
     it('should remove item from plan', () => {
       // First add an item
       component.addElement('elem-1');
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const addedItem = plan?.items[plan.items.length - 1];
       const lengthAfterAdd = plan?.items.length ?? 0;
 
       // Then remove it
       component.removeItem(addedItem!.id);
 
-      expect(component['localPlan']()?.items.length).toBe(lengthAfterAdd - 1);
+      expect(currentPlan()?.items.length).toBe(lengthAfterAdd - 1);
     });
   });
 
@@ -335,23 +401,23 @@ describe('PublishPlanTabComponent', () => {
     it('should move item up in list', () => {
       component.addElement('elem-1');
       component.addElement('elem-2');
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const lastItemId = plan?.items[plan.items.length - 1].id;
       const lastIndex = (plan?.items.length ?? 1) - 1;
 
       component.moveItemUp(lastIndex);
 
-      const updatedPlan = component['localPlan']();
+      const updatedPlan = currentPlan();
       expect(updatedPlan?.items[lastIndex - 1].id).toBe(lastItemId);
     });
 
     it('should not move first item up', () => {
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const firstItemId = plan?.items[0]?.id;
 
       component.moveItemUp(0);
 
-      expect(component['localPlan']()?.items[0]?.id).toBe(firstItemId);
+      expect(currentPlan()?.items[0]?.id).toBe(firstItemId);
     });
   });
 
@@ -359,22 +425,22 @@ describe('PublishPlanTabComponent', () => {
     it('should move item down in list', () => {
       component.addElement('elem-1');
       component.addElement('elem-2');
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const firstItemId = plan?.items[0].id;
 
       component.moveItemDown(0);
 
-      expect(component['localPlan']()?.items[1].id).toBe(firstItemId);
+      expect(currentPlan()?.items[1].id).toBe(firstItemId);
     });
 
     it('should not move last item down', () => {
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const lastIndex = (plan?.items.length ?? 1) - 1;
       const lastItemId = plan?.items[lastIndex]?.id;
 
       component.moveItemDown(lastIndex);
 
-      expect(component['localPlan']()?.items[lastIndex]?.id).toBe(lastItemId);
+      expect(currentPlan()?.items[lastIndex]?.id).toBe(lastItemId);
     });
   });
 
@@ -575,20 +641,6 @@ describe('PublishPlanTabComponent', () => {
     });
   });
 
-  describe('discardChanges', () => {
-    it('should reset local plan to original', () => {
-      component.updateName({
-        target: { value: 'Changed' },
-      } as unknown as Event);
-      expect(component['localPlan']()?.name).toBe('Changed');
-
-      component.discardChanges();
-
-      expect(component['localPlan']()?.name).toBe('Default Export');
-      expect(component['hasChanges']()).toBe(false);
-    });
-  });
-
   describe('generatePublication', () => {
     it('should call publish service and show success message', async () => {
       component.addElement('elem-1');
@@ -636,7 +688,7 @@ describe('PublishPlanTabComponent', () => {
 
     it('should not generate if no items', async () => {
       // Clear items
-      component['localPlan'].set({ ...testPlan, items: [] });
+      currentPlan.set({ ...testPlan, items: [] });
 
       await component.generatePublication();
 
@@ -690,13 +742,107 @@ describe('PublishPlanTabComponent', () => {
       component.toggleAddItemMenu();
       expect(component['showAddItemMenu']()).toBe(!initial);
     });
+
+    it('should select section', () => {
+      component.selectSection('formatting');
+      expect(component['selectedSection']()).toBe('formatting');
+    });
+
+    it('should support useSidenav signal', () => {
+      expect(typeof component['useSidenav']()).toBe('boolean');
+    });
+  });
+
+  describe('published files', () => {
+    it('should filter published files by planId', () => {
+      const planId = testPlan.id;
+      mockPublishedFilesService.files$.next([
+        {
+          id: 'f1',
+          planId,
+          planName: 'Other Name',
+          format: 'EPUB',
+          filename: 'test.epub',
+          size: 1000,
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+        {
+          id: 'f2',
+          planId: 'other-plan',
+          planName: 'Other',
+          format: 'PDF_SIMPLE',
+          filename: 'other.pdf',
+          size: 2000,
+          createdAt: '2026-01-02T00:00:00Z',
+        },
+      ]);
+
+      const files = component['publishedFiles']();
+      expect(files.length).toBe(1);
+      expect(files[0].id).toBe('f1');
+    });
+
+    it('should fall back to planName matching for legacy records', () => {
+      mockPublishedFilesService.files$.next([
+        {
+          id: 'f1',
+          planId: null,
+          planName: testPlan.name,
+          format: 'EPUB',
+          filename: 'test.epub',
+          size: 1000,
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]);
+
+      const files = component['publishedFiles']();
+      expect(files.length).toBe(1);
+    });
+
+    it('should download published file', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      await component.downloadPublishedFile('f1');
+      expect(mockPublishedFilesService.downloadFile).toHaveBeenCalledWith(
+        'user/proj',
+        'f1'
+      );
+    });
+
+    it('should delete published file', async () => {
+      mockProjectState.project.set({
+        title: 'Test',
+        username: 'user',
+        slug: 'proj',
+        coverImage: null,
+      });
+      await component.deletePublishedFile('f1');
+      expect(mockPublishedFilesService.deleteFile).toHaveBeenCalledWith(
+        'user/proj',
+        'f1'
+      );
+    });
+
+    it('should get format icon', () => {
+      expect(component.getPublishedFormatIcon('EPUB')).toBe('book');
+      expect(component.getPublishedFormatIcon('PDF_SIMPLE')).toBe(
+        'picture_as_pdf'
+      );
+      expect(component.getPublishedFormatIcon('unknown')).toBe(
+        'insert_drive_file'
+      );
+    });
   });
 
   describe('dropItem', () => {
     it('should reorder items on drop', () => {
       component.addElement('elem-1');
       component.addElement('elem-2');
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const items = plan?.items ?? [];
 
       const containerRef = { data: items };
@@ -710,14 +856,13 @@ describe('PublishPlanTabComponent', () => {
       const firstItemId = items[0]?.id;
       component.dropItem(event);
 
-      expect(component['localPlan']()?.items[1]?.id).toBe(firstItemId);
-      expect(component['hasChanges']()).toBe(true);
+      expect(currentPlan()?.items[1]?.id).toBe(firstItemId);
     });
 
     it('should add element at drop position on cross-container drop', () => {
       component.addElement('elem-1');
       component.addElement('elem-2');
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const items = plan?.items ?? [];
 
       const treeContainer = { data: [] };
@@ -732,7 +877,7 @@ describe('PublishPlanTabComponent', () => {
 
       component.dropItem(event);
 
-      const updatedPlan = component['localPlan']();
+      const updatedPlan = currentPlan();
       expect(updatedPlan?.items.length).toBe(3);
       expect((updatedPlan?.items[1] as { elementId: string }).elementId).toBe(
         'elem-3'
@@ -741,7 +886,7 @@ describe('PublishPlanTabComponent', () => {
 
     it('should ignore cross-container drop with missing node id', () => {
       component.addElement('elem-1');
-      const plan = component['localPlan']();
+      const plan = currentPlan();
       const items = plan?.items ?? [];
 
       const treeContainer = { data: [] };
@@ -756,11 +901,11 @@ describe('PublishPlanTabComponent', () => {
 
       component.dropItem(event);
 
-      expect(component['localPlan']()?.items.length).toBe(1);
+      expect(currentPlan()?.items.length).toBe(1);
     });
 
-    it('should do nothing when localPlan is null', () => {
-      component['localPlan'].set(null);
+    it('should do nothing when plan is null', () => {
+      currentPlan.set(null);
       const event: CdkDragDrop<PublishPlanItem[]> = {
         previousIndex: 0,
         currentIndex: 0,
@@ -793,17 +938,17 @@ describe('PublishPlanTabComponent', () => {
 
   describe('onElementSelected', () => {
     it('should add element when selected', () => {
-      const initialLength = component['localPlan']()?.items.length ?? 0;
+      const initialLength = currentPlan()?.items.length ?? 0;
       component.onElementSelected({ value: 'elem-1' });
 
-      expect(component['localPlan']()?.items.length).toBe(initialLength + 1);
+      expect(currentPlan()?.items.length).toBe(initialLength + 1);
     });
 
     it('should not add element when value is null', () => {
-      const initialLength = component['localPlan']()?.items.length ?? 0;
+      const initialLength = currentPlan()?.items.length ?? 0;
       component.onElementSelected({ value: null });
 
-      expect(component['localPlan']()?.items.length).toBe(initialLength);
+      expect(currentPlan()?.items.length).toBe(initialLength);
     });
   });
 
@@ -821,9 +966,9 @@ describe('PublishPlanTabComponent', () => {
       expect(component['projectCoverImage']()).toBe('cover.jpg');
     });
 
-    it('should return working plan', () => {
-      expect(component['workingPlan']()).toBeTruthy();
-      expect(component['workingPlan']()?.name).toBe('Default Export');
+    it('should return plan', () => {
+      expect(component['plan']()).toBeTruthy();
+      expect(component['plan']()?.name).toBe('Default Export');
     });
   });
 

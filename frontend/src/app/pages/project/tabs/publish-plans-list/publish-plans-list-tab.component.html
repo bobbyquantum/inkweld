@@ -1,0 +1,109 @@
+<div
+  class="publish-plans-list-container"
+  data-testid="publish-plans-list-container">
+  <header class="list-header">
+    <div class="header-left">
+      <mat-icon class="header-icon">auto_stories</mat-icon>
+      <h2>Publishing</h2>
+    </div>
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="createPublishPlan()"
+      data-testid="create-publish-plan-button">
+      <mat-icon>add</mat-icon>
+      New Plan
+    </button>
+  </header>
+
+  @if (plans().length > 0) {
+    <div class="plans-grid" data-testid="publish-plans-grid">
+      @for (plan of plans(); track plan.id) {
+        <div class="plan-card" data-testid="publish-plan-card">
+          <button
+            type="button"
+            class="plan-card-content"
+            (click)="openPublishPlan(plan)"
+            [attr.aria-label]="'Open publish plan: ' + plan.name">
+            <div class="plan-card-header">
+              <mat-icon class="plan-icon">menu_book</mat-icon>
+              <div class="plan-details">
+                <span class="plan-name" data-testid="plan-name">{{
+                  plan.name
+                }}</span>
+                <span class="plan-format">{{
+                  formatFormatName(plan.format)
+                }}</span>
+              </div>
+            </div>
+            <div class="plan-meta">
+              <span class="plan-items">{{ plan.items.length }} items</span>
+            </div>
+          </button>
+          <div class="plan-card-actions">
+            <button
+              mat-icon-button
+              (click)="toggleHistory(plan.id)"
+              matTooltip="Publish history"
+              [attr.aria-label]="'Show publish history for ' + plan.name"
+              data-testid="toggle-history-button">
+              <mat-icon>{{
+                expandedPlanId() === plan.id ? 'expand_less' : 'history'
+              }}</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="deletePublishPlan($event, plan)"
+              matTooltip="Delete plan"
+              [attr.aria-label]="'Delete ' + plan.name"
+              data-testid="delete-plan-button">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+
+          @if (expandedPlanId() === plan.id) {
+            <div class="plan-history" data-testid="plan-history">
+              @if (getHistoryForPlan(plan.name).length > 0) {
+                <div class="history-list">
+                  @for (file of getHistoryForPlan(plan.name); track file.id) {
+                    <div class="history-item" data-testid="history-item">
+                      <mat-icon class="history-icon">download</mat-icon>
+                      <div class="history-details">
+                        <span class="history-filename">{{
+                          file.filename
+                        }}</span>
+                        <span class="history-meta">
+                          {{ formatDate(file.createdAt) }} ·
+                          {{ formatSize(file.size) }}
+                        </span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="no-history">No publish history yet</p>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="empty-state" data-testid="empty-plans-state">
+      <mat-icon>auto_stories</mat-icon>
+      <h3>No publish plans yet</h3>
+      <p>
+        Create a plan to export your project as EPUB, PDF, HTML, or Markdown.
+      </p>
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="createPublishPlan()"
+        data-testid="empty-create-plan-button">
+        <mat-icon>add</mat-icon>
+        Create Your First Plan
+      </button>
+    </div>
+  }
+</div>

@@ -8,7 +8,6 @@ import { Router } from '@angular/router';
 import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Element, ElementType, type Project } from '@inkweld/index';
-import { createDefaultPublishPlan } from '@models/publish-plan';
 import { afterAll, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
@@ -76,7 +75,6 @@ describe('HomeTabComponent', () => {
     // Initialize signals for ProjectStateService
     const projectSignal = signal(mockProject);
     const elementsSignal = signal<Element[]>([]);
-    const publishPlansSignal = signal<any[]>([]);
     const coverMediaIdSignal = signal<string | undefined>(undefined);
     const canWriteSignal = signal<boolean>(true);
 
@@ -89,17 +87,12 @@ describe('HomeTabComponent', () => {
     projectStateService = {
       project: projectSignal,
       elements: elementsSignal,
-      publishPlans: publishPlansSignal,
       coverMediaId: coverMediaIdSignal,
       canWrite: canWriteSignal,
       openDocument: vi.fn(),
       showEditProjectDialog: vi.fn(),
       openSystemTab: vi.fn().mockReturnValue({ index: 1, wasCreated: true }),
       selectTab: vi.fn(),
-      getPublishPlans: vi.fn().mockReturnValue([]),
-      createPublishPlan: vi.fn(),
-      openPublishPlan: vi.fn(),
-      deletePublishPlan: vi.fn(),
       updateProject: vi.fn(),
     };
 
@@ -286,32 +279,19 @@ describe('HomeTabComponent', () => {
     );
   });
 
-  it('should open publish plan when publish button is clicked', () => {
-    // No plans exist initially, so a new one should be created
-    (projectStateService as any).getPublishPlans = vi.fn().mockReturnValue([]);
-
+  it('should navigate to publishing tab when publish button is clicked', () => {
     component.onPublishClick();
 
-    // Should create a new publish plan since none exist
-    expect(projectStateService.createPublishPlan).toHaveBeenCalled();
-    expect(projectStateService.openPublishPlan).toHaveBeenCalled();
-    expect(mockRouter.navigate).toHaveBeenCalled();
-  });
-
-  it('should open existing publish plan when one exists', () => {
-    const existingPlan = { id: 'plan-1', name: 'Test Plan' };
-    (projectStateService as any).getPublishPlans = vi
-      .fn()
-      .mockReturnValue([existingPlan]);
-
-    component.onPublishClick();
-
-    // Should open existing plan, not create a new one
-    expect(projectStateService.createPublishPlan).not.toHaveBeenCalled();
-    expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(
-      existingPlan
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+      'publish-plans'
     );
-    expect(mockRouter.navigate).toHaveBeenCalled();
+    expect(projectStateService.selectTab).toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/',
+      mockProject.username,
+      mockProject.slug,
+      'publish-plans',
+    ]);
   });
 
   it('should display recent files when available', () => {
@@ -540,149 +520,6 @@ describe('HomeTabComponent', () => {
       mockProject.slug,
       'settings',
     ]);
-  });
-
-  it('should create and open a publish plan from the home tab', () => {
-    const expectedPlan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-
-    component.createPublishPlan();
-
-    expect(projectStateService.createPublishPlan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: expectedPlan.name,
-        metadata: expect.objectContaining({
-          author: expectedPlan.metadata.author,
-        }),
-      })
-    );
-    expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: expectedPlan.name,
-        metadata: expect.objectContaining({
-          author: expectedPlan.metadata.author,
-        }),
-      })
-    );
-    expect(mockRouter.navigate).toHaveBeenCalledWith([
-      '/',
-      mockProject.username,
-      mockProject.slug,
-      'publish-plan',
-      expect.any(String),
-    ]);
-  });
-
-  it('should not create a publish plan when no project is loaded', () => {
-    (projectStateService.project as any).set(undefined);
-
-    component.createPublishPlan();
-
-    expect(projectStateService.createPublishPlan).not.toHaveBeenCalled();
-    expect(projectStateService.openPublishPlan).not.toHaveBeenCalled();
-  });
-
-  it('should open a publish plan directly', () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-
-    component.openPublishPlan(plan);
-
-    expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(plan);
-    expect(mockRouter.navigate).toHaveBeenCalledWith([
-      '/',
-      mockProject.username,
-      mockProject.slug,
-      'publish-plan',
-      plan.id,
-    ]);
-  });
-
-  it('should ignore publish-plan open requests when no project is loaded', () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-    (projectStateService.project as any).set(undefined);
-
-    component.openPublishPlan(plan);
-
-    expect(projectStateService.openPublishPlan).not.toHaveBeenCalled();
-    expect(mockRouter.navigate).not.toHaveBeenCalled();
-  });
-
-  it('should delete a publish plan after confirmation', async () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-    const event = new Event('click');
-    const stopPropagationSpy = vi.spyOn(event, 'stopPropagation');
-    (dialogGateway.openConfirmationDialog as any).mockResolvedValue(true);
-
-    await component.deletePublishPlan(event, plan);
-
-    expect(stopPropagationSpy).toHaveBeenCalled();
-    expect(projectStateService.deletePublishPlan).toHaveBeenCalledWith(plan.id);
-    expect(snackBar.open).toHaveBeenCalledWith(
-      `Deleted "${plan.name}"`,
-      'Close',
-      {
-        duration: 3000,
-      }
-    );
-  });
-
-  it('should not delete a publish plan when confirmation is rejected', async () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-    const event = new Event('click');
-    const stopPropagationSpy = vi.spyOn(event, 'stopPropagation');
-
-    await component.deletePublishPlan(event, plan);
-
-    expect(stopPropagationSpy).toHaveBeenCalled();
-    expect(projectStateService.deletePublishPlan).not.toHaveBeenCalled();
-  });
-
-  it('should delete publish plans from keyboard activation', () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-    const event = new KeyboardEvent('keydown', { key: ' ' });
-    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-    const deleteSpy = vi
-      .spyOn(component, 'deletePublishPlan')
-      .mockResolvedValue(undefined);
-
-    component.onDeletePublishPlanKeydown(event, plan);
-
-    expect(preventDefaultSpy).toHaveBeenCalled();
-    expect(deleteSpy).toHaveBeenCalledWith(event, plan);
-  });
-
-  it('should ignore unrelated delete publish-plan keyboard events', () => {
-    const plan = createDefaultPublishPlan(
-      mockProject.title,
-      mockProject.username
-    );
-    const event = new KeyboardEvent('keydown', { key: 'Escape' });
-    const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-    const deleteSpy = vi
-      .spyOn(component, 'deletePublishPlan')
-      .mockResolvedValue(undefined);
-
-    component.onDeletePublishPlanKeydown(event, plan);
-
-    expect(preventDefaultSpy).not.toHaveBeenCalled();
-    expect(deleteSpy).not.toHaveBeenCalled();
   });
 
   describe.skip('cover image', () => {

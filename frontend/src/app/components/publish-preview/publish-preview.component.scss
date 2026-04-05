@@ -1,0 +1,153 @@
+:host {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 24px;
+  color: var(--mat-sys-on-surface-variant);
+
+  .empty-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+
+  mat-progress-bar {
+    width: 200px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 14px;
+  }
+}
+
+.preview-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--mat-sys-error);
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    text-align: center;
+  }
+}
+
+.preview-outdated {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  background: var(--mat-sys-surface-container);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  span {
+    flex: 1;
+  }
+}
+
+.device-presets {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+
+  button.active {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.preview-frame {
+  flex: 1;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  overflow: auto;
+  background: white;
+  margin: 0 auto;
+  width: 100%;
+
+  &.pdf-preview {
+    padding: 0;
+
+    ::ng-deep svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+
+      & + svg {
+        border-top: 1px solid var(--mat-sys-outline-variant);
+      }
+    }
+  }
+
+  &.html-preview {
+    iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 600px;
+      border: none;
+    }
+  }
+
+  &.markdown-preview {
+    pre {
+      margin: 0;
+      padding: 24px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+    }
+  }
+}

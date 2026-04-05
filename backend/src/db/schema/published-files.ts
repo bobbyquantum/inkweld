@@ -36,6 +36,9 @@ export const publishedFiles = sqliteTable('published_files', {
   /** Name of the publish plan used */
   planName: text('plan_name').notNull(),
 
+  /** ID of the publish plan used (nullable for legacy records) */
+  planId: text('plan_id'),
+
   /** Sharing permission level */
   sharePermission: text('share_permission').notNull().default('private'),
 

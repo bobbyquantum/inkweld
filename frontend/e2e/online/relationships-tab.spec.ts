@@ -20,10 +20,8 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
   // Wait for settings tab content to load
   await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
-  // Click on the "Relationship Types" tab within the mat-tab-group
-  const tab = page.getByRole('tab', { name: 'Relationship Types' });
-  await expect(tab).toBeVisible();
-  await tab.click();
+  // Click on the "Relationship Types" section in the sidenav
+  await page.getByTestId('nav-relationships').click();
 
   // Wait for the relationships tab container to be visible and have content
   await expect(page.locator('.relationships-tab-container')).toBeVisible();
@@ -292,8 +290,8 @@ test.describe('Relationships Tab', () => {
         .first();
       await customCard.locator('[data-testid="type-menu-button"]').click();
 
-      // Click Edit
-      await page.locator('button:has-text("Edit")').click();
+      // Click Edit from the menu
+      await page.getByRole('menuitem', { name: 'Edit' }).click();
 
       // Edit the name
       await expect(page.locator('app-rename-dialog')).toBeVisible();

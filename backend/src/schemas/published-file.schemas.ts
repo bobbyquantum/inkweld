@@ -42,6 +42,10 @@ export const PublishedFileSchema = z
     mimeType: z.string().openapi({ example: 'application/epub+zip', description: 'MIME type' }),
     size: z.number().openapi({ example: 102400, description: 'File size in bytes' }),
     planName: z.string().openapi({ example: 'Full Export', description: 'Publish plan name' }),
+    planId: z
+      .string()
+      .nullable()
+      .openapi({ example: 'plan-abc123', description: 'Publish plan ID' }),
     sharePermission: SharePermissionSchema,
     shareToken: z
       .string()
@@ -68,6 +72,10 @@ export const CreatePublishedFileRequestSchema = z
     format: z.string().openapi({ example: 'EPUB', description: 'File format' }),
     mimeType: z.string().openapi({ example: 'application/epub+zip', description: 'MIME type' }),
     planName: z.string().openapi({ example: 'Full Export', description: 'Publish plan name' }),
+    planId: z
+      .string()
+      .optional()
+      .openapi({ example: 'plan-abc123', description: 'Publish plan ID' }),
     sharePermission: SharePermissionSchema.optional().default('private'),
     metadata: PublishedFileMetadataSchema,
   })

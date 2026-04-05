@@ -8,6 +8,48 @@ import { expect, test } from './fixtures';
 
 test.describe('Local Publishing Workflow', () => {
   /**
+   * Helper to navigate to the Publishing tab via sidenav
+   */
+  async function navigateToPublishingTab(
+    page: import('@playwright/test').Page
+  ): Promise<void> {
+    // Extract the project base path (e.g., /testuser/test-project)
+    const url = new URL(page.url());
+    const pathSegments = url.pathname.split('/').filter(Boolean);
+    // Navigate directly to the publish-plans route
+    await page.goto(`/${pathSegments[0]}/${pathSegments[1]}/publish-plans`);
+    await expect(
+      page.getByTestId('publish-plans-list-container')
+    ).toBeVisible();
+  }
+
+  /**
+   * Helper to select a section in the publish plan sidenav
+   */
+  async function selectSection(
+    page: import('@playwright/test').Page,
+    section: string
+  ): Promise<void> {
+    await page.getByTestId(`nav-${section}`).click();
+  }
+
+  /**
+   * Helper to create a document element in the project tree
+   */
+  async function createDocumentElement(
+    page: import('@playwright/test').Page,
+    name: string
+  ): Promise<void> {
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-item').click();
+    const nameInput = page.getByTestId('element-name-input');
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(name);
+    await page.getByTestId('create-element-button').click();
+    await expect(page.getByTestId(`element-${name}`)).toBeVisible();
+  }
+
+  /**
    * Helper to navigate to project home and create a publish plan
    */
   async function navigateToPublishPlan(
@@ -17,10 +59,33 @@ test.describe('Local Publishing Workflow', () => {
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Wait for project to load
-    await expect(
-      page.getByRole('heading', { name: 'Publish Plans' })
-    ).toBeVisible();
+    // Navigate to Publishing tab via sidenav
+    await navigateToPublishingTab(page);
+
+    // Click the create publish plan button
+    await page.getByTestId('create-publish-plan-button').click();
+
+    // Wait for the publish plan tab to open
+    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+  }
+
+  /**
+   * Helper to create a publish plan with a document available for content.
+   * Creates a document element first, then opens a publish plan.
+   */
+  async function navigateToPublishPlanWithContent(
+    page: import('@playwright/test').Page,
+    docName = 'TestDoc'
+  ): Promise<void> {
+    // Click on the project card to open project
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/\/.+\/.+/);
+
+    // Create a document element so "add everything" is available
+    await createDocumentElement(page, docName);
+
+    // Navigate to Publishing tab via sidenav
+    await navigateToPublishingTab(page);
 
     // Click the create publish plan button
     await page.getByTestId('create-publish-plan-button').click();
@@ -30,17 +95,15 @@ test.describe('Local Publishing Workflow', () => {
   }
 
   test.describe('Publish Plan Creation', () => {
-    test('should show publish plans section on project home', async ({
+    test('should show publishing tab via sidenav button', async ({
       localPageWithProject: page,
     }) => {
       // Navigate to the project
       await page.getByTestId('project-card').first().click();
       await page.waitForURL(/\/.+\/.+/);
 
-      // Should see the Publish Plans heading
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      // Navigate to Publishing tab
+      await navigateToPublishingTab(page);
 
       // Should see the create button
       await expect(
@@ -54,7 +117,7 @@ test.describe('Local Publishing Workflow', () => {
       await navigateToPublishPlan(page);
 
       // Should see the publish plan container with default values
-      await expect(page.getByTestId('plan-name-display')).toBeVisible();
+      await expect(page.getByTestId('plan-name-input')).toBeVisible();
     });
 
     test('should update plan metadata', async ({
@@ -69,9 +132,6 @@ test.describe('Local Publishing Workflow', () => {
       // Update author
       const authorInput = page.getByTestId('author-input');
       await authorInput.fill('Test Author');
-
-      // Should show save button when changes are made
-      await expect(page.getByTestId('save-changes-button')).toBeVisible();
     });
 
     test('should show empty state when no content items', async ({
@@ -79,48 +139,50 @@ test.describe('Local Publishing Workflow', () => {
     }) => {
       await navigateToPublishPlan(page);
 
-      // Should show empty state
+      // Navigate to Contents section to check empty state
+      await selectSection(page, 'contents');
       await expect(page.getByTestId('empty-content-state')).toBeVisible();
 
-      // Generate button should be disabled
+      // Navigate to Publish section for generate button state
+      await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toBeDisabled();
-
-      // Should show hint about adding content
       await expect(page.getByTestId('generate-hint')).toBeVisible();
     });
   });
 
   test.describe('Adding Content to Plan', () => {
-    test('should add table of contents', async ({
+    test('should add content via add everything button', async ({
       localPageWithProject: page,
     }) => {
-      await navigateToPublishPlan(page);
+      await navigateToPublishPlanWithContent(page);
 
-      // Click add TOC button
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section
+      await selectSection(page, 'contents');
 
-      // Should show in the items list
+      // Click add everything button
+      await page.getByTestId('add-everything-button').click();
+
+      // Should show items in the list (may include default README)
       await expect(page.getByTestId('content-items-list')).toBeVisible();
-      // Verify the item has "Table of Contents" using the item name test id
-      await expect(page.getByTestId('item-name')).toContainText(
-        'Table of Contents'
-      );
+      await expect(page.getByTestId('content-item-0')).toBeVisible();
     });
 
     test('should remove content item', async ({
       localPageWithProject: page,
     }) => {
-      await navigateToPublishPlan(page);
+      await navigateToPublishPlanWithContent(page);
 
-      // Add TOC first
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
       await expect(page.getByTestId('content-items-list')).toBeVisible();
 
-      // Remove it
-      const removeButton = page
-        .getByTestId('content-item-0')
-        .getByTestId('remove-item-button');
-      await removeButton.click();
+      // Remove all items until empty
+      while (await page.getByTestId('remove-item-button').first().isVisible()) {
+        await page.getByTestId('remove-item-button').first().click();
+        // Wait for Angular to process the removal
+        await page.waitForTimeout(300);
+      }
 
       // Should show empty state again
       await expect(page.getByTestId('empty-content-state')).toBeVisible();
@@ -143,7 +205,8 @@ test.describe('Local Publishing Workflow', () => {
       // Select EPUB (using role option)
       await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
 
-      // Verify generate button shows the selected format
+      // Navigate to Publish section and verify generate button shows the selected format
+      await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toContainText('EPUB');
     });
   });
@@ -160,13 +223,15 @@ test.describe('Local Publishing Workflow', () => {
         }
       });
 
-      await navigateToPublishPlan(page);
+      await navigateToPublishPlanWithContent(page);
 
-      // Add TOC as content (always available)
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
       await expect(page.getByTestId('content-items-list')).toBeVisible();
 
-      // Click generate
+      // Navigate to Publish section and click generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for either the complete dialog or an error snackbar
@@ -223,10 +288,14 @@ test.describe('Local Publishing Workflow', () => {
     test('should allow downloading the generated file', async ({
       localPageWithProject: page,
     }) => {
-      await navigateToPublishPlan(page);
+      await navigateToPublishPlanWithContent(page);
 
-      // Add content and generate
-      await page.getByTestId('add-toc-button').click();
+      // Add content in Contents section
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
+
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for complete dialog
@@ -246,8 +315,8 @@ test.describe('Local Publishing Workflow', () => {
     });
   });
 
-  test.describe('Saving and Discarding Changes', () => {
-    test('should save changes to publish plan', async ({
+  test.describe('Saving Changes', () => {
+    test('should auto-save changes to publish plan', async ({
       localPageWithProject: page,
     }) => {
       await navigateToPublishPlan(page);
@@ -255,11 +324,8 @@ test.describe('Local Publishing Workflow', () => {
       // Make changes
       await page.getByTestId('book-title-input').fill('Updated Book Title');
 
-      // Save changes
-      await page.getByTestId('save-changes-button').click();
-
-      // Save button should disappear after saving
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
+      // Auto-save debounce — wait for save to complete
+      await page.waitForTimeout(1000);
 
       // Reload the page
       await page.reload();
@@ -272,47 +338,9 @@ test.describe('Local Publishing Workflow', () => {
         'Updated Book Title'
       );
     });
-
-    test('should discard changes when discard button clicked', async ({
-      localPageWithProject: page,
-    }) => {
-      await navigateToPublishPlan(page);
-
-      // Get original value
-      const originalTitle = await page
-        .getByTestId('book-title-input')
-        .inputValue();
-
-      // Make changes
-      await page.getByTestId('book-title-input').fill('Changed Title');
-
-      // Discard changes
-      await page.getByTestId('discard-changes-button').click();
-
-      // Should revert to original value
-      await expect(page.getByTestId('book-title-input')).toHaveValue(
-        originalTitle
-      );
-    });
   });
 
   test.describe('Drag from Project Tree to Publish Plan', () => {
-    /**
-     * Helper: create a document element in the project tree.
-     */
-    async function createDocumentElement(
-      page: import('@playwright/test').Page,
-      name: string
-    ): Promise<void> {
-      await page.getByTestId('create-new-element').click();
-      await page.getByTestId('element-type-item').click();
-      const nameInput = page.getByTestId('element-name-input');
-      await nameInput.waitFor({ state: 'visible' });
-      await nameInput.fill(name);
-      await page.getByTestId('create-element-button').click();
-      await expect(page.getByTestId(`element-${name}`)).toBeVisible();
-    }
-
     /**
      * Helper: create a folder element in the project tree.
      */
@@ -398,12 +426,12 @@ test.describe('Local Publishing Workflow', () => {
       await createDocumentElement(page, docName);
 
       // Go home and navigate to publish plan
-      await page.getByTestId('toolbar-home-button').click();
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      await navigateToPublishingTab(page);
       await page.getByTestId('create-publish-plan-button').click();
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+      // Select Contents section so the drop target is visible
+      await selectSection(page, 'contents');
     }
 
     test('should add document to publish plan by dragging from project tree', async ({
@@ -427,9 +455,6 @@ test.describe('Local Publishing Workflow', () => {
       await expect(
         page.getByTestId('content-item-0').getByTestId('item-name')
       ).toContainText(docName);
-
-      // Save button should appear (changes made)
-      await expect(page.getByTestId('save-changes-button')).toBeVisible();
     });
 
     test('should not allow dragging folder into publish plan', async ({
@@ -443,12 +468,12 @@ test.describe('Local Publishing Workflow', () => {
       await createFolderElement(page, 'TestFolder');
 
       // Navigate to publish plan
-      await page.getByTestId('toolbar-home-button').click();
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      await navigateToPublishingTab(page);
       await page.getByTestId('create-publish-plan-button').click();
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+      // Select Contents section so the drop target is visible
+      await selectSection(page, 'contents');
 
       // Attempt to drag folder onto the plan
       const folderItem = page.getByTestId('element-TestFolder');
@@ -471,12 +496,12 @@ test.describe('Local Publishing Workflow', () => {
       await createDocumentElement(page, 'Chapter2');
 
       // Navigate to publish plan
-      await page.getByTestId('toolbar-home-button').click();
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      await navigateToPublishingTab(page);
       await page.getByTestId('create-publish-plan-button').click();
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+      // Select Contents section so the drop target is visible
+      await selectSection(page, 'contents');
 
       const dropTarget = page.getByTestId('content-items-list');
 
@@ -488,13 +513,12 @@ test.describe('Local Publishing Workflow', () => {
       await cdkDragTo(page, page.getByTestId('element-Chapter2'), dropTarget);
       await expect(page.getByTestId('content-item-1')).toBeVisible();
 
-      // Verify both items are in the list
-      await expect(
-        page.getByTestId('content-item-0').getByTestId('item-name')
-      ).toContainText('Chapter1');
-      await expect(
-        page.getByTestId('content-item-1').getByTestId('item-name')
-      ).toContainText('Chapter2');
+      // Verify both items are in the list (order may vary based on drop position)
+      const names = await page
+        .locator('[data-testid="item-name"]')
+        .allTextContents();
+      expect(names).toContain('Chapter1');
+      expect(names).toContain('Chapter2');
     });
   });
 });

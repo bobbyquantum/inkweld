@@ -1,0 +1,98 @@
+<div class="preview-container" data-testid="publish-preview-container">
+  <!-- Empty state -->
+  @if (!hasPreview() && !loading() && !error()) {
+    <div class="preview-empty">
+      <mat-icon class="empty-icon">visibility</mat-icon>
+      <p>Generate a preview of your publication</p>
+      <button
+        mat-flat-button
+        (click)="generatePreview()"
+        data-testid="generate-preview-button">
+        <mat-icon>play_arrow</mat-icon>
+        Generate Preview
+      </button>
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="preview-loading">
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      <p>Generating preview…</p>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error(); as err) {
+    <div class="preview-error">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ err }}</p>
+      <button mat-stroked-button (click)="generatePreview()">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- Preview content -->
+  @if (hasPreview() && !loading()) {
+    <!-- Outdated banner -->
+    @if (outdated) {
+      <div class="preview-outdated" data-testid="preview-outdated-banner">
+        <mat-icon>info</mat-icon>
+        <span>Preview outdated — plan has changed</span>
+        <button
+          mat-stroked-button
+          (click)="generatePreview()"
+          data-testid="refresh-preview-button">
+          <mat-icon>refresh</mat-icon>
+          Refresh
+        </button>
+      </div>
+    }
+
+    <!-- Device presets (HTML/EPUB only) -->
+    @if (
+      plan.format === PublishFormat.HTML || plan.format === PublishFormat.EPUB
+    ) {
+      <div class="device-presets" data-testid="device-presets">
+        @for (preset of devicePresets; track preset.value) {
+          <button
+            mat-icon-button
+            [class.active]="devicePreset() === preset.value"
+            (click)="setDevicePreset(preset.value)"
+            [matTooltip]="preset.label">
+            <mat-icon>{{ preset.icon }}</mat-icon>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- SVG preview (PDF) -->
+    @if (svgContent(); as svg) {
+      <div class="preview-frame pdf-preview" data-testid="pdf-preview-content">
+        <div [innerHTML]="svg"></div>
+      </div>
+    }
+
+    <!-- HTML preview (HTML/EPUB) -->
+    @if (htmlBlobUrl(); as url) {
+      <div
+        class="preview-frame html-preview"
+        [style.max-width.px]="getPreviewWidth()">
+        <iframe
+          [src]="url"
+          sandbox="allow-same-origin"
+          data-testid="html-preview-content">
+        </iframe>
+      </div>
+    }
+
+    <!-- Markdown preview -->
+    @if (markdownText(); as text) {
+      <div class="preview-frame markdown-preview">
+        <pre data-testid="markdown-preview-content">{{ text }}</pre>
+      </div>
+    }
+  }
+</div>
