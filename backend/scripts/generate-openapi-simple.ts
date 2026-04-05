@@ -7,8 +7,8 @@
  * For full OpenAPI generation with all routes, use: bun run generate:openapi
  * which starts the server and fetches the complete spec.
  */
-import { writeFile } from 'fs/promises';
-import * as path from 'path';
+import { writeFile } from 'node:fs/promises';
+import * as path from 'node:path';
 import { OpenAPIHono } from '@hono/zod-openapi';
 
 // Import route modules
