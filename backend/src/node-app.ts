@@ -149,7 +149,7 @@ async function bootstrap() {
 
 // Only run bootstrap if not in test mode
 if (process.env.NODE_ENV !== 'test') {
-  bootstrap();
+  await bootstrap();
 }
 
 export default app;

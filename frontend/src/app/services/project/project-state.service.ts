@@ -1356,7 +1356,7 @@ export class ProjectStateService implements OnDestroy {
   };
 
   private resolveTabIndexFromUrl(tabs: AppTab[], projectSlug: string): number {
-    const urlParams = window.location.pathname.split('/');
+    const urlParams = globalThis.location.pathname.split('/');
     const lastSegment = urlParams[urlParams.length - 1];
 
     if (!lastSegment || lastSegment === projectSlug) return 0;

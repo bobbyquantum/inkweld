@@ -1142,9 +1142,12 @@ describe('ProjectStateService', () => {
         .mockResolvedValue(null);
 
       // Mock window.location.pathname to have 'media' as last segment
-      const origPathname = window.location.pathname;
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: '/testuser/test-project/media' },
+      const origPathname = globalThis.location.pathname;
+      Object.defineProperty(globalThis, 'location', {
+        value: {
+          ...globalThis.location,
+          pathname: '/testuser/test-project/media',
+        },
         writable: true,
       });
 
@@ -1154,8 +1157,8 @@ describe('ProjectStateService', () => {
       // Tab at index 1 is the media tab
       expect(tabManager.selectedTabIndex()).toBe(1);
 
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: origPathname },
+      Object.defineProperty(globalThis, 'location', {
+        value: { ...globalThis.location, pathname: origPathname },
         writable: true,
       });
     });
@@ -1180,10 +1183,10 @@ describe('ProjectStateService', () => {
         .mockResolvedValueOnce(cachedTabs)
         .mockResolvedValue(null);
 
-      const origPathname = window.location.pathname;
-      Object.defineProperty(window, 'location', {
+      const origPathname = globalThis.location.pathname;
+      Object.defineProperty(globalThis, 'location', {
         value: {
-          ...window.location,
+          ...globalThis.location,
           pathname: '/testuser/test-project/doc-123',
         },
         writable: true,
@@ -1197,8 +1200,8 @@ describe('ProjectStateService', () => {
       const tabManager = TestBed.inject(TabManagerService);
       expect(tabManager.selectedTabIndex()).toBe(1);
 
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: origPathname },
+      Object.defineProperty(globalThis, 'location', {
+        value: { ...globalThis.location, pathname: origPathname },
         writable: true,
       });
     });
@@ -1213,10 +1216,10 @@ describe('ProjectStateService', () => {
         .mockResolvedValueOnce(cachedTabs)
         .mockResolvedValue(null);
 
-      const origPathname = window.location.pathname;
-      Object.defineProperty(window, 'location', {
+      const origPathname = globalThis.location.pathname;
+      Object.defineProperty(globalThis, 'location', {
         value: {
-          ...window.location,
+          ...globalThis.location,
           pathname: '/testuser/test-project',
         },
         writable: true,
@@ -1227,8 +1230,8 @@ describe('ProjectStateService', () => {
       const tabManager = TestBed.inject(TabManagerService);
       expect(tabManager.selectedTabIndex()).toBe(0);
 
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: origPathname },
+      Object.defineProperty(globalThis, 'location', {
+        value: { ...globalThis.location, pathname: origPathname },
         writable: true,
       });
     });
@@ -1243,10 +1246,10 @@ describe('ProjectStateService', () => {
         .mockResolvedValueOnce(cachedTabs)
         .mockResolvedValue(null);
 
-      const origPathname = window.location.pathname;
-      Object.defineProperty(window, 'location', {
+      const origPathname = globalThis.location.pathname;
+      Object.defineProperty(globalThis, 'location', {
         value: {
-          ...window.location,
+          ...globalThis.location,
           pathname: '/testuser/test-project/nonexistent-id',
         },
         writable: true,
@@ -1257,8 +1260,8 @@ describe('ProjectStateService', () => {
       const tabManager = TestBed.inject(TabManagerService);
       expect(tabManager.selectedTabIndex()).toBe(0);
 
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, pathname: origPathname },
+      Object.defineProperty(globalThis, 'location', {
+        value: { ...globalThis.location, pathname: origPathname },
         writable: true,
       });
     });
