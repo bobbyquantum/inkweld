@@ -833,4 +833,30 @@ describe('ProjectTreeComponent', () => {
       });
     });
   });
+
+  describe('connectedDropLists', () => {
+    it('should return publish-plan-items when a publish plan tab is selected', () => {
+      openTabsSignal.set([{ systemType: 'home' }, { type: 'publishPlan' }]);
+      selectedTabIndexSignal.set(1);
+      fixture.detectChanges();
+
+      expect(component.connectedDropLists()).toEqual(['publish-plan-items']);
+    });
+
+    it('should return empty array when no publish plan tab is selected', () => {
+      openTabsSignal.set([{ systemType: 'home' }]);
+      selectedTabIndexSignal.set(0);
+      fixture.detectChanges();
+
+      expect(component.connectedDropLists()).toEqual([]);
+    });
+
+    it('should return empty array when a non-publish-plan tab is selected', () => {
+      openTabsSignal.set([{ systemType: 'home' }, { type: 'document' }]);
+      selectedTabIndexSignal.set(1);
+      fixture.detectChanges();
+
+      expect(component.connectedDropLists()).toEqual([]);
+    });
+  });
 });

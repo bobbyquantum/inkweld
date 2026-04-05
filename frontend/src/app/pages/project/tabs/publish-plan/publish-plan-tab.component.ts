@@ -1,4 +1,5 @@
 import {
+  type CdkDrag,
   type CdkDragDrop,
   DragDropModule,
   moveItemInArray,
@@ -242,12 +243,27 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const plan = this.localPlan();
     if (!plan) return;
 
+    // Cross-list drop from project tree
+    if (event.previousContainer !== event.container) {
+      const node = event.item.data as { id?: string; type?: ElementType };
+      if (node?.id && node?.type !== undefined) {
+        this.addElement(node.id, event.currentIndex);
+      }
+      return;
+    }
+
     const items = [...plan.items];
     moveItemInArray(items, event.previousIndex, event.currentIndex);
 
     this.localPlan.set({ ...plan, items });
     this.hasChanges.set(true);
   }
+
+  /** Predicate: only allow non-folder elements to be dropped into the list */
+  canEnterPublishList = (drag: CdkDrag): boolean => {
+    const data = drag.data as { type?: ElementType } | undefined;
+    return data?.type !== undefined && data.type !== ElementType.Folder;
+  };
 
   /** Handle element selection from dropdown */
   onElementSelected(event: { value: string | null }): void {
@@ -308,7 +324,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.hasChanges.set(true);
   }
 
-  addElement(elementId: string): void {
+  addElement(elementId: string, index?: number): void {
     const plan = this.localPlan();
     if (!plan) return;
 
@@ -320,7 +336,12 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       isChapter: true,
     };
 
-    const items = [...plan.items, newItem];
+    const items = [...plan.items];
+    if (index !== undefined && index >= 0 && index <= items.length) {
+      items.splice(index, 0, newItem);
+    } else {
+      items.push(newItem);
+    }
     this.localPlan.set({ ...plan, items });
     this.hasChanges.set(true);
     this.showAddItemMenu.set(false);

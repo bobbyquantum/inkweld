@@ -98,6 +98,14 @@ export class ProjectTreeComponent implements OnDestroy {
       .some(tab => tab.systemType === 'home');
   });
 
+  /** IDs of external drop lists to connect to (publish plan when active) */
+  readonly connectedDropLists = computed(() => {
+    const tabs = this.projectStateService.openTabs();
+    const idx = this.projectStateService.selectedTabIndex();
+    const selected = tabs[idx];
+    return selected?.type === 'publishPlan' ? ['publish-plan-items'] : [];
+  });
+
   // Computed set of element IDs that have open tabs
   readonly openElementIds = computed(() => {
     const tabs = this.projectStateService.openTabs();

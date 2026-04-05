@@ -1,4 +1,4 @@
-import { type CdkDragDrop } from '@angular/cdk/drag-drop';
+import { type CdkDrag, type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
@@ -233,6 +233,38 @@ describe('PublishPlanTabComponent', () => {
       expect((lastItem as { elementId: string }).elementId).toBe('elem-1');
       expect(component['hasChanges']()).toBe(true);
       expect(component['showAddItemMenu']()).toBe(false);
+    });
+
+    it('should insert element at specific index', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+      component.addElement('elem-new', 1);
+
+      const plan = component['localPlan']();
+      expect(plan?.items.length).toBe(3);
+      expect((plan?.items[1] as { elementId: string }).elementId).toBe(
+        'elem-new'
+      );
+    });
+
+    it('should append when index is undefined', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+
+      const plan = component['localPlan']();
+      expect(
+        (plan?.items[plan.items.length - 1] as { elementId: string }).elementId
+      ).toBe('elem-2');
+    });
+
+    it('should append when index is out of range', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2', 999);
+
+      const plan = component['localPlan']();
+      expect(
+        (plan?.items[plan.items.length - 1] as { elementId: string }).elementId
+      ).toBe('elem-2');
     });
   });
 
@@ -667,11 +699,12 @@ describe('PublishPlanTabComponent', () => {
       const plan = component['localPlan']();
       const items = plan?.items ?? [];
 
+      const containerRef = { data: items };
       const event: CdkDragDrop<PublishPlanItem[]> = {
         previousIndex: 0,
         currentIndex: 1,
-        container: { data: items },
-        previousContainer: { data: items },
+        container: containerRef,
+        previousContainer: containerRef,
       } as CdkDragDrop<PublishPlanItem[]>;
 
       const firstItemId = items[0]?.id;
@@ -679,6 +712,82 @@ describe('PublishPlanTabComponent', () => {
 
       expect(component['localPlan']()?.items[1]?.id).toBe(firstItemId);
       expect(component['hasChanges']()).toBe(true);
+    });
+
+    it('should add element at drop position on cross-container drop', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+      const plan = component['localPlan']();
+      const items = plan?.items ?? [];
+
+      const treeContainer = { data: [] };
+      const planContainer = { data: items };
+      const event: CdkDragDrop<PublishPlanItem[]> = {
+        previousIndex: 0,
+        currentIndex: 1,
+        container: planContainer,
+        previousContainer: treeContainer,
+        item: { data: { id: 'elem-3', type: ElementType.Item } },
+      } as unknown as CdkDragDrop<PublishPlanItem[]>;
+
+      component.dropItem(event);
+
+      const updatedPlan = component['localPlan']();
+      expect(updatedPlan?.items.length).toBe(3);
+      expect((updatedPlan?.items[1] as { elementId: string }).elementId).toBe(
+        'elem-3'
+      );
+    });
+
+    it('should ignore cross-container drop with missing node id', () => {
+      component.addElement('elem-1');
+      const plan = component['localPlan']();
+      const items = plan?.items ?? [];
+
+      const treeContainer = { data: [] };
+      const planContainer = { data: items };
+      const event: CdkDragDrop<PublishPlanItem[]> = {
+        previousIndex: 0,
+        currentIndex: 0,
+        container: planContainer,
+        previousContainer: treeContainer,
+        item: { data: { type: ElementType.Item } },
+      } as unknown as CdkDragDrop<PublishPlanItem[]>;
+
+      component.dropItem(event);
+
+      expect(component['localPlan']()?.items.length).toBe(1);
+    });
+
+    it('should do nothing when localPlan is null', () => {
+      component['localPlan'].set(null);
+      const event: CdkDragDrop<PublishPlanItem[]> = {
+        previousIndex: 0,
+        currentIndex: 0,
+        container: { data: [] },
+        previousContainer: { data: [] },
+      } as unknown as CdkDragDrop<PublishPlanItem[]>;
+
+      expect(() => component.dropItem(event)).not.toThrow();
+    });
+  });
+
+  describe('canEnterPublishList', () => {
+    it('should allow document elements', () => {
+      const drag = { data: { type: ElementType.Item } } as unknown as CdkDrag;
+      expect(component.canEnterPublishList(drag)).toBe(true);
+    });
+
+    it('should reject folders', () => {
+      const drag = {
+        data: { type: ElementType.Folder },
+      } as unknown as CdkDrag;
+      expect(component.canEnterPublishList(drag)).toBe(false);
+    });
+
+    it('should reject items with no type', () => {
+      const drag = { data: {} } as unknown as CdkDrag;
+      expect(component.canEnterPublishList(drag)).toBe(false);
     });
   });
 
