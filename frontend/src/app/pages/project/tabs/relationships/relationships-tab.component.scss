@@ -14,7 +14,7 @@
   gap: 16px;
 
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin: 0;
   }
 }
@@ -32,11 +32,11 @@
     font-size: 48px;
     width: 48px;
     height: 48px;
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 
   .error-message {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
     margin: 0;
   }
 }
@@ -55,18 +55,18 @@
     font-size: 64px;
     width: 64px;
     height: 64px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     opacity: 0.5;
   }
 
   h3 {
     margin: 0;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   p {
     margin: 0;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     max-width: 400px;
   }
 
@@ -95,16 +95,16 @@
       align-items: center;
       gap: 8px;
       margin: 0;
-      color: var(--mat-sys-on-surface);
+      color: var(--sys-on-surface);
 
       mat-icon {
-        color: var(--mat-sys-primary);
+        color: var(--sys-primary);
       }
     }
 
     .subtitle {
       margin: 4px 0 0;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       font-size: 0.875rem;
     }
   }
@@ -127,7 +127,7 @@
     margin: 0 0 16px;
     font-size: 1rem;
     font-weight: 500;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
 
     mat-icon {
       font-size: 20px;
@@ -152,7 +152,7 @@
     padding-bottom: 8px;
 
     mat-icon[mat-card-avatar] {
-      background: var(--mat-sys-surface-variant);
+      background: var(--sys-surface-variant);
       border-radius: 50%;
       padding: 8px;
       font-size: 24px;
@@ -185,30 +185,30 @@
     opacity: 0.85;
 
     mat-card-header mat-icon[mat-card-avatar] {
-      background: var(--mat-sys-surface-container);
+      background: var(--sys-surface-container);
     }
   }
 
   &.custom {
-    border-left: 3px solid var(--mat-sys-primary);
+    border-left: 3px solid var(--sys-primary);
   }
 }
 
 // Chips
 .built-in-chip {
-  --mat-chip-label-text-color: var(--mat-sys-on-surface-variant);
+  --mat-chip-label-text-color: var(--sys-on-surface-variant);
   font-size: 0.75rem;
 }
 
 .custom-chip {
-  --mat-chip-label-text-color: var(--mat-sys-on-primary-container);
-  --mat-chip-selected-label-text-color: var(--mat-sys-on-primary-container);
-  background: var(--mat-sys-primary-container) !important;
+  --mat-chip-label-text-color: var(--sys-on-primary-container);
+  --mat-chip-selected-label-text-color: var(--sys-on-primary-container);
+  background: var(--sys-primary-container) !important;
   font-size: 0.75rem;
 }
 
 .category-chip {
-  --mat-chip-label-text-color: var(--mat-sys-on-surface-variant);
+  --mat-chip-label-text-color: var(--sys-on-surface-variant);
   font-size: 0.75rem;
 }
 
@@ -225,12 +225,12 @@
     font-size: 0.875rem;
 
     .label {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       min-width: 60px;
     }
 
     .value {
-      color: var(--mat-sys-on-surface);
+      color: var(--sys-on-surface);
       font-weight: 500;
     }
 
@@ -238,7 +238,7 @@
       font-size: 16px;
       width: 16px;
       height: 16px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       opacity: 0.7;
     }
 
@@ -246,7 +246,7 @@
       .value {
         font-weight: 400;
         font-size: 0.8125rem;
-        color: var(--mat-sys-on-surface-variant);
+        color: var(--sys-on-surface-variant);
       }
     }
   }

@@ -18,7 +18,7 @@ mat-card-header {
     font-size: 40px;
     width: 40px;
     height: 40px;
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 }
 
@@ -26,7 +26,7 @@ mat-card-content {
   p {
     margin: 0.75rem 0;
     line-height: 1.5;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .warning-text {
@@ -46,12 +46,12 @@ mat-card-content {
 
     li {
       margin: 0.25rem 0;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 
   .error-text {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
     font-weight: 500;
     margin-top: 1rem;
   }
@@ -65,7 +65,7 @@ mat-card-actions {
 
   .clearing-text {
     font-style: italic;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   button {

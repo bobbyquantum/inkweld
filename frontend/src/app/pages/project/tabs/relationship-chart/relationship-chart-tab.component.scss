@@ -364,7 +364,7 @@
   flex: 1;
   padding: 2rem;
   text-align: center;
-  color: var(--mat-sys-on-surface-variant, #49454f);
+  color: var(--sys-on-surface-variant, #49454f);
 
   .empty-icon {
     font-size: 64px;
@@ -378,7 +378,7 @@
     margin: 0 0 8px;
     font-size: 18px;
     font-weight: 500;
-    color: var(--mat-sys-on-surface, #1c1b1f);
+    color: var(--sys-on-surface, #1c1b1f);
   }
 
   p {

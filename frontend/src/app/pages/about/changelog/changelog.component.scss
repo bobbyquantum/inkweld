@@ -53,19 +53,19 @@
     .version-tag {
       font-weight: bold;
       padding: 0.25rem 0.75rem;
-      background: var(--mat-sys-primary-container);
-      color: var(--mat-sys-on-primary-container);
+      background: var(--sys-primary-container);
+      color: var(--sys-on-primary-container);
       border-radius: 16px;
       font-size: 0.9rem;
 
       &.unreleased {
-        background: var(--mat-sys-tertiary-container);
-        color: var(--mat-sys-on-tertiary-container);
+        background: var(--sys-tertiary-container);
+        color: var(--sys-on-tertiary-container);
       }
     }
 
     .version-date {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       font-size: 0.9rem;
     }
   }
@@ -79,7 +79,7 @@
         margin-top: 1.5rem;
         margin-bottom: 0.75rem;
         font-size: 1.2rem;
-        color: var(--mat-sys-primary);
+        color: var(--sys-primary);
       }
 
       h4 {
@@ -103,7 +103,7 @@
       }
 
       code {
-        background: var(--mat-sys-surface-container-highest);
+        background: var(--sys-surface-container-highest);
         padding: 0.2rem 0.4rem;
         border-radius: 4px;
         font-family: monospace;
