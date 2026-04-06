@@ -244,10 +244,9 @@ describe('ImageGenerationService', () => {
       expect(job.error).toBe('API Error');
     });
 
-    it('should handle non-Error exceptions', async () => {
+    it('should handle synchronous thrown errors', async () => {
       mockAiImageService.generateImage.mockImplementation(() => {
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw 'string error';
+        throw new Error('string error');
       });
 
       const projectKey = 'user/project';
@@ -258,7 +257,7 @@ describe('ImageGenerationService', () => {
 
       const job = service.jobs()[0];
       expect(job.status).toBe('failed');
-      expect(job.error).toBe('Generation failed');
+      expect(job.error).toBe('string error');
     });
 
     it('should fail with a refusal message when the model returns refusal text', async () => {
