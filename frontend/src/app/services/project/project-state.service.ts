@@ -1067,6 +1067,7 @@ export class ProjectStateService implements OnDestroy {
       | 'tags-list'
       | 'settings'
       | 'home'
+      | 'publish-plans'
   ): { index: number; wasCreated: boolean } {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {

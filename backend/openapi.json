@@ -1108,36 +1108,6 @@
           "passwordPolicy"
         ]
       },
-      "CSRFTokenResponse": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "example": "abc123...",
-            "description": "CSRF token for form submissions"
-          }
-        },
-        "required": [
-          "token"
-        ]
-      },
-      "CSRFErrorResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Failed to generate token",
-            "description": "Error message"
-          },
-          "error": {
-            "type": "string",
-            "description": "Error details"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
       "LintStatus": {
         "type": "object",
         "properties": {
@@ -3438,6 +3408,12 @@
             "example": "Full Export",
             "description": "Publish plan name"
           },
+          "planId": {
+            "type": "string",
+            "nullable": true,
+            "example": "plan-abc123",
+            "description": "Publish plan ID"
+          },
           "sharePermission": {
             "type": "string",
             "enum": [
@@ -3520,6 +3496,7 @@
           "mimeType",
           "size",
           "planName",
+          "planId",
           "sharePermission",
           "shareToken",
           "createdAt",
@@ -6915,7 +6892,7 @@
             }
           },
           "400": {
-            "description": "Invalid input data",
+            "description": "Invalid request",
             "content": {
               "application/json": {
                 "schema": {
@@ -6935,7 +6912,7 @@
             }
           },
           "403": {
-            "description": "Access denied - not project owner",
+            "description": "Access denied",
             "content": {
               "application/json": {
                 "schema": {
@@ -7101,7 +7078,7 @@
             }
           },
           "403": {
-            "description": "Access denied - not project owner",
+            "description": "Access denied",
             "content": {
               "application/json": {
                 "schema": {
@@ -7185,7 +7162,7 @@
             }
           },
           "403": {
-            "description": "Access denied - not project owner",
+            "description": "Access denied",
             "content": {
               "application/json": {
                 "schema": {
@@ -7364,36 +7341,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SystemFeatures"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/csrf/token": {
-      "get": {
-        "tags": [
-          "Security"
-        ],
-        "operationId": "getCSRFToken",
-        "responses": {
-          "200": {
-            "description": "CSRF token generated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CSRFTokenResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to generate CSRF token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CSRFErrorResponse"
                 }
               }
             }
@@ -9342,7 +9289,7 @@
             }
           },
           "404": {
-            "description": "Audit not found",
+            "description": "Audit record not found",
             "content": {
               "application/json": {
                 "schema": {

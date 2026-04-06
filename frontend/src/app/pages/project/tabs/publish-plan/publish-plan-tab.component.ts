@@ -4,6 +4,7 @@ import {
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
+import { CommonModule, DatePipe } from '@angular/common';
 import {
   Component,
   computed,
@@ -21,19 +22,19 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ElementType } from '@inkweld/index';
-import { firstValueFrom, type Subscription } from 'rxjs';
-
-import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
+import { ProjectCoverComponent } from '@components/project-cover/project-cover.component';
+import { PublishPreviewComponent } from '@components/publish-preview/publish-preview.component';
 import {
   PublishCompleteDialogComponent,
   type PublishCompleteDialogData,
   type PublishCompleteDialogResult,
-} from '../../../../dialogs/publish-complete-dialog/publish-complete-dialog.component';
+} from '@dialogs/publish-complete-dialog/publish-complete-dialog.component';
+import { ElementType } from '@inkweld/index';
 import {
   BackmatterType,
   ChapterNumbering,
@@ -44,20 +45,32 @@ import {
   type PublishPlanItem,
   PublishPlanItemType,
   SeparatorStyle,
-} from '../../../../models/publish-plan';
-import { type PublishedFile } from '../../../../models/published-file';
-import { ProjectStateService } from '../../../../services/project/project-state.service';
+} from '@models/publish-plan';
+import { type PublishedFile } from '@models/published-file';
+import { ProjectStateService } from '@services/project/project-state.service';
 import {
   type PublishingResult,
   PublishService,
-} from '../../../../services/publish/publish.service';
-import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
+} from '@services/publish/publish.service';
+import { PublishedFilesService } from '@services/publish/published-files.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { firstValueFrom, type Subscription } from 'rxjs';
+
+import { FileSizePipe } from '../../../../pipes/file-size.pipe';
+
+type PlanSection =
+  | 'metadata'
+  | 'contents'
+  | 'formatting'
+  | 'publish'
+  | 'preview';
 
 @Component({
   selector: 'app-publish-plan-tab',
   templateUrl: './publish-plan-tab.component.html',
   styleUrls: ['./publish-plan-tab.component.scss'],
   imports: [
+    CommonModule,
     FormsModule,
     DragDropModule,
     MatButtonModule,
@@ -66,9 +79,13 @@ import { WorldbuildingService } from '../../../../services/worldbuilding/worldbu
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatListModule,
     MatSelectModule,
     MatTooltipModule,
     ProjectCoverComponent,
+    PublishPreviewComponent,
+    DatePipe,
+    FileSizePipe,
   ],
 })
 export class PublishPlanTabComponent implements OnInit, OnDestroy {
@@ -77,9 +94,11 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
   protected projectState = inject(ProjectStateService);
   private readonly publishService = inject(PublishService);
+  private readonly publishedFilesService = inject(PublishedFilesService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private paramSubscription: Subscription | null = null;
+  private readonly resizeCleanup: (() => void) | null = null;
 
   /** Expose ElementType for template */
   protected readonly ElementType = ElementType;
@@ -87,26 +106,45 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   /** The plan ID from route params */
   protected planId = signal<string>('');
 
-  /** The current plan from state */
+  /** The current plan from state (source of truth) */
   protected plan = computed((): PublishPlan | null => {
     const id = this.planId();
     if (!id) return null;
     return this.projectState.getPublishPlan(id) ?? null;
   });
 
-  /** Local working copy of the plan */
-  protected localPlan = signal<PublishPlan | null>(null);
+  /** Whether the preview is outdated (plan changed since last preview) */
+  protected previewOutdated = signal(false);
 
-  /** Track if changes are pending */
-  protected hasChanges = signal(false);
+  /** Currently selected section in sidenav/accordion */
+  protected selectedSection = signal<PlanSection>('metadata');
 
-  /** Expandable sections */
+  /** Whether to use sidenav layout (desktop) or accordion (mobile) */
+  protected useSidenav = signal(true);
+
+  /** Sidenav navigation items */
+  protected readonly sections: {
+    key: PlanSection;
+    icon: string;
+    label: string;
+  }[] = [
+    { key: 'metadata', icon: 'menu_book', label: 'Metadata' },
+    { key: 'contents', icon: 'list', label: 'Contents' },
+    { key: 'formatting', icon: 'tune', label: 'Formatting' },
+    { key: 'preview', icon: 'visibility', label: 'Preview' },
+    { key: 'publish', icon: 'publish', label: 'Publish' },
+  ];
+
+  /** Expandable sections (accordion mode) */
   protected metadataExpanded = signal(true);
   protected optionsExpanded = signal(false);
   protected itemsExpanded = signal(true);
 
   /** Show add item menu */
   protected showAddItemMenu = signal(false);
+
+  /** Whether preview was auto-loaded */
+  private previewAutoLoaded = false;
 
   /** Available formats */
   protected readonly formats = Object.values(PublishFormat);
@@ -128,17 +166,30 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     () => this.projectState.project()?.coverImage ?? null
   );
 
-  /** Get the working plan (local copy or original) */
-  protected workingPlan = computed((): PublishPlan | null => {
-    return this.localPlan() ?? this.plan();
-  });
+  /** Published files for this plan (filtered by planId, falling back to planName) */
+  protected publishedFiles = signal<PublishedFile[]>([]);
+
+  /** Subscription to published files observable */
+  private publishedFilesSub: Subscription | null = null;
 
   constructor() {
-    // Watch for plan changes and update local copy
+    const browserWindow = globalThis.window;
+    if (browserWindow) {
+      const updateLayout = (): void => {
+        this.useSidenav.set(browserWindow.innerWidth >= 760);
+      };
+      updateLayout();
+      browserWindow.addEventListener('resize', updateLayout);
+      this.resizeCleanup = () =>
+        browserWindow.removeEventListener('resize', updateLayout);
+    }
+
+    // Reactively load published files when project becomes available (handles refresh)
     effect(() => {
-      const plan = this.plan();
-      if (plan && !this.localPlan()) {
-        this.localPlan.set({ ...plan });
+      const project = this.projectState.project();
+      if (project) {
+        const projectKey = `${project.username}/${project.slug}`;
+        this.publishedFilesService.loadFiles(projectKey).catch(() => {});
       }
     });
   }
@@ -147,14 +198,22 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.paramSubscription = this.route.paramMap.subscribe(params => {
       const newPlanId = params.get('tabId') || '';
       this.planId.set(newPlanId);
-
-      // Reset local state for new plan
-      const plan = this.projectState.getPublishPlan(newPlanId);
-      if (plan) {
-        this.localPlan.set({ ...plan });
-        this.hasChanges.set(false);
-      }
     });
+
+    // Subscribe to published files and filter for this plan
+    this.publishedFilesSub = this.publishedFilesService.files$.subscribe(
+      files => {
+        const plan = this.plan();
+        if (!plan) {
+          this.publishedFiles.set([]);
+          return;
+        }
+        const filtered = files.filter(
+          f => f.planId === plan.id || (!f.planId && f.planName === plan.name)
+        );
+        this.publishedFiles.set(filtered);
+      }
+    );
   }
 
   ngOnDestroy(): void {
@@ -162,6 +221,22 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       this.paramSubscription.unsubscribe();
       this.paramSubscription = null;
     }
+    if (this.publishedFilesSub) {
+      this.publishedFilesSub.unsubscribe();
+      this.publishedFilesSub = null;
+    }
+    if (this.resizeCleanup) {
+      this.resizeCleanup();
+    }
+  }
+
+  /** Helper: update plan in state */
+  private updatePlan(changes: Partial<PublishPlan>): void {
+    const plan = this.plan();
+    if (!plan) return;
+    const updated = { ...plan, ...changes };
+    this.projectState.updatePublishPlan(updated);
+    this.previewOutdated.set(true);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -169,27 +244,24 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   updateName(event: Event): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
     const name = (event.target as HTMLInputElement).value;
-    this.localPlan.set({ ...plan, name });
-    this.hasChanges.set(true);
+    this.updatePlan({ name });
   }
 
   updateFormat(event: Event): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
     const format = (event.target as HTMLSelectElement).value as PublishFormat;
-    this.localPlan.set({ ...plan, format });
-    this.hasChanges.set(true);
+    this.updatePlan({ format });
   }
 
   /** Handle mat-select format change */
   updateFormatSelect(event: { value: PublishFormat }): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
-    this.localPlan.set({ ...plan, format: event.value });
-    this.hasChanges.set(true);
+    this.updatePlan({ format: event.value });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -197,15 +269,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   updateMetadata(field: string, event: Event): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
     const value = (event.target as HTMLInputElement | HTMLTextAreaElement)
       .value;
-    this.localPlan.set({
-      ...plan,
+    this.updatePlan({
       metadata: { ...plan.metadata, [field]: value },
     });
-    this.hasChanges.set(true);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -213,26 +283,22 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   updateOption(option: string, event: Event): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
     const target = event.target as HTMLInputElement;
     const value = target.type === 'checkbox' ? target.checked : target.value;
-    this.localPlan.set({
-      ...plan,
+    this.updatePlan({
       options: { ...plan.options, [option]: value },
     });
-    this.hasChanges.set(true);
   }
 
   /** Handle mat-checkbox change */
   updateOptionCheckbox(option: string, event: { checked: boolean }): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
-    this.localPlan.set({
-      ...plan,
+    this.updatePlan({
       options: { ...plan.options, [option]: event.checked },
     });
-    this.hasChanges.set(true);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -240,7 +306,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   dropItem(event: CdkDragDrop<PublishPlanItem[]>): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     // Cross-list drop from project tree
@@ -255,8 +321,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const items = [...plan.items];
     moveItemInArray(items, event.previousIndex, event.currentIndex);
 
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items });
   }
 
   /** Predicate: only allow non-folder elements to be dropped into the list */
@@ -303,29 +368,27 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   /** Move item up in list (for keyboard accessibility) */
   moveItemUp(index: number): void {
     if (index <= 0) return;
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     const items = [...plan.items];
     moveItemInArray(items, index, index - 1);
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items });
   }
 
   /** Move item down in list (for keyboard accessibility) */
   moveItemDown(index: number): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
     if (index >= plan.items.length - 1) return;
 
     const items = [...plan.items];
     moveItemInArray(items, index, index + 1);
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items });
   }
 
   addElement(elementId: string, index?: number): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     const newItem: ElementItem = {
@@ -342,13 +405,12 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     } else {
       items.push(newItem);
     }
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items });
     this.showAddItemMenu.set(false);
   }
 
   addFrontmatter(contentType: FrontmatterType): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     const newItem: PublishPlanItem = {
@@ -357,14 +419,12 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       contentType,
     };
 
-    const items = [...plan.items, newItem];
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items: [...plan.items, newItem] });
     this.showAddItemMenu.set(false);
   }
 
   addBackmatter(contentType: BackmatterType): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     const newItem: PublishPlanItem = {
@@ -373,14 +433,12 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       contentType,
     };
 
-    const items = [...plan.items, newItem];
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items: [...plan.items, newItem] });
     this.showAddItemMenu.set(false);
   }
 
   addSeparator(style: SeparatorStyle): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     const newItem: PublishPlanItem = {
@@ -389,14 +447,12 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       style,
     };
 
-    const items = [...plan.items, newItem];
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items: [...plan.items, newItem] });
     this.showAddItemMenu.set(false);
   }
 
   addTableOfContents(): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     const newItem: PublishPlanItem = {
@@ -407,19 +463,36 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       includePageNumbers: false,
     };
 
-    const items = [...plan.items, newItem];
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items: [...plan.items, newItem] });
     this.showAddItemMenu.set(false);
   }
 
+  /** Walk the element tree in order, adding all non-folder elements */
+  addEverything(): void {
+    const plan = this.plan();
+    if (!plan) return;
+
+    const newItems: PublishPlanItem[] = this.documentElements().map(
+      element => ({
+        id: crypto.randomUUID(),
+        type: PublishPlanItemType.Element,
+        elementId: element.id,
+        includeChildren: false,
+        isChapter: true,
+      })
+    );
+
+    if (newItems.length > 0) {
+      this.updatePlan({ items: [...plan.items, ...newItems] });
+    }
+  }
+
   removeItem(itemId: string): void {
-    const plan = this.localPlan();
+    const plan = this.plan();
     if (!plan) return;
 
     const items = plan.items.filter(item => item.id !== itemId);
-    this.localPlan.set({ ...plan, items });
-    this.hasChanges.set(true);
+    this.updatePlan({ items });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -487,36 +560,69 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Save / Cancel
+  // Section Navigation
   // ─────────────────────────────────────────────────────────────────────────────
 
-  saveChanges(): void {
-    const plan = this.localPlan();
-    if (!plan || !this.hasChanges()) return;
-
-    this.projectState.updatePublishPlan(plan);
-    this.hasChanges.set(false);
+  selectSection(section: PlanSection): void {
+    this.selectedSection.set(section);
+    if (section === 'preview') {
+      this.previewAutoLoaded = true;
+    }
   }
 
-  discardChanges(): void {
-    const originalPlan = this.plan();
-    if (originalPlan) {
-      this.localPlan.set({ ...originalPlan });
+  /** Whether preview tab is currently shown */
+  protected isPreviewSection(): boolean {
+    return this.selectedSection() === 'preview';
+  }
+
+  /** Download a previously published file */
+  async downloadPublishedFile(fileId: string): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+    const projectKey = `${project.username}/${project.slug}`;
+    try {
+      await this.publishedFilesService.downloadFile(projectKey, fileId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Download failed';
+      this.snackBar.open(msg, 'Dismiss', { duration: 5000 });
     }
-    this.hasChanges.set(false);
+  }
+
+  /** Delete a published file */
+  async deletePublishedFile(fileId: string): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+    const projectKey = `${project.username}/${project.slug}`;
+    try {
+      await this.publishedFilesService.deleteFile(projectKey, fileId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Delete failed';
+      this.snackBar.open(msg, 'Dismiss', { duration: 5000 });
+    }
+  }
+
+  /** Get icon for a published format */
+  getPublishedFormatIcon(format: string): string {
+    switch (format as PublishFormat) {
+      case PublishFormat.EPUB:
+        return 'book';
+      case PublishFormat.PDF_SIMPLE:
+        return 'picture_as_pdf';
+      case PublishFormat.HTML:
+        return 'code';
+      case PublishFormat.MARKDOWN:
+        return 'description';
+      default:
+        return 'insert_drive_file';
+    }
   }
 
   /** Track if generation is in progress */
   protected isGenerating = signal(false);
 
   async generatePublication(): Promise<void> {
-    const plan = this.workingPlan();
+    const plan = this.plan();
     if (!plan || plan.items.length === 0) return;
-
-    // Save any pending changes first
-    if (this.hasChanges()) {
-      this.saveChanges();
-    }
 
     // Prevent double-click
     if (this.isGenerating()) return;

@@ -53,8 +53,8 @@ test.describe('Tags Feature Screenshots', () => {
       state: 'visible',
     });
 
-    // Click on the "Tags" inner tab
-    await page.getByRole('tab', { name: 'Tags' }).click();
+    // Click on the Tags section in sidenav
+    await page.getByTestId('nav-tags').click();
 
     // Wait for tags container
     await page.waitForSelector('.tags-tab', {

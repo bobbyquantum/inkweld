@@ -1,23 +1,22 @@
-import { Tab, TabList, Tabs } from '@angular/aria/tabs';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
-  type AfterViewInit,
   Component,
   computed,
   effect,
-  type ElementRef,
   inject,
+  type OnDestroy,
   signal,
-  ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
@@ -48,10 +47,6 @@ import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 
-import {
-  createDefaultPublishPlan,
-  type PublishPlan,
-} from '../../../../models/publish-plan';
 import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
 import { TagsTabComponent } from '../tags/tags-tab.component';
 import { TemplatesTabComponent } from '../templates/templates-tab.component';
@@ -74,30 +69,65 @@ import { TemplatesTabComponent } from '../templates/templates-tab.component';
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
+    MatExpansionModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatListModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
     MatTooltipModule,
+    NgTemplateOutlet,
     RelationshipsTabComponent,
-    Tab,
-    TabList,
-    Tabs,
     TagsTabComponent,
     TemplatesTabComponent,
   ],
 })
-export class SettingsTabComponent implements AfterViewInit {
-  @ViewChild('tabNavBar') tabNavBar!: ElementRef<HTMLElement>;
+export class SettingsTabComponent implements OnDestroy {
+  // Sidenav / responsive layout
+  protected useSidenav = signal(true);
+  protected readonly selectedSection = signal<string>('actions');
+  private readonly resizeCleanup: (() => void) | null = null;
 
-  // Active tab tracking
-  protected readonly selectedTab = signal('sync');
+  // Section definitions — dynamically computed based on access level
+  protected readonly sections = computed(() => {
+    const sections = [{ key: 'actions', icon: 'build', label: 'Actions' }];
 
-  // Scroll state for arrow visibility
-  protected readonly canScrollLeft = signal(false);
-  protected readonly canScrollRight = signal(false);
+    if (this.projectState.accessLoaded() && this.projectState.canWrite()) {
+      sections.push(
+        { key: 'templates', icon: 'description', label: 'Templates' },
+        { key: 'relationships', icon: 'hub', label: 'Relationships' },
+        { key: 'tags', icon: 'local_offer', label: 'Tags' }
+      );
+    }
+
+    sections.push({ key: 'sync', icon: 'sync', label: 'Sync' });
+
+    if (this.projectState.accessLoaded() && this.projectState.isOwner()) {
+      sections.push({
+        key: 'collaboration',
+        icon: 'group',
+        label: 'Collaboration',
+      });
+      if (!this.isAiKillSwitchEnabled()) {
+        sections.push({ key: 'mcp', icon: 'key', label: 'MCP' });
+      }
+      sections.push({ key: 'danger', icon: 'warning', label: 'Danger Zone' });
+    }
+
+    return sections;
+  });
+
+  // Expansion states for accordion (mobile)
+  protected actionsExpanded = signal(true);
+  protected templatesExpanded = signal(false);
+  protected relationshipsExpanded = signal(false);
+  protected tagsExpanded = signal(false);
+  protected syncExpanded = signal(false);
+  protected collaborationExpanded = signal(false);
+  protected mcpExpanded = signal(false);
+  protected dangerExpanded = signal(false);
   protected readonly projectState = inject(ProjectStateService);
   private readonly mcpKeysService = inject(MCPKeysService);
   private readonly collaborationService = inject(CollaborationApiService);
@@ -211,77 +241,28 @@ export class SettingsTabComponent implements AfterViewInit {
       }
     });
 
-    // Watch for tab changes and update scroll state
-    effect(() => {
-      this.selectedTab();
-      setTimeout(() => this.updateScrollState(), 0);
-    });
-  }
-
-  ngAfterViewInit(): void {
-    this.updateScrollState();
-    setTimeout(() => this.scrollToActiveTab(), 0);
-  }
-
-  /** Check if scroll arrows should be visible */
-  updateScrollState(): void {
-    const el = this.tabNavBar?.nativeElement;
-    if (!el) return;
-
-    const canLeft = el.scrollLeft > 0;
-    const canRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
-
-    this.canScrollLeft.set(canLeft);
-    this.canScrollRight.set(canRight);
-  }
-
-  /** Handle scroll event on the tab nav bar */
-  onTabsScroll(): void {
-    this.updateScrollState();
-  }
-
-  /** Scroll tabs left */
-  scrollLeft(): void {
-    const el = this.tabNavBar?.nativeElement;
-    if (!el) return;
-    el.scrollBy({ left: -150, behavior: 'smooth' });
-  }
-
-  /** Scroll tabs right */
-  scrollRight(): void {
-    const el = this.tabNavBar?.nativeElement;
-    if (!el) return;
-    el.scrollBy({ left: 150, behavior: 'smooth' });
-  }
-
-  /** Scroll to make the active tab visible */
-  scrollToActiveTab(): void {
-    const container = this.tabNavBar?.nativeElement;
-    if (!container) return;
-
-    const activeTabButton = container.querySelector(
-      '[aria-selected="true"]'
-    ) as HTMLElement;
-    if (!activeTabButton) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const tabRect = activeTabButton.getBoundingClientRect();
-
-    if (tabRect.left < containerRect.left) {
-      const scrollAmount = tabRect.left - containerRect.left - 8;
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    } else if (tabRect.right > containerRect.right) {
-      const scrollAmount = tabRect.right - containerRect.right + 8;
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    // Responsive layout: sidenav on >= 760px, accordion on mobile
+    const browserWindow = globalThis.window;
+    if (browserWindow) {
+      const updateLayout = (): void => {
+        this.useSidenav.set(browserWindow.innerWidth >= 760);
+      };
+      updateLayout();
+      browserWindow.addEventListener('resize', updateLayout);
+      this.resizeCleanup = () =>
+        browserWindow.removeEventListener('resize', updateLayout);
     }
-
-    setTimeout(() => this.updateScrollState(), 150);
   }
 
-  /** Handle tab selection change */
-  onTabChange(tabId: string): void {
-    this.selectedTab.set(tabId);
-    setTimeout(() => this.scrollToActiveTab(), 0);
+  ngOnDestroy(): void {
+    if (this.resizeCleanup) {
+      this.resizeCleanup();
+    }
+  }
+
+  /** Select a section by key */
+  selectSection(section: string): void {
+    this.selectedSection.set(section);
   }
 
   // =====================
@@ -981,34 +962,6 @@ export class SettingsTabComponent implements AfterViewInit {
             });
         }
       });
-  }
-
-  /**
-   * Open or create a publish plan and navigate to it.
-   */
-  openPublishPlan(): void {
-    const project = this.projectState.project();
-    if (!project) return;
-
-    const plans = this.projectState.getPublishPlans();
-    let plan: PublishPlan;
-
-    if (plans.length > 0) {
-      plan = plans[0];
-    } else {
-      plan = createDefaultPublishPlan(project.title, project.username);
-      this.projectState.createPublishPlan(plan);
-    }
-
-    this.projectState.openPublishPlan(plan);
-
-    void this.router.navigate([
-      '/',
-      project.username,
-      project.slug,
-      'publish-plan',
-      plan.id,
-    ]);
   }
 
   /**

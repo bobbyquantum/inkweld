@@ -109,7 +109,10 @@
                 </button>
 
                 <mat-menu #typeMenu="matMenu">
-                  <button mat-menu-item (click)="editType(type)">
+                  <button
+                    mat-menu-item
+                    (click)="editType(type)"
+                    data-testid="edit-type-button">
                     <mat-icon>edit</mat-icon>
                     <span>Edit</span>
                   </button>
@@ -196,7 +199,10 @@
                 </button>
 
                 <mat-menu #builtInMenu="matMenu">
-                  <button mat-menu-item (click)="editType(type)">
+                  <button
+                    mat-menu-item
+                    (click)="editType(type)"
+                    data-testid="edit-type-button">
                     <mat-icon>edit</mat-icon>
                     <span>Edit</span>
                   </button>

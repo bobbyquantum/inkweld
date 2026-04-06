@@ -53,8 +53,8 @@ test.describe('Relationships Tab Screenshots', () => {
       state: 'visible',
     });
 
-    // Click on the "Relationship Types" inner tab
-    await page.getByRole('tab', { name: 'Relationship Types' }).click();
+    // Click on the Relationships section in sidenav
+    await page.getByTestId('nav-relationships').click();
 
     // Wait for relationships container
     await page.waitForSelector('.relationships-tab-container', {

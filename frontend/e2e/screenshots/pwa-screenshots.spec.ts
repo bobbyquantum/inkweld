@@ -443,11 +443,11 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Click the Tags sub-tab
-    await page.click('[data-testid="settings-tab-tags"]');
+    // Click the Tags section in sidenav
+    await page.click('[data-testid="nav-tags"]');
     await page.waitForTimeout(500);
 
-    // Wait for tags tab to be visible
+    // Wait for tags section to be visible
     await page.waitForSelector('[data-testid="new-tag-button"]', {
       state: 'visible',
     });
@@ -505,11 +505,11 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Click the Tags sub-tab
-    await page.click('[data-testid="settings-tab-tags"]');
+    // Click the Tags section in sidenav
+    await page.click('[data-testid="nav-tags"]');
     await page.waitForTimeout(500);
 
-    // Wait for tags tab to be visible
+    // Wait for tags section to be visible
     await page.waitForSelector('[data-testid="new-tag-button"]', {
       state: 'visible',
     });
@@ -564,8 +564,8 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Click the Tags sub-tab
-    await page.click('[data-testid="settings-tab-tags"]');
+    // Click the Tags section in sidenav
+    await page.click('[data-testid="nav-tags"]');
     await page.waitForTimeout(500);
 
     // Click the New Tag button
@@ -626,8 +626,8 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Click the Tags sub-tab
-    await page.click('[data-testid="settings-tab-tags"]');
+    // Click the Tags section in sidenav
+    await page.click('[data-testid="nav-tags"]');
     await page.waitForTimeout(500);
 
     // Click the New Tag button

@@ -29,7 +29,7 @@ test.describe('Worldbuilding Templates', () => {
     await settingsButton.click();
     await page.waitForURL(/\/settings$/);
     await expect(page.getByTestId('settings-tab-content')).toBeVisible();
-    await page.getByRole('tab', { name: 'Element Templates' }).click();
+    await page.getByTestId('nav-templates').click();
     await expect(page.getByTestId('template-card').first()).toBeVisible();
 
     // Click the Create Template button
@@ -97,7 +97,7 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
     // Click the Element Templates inner tab
-    await page.getByRole('tab', { name: 'Element Templates' }).click();
+    await page.getByTestId('nav-templates').click();
 
     // Wait for templates to load (use specific data-testid and first() to avoid strict mode violation)
     await expect(page.getByTestId('template-card').first()).toBeVisible();
@@ -249,7 +249,7 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
     // Click the Element Templates inner tab
-    await page.getByRole('tab', { name: 'Element Templates' }).click();
+    await page.getByTestId('nav-templates').click();
     await expect(page.getByTestId('template-card').first()).toBeVisible();
 
     // Clone Character template
@@ -321,7 +321,7 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('settings-tab-content')).toBeVisible();
 
     // Click the Element Templates inner tab
-    await page.getByTestId('settings-tab-templates').click();
+    await page.getByTestId('nav-templates').click();
     await expect(page.getByTestId('template-card').first()).toBeVisible();
 
     // Find Character template and clone it

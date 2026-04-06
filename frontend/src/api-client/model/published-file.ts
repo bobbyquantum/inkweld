@@ -40,6 +40,10 @@ export interface PublishedFile {
      */
     planName: string;
     /**
+     * Publish plan ID
+     */
+    planId: string | null;
+    /**
      * Sharing permission level
      */
     sharePermission: PublishedFileSharePermission;
