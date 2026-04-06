@@ -4,7 +4,6 @@ import {
   Configuration,
   DocumentsService,
   ProjectsService,
-  SecurityService,
   UsersService,
 } from '@inkweld/index';
 import { describe, expect, it, vi } from 'vitest';
@@ -45,7 +44,7 @@ describe('api.config', () => {
       useFactory: (http: HttpClient, config: Configuration) => unknown;
     }>;
 
-    expect(API_PROVIDERS).toHaveLength(6);
+    expect(API_PROVIDERS).toHaveLength(5);
     expect(API_PROVIDERS[0]).toMatchObject({
       provide: Configuration,
       deps: [SetupService],
@@ -57,7 +56,6 @@ describe('api.config', () => {
       ProjectsService,
       DocumentsService,
       AuthenticationService,
-      SecurityService,
     ];
 
     expect(serviceProviders.map(provider => provider.provide)).toEqual(

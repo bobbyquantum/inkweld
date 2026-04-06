@@ -12,6 +12,28 @@ import { expect, test } from './fixtures';
 
 test.describe('Online Publishing Workflow', () => {
   /**
+   * Helper to navigate to a section within the publish plan sidenav
+   */
+  async function selectSection(
+    page: import('@playwright/test').Page,
+    section: string
+  ): Promise<void> {
+    await page.getByTestId(`nav-${section}`).click();
+  }
+
+  /**
+   * Helper to navigate to the Publishing list tab via sidenav
+   */
+  async function navigateToPublishingTab(
+    page: import('@playwright/test').Page
+  ): Promise<void> {
+    await page.getByTestId('sidebar-publishing-button').click();
+    await expect(
+      page.getByTestId('publish-plans-list-container')
+    ).toBeVisible();
+  }
+
+  /**
    * Helper to create a project and navigate to create a publish plan
    */
   async function setupProjectAndCreatePlan(
@@ -33,10 +55,8 @@ test.describe('Online Publishing Workflow', () => {
     await page.waitForURL(new RegExp(uniqueSlug));
     await page.waitForLoadState('networkidle');
 
-    // Wait for project home to load - use role to avoid multiple matches
-    await expect(
-      page.getByRole('heading', { name: 'Publish Plans' })
-    ).toBeVisible();
+    // Navigate to Publishing tab via sidenav
+    await navigateToPublishingTab(page);
 
     // Ensure button is visible and clickable before clicking
     const createPlanButton = page.getByTestId('create-publish-plan-button');
@@ -44,13 +64,13 @@ test.describe('Online Publishing Workflow', () => {
     await expect(createPlanButton).toBeEnabled();
     await createPlanButton.click();
     await page.waitForURL(/\/publish-plan\//);
-    await expect(page.getByTestId('plan-name-display')).toBeVisible();
+    await expect(page.getByTestId('plan-name-input')).toBeVisible();
 
     return uniqueSlug;
   }
 
   test.describe('Publish Plan Creation', () => {
-    test('should show publish plans section on project home', async ({
+    test('should show publishing tab via sidenav button', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -65,11 +85,10 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
       await page.waitForURL(new RegExp(uniqueSlug));
+      await page.waitForLoadState('networkidle');
 
-      // Should see the Publish Plans heading
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      // Navigate to Publishing tab via sidenav
+      await navigateToPublishingTab(page);
 
       // Should see the create button
       await expect(
@@ -91,15 +110,6 @@ test.describe('Online Publishing Workflow', () => {
 
       // Update author
       await page.getByTestId('author-input').fill('Test Author');
-
-      // Should show save button
-      await expect(page.getByTestId('save-changes-button')).toBeVisible();
-
-      // Save changes
-      await page.getByTestId('save-changes-button').click();
-
-      // Save button should disappear after saving
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
     });
   });
 
@@ -109,26 +119,25 @@ test.describe('Online Publishing Workflow', () => {
     }) => {
       await setupProjectAndCreatePlan(page);
 
-      // Click add TOC button
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
       // Should show in the items list
       await expect(page.getByTestId('content-items-list')).toBeVisible();
+      await expect(page.getByTestId('content-item-0')).toBeVisible();
 
-      // Use specific test ID to avoid matching multiple elements
-      await expect(page.getByTestId('item-name')).toContainText(
-        'Table of Contents'
-      );
-
-      // Generate button should be enabled now - give it time for processing in CI
+      // Navigate to Publish section - generate button should be enabled
+      await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toBeEnabled();
     });
 
     test('should remove content items', async ({ authenticatedPage: page }) => {
       await setupProjectAndCreatePlan(page);
 
-      // Add TOC first
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content first
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
       await expect(page.getByTestId('content-items-list')).toBeVisible();
 
       // Remove it
@@ -158,11 +167,14 @@ test.describe('Online Publishing Workflow', () => {
       // Select EPUB using role option to avoid multiple matches
       await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
 
+      // Navigate to Publish section to see the generate button
+      await selectSection(page, 'publish');
+
       // Verify generate button shows the selected format
       await expect(page.getByTestId('generate-button')).toContainText('EPUB');
     });
 
-    test('should remember format selection after save', async ({
+    test('should remember format selection after auto-save', async ({
       authenticatedPage: page,
     }) => {
       await setupProjectAndCreatePlan(page);
@@ -171,18 +183,17 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('format-select').click();
       await page.getByRole('option', { name: 'PDF' }).click();
 
-      // Wait for save button to appear (format change triggers hasChanges)
-      await expect(page.getByTestId('save-changes-button')).toBeVisible();
-
-      // Save
-      await page.getByTestId('save-changes-button').click();
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
+      // Auto-save debounce — wait for save to complete
+      await page.waitForTimeout(1000);
 
       // Reload - the tab should remain open
       await page.reload();
 
       // The publish plan should still be visible
       await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+      // Navigate to Publish section to check generate button
+      await selectSection(page, 'publish');
 
       // Generate button should show PDF
       await expect(page.getByTestId('generate-button')).toContainText('PDF');
@@ -195,11 +206,13 @@ test.describe('Online Publishing Workflow', () => {
     }) => {
       await setupProjectAndCreatePlan(page);
 
-      // Add content
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
       await expect(page.getByTestId('content-items-list')).toBeVisible();
 
-      // Click generate
+      // Navigate to Publish section and click generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for publish complete dialog
@@ -236,11 +249,7 @@ test.describe('Online Publishing Workflow', () => {
 
       // Wait for project page
       await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Wait for project home to fully load
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      await page.waitForLoadState('networkidle');
 
       // Online projects now have a default README document
       // Click on README using treeitem role
@@ -267,38 +276,30 @@ test.describe('Online Publishing Workflow', () => {
       // to complete before the data is available. Wait 3 seconds to be safe.
       await page.waitForTimeout(3000);
 
-      // Go back to project home
-      await page.getByTestId('toolbar-home-button').click();
-
-      // Wait for project home to load
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      // Navigate to Publishing tab to create a plan
+      await navigateToPublishingTab(page);
 
       // Create a new publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible();
+      await expect(page.getByTestId('plan-name-input')).toBeVisible();
 
       // Select PDF format
       await page.getByTestId('format-select').click();
       await page.getByRole('option', { name: 'PDF' }).click();
 
-      // Wait for format dropdown to close before clicking document select
+      // Wait for format dropdown to close
       await expect(page.getByRole('listbox')).not.toBeVisible();
 
-      // Add README document to the plan using the dropdown
-      // Use force: true because mat-label may intercept pointer events
-      await page.getByTestId('add-document-select').click({ force: true });
-      await page.getByRole('option', { name: 'README' }).click();
+      // Navigate to Contents section and add all documents (README)
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
-      // Verify document was added - look for the item with README name
+      // Verify document was added
       await expect(page.getByTestId('content-items-list')).toBeVisible();
       await expect(page.getByTestId('item-name')).toContainText('README');
 
-      // Wait for the item count to update
-      await expect(page.locator('text=/Contents.*1 item/i')).toBeVisible();
-
-      // Generate
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for completion - PDF generation can be slow in Docker
@@ -355,11 +356,7 @@ test.describe('Online Publishing Workflow', () => {
 
       // Wait for project page
       await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Wait for project home to fully load
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      await page.waitForLoadState('networkidle');
 
       // Online projects now have a default README document
       // Click on README using treeitem role
@@ -382,31 +379,25 @@ test.describe('Online Publishing Workflow', () => {
       // y-indexeddb debounces writes, so we wait for the status to clearly indicate completion
       await expect(page.locator('.sync-status')).toContainText('synced');
 
-      // Go back to project home
-      await page.getByTestId('toolbar-home-button').click();
-
-      // Wait for project home to load
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      // Navigate to Publishing tab to create a plan
+      await navigateToPublishingTab(page);
 
       // Create a new publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible();
+      await expect(page.getByTestId('plan-name-input')).toBeVisible();
 
       // EPUB is the default format, no need to change it
 
-      // Add README document to the plan using the dropdown
-      const addDocSelect = page.getByTestId('add-document-select');
-      await expect(addDocSelect).toBeVisible();
-      await addDocSelect.click({ force: true });
-      await page.getByRole('option', { name: 'README' }).click();
+      // Navigate to Contents section and add all documents (README)
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
       // Verify document was added
       await expect(page.getByTestId('content-items-list')).toBeVisible();
       await expect(page.getByTestId('item-name')).toContainText('README');
 
-      // Generate
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for completion
@@ -474,11 +465,7 @@ test.describe('Online Publishing Workflow', () => {
 
       // Wait for project page
       await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Wait for project home to fully load
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      await page.waitForLoadState('networkidle');
 
       // Click on README document
       const readme = page.getByRole('treeitem', { name: /readme/i });
@@ -499,17 +486,12 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for sync
       await expect(page.locator('.sync-status')).toContainText('synced');
 
-      // Go back to project home
-      await page.getByTestId('toolbar-home-button').click();
-
-      // Wait for project home
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      // Navigate to Publishing tab to create a plan
+      await navigateToPublishingTab(page);
 
       // Create publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible();
+      await expect(page.getByTestId('plan-name-input')).toBeVisible();
 
       // Select Markdown format
       await page.getByTestId('format-select').click();
@@ -518,15 +500,16 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for format dropdown to close
       await expect(page.getByRole('listbox')).not.toBeVisible();
 
-      // Add README document
-      await page.getByTestId('add-document-select').click({ force: true });
-      await page.getByRole('option', { name: 'README' }).click();
+      // Navigate to Contents section and add all documents (README)
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
       // Verify document was added
       await expect(page.getByTestId('content-items-list')).toBeVisible();
       await expect(page.getByTestId('item-name')).toContainText('README');
 
-      // Generate
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for completion
@@ -576,11 +559,7 @@ test.describe('Online Publishing Workflow', () => {
 
       // Wait for project page
       await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Wait for project home to fully load
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      await page.waitForLoadState('networkidle');
 
       // Click on README document
       const readme = page.getByRole('treeitem', { name: /readme/i });
@@ -601,17 +580,12 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for sync
       await expect(page.locator('.sync-status')).toContainText('synced');
 
-      // Go back to project home
-      await page.getByTestId('toolbar-home-button').click();
-
-      // Wait for project home
-      await expect(
-        page.getByRole('heading', { name: 'Publish Plans' })
-      ).toBeVisible();
+      // Navigate to Publishing tab to create a plan
+      await navigateToPublishingTab(page);
 
       // Create publish plan
       await page.getByTestId('create-publish-plan-button').click();
-      await expect(page.getByTestId('plan-name-display')).toBeVisible();
+      await expect(page.getByTestId('plan-name-input')).toBeVisible();
 
       // Select HTML format
       await page.getByTestId('format-select').click();
@@ -620,15 +594,16 @@ test.describe('Online Publishing Workflow', () => {
       // Wait for format dropdown to close
       await expect(page.getByRole('listbox')).not.toBeVisible();
 
-      // Add README document
-      await page.getByTestId('add-document-select').click({ force: true });
-      await page.getByRole('option', { name: 'README' }).click();
+      // Navigate to Contents section and add all documents (README)
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
       // Verify document was added
       await expect(page.getByTestId('content-items-list')).toBeVisible();
       await expect(page.getByTestId('item-name')).toContainText('README');
 
-      // Generate
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for completion
@@ -667,10 +642,12 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('format-select').click();
       await page.getByRole('option', { name: 'Markdown' }).click();
 
-      // Add content
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
-      // Generate
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for completion
@@ -689,10 +666,12 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('format-select').click();
       await page.getByRole('option', { name: 'HTML' }).click();
 
-      // Add content
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
-      // Generate
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for completion
@@ -711,8 +690,10 @@ test.describe('Online Publishing Workflow', () => {
     }) => {
       await setupProjectAndCreatePlan(page);
 
-      // Add content and generate
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section, add content, then Publish and generate
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
+      await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
 
       // Wait for complete dialog
@@ -742,18 +723,18 @@ test.describe('Online Publishing Workflow', () => {
       await page.getByTestId('book-title-input').fill('Persistent Title');
       await page.getByTestId('author-input').fill('Persistent Author');
 
-      // Add TOC
-      await page.getByTestId('add-toc-button').click();
+      // Navigate to Contents section and add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
 
-      // Save
-      await page.getByTestId('save-changes-button').click();
-      await expect(page.getByTestId('save-changes-button')).not.toBeVisible();
+      // Auto-save debounce — wait for save to complete
+      await page.waitForTimeout(1000);
 
       // Reload
       await page.reload();
 
-      // The publish plan should still be open - wait for plan name display which is more stable
-      await expect(page.getByTestId('plan-name-display')).toBeVisible();
+      // The publish plan should still be open - wait for plan name input which is more stable
+      await expect(page.getByTestId('plan-name-input')).toBeVisible();
 
       // Verify persistence
       await expect(page.getByTestId('book-title-input')).toHaveValue(
@@ -762,29 +743,10 @@ test.describe('Online Publishing Workflow', () => {
       await expect(page.getByTestId('author-input')).toHaveValue(
         'Persistent Author'
       );
+
+      // Navigate to Contents section to verify items persisted
+      await selectSection(page, 'contents');
       await expect(page.getByTestId('content-items-list')).toBeVisible();
-    });
-
-    test('should discard changes when discard is clicked', async ({
-      authenticatedPage: page,
-    }) => {
-      await setupProjectAndCreatePlan(page);
-
-      // Get original value
-      const originalTitle = await page
-        .getByTestId('book-title-input')
-        .inputValue();
-
-      // Make changes
-      await page.getByTestId('book-title-input').fill('Temporary Change');
-
-      // Discard
-      await page.getByTestId('discard-changes-button').click();
-
-      // Should revert
-      await expect(page.getByTestId('book-title-input')).toHaveValue(
-        originalTitle
-      );
     });
   });
 });

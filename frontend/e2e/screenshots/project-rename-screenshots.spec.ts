@@ -51,8 +51,8 @@ test.describe('Project Rename Feature Screenshots', () => {
       state: 'visible',
     });
 
-    // Click on the "Danger Zone" inner tab
-    await page.getByRole('tab', { name: 'Danger Zone' }).click();
+    // Click on the Danger Zone section in sidenav
+    await page.getByTestId('nav-danger').click();
 
     // Wait for danger zone content
     await page.waitForSelector('[data-testid="rename-project-card"]', {

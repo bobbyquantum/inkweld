@@ -5,7 +5,6 @@ import {
   Configuration,
   DocumentsService,
   ProjectsService,
-  SecurityService,
   UsersService,
 } from '@inkweld/index';
 
@@ -86,5 +85,4 @@ export const API_PROVIDERS: Provider[] = [
   createApiServiceProvider(ProjectsService),
   createApiServiceProvider(DocumentsService),
   createApiServiceProvider(AuthenticationService),
-  createApiServiceProvider(SecurityService),
 ];

@@ -1,20 +1,23 @@
-// Publish Plan Editor - Material Design Styles
+// ==========================================
+// Publish Plan Editor — Sidenav / Accordion Layout
+// ==========================================
+// Desktop + tablet landscape: sidenav on the left, content on the right
+// Mobile + tablet portrait: accordion with expandable sections
+
 :host {
   display: block;
   height: 100%;
   overflow: hidden;
 }
 
-.publish-plan-container {
+.publish-plan-editor {
   display: flex;
   flex-direction: column;
-  height: var(--app-height-offset-130);
-  overflow-y: auto;
-  padding: 16px;
-
-  @media (max-width: 759px) {
-    height: var(--app-height-offset-82);
-  }
+  height: var(--app-height-offset-50);
+  overflow: hidden;
+  container-type: inline-size;
+  container-name: pp-editor;
+  background-color: var(--sys-surface);
 
   &.loading {
     display: flex;
@@ -32,55 +35,174 @@
   }
 }
 
-// Header
-.plan-header {
+// Layout: sidenav + content (flex row) or just content (accordion)
+.pp-layout {
+  flex: 1;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background-color: var(--sys-primary);
-  color: var(--sys-on-primary);
-  border-radius: 8px;
-  margin-bottom: 16px;
+  flex-direction: row;
+  overflow: hidden;
+  min-height: 0;
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .publish-plan-editor:not(.sidenav-mode) & {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px;
+  }
+}
 
-    .header-icon {
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
-    }
+// ==========================================
+// Sidenav Navigation
+// ==========================================
 
-    h2 {
-      margin: 0;
-      font-size: 1.5rem;
+.pp-sidenav {
+  width: 280px;
+  min-width: 280px;
+  border-right: 1px solid var(--sys-outline-variant);
+  overflow-y: auto;
+  padding: 1.5em;
+  display: flex;
+  flex-direction: column;
+
+  @container pp-editor (max-width: 1100px) {
+    width: 240px;
+    min-width: 240px;
+    padding: 1em;
+  }
+
+  .sidenav-cover {
+    width: calc(100% - 16px);
+    margin: 0 auto 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--sys-outline-variant);
+  }
+
+  .sidenav-plan-name {
+    padding: 0 8px;
+    margin-bottom: 8px;
+
+    .plan-name-input {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--sys-outline-variant);
+      background: transparent;
+      font-size: 1.1rem;
       font-weight: 500;
+      padding: 8px 0;
+      color: var(--sys-on-surface);
+      outline: none;
+      transition: border-color 0.2s;
+
+      &:focus {
+        border-color: var(--sys-primary);
+      }
     }
   }
 
-  .header-actions {
-    display: flex;
-    gap: 8px;
+  mat-nav-list {
+    padding: 8px;
+    flex: 1;
 
-    button {
-      mat-icon {
-        margin-right: 4px;
+    .mat-mdc-list-item {
+      border-radius: 8px;
+      margin-bottom: 2px;
+      transition: background-color 0.2s ease;
+
+      &.active {
+        background: var(--sys-secondary-container);
+        color: var(--sys-on-secondary-container);
+
+        mat-icon {
+          color: var(--sys-on-secondary-container);
+        }
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--sys-primary);
+        outline-offset: -2px;
       }
     }
   }
 }
 
-// Content area
-.plan-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+// ==========================================
+// Content Area
+// ==========================================
+
+.pp-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  min-height: 0;
+  container-type: inline-size;
+  container-name: pp-content;
 }
 
-// Expansion panels
+.section-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  &.section-hidden {
+    display: none;
+  }
+
+  &.preview-section {
+    overflow: hidden;
+  }
+}
+
+.section-inner {
+  padding: 1.5rem;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+
+  @container pp-content (max-width: 600px) {
+    padding: 0.75rem;
+  }
+}
+
+// Mobile plan header
+.mobile-plan-header {
+  margin-bottom: 16px;
+
+  .plan-name-input {
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid var(--sys-outline-variant);
+    background: transparent;
+    font-size: 1.25rem;
+    font-weight: 500;
+    padding: 8px 0;
+    color: var(--sys-on-surface);
+    outline: none;
+
+    &:focus {
+      border-color: var(--sys-primary);
+    }
+  }
+}
+
+// ==========================================
+// Accordion Layout (Mobile)
+// ==========================================
+
+mat-accordion {
+  display: block;
+
+  .panel-title-icon {
+    margin-right: 8px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+  }
+}
+
+// Expansion panels (shared between accordion mode & standalone use)
 mat-expansion-panel {
   mat-panel-title {
     display: flex;
@@ -104,13 +226,16 @@ mat-expansion-panel {
   }
 }
 
-// Form grid
+// ==========================================
+// Form Grid (Metadata)
+// ==========================================
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 
-  @media (max-width: 600px) {
+  @container pp-content (max-width: 600px) {
     grid-template-columns: 1fr;
   }
 
@@ -119,31 +244,10 @@ mat-expansion-panel {
   }
 }
 
-// Add content toolbar
-.add-content-toolbar {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 16px;
-  padding: 16px;
-  background: var(--sys-surface-container-high);
-  border-radius: 8px;
+// ==========================================
+// Content Items
+// ==========================================
 
-  .element-picker {
-    flex: 1;
-    max-width: 400px;
-  }
-
-  button {
-    margin-top: 4px;
-
-    mat-icon {
-      margin-right: 4px;
-    }
-  }
-}
-
-// Empty state
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -171,9 +275,21 @@ mat-expansion-panel {
       margin-top: 8px;
     }
   }
+
+  .add-everything-button {
+    margin-top: 16px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      margin-bottom: 0;
+      margin-right: 4px;
+      opacity: 1;
+    }
+  }
 }
 
-// Items list
 .items-list {
   display: flex;
   flex-direction: column;
@@ -276,7 +392,10 @@ mat-expansion-panel {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-// Options grid
+// ==========================================
+// Formatting Options
+// ==========================================
+
 .options-grid {
   display: flex;
   flex-direction: column;
@@ -308,13 +427,28 @@ mat-expansion-panel {
   }
 }
 
-// Generate section
-.generate-section {
+// ==========================================
+// Publish Section
+// ==========================================
+
+.publish-section {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.publish-section-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.publish-generate {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px;
-  margin-top: 8px;
+  padding: 16px 0 24px;
 
   .generate-button {
     padding: 12px 32px;
@@ -336,6 +470,74 @@ mat-expansion-panel {
   }
 }
 
+.published-heading {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--sys-on-surface);
+}
+
+.published-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.published-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--sys-surface-container-high);
+
+  .published-format-icon {
+    color: var(--sys-primary);
+    flex-shrink: 0;
+  }
+
+  .published-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .published-filename {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .published-meta {
+    font-size: 0.85em;
+    color: var(--sys-outline);
+  }
+
+  .published-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+}
+
+.published-empty {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--sys-outline);
+
+  p {
+    margin: 0;
+
+    &.hint {
+      font-size: 0.9em;
+      margin-top: 8px;
+    }
+  }
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -343,17 +545,4 @@ mat-expansion-panel {
   to {
     transform: rotate(360deg);
   }
-}
-
-// Visually hidden (for accessibility)
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }

@@ -401,6 +401,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         'relationships-list',
         'tags-list',
         'settings',
+        'publish-plans',
       ];
 
       for (const route of systemRoutes) {
@@ -477,6 +478,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
           | 'templates-list'
           | 'relationships-list'
           | 'tags-list'
+          | 'publish-plans'
       );
       tabIndex = this.projectState
         .openTabs()
@@ -701,6 +703,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         return 'description';
       } else if (tab.systemType === 'settings') {
         return 'settings';
+      } else if (tab.systemType === 'publish-plans') {
+        return 'auto_stories';
       }
       return 'article';
     }

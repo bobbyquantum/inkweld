@@ -323,6 +323,16 @@ export const routes: Routes = [
           reuseComponent: false,
         },
       },
+      {
+        path: 'publish-plans',
+        loadComponent: () =>
+          import('./pages/project/tabs/publish-plans-list/publish-plans-list-tab.component').then(
+            m => m.PublishPlansListTabComponent
+          ),
+        data: {
+          reuseComponent: false,
+        },
+      },
     ],
   },
   // Old routes for files and documents have been replaced by tab components

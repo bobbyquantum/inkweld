@@ -916,6 +916,40 @@ export class PdfGeneratorService {
     return String(num);
   }
 
+  /**
+   * Render a preview of the plan as inline SVG using Typst WASM.
+   * Returns an SVG markup string suitable for direct DOM injection.
+   */
+  async renderSvgPreview(plan: PublishPlan): Promise<string> {
+    this.isCancelled = false;
+    this.initTypst();
+    this.coverImageData = null;
+
+    if (plan.options.includeCover) {
+      await this.loadCoverImage();
+    }
+
+    const ctx: PdfContext = {
+      markup: this.getTypstTemplate(plan),
+      options: plan.options,
+      wordCount: 0,
+      chapterCount: 0,
+    };
+
+    const result: PdfResult = { success: false, warnings: [] };
+    await this.processContent(plan, ctx, result);
+
+    // Map cover image if available
+    const coverData = this.coverImageData as CoverImageData | null;
+    if (coverData) {
+      const response = await fetch(coverData.base64);
+      const buffer = await response.arrayBuffer();
+      await $typst.mapShadow('cover.jpg', new Uint8Array(buffer));
+    }
+
+    return await $typst.svg({ mainContent: ctx.markup });
+  }
+
   private generateFilename(title: string): string {
     const safeName = trimHyphens(
       title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')
