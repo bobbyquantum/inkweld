@@ -198,6 +198,7 @@
 .built-in-chip {
 
   --mat-chip-label-text-color: var(--sys-on-surface-variant);
+
   font-size: 0.75rem;
 }
 
@@ -206,6 +207,7 @@
   --mat-chip-label-text-color: var(--sys-on-primary-container);
 
   --mat-chip-selected-label-text-color: var(--sys-on-primary-container);
+
   background: var(--sys-primary-container) !important;
   font-size: 0.75rem;
 }
@@ -213,6 +215,7 @@
 .category-chip {
 
   --mat-chip-label-text-color: var(--sys-on-surface-variant);
+
   font-size: 0.75rem;
 }
 
