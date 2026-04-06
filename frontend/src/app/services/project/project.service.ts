@@ -119,19 +119,15 @@ export class ProjectService {
   readonly hasProjects = computed(() => this.projects().length > 0);
   readonly initialized = signal(false);
 
-  private readonly db: Promise<IDBDatabase>;
-
-  constructor() {
-    this.db = this.storage
-      .initializeDatabase(PROJECT_CACHE_CONFIG)
-      .catch(error => {
-        console.error('Project cache initialization failed:', error);
-        throw new ProjectServiceError(
-          'SERVER_ERROR',
-          'Failed to initialize project cache'
-        );
-      });
-  }
+  private readonly db: Promise<IDBDatabase> = this.storage
+    .initializeDatabase(PROJECT_CACHE_CONFIG)
+    .catch(error => {
+      console.error('Project cache initialization failed:', error);
+      throw new ProjectServiceError(
+        'SERVER_ERROR',
+        'Failed to initialize project cache'
+      );
+    });
 
   async loadAllProjects(): Promise<void> {
     if (!this.initialized()) {

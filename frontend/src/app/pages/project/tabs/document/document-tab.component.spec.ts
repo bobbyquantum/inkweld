@@ -9,7 +9,6 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
 import { type Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
@@ -79,7 +78,6 @@ describe('DocumentTabComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
-        RouterTestingModule,
         MatIconModule,
         DocumentTabComponent,
         MockDocumentElementEditorComponent,
