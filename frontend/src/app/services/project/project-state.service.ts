@@ -48,7 +48,8 @@ const DOCUMENT_CACHE_CONFIG = {
 };
 
 // Re-export for backward compatibility
-export type { AppTab, ValidDropLevels };
+export type { ValidDropLevels } from './element-tree.service';
+export type { AppTab } from './tab-manager.service';
 
 /**
  * Central service for managing project state.
@@ -230,7 +231,7 @@ export class ProjectStateService implements OnDestroy {
       // Pop ancestors that are not in the current branch
       while (
         stack.length > 0 &&
-        stack[stack.length - 1].level >= element.level
+        (stack.at(-1)?.level ?? Number.NEGATIVE_INFINITY) >= element.level
       ) {
         stack.pop();
       }
@@ -1358,7 +1359,7 @@ export class ProjectStateService implements OnDestroy {
 
   private resolveTabIndexFromUrl(tabs: AppTab[], projectSlug: string): number {
     const urlParams = globalThis.location.pathname.split('/');
-    const lastSegment = urlParams[urlParams.length - 1];
+    const lastSegment = urlParams.at(-1);
 
     if (!lastSegment || lastSegment === projectSlug) return 0;
 

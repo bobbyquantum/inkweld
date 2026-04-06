@@ -73,22 +73,18 @@ export class UserService {
   );
   readonly initialized = signal(false);
 
-  private readonly db: Promise<IDBDatabase | null>;
-
-  constructor() {
-    this.db = this.storage
-      .initializeDatabase(USER_CACHE_CONFIG)
-      .catch(error => {
-        this.logger.error(
-          'UserService',
-          'User cache initialization failed',
-          error
-        );
-        // Don't throw - just return null to indicate cache is unavailable
-        // This prevents unhandled rejections in test environments
-        return null;
-      });
-  }
+  private readonly db: Promise<IDBDatabase | null> = this.storage
+    .initializeDatabase(USER_CACHE_CONFIG)
+    .catch(error => {
+      this.logger.error(
+        'UserService',
+        'User cache initialization failed',
+        error
+      );
+      // Don't throw - just return null to indicate cache is unavailable
+      // This prevents unhandled rejections in test environments
+      return null;
+    });
 
   async openSettingsDialog(): Promise<void> {
     this.isLoading.set(true);
