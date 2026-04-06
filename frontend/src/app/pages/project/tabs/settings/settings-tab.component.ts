@@ -88,7 +88,7 @@ export class SettingsTabComponent implements OnDestroy {
   // Sidenav / responsive layout
   protected useSidenav = signal(true);
   protected readonly selectedSection = signal<string>('actions');
-  private resizeCleanup: (() => void) | null = null;
+  private readonly resizeCleanup: (() => void) | null = null;
 
   // Section definitions — dynamically computed based on access level
   protected readonly sections = computed(() => {

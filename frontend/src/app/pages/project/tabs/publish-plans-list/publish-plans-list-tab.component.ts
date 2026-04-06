@@ -104,13 +104,9 @@ export class PublishPlansListTabComponent implements OnInit {
     if (!project) return;
 
     this.projectState.openPublishPlan(plan);
-    void this.router.navigate([
-      '/',
-      project.username,
-      project.slug,
-      'publish-plan',
-      plan.id,
-    ]);
+    this.router
+      .navigate(['/', project.username, project.slug, 'publish-plan', plan.id])
+      .catch(() => {});
   }
 
   async deletePublishPlan(event: Event, plan: PublishPlan): Promise<void> {
