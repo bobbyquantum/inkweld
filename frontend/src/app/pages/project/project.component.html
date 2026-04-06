@@ -86,6 +86,16 @@
           <button
             type="button"
             class="mobile-nav-item"
+            [class.selected-item]="isSystemTabSelected('publish-plans')"
+            data-testid="mobile-publishing-button"
+            (click)="onShowPublishPlans(); toggleSidebar()"
+            aria-label="Publishing">
+            <mat-icon>auto_stories</mat-icon>
+            <span class="nav-title">Publishing</span>
+          </button>
+          <button
+            type="button"
+            class="mobile-nav-item"
             [class.selected-item]="isSystemTabSelected('settings')"
             data-testid="mobile-settings-button"
             (click)="onShowSettings(); toggleSidebar()"
@@ -192,6 +202,15 @@
                 </button>
                 <button
                   mat-icon-button
+                  (click)="onShowPublishPlans()"
+                  [class.active]="isSystemTabSelected('publish-plans')"
+                  matTooltip="Publishing"
+                  data-testid="collapsed-publishing-button"
+                  aria-label="Publishing">
+                  <mat-icon>auto_stories</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
                   (click)="onShowSettings()"
                   [class.active]="isSystemTabSelected('settings')"
                   matTooltip="Project Settings"
@@ -281,6 +300,16 @@
                     aria-label="Media Library">
                     <mat-icon>perm_media</mat-icon>
                     <span class="nav-title">Media Library</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sidebar-nav-item"
+                    [class.selected-item]="isSystemTabSelected('publish-plans')"
+                    data-testid="sidebar-publishing-button"
+                    (click)="onShowPublishPlans()"
+                    aria-label="Publishing">
+                    <mat-icon>auto_stories</mat-icon>
+                    <span class="nav-title">Publishing</span>
                   </button>
                   <button
                     type="button"

@@ -18,10 +18,6 @@ import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
-import {
-  createDefaultPublishPlan,
-  type PublishPlan,
-} from '../../../../models/publish-plan';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { base64ToBlob } from '../../../../utils/base64-utils';
 
@@ -157,32 +153,14 @@ export class HomeTabComponent {
     const project = this.projectState.project();
     if (!project) return;
 
-    // Get existing plans or create a default one
-    const plans = this.projectState.getPublishPlans();
-    let plan: PublishPlan;
-
-    if (plans.length > 0) {
-      // Open the first/default plan
-      plan = plans[0];
-    } else {
-      // Create a default publish plan
-      plan = createDefaultPublishPlan(
-        project.title,
-        project.username // Author name defaults to username
-      );
-      this.projectState.createPublishPlan(plan);
-    }
-
-    // Open the publish plan tab
-    this.projectState.openPublishPlan(plan);
-
-    // Navigate to the publish plan
+    // Navigate to the publishing tab
+    const result = this.projectState.openSystemTab('publish-plans');
+    this.projectState.selectTab(result.index);
     void this.router.navigate([
       '/',
       project.username,
       project.slug,
-      'publish-plan',
-      plan.id,
+      'publish-plans',
     ]);
   }
 
@@ -246,71 +224,6 @@ export class HomeTabComponent {
         project.slug,
         'settings',
       ]);
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Publish Plans
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Creates a new publish plan with default settings
-   */
-  createPublishPlan(): void {
-    const project = this.projectState.project();
-    if (!project) return;
-
-    const plan = createDefaultPublishPlan(
-      project.title ?? 'Untitled',
-      project.username ?? 'Unknown Author'
-    );
-    this.projectState.createPublishPlan(plan);
-    this.openPublishPlan(plan);
-  }
-
-  /**
-   * Opens a publish plan in a new tab
-   */
-  openPublishPlan(plan: PublishPlan): void {
-    const project = this.projectState.project();
-    if (!project) return;
-
-    this.projectState.openPublishPlan(plan);
-    void this.router.navigate([
-      '/',
-      project.username,
-      project.slug,
-      'publish-plan',
-      plan.id,
-    ]);
-  }
-
-  /**
-   * Deletes a publish plan after confirmation
-   */
-  async deletePublishPlan(event: Event, plan: PublishPlan): Promise<void> {
-    event.stopPropagation(); // Prevent opening the plan
-
-    const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Delete Publish Plan',
-      message: `Are you sure you want to delete "${plan.name}"?`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-    });
-
-    if (confirmed) {
-      this.projectState.deletePublishPlan(plan.id);
-      this.snackBar.open(`Deleted "${plan.name}"`, 'Close', { duration: 3000 });
-    }
-  }
-
-  /**
-   * Handles keyboard events for delete button
-   */
-  onDeletePublishPlanKeydown(event: KeyboardEvent, plan: PublishPlan): void {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      void this.deletePublishPlan(event, plan);
     }
   }
 }

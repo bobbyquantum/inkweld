@@ -21,7 +21,7 @@ const tmpDir = os.tmpdir();
 async function openActionsTab(page: import('@playwright/test').Page) {
   await page.getByTestId('sidebar-settings-button').click();
   await expect(page.getByTestId('settings-tab-content')).toBeVisible();
-  await page.getByTestId('settings-tab-actions').click();
+  await page.getByTestId('nav-actions').click();
 }
 
 /**

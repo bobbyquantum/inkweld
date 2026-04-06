@@ -1,1129 +1,1129 @@
-<div class="settings-tab" data-testid="settings-tab-content">
-  <div class="settings-tabs" ngTabs>
-    <!-- Tab Bar Container -->
-    <div class="tab-bar-container">
-      <!-- Left scroll arrow -->
-      @if (canScrollLeft()) {
-        <button
-          type="button"
-          class="scroll-arrow scroll-arrow-left"
-          (click)="scrollLeft()"
-          aria-label="Scroll tabs left"
-          data-testid="scroll-tabs-left-button">
-          <mat-icon>chevron_left</mat-icon>
-        </button>
-      }
+<div
+  class="settings-editor"
+  [class.sidenav-mode]="useSidenav()"
+  data-testid="settings-tab-content">
+  <div class="settings-layout">
+    <!-- ===== SIDENAV (desktop / tablet landscape) ===== -->
+    @if (useSidenav()) {
+      <nav class="settings-sidenav" data-testid="settings-sidenav">
+        <h2 class="sidenav-title">Settings</h2>
+        <mat-nav-list>
+          @for (section of sections(); track section.key) {
+            <a
+              mat-list-item
+              (click)="selectSection(section.key)"
+              (keydown.enter)="selectSection(section.key)"
+              [attr.aria-current]="
+                selectedSection() === section.key ? 'true' : null
+              "
+              [class.active]="selectedSection() === section.key"
+              [class.danger-item]="section.key === 'danger'"
+              tabindex="0"
+              [attr.data-testid]="'nav-' + section.key">
+              <mat-icon matListItemIcon>{{ section.icon }}</mat-icon>
+              <span matListItemTitle>{{ section.label }}</span>
+            </a>
+          }
+        </mat-nav-list>
+      </nav>
+    }
 
-      <div class="tabs-scroll-container">
-        <nav
-          #tabNavBar
-          ngTabList
-          class="tab-nav-bar"
-          [selectedTab]="selectedTab()"
-          selectionMode="explicit"
-          (scroll)="onTabsScroll()">
-          <button
-            ngTab
-            value="sync"
-            type="button"
-            role="tab"
-            (click)="onTabChange('sync')"
-            class="tab-button"
-            data-testid="settings-tab-sync">
-            <mat-icon class="tab-icon">sync</mat-icon>
-            <span class="tab-name">Sync</span>
-          </button>
-          <button
-            ngTab
-            value="actions"
-            type="button"
-            role="tab"
-            (click)="onTabChange('actions')"
-            class="tab-button"
-            data-testid="settings-tab-actions">
-            <mat-icon class="tab-icon">build</mat-icon>
-            <span class="tab-name">Actions</span>
-          </button>
+    <!-- ===== CONTENT AREA ===== -->
+    <div class="settings-content">
+      @if (useSidenav()) {
+        <!-- SIDENAV MODE: one section at a time -->
+
+        <!-- Actions section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'actions'">
+          <div class="section-inner">
+            <ng-container *ngTemplateOutlet="actionsTemplate" />
+          </div>
+        </div>
+
+        <!-- Templates section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'templates'">
+          <div class="section-inner embedded-section">
+            <ng-container *ngTemplateOutlet="templatesTemplate" />
+          </div>
+        </div>
+
+        <!-- Relationships section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'relationships'">
+          <div class="section-inner embedded-section">
+            <ng-container *ngTemplateOutlet="relationshipsTemplate" />
+          </div>
+        </div>
+
+        <!-- Tags section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'tags'">
+          <div class="section-inner embedded-section">
+            <ng-container *ngTemplateOutlet="tagsTemplate" />
+          </div>
+        </div>
+
+        <!-- Sync section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'sync'">
+          <div class="section-inner">
+            <ng-container *ngTemplateOutlet="syncTemplate" />
+          </div>
+        </div>
+
+        <!-- Collaboration section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'collaboration'">
+          <div class="section-inner">
+            <ng-container *ngTemplateOutlet="collaborationTemplate" />
+          </div>
+        </div>
+
+        <!-- MCP section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'mcp'">
+          <div class="section-inner">
+            <ng-container *ngTemplateOutlet="mcpTemplate" />
+          </div>
+        </div>
+
+        <!-- Danger section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'danger'">
+          <div class="section-inner">
+            <ng-container *ngTemplateOutlet="dangerTemplate" />
+          </div>
+        </div>
+      } @else {
+        <!-- ACCORDION MODE: expandable sections (mobile) -->
+        <mat-accordion multi>
+          <mat-expansion-panel
+            [expanded]="actionsExpanded()"
+            (opened)="actionsExpanded.set(true)"
+            (closed)="actionsExpanded.set(false)">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>build</mat-icon> Actions
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <ng-container *ngTemplateOutlet="actionsTemplate" />
+          </mat-expansion-panel>
+
           @if (projectState.accessLoaded() && projectState.canWrite()) {
-            <button
-              ngTab
-              value="templates"
-              type="button"
-              role="tab"
-              (click)="onTabChange('templates')"
-              class="tab-button"
-              data-testid="settings-tab-templates">
-              <mat-icon class="tab-icon">description</mat-icon>
-              <span class="tab-name">Element Templates</span>
-            </button>
-            <button
-              ngTab
-              value="relationships"
-              type="button"
-              role="tab"
-              (click)="onTabChange('relationships')"
-              class="tab-button"
-              data-testid="settings-tab-relationships">
-              <mat-icon class="tab-icon">hub</mat-icon>
-              <span class="tab-name">Relationship Types</span>
-            </button>
-            <button
-              ngTab
-              value="tags"
-              type="button"
-              role="tab"
-              (click)="onTabChange('tags')"
-              class="tab-button"
-              data-testid="settings-tab-tags">
-              <mat-icon class="tab-icon">local_offer</mat-icon>
-              <span class="tab-name">Tags</span>
-            </button>
-          }
-          @if (projectState.accessLoaded() && projectState.isOwner()) {
-            <button
-              ngTab
-              value="collaboration"
-              type="button"
-              role="tab"
-              (click)="onTabChange('collaboration')"
-              class="tab-button"
-              data-testid="settings-tab-collaboration">
-              <mat-icon class="tab-icon">group</mat-icon>
-              <span class="tab-name">Collaboration</span>
-            </button>
-            <button
-              ngTab
-              value="mcp"
-              type="button"
-              role="tab"
-              (click)="onTabChange('mcp')"
-              class="tab-button"
-              data-testid="settings-tab-mcp">
-              <mat-icon class="tab-icon">key</mat-icon>
-              <span class="tab-name">MCP</span>
-            </button>
-            <button
-              ngTab
-              value="danger"
-              type="button"
-              role="tab"
-              (click)="onTabChange('danger')"
-              class="tab-button danger-tab"
-              data-testid="settings-tab-danger">
-              <mat-icon class="tab-icon">warning</mat-icon>
-              <span class="tab-name">Danger Zone</span>
-            </button>
-          }
-        </nav>
-      </div>
+            <mat-expansion-panel
+              [expanded]="templatesExpanded()"
+              (opened)="templatesExpanded.set(true)"
+              (closed)="templatesExpanded.set(false)">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>description</mat-icon> Element Templates
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <ng-container *ngTemplateOutlet="templatesTemplate" />
+            </mat-expansion-panel>
 
-      <!-- Right scroll arrow -->
-      @if (canScrollRight()) {
-        <button
-          type="button"
-          class="scroll-arrow scroll-arrow-right"
-          (click)="scrollRight()"
-          aria-label="Scroll tabs right"
-          data-testid="scroll-tabs-right-button">
-          <mat-icon>chevron_right</mat-icon>
-        </button>
+            <mat-expansion-panel
+              [expanded]="relationshipsExpanded()"
+              (opened)="relationshipsExpanded.set(true)"
+              (closed)="relationshipsExpanded.set(false)">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>hub</mat-icon> Relationship Types
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <ng-container *ngTemplateOutlet="relationshipsTemplate" />
+            </mat-expansion-panel>
+
+            <mat-expansion-panel
+              [expanded]="tagsExpanded()"
+              (opened)="tagsExpanded.set(true)"
+              (closed)="tagsExpanded.set(false)">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>local_offer</mat-icon> Tags
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <ng-container *ngTemplateOutlet="tagsTemplate" />
+            </mat-expansion-panel>
+          }
+
+          <mat-expansion-panel
+            [expanded]="syncExpanded()"
+            (opened)="syncExpanded.set(true)"
+            (closed)="syncExpanded.set(false)">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>sync</mat-icon> Sync
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <ng-container *ngTemplateOutlet="syncTemplate" />
+          </mat-expansion-panel>
+
+          @if (projectState.accessLoaded() && projectState.isOwner()) {
+            <mat-expansion-panel
+              [expanded]="collaborationExpanded()"
+              (opened)="collaborationExpanded.set(true)"
+              (closed)="collaborationExpanded.set(false)">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>group</mat-icon> Collaboration
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <ng-container *ngTemplateOutlet="collaborationTemplate" />
+            </mat-expansion-panel>
+
+            @if (!isAiKillSwitchEnabled()) {
+              <mat-expansion-panel
+                [expanded]="mcpExpanded()"
+                (opened)="mcpExpanded.set(true)"
+                (closed)="mcpExpanded.set(false)">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>key</mat-icon> MCP
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                <ng-container *ngTemplateOutlet="mcpTemplate" />
+              </mat-expansion-panel>
+            }
+
+            <mat-expansion-panel
+              [expanded]="dangerExpanded()"
+              (opened)="dangerExpanded.set(true)"
+              (closed)="dangerExpanded.set(false)">
+              <mat-expansion-panel-header>
+                <mat-panel-title class="danger-panel-title">
+                  <mat-icon>warning</mat-icon> Danger Zone
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <ng-container *ngTemplateOutlet="dangerTemplate" />
+            </mat-expansion-panel>
+          }
+        </mat-accordion>
       }
     </div>
+  </div>
+</div>
 
-    <!-- Tab Panels -->
-    <!-- Sync Tab -->
-    @if (selectedTab() === 'sync') {
-      <div class="tab-content">
-        @if (currentMode === 'local') {
-          <mat-card class="info-card local">
+<!-- ========================================== -->
+<!-- SHARED TEMPLATES                           -->
+<!-- ========================================== -->
+
+<!-- Actions template -->
+<ng-template #actionsTemplate>
+  <section class="settings-section" data-testid="actions-section">
+    <h3>
+      <mat-icon>build</mat-icon>
+      Project Actions
+    </h3>
+    <p class="section-description">
+      Common project operations like exporting, importing, and more.
+    </p>
+
+    <!-- Export / Import -->
+    <mat-card class="action-card" data-testid="export-import-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>swap_vert</mat-icon>
+          Export &amp; Import
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          Export this project as an <code>.inkweld.zip</code> archive, or import
+          a project from an archive file.
+        </p>
+        <div class="action-buttons">
+          <button
+            mat-raised-button
+            (click)="exportProject()"
+            data-testid="export-project-button">
+            <mat-icon>download</mat-icon>
+            Export Project
+          </button>
+          <button
+            mat-stroked-button
+            (click)="importProject()"
+            data-testid="import-project-button">
+            <mat-icon>upload</mat-icon>
+            Import Project
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Document List -->
+    <mat-card class="action-card" data-testid="document-list-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>list</mat-icon>
+          Document List
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Open a flat list of all documents in this project.</p>
+        <div class="action-buttons">
+          <button
+            mat-stroked-button
+            (click)="showDocumentList()"
+            data-testid="show-document-list-button">
+            <mat-icon>list</mat-icon>
+            Show Document List
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Zen Mode -->
+    @if (canEnableZenMode() || isZenMode()) {
+      <mat-card class="action-card" data-testid="zen-mode-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>self_improvement</mat-icon>
+            Zen Mode
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>Enter a distraction-free editing mode for the current document.</p>
+          <div class="action-buttons">
+            <button
+              mat-stroked-button
+              (click)="toggleZenMode()"
+              data-testid="zen-mode-button">
+              <mat-icon>self_improvement</mat-icon>
+              {{ isZenMode() ? 'Exit Zen Mode' : 'Enter Zen Mode' }}
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+</ng-template>
+
+<!-- Templates template -->
+<ng-template #templatesTemplate>
+  <app-templates-tab></app-templates-tab>
+</ng-template>
+
+<!-- Relationships template -->
+<ng-template #relationshipsTemplate>
+  <app-relationships-tab></app-relationships-tab>
+</ng-template>
+
+<!-- Tags template -->
+<ng-template #tagsTemplate>
+  <app-tags-tab></app-tags-tab>
+</ng-template>
+
+<!-- Sync template -->
+<ng-template #syncTemplate>
+  @if (currentMode === 'local') {
+    <mat-card class="info-card local">
+      <mat-card-content>
+        <div class="info-content">
+          <mat-icon>info</mat-icon>
+          <div>
+            <strong>Local Mode:</strong> Some settings are not available in
+            local mode. Connect to a server to access MCP API keys and sync
+            features.
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Media Sync Section -->
+  <section class="settings-section">
+    <h3>
+      <mat-icon>perm_media</mat-icon>
+      Media Library Sync
+    </h3>
+
+    @if (currentMode === 'server' && projectKey()) {
+      <mat-card class="sync-card">
+        <mat-card-content>
+          @if (mediaSyncState(); as state) {
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="label">Server:</span>
+                <span class="value">
+                  {{ getServerFileCount() }} files ({{
+                    formatBytes(getServerTotalSize())
+                  }})
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Local Cache:</span>
+                <span class="value">
+                  {{ getLocalFileCount() }} files ({{
+                    formatBytes(getLocalTotalSize())
+                  }})
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Needs Download:</span>
+                <span class="value" [class.warning]="state.needsDownload > 0">
+                  {{ state.needsDownload }} files
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Needs Upload:</span>
+                <span class="value" [class.warning]="state.needsUpload > 0">
+                  {{ state.needsUpload }} files
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Last Checked:</span>
+                <span class="value">
+                  {{
+                    state.lastChecked
+                      ? (state.lastChecked | date: 'short')
+                      : 'Never'
+                  }}
+                </span>
+              </div>
+            </div>
+
+            @if (state.isSyncing) {
+              <mat-progress-bar
+                mode="determinate"
+                [value]="state.downloadProgress">
+              </mat-progress-bar>
+              <p class="sync-progress-text">
+                Downloading... {{ state.downloadProgress }}%
+              </p>
+            }
+
+            @if (state.error) {
+              <p class="error-text">{{ state.error }}</p>
+            }
+
+            <div class="action-buttons">
+              <button
+                mat-stroked-button
+                (click)="checkMediaSyncStatus()"
+                [disabled]="state.isSyncing"
+                data-testid="media-sync-refresh-button">
+                <mat-icon>refresh</mat-icon>
+                Refresh Status
+              </button>
+              @if (state.needsDownload > 0) {
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="downloadAllMedia()"
+                  [disabled]="state.isSyncing"
+                  data-testid="media-sync-download-button">
+                  <mat-icon>cloud_download</mat-icon>
+                  Download All ({{ state.needsDownload }})
+                </button>
+              }
+              @if (state.needsUpload > 0 && projectState.canWrite()) {
+                <button
+                  mat-raised-button
+                  color="accent"
+                  (click)="uploadAllMedia()"
+                  [disabled]="state.isSyncing"
+                  data-testid="media-sync-upload-button">
+                  <mat-icon>cloud_upload</mat-icon>
+                  Upload All ({{ state.needsUpload }})
+                </button>
+              }
+            </div>
+          } @else {
+            <div class="loading-state">
+              <mat-progress-spinner diameter="24" mode="indeterminate">
+              </mat-progress-spinner>
+              <span>Checking media sync status...</span>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-content">
+            <mat-icon>info</mat-icon>
+            <div>
+              @if (currentMode !== 'server') {
+                Media sync requires a server connection.
+              } @else {
+                Open a project to view its media sync status.
+              }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+
+  <!-- Local Data Reset Section -->
+  <section class="settings-section" data-testid="local-data-section">
+    <h3>
+      <mat-icon>storage</mat-icon>
+      Local Data
+    </h3>
+    <p class="section-description">
+      Manage locally cached project data stored in your browser.
+    </p>
+
+    <mat-card class="info-card">
+      <mat-card-content>
+        <div class="info-content">
+          <mat-icon>info</mat-icon>
+          <div>
+            Documents and worldbuilding data are cached locally for offline
+            access. If you experience sync issues or corrupted data, you can
+            reset the local cache.
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="action-buttons" style="margin-top: 16px">
+      <button
+        mat-raised-button
+        color="warn"
+        (click)="resetLocalData()"
+        [disabled]="isResettingLocalData()"
+        data-testid="reset-local-data-button">
+        @if (isResettingLocalData()) {
+          <mat-progress-spinner diameter="20" mode="indeterminate">
+          </mat-progress-spinner>
+        } @else {
+          <mat-icon>delete_sweep</mat-icon>
+        }
+        Reset Local Data
+      </button>
+    </div>
+  </section>
+</ng-template>
+
+<!-- Collaboration template -->
+<ng-template #collaborationTemplate>
+  <section class="settings-section" data-testid="collaboration-section">
+    <h3>
+      <mat-icon>group</mat-icon>
+      Collaboration
+    </h3>
+    <p class="section-description">
+      Share your project with other users and collaborate in real-time.
+    </p>
+
+    @if (currentMode === 'server') {
+      @if (isLoadingCollaborators()) {
+        <div class="loading-state">
+          <mat-progress-spinner diameter="32" mode="indeterminate">
+          </mat-progress-spinner>
+          <span>Loading collaborators...</span>
+        </div>
+      } @else if (collaboratorsError()) {
+        <mat-card class="error-card">
+          <mat-card-content>
+            <mat-icon>error</mat-icon>
+            <span>{{ collaboratorsError() }}</span>
+            <button
+              mat-button
+              color="primary"
+              (click)="loadCollaborators()"
+              data-testid="collaborators-retry-button">
+              Retry
+            </button>
+          </mat-card-content>
+        </mat-card>
+      } @else {
+        <!-- Collaborators List -->
+        @if (humanCollaborators().length > 0) {
+          <mat-card class="collaborators-card">
+            <mat-card-header>
+              <mat-card-title>
+                Collaborators ({{ getActiveCollaboratorsCount() }})
+                @if (getPendingInvitationsCount() > 0) {
+                  <span class="pending-badge">
+                    {{ getPendingInvitationsCount() }} pending
+                  </span>
+                }
+              </mat-card-title>
+            </mat-card-header>
             <mat-card-content>
-              <div class="info-content">
-                <mat-icon>info</mat-icon>
-                <div>
-                  <strong>Local Mode:</strong> Some settings are not available
-                  in local mode. Connect to a server to access MCP API keys and
-                  sync features.
-                </div>
+              <div class="collaborators-list">
+                @for (collab of humanCollaborators(); track collab.userId) {
+                  <div
+                    class="collaborator-item"
+                    [class.pending]="collab.status === 'pending'"
+                    data-testid="collaborator-item">
+                    <div class="collaborator-info">
+                      <div class="collaborator-avatar">
+                        <mat-icon>{{ getRoleIcon(collab.role) }}</mat-icon>
+                      </div>
+                      <div class="collaborator-details">
+                        <div class="collaborator-header">
+                          <strong>{{ collab.username }}</strong>
+                          @if (collab.name) {
+                            <span class="collaborator-name">{{
+                              collab.name
+                            }}</span>
+                          }
+                          @if (collab.status === 'pending') {
+                            <span class="status-badge pending">Pending</span>
+                          }
+                        </div>
+                        <div class="collaborator-meta">
+                          @if (collab.status === 'accepted') {
+                            <span
+                              >Joined
+                              {{ collab.acceptedAt | date: 'mediumDate' }}</span
+                            >
+                          } @else {
+                            <span
+                              >Invited
+                              {{ collab.invitedAt | date: 'mediumDate' }}</span
+                            >
+                            @if (collab.invitedByUsername) {
+                              <span>by {{ collab.invitedByUsername }}</span>
+                            }
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div class="collaborator-actions">
+                      <mat-form-field appearance="outline" class="role-select">
+                        <mat-select
+                          [value]="collab.role"
+                          (selectionChange)="
+                            updateCollaboratorRole(collab, $event.value)
+                          "
+                          data-testid="collaborator-role-select">
+                          @for (opt of roleOptions; track opt.value) {
+                            <mat-option [value]="opt.value">
+                              {{ opt.label }}
+                            </mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        [matTooltip]="'Remove ' + collab.username"
+                        (click)="removeCollaborator(collab)"
+                        data-testid="remove-collaborator-button">
+                        <mat-icon>person_remove</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
               </div>
             </mat-card-content>
           </mat-card>
         }
 
-        <!-- Media Sync Section -->
-        <section class="settings-section">
-          <h3>
-            <mat-icon>perm_media</mat-icon>
-            Media Library Sync
-          </h3>
-
-          @if (currentMode === 'server' && projectKey()) {
-            <mat-card class="sync-card">
-              <mat-card-content>
-                @if (mediaSyncState(); as state) {
-                  <div class="status-grid">
-                    <div class="status-item">
-                      <span class="label">Server:</span>
-                      <span class="value">
-                        {{ getServerFileCount() }} files ({{
-                          formatBytes(getServerTotalSize())
-                        }})
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Local Cache:</span>
-                      <span class="value">
-                        {{ getLocalFileCount() }} files ({{
-                          formatBytes(getLocalTotalSize())
-                        }})
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Needs Download:</span>
-                      <span
-                        class="value"
-                        [class.warning]="state.needsDownload > 0">
-                        {{ state.needsDownload }} files
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Needs Upload:</span>
-                      <span
-                        class="value"
-                        [class.warning]="state.needsUpload > 0">
-                        {{ state.needsUpload }} files
-                      </span>
-                    </div>
-                    <div class="status-item">
-                      <span class="label">Last Checked:</span>
-                      <span class="value">
-                        {{
-                          state.lastChecked
-                            ? (state.lastChecked | date: 'short')
-                            : 'Never'
-                        }}
-                      </span>
-                    </div>
-                  </div>
-
-                  @if (state.isSyncing) {
-                    <mat-progress-bar
-                      mode="determinate"
-                      [value]="state.downloadProgress">
-                    </mat-progress-bar>
-                    <p class="sync-progress-text">
-                      Downloading... {{ state.downloadProgress }}%
-                    </p>
-                  }
-
-                  @if (state.error) {
-                    <p class="error-text">{{ state.error }}</p>
-                  }
-
-                  <div class="action-buttons">
-                    <button
-                      mat-stroked-button
-                      (click)="checkMediaSyncStatus()"
-                      [disabled]="state.isSyncing"
-                      data-testid="media-sync-refresh-button">
-                      <mat-icon>refresh</mat-icon>
-                      Refresh Status
-                    </button>
-                    @if (state.needsDownload > 0) {
-                      <button
-                        mat-raised-button
-                        color="primary"
-                        (click)="downloadAllMedia()"
-                        [disabled]="state.isSyncing"
-                        data-testid="media-sync-download-button">
-                        <mat-icon>cloud_download</mat-icon>
-                        Download All ({{ state.needsDownload }})
-                      </button>
-                    }
-                    @if (state.needsUpload > 0 && projectState.canWrite()) {
-                      <button
-                        mat-raised-button
-                        color="accent"
-                        (click)="uploadAllMedia()"
-                        [disabled]="state.isSyncing"
-                        data-testid="media-sync-upload-button">
-                        <mat-icon>cloud_upload</mat-icon>
-                        Upload All ({{ state.needsUpload }})
-                      </button>
-                    }
-                  </div>
-                } @else {
-                  <div class="loading-state">
-                    <mat-progress-spinner diameter="24" mode="indeterminate">
-                    </mat-progress-spinner>
-                    <span>Checking media sync status...</span>
-                  </div>
-                }
-              </mat-card-content>
-            </mat-card>
-          } @else {
-            <mat-card class="info-card">
-              <mat-card-content>
-                <div class="info-content">
-                  <mat-icon>info</mat-icon>
-                  <div>
-                    @if (currentMode !== 'server') {
-                      Media sync requires a server connection.
-                    } @else {
-                      Open a project to view its media sync status.
-                    }
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          }
-        </section>
-
-        <!-- Local Data Reset Section -->
-        <section class="settings-section" data-testid="local-data-section">
-          <h3>
-            <mat-icon>storage</mat-icon>
-            Local Data
-          </h3>
-          <p class="section-description">
-            Manage locally cached project data stored in your browser.
-          </p>
-
-          <mat-card class="info-card">
-            <mat-card-content>
-              <div class="info-content">
-                <mat-icon>info</mat-icon>
-                <div>
-                  Documents and worldbuilding data are cached locally for
-                  offline access. If you experience sync issues or corrupted
-                  data, you can reset the local cache.
-                </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <div class="action-buttons" style="margin-top: 16px">
-            <button
-              mat-raised-button
-              color="warn"
-              (click)="resetLocalData()"
-              [disabled]="isResettingLocalData()"
-              data-testid="reset-local-data-button">
-              @if (isResettingLocalData()) {
-                <mat-progress-spinner diameter="20" mode="indeterminate">
-                </mat-progress-spinner>
-              } @else {
-                <mat-icon>delete_sweep</mat-icon>
-              }
-              Reset Local Data
-            </button>
-          </div>
-        </section>
-      </div>
-    }
-
-    <!-- Actions Tab -->
-    @if (selectedTab() === 'actions') {
-      <div class="tab-content">
-        <section class="settings-section" data-testid="actions-section">
-          <h3>
-            <mat-icon>build</mat-icon>
-            Project Actions
-          </h3>
-          <p class="section-description">
-            Common project operations like exporting, importing, and publishing.
-          </p>
-
-          <!-- Export / Import -->
-          <mat-card class="action-card" data-testid="export-import-card">
+        <!-- Connected Apps List (OAuth apps with access) -->
+        @if (oauthAppCollaborators().length > 0) {
+          <mat-card class="collaborators-card connected-apps-card">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>swap_vert</mat-icon>
-                Export &amp; Import
+                <mat-icon>apps</mat-icon>
+                Connected Apps ({{ oauthAppCollaborators().length }})
               </mat-card-title>
             </mat-card-header>
             <mat-card-content>
-              <p>
-                Export this project as an <code>.inkweld.zip</code> archive, or
-                import a project from an archive file.
+              <p class="connected-apps-info">
+                These applications have been granted access to this project.
+                Manage permissions and access from your Authorized Apps
+                settings.
               </p>
-              <div class="action-buttons">
-                <button
-                  mat-raised-button
-                  (click)="exportProject()"
-                  data-testid="export-project-button">
-                  <mat-icon>download</mat-icon>
-                  Export Project
-                </button>
-                <button
-                  mat-stroked-button
-                  (click)="importProject()"
-                  data-testid="import-project-button">
-                  <mat-icon>upload</mat-icon>
-                  Import Project
-                </button>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Publish -->
-          <mat-card class="action-card" data-testid="publish-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>publish</mat-icon>
-                Publishing
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p>
-                Create or open a publish plan to prepare your project for
-                publication.
-              </p>
-              <div class="action-buttons">
-                <button
-                  mat-raised-button
-                  (click)="openPublishPlan()"
-                  data-testid="publish-project-button">
-                  <mat-icon>publish</mat-icon>
-                  Publish Project
-                </button>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Document List -->
-          <mat-card class="action-card" data-testid="document-list-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>list</mat-icon>
-                Document List
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p>Open a flat list of all documents in this project.</p>
-              <div class="action-buttons">
-                <button
-                  mat-stroked-button
-                  (click)="showDocumentList()"
-                  data-testid="show-document-list-button">
-                  <mat-icon>list</mat-icon>
-                  Show Document List
-                </button>
-              </div>
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Zen Mode -->
-          @if (canEnableZenMode() || isZenMode()) {
-            <mat-card class="action-card" data-testid="zen-mode-card">
-              <mat-card-header>
-                <mat-card-title>
-                  <mat-icon>self_improvement</mat-icon>
-                  Zen Mode
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                <p>
-                  Enter a distraction-free editing mode for the current
-                  document.
-                </p>
-                <div class="action-buttons">
-                  <button
-                    mat-stroked-button
-                    (click)="toggleZenMode()"
-                    data-testid="zen-mode-button">
-                    <mat-icon>self_improvement</mat-icon>
-                    {{ isZenMode() ? 'Exit Zen Mode' : 'Enter Zen Mode' }}
-                  </button>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          }
-        </section>
-      </div>
-    }
-
-    <!-- Element Templates Tab -->
-    @if (selectedTab() === 'templates') {
-      <div class="tab-content embedded-tab">
-        <app-templates-tab></app-templates-tab>
-      </div>
-    }
-
-    <!-- Relationship Types Tab -->
-    @if (selectedTab() === 'relationships') {
-      <div class="tab-content embedded-tab">
-        <app-relationships-tab></app-relationships-tab>
-      </div>
-    }
-
-    <!-- Tags Tab -->
-    @if (selectedTab() === 'tags') {
-      <div class="tab-content embedded-tab">
-        <app-tags-tab></app-tags-tab>
-      </div>
-    }
-
-    <!-- Collaboration Tab -->
-    @if (selectedTab() === 'collaboration') {
-      <div class="tab-content">
-        <section class="settings-section" data-testid="collaboration-section">
-          <h3>
-            <mat-icon>group</mat-icon>
-            Collaboration
-          </h3>
-          <p class="section-description">
-            Share your project with other users and collaborate in real-time.
-          </p>
-
-          @if (currentMode === 'server') {
-            @if (isLoadingCollaborators()) {
-              <div class="loading-state">
-                <mat-progress-spinner diameter="32" mode="indeterminate">
-                </mat-progress-spinner>
-                <span>Loading collaborators...</span>
-              </div>
-            } @else if (collaboratorsError()) {
-              <mat-card class="error-card">
-                <mat-card-content>
-                  <mat-icon>error</mat-icon>
-                  <span>{{ collaboratorsError() }}</span>
-                  <button
-                    mat-button
-                    color="primary"
-                    (click)="loadCollaborators()"
-                    data-testid="collaborators-retry-button">
-                    Retry
-                  </button>
-                </mat-card-content>
-              </mat-card>
-            } @else {
-              <!-- Collaborators List -->
-              @if (humanCollaborators().length > 0) {
-                <mat-card class="collaborators-card">
-                  <mat-card-header>
-                    <mat-card-title>
-                      Collaborators ({{ getActiveCollaboratorsCount() }})
-                      @if (getPendingInvitationsCount() > 0) {
-                        <span class="pending-badge">
-                          {{ getPendingInvitationsCount() }} pending
-                        </span>
-                      }
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="collaborators-list">
-                      @for (
-                        collab of humanCollaborators();
-                        track collab.userId
-                      ) {
-                        <div
-                          class="collaborator-item"
-                          [class.pending]="collab.status === 'pending'"
-                          data-testid="collaborator-item">
-                          <div class="collaborator-info">
-                            <div class="collaborator-avatar">
-                              <mat-icon>{{
-                                getRoleIcon(collab.role)
-                              }}</mat-icon>
-                            </div>
-                            <div class="collaborator-details">
-                              <div class="collaborator-header">
-                                <strong>{{ collab.username }}</strong>
-                                @if (collab.name) {
-                                  <span class="collaborator-name">{{
-                                    collab.name
-                                  }}</span>
-                                }
-                                @if (collab.status === 'pending') {
-                                  <span class="status-badge pending"
-                                    >Pending</span
-                                  >
-                                }
-                              </div>
-                              <div class="collaborator-meta">
-                                @if (collab.status === 'accepted') {
-                                  <span
-                                    >Joined
-                                    {{
-                                      collab.acceptedAt | date: 'mediumDate'
-                                    }}</span
-                                  >
-                                } @else {
-                                  <span
-                                    >Invited
-                                    {{
-                                      collab.invitedAt | date: 'mediumDate'
-                                    }}</span
-                                  >
-                                  @if (collab.invitedByUsername) {
-                                    <span
-                                      >by {{ collab.invitedByUsername }}</span
-                                    >
-                                  }
-                                }
-                              </div>
-                            </div>
-                          </div>
-                          <div class="collaborator-actions">
-                            <mat-form-field
-                              appearance="outline"
-                              class="role-select">
-                              <mat-select
-                                [value]="collab.role"
-                                (selectionChange)="
-                                  updateCollaboratorRole(collab, $event.value)
-                                "
-                                data-testid="collaborator-role-select">
-                                @for (opt of roleOptions; track opt.value) {
-                                  <mat-option [value]="opt.value">
-                                    {{ opt.label }}
-                                  </mat-option>
-                                }
-                              </mat-select>
-                            </mat-form-field>
-                            <button
-                              mat-icon-button
-                              color="warn"
-                              [matTooltip]="'Remove ' + collab.username"
-                              (click)="removeCollaborator(collab)"
-                              data-testid="remove-collaborator-button">
-                              <mat-icon>person_remove</mat-icon>
-                            </button>
-                          </div>
+              <div class="collaborators-list">
+                @for (
+                  app of oauthAppCollaborators();
+                  track app.userId + '-' + (app.clientName ?? 'unknown')
+                ) {
+                  <div
+                    class="collaborator-item oauth-app-item"
+                    data-testid="connected-app-item">
+                    <div class="collaborator-info">
+                      <div class="collaborator-avatar app-avatar">
+                        <mat-icon>smart_toy</mat-icon>
+                      </div>
+                      <div class="collaborator-details">
+                        <div class="collaborator-header">
+                          <strong>{{ app.clientName || 'Unknown App' }}</strong>
+                          <span class="app-role-badge">{{ app.role }}</span>
                         </div>
-                      }
-                    </div>
-                  </mat-card-content>
-                </mat-card>
-              }
-
-              <!-- Connected Apps List (OAuth apps with access) -->
-              @if (oauthAppCollaborators().length > 0) {
-                <mat-card class="collaborators-card connected-apps-card">
-                  <mat-card-header>
-                    <mat-card-title>
-                      <mat-icon>apps</mat-icon>
-                      Connected Apps ({{ oauthAppCollaborators().length }})
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <p class="connected-apps-info">
-                      These applications have been granted access to this
-                      project. Manage permissions and access from your
-                      Authorized Apps settings.
-                    </p>
-                    <div class="collaborators-list">
-                      @for (
-                        app of oauthAppCollaborators();
-                        track app.userId + '-' + (app.clientName ?? 'unknown')
-                      ) {
-                        <div
-                          class="collaborator-item oauth-app-item"
-                          data-testid="connected-app-item">
-                          <div class="collaborator-info">
-                            <div class="collaborator-avatar app-avatar">
-                              <mat-icon>smart_toy</mat-icon>
-                            </div>
-                            <div class="collaborator-details">
-                              <div class="collaborator-header">
-                                <strong>{{
-                                  app.clientName || 'Unknown App'
-                                }}</strong>
-                                <span class="app-role-badge">{{
-                                  app.role
-                                }}</span>
-                              </div>
-                              <div class="collaborator-meta">
-                                <span>Authorized by {{ app.username }}</span>
-                                @if (app.acceptedAt) {
-                                  <span>
-                                    on
-                                    {{
-                                      app.acceptedAt | date: 'mediumDate'
-                                    }}</span
-                                  >
-                                }
-                              </div>
-                            </div>
-                          </div>
+                        <div class="collaborator-meta">
+                          <span>Authorized by {{ app.username }}</span>
+                          @if (app.acceptedAt) {
+                            <span>
+                              on
+                              {{ app.acceptedAt | date: 'mediumDate' }}</span
+                            >
+                          }
                         </div>
-                      }
-                    </div>
-                    <div class="connected-apps-actions">
-                      <button
-                        mat-stroked-button
-                        (click)="openAuthorizedAppsSettings()"
-                        data-testid="manage-apps-button">
-                        <mat-icon>settings</mat-icon>
-                        Manage in Settings
-                      </button>
-                    </div>
-                  </mat-card-content>
-                </mat-card>
-              }
-
-              <!-- Invite Form -->
-              @if (showInviteForm()) {
-                <mat-card class="invite-card">
-                  <mat-card-header>
-                    <mat-card-title>
-                      <mat-icon>person_add</mat-icon>
-                      Invite Collaborator
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="invite-form">
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>Username</mat-label>
-                        <input
-                          matInput
-                          [(ngModel)]="inviteUsername"
-                          placeholder="Enter username to invite"
-                          data-testid="invite-username-input" />
-                        <mat-icon matSuffix>person</mat-icon>
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>Role</mat-label>
-                        <mat-select
-                          [(ngModel)]="inviteRole"
-                          data-testid="invite-role-select">
-                          @for (opt of roleOptions; track opt.value) {
-                            <mat-option [value]="opt.value">
-                              <div class="role-option">
-                                <span>{{ opt.label }}</span>
-                                <small>{{ opt.description }}</small>
-                              </div>
-                            </mat-option>
-                          }
-                        </mat-select>
-                      </mat-form-field>
-
-                      <div class="form-actions">
-                        <button
-                          mat-button
-                          (click)="toggleInviteForm()"
-                          data-testid="cancel-invite-button">
-                          Cancel
-                        </button>
-                        <button
-                          mat-raised-button
-                          color="primary"
-                          [disabled]="!inviteUsername.trim() || isInviting()"
-                          (click)="inviteCollaborator()"
-                          data-testid="send-invite-button">
-                          @if (isInviting()) {
-                            <mat-progress-spinner
-                              diameter="20"
-                              mode="indeterminate">
-                            </mat-progress-spinner>
-                          } @else {
-                            <ng-container>
-                              <mat-icon>send</mat-icon>
-                              Send Invitation
-                            </ng-container>
-                          }
-                        </button>
                       </div>
                     </div>
-                  </mat-card-content>
-                </mat-card>
-              } @else {
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="toggleInviteForm()"
-                  data-testid="show-invite-form-button">
-                  <mat-icon>person_add</mat-icon>
-                  Invite Collaborator
-                </button>
-              }
-            }
-          } @else {
-            <mat-card class="info-card">
-              <mat-card-content>
-                <div class="info-content">
-                  <mat-icon>info</mat-icon>
-                  <div>Collaboration requires a server connection.</div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          }
-        </section>
-      </div>
-    }
-
-    <!-- MCP Tab -->
-    @if (selectedTab() === 'mcp') {
-      <div class="tab-content">
-        <section class="settings-section">
-          <h3>
-            <mat-icon>key</mat-icon>
-            MCP API Keys
-          </h3>
-          <p class="section-description">
-            Create API keys to allow external tools (like AI assistants) to
-            access your project via the Model Context Protocol (MCP).
-          </p>
-
-          @if (isAiKillSwitchEnabled()) {
-            <!-- AI features disabled by admin -->
-            <mat-card class="info-card warning">
-              <mat-card-content>
-                <div class="info-content">
-                  <mat-icon>block</mat-icon>
-                  <div>
-                    <strong
-                      >AI features are disabled by the administrator.</strong
-                    >
-                    MCP API keys cannot be used while this setting is active.
-                    Contact your administrator for more information.
                   </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          } @else if (currentMode === 'server') {
-            <!-- MCP Endpoint Instructions -->
-            <mat-card class="info-card mcp-instructions-card">
-              <mat-card-content>
-                <div class="info-content">
-                  <mat-icon>link</mat-icon>
-                  <div>
-                    <strong>MCP Endpoint URL</strong>
-                    <p class="mcp-instructions-text">
-                      Use this URL to connect AI tools like Claude Desktop,
-                      Cursor, or Windsurf to your project via MCP. Add it as a
-                      Streamable HTTP MCP server in your tool's settings.
-                    </p>
-                    <div class="mcp-url-display" data-testid="mcp-url-display">
-                      <code class="mcp-url">{{ getMcpEndpointUrl() }}</code>
-                      <button
-                        mat-icon-button
-                        matTooltip="Copy URL to clipboard"
-                        (click)="copyMcpUrl()"
-                        data-testid="copy-mcp-url-button">
-                        <mat-icon>content_copy</mat-icon>
-                      </button>
-                    </div>
-                    <p class="mcp-instructions-hint">
-                      You'll also need an API key (created below) for
-                      authentication.
-                    </p>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            @if (isLoadingKeys()) {
-              <div class="loading-state">
-                <mat-progress-spinner diameter="32" mode="indeterminate">
-                </mat-progress-spinner>
-                <span>Loading API keys...</span>
+                }
               </div>
-            } @else if (keysError()) {
-              <mat-card class="error-card">
-                <mat-card-content>
-                  <mat-icon>error</mat-icon>
-                  <span>{{ keysError() }}</span>
+              <div class="connected-apps-actions">
+                <button
+                  mat-stroked-button
+                  (click)="openAuthorizedAppsSettings()"
+                  data-testid="manage-apps-button">
+                  <mat-icon>settings</mat-icon>
+                  Manage in Settings
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Invite Form -->
+        @if (showInviteForm()) {
+          <mat-card class="invite-card">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>person_add</mat-icon>
+                Invite Collaborator
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="invite-form">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Username</mat-label>
+                  <input
+                    matInput
+                    [(ngModel)]="inviteUsername"
+                    placeholder="Enter username to invite"
+                    data-testid="invite-username-input" />
+                  <mat-icon matSuffix>person</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Role</mat-label>
+                  <mat-select
+                    [(ngModel)]="inviteRole"
+                    data-testid="invite-role-select">
+                    @for (opt of roleOptions; track opt.value) {
+                      <mat-option [value]="opt.value">
+                        <div class="role-option">
+                          <span>{{ opt.label }}</span>
+                          <small>{{ opt.description }}</small>
+                        </div>
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="form-actions">
                   <button
                     mat-button
-                    color="primary"
-                    (click)="loadMcpKeys()"
-                    data-testid="mcp-keys-retry-button">
-                    Retry
+                    (click)="toggleInviteForm()"
+                    data-testid="cancel-invite-button">
+                    Cancel
                   </button>
-                </mat-card-content>
-              </mat-card>
-            } @else {
-              <!-- Existing Keys List -->
-              @if (mcpKeys().length > 0) {
-                <mat-card class="keys-card">
-                  <mat-card-header>
-                    <mat-card-title
-                      >Active Keys ({{ getActiveKeysCount() }})</mat-card-title
-                    >
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="keys-list">
-                      @for (key of mcpKeys(); track key.id) {
-                        <div
-                          class="key-item"
-                          [class.revoked]="key.revoked"
-                          data-testid="mcp-key-item">
-                          <div class="key-info">
-                            <div class="key-header">
-                              <strong>{{ key.name }}</strong>
-                              @if (key.revoked) {
-                                <span class="revoked-badge">Revoked</span>
-                              }
-                            </div>
-                            <div class="key-meta">
-                              <span class="key-prefix"
-                                >{{ key.keyPrefix }}...</span
-                              >
-                              <span class="key-created">
-                                Created: {{ formatDate(key.createdAt) }}
-                              </span>
-                              @if (key.expiresAt) {
-                                <span
-                                  class="key-expires"
-                                  [class.warning]="
-                                    key.expiresAt < currentTime()
-                                  ">
-                                  Expires: {{ formatDate(key.expiresAt) }}
-                                </span>
-                              }
-                              @if (key.lastUsedAt) {
-                                <span class="key-used">
-                                  Last used: {{ formatDate(key.lastUsedAt) }}
-                                </span>
-                              }
-                            </div>
-                            <div class="key-permissions">
-                              @for (perm of key.permissions; track perm) {
-                                <span class="permission-chip">{{ perm }}</span>
-                              }
-                            </div>
-                          </div>
-                          <div class="key-actions">
-                            @if (!key.revoked) {
-                              <button
-                                mat-icon-button
-                                color="warn"
-                                matTooltip="Revoke key"
-                                (click)="revokeKey(key)"
-                                data-testid="revoke-key-button">
-                                <mat-icon>block</mat-icon>
-                              </button>
-                            }
-                            <button
-                              mat-icon-button
-                              color="warn"
-                              matTooltip="Delete key"
-                              (click)="deleteKey(key)"
-                              data-testid="delete-key-button">
-                              <mat-icon>delete</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </mat-card-content>
-                </mat-card>
-              }
-
-              <!-- Newly Created Key Display -->
-              @if (newlyCreatedKey()) {
-                <mat-card class="new-key-card success">
-                  <mat-card-header>
-                    <mat-card-title>
-                      <mat-icon>check_circle</mat-icon>
-                      API Key Created
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <p class="warning-text">
-                      <mat-icon>warning</mat-icon>
-                      Copy this key now! It will not be shown again.
-                    </p>
-                    <div class="key-display">
-                      <code class="full-key">{{ newlyCreatedKey() }}</code>
-                      <button
-                        mat-icon-button
-                        matTooltip="Copy to clipboard"
-                        (click)="copyKeyToClipboard(newlyCreatedKey()!)"
-                        data-testid="copy-key-button">
-                        <mat-icon>content_copy</mat-icon>
-                      </button>
-                    </div>
-                    <button
-                      mat-raised-button
-                      color="primary"
-                      (click)="dismissNewKey()"
-                      class="dismiss-button"
-                      data-testid="dismiss-new-key-button">
-                      I've copied the key
-                    </button>
-                  </mat-card-content>
-                </mat-card>
-              }
-
-              <!-- Create New Key Button -->
-              @if (!newlyCreatedKey()) {
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="openCreateKeyDialog()"
-                  data-testid="create-key-button">
-                  <mat-icon>add</mat-icon>
-                  Create New API Key
-                </button>
-              }
-            }
-          } @else {
-            <mat-card class="info-card">
-              <mat-card-content>
-                <div class="info-content">
-                  <mat-icon>cloud_off</mat-icon>
-                  <div>
-                    MCP API keys require a server connection. Switch to server
-                    mode in the Connection settings to create API keys.
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          }
-        </section>
-      </div>
-    }
-
-    <!-- Danger Zone Tab -->
-    @if (selectedTab() === 'danger') {
-      <div class="tab-content danger-zone-content">
-        <section
-          class="settings-section danger-zone"
-          data-testid="danger-zone-section">
-          <h3 class="danger-title">
-            <mat-icon>warning</mat-icon>
-            Danger Zone
-          </h3>
-          <p class="section-description danger-description">
-            These actions are destructive and may affect other users with
-            offline copies of this project.
-          </p>
-
-          <!-- Rename Project Section -->
-          <mat-card class="danger-card" data-testid="rename-project-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>edit</mat-icon>
-                Rename Project URL
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p class="warning-text">
-                <strong>Warning:</strong> Changing the project slug will change
-                the URL used to access this project. This is similar to renaming
-                a GitHub repository.
-              </p>
-              <ul class="consequence-list">
-                <li>Existing bookmarks and links will break</li>
-                <li>Other users with offline copies will need to re-sync</li>
-                <li>The old URL will redirect to the new one temporarily</li>
-              </ul>
-
-              @if (!showRenameForm()) {
-                <div class="action-buttons">
                   <button
-                    mat-stroked-button
-                    color="warn"
-                    (click)="showRenameForm.set(true)"
-                    data-testid="rename-project-button">
-                    <mat-icon>edit</mat-icon>
-                    Rename Project
+                    mat-raised-button
+                    color="primary"
+                    [disabled]="!inviteUsername.trim() || isInviting()"
+                    (click)="inviteCollaborator()"
+                    data-testid="send-invite-button">
+                    @if (isInviting()) {
+                      <mat-progress-spinner diameter="20" mode="indeterminate">
+                      </mat-progress-spinner>
+                    } @else {
+                      <ng-container>
+                        <mat-icon>send</mat-icon>
+                        Send Invitation
+                      </ng-container>
+                    }
                   </button>
                 </div>
-              } @else {
-                <div class="rename-form">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>New Project Slug</mat-label>
-                    <input
-                      matInput
-                      [(ngModel)]="newProjectSlug"
-                      placeholder="my-new-project-name"
-                      data-testid="new-slug-input"
-                      [pattern]="'^[a-z0-9-]+$'"
-                      (keyup.enter)="renameProject()" />
-                    <mat-hint
-                      >Lowercase letters, numbers, and hyphens only</mat-hint
-                    >
-                  </mat-form-field>
-
-                  @if (renameError()) {
-                    <mat-card class="error-card inline-error">
-                      <mat-card-content>
-                        <mat-icon>error</mat-icon>
-                        <span>{{ renameError() }}</span>
-                      </mat-card-content>
-                    </mat-card>
-                  }
-
-                  <div class="form-actions">
-                    <button
-                      mat-button
-                      (click)="cancelRename()"
-                      data-testid="cancel-rename-button">
-                      Cancel
-                    </button>
-                    <button
-                      mat-raised-button
-                      color="warn"
-                      [disabled]="!isValidSlug() || isRenaming()"
-                      (click)="renameProject()"
-                      data-testid="confirm-rename-button">
-                      @if (isRenaming()) {
-                        <mat-progress-spinner
-                          diameter="20"
-                          mode="indeterminate">
-                        </mat-progress-spinner>
-                      } @else {
-                        <ng-container>
-                          <mat-icon>check</mat-icon>
-                          Rename Project
-                        </ng-container>
-                      }
-                    </button>
-                  </div>
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
-
-          <!-- Delete Project Section -->
-          <mat-card
-            class="danger-card delete-card"
-            data-testid="delete-project-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>delete_forever</mat-icon>
-                Delete Project
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p class="warning-text">
-                <strong>Warning:</strong> This action
-                <strong>cannot be undone</strong>. All project data, documents,
-                worldbuilding elements, and media will be permanently deleted.
-              </p>
-              <ul class="consequence-list">
-                <li>All documents and content will be permanently lost</li>
-                <li>Collaborators will lose access immediately</li>
-                <li>Offline copies will become orphaned</li>
-              </ul>
-
-              <div class="action-buttons">
-                <button
-                  mat-raised-button
-                  color="warn"
-                  class="delete-button"
-                  (click)="deleteProject()"
-                  [disabled]="isDeleting()"
-                  data-testid="delete-project-button">
-                  @if (isDeleting()) {
-                    <mat-progress-spinner diameter="20" mode="indeterminate">
-                    </mat-progress-spinner>
-                  } @else {
-                    <ng-container>
-                      <mat-icon>delete_forever</mat-icon>
-                      Delete This Project
-                    </ng-container>
-                  }
-                </button>
               </div>
             </mat-card-content>
           </mat-card>
-        </section>
-      </div>
+        } @else {
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="toggleInviteForm()"
+            data-testid="show-invite-form-button">
+            <mat-icon>person_add</mat-icon>
+            Invite Collaborator
+          </button>
+        }
+      }
+    } @else {
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-content">
+            <mat-icon>info</mat-icon>
+            <div>Collaboration requires a server connection.</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
     }
-  </div>
-</div>
+  </section>
+</ng-template>
+
+<!-- MCP template -->
+<ng-template #mcpTemplate>
+  <section class="settings-section">
+    <h3>
+      <mat-icon>key</mat-icon>
+      MCP API Keys
+    </h3>
+    <p class="section-description">
+      Create API keys to allow external tools (like AI assistants) to access
+      your project via the Model Context Protocol (MCP).
+    </p>
+
+    @if (isAiKillSwitchEnabled()) {
+      <mat-card class="info-card warning">
+        <mat-card-content>
+          <div class="info-content">
+            <mat-icon>block</mat-icon>
+            <div>
+              <strong>AI features are disabled by the administrator.</strong>
+              MCP API keys cannot be used while this setting is active. Contact
+              your administrator for more information.
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    } @else if (currentMode === 'server') {
+      <!-- MCP Endpoint Instructions -->
+      <mat-card class="info-card mcp-instructions-card">
+        <mat-card-content>
+          <div class="info-content">
+            <mat-icon>link</mat-icon>
+            <div>
+              <strong>MCP Endpoint URL</strong>
+              <p class="mcp-instructions-text">
+                Use this URL to connect AI tools like Claude Desktop, Cursor, or
+                Windsurf to your project via MCP. Add it as a Streamable HTTP
+                MCP server in your tool's settings.
+              </p>
+              <div class="mcp-url-display" data-testid="mcp-url-display">
+                <code class="mcp-url">{{ getMcpEndpointUrl() }}</code>
+                <button
+                  mat-icon-button
+                  matTooltip="Copy URL to clipboard"
+                  (click)="copyMcpUrl()"
+                  data-testid="copy-mcp-url-button">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+              <p class="mcp-instructions-hint">
+                You'll also need an API key (created below) for authentication.
+              </p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      @if (isLoadingKeys()) {
+        <div class="loading-state">
+          <mat-progress-spinner diameter="32" mode="indeterminate">
+          </mat-progress-spinner>
+          <span>Loading API keys...</span>
+        </div>
+      } @else if (keysError()) {
+        <mat-card class="error-card">
+          <mat-card-content>
+            <mat-icon>error</mat-icon>
+            <span>{{ keysError() }}</span>
+            <button
+              mat-button
+              color="primary"
+              (click)="loadMcpKeys()"
+              data-testid="mcp-keys-retry-button">
+              Retry
+            </button>
+          </mat-card-content>
+        </mat-card>
+      } @else {
+        <!-- Existing Keys List -->
+        @if (mcpKeys().length > 0) {
+          <mat-card class="keys-card">
+            <mat-card-header>
+              <mat-card-title
+                >Active Keys ({{ getActiveKeysCount() }})</mat-card-title
+              >
+            </mat-card-header>
+            <mat-card-content>
+              <div class="keys-list">
+                @for (key of mcpKeys(); track key.id) {
+                  <div
+                    class="key-item"
+                    [class.revoked]="key.revoked"
+                    data-testid="mcp-key-item">
+                    <div class="key-info">
+                      <div class="key-header">
+                        <strong>{{ key.name }}</strong>
+                        @if (key.revoked) {
+                          <span class="revoked-badge">Revoked</span>
+                        }
+                      </div>
+                      <div class="key-meta">
+                        <span class="key-prefix">{{ key.keyPrefix }}...</span>
+                        <span class="key-created">
+                          Created: {{ formatDate(key.createdAt) }}
+                        </span>
+                        @if (key.expiresAt) {
+                          <span
+                            class="key-expires"
+                            [class.warning]="key.expiresAt < currentTime()">
+                            Expires: {{ formatDate(key.expiresAt) }}
+                          </span>
+                        }
+                        @if (key.lastUsedAt) {
+                          <span class="key-used">
+                            Last used: {{ formatDate(key.lastUsedAt) }}
+                          </span>
+                        }
+                      </div>
+                      <div class="key-permissions">
+                        @for (perm of key.permissions; track perm) {
+                          <span class="permission-chip">{{ perm }}</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="key-actions">
+                      @if (!key.revoked) {
+                        <button
+                          mat-icon-button
+                          color="warn"
+                          matTooltip="Revoke key"
+                          (click)="revokeKey(key)"
+                          data-testid="revoke-key-button">
+                          <mat-icon>block</mat-icon>
+                        </button>
+                      }
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        matTooltip="Delete key"
+                        (click)="deleteKey(key)"
+                        data-testid="delete-key-button">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Newly Created Key Display -->
+        @if (newlyCreatedKey()) {
+          <mat-card class="new-key-card success">
+            <mat-card-header>
+              <mat-card-title>
+                <mat-icon>check_circle</mat-icon>
+                API Key Created
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="warning-text">
+                <mat-icon>warning</mat-icon>
+                Copy this key now! It will not be shown again.
+              </p>
+              <div class="key-display">
+                <code class="full-key">{{ newlyCreatedKey() }}</code>
+                <button
+                  mat-icon-button
+                  matTooltip="Copy to clipboard"
+                  (click)="copyKeyToClipboard(newlyCreatedKey()!)"
+                  data-testid="copy-key-button">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="dismissNewKey()"
+                class="dismiss-button"
+                data-testid="dismiss-new-key-button">
+                I've copied the key
+              </button>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <!-- Create New Key Button -->
+        @if (!newlyCreatedKey()) {
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="openCreateKeyDialog()"
+            data-testid="create-key-button">
+            <mat-icon>add</mat-icon>
+            Create New API Key
+          </button>
+        }
+      }
+    } @else {
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-content">
+            <mat-icon>cloud_off</mat-icon>
+            <div>
+              MCP API keys require a server connection. Switch to server mode in
+              the Connection settings to create API keys.
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  </section>
+</ng-template>
+
+<!-- Danger Zone template -->
+<ng-template #dangerTemplate>
+  <section
+    class="settings-section danger-zone"
+    data-testid="danger-zone-section">
+    <h3 class="danger-title">
+      <mat-icon>warning</mat-icon>
+      Danger Zone
+    </h3>
+    <p class="section-description danger-description">
+      These actions are destructive and may affect other users with offline
+      copies of this project.
+    </p>
+
+    <!-- Rename Project Section -->
+    <mat-card class="danger-card" data-testid="rename-project-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>edit</mat-icon>
+          Rename Project URL
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="warning-text">
+          <strong>Warning:</strong> Changing the project slug will change the
+          URL used to access this project. This is similar to renaming a GitHub
+          repository.
+        </p>
+        <ul class="consequence-list">
+          <li>Existing bookmarks and links will break</li>
+          <li>Other users with offline copies will need to re-sync</li>
+          <li>The old URL will redirect to the new one temporarily</li>
+        </ul>
+
+        @if (!showRenameForm()) {
+          <div class="action-buttons">
+            <button
+              mat-stroked-button
+              color="warn"
+              (click)="showRenameForm.set(true)"
+              data-testid="rename-project-button">
+              <mat-icon>edit</mat-icon>
+              Rename Project
+            </button>
+          </div>
+        } @else {
+          <div class="rename-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>New Project Slug</mat-label>
+              <input
+                matInput
+                [(ngModel)]="newProjectSlug"
+                placeholder="my-new-project-name"
+                data-testid="new-slug-input"
+                [pattern]="'^[a-z0-9-]+$'"
+                (keyup.enter)="renameProject()" />
+              <mat-hint>Lowercase letters, numbers, and hyphens only</mat-hint>
+            </mat-form-field>
+
+            @if (renameError()) {
+              <mat-card class="error-card inline-error">
+                <mat-card-content>
+                  <mat-icon>error</mat-icon>
+                  <span>{{ renameError() }}</span>
+                </mat-card-content>
+              </mat-card>
+            }
+
+            <div class="form-actions">
+              <button
+                mat-button
+                (click)="cancelRename()"
+                data-testid="cancel-rename-button">
+                Cancel
+              </button>
+              <button
+                mat-raised-button
+                color="warn"
+                [disabled]="!isValidSlug() || isRenaming()"
+                (click)="renameProject()"
+                data-testid="confirm-rename-button">
+                @if (isRenaming()) {
+                  <mat-progress-spinner diameter="20" mode="indeterminate">
+                  </mat-progress-spinner>
+                } @else {
+                  <ng-container>
+                    <mat-icon>check</mat-icon>
+                    Rename Project
+                  </ng-container>
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Delete Project Section -->
+    <mat-card class="danger-card delete-card" data-testid="delete-project-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>delete_forever</mat-icon>
+          Delete Project
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="warning-text">
+          <strong>Warning:</strong> This action
+          <strong>cannot be undone</strong>. All project data, documents,
+          worldbuilding elements, and media will be permanently deleted.
+        </p>
+        <ul class="consequence-list">
+          <li>All documents and content will be permanently lost</li>
+          <li>Collaborators will lose access immediately</li>
+          <li>Offline copies will become orphaned</li>
+        </ul>
+
+        <div class="action-buttons">
+          <button
+            mat-raised-button
+            color="warn"
+            class="delete-button"
+            (click)="deleteProject()"
+            [disabled]="isDeleting()"
+            data-testid="delete-project-button">
+            @if (isDeleting()) {
+              <mat-progress-spinner diameter="20" mode="indeterminate">
+              </mat-progress-spinner>
+            } @else {
+              <ng-container>
+                <mat-icon>delete_forever</mat-icon>
+                Delete This Project
+              </ng-container>
+            }
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </section>
+</ng-template>

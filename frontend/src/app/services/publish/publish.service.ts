@@ -961,6 +961,7 @@ export class PublishService {
         format: plan.format,
         mimeType: getMimeTypeForFormat(plan.format),
         planName: plan.name,
+        planId: plan.id,
         sharePermission: SharePermission.Private,
         metadata: {
           title: plan.metadata.title,

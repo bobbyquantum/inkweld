@@ -27,7 +27,6 @@ api/media.service.ts
 api/o-auth.service.ts
 api/projects.service.ts
 api/published-files.service.ts
-api/security.service.ts
 api/share.service.ts
 api/snapshots.service.ts
 api/users.service.ts
@@ -66,8 +65,6 @@ model/create-mcp-key-request.ts
 model/create-mcp-key-response.ts
 model/create-project-request.ts
 model/create-snapshot-request.ts
-model/csrf-error-response.ts
-model/csrf-token-response.ts
 model/custom-image-size.ts
 model/custom-sizes-response.ts
 model/default-text-models-response-providers-anthropic.ts

@@ -128,6 +128,7 @@ export class PublishedFilesService {
       mimeType: request.mimeType,
       size: blob.size,
       planName: request.planName,
+      planId: request.planId,
       sharePermission: request.sharePermission || SharePermission.Private,
       createdAt: now,
       updatedAt: now,

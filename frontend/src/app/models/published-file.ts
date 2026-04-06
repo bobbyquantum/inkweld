@@ -49,6 +49,9 @@ export interface PublishedFile {
   /** Name of the publish plan used */
   planName: string;
 
+  /** ID of the publish plan used (nullable for legacy records) */
+  planId?: string | null;
+
   /** Sharing permission level */
   sharePermission: SharePermission;
 
@@ -87,6 +90,7 @@ export interface CreatePublishedFileRequest {
   format: PublishFormat;
   mimeType: string;
   planName: string;
+  planId?: string;
   sharePermission?: SharePermission;
   metadata: PublishedFileMetadata;
 }
