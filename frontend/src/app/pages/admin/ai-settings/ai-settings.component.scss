@@ -8,18 +8,18 @@
 }
 
 .kill-switch-warning {
-  background-color: var(--mat-sys-error-container);
-  border-left: 4px solid var(--mat-sys-error);
+  background-color: var(--sys-error-container);
+  border-left: 4px solid var(--sys-error);
 
   mat-card-title {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
   }
 
   mat-card-subtitle {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
 
     code {
-      background-color: var(--mat-sys-surface-variant);
+      background-color: var(--sys-surface-variant);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: monospace;
@@ -27,19 +27,19 @@
   }
 
   .warning-icon {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
     font-size: 24px;
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--mat-sys-surface);
+    background-color: var(--sys-surface);
     border-radius: 50%;
   }
 
   mat-card-content p {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
     margin: 0;
   }
 }
@@ -53,20 +53,20 @@
   gap: 16px;
 
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin: 0;
   }
 }
 
 .error-card {
-  background-color: var(--mat-sys-error-container);
+  background-color: var(--sys-error-container);
 
   mat-card-title {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
   }
 
   mat-icon[mat-card-avatar] {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 }
 
@@ -82,8 +82,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
+    background-color: var(--sys-primary-container);
+    color: var(--sys-on-primary-container);
     border-radius: 50%;
   }
 }
@@ -102,12 +102,12 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background-color: var(--mat-sys-surface-container-low);
+    background-color: var(--sys-surface-container-low);
     border-radius: 8px;
-    border: 1px solid var(--mat-sys-outline-variant);
+    border: 1px solid var(--sys-outline-variant);
 
     &:hover {
-      background-color: var(--mat-sys-surface-container);
+      background-color: var(--sys-surface-container);
     }
   }
 
@@ -119,12 +119,12 @@
 
   .provider-name {
     font-weight: 500;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .provider-description {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .provider-warning {
@@ -132,7 +132,7 @@
     align-items: center;
     gap: 4px;
     font-size: 0.75rem;
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
 
     mat-icon {
       font-size: 14px;
@@ -153,7 +153,7 @@
     height: 40px;
     border-radius: 50%;
     object-fit: contain;
-    background-color: var(--mat-sys-surface-container);
+    background-color: var(--sys-surface-container);
     padding: 4px;
   }
 
@@ -163,8 +163,8 @@
     }
 
     &.openrouter-icon {
-      background-color: var(--mat-sys-primary-container);
-      color: var(--mat-sys-on-primary-container);
+      background-color: var(--sys-primary-container);
+      color: var(--sys-on-primary-container);
       border-radius: 50%;
       padding: 8px;
     }
@@ -176,7 +176,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--sys-outline-variant);
 
   &:last-child {
     border-bottom: none;
@@ -191,12 +191,12 @@
 
 .setting-label {
   font-weight: 500;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 }
 
 .setting-description {
   font-size: 0.875rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -210,14 +210,14 @@
   width: 320px;
 
   .model-description {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     font-size: 0.85em;
   }
 }
 
 .api-key-section {
   padding: 16px 0;
-  border-top: 1px solid var(--mat-sys-outline-variant);
+  border-top: 1px solid var(--sys-outline-variant);
 }
 
 .key-status {
@@ -227,15 +227,15 @@
   vertical-align: middle;
 
   &.configured {
-    color: var(--mat-sys-tertiary);
+    color: var(--sys-tertiary);
   }
 
   &.not-configured {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 
   &.optional {
-    color: var(--mat-sys-secondary);
+    color: var(--sys-secondary);
   }
 }
 
@@ -280,7 +280,7 @@
 // Model configuration panel
 .models-panel {
   margin-top: 16px;
-  background-color: var(--mat-sys-surface-container-low);
+  background-color: var(--sys-surface-container-low);
 
   mat-panel-title {
     display: flex;
@@ -307,11 +307,11 @@
 
 .models-hint {
   font-size: 0.875rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin: 0;
 
   a {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
     text-decoration: none;
 
     &:hover {
@@ -335,7 +335,7 @@
   gap: 8px;
   justify-content: flex-end;
   padding-top: 8px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
+  border-top: 1px solid var(--sys-outline-variant);
   margin-top: 8px;
 }
 
@@ -372,24 +372,24 @@
 .model-name {
   font-weight: 500;
   font-size: 0.9375rem;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 }
 
 .model-id {
   font-size: 0.75rem;
   font-family: monospace;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   opacity: 0.8;
 }
 
 .model-description {
   font-size: 0.8125rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin-top: 2px;
 }
 
 .models-preview {
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 8px;
   padding: 12px;
   overflow-x: auto;
@@ -399,7 +399,7 @@
     font-size: 0.75rem;
     white-space: pre-wrap;
     word-break: break-word;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     max-height: 200px;
     overflow-y: auto;
   }
@@ -407,7 +407,7 @@
   .default-models {
     margin: 0;
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     font-style: italic;
   }
 }
@@ -429,7 +429,7 @@
 
 // Custom Image Sizes
 .help-text {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   font-size: 0.875rem;
   margin-bottom: 16px;
   line-height: 1.5;
@@ -447,7 +447,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 8px;
 }
 
@@ -459,18 +459,18 @@
 
 .size-name {
   font-weight: 500;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 }
 
 .size-dimensions {
   font-size: 0.875rem;
-  color: var(--mat-sys-primary);
+  color: var(--sys-primary);
   font-family: monospace;
 }
 
 .size-description {
   font-size: 0.8125rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 .empty-state {
@@ -479,7 +479,7 @@
   align-items: center;
   justify-content: center;
   padding: 32px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 
   mat-icon {
     font-size: 48px;
@@ -500,7 +500,7 @@
 
   h4 {
     margin: 0 0 16px 0;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 }
 
@@ -523,7 +523,7 @@
 
   .dimension-separator {
     font-size: 1.25rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     padding-bottom: 22px;
   }
 }
@@ -590,20 +590,20 @@
 // =========================================================================
 
 .default-model-card {
-  background-color: var(--mat-sys-primary-container);
+  background-color: var(--sys-primary-container);
 
   mat-card-title {
-    color: var(--mat-sys-on-primary-container);
+    color: var(--sys-on-primary-container);
   }
 
   mat-card-subtitle {
-    color: var(--mat-sys-on-primary-container);
+    color: var(--sys-on-primary-container);
     opacity: 0.8;
   }
 
   mat-icon[mat-card-avatar] {
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
+    background-color: var(--sys-primary);
+    color: var(--sys-on-primary);
   }
 
   .default-model-display {
@@ -614,12 +614,12 @@
     .default-model-name {
       font-size: 1.25rem;
       font-weight: 500;
-      color: var(--mat-sys-on-primary-container);
+      color: var(--sys-on-primary-container);
     }
 
     .default-model-description {
       font-size: 0.875rem;
-      color: var(--mat-sys-on-primary-container);
+      color: var(--sys-on-primary-container);
       opacity: 0.8;
     }
   }
@@ -636,7 +636,7 @@
     align-items: center;
     gap: 16px;
     padding: 12px 0;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    border-bottom: 1px solid var(--sys-outline-variant);
 
     &:last-child {
       border-bottom: none;
@@ -660,12 +660,12 @@
     align-items: center;
     gap: 8px;
     font-weight: 500;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .model-description {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .model-actions {
@@ -699,15 +699,15 @@
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
 
     p {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       margin: 0;
 
       a {
-        color: var(--mat-sys-primary);
+        color: var(--sys-primary);
         text-decoration: none;
 
         &:hover {
@@ -728,7 +728,7 @@
     justify-content: center;
 
     span {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 
@@ -743,7 +743,7 @@
   }
 
   .profile-item {
-    border: 1px solid var(--mat-sys-outline-variant);
+    border: 1px solid var(--sys-outline-variant);
     border-radius: 12px;
     padding: 16px;
     transition: opacity 0.2s ease;
@@ -758,19 +758,19 @@
       .profile-title {
         font-weight: 500;
         font-size: 16px;
-        color: var(--mat-sys-on-surface);
+        color: var(--sys-on-surface);
       }
 
       .profile-subtitle {
         font-size: 13px;
-        color: var(--mat-sys-on-surface-variant);
+        color: var(--sys-on-surface-variant);
         margin-top: 4px;
       }
     }
 
     .profile-description {
       font-size: 14px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       margin-bottom: 12px;
     }
 
@@ -789,7 +789,7 @@
         .label {
           font-weight: 500;
           min-width: 90px;
-          color: var(--mat-sys-on-surface-variant);
+          color: var(--sys-on-surface-variant);
         }
 
         .value {
@@ -803,11 +803,11 @@
             width: 16px;
 
             &.check {
-              color: var(--mat-sys-primary);
+              color: var(--sys-primary);
             }
 
             &.no {
-              color: var(--mat-sys-on-surface-variant);
+              color: var(--sys-on-surface-variant);
             }
           }
 
@@ -821,7 +821,7 @@
       .size-chip {
         display: inline-block;
         padding: 2px 6px;
-        background: var(--mat-sys-surface-variant);
+        background: var(--sys-surface-variant);
         border-radius: 4px;
         font-size: 11px;
       }
@@ -831,7 +831,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      border-top: 1px solid var(--mat-sys-outline-variant);
+      border-top: 1px solid var(--sys-outline-variant);
       padding-top: 12px;
       margin-top: 8px;
 

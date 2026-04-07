@@ -60,7 +60,7 @@ export interface TagEditorDialogData {
         gap: 8px;
 
         mat-icon {
-          color: var(--mat-sys-primary);
+          color: var(--sys-primary);
         }
       }
 

@@ -11,11 +11,11 @@
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--sys-outline-variant);
   gap: 12px;
 
   .search-icon {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     flex-shrink: 0;
   }
 
@@ -25,11 +25,11 @@
     outline: none;
     font-size: 16px;
     background: transparent;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
     padding: 4px 0;
 
     &::placeholder {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 
@@ -60,7 +60,7 @@
     }
 
     &.active {
-      color: var(--mat-sys-primary);
+      color: var(--sys-primary);
     }
 
     .filter-badge {
@@ -70,8 +70,8 @@
       min-width: 16px;
       height: 16px;
       border-radius: 8px;
-      background-color: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
+      background-color: var(--sys-primary);
+      color: var(--sys-on-primary);
       font-size: 10px;
       font-weight: 600;
       display: flex;
@@ -90,8 +90,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 16px 12px;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
-  background-color: var(--mat-sys-surface-container-low);
+  border-bottom: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container-low);
 }
 
 .filter-section {
@@ -102,7 +102,7 @@
   .filter-label {
     font-size: 11px;
     font-weight: 500;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     min-width: 62px;
     padding-top: 5px;
     flex-shrink: 0;
@@ -125,9 +125,9 @@
   gap: 4px;
   padding: 3px 10px 3px 6px;
   border-radius: 16px;
-  border: 1px solid var(--mat-sys-outline-variant);
+  border: 1px solid var(--sys-outline-variant);
   background: transparent;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -141,33 +141,33 @@
   }
 
   &:hover {
-    background-color: var(--mat-sys-surface-container-highest);
-    border-color: var(--mat-sys-outline);
+    background-color: var(--sys-surface-container-highest);
+    border-color: var(--sys-outline);
   }
 
   &.selected {
-    background-color: var(--mat-sys-secondary-container);
-    border-color: var(--mat-sys-secondary);
-    color: var(--mat-sys-on-secondary-container);
+    background-color: var(--sys-secondary-container);
+    border-color: var(--sys-secondary);
+    color: var(--sys-on-secondary-container);
   }
 
   &.tag-chip.selected {
     background-color: color-mix(
       in srgb,
-      var(--tag-color, var(--mat-sys-secondary)) 20%,
+      var(--tag-color, var(--sys-secondary)) 20%,
       transparent
     );
-    border-color: var(--tag-color, var(--mat-sys-secondary));
-    color: var(--mat-sys-on-surface);
+    border-color: var(--tag-color, var(--sys-secondary));
+    color: var(--sys-on-surface);
   }
 }
 
 .relationship-select {
   padding: 4px 8px;
   border-radius: 8px;
-  border: 1px solid var(--mat-sys-outline-variant);
-  background-color: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
+  border: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container);
+  color: var(--sys-on-surface);
   font-size: 12px;
   font-family: inherit;
   min-width: 160px;
@@ -176,12 +176,12 @@
   outline: none;
 
   &:focus {
-    border-color: var(--mat-sys-primary);
+    border-color: var(--sys-primary);
   }
 
   option {
-    background-color: var(--mat-sys-surface);
-    color: var(--mat-sys-on-surface);
+    background-color: var(--sys-surface);
+    color: var(--sys-on-surface);
   }
 }
 
@@ -192,7 +192,7 @@
   padding: 2px 8px;
   border: none;
   background: transparent;
-  color: var(--mat-sys-error);
+  color: var(--sys-error);
   font-size: 11px;
   cursor: pointer;
   border-radius: 4px;
@@ -206,7 +206,7 @@
   }
 
   &:hover {
-    background-color: var(--mat-sys-error-container);
+    background-color: var(--sys-error-container);
   }
 }
 
@@ -217,7 +217,7 @@
   align-items: center;
   gap: 12px;
   padding: 6px 16px;
-  background-color: var(--mat-sys-surface-container-low);
+  background-color: var(--sys-surface-container-low);
 
   .scan-bar {
     flex: 1;
@@ -227,7 +227,7 @@
 
   .progress-label {
     font-size: 11px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -258,12 +258,12 @@
   border-left: 3px solid transparent;
 
   &:hover {
-    background-color: var(--mat-sys-surface-container-highest);
+    background-color: var(--sys-surface-container-highest);
   }
 
   &.selected {
-    background-color: var(--mat-sys-secondary-container);
-    border-left-color: var(--mat-sys-primary);
+    background-color: var(--sys-secondary-container);
+    border-left-color: var(--sys-primary);
   }
 
   .result-icon {
@@ -271,7 +271,7 @@
     font-size: 20px;
     width: 20px;
     height: 20px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-top: 2px;
   }
 
@@ -293,7 +293,7 @@
   .result-name {
     font-size: 14px;
     font-weight: 500;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -302,7 +302,7 @@
 
   .result-path {
     font-size: 11px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -312,8 +312,8 @@
   .match-count {
     font-size: 11px;
     font-weight: 600;
-    color: var(--mat-sys-primary);
-    background-color: var(--mat-sys-primary-container);
+    color: var(--sys-primary);
+    background-color: var(--sys-primary-container);
     border-radius: 10px;
     padding: 1px 6px;
     flex-shrink: 0;
@@ -323,7 +323,7 @@
   .result-snippet {
     margin: 0;
     font-size: 12px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
@@ -353,16 +353,16 @@
   gap: 4px;
   padding: 4px 14px;
   border-radius: 16px;
-  border: 1px solid var(--mat-sys-outline-variant);
+  border: 1px solid var(--sys-outline-variant);
   background: transparent;
-  color: var(--mat-sys-primary);
+  color: var(--sys-primary);
   font-size: 12px;
   cursor: pointer;
   font-family: inherit;
   transition: background-color 0.15s ease;
 
   &:hover {
-    background-color: var(--mat-sys-primary-container);
+    background-color: var(--sys-primary-container);
   }
 }
 
@@ -374,7 +374,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px 16px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   text-align: center;
 
   mat-icon {
@@ -397,7 +397,7 @@
 
     p {
       font-size: 13px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 }
@@ -409,8 +409,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
-  background-color: var(--mat-sys-surface-container);
+  border-top: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container);
 }
 
 .keyboard-hints {
@@ -422,7 +422,7 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   kbd {
@@ -431,17 +431,17 @@
     font-size: 10px;
     font-family: inherit;
     line-height: 1.2;
-    color: var(--mat-sys-on-surface-variant);
-    background-color: var(--mat-sys-surface-container-high);
-    border: 1px solid var(--mat-sys-outline-variant);
+    color: var(--sys-on-surface-variant);
+    background-color: var(--sys-surface-container-high);
+    border: 1px solid var(--sys-outline-variant);
     border-radius: 4px;
-    box-shadow: 0 1px 0 var(--mat-sys-outline-variant);
+    box-shadow: 0 1px 0 var(--sys-outline-variant);
   }
 }
 
 .result-summary {
   font-size: 11px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 // ─── Dialog panel overrides (applied via panelClass) ────────────────────────

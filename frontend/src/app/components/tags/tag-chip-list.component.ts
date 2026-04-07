@@ -140,7 +140,7 @@ type TagAutocompleteValue = TagDefinition | { name: string; isNew: true };
 
       .tag-description {
         font-size: 0.85em;
-        color: var(--mat-sys-outline);
+        color: var(--sys-outline);
         margin-left: 8px;
       }
 

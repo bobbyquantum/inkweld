@@ -37,7 +37,7 @@
   }
 
   .section-description {
-    color: var(--mat-sys-on-surface-variant, #666);
+    color: var(--sys-on-surface-variant, #666);
     margin-bottom: 1.5rem;
   }
 }
@@ -48,7 +48,7 @@
   gap: 1rem;
   padding: 2rem;
   justify-content: center;
-  color: var(--mat-sys-on-surface-variant, #666);
+  color: var(--sys-on-surface-variant, #666);
 }
 
 .error-card,
@@ -75,7 +75,7 @@
 
     p {
       margin: 0;
-      color: var(--mat-sys-on-surface-variant, #666);
+      color: var(--sys-on-surface-variant, #666);
     }
   }
 }
@@ -85,7 +85,7 @@
 }
 
 .empty-card mat-icon {
-  color: var(--mat-sys-outline, #79747e);
+  color: var(--sys-outline, #79747e);
 }
 
 mat-accordion {
@@ -129,7 +129,7 @@ mat-panel-title {
 mat-panel-description {
   .auth-date {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant, #666);
+    color: var(--sys-on-surface-variant, #666);
   }
 }
 
@@ -165,7 +165,7 @@ mat-panel-description {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 0;
-  color: var(--mat-sys-on-surface-variant, #666);
+  color: var(--sys-on-surface-variant, #666);
 }
 
 h4 {
@@ -174,12 +174,12 @@ h4 {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--mat-sys-on-surface-variant, #666);
+  color: var(--sys-on-surface-variant, #666);
 }
 
 .no-grants {
   font-style: italic;
-  color: var(--mat-sys-on-surface-variant, #666);
+  color: var(--sys-on-surface-variant, #666);
 }
 
 .grants-list {
@@ -193,7 +193,7 @@ h4 {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background: var(--mat-sys-surface-variant, #f5f5f5);
+  background: var(--sys-surface-variant, #f5f5f5);
   border-radius: 8px;
 
   .grant-info {

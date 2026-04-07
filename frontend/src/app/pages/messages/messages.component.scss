@@ -2,15 +2,15 @@
   min-height: var(--app-height);
   display: flex;
   flex-direction: column;
-  background-color: var(--mat-sys-surface);
+  background-color: var(--sys-surface);
 }
 
 .messages-toolbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
+  background: var(--sys-surface-container);
+  color: var(--sys-on-surface);
 
   .toolbar-title {
     font-size: 20px;
@@ -41,7 +41,7 @@
   gap: 16px;
 
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
@@ -52,13 +52,13 @@
   justify-content: center;
   padding: 64px 24px;
   text-align: center;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 
   .empty-icon {
     font-size: 64px;
     width: 64px;
     height: 64px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-bottom: 16px;
   }
 
@@ -70,7 +70,7 @@
 
   p {
     margin: 0 0 24px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
