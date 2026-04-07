@@ -1,5 +1,5 @@
 .drop-zone {
-  border: 2px dashed var(--mat-sys-outline-variant);
+  border: 2px dashed var(--sys-outline-variant);
   border-radius: 8px;
   padding: 48px 24px;
   text-align: center;
@@ -13,8 +13,8 @@
   gap: 8px;
 
   &.drag-over {
-    border-color: var(--mat-sys-primary);
-    background-color: var(--mat-sys-primary-container);
+    border-color: var(--sys-primary);
+    background-color: var(--sys-primary-container);
   }
 
   &.parsing {
@@ -25,12 +25,12 @@
     font-size: 48px;
     width: 48px;
     height: 48px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   p {
     margin: 0;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .hint {
@@ -45,8 +45,8 @@
       display: inline-block;
       padding: 8px 16px;
       border-radius: 4px;
-      background-color: var(--mat-sys-primary);
-      color: var(--mat-sys-on-primary);
+      background-color: var(--sys-primary);
+      color: var(--sys-on-primary);
       font-weight: 500;
       transition: opacity 0.2s ease;
 
@@ -64,11 +64,11 @@
   margin-top: 16px;
   padding: 12px;
   border-radius: 4px;
-  background-color: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  background-color: var(--sys-error-container);
+  color: var(--sys-on-error-container);
 
   mat-icon {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 }
 
@@ -84,7 +84,7 @@
   .archive-meta {
     margin: 0;
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
@@ -95,7 +95,7 @@
   margin-bottom: 24px;
   padding: 16px;
   border-radius: 8px;
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
 
   .summary-item {
     display: flex;
@@ -106,7 +106,7 @@
       font-size: 20px;
       width: 20px;
       height: 20px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
 
     span {
@@ -119,7 +119,7 @@
   width: 100%;
 
   .available {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 }
 
@@ -133,7 +133,7 @@
 
   .status-text {
     margin: 0 0 8px 0;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .progress-text {
@@ -166,16 +166,16 @@
   .imported-slug {
     font-family: monospace;
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
 .result-success mat-icon {
-  color: var(--mat-sys-primary);
+  color: var(--sys-primary);
 }
 
 .result-error mat-icon {
-  color: var(--mat-sys-error);
+  color: var(--sys-error);
 }
 
 mat-dialog-content {

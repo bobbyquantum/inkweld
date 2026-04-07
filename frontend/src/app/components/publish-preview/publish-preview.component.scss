@@ -18,7 +18,7 @@
   justify-content: center;
   gap: 16px;
   padding: 48px 24px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 
   .empty-icon {
     font-size: 48px;
@@ -46,7 +46,7 @@
 
   p {
     margin: 0;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     font-size: 14px;
   }
 }
@@ -57,7 +57,7 @@
   align-items: center;
   gap: 12px;
   padding: 48px 24px;
-  color: var(--mat-sys-error);
+  color: var(--sys-error);
 
   mat-icon {
     font-size: 36px;
@@ -78,10 +78,10 @@
   gap: 8px;
   padding: 8px 16px;
   margin-bottom: 12px;
-  background: var(--mat-sys-surface-container);
+  background: var(--sys-surface-container);
   border-radius: 8px;
   font-size: 13px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 
   mat-icon {
     font-size: 18px;
@@ -100,14 +100,14 @@
   margin-bottom: 12px;
 
   button.active {
-    background: var(--mat-sys-secondary-container);
-    color: var(--mat-sys-on-secondary-container);
+    background: var(--sys-secondary-container);
+    color: var(--sys-on-secondary-container);
   }
 }
 
 .preview-frame {
   flex: 1;
-  border: 1px solid var(--mat-sys-outline-variant);
+  border: 1px solid var(--sys-outline-variant);
   border-radius: 8px;
   overflow: auto;
   background: white;
@@ -124,7 +124,7 @@
       margin: 0 auto;
 
       & + svg {
-        border-top: 1px solid var(--mat-sys-outline-variant);
+        border-top: 1px solid var(--sys-outline-variant);
       }
     }
   }

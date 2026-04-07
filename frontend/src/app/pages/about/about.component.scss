@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   min-height: var(--app-height);
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
 }
 
 .about-header {
@@ -10,14 +10,14 @@
   align-items: center;
   gap: 8px;
   padding: 16px 24px;
-  background-color: var(--mat-sys-surface);
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--sys-surface);
+  border-bottom: 1px solid var(--sys-outline-variant);
 
   h1 {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 500;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .header-spacer {
@@ -50,7 +50,7 @@ mat-card {
       font-size: 40px;
       width: 40px;
       height: 40px;
-      color: var(--mat-sys-primary);
+      color: var(--sys-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -64,13 +64,13 @@ mat-card {
 
 .version-card {
   .app-description {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-bottom: 16px;
     line-height: 1.5;
   }
 
   .copyright {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     font-size: 0.875rem;
     margin: 0;
   }
@@ -104,20 +104,20 @@ mat-card {
 
   .library-name {
     font-weight: 500;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .library-version {
     font-size: 0.75rem;
-    color: var(--mat-sys-primary);
-    background: var(--mat-sys-primary-container);
+    color: var(--sys-primary);
+    background: var(--sys-primary-container);
     padding: 2px 8px;
     border-radius: 12px;
   }
 
   .library-description {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     line-height: 1.4;
   }
 
@@ -128,7 +128,7 @@ mat-card {
 
 .licenses-card {
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     line-height: 1.5;
     margin: 0;
   }
@@ -155,6 +155,6 @@ mat-card {
   }
 
   mat-icon[matListItemIcon] {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 }

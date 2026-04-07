@@ -24,7 +24,7 @@
   gap: 16px;
 
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
@@ -35,15 +35,15 @@
   justify-content: center;
   padding: 64px 24px;
   text-align: center;
-  background: var(--mat-sys-surface-container);
+  background: var(--sys-surface-container);
   border-radius: 8px;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 
   .empty-icon {
     font-size: 64px;
     width: 64px;
     height: 64px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-bottom: 16px;
   }
 
@@ -55,7 +55,7 @@
 
   p {
     margin: 0 0 24px;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
@@ -81,7 +81,7 @@
     font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
 
     mat-icon {
       font-size: 16px;
@@ -103,28 +103,28 @@
 }
 
 .status-draft {
-  background-color: var(--mat-sys-surface-container-highest) !important;
-  color: var(--mat-sys-on-surface-variant) !important;
+  background-color: var(--sys-surface-container-highest) !important;
+  color: var(--sys-on-surface-variant) !important;
 }
 
 .status-scheduled {
-  background-color: var(--mat-sys-secondary-container) !important;
-  color: var(--mat-sys-on-secondary-container) !important;
+  background-color: var(--sys-secondary-container) !important;
+  color: var(--sys-on-secondary-container) !important;
 }
 
 .status-published {
-  background-color: var(--mat-sys-primary-container) !important;
-  color: var(--mat-sys-on-primary-container) !important;
+  background-color: var(--sys-primary-container) !important;
+  color: var(--sys-on-primary-container) !important;
 }
 
 .status-expired {
-  background-color: var(--mat-sys-error-container) !important;
-  color: var(--mat-sys-on-error-container) !important;
+  background-color: var(--sys-error-container) !important;
+  color: var(--sys-on-error-container) !important;
 }
 
 .public-chip {
-  background-color: var(--mat-sys-tertiary-container) !important;
-  color: var(--mat-sys-on-tertiary-container) !important;
+  background-color: var(--sys-tertiary-container) !important;
+  color: var(--sys-on-tertiary-container) !important;
 
   mat-icon {
     font-size: 14px;
@@ -135,8 +135,8 @@
 }
 
 .private-chip {
-  background-color: var(--mat-sys-surface-container-high) !important;
-  color: var(--mat-sys-on-surface-variant) !important;
+  background-color: var(--sys-surface-container-high) !important;
+  color: var(--sys-on-surface-variant) !important;
 
   mat-icon {
     font-size: 14px;
@@ -147,15 +147,15 @@
 }
 
 .priority-high {
-  background-color: var(--mat-sys-error-container) !important;
-  color: var(--mat-sys-on-error-container) !important;
+  background-color: var(--sys-error-container) !important;
+  color: var(--sys-on-error-container) !important;
 }
 
 .announcement-preview {
   max-height: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   line-height: 1.5;
 }
 

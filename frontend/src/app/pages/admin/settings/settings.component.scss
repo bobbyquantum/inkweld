@@ -24,11 +24,11 @@
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: var(--mat-sys-error);
+      color: var(--sys-error);
     }
 
     p {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 }
@@ -39,7 +39,7 @@
   }
 
   &.ai-kill-switch-card {
-    border: 2px solid var(--mat-sys-outline-variant);
+    border: 2px solid var(--sys-outline-variant);
 
     mat-card-content {
       padding: 16px;
@@ -64,13 +64,13 @@
 
 .setting-label {
   font-weight: 500;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
   display: flex;
   align-items: center;
   gap: 8px;
 
   .warning-icon {
-    color: var(--mat-sys-error, #f44336);
+    color: var(--sys-error, #f44336);
     font-size: 20px;
     width: 20px;
     height: 20px;
@@ -79,7 +79,7 @@
 
 .setting-description {
   font-size: 13px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 .env-locked-notice {
@@ -87,8 +87,8 @@
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--mat-sys-tertiary, #7c5700);
-  background: var(--mat-sys-tertiary-container, #fff1c9);
+  color: var(--sys-tertiary, #7c5700);
+  background: var(--sys-tertiary-container, #fff1c9);
   padding: 4px 8px;
   border-radius: 4px;
   margin-top: 4px;
@@ -111,7 +111,7 @@
   border-left: 4px solid #ff9800;
   border-radius: 0 4px 4px 0;
   font-size: 13px;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 
   mat-icon {
     color: #ff9800;
@@ -124,14 +124,14 @@
   align-items: center;
   gap: 8px;
   font-weight: 500;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
   margin-bottom: 4px;
 
   mat-icon {
     font-size: 20px;
     width: 20px;
     height: 20px;
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 }
 
@@ -159,12 +159,12 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 }
 
 .policy-hint {
   font-size: 12px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 .min-length-field {

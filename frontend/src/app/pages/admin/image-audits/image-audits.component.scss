@@ -29,21 +29,21 @@
   .stat-value {
     font-size: 2rem;
     font-weight: 500;
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 
   .stat-label {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-top: 4px;
   }
 
   &.success .stat-value {
-    color: var(--mat-sys-tertiary, #4caf50);
+    color: var(--sys-tertiary, #4caf50);
   }
 
   &.moderated .stat-value {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 }
 
@@ -100,7 +100,7 @@
   justify-content: center;
   padding: 64px 24px;
   text-align: center;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 
   mat-icon {
     font-size: 64px;
@@ -112,7 +112,7 @@
 
   h2 {
     margin: 0 0 8px;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   p {

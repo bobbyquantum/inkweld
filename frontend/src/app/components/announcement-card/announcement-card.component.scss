@@ -19,28 +19,28 @@
   }
 
   &.unread {
-    border-left: 4px solid var(--mat-sys-primary);
-    background-color: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
+    border-left: 4px solid var(--sys-primary);
+    background-color: var(--sys-primary-container);
+    color: var(--sys-on-primary-container);
   }
 
   &.priority-high {
-    border-left-color: var(--mat-sys-error);
+    border-left-color: var(--sys-error);
 
     .type-badge {
-      color: var(--mat-sys-error);
+      color: var(--sys-error);
     }
   }
 
   &.priority-normal {
     .type-badge {
-      color: var(--mat-sys-primary);
+      color: var(--sys-primary);
     }
   }
 
   &.priority-low {
     .type-badge {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 }
@@ -89,13 +89,13 @@ mat-card-content {
 }
 
 .date-separator {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   opacity: 0.5;
 }
 
 .published-date {
   font-size: 12px;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 .unread-indicator-top {
@@ -107,7 +107,7 @@ mat-card-content {
     font-size: 12px;
     width: 12px;
     height: 12px;
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 }
 
@@ -115,7 +115,7 @@ mat-card-title {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 0;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 
   @media (max-width: 600px) {
     font-size: 16px;
@@ -128,7 +128,7 @@ mat-card-subtitle {
 
 .announcement-content {
   line-height: 1.6;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
   margin-top: 8px;
 
   p {
@@ -140,7 +140,7 @@ mat-card-subtitle {
   }
 
   a {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
     text-decoration: none;
 
     &:hover {
