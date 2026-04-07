@@ -209,7 +209,7 @@ const COLOR_OPTIONS = [
         align-items: center;
         gap: 16px;
         padding: 12px;
-        background: var(--mat-sys-surface-container);
+        background: var(--sys-surface-container);
         border-radius: 8px;
       }
 
@@ -236,7 +236,7 @@ const COLOR_OPTIONS = [
 
       .section-label {
         font-weight: 500;
-        color: var(--mat-sys-on-surface-variant);
+        color: var(--sys-on-surface-variant);
         margin-top: 8px;
       }
 
@@ -254,19 +254,19 @@ const COLOR_OPTIONS = [
         height: 36px;
         border: 2px solid transparent;
         border-radius: 8px;
-        background: var(--mat-sys-surface-container);
-        color: var(--mat-sys-on-surface);
+        background: var(--sys-surface-container);
+        color: var(--sys-on-surface);
         cursor: pointer;
         transition: all 0.2s;
 
         &:hover {
-          background: var(--mat-sys-surface-container-high);
+          background: var(--sys-surface-container-high);
         }
 
         &.selected {
-          border-color: var(--mat-sys-primary);
-          background: var(--mat-sys-primary-container);
-          color: var(--mat-sys-on-primary-container);
+          border-color: var(--sys-primary);
+          background: var(--sys-primary-container);
+          color: var(--sys-on-primary-container);
         }
 
         mat-icon {
@@ -301,8 +301,8 @@ const COLOR_OPTIONS = [
         }
 
         &.selected {
-          border-color: var(--mat-sys-on-surface);
-          box-shadow: 0 0 0 2px var(--mat-sys-surface);
+          border-color: var(--sys-on-surface);
+          box-shadow: 0 0 0 2px var(--sys-surface);
         }
 
         mat-icon {

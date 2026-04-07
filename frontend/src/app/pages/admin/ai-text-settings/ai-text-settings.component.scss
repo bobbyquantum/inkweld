@@ -8,18 +8,18 @@
 }
 
 .kill-switch-warning {
-  background-color: var(--mat-sys-error-container);
-  border-left: 4px solid var(--mat-sys-error);
+  background-color: var(--sys-error-container);
+  border-left: 4px solid var(--sys-error);
 
   mat-card-title {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
   }
 
   mat-card-subtitle {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
 
     code {
-      background-color: var(--mat-sys-surface-variant);
+      background-color: var(--sys-surface-variant);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: monospace;
@@ -27,19 +27,19 @@
   }
 
   .warning-icon {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
     font-size: 24px;
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--mat-sys-surface);
+    background-color: var(--sys-surface);
     border-radius: 50%;
   }
 
   mat-card-content p {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
     margin: 0;
   }
 }
@@ -53,20 +53,20 @@
   gap: 16px;
 
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin: 0;
   }
 }
 
 .error-card {
-  background-color: var(--mat-sys-error-container);
+  background-color: var(--sys-error-container);
 
   mat-card-title {
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
   }
 
   mat-icon[mat-card-avatar] {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 }
 
@@ -82,8 +82,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--mat-sys-primary-container);
-    color: var(--mat-sys-on-primary-container);
+    background-color: var(--sys-primary-container);
+    color: var(--sys-on-primary-container);
     border-radius: 50%;
   }
 }
@@ -93,7 +93,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  border-bottom: 1px solid var(--sys-outline-variant);
 
   &:last-child {
     border-bottom: none;
@@ -114,12 +114,12 @@
 
 .setting-label {
   font-weight: 500;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 }
 
 .setting-description {
   font-size: 0.875rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -135,8 +135,8 @@
 
 .provider-badge {
   font-size: 0.75rem;
-  color: var(--mat-sys-on-surface-variant);
-  background-color: var(--mat-sys-surface-variant);
+  color: var(--sys-on-surface-variant);
+  background-color: var(--sys-surface-variant);
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 8px;
@@ -186,18 +186,18 @@
   border-radius: 12px;
 
   &.configured {
-    background-color: var(--mat-sys-tertiary-container);
-    color: var(--mat-sys-on-tertiary-container);
+    background-color: var(--sys-tertiary-container);
+    color: var(--sys-on-tertiary-container);
   }
 
   &.not-configured {
-    background-color: var(--mat-sys-error-container);
-    color: var(--mat-sys-on-error-container);
+    background-color: var(--sys-error-container);
+    color: var(--sys-on-error-container);
   }
 }
 
 .model-count {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 .api-key-hint {
@@ -205,21 +205,21 @@
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 8px;
   font-size: 0.875rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin: 0;
 
   mat-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 
   a {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
     text-decoration: none;
 
     &:hover {
@@ -238,7 +238,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    color: var(--mat-sys-tertiary);
+    color: var(--sys-tertiary);
 
     mat-icon {
       font-size: 18px;
@@ -262,7 +262,7 @@
   margin: 16px 0;
 
   mat-list-item {
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    border-bottom: 1px solid var(--sys-outline-variant);
 
     &:last-child {
       border-bottom: none;
@@ -272,8 +272,8 @@
 
 .model-info {
   font-size: 0.75rem;
-  color: var(--mat-sys-on-surface-variant);
-  background-color: var(--mat-sys-surface-container);
+  color: var(--sys-on-surface-variant);
+  background-color: var(--sys-surface-container);
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 8px;
@@ -281,8 +281,8 @@
 
 .cost-tier {
   font-size: 0.75rem;
-  color: var(--mat-sys-secondary);
-  background-color: var(--mat-sys-secondary-container);
+  color: var(--sys-secondary);
+  background-color: var(--sys-secondary-container);
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 8px;
@@ -292,7 +292,7 @@ h4 {
   margin: 16px 0 8px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -312,7 +312,7 @@ h4 {
     align-items: center;
     gap: 16px;
     padding: 12px 0;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    border-bottom: 1px solid var(--sys-outline-variant);
 
     &:last-child {
       border-bottom: none;
@@ -333,7 +333,7 @@ h4 {
 
   .model-name {
     font-weight: 500;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .model-meta {
@@ -345,13 +345,13 @@ h4 {
 
   .model-description {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .model-tokens {
     font-size: 0.75rem;
-    color: var(--mat-sys-on-surface-variant);
-    background-color: var(--mat-sys-surface-container);
+    color: var(--sys-on-surface-variant);
+    background-color: var(--sys-surface-container);
     padding: 2px 6px;
     border-radius: 4px;
   }
@@ -377,15 +377,15 @@ h4 {
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
 
     p {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       margin: 0;
 
       a {
-        color: var(--mat-sys-primary);
+        color: var(--sys-primary);
         text-decoration: none;
 
         &:hover {
@@ -399,8 +399,8 @@ h4 {
 // Anthropic API Key Card
 .anthropic-key-card {
   mat-icon[mat-card-avatar] {
-    background-color: var(--mat-sys-tertiary-container);
-    color: var(--mat-sys-on-tertiary-container);
+    background-color: var(--sys-tertiary-container);
+    color: var(--sys-on-tertiary-container);
   }
 }
 
@@ -421,11 +421,11 @@ h4 {
   padding: 12px 16px;
   position: sticky;
   top: 0;
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   z-index: 1;
 
   mat-icon {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     font-size: 20px;
     width: 20px;
     height: 20px;
@@ -437,11 +437,11 @@ h4 {
     outline: none;
     background: transparent;
     font-size: 14px;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
     min-width: 0;
 
     &::placeholder {
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 
@@ -454,11 +454,11 @@ h4 {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
 
     &:hover {
-      background-color: var(--mat-sys-surface-variant);
-      color: var(--mat-sys-on-surface);
+      background-color: var(--sys-surface-variant);
+      color: var(--sys-on-surface);
     }
 
     mat-icon {
@@ -470,6 +470,6 @@ h4 {
 }
 
 .no-results-option {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   font-style: italic;
 }

@@ -5,11 +5,11 @@
 
   h1 {
     margin-bottom: 8px;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .description {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-bottom: 24px;
   }
 }
@@ -23,22 +23,22 @@
   gap: 16px;
 
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin: 0;
   }
 }
 
 .error-card {
-  background-color: var(--mat-sys-error-container);
+  background-color: var(--sys-error-container);
 
   mat-card-content {
     display: flex;
     align-items: center;
     gap: 12px;
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
 
     mat-icon {
-      color: var(--mat-sys-error);
+      color: var(--sys-error);
     }
   }
 }
@@ -50,37 +50,37 @@
 }
 
 .provider-card {
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
 
   &.configured {
-    border-left: 4px solid var(--mat-sys-outline);
+    border-left: 4px solid var(--sys-outline);
   }
 
   &.enabled {
-    border-left: 4px solid var(--mat-sys-primary);
+    border-left: 4px solid var(--sys-primary);
   }
 
   mat-card-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--mat-sys-surface-variant);
-    color: var(--mat-sys-on-surface-variant);
+    background: var(--sys-surface-variant);
+    color: var(--sys-on-surface-variant);
     border-radius: 50%;
     width: 40px;
     height: 40px;
   }
 
   mat-card-title {
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   mat-card-subtitle {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .provider-description {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     font-size: 0.875rem;
     margin-bottom: 16px;
   }
@@ -91,12 +91,12 @@
     justify-content: space-between;
     padding: 12px 16px;
     margin: 0 -16px 16px -16px;
-    background: var(--mat-sys-surface-variant);
+    background: var(--sys-surface-variant);
     border-radius: 8px;
 
     .toggle-label {
       font-weight: 500;
-      color: var(--mat-sys-on-surface);
+      color: var(--sys-on-surface);
     }
   }
 
@@ -109,7 +109,7 @@
     .status-label {
       font-weight: 500;
       min-width: 80px;
-      color: var(--mat-sys-on-surface);
+      color: var(--sys-on-surface);
     }
 
     .status-value {
@@ -124,11 +124,11 @@
       }
 
       &.configured {
-        color: var(--mat-sys-primary);
+        color: var(--sys-primary);
       }
 
       &.not-configured {
-        color: var(--mat-sys-on-surface-variant);
+        color: var(--sys-on-surface-variant);
       }
     }
   }
@@ -136,7 +136,7 @@
   .edit-section {
     margin-top: 16px;
     padding: 16px;
-    background: var(--mat-sys-surface-variant);
+    background: var(--sys-surface-variant);
     border-radius: 8px;
 
     .full-width {

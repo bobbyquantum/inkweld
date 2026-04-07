@@ -42,7 +42,7 @@ mat-dialog-actions {
   margin-bottom: 1rem;
   font-size: 1.1rem;
   font-weight: 500;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   
   mat-icon {
     font-size: 1.2rem;
@@ -77,8 +77,8 @@ mat-dialog-actions {
   }
   
   &.selected {
-    border: 2px solid var(--mat-sys-primary);
-    background-color: var(--mat-sys-primary-container);
+    border: 2px solid var(--sys-primary);
+    background-color: var(--sys-primary-container);
   }
   
   .type-icon {
@@ -97,7 +97,7 @@ mat-dialog-actions {
   .type-description {
     margin: 0;
     font-size: 0.75rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     line-height: 1.3;
   }
 }
@@ -106,7 +106,7 @@ mat-dialog-actions {
 .no-results {
   text-align: center;
   padding: 3rem 1rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   
   mat-icon {
     font-size: 3rem;
@@ -129,7 +129,7 @@ mat-dialog-actions {
   align-items: center;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  background-color: var(--mat-sys-surface-variant);
+  background-color: var(--sys-surface-variant);
   border-radius: 8px;
   
   .type-icon-large {
@@ -142,7 +142,7 @@ mat-dialog-actions {
   .type-description {
     margin: 0;
     text-align: center;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 

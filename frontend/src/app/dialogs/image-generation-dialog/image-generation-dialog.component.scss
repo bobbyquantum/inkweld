@@ -11,7 +11,7 @@ h2[mat-dialog-title] {
   gap: 8px;
 
   mat-icon {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 }
 
@@ -24,7 +24,7 @@ h2[mat-dialog-title] {
   gap: 16px;
 
   p {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin: 0;
   }
 }
@@ -41,17 +41,17 @@ h2[mat-dialog-title] {
     font-size: 48px;
     width: 48px;
     height: 48px;
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 
   h3 {
     margin: 8px 0;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   p {
     margin: 0;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
@@ -66,7 +66,7 @@ h2[mat-dialog-title] {
     margin: 0 0 8px;
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .section-header {
@@ -112,20 +112,20 @@ h2[mat-dialog-title] {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--mat-sys-surface-container);
+  background: var(--sys-surface-container);
   border-radius: 8px;
   margin-bottom: 16px;
 
   .profile-name {
     font-weight: 500;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   .hint-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 }
 
@@ -140,8 +140,8 @@ h2[mat-dialog-title] {
     gap: 4px;
 
     &.selected {
-      background-color: var(--mat-sys-primary-container);
-      color: var(--mat-sys-on-primary-container);
+      background-color: var(--sys-primary-container);
+      color: var(--sys-on-primary-container);
     }
 
     .openrouter-icon {
@@ -177,7 +177,7 @@ h2[mat-dialog-title] {
 
 .default-badge {
   font-size: 0.75rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin-left: 4px;
 }
 
@@ -198,13 +198,13 @@ mat-expansion-panel {
     gap: 8px;
 
     mat-icon {
-      color: var(--mat-sys-primary);
+      color: var(--sys-primary);
     }
   }
 
   .selected-count {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-left: 4px;
   }
 }
@@ -212,7 +212,7 @@ mat-expansion-panel {
 .worldbuilding-elements {
   .hint {
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin: 0 0 16px;
   }
 }
@@ -226,11 +226,11 @@ mat-expansion-panel {
   margin-bottom: 4px;
 
   &:hover {
-    background-color: var(--mat-sys-surface-container);
+    background-color: var(--sys-surface-container);
   }
 
   &.selected {
-    background-color: var(--mat-sys-primary-container);
+    background-color: var(--sys-primary-container);
   }
 
   mat-checkbox {
@@ -243,7 +243,7 @@ mat-expansion-panel {
 
   .element-type {
     font-size: 0.75rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-left: 8px;
     text-transform: capitalize;
   }
@@ -257,13 +257,13 @@ mat-expansion-panel {
 .element-data {
   margin: 0 8px 8px 32px;
   padding: 8px;
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 4px;
   font-size: 0.75rem;
 
   summary {
     cursor: pointer;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     margin-bottom: 8px;
   }
 
@@ -281,12 +281,12 @@ mat-expansion-panel {
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background-color: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  background-color: var(--sys-error-container);
+  color: var(--sys-on-error-container);
   border-radius: 4px;
 
   mat-icon {
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
   }
 }
 
@@ -331,7 +331,7 @@ mat-expansion-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 8px;
   overflow: hidden;
 
@@ -359,16 +359,16 @@ mat-expansion-panel {
   }
 
   &::-webkit-scrollbar-track {
-    background: var(--mat-sys-surface-container);
+    background: var(--sys-surface-container);
     border-radius: 3px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: var(--mat-sys-outline);
+    background: var(--sys-outline);
     border-radius: 3px;
 
     &:hover {
-      background: var(--mat-sys-outline-variant);
+      background: var(--sys-outline-variant);
     }
   }
 }
@@ -392,12 +392,12 @@ mat-expansion-panel {
   }
 
   &:focus {
-    outline: 2px solid var(--mat-sys-primary);
+    outline: 2px solid var(--sys-primary);
     outline-offset: 2px;
   }
 
   &.selected {
-    border-color: var(--mat-sys-primary);
+    border-color: var(--sys-primary);
   }
 
   img {
@@ -410,8 +410,8 @@ mat-expansion-panel {
     position: absolute;
     top: 2px;
     right: 2px;
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
+    background-color: var(--sys-primary);
+    color: var(--sys-on-primary);
     border-radius: 50%;
     padding: 1px;
 
@@ -447,12 +447,12 @@ mat-expansion-panel {
   }
 
   &:focus {
-    outline: 2px solid var(--mat-sys-primary);
+    outline: 2px solid var(--sys-primary);
     outline-offset: 2px;
   }
 
   &.selected {
-    border-color: var(--mat-sys-primary);
+    border-color: var(--sys-primary);
   }
 
   img {
@@ -465,8 +465,8 @@ mat-expansion-panel {
     position: absolute;
     top: 4px;
     right: 4px;
-    background-color: var(--mat-sys-primary);
-    color: var(--mat-sys-on-primary);
+    background-color: var(--sys-primary);
+    color: var(--sys-on-primary);
     border-radius: 50%;
     padding: 2px;
 
@@ -481,7 +481,7 @@ mat-expansion-panel {
 .generation-info {
   text-align: center;
   font-size: 0.875rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin: 0;
 }
 
@@ -508,7 +508,7 @@ mat-expansion-panel {
 }
 
 .generation-summary {
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 8px;
   padding: 16px;
 
@@ -525,13 +525,13 @@ mat-expansion-panel {
       font-size: 0.75rem;
       font-weight: 500;
       text-transform: uppercase;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       min-width: 70px;
     }
 
     .value {
       font-size: 0.875rem;
-      color: var(--mat-sys-on-surface);
+      color: var(--sys-on-surface);
     }
 
     .prompt-value {
@@ -542,10 +542,10 @@ mat-expansion-panel {
 }
 
 .metadata-details {
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 8px;
   padding: 0;
-  border: 1px solid var(--mat-sys-outline-variant);
+  border: 1px solid var(--sys-outline-variant);
   cursor: pointer;
   margin-bottom: 16px;
 
@@ -559,25 +559,25 @@ mat-expansion-panel {
     list-style: none;
 
     &:hover {
-      background-color: var(--mat-sys-surface-container-highest);
+      background-color: var(--sys-surface-container-highest);
     }
 
     .summary-icon {
       display: flex;
       align-items: center;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
 
     span {
       font-weight: 500;
       font-size: 0.875rem;
-      color: var(--mat-sys-on-surface);
+      color: var(--sys-on-surface);
     }
   }
 
   .metadata-content {
     padding: 12px 16px 16px;
-    border-top: 1px solid var(--mat-sys-outline-variant);
+    border-top: 1px solid var(--sys-outline-variant);
 
     .summary-row {
       display: flex;
@@ -592,13 +592,13 @@ mat-expansion-panel {
         font-size: 0.75rem;
         font-weight: 500;
         text-transform: uppercase;
-        color: var(--mat-sys-on-surface-variant);
+        color: var(--sys-on-surface-variant);
         min-width: 70px;
       }
 
       .value {
         font-size: 0.875rem;
-        color: var(--mat-sys-on-surface);
+        color: var(--sys-on-surface);
         word-break: break-word;
       }
 
@@ -621,40 +621,40 @@ mat-expansion-panel {
   .status-message {
     margin: 0;
     font-size: 1rem;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
 
     &.error {
-      color: var(--mat-sys-error);
+      color: var(--sys-error);
     }
   }
 
   .status-hint {
     margin: 0;
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   .error-icon {
     font-size: 48px;
     width: 48px;
     height: 48px;
-    color: var(--mat-sys-error);
+    color: var(--sys-error);
 
     &.moderation {
-      color: var(--mat-sys-tertiary, #b58a00);
+      color: var(--sys-tertiary, #b58a00);
     }
   }
 
   .moderation-hint {
     margin: 8px 0 16px;
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     text-align: center;
     max-width: 400px;
   }
 
   .status-message.warning {
-    color: var(--mat-sys-tertiary, #b58a00);
+    color: var(--sys-tertiary, #b58a00);
   }
 }
 
@@ -697,7 +697,7 @@ mat-expansion-panel {
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: var(--mat-sys-primary);
+  color: var(--sys-primary);
   margin: 0 0 12px;
 
   mat-icon {
@@ -718,7 +718,7 @@ mat-expansion-panel {
   ::ng-deep .mat-horizontal-stepper-header-container {
     margin-bottom: 16px;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    border-bottom: 1px solid var(--sys-outline-variant);
   }
 
   // Step header styling
@@ -737,7 +737,7 @@ mat-expansion-panel {
   // Hide the step connector lines for a cleaner look
   ::ng-deep .mat-stepper-horizontal-line {
     border-top-style: dashed;
-    border-color: var(--mat-sys-outline-variant);
+    border-color: var(--sys-outline-variant);
   }
 
   // Style for non-editable/disabled steps (like Generate before it's active)
@@ -764,7 +764,7 @@ mat-expansion-panel {
 
     .section-hint {
       font-size: 0.875rem;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       margin: 0 0 12px;
     }
   }
@@ -772,14 +772,14 @@ mat-expansion-panel {
 
 .edit-prompt-page {
   .selected-elements-summary {
-    background-color: var(--mat-sys-surface-container);
+    background-color: var(--sys-surface-container);
     border-radius: 8px;
     padding: 12px 16px;
 
     h4 {
       font-size: 0.875rem;
       font-weight: 500;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
       margin: 0 0 8px;
     }
   }
@@ -794,24 +794,24 @@ mat-expansion-panel {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background-color: var(--mat-sys-surface-container-high);
+    background-color: var(--sys-surface-container-high);
     padding: 4px 10px;
     border-radius: 16px;
     font-size: 0.875rem;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
 
     mat-icon {
       font-size: 16px;
       width: 16px;
       height: 16px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
 
     .toggle-indicator {
       font-size: 12px;
       width: 12px;
       height: 12px;
-      color: var(--mat-sys-primary);
+      color: var(--sys-primary);
       margin-left: 2px;
     }
 
@@ -830,7 +830,7 @@ mat-expansion-panel {
         transform: translateX(-50%);
         margin-top: 8px;
         z-index: 1000;
-        background-color: var(--mat-sys-surface-container-highest);
+        background-color: var(--sys-surface-container-highest);
         border-radius: 8px;
         padding: 4px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -915,7 +915,7 @@ mat-expansion-panel {
 
   .aspect-ratio-preview {
     flex-shrink: 0;
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 
   .size-label {
