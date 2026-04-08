@@ -126,6 +126,71 @@ app.get(
     // Queue binary messages received before auth is complete
     let pendingMessages: ArrayBuffer[] = [];
 
+    // Validates token, project access, sets up Yjs connection.
+    // Closes over connection state variables for mutation.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Hono WSContext type varies by adapter
+    const authenticateWs = async (token: string, ws: any): Promise<void> => {
+      if (authenticated) return;
+
+      const sessionData = await authService.verifyToken(token, c);
+      if (!sessionData) {
+        wsLog.warn(`Invalid auth token for ${documentId}`);
+        ws.send('access-denied:invalid-token');
+        ws.close(4001, 'Invalid token');
+        return;
+      }
+
+      const parsed = parseDocumentOwner(documentId);
+      if (!parsed) {
+        wsLog.error(`Invalid document ID format: ${documentId}`);
+        ws.send('access-denied:invalid-document');
+        ws.close(4002, 'Invalid document ID');
+        return;
+      }
+
+      const project = await projectService.findByUsernameAndSlug(
+        db,
+        parsed.projectOwner,
+        parsed.slug
+      );
+      if (!project) {
+        wsLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
+        ws.send('access-denied:project-not-found');
+        ws.close(4003, 'Project not found');
+        return;
+      }
+
+      canWrite = await resolveWriteAccess(
+        db,
+        project,
+        sessionData,
+        parsed.projectOwner,
+        parsed.slug
+      );
+      if (canWrite === null) {
+        ws.send('access-denied:forbidden');
+        ws.close(4003, 'Access denied');
+        return;
+      }
+
+      authenticated = true;
+      wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
+      ws.send('authenticated');
+
+      doc = await yjsService.handleConnection(ws.raw, documentId);
+
+      for (const data of pendingMessages) {
+        const buffer = Buffer.from(data);
+        if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
+        yjsService.handleMessage(ws.raw, doc, buffer);
+      }
+      pendingMessages = [];
+
+      pingInterval = startPingInterval(ws, documentId, () => {
+        pingInterval = null;
+      });
+    };
+
     return {
       onOpen(_event, _ws) {
         // Don't set up Yjs yet - wait for authentication
@@ -133,76 +198,15 @@ app.get(
       },
 
       async onMessage(event, ws) {
-        // Text messages are for authentication
+        // Text messages carry the authentication token
         if (typeof event.data === 'string') {
-          if (authenticated) return;
-
-          const token = event.data;
-
           try {
-            const sessionData = await authService.verifyToken(token, c);
-            if (!sessionData) {
-              wsLog.warn(`Invalid auth token for ${documentId}`);
-              ws.send('access-denied:invalid-token');
-              ws.close(4001, 'Invalid token');
-              return;
-            }
-
-            const parsed = parseDocumentOwner(documentId);
-            if (!parsed) {
-              wsLog.error(`Invalid document ID format: ${documentId}`);
-              ws.send('access-denied:invalid-document');
-              ws.close(4002, 'Invalid document ID');
-              return;
-            }
-
-            const project = await projectService.findByUsernameAndSlug(
-              db,
-              parsed.projectOwner,
-              parsed.slug
-            );
-            if (!project) {
-              wsLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
-              ws.send('access-denied:project-not-found');
-              ws.close(4003, 'Project not found');
-              return;
-            }
-
-            canWrite = await resolveWriteAccess(
-              db,
-              project,
-              sessionData,
-              parsed.projectOwner,
-              parsed.slug
-            );
-            if (canWrite === null) {
-              ws.send('access-denied:forbidden');
-              ws.close(4003, 'Access denied');
-              return;
-            }
-
-            authenticated = true;
-            wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
-            ws.send('authenticated');
-
-            doc = await yjsService.handleConnection(ws.raw, documentId);
-
-            for (const data of pendingMessages) {
-              const buffer = Buffer.from(data);
-              if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
-              yjsService.handleMessage(ws.raw, doc, buffer);
-            }
-            pendingMessages = [];
-
-            pingInterval = startPingInterval(ws, documentId, () => {
-              pingInterval = null;
-            });
+            await authenticateWs(event.data, ws);
           } catch (error) {
             wsLog.error(`Auth error for ${documentId}`, error);
             ws.send('access-denied:error');
             ws.close(4000, 'Authentication error');
           }
-
           return;
         }
 
