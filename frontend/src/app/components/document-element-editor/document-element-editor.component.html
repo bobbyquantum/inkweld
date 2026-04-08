@@ -1,6 +1,6 @@
 <!-- Only render when editor exists -->
 @if (editor) {
-  <div class="editor-with-panel">
+  <div class="editor-layout">
     <!-- Main editor section -->
     <div class="editor-section" [class.no-tabs]="tabsDisabled">
       <!-- Find in document bar (Ctrl/Cmd + F) -->
@@ -106,17 +106,6 @@
           (commentUpdated)="onCommentUpdated($event)"
           (threadHovered)="onCommentHover($event)">
         </app-comment-panel>
-      </div>
-    }
-
-    <!-- Meta Panel (Relationships) - always visible, manages its own collapsed/expanded state -->
-    @if (!zenMode) {
-      <div class="meta-panel-container">
-        <app-meta-panel
-          [documentId]="documentId"
-          [elementId]="null"
-          [isOpen]="true">
-        </app-meta-panel>
       </div>
     }
   </div>

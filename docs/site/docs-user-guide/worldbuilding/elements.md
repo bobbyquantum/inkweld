@@ -100,25 +100,25 @@ The Element Templates tab in Project Settings shows all your templates at a glan
 
 A template consists of:
 
-| Component | Description |
-|-----------|-------------|
-| **Name** | What this element type is called (e.g., "Faction") |
-| **Icon** | Visual identifier in the project tree |
-| **Tabs** | Sections to organize fields |
-| **Fields** | Individual data points to capture |
+| Component  | Description                                        |
+| ---------- | -------------------------------------------------- |
+| **Name**   | What this element type is called (e.g., "Faction") |
+| **Icon**   | Visual identifier in the project tree              |
+| **Tabs**   | Sections to organize fields                        |
+| **Fields** | Individual data points to capture                  |
 
 ### Field Types
 
-| Type | Use For | Example |
-|------|---------|---------|
-| **Short Text** | Names, titles, brief info | "Elena Blackwood" |
-| **Long Text** | Plain text descriptions | Backstory summary |
-| **Rich Text** | Formatted content with @mentions | Detailed history |
-| **Selection** | Pick from options | "Faction Type: Guild" |
-| **Multi-Select** | Pick multiple options | "Abilities: Flight, Magic" |
-| **Number** | Numeric values | "Level: 5" |
-| **Date** | Timeline entries | "Founded: 1242" |
-| **Toggle** | Yes/No values | "Active: ✓" |
+| Type             | Use For                          | Example                    |
+| ---------------- | -------------------------------- | -------------------------- |
+| **Short Text**   | Names, titles, brief info        | "Elena Blackwood"          |
+| **Long Text**    | Plain text descriptions          | Backstory summary          |
+| **Rich Text**    | Formatted content with @mentions | Detailed history           |
+| **Selection**    | Pick from options                | "Faction Type: Guild"      |
+| **Multi-Select** | Pick multiple options            | "Abilities: Flight, Magic" |
+| **Number**       | Numeric values                   | "Level: 5"                 |
+| **Date**         | Timeline entries                 | "Founded: 1242"            |
+| **Toggle**       | Yes/No values                    | "Active: ✓"                |
 
 ### The Template Editor
 
@@ -143,17 +143,20 @@ Here are examples of templates you might create. Remember, these are just sugges
 Track people in your story:
 
 **Tab: Basic**
+
 - Name (short text)
 - Aliases (short text)
 - Age (short text)
 - Role (selection: Protagonist, Antagonist, Supporting)
 
 **Tab: Description**
+
 - Appearance (rich text)
 - Personality (rich text)
 - Motivations (long text)
 
 **Tab: Background**
+
 - Backstory (rich text)
 - Skills (long text)
 - Relationships (rich text with @mentions)
@@ -163,11 +166,13 @@ Track people in your story:
 Track places in your world:
 
 **Tab: Overview**
+
 - Name (short text)
 - Type (selection: City, Town, Wilderness, Building)
 - Region (short text)
 
 **Tab: Details**
+
 - Description (rich text)
 - History (rich text)
 - Notable Features (long text)
@@ -177,16 +182,19 @@ Track places in your world:
 Track organizations and groups:
 
 **Tab: Overview**
+
 - Name (short text)
 - Type (selection: Guild, Government, Religious, Criminal)
 - Motto (short text)
 
 **Tab: Structure**
+
 - Leadership (rich text with @mentions)
 - Hierarchy (rich text)
 - Membership Size (number)
 
 **Tab: Goals**
+
 - Objectives (rich text)
 - Allies (rich text with @mentions)
 - Enemies (rich text with @mentions)
@@ -196,16 +204,19 @@ Track organizations and groups:
 Track objects and artifacts:
 
 **Tab: Basic**
+
 - Name (short text)
 - Type (selection: Weapon, Armor, Tool, Artifact)
 - Rarity (selection: Common, Rare, Legendary)
 
 **Tab: Properties**
+
 - Appearance (rich text)
 - Magical Effects (rich text)
 - Limitations (long text)
 
 **Tab: History**
+
 - Creation (rich text)
 - Notable Owners (rich text with @mentions)
 
@@ -279,8 +290,7 @@ See [Element References](./element-references) and [Relationships](./relationshi
 When you open an element, you see:
 
 - **Tabs** with structured fields
-- **Relationships Panel** showing connections
-- **References** showing where it's mentioned
+- **Relationships section** showing connections and reference backlinks
 
 ---
 

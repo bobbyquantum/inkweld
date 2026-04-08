@@ -19,7 +19,7 @@ Relationships let you define meaningful connections between your story elementsâ
 ## Quick Start
 
 1. Open any worldbuilding element
-2. Click the **panel toggle** button in the toolbar to show the meta panel
+2. Open the **Relationships** section in the element navigation
 3. Click **"Add Relationship"** at the top of the panel
 4. Select a relationship type (e.g., "Parent", "Sibling", "Located In")
 5. Search and select the target element
@@ -29,13 +29,13 @@ Relationships let you define meaningful connections between your story elementsâ
 
 ### Relationships vs. References
 
-| Feature                | Element References (@mentions) | Relationships                      |
-| ---------------------- | ------------------------------ | ---------------------------------- |
-| **Purpose**            | Track mentions in prose        | Define semantic connections        |
-| **Creation**           | Typing `@` in documents        | Explicit creation via dialog       |
-| **Display**            | Inline links in text           | Listed in side panel               |
-| **Direction**          | Source â†’ Target                | Bidirectional (with inverse label) |
-| **Relationship types** | Generic "references"           | Familial, Social, Spatial, etc.    |
+| Feature                | Element References (@mentions) | Relationships                       |
+| ---------------------- | ------------------------------ | ----------------------------------- |
+| **Purpose**            | Track mentions in prose        | Define semantic connections         |
+| **Creation**           | Typing `@` in documents        | Explicit creation via dialog        |
+| **Display**            | Inline links in text           | Listed in the Relationships section |
+| **Direction**          | Source â†’ Target                | Bidirectional (with inverse label)  |
+| **Relationship types** | Generic "references"           | Familial, Social, Spatial, etc.     |
 
 ### Bidirectional Relationships
 
@@ -63,14 +63,13 @@ _The parent element shows the outgoing "Parent" relationship_
 
 _The child element shows the incoming "Child of" backlink_
 
-## The Relationships Panel
+## The Relationships Section
 
-The side panel organizes relationships by type, with each relationship type as its own expandable section.
+The Relationships section organizes relationships by type, with each relationship type as its own expandable section.
 
 ### Panel Structure
 
 - **Add Relationship** button at the top
-- **Snapshots** section for document version history
 - **Relationship type panels** (e.g., "Parent", "Child of", "Sibling")
   - Each type expands/collapses independently
   - Shows count of relationships in that category
@@ -140,12 +139,12 @@ Inkweld includes built-in relationship types organized by category. You can also
 
 #### Spatial Relationships
 
-| Type       | Inverse Label | Use For                       |
-| ---------- | ------------- | ----------------------------- |
-| Located In | Contains      | Spatial containment             |
-| Owns       | Owned by      | Item ownership                |
-| Origin     | Birthplace of | Origin or birthplace          |
-| Resides In | Home of       | Where something currently is  |
+| Type       | Inverse Label | Use For                      |
+| ---------- | ------------- | ---------------------------- |
+| Located In | Contains      | Spatial containment          |
+| Owns       | Owned by      | Item ownership               |
+| Origin     | Birthplace of | Origin or birthplace         |
+| Resides In | Home of       | Where something currently is |
 
 #### General Relationships
 
@@ -160,7 +159,7 @@ The dialog can filter relationship types based on the element's template. All el
 
 ## Working with Multiple Relationships
 
-Elements often have many relationships. The panel groups them by type for easy scanning:
+Elements often have many relationships. The Relationships section groups them by type for easy scanning:
 
 <ThemedImage
   src="/img/features/character-multiple-relationships-overview"

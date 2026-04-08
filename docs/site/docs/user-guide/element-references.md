@@ -27,10 +27,10 @@ Element references let you create links between your story content. Use the `@` 
 
 ### Track Element Appearances
 
-See everywhere an element is mentioned across your entire project. The **Relationships Panel** shows:
+References stay visible inline in the source document, and referenced worldbuilding elements show incoming reference backlinks in their **Relationships** section:
 
-- **References**: Elements this document links to
-- **Backlinks**: Other documents that reference this element
+- **Inline references**: Elements the current document links to
+- **Backlinks**: Other documents and elements that reference a worldbuilding entry
 
 ### Navigate Your World
 
@@ -118,18 +118,14 @@ Or:
 1. **Right-click** the reference
 2. Select **"Remove Link"** (keeps the text, removes the reference)
 
-## The Relationships Panel
+## Viewing Backlinks
 
-The side panel shows all relationships for the current document:
+Open a referenced worldbuilding element to review incoming reference backlinks in its **Relationships** section:
 
 <ThemedImage
   src="/img/features/element-ref-backlinks-panel"
   alt="Relationships panel showing references and backlinks for a worldbuilding element"
 />
-
-### References (Outgoing)
-
-Elements that this document mentions. Click any reference to navigate to that element.
 
 ### Backlinks (Incoming)
 
@@ -137,7 +133,7 @@ Other documents that reference the current element. Great for finding all scenes
 
 ### Hover for Preview
 
-Hover over any item in the Relationships Panel to see a preview tooltip with element details.
+Hover over any item in the Relationships section to see a preview tooltip with element details.
 
 ## Tips & Best Practices
 
@@ -165,7 +161,7 @@ Use display text to match your narrative voice:
 Use backlinks to ensure consistency:
 
 1. Open an element's page
-2. Check the Relationships Panel
+2. Check the Relationships section
 3. Review all scenes where it appears
 
 ## Troubleshooting
