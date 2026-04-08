@@ -19,6 +19,7 @@ import snapshotRoutes from '../src/routes/snapshot.routes';
 import imageRoutes from '../src/routes/image.routes';
 import healthRoutes from '../src/routes/health.routes';
 import configRoutes from '../src/routes/config.routes';
+import { commentRoutes } from '../src/routes/comment.routes';
 
 /**
  * Convert Express-style path parameters (:param) to OpenAPI-style ({param})
@@ -58,6 +59,7 @@ try {
   app.route('/api/v1/images', imageRoutes);
   app.route('/api/v1/health', healthRoutes);
   app.route('/api/v1/config', configRoutes);
+  app.route('/api/v1/comments', commentRoutes);
 
   // Generate the spec using the built-in method
   const rawSpec = app.getOpenAPIDocument({

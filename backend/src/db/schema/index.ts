@@ -16,3 +16,6 @@ export * from './image-generation-audits';
 export * from './announcements';
 export * from './announcement-reads';
 export * from './password-reset-tokens';
+export * from './comment-threads';
+export * from './comment-messages';
+export * from './comment-read-status';

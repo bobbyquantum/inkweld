@@ -50,4 +50,14 @@
     data-testid="floating-link">
     <mat-icon>link</mat-icon>
   </button>
+  <div class="floating-divider"></div>
+  <button
+    ngToolbarWidget
+    value="comment"
+    matTooltip="Comment (Ctrl+Alt+M)"
+    (mousedown)="preventFocusLoss($event)"
+    (click)="onAddComment()"
+    data-testid="floating-comment">
+    <mat-icon>comment</mat-icon>
+  </button>
 </div>

@@ -7,6 +7,7 @@ import {
   HostListener,
   Input,
   type OnDestroy,
+  output,
   signal,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
@@ -48,6 +49,9 @@ export class EditorFloatingMenuComponent implements OnDestroy {
   /** The ngx-editor Editor instance */
   @Input({ required: true }) editor!: Editor;
 
+  /** Emitted when the user clicks the comment button */
+  addComment = output<void>();
+
   /** Signal for tracking the current selection state */
   private readonly selectionState = signal({
     bold: false,
@@ -69,6 +73,9 @@ export class EditorFloatingMenuComponent implements OnDestroy {
 
   /** Whether mouse is being dragged (selecting text) */
   private isDragging = false;
+
+  /** Whether the current interaction is touch-based */
+  private isTouchInteraction = false;
 
   constructor() {
     // Watch for editor changes and subscribe to updates
@@ -96,6 +103,22 @@ export class EditorFloatingMenuComponent implements OnDestroy {
     this.isDragging = false;
     // Small delay to let selection finalize
     setTimeout(() => this.updatePosition(), 10);
+  }
+
+  @HostListener('document:touchstart')
+  onDocumentTouchStart(): void {
+    this.isDragging = true;
+    this.isTouchInteraction = true;
+  }
+
+  @HostListener('document:touchend')
+  onDocumentTouchEnd(): void {
+    this.isDragging = false;
+    // Longer delay for touch — the OS selection & native menu need time to settle
+    setTimeout(() => {
+      this.updatePosition();
+      this.isTouchInteraction = false;
+    }, 300);
   }
 
   ngOnDestroy(): void {
@@ -144,21 +167,33 @@ export class EditorFloatingMenuComponent implements OnDestroy {
 
     // Menu dimensions (approximate)
     const menuHeight = 40;
-    const menuWidth = 180;
+    const menuWidth = 220;
     const gap = 8;
+    // On touch devices use a larger gap below to clear OS selection handles
+    const touchGapBelow = 32;
 
     // Viewport boundaries with some padding
     const viewportTop = 60; // Account for app toolbar
     const viewportLeft = 10;
     const viewportRight = window.innerWidth - 10;
+    const viewportBottom = window.innerHeight - 10;
 
-    // Determine vertical position: prefer above, flip to below if not enough room
+    // Determine vertical position.
+    // On touch devices prefer below to avoid conflicting with the OS context menu
+    // which appears above the selection on Android.
     let top: number;
-    if (selectionTop - menuHeight - gap < viewportTop) {
-      // Not enough room above, place below
+    if (this.isTouchInteraction) {
+      const belowPos = selectionBottom + touchGapBelow;
+      if (belowPos + menuHeight < viewportBottom) {
+        top = belowPos;
+      } else {
+        // No room below, fall back to above
+        top = Math.max(viewportTop, selectionTop - menuHeight - gap);
+      }
+    } else if (selectionTop - menuHeight - gap < viewportTop) {
+      // Desktop: prefer above, flip to below if not enough room
       top = selectionBottom + gap;
     } else {
-      // Place above
       top = selectionTop - menuHeight - gap;
     }
 
@@ -301,5 +336,10 @@ export class EditorFloatingMenuComponent implements OnDestroy {
       }
     }
     view.focus();
+  }
+
+  onAddComment(): void {
+    this.addComment.emit();
+    this.hide();
   }
 }

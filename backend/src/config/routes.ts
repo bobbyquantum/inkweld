@@ -23,6 +23,7 @@ import mcpRoutes from '../routes/mcp.routes';
 import mcpKeyRoutes from '../routes/mcp-keys.routes';
 import { collaborationRoutes } from '../routes/collaboration.routes';
 import mediaRoutes from '../routes/media.routes';
+import { commentRoutes } from '../routes/comment.routes';
 import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
@@ -90,6 +91,9 @@ export function registerCommonRoutes(app: any): void {
 
   // Collaboration (project collaborators and invitations)
   app.route('/api/v1/collaboration', collaborationRoutes);
+
+  // Comments (inline document comments and threads)
+  app.route('/api/v1/comments', commentRoutes);
 
   // Media sync endpoints (list/download project media files)
   app.route('/api/v1/media', mediaRoutes);

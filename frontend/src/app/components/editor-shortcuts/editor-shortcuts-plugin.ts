@@ -31,6 +31,12 @@ export interface KeyboardShortcutsOptions {
    * If not provided, the shortcut will be disabled
    */
   onInsertImage?: () => void;
+
+  /**
+   * Callback to execute when add comment shortcut is triggered (Ctrl/Cmd + Alt + M)
+   * If not provided, the shortcut will be disabled
+   */
+  onAddComment?: () => void;
 }
 
 /**
@@ -296,6 +302,15 @@ export function createKeyboardShortcutsPlugin(
     };
   }
 
+  // Add comment shortcut if callback provided (Ctrl/Cmd + Alt + M)
+  if (options.onAddComment) {
+    const callback = options.onAddComment;
+    keyBindings['Mod-Alt-m'] = () => {
+      callback();
+      return true;
+    };
+  }
+
   return keymap(keyBindings);
 }
 
@@ -311,6 +326,7 @@ export const KEYBOARD_SHORTCUTS_LIST = [
   { keys: 'Ctrl/Cmd + K', action: 'Insert link' },
   { keys: 'Ctrl/Cmd + F', action: 'Find in document' },
   { keys: 'Ctrl/Cmd + Shift + I', action: 'Insert image' },
+  { keys: 'Ctrl/Cmd + Alt + M', action: 'Add comment' },
   { keys: 'Ctrl/Cmd + 1-6', action: 'Heading levels 1-6' },
   { keys: 'Ctrl/Cmd + 0', action: 'Paragraph (remove heading)' },
   { keys: 'Ctrl/Cmd + Shift + 7', action: 'Bullet list' },

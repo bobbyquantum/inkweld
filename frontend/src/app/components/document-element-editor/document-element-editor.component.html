@@ -12,7 +12,9 @@
         <app-editor-toolbar
           [editor]="editor"
           [disabled]="!projectState.canWrite()"
-          (insertImageClick)="openInsertImageDialog()">
+          [commentPanelOpen]="commentPanelOpen()"
+          (insertImageClick)="openInsertImageDialog()"
+          (toggleComments)="toggleCommentPanel()">
         </app-editor-toolbar>
       }
       <div
@@ -32,7 +34,8 @@
                   [editor]="editor"></app-lint-floating-menu>
               } @else {
                 <app-editor-floating-menu
-                  [editor]="editor"></app-editor-floating-menu>
+                  [editor]="editor"
+                  (addComment)="addComment()"></app-editor-floating-menu>
               }
             }
           </div>
@@ -83,6 +86,29 @@
       }
     </div>
 
+    <!-- Comment Panel - shown when user toggles comments -->
+    @if (!zenMode && commentPanelOpen()) {
+      <div class="comment-panel-container">
+        <app-comment-panel
+          [username]="projectState.project()?.username ?? ''"
+          [slug]="projectState.project()?.slug ?? ''"
+          [documentId]="documentId"
+          [isOpen]="commentPanelOpen()"
+          [commentMarks]="commentMarks()"
+          [threadPositions]="commentPositions()"
+          [editorScrollTop]="editorScrollTop()"
+          [editorContentHeight]="editorContentHeight()"
+          [canWrite]="projectState.canWrite()"
+          (closed)="commentPanelOpen.set(false)"
+          (threadSelected)="commentService.activeCommentId.set($event)"
+          (commentResolved)="onCommentResolved($event)"
+          (commentDeleted)="onCommentDeleted($event)"
+          (commentUpdated)="onCommentUpdated($event)"
+          (threadHovered)="onCommentHover($event)">
+        </app-comment-panel>
+      </div>
+    }
+
     <!-- Meta Panel (Relationships) - always visible, manages its own collapsed/expanded state -->
     @if (!zenMode) {
       <div class="meta-panel-container">
@@ -114,4 +140,18 @@
   <!-- Element Reference Tooltip (hover) -->
   <app-element-ref-tooltip [tooltipData]="tooltipData()">
   </app-element-ref-tooltip>
+
+  <!-- Comment Popover (click on comment-highlighted text) -->
+  @if (commentPopoverAttrs()) {
+    <app-comment-popover
+      [attrs]="commentPopoverAttrs()!"
+      [username]="projectState.project()?.username ?? ''"
+      [slug]="projectState.project()?.slug ?? ''"
+      [position]="commentPopoverPosition()"
+      (closed)="closeCommentPopover()"
+      (resolved)="onCommentResolved($event)"
+      (deleted)="onCommentDeleted($event)"
+      (updated)="onCommentUpdated($event)">
+    </app-comment-popover>
+  }
 }
