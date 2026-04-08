@@ -9,8 +9,8 @@
   overflow: hidden;
 }
 
-// Wrapper for editor + meta panel side by side
-.editor-with-panel {
+// Wrapper for editor and optional side panels
+.editor-layout {
   display: flex;
   flex-direction: row;
   flex: 1;
@@ -56,17 +56,6 @@
 ::ng-deep ngx-editor-floating-menu {
   z-index: 200 !important;
   margin-bottom: 0 !important; // Remove default 5px margin
-}
-
-// Meta panel container - sibling to editor-section
-// Panel manages its own collapsed/expanded state internally
-.meta-panel-container {
-  flex-shrink: 0;
-  border-left: 1px solid var(--sys-outline-variant);
-  background: var(--sys-surface-container);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .comment-panel-container {

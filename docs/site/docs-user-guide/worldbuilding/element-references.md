@@ -14,6 +14,7 @@ Element references let you create links between your story content. Use the `@` 
 ## What Are Element References?
 
 Element references are inline links to other elements:
+
 - Type `@` to trigger the reference popup
 - Search for any element in your project
 - Insert a styled link to that element
@@ -35,10 +36,10 @@ Element references are inline links to other elements:
 
 ### Track Element Appearances
 
-See everywhere an element is mentioned across your entire project. The **Relationships Panel** shows:
+References stay visible inline in the source document, and referenced worldbuilding elements show incoming reference backlinks in their **Relationships** section:
 
-- **References**: Elements this document links to
-- **Backlinks**: Other documents that reference this element
+- **Inline references**: Elements the current document links to
+- **Backlinks**: Other documents and elements that reference a worldbuilding entry
 
 ### Navigate Your World
 
@@ -53,6 +54,7 @@ When you hover over an element reference, a tooltip shows key information about 
 ### Triggering the Popup
 
 Type `@` anywhere in a document:
+
 - In prose content
 - In worldbuilding fields
 - In notes
@@ -74,22 +76,22 @@ The popup shows relevant elements by default. Start typing to filter:
 
 ### Keyboard Navigation
 
-| Key | Action |
-|-----|--------|
-| `↑` `↓` | Navigate through results |
-| `Enter` | Select highlighted result |
+| Key      | Action                        |
+| -------- | ----------------------------- |
+| `↑` `↓`  | Navigate through results      |
+| `Enter`  | Select highlighted result     |
 | `Escape` | Close popup without selecting |
-| `Tab` | Select and continue typing |
+| `Tab`    | Select and continue typing    |
 
 ### Element Type Icons
 
 The popup shows icons based on the element's type:
 
-| Icon | Element Type |
-|------|--------------|
-| 📄 | Document |
-| 📁 | Folder |
-| ✨ | Worldbuilding element |
+| Icon | Element Type          |
+| ---- | --------------------- |
+| 📄   | Document              |
+| 📁   | Folder                |
+| ✨   | Worldbuilding element |
 
 ## Inserting References
 
@@ -103,6 +105,7 @@ The popup shows icons based on the element's type:
 ### Reference Display
 
 References appear as:
+
 - Distinctly styled (usually colored/highlighted)
 - Clickable links
 - Show element name by default
@@ -145,27 +148,26 @@ Or:
 
 ## Viewing References
 
-### In the Meta Panel
+### In the Relationships Section
 
-Open the side panel to see:
-
-**References (Outgoing)**
-- Elements mentioned in this document
-- Click to navigate to the element
+Open a referenced worldbuilding element to see:
 
 **Backlinks (Incoming)**
+
 - Documents that mention this element
 - Click to navigate to those documents
 
 ### Reference Counts
 
 See how many times an element is referenced:
+
 - On element cards in worldbuilding views
-- In the meta panel
+- In the Relationships section
 
 ### Tooltip Preview
 
 Hover over a reference to see:
+
 - Element type and name
 - Brief description or summary
 - Quick facts from the profile
