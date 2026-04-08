@@ -104,11 +104,15 @@ export async function storeRealMediaInIndexedDB(
       const db = request.result;
       const tx = db.transaction('media', 'readwrite');
       const store = tx.objectStore('media');
-      const putRequest = store.put(record);
+      store.put(record);
       await new Promise<void>((resolve, reject) => {
-        putRequest.onsuccess = () => resolve();
-        putRequest.onerror = () => reject(new Error('Failed to store media'));
+        tx.oncomplete = () => resolve();
+        tx.onabort = () =>
+          reject(tx.error ?? new Error('Failed to store media'));
+        tx.onerror = () =>
+          reject(tx.error ?? new Error('Failed to store media'));
       });
+      db.close();
     },
     { projectKey, mediaId, base64Data, filename }
   );
@@ -159,11 +163,15 @@ export async function storeRealEpubInIndexedDB(
       const db = request.result;
       const tx = db.transaction('media', 'readwrite');
       const store = tx.objectStore('media');
-      const putRequest = store.put(record);
+      store.put(record);
       await new Promise<void>((resolve, reject) => {
-        putRequest.onsuccess = () => resolve();
-        putRequest.onerror = () => reject(new Error('Failed to store epub'));
+        tx.oncomplete = () => resolve();
+        tx.onabort = () =>
+          reject(tx.error ?? new Error('Failed to store epub'));
+        tx.onerror = () =>
+          reject(tx.error ?? new Error('Failed to store epub'));
       });
+      db.close();
     },
     { projectKey, fileId, filename }
   );
@@ -451,7 +459,9 @@ export async function createProjectWithTwoSteps(
   await page.click('button[data-testid="create-project-button"]');
 
   // Wait for navigation to the new project page
-  await page.waitForURL(new RegExp(projectSlug), { timeout: 15_000 });
+  await page.waitForURL(url => url.pathname.endsWith(`/${projectSlug}`), {
+    timeout: 15_000,
+  });
 
   // Dismiss the "Project created successfully!" toast so it doesn't
   // appear in screenshots or interfere with subsequent interactions.
@@ -465,11 +475,9 @@ export async function createProjectWithTwoSteps(
 export async function dismissToastIfPresent(page: Page): Promise<void> {
   try {
     const toast = page.locator('mat-snack-bar-container');
-    const isVisible = await toast.isVisible({ timeout: 2_000 });
-    if (isVisible) {
-      await toast.getByRole('button').click({ timeout: 2_000 });
-    }
+    await toast.waitFor({ state: 'visible', timeout: 2_000 });
+    await toast.getByRole('button').click({ timeout: 2_000 });
   } catch {
-    // No toast present — that's fine
+    // No toast present or timed out — that's fine
   }
 }
