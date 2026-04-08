@@ -1,16 +1,16 @@
 import { provideHttpClient } from '@angular/common/http';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { LoggerService } from '../../../services/core/logger.service';
-import { SetupService } from '../../../services/core/setup.service';
+import type { CommentMarkAttrs } from '@components/comment-mark/comment-mark-schema';
+import { LoggerService } from '@services/core/logger.service';
+import { SetupService } from '@services/core/setup.service';
 import {
   CommentService,
   type CommentThreadResponse,
-} from '../../../services/project/comment.service';
-import { UnifiedUserService } from '../../../services/user/unified-user.service';
-import type { CommentMarkAttrs } from '../comment-mark-schema';
+} from '@services/project/comment.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { CommentPanelComponent } from './comment-panel.component';
 
 function createMockCommentService() {

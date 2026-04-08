@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Drizzle's DatabaseInstance union does not expose .select({}) column maps; targeted per-statement casts required */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Approved: Drizzle's DatabaseInstance is a union of 3 drivers (Bun/BetterSqlite/D1) whose .select() column maps are incompatible; per-statement casts to any are the pragmatic workaround */
 import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { commentThreads, type CommentThread } from '../db/schema/comment-threads';
@@ -187,7 +187,9 @@ class CommentService {
     const now = Date.now();
     const messageId = crypto.randomUUID();
 
-    // Sequential operations instead of transaction — D1 does not support interactive transactions
+    // Sequential operations — D1 does not support interactive transactions.
+    // If the updatedAt bump fails after a successful insert, the only impact
+    // is stale sort order for the thread which is cosmetic.
     await (db as any).insert(commentMessages).values({
       id: messageId,
       threadId: data.threadId,
@@ -196,7 +198,6 @@ class CommentService {
       createdAt: now,
     });
 
-    // Update thread's updatedAt
     await (db as any)
       .update(commentThreads)
       .set({ updatedAt: now })
@@ -369,16 +370,17 @@ class CommentService {
   }
 
   /**
-   * Find message by ID (for auth checks)
+   * Find message by ID scoped to a thread (for auth checks)
    */
   async findMessageById(
     db: DatabaseInstance,
+    threadId: string,
     messageId: string
   ): Promise<CommentMessage | undefined> {
     const result = await db
       .select()
       .from(commentMessages)
-      .where(eq(commentMessages.id, messageId))
+      .where(and(eq(commentMessages.id, messageId), eq(commentMessages.threadId, threadId)))
       .limit(1);
     return result[0];
   }

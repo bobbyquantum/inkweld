@@ -1,14 +1,13 @@
-import { Schema } from 'prosemirror-model';
-import { EditorState } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { commentMarkSpec } from './comment-mark-schema';
+import { commentMarkSpec } from '@components/comment-mark/comment-mark-schema';
 import {
   type CommentPluginCallbacks,
   commentPluginKey,
   createCommentPlugin,
-} from './comment-plugin';
+} from '@components/comment-mark/comment-plugin';
+import { Schema } from 'prosemirror-model';
+import { EditorState } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function createSchemaWithComment() {
   return new Schema({

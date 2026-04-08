@@ -491,8 +491,8 @@ commentRoutes.openapi(deleteMessageRoute, async (c) => {
   if (thread?.projectId !== project.id) throw new NotFoundError('Thread not found');
 
   const messageId = c.req.param('messageId');
-  const msg = await commentService.findMessageById(db, messageId);
-  if (msg?.threadId !== threadId) throw new NotFoundError('Message not found');
+  const msg = await commentService.findMessageById(db, threadId, messageId);
+  if (!msg) throw new NotFoundError('Message not found');
 
   // Only message author or project owner can delete
   if (msg.authorId !== user.id && project.userId !== user.id) {

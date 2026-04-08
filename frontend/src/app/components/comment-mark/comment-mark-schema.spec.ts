@@ -1,7 +1,9 @@
+import {
+  type CommentMarkAttrs,
+  commentMarkSpec,
+} from '@components/comment-mark/comment-mark-schema';
 import { Schema } from 'prosemirror-model';
 import { describe, expect, it } from 'vitest';
-
-import { type CommentMarkAttrs, commentMarkSpec } from './comment-mark-schema';
 
 function createSchema() {
   return new Schema({
