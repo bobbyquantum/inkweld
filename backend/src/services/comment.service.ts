@@ -15,7 +15,7 @@ export interface UnreadCount {
   count: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle's DatabaseInstance union does not expose .select({}) column maps or .transaction(); targeted per-statement casts required
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle's DatabaseInstance union does not expose .select({}) column maps; targeted per-statement casts required
 type AnyDb = any;
 
 class CommentService {
@@ -34,25 +34,24 @@ class CommentService {
   ): Promise<CommentThreadWithMessages> {
     const now = Date.now();
 
-    await (db as AnyDb).transaction(async (tx: AnyDb) => {
-      await tx.insert(commentThreads).values({
-        id: data.id,
-        documentId: data.documentId,
-        projectId: data.projectId,
-        authorId: data.authorId,
-        resolved: false,
-        createdAt: now,
-        updatedAt: now,
-      });
+    // Sequential inserts instead of transaction — D1 does not support interactive transactions
+    await (db as AnyDb).insert(commentThreads).values({
+      id: data.id,
+      documentId: data.documentId,
+      projectId: data.projectId,
+      authorId: data.authorId,
+      resolved: false,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-      const messageId = crypto.randomUUID();
-      await tx.insert(commentMessages).values({
-        id: messageId,
-        threadId: data.id,
-        authorId: data.authorId,
-        text: data.text,
-        createdAt: now,
-      });
+    const messageId = crypto.randomUUID();
+    await (db as AnyDb).insert(commentMessages).values({
+      id: messageId,
+      threadId: data.id,
+      authorId: data.authorId,
+      text: data.text,
+      createdAt: now,
     });
 
     const thread = await this.getThread(db, data.id);
@@ -192,21 +191,20 @@ class CommentService {
     const now = Date.now();
     const messageId = crypto.randomUUID();
 
-    await (db as AnyDb).transaction(async (tx: AnyDb) => {
-      await tx.insert(commentMessages).values({
-        id: messageId,
-        threadId: data.threadId,
-        authorId: data.authorId,
-        text: data.text,
-        createdAt: now,
-      });
-
-      // Update thread's updatedAt
-      await tx
-        .update(commentThreads)
-        .set({ updatedAt: now })
-        .where(eq(commentThreads.id, data.threadId));
+    // Sequential operations instead of transaction — D1 does not support interactive transactions
+    await (db as AnyDb).insert(commentMessages).values({
+      id: messageId,
+      threadId: data.threadId,
+      authorId: data.authorId,
+      text: data.text,
+      createdAt: now,
     });
+
+    // Update thread's updatedAt
+    await (db as AnyDb)
+      .update(commentThreads)
+      .set({ updatedAt: now })
+      .where(eq(commentThreads.id, data.threadId));
 
     const result: { message: CommentMessage; authorName: string | null }[] = await (db as AnyDb)
       .select({
@@ -274,43 +272,42 @@ class CommentService {
     db: DatabaseInstance,
     messageId: string
   ): Promise<{ threadDeleted: boolean }> {
-    return await (db as AnyDb).transaction(async (tx: AnyDb) => {
-      const message = await tx
-        .select()
-        .from(commentMessages)
-        .where(eq(commentMessages.id, messageId))
-        .limit(1);
+    // Sequential operations instead of transaction — D1 does not support interactive transactions
+    const message = await (db as AnyDb)
+      .select()
+      .from(commentMessages)
+      .where(eq(commentMessages.id, messageId))
+      .limit(1);
 
-      if (message.length === 0) {
-        return { threadDeleted: false };
-      }
-
-      const threadId = message[0].threadId;
-
-      // Count messages in thread
-      const countResult: { count: number }[] = await tx
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(commentMessages)
-        .where(eq(commentMessages.threadId, threadId));
-
-      const count = countResult[0]?.count ?? 0;
-
-      if (count <= 1) {
-        // Last message — delete the whole thread
-        await tx.delete(commentThreads).where(eq(commentThreads.id, threadId));
-        return { threadDeleted: true };
-      }
-
-      await tx.delete(commentMessages).where(eq(commentMessages.id, messageId));
-
-      // Update thread's updatedAt
-      await tx
-        .update(commentThreads)
-        .set({ updatedAt: Date.now() })
-        .where(eq(commentThreads.id, threadId));
-
+    if (message.length === 0) {
       return { threadDeleted: false };
-    });
+    }
+
+    const threadId = message[0].threadId;
+
+    // Count messages in thread
+    const countResult: { count: number }[] = await (db as AnyDb)
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(commentMessages)
+      .where(eq(commentMessages.threadId, threadId));
+
+    const count = countResult[0]?.count ?? 0;
+
+    if (count <= 1) {
+      // Last message — delete the whole thread (cascade removes messages)
+      await db.delete(commentThreads).where(eq(commentThreads.id, threadId));
+      return { threadDeleted: true };
+    }
+
+    await db.delete(commentMessages).where(eq(commentMessages.id, messageId));
+
+    // Update thread's updatedAt
+    await (db as AnyDb)
+      .update(commentThreads)
+      .set({ updatedAt: Date.now() })
+      .where(eq(commentThreads.id, threadId));
+
+    return { threadDeleted: false };
   }
 
   /**

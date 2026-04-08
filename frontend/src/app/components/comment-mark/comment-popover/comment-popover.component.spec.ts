@@ -304,5 +304,155 @@ describe('CommentPopoverComponent', () => {
       expect(component.messages()[0].text).toBe('Server msg');
       expect(component.threadAuthor()).toBe('Server Alice');
     });
+
+    it('should handle fetchThread error gracefully', async () => {
+      mockCommentService.getThread.mockRejectedValue(
+        new Error('Network error')
+      );
+
+      fixture.componentRef.setInput(
+        'attrs',
+        makeAttrs({ localOnly: false, messages: null })
+      );
+      fixture.detectChanges();
+
+      await vi.waitFor(() => {
+        expect(component.loading()).toBe(false);
+      });
+
+      // Thread should be null on error
+      expect(component.thread()).toBeNull();
+      expect(component.messages()).toEqual([]);
+    });
+  });
+
+  describe('onUnresolve (local-only)', () => {
+    it('should return early without emitting for local-only comments', async () => {
+      fixture.componentRef.setInput(
+        'attrs',
+        makeAttrs({ resolved: true, localOnly: true })
+      );
+      fixture.detectChanges();
+
+      const updatedSpy = vi.fn();
+      component.updated.subscribe(updatedSpy);
+
+      await component.onUnresolve();
+
+      // localOnly returns early — no emit
+      expect(updatedSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onUnresolve (server mode)', () => {
+    it('should call unresolveThread and refetch thread', async () => {
+      mockCommentService.isServerMode = true;
+      const serverThread: CommentThreadResponse = {
+        id: 'test-comment',
+        documentId: 'doc-1',
+        projectId: 'proj-1',
+        authorId: 'alice-id',
+        authorName: 'Alice',
+        resolved: false,
+        resolvedBy: null,
+        resolvedAt: null,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+        messages: [],
+      };
+      mockCommentService.getThread.mockResolvedValue(serverThread);
+
+      fixture.componentRef.setInput(
+        'attrs',
+        makeAttrs({ localOnly: false, resolved: true })
+      );
+      fixture.detectChanges();
+
+      await vi.waitFor(() => {
+        expect(component.loading()).toBe(false);
+      });
+
+      await component.onUnresolve();
+
+      expect(mockCommentService.unresolveThread).toHaveBeenCalledWith(
+        'alice',
+        'my-story',
+        'test-comment'
+      );
+    });
+
+    it('should handle unresolve error gracefully', async () => {
+      mockCommentService.isServerMode = true;
+      mockCommentService.getThread.mockResolvedValue(null);
+      mockCommentService.unresolveThread.mockRejectedValue(new Error('fail'));
+
+      fixture.componentRef.setInput(
+        'attrs',
+        makeAttrs({ localOnly: false, resolved: true })
+      );
+      fixture.detectChanges();
+
+      await vi.waitFor(() => {
+        expect(component.loading()).toBe(false);
+      });
+
+      // Should not throw
+      await component.onUnresolve();
+    });
+  });
+
+  describe('onReply (server mode)', () => {
+    it('should call addMessage and emit updated', async () => {
+      mockCommentService.isServerMode = true;
+      const serverThread: CommentThreadResponse = {
+        id: 'test-comment',
+        documentId: 'doc-1',
+        projectId: 'proj-1',
+        authorId: 'alice-id',
+        authorName: 'Alice',
+        resolved: false,
+        resolvedBy: null,
+        resolvedAt: null,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+        messages: [
+          {
+            id: 'sm1',
+            threadId: 'test-comment',
+            authorId: 'alice-id',
+            authorName: 'Alice',
+            text: 'Original',
+            createdAt: '2026-01-01T00:00:00Z',
+            editedAt: null,
+          },
+        ],
+      };
+      mockCommentService.getThread.mockResolvedValue(serverThread);
+
+      fixture.componentRef.setInput(
+        'attrs',
+        makeAttrs({ localOnly: false, messages: null })
+      );
+      fixture.detectChanges();
+
+      await vi.waitFor(() => {
+        expect(component.loading()).toBe(false);
+      });
+
+      const updatedSpy = vi.fn();
+      component.updated.subscribe(updatedSpy);
+
+      component.replyText = 'Server reply';
+      await component.onReply();
+
+      expect(mockCommentService.addMessage).toHaveBeenCalledWith(
+        'alice',
+        'my-story',
+        'test-comment',
+        'Server reply'
+      );
+      expect(component.replyText).toBe('');
+      expect(updatedSpy).toHaveBeenCalled();
+    });
   });
 });

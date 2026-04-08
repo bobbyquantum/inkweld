@@ -423,6 +423,61 @@ describe('CommentService', () => {
       service.addLocalReply(result.view, 'nonexistent', 'Reply');
       // Should not throw
     });
+
+    it('should handle malformed JSON in messages attribute', () => {
+      const schema = createSchema();
+      const result = createView(schema);
+      container = result.container;
+
+      // Manually create a mark with invalid JSON in messages attribute
+      const commentType = schema.marks['comment'];
+      const mark = commentType.create({
+        commentId: 'bad-json',
+        authorName: 'Alice',
+        preview: 'Preview',
+        messageCount: 1,
+        resolved: false,
+        createdAt: Date.now(),
+        localOnly: true,
+        messages: '{invalid json[',
+      });
+      const tr = result.view.state.tr.addMark(0, 5, mark);
+      result.view.dispatch(tr);
+
+      // addLocalReply should recover from bad JSON and start fresh
+      service.addLocalReply(result.view, 'bad-json', 'New reply');
+
+      const marks = service.getCommentMarks(result.view);
+      const msgs = JSON.parse(marks[0].messages!);
+      expect(msgs.length).toBe(1);
+      expect(msgs[0].text).toBe('New reply');
+    });
+
+    it('should handle null messages attribute', () => {
+      const schema = createSchema();
+      const result = createView(schema);
+      container = result.container;
+
+      const commentType = schema.marks['comment'];
+      const mark = commentType.create({
+        commentId: 'no-msgs',
+        authorName: 'Alice',
+        preview: 'Preview',
+        messageCount: 0,
+        resolved: false,
+        createdAt: Date.now(),
+        localOnly: true,
+        messages: null,
+      });
+      const tr = result.view.state.tr.addMark(0, 5, mark);
+      result.view.dispatch(tr);
+
+      service.addLocalReply(result.view, 'no-msgs', 'First reply');
+
+      const marks = service.getCommentMarks(result.view);
+      const msgs = JSON.parse(marks[0].messages!);
+      expect(msgs.length).toBe(1);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -575,6 +630,33 @@ describe('CommentService', () => {
       await markPromise;
 
       expect(service.unreadCounts().has('doc-1')).toBe(false);
+    });
+
+    it('fetchUnreadCounts should silently handle HTTP errors', async () => {
+      const promise = service.fetchUnreadCounts('alice', 'story');
+      const req = httpMock.expectOne(
+        'http://localhost:8333/api/v1/comments/alice/story/unread'
+      );
+      req.flush('Server Error', { status: 500, statusText: 'Error' });
+      await promise;
+      // Should not throw — counts remain empty
+      expect(service.unreadCounts().size).toBe(0);
+    });
+
+    it('markSeen should silently handle HTTP errors', async () => {
+      const promise = service.markSeen('alice', 'story', 'doc-1');
+      const req = httpMock.expectOne(
+        'http://localhost:8333/api/v1/comments/alice/story/seen'
+      );
+      req.flush('Server Error', { status: 500, statusText: 'Error' });
+      await promise;
+      // Should not throw
+    });
+
+    it('markSeen should be a no-op in local mode', async () => {
+      mockSetupService.getServerUrl.mockReturnValue('');
+      await service.markSeen('alice', 'story', 'doc-1');
+      httpMock.expectNone(() => true);
     });
   });
 

@@ -82,6 +82,9 @@ describe('CommentPanelComponent', () => {
 
     fixture = TestBed.createComponent(CommentPanelComponent);
     component = fixture.componentInstance;
+
+    fixture.componentRef.setInput('username', 'alice');
+    fixture.componentRef.setInput('slug', 'my-story');
   });
 
   it('should create', () => {
@@ -260,6 +263,138 @@ describe('CommentPanelComponent', () => {
         commentId: 'thread-1',
         updates: { resolved: false },
       });
+    });
+  });
+
+  describe('positionedThreads (edge cases)', () => {
+    it('should return empty array when no threads', () => {
+      component.threads.set([]);
+      fixture.componentRef.setInput('threadPositions', {});
+      fixture.detectChanges();
+
+      expect(component.positionedThreads()).toEqual([]);
+    });
+  });
+
+  describe('buildLocalThreads (edge cases)', () => {
+    it('should handle marks with invalid JSON messages gracefully', () => {
+      const marks: CommentMarkAttrs[] = [
+        {
+          commentId: 'bad-json',
+          authorName: 'Bob',
+          preview: 'Preview',
+          messageCount: 1,
+          resolved: false,
+          createdAt: Date.now(),
+          localOnly: true,
+          messages: 'not-valid-json',
+        },
+      ];
+
+      fixture.componentRef.setInput('commentMarks', marks);
+      fixture.componentRef.setInput('isOpen', true);
+      fixture.detectChanges();
+
+      const threads = component.threads();
+      expect(threads.length).toBe(1);
+      expect(threads[0].messages).toEqual([]);
+    });
+
+    it('should handle marks with null messages', () => {
+      const marks: CommentMarkAttrs[] = [
+        {
+          commentId: 'null-msgs',
+          authorName: 'Bob',
+          preview: 'Preview',
+          messageCount: 0,
+          resolved: false,
+          createdAt: Date.now(),
+          localOnly: true,
+          messages: null,
+        },
+      ];
+
+      fixture.componentRef.setInput('commentMarks', marks);
+      fixture.componentRef.setInput('isOpen', true);
+      fixture.detectChanges();
+
+      const threads = component.threads();
+      expect(threads.length).toBe(1);
+      expect(threads[0].messages).toEqual([]);
+    });
+  });
+
+  describe('server mode operations', () => {
+    beforeEach(() => {
+      mockCommentService.isServerMode = true;
+    });
+
+    it('onResolve should call resolveThread for server mode', async () => {
+      const resolvedSpy = vi.fn();
+      component.commentResolved.subscribe(resolvedSpy);
+
+      const thread = makeThread();
+      const event = new Event('click');
+
+      await component.onResolve(thread, event);
+
+      expect(mockCommentService.resolveThread).toHaveBeenCalledWith(
+        'alice',
+        'my-story',
+        'thread-1'
+      );
+      expect(resolvedSpy).toHaveBeenCalledWith('thread-1');
+    });
+
+    it('onDelete should call deleteThread for server mode', async () => {
+      const deletedSpy = vi.fn();
+      component.commentDeleted.subscribe(deletedSpy);
+
+      const thread = makeThread();
+      const event = new Event('click');
+
+      await component.onDelete(thread, event);
+
+      expect(mockCommentService.deleteThread).toHaveBeenCalledWith(
+        'alice',
+        'my-story',
+        'thread-1'
+      );
+      expect(deletedSpy).toHaveBeenCalledWith('thread-1');
+    });
+
+    it('onUnresolve should call unresolveThread for server mode', async () => {
+      const thread = makeThread({ resolved: true });
+      const event = new Event('click');
+
+      await component.onUnresolve(thread, event);
+
+      expect(mockCommentService.unresolveThread).toHaveBeenCalledWith(
+        'alice',
+        'my-story',
+        'thread-1'
+      );
+    });
+
+    it('onReply should call addMessage for server mode', async () => {
+      component.expandedThreadId.set('thread-1');
+      const thread = makeThread();
+      component.threads.set([thread]);
+      fixture.detectChanges();
+
+      // Create a mock input element
+      const mockInput = document.createElement('input');
+      mockInput.value = 'Server reply';
+
+      await component.onReply(thread, mockInput);
+
+      expect(mockCommentService.addMessage).toHaveBeenCalledWith(
+        'alice',
+        'my-story',
+        'thread-1',
+        'Server reply'
+      );
+      expect(mockInput.value).toBe('');
     });
   });
 });
