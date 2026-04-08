@@ -5,6 +5,7 @@
  * for inline element references (@ mentions).
  */
 import { marks, nodes } from '@bobbyquantum/ngx-editor/schema';
+import { commentMarkSpec } from '@components/comment-mark/comment-mark-schema';
 import { Schema } from 'prosemirror-model';
 
 import { elementRefNodeSpec } from './element-ref-schema';
@@ -22,10 +23,15 @@ export function createExtendedSchema(): Schema {
     elementRef: elementRefNodeSpec,
   };
 
-  // Use the same marks as ngx-editor
+  // Use the same marks as ngx-editor plus custom ones
+  const extendedMarks = {
+    ...marks,
+    comment: commentMarkSpec,
+  };
+
   return new Schema({
     nodes: extendedNodes,
-    marks: marks,
+    marks: extendedMarks,
   });
 }
 
