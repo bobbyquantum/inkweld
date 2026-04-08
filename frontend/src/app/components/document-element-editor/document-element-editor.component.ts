@@ -910,7 +910,9 @@ export class DocumentElementEditorComponent
       this.editor.view,
       text.trim(),
       project.username,
-      project.slug
+      project.slug,
+      from,
+      to
     );
 
     this.refreshCommentPanel();

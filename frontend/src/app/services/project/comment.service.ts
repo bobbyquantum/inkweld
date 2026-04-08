@@ -121,10 +121,13 @@ export class CommentService {
     view: EditorView,
     text: string,
     username: string,
-    slug: string
+    slug: string,
+    fromPos?: number,
+    toPos?: number
   ): Promise<string | null> {
     const { state } = view;
-    const { from, to } = state.selection;
+    const from = fromPos ?? state.selection.from;
+    const to = toPos ?? state.selection.to;
 
     if (from === to) {
       this.logger.warn(
@@ -168,7 +171,7 @@ export class CommentService {
           messages: null,
         });
 
-        const tr = state.tr.addMark(from, to, mark);
+        const tr = view.state.tr.addMark(from, to, mark);
         view.dispatch(tr);
         return commentId;
       } catch (error) {
