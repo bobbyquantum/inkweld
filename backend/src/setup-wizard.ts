@@ -109,6 +109,25 @@ async function promptYesNo(question: string, defaultValue: boolean = true): Prom
 }
 
 /**
+ * Prompt for admin user credentials and populate answers object.
+ */
+async function promptAdminCredentials(answers: SetupAnswers): Promise<void> {
+  console.log('\n--- Admin User Setup ---');
+  const createAdmin = await promptYesNo('Create a default admin user?', true);
+
+  if (createAdmin) {
+    answers.adminUsername = await prompt('Admin username', 'admin');
+    answers.adminPassword = await prompt('Admin password (min 6 characters)');
+
+    // Validate password length
+    while (answers.adminPassword && answers.adminPassword.length < 6) {
+      console.log('⚠️  Password must be at least 6 characters');
+      answers.adminPassword = await prompt('Admin password (min 6 characters)');
+    }
+  }
+}
+
+/**
  * Run the interactive setup wizard
  */
 export async function runSetupWizard(): Promise<string> {
@@ -137,20 +156,7 @@ export async function runSetupWizard(): Promise<string> {
     ),
   };
 
-  // Admin user setup
-  console.log('\n--- Admin User Setup ---');
-  const createAdmin = await promptYesNo('Create a default admin user?', true);
-
-  if (createAdmin) {
-    answers.adminUsername = await prompt('Admin username', 'admin');
-    answers.adminPassword = await prompt('Admin password (min 6 characters)');
-
-    // Validate password length
-    while (answers.adminPassword && answers.adminPassword.length < 6) {
-      console.log('⚠️  Password must be at least 6 characters');
-      answers.adminPassword = await prompt('Admin password (min 6 characters)');
-    }
-  }
+  await promptAdminCredentials(answers);
 
   // Optional: OpenAI API key
   const useOpenAI = await promptYesNo(
