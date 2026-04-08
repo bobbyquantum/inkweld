@@ -1,10 +1,3 @@
-/**
- * Comment Panel Component
- *
- * A side panel listing all comment threads for the current document.
- * Shown alongside the editor when the user opens the comments panel.
- */
-
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import type { CommentThreadResponse } from '../../../services/project/comment.service';
 import { CommentService } from '../../../services/project/comment.service';
+import { formatRelativeDate } from '../../../utils/date-format';
 import { UserAvatarComponent } from '../../user-avatar/user-avatar.component';
 import type { CommentMarkAttrs } from '../comment-mark-schema';
 
@@ -65,7 +59,7 @@ interface PositionedThread extends CommentThreadResponse {
           <mat-spinner diameter="24"></mat-spinner>
         </div>
       } @else if (threads().length === 0) {
-        <div class="comment-panel__empty">
+        <div class="comment-panel__empty" data-testid="comment-panel-empty">
           <mat-icon>chat_bubble_outline</mat-icon>
           <p>No comments yet</p>
           <p class="comment-panel__hint">
@@ -536,9 +530,7 @@ export class CommentPanelComponent {
   expandedThreadId = signal<string | null>(null);
 
   /** Whether running without a server (local-only mode) */
-  isLocalMode = computed(
-    () => !this.commentService['isServerMode' as keyof CommentService]
-  );
+  isLocalMode = computed(() => !this.commentService.isServerMode);
 
   /** Threads sorted and positioned for gutter display */
   positionedThreads = computed<PositionedThread[]>(() => {
@@ -791,17 +783,6 @@ export class CommentPanelComponent {
   }
 
   formatDate(date: string): string {
-    try {
-      const d = new Date(date);
-      const now = new Date();
-      const diff = now.getTime() - d.getTime();
-      if (diff < 60_000) return 'just now';
-      if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-      if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-      if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
-      return d.toLocaleDateString();
-    } catch {
-      return '';
-    }
+    return formatRelativeDate(date);
   }
 }

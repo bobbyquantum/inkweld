@@ -79,6 +79,11 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Emitted when the comment toggle button is clicked */
   @Output() toggleComments = new EventEmitter<void>();
 
+  /** Platform-aware tooltip for the comments button */
+  commentTooltip = /Mac|iPhone|iPad/.test(navigator.userAgent)
+    ? 'Comments (\u2318+\u2325+M to add)'
+    : 'Comments (Ctrl+Alt+M to add)';
+
   /** Signal for tracking the current selection state */
   private readonly selectionState = signal({
     bold: false,

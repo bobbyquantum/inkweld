@@ -7,6 +7,7 @@ import {
   type WritableSignal,
 } from '@angular/core';
 import { type Editor } from '@bobbyquantum/ngx-editor';
+import { createCommentPlugin } from '@components/comment-mark/comment-plugin';
 import { DocumentsService } from '@inkweld/index';
 import { Plugin } from 'prosemirror-state';
 import { Observable, Subject } from 'rxjs';
@@ -20,7 +21,6 @@ import {
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { createCommentPlugin } from '../../components/comment-mark/comment-plugin';
 import { createKeyboardShortcutsPlugin } from '../../components/editor-shortcuts';
 import {
   createElementRefPlugin,

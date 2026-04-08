@@ -153,7 +153,10 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
   @HostListener('document:touchend')
   onDocumentTouchEnd(): void {
     this.isDragging = false;
-    setTimeout(() => this.updatePosition(), 300);
+    setTimeout(() => {
+      this.updatePosition();
+      this.isTouchInteraction = false;
+    }, 300);
   }
 
   /**
@@ -266,7 +269,7 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
       if (belowPos + menuHeight < viewportBottom) {
         top = belowPos;
       } else {
-        top = selectionTop - menuHeight - gap;
+        top = Math.max(viewportTop, selectionTop - menuHeight - gap);
       }
     } else if (selectionTop - menuHeight - gap < viewportTop) {
       top = selectionBottom + gap;

@@ -271,7 +271,7 @@
       ngToolbarWidget
       value="comments"
       [attr.aria-pressed]="commentPanelOpen"
-      matTooltip="Comments (Ctrl+Alt+M to add)"
+      [matTooltip]="commentTooltip"
       (click)="toggleComments.emit()"
       data-testid="toolbar-comments">
       <mat-icon>comment</mat-icon>

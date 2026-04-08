@@ -5,9 +5,9 @@
  * for inline element references (@ mentions).
  */
 import { marks, nodes } from '@bobbyquantum/ngx-editor/schema';
+import { commentMarkSpec } from '@components/comment-mark/comment-mark-schema';
 import { Schema } from 'prosemirror-model';
 
-import { commentMarkSpec } from '../comment-mark/comment-mark-schema';
 import { elementRefNodeSpec } from './element-ref-schema';
 
 /**

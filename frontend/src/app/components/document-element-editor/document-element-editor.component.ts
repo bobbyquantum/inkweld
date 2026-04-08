@@ -26,31 +26,31 @@ import {
   NgxEditorModule,
   type Toolbar,
 } from '@bobbyquantum/ngx-editor';
-import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { InsertImageService } from '@services/core/insert-image.service';
-import { SettingsService } from '@services/core/settings.service';
-import { LocalStorageService } from '@services/local/local-storage.service';
-import { DocumentService } from '@services/project/document.service';
-import { ProjectStateService } from '@services/project/project-state.service';
-import { RelationshipService } from '@services/relationship';
-import { firstValueFrom } from 'rxjs';
-
-import {
-  SnapshotsDialogComponent,
-  type SnapshotsDialogData,
-} from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
-import {
-  TagEditorDialogComponent,
-  type TagEditorDialogData,
-} from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
-import { FindInDocumentService } from '../../services/core/find-in-document.service';
-import { CommentService } from '../../services/project/comment.service';
-import { TagService } from '../../services/tag/tag.service';
 import {
   type CommentMarkAttrs,
   CommentPanelComponent,
   CommentPopoverComponent,
-} from '../comment-mark';
+} from '@components/comment-mark';
+import {
+  SnapshotsDialogComponent,
+  type SnapshotsDialogData,
+} from '@dialogs/snapshots-dialog/snapshots-dialog.component';
+import {
+  TagEditorDialogComponent,
+  type TagEditorDialogData,
+} from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { FindInDocumentService } from '@services/core/find-in-document.service';
+import { InsertImageService } from '@services/core/insert-image.service';
+import { SettingsService } from '@services/core/settings.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { CommentService } from '@services/project/comment.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship';
+import { TagService } from '@services/tag/tag.service';
+import { firstValueFrom } from 'rxjs';
+
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {

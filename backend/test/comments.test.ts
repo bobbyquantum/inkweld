@@ -249,7 +249,7 @@ describe('Comments', () => {
 
   // ──────────────── Resolve / Unresolve ────────────────
 
-  describe('POST /:username/:slug/threads/:threadId/resolve', () => {
+  describe('PATCH /:username/:slug/threads/:threadId/resolve', () => {
     it('should resolve a thread', async () => {
       const { response, json } = await ownerClient.request(
         `${commentsPath()}/threads/${threadId}/resolve`,
@@ -271,7 +271,7 @@ describe('Comments', () => {
     });
   });
 
-  describe('POST /:username/:slug/threads/:threadId/unresolve', () => {
+  describe('PATCH /:username/:slug/threads/:threadId/unresolve', () => {
     it('should unresolve a thread', async () => {
       const { response, json } = await ownerClient.request(
         `${commentsPath()}/threads/${threadId}/unresolve`,

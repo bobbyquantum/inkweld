@@ -45,14 +45,15 @@ async function openEditorInProject(
   );
 
   await page.waitForURL(new RegExp(projectSlug));
-  await expect(page.locator('app-project-tree')).toBeVisible();
+  await expect(page.getByTestId('project-tree')).toBeVisible();
 
   // Open the README document
   await page
-    .click('text="README"')
-    .catch(() => page.locator('.tree-node-item').first().click());
+    .getByTestId('element-README')
+    .click()
+    .catch(() => page.locator('[role="treeitem"]').first().click());
 
-  const editor = page.locator('.ProseMirror').first();
+  const editor = page.getByTestId('document-editor');
   await expect(editor).toBeVisible();
 }
 
@@ -65,7 +66,7 @@ async function addCommentViaShortcut(
   page: Page,
   commentText: string
 ): Promise<void> {
-  const editor = page.locator('.ProseMirror').first();
+  const editor = page.getByTestId('document-editor');
 
   // Click on the first plain-text paragraph (no element refs)
   // Triple-click to select the entire paragraph
@@ -182,7 +183,7 @@ test.describe('Comments — Local Mode', () => {
     await expect(panel).toBeVisible();
 
     // With no comments, should show empty state
-    await expect(panel.locator('text=No comments yet')).toBeVisible();
+    await expect(page.getByTestId('comment-panel-empty')).toBeVisible();
 
     // Close the panel
     await page.getByTestId('comment-panel-close').click();

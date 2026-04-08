@@ -56,15 +56,16 @@ async function createProjectAndOpenEditor(
   await expect(page).toHaveURL(new RegExp(slug));
 
   // Wait for the project tree
-  await expect(page.locator('app-project-tree')).toBeVisible();
+  await expect(page.getByTestId('project-tree')).toBeVisible();
 
   // Open the README document (all templates include one)
   await page
-    .click('text="README"')
-    .catch(() => page.locator('.tree-node-item').first().click());
+    .getByTestId('element-README')
+    .click()
+    .catch(() => page.locator('[role="treeitem"]').first().click());
 
   // Wait for the ProseMirror editor to appear
-  const editor = page.locator('.ProseMirror').first();
+  const editor = page.getByTestId('document-editor');
   await expect(editor).toBeVisible();
 }
 
@@ -76,7 +77,7 @@ async function addCommentToFirstParagraph(
   page: Page,
   commentText: string
 ): Promise<void> {
-  const editor = page.locator('.ProseMirror').first();
+  const editor = page.getByTestId('document-editor');
 
   // Click on the first plain-text paragraph (no element refs or headings)
   // Triple-click to select the entire paragraph
@@ -234,7 +235,7 @@ test.describe('Comments — Online Mode', () => {
     await expect(panel).toBeVisible();
 
     // Empty state
-    await expect(panel.locator('text=No comments yet')).toBeVisible();
+    await expect(page.getByTestId('comment-panel-empty')).toBeVisible();
 
     // Close panel
     await page.getByTestId('comment-panel-close').click();

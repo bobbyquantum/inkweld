@@ -115,7 +115,10 @@ export class EditorFloatingMenuComponent implements OnDestroy {
   onDocumentTouchEnd(): void {
     this.isDragging = false;
     // Longer delay for touch — the OS selection & native menu need time to settle
-    setTimeout(() => this.updatePosition(), 300);
+    setTimeout(() => {
+      this.updatePosition();
+      this.isTouchInteraction = false;
+    }, 300);
   }
 
   ngOnDestroy(): void {
@@ -185,7 +188,7 @@ export class EditorFloatingMenuComponent implements OnDestroy {
         top = belowPos;
       } else {
         // No room below, fall back to above
-        top = selectionTop - menuHeight - gap;
+        top = Math.max(viewportTop, selectionTop - menuHeight - gap);
       }
     } else if (selectionTop - menuHeight - gap < viewportTop) {
       // Desktop: prefer above, flip to below if not enough room

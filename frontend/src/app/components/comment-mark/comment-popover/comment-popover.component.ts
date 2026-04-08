@@ -1,11 +1,3 @@
-/**
- * Comment Popover Component
- *
- * A floating popover shown when a user clicks on a comment-highlighted range.
- * Displays the full thread (messages), allows adding replies, resolving, and deleting.
- * Fetches thread data on demand from the REST API (server mode) or reads from mark attrs (local-only).
- */
-
 import {
   ChangeDetectionStrategy,
   Component,
@@ -29,6 +21,7 @@ import type {
   LocalCommentMessage,
 } from '../../../services/project/comment.service';
 import { CommentService } from '../../../services/project/comment.service';
+import { formatRelativeDate } from '../../../utils/date-format';
 import { UserAvatarComponent } from '../../user-avatar/user-avatar.component';
 import type { CommentMarkAttrs } from '../comment-mark-schema';
 
@@ -537,23 +530,6 @@ export class CommentPopoverComponent {
   }
 
   formatDate(date: string | number): string {
-    try {
-      const d = new Date(date);
-      const now = new Date();
-      const diff = now.getTime() - d.getTime();
-
-      // Less than 1 minute
-      if (diff < 60_000) return 'just now';
-      // Less than 1 hour
-      if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-      // Less than 1 day
-      if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-      // Less than 7 days
-      if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
-
-      return d.toLocaleDateString();
-    } catch {
-      return '';
-    }
+    return formatRelativeDate(date);
   }
 }

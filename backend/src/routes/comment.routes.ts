@@ -4,7 +4,7 @@ import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { commentService } from '../services/comment.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
-import { type AppContext } from '../types/context';
+import { type AppContext, type DatabaseInstance } from '../types/context';
 import {
   CommentThreadSchema,
   CommentThreadSummarySchema,
@@ -26,8 +26,7 @@ commentRoutes.use('*', requireAuth);
 
 /** Helper: resolve project and check at least read access */
 async function resolveProjectAccess(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: any,
+  db: DatabaseInstance,
   username: string,
   slug: string,
   userId: string

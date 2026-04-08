@@ -15,7 +15,8 @@ export interface UnreadCount {
   count: number;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any -- Drizzle union type doesn't support .select({}) with column maps */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle's DatabaseInstance union does not expose .select({}) column maps or .transaction(); targeted per-statement casts required
+type AnyDb = any;
 
 class CommentService {
   /**
@@ -33,23 +34,25 @@ class CommentService {
   ): Promise<CommentThreadWithMessages> {
     const now = Date.now();
 
-    await db.insert(commentThreads).values({
-      id: data.id,
-      documentId: data.documentId,
-      projectId: data.projectId,
-      authorId: data.authorId,
-      resolved: false,
-      createdAt: now,
-      updatedAt: now,
-    });
+    await (db as AnyDb).transaction(async (tx: AnyDb) => {
+      await tx.insert(commentThreads).values({
+        id: data.id,
+        documentId: data.documentId,
+        projectId: data.projectId,
+        authorId: data.authorId,
+        resolved: false,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-    const messageId = crypto.randomUUID();
-    await db.insert(commentMessages).values({
-      id: messageId,
-      threadId: data.id,
-      authorId: data.authorId,
-      text: data.text,
-      createdAt: now,
+      const messageId = crypto.randomUUID();
+      await tx.insert(commentMessages).values({
+        id: messageId,
+        threadId: data.id,
+        authorId: data.authorId,
+        text: data.text,
+        createdAt: now,
+      });
     });
 
     const thread = await this.getThread(db, data.id);
@@ -66,7 +69,7 @@ class CommentService {
     db: DatabaseInstance,
     threadId: string
   ): Promise<CommentThreadWithMessages | undefined> {
-    const threadRows: { thread: CommentThread; authorName: string | null }[] = await (db as any)
+    const threadRows: { thread: CommentThread; authorName: string | null }[] = await (db as AnyDb)
       .select({
         thread: commentThreads,
         authorName: users.name,
@@ -80,7 +83,7 @@ class CommentService {
 
     const { thread, authorName } = threadRows[0];
 
-    const msgs: { message: CommentMessage; authorName: string | null }[] = await (db as any)
+    const msgs: { message: CommentMessage; authorName: string | null }[] = await (db as AnyDb)
       .select({
         message: commentMessages,
         authorName: users.name,
@@ -108,7 +111,7 @@ class CommentService {
     projectId: string,
     documentId: string
   ): Promise<CommentThreadWithMessages[]> {
-    const threads: { thread: CommentThread; authorName: string | null }[] = await (db as any)
+    const threads: { thread: CommentThread; authorName: string | null }[] = await (db as AnyDb)
       .select({
         thread: commentThreads,
         authorName: users.name,
@@ -123,7 +126,9 @@ class CommentService {
     if (threads.length === 0) return [];
 
     const threadIds = threads.map((t) => t.thread.id);
-    const allMessages: { message: CommentMessage; authorName: string | null }[] = await (db as any)
+    const allMessages: { message: CommentMessage; authorName: string | null }[] = await (
+      db as AnyDb
+    )
       .select({
         message: commentMessages,
         authorName: users.name,
@@ -155,7 +160,7 @@ class CommentService {
     projectId: string
   ): Promise<(CommentThread & { authorName: string; messageCount: number })[]> {
     const threads: { thread: CommentThread; authorName: string | null; messageCount: number }[] =
-      await (db as any)
+      await (db as AnyDb)
         .select({
           thread: commentThreads,
           authorName: users.name,
@@ -187,21 +192,23 @@ class CommentService {
     const now = Date.now();
     const messageId = crypto.randomUUID();
 
-    await db.insert(commentMessages).values({
-      id: messageId,
-      threadId: data.threadId,
-      authorId: data.authorId,
-      text: data.text,
-      createdAt: now,
+    await (db as AnyDb).transaction(async (tx: AnyDb) => {
+      await tx.insert(commentMessages).values({
+        id: messageId,
+        threadId: data.threadId,
+        authorId: data.authorId,
+        text: data.text,
+        createdAt: now,
+      });
+
+      // Update thread's updatedAt
+      await tx
+        .update(commentThreads)
+        .set({ updatedAt: now })
+        .where(eq(commentThreads.id, data.threadId));
     });
 
-    // Update thread's updatedAt
-    await db
-      .update(commentThreads)
-      .set({ updatedAt: now })
-      .where(eq(commentThreads.id, data.threadId));
-
-    const result: { message: CommentMessage; authorName: string | null }[] = await (db as any)
+    const result: { message: CommentMessage; authorName: string | null }[] = await (db as AnyDb)
       .select({
         message: commentMessages,
         authorName: users.name,
@@ -267,41 +274,43 @@ class CommentService {
     db: DatabaseInstance,
     messageId: string
   ): Promise<{ threadDeleted: boolean }> {
-    const message = await db
-      .select()
-      .from(commentMessages)
-      .where(eq(commentMessages.id, messageId))
-      .limit(1);
+    return await (db as AnyDb).transaction(async (tx: AnyDb) => {
+      const message = await tx
+        .select()
+        .from(commentMessages)
+        .where(eq(commentMessages.id, messageId))
+        .limit(1);
 
-    if (message.length === 0) {
+      if (message.length === 0) {
+        return { threadDeleted: false };
+      }
+
+      const threadId = message[0].threadId;
+
+      // Count messages in thread
+      const countResult: { count: number }[] = await tx
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(commentMessages)
+        .where(eq(commentMessages.threadId, threadId));
+
+      const count = countResult[0]?.count ?? 0;
+
+      if (count <= 1) {
+        // Last message — delete the whole thread
+        await tx.delete(commentThreads).where(eq(commentThreads.id, threadId));
+        return { threadDeleted: true };
+      }
+
+      await tx.delete(commentMessages).where(eq(commentMessages.id, messageId));
+
+      // Update thread's updatedAt
+      await tx
+        .update(commentThreads)
+        .set({ updatedAt: Date.now() })
+        .where(eq(commentThreads.id, threadId));
+
       return { threadDeleted: false };
-    }
-
-    const threadId = message[0].threadId;
-
-    // Count messages in thread
-    const countResult: { count: number }[] = await (db as any)
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(commentMessages)
-      .where(eq(commentMessages.threadId, threadId));
-
-    const count = countResult[0]?.count ?? 0;
-
-    if (count <= 1) {
-      // Last message — delete the whole thread
-      await db.delete(commentThreads).where(eq(commentThreads.id, threadId));
-      return { threadDeleted: true };
-    }
-
-    await db.delete(commentMessages).where(eq(commentMessages.id, messageId));
-
-    // Update thread's updatedAt
-    await db
-      .update(commentThreads)
-      .set({ updatedAt: Date.now() })
-      .where(eq(commentThreads.id, threadId));
-
-    return { threadDeleted: false };
+    });
   }
 
   /**
@@ -326,7 +335,7 @@ class CommentService {
     projectId: string,
     userId: string
   ): Promise<UnreadCount[]> {
-    const results: { documentId: string; count: number }[] = await (db as any)
+    const results: { documentId: string; count: number }[] = await (db as AnyDb)
       .select({
         documentId: commentThreads.documentId,
         count: sql<number>`COUNT(*)`,

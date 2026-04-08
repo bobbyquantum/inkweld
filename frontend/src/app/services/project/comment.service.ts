@@ -104,7 +104,7 @@ export class CommentService {
     return this.setupService.getServerUrl() ?? '';
   }
 
-  private get isServerMode(): boolean {
+  get isServerMode(): boolean {
     return !!this.basePath;
   }
 
@@ -495,9 +495,14 @@ export class CommentService {
     );
     if (!attrs?.localOnly) return;
 
-    const messages: LocalCommentMessage[] = attrs.messages
-      ? (JSON.parse(attrs.messages) as LocalCommentMessage[])
-      : [];
+    let messages: LocalCommentMessage[];
+    try {
+      messages = attrs.messages
+        ? (JSON.parse(attrs.messages) as LocalCommentMessage[])
+        : [];
+    } catch {
+      messages = [];
+    }
 
     messages.push({
       id: crypto.randomUUID(),
