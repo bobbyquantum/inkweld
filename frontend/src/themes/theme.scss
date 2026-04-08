@@ -4,7 +4,9 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -235,16 +237,7 @@ $dark-theme: mat.define-theme(
     --visual-viewport-height-82: calc(100dvh - 82px);
     --visual-viewport-height-130: calc(100dvh - 130px);
   }
-}
 
-// Override CDK overlay to use dynamic viewport height for mobile keyboard support
-.cdk-overlay-container,
-.cdk-global-overlay-wrapper {
-  height: var(--app-height);
-  max-height: var(--app-height);
-}
-
-:root {
   /* Scrollbar styles for light theme */
   --scrollbar-thumb-color: #006874; /* primary-40 */
   --scrollbar-thumb-hover-color: #008391; /* primary-50 */
@@ -254,50 +247,55 @@ $dark-theme: mat.define-theme(
   @include mat.system-level-colors($light-theme);
   @include mat.system-level-typography($light-theme);
 
-  & {
-    --card-background-color: var(--sys-surface-container-high);
-    --ngx-editor-border-radius: 4px;
-    --ngx-editor-background-color: var(--sys-surface-container-lowest);
-    --ngx-editor-text-color: #000;
-    --ngx-editor-placeholder-color: #6c757d;
-    --ngx-editor-border-color: rgba(0, 0, 0, 0.2);
-    --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
-    --ngx-editor-menubar-bg-color: #fff;
-    --ngx-editor-menubar-padding: 3px;
-    --ngx-editor-menubar-height: 30px;
-    --ngx-editor-blockquote-color: #ddd;
-    --ngx-editor-blockquote-border-width: 3px;
-    --ngx-editor-icon-size: 30px;
-    --ngx-editor-popup-bg-color: #fff;
-    --ngx-editor-popup-border-radius: 4px;
-    --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
-    --ngx-editor-menu-item-border-radius: 50%;
-    --ngx-editor-menu-item-active-color: #1a73e8;
-    --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
-    --ngx-editor-menu-item-active-bg-color: #e8f0fe;
-    --ngx-editor-seperator-color: #ccc;
-    --ngx-editor-bubble-bg-color: #000;
-    --ngx-editor-bubble-text-color: #fff;
-    --ngx-editor-bubble-item-hover-color: #636262;
-    --ngx-editor-bubble-seperator-color: #fff;
-    --ngx-editor-focus-ring-color: #5e9ed6;
-    --ngx-editor-error-color: red;
-    --ngx-editor-click-pointer: pointer;
-    --sync-dot-unavailable-color: var(--sys-error);
-    --sync-dot-offline-color: var(--sys-outline);
-    --sync-dot-syncing-color: var(--sys-secondary);
-    --sync-dot-synced-color: var(--sys-primary);
+  --card-background-color: var(--sys-surface-container-high);
+  --ngx-editor-border-radius: 4px;
+  --ngx-editor-background-color: var(--sys-surface-container-lowest);
+  --ngx-editor-text-color: #000;
+  --ngx-editor-placeholder-color: #6c757d;
+  --ngx-editor-border-color: rgba(0, 0, 0, 0.2);
+  --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
+  --ngx-editor-menubar-bg-color: #fff;
+  --ngx-editor-menubar-padding: 3px;
+  --ngx-editor-menubar-height: 30px;
+  --ngx-editor-blockquote-color: #ddd;
+  --ngx-editor-blockquote-border-width: 3px;
+  --ngx-editor-icon-size: 30px;
+  --ngx-editor-popup-bg-color: #fff;
+  --ngx-editor-popup-border-radius: 4px;
+  --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
+  --ngx-editor-menu-item-border-radius: 50%;
+  --ngx-editor-menu-item-active-color: #1a73e8;
+  --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
+  --ngx-editor-menu-item-active-bg-color: #e8f0fe;
+  --ngx-editor-seperator-color: #ccc;
+  --ngx-editor-bubble-bg-color: #000;
+  --ngx-editor-bubble-text-color: #fff;
+  --ngx-editor-bubble-item-hover-color: #636262;
+  --ngx-editor-bubble-seperator-color: #fff;
+  --ngx-editor-focus-ring-color: #5e9ed6;
+  --ngx-editor-error-color: red;
+  --ngx-editor-click-pointer: pointer;
+  --sync-dot-unavailable-color: var(--sys-error);
+  --sync-dot-offline-color: var(--sys-outline);
+  --sync-dot-syncing-color: var(--sys-secondary);
+  --sync-dot-synced-color: var(--sys-primary);
 
-    /* Custom success and error colors for light theme */
-    --custom-success-color: #2e7d32; /* Material Green 800 */
-    --custom-error-color: var(--sys-error);
-    --password-tooltip-bg: var(--sys-surface-container-high);
-    --password-tooltip-border: var(--sys-outline-variant);
+  /* Custom success and error colors for light theme */
+  --custom-success-color: #2e7d32; /* Material Green 800 */
+  --custom-error-color: var(--sys-error);
+  --password-tooltip-bg: var(--sys-surface-container-high);
+  --password-tooltip-border: var(--sys-outline-variant);
 
-    /* Search highlight colors for light theme */
-    --search-highlight-bg: #fff59d; /* Yellow 200 - good visibility on light surfaces */
-    --search-highlight-text: #000000;
-  }
+  /* Search highlight colors for light theme */
+  --search-highlight-bg: #fff59d; /* Yellow 200 - good visibility on light surfaces */
+  --search-highlight-text: #000000;
+}
+
+// Override CDK overlay to use dynamic viewport height for mobile keyboard support
+.cdk-overlay-container,
+.cdk-global-overlay-wrapper {
+  height: var(--app-height);
+  max-height: var(--app-height);
 }
 
 .dark-theme {
@@ -310,60 +308,50 @@ $dark-theme: mat.define-theme(
   @include mat.system-level-colors($dark-theme);
   @include mat.system-level-typography($dark-theme);
 
-  & {
-    --card-background-color: var(--sys-surface-container-high);
-    --ngx-editor-border-radius: 0;
-    --ngx-editor-background-color: var(--sys-surface-container-lowest);
-    --ngx-editor-text-color: var(--sys-on-surface);
-    --ngx-editor-placeholder-color: #6c757d;
-    --ngx-editor-border-color: rgba(0, 0, 0, 0);
-    --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
-    --ngx-editor-menu-item-border-radius: 50%;
-    --ngx-editor-menubar-bg-color: var(--sys-surface-container-high);
-    --ngx-editor-menu-item-hover-bg-color: var(--sys-surface-container-highest);
-    --ngx-editor-menubar-padding: 3px;
-    --ngx-editor-menubar-height: 30px;
-    --ngx-editor-blockquote-color: #ddd;
-    --ngx-editor-blockquote-border-width: 3px;
-    --ngx-editor-icon-size: 30px;
-    --ngx-editor-popup-bg-color: var(--sys-surface-container);
-    --ngx-editor-popup-border-radius: 4px;
-    --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
-    --ngx-editor-menu-item-active-color: var(--sys-primary);
-    --ngx-editor-menu-item-active-bg-color: var(--sys-surface-container);
-    --ngx-editor-seperator-color: #ccc;
-    --ngx-editor-bubble-bg-color: #000;
-    --ngx-editor-bubble-text-color: #fff;
-    --ngx-editor-bubble-item-hover-color: #636262;
-    --ngx-editor-bubble-seperator-color: #fff;
-    --ngx-editor-focus-ring-color: #5e9ed6;
-    --ngx-editor-error-color: red;
-    --ngx-editor-click-pointer: pointer;
+  --card-background-color: var(--sys-surface-container-high);
+  --ngx-editor-border-radius: 0;
+  --ngx-editor-background-color: var(--sys-surface-container-lowest);
+  --ngx-editor-text-color: var(--sys-on-surface);
+  --ngx-editor-placeholder-color: #6c757d;
+  --ngx-editor-border-color: rgba(0, 0, 0, 0);
+  --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
+  --ngx-editor-menu-item-border-radius: 50%;
+  --ngx-editor-menubar-bg-color: var(--sys-surface-container-high);
+  --ngx-editor-menu-item-hover-bg-color: var(--sys-surface-container-highest);
+  --ngx-editor-menubar-padding: 3px;
+  --ngx-editor-menubar-height: 30px;
+  --ngx-editor-blockquote-color: #ddd;
+  --ngx-editor-blockquote-border-width: 3px;
+  --ngx-editor-icon-size: 30px;
+  --ngx-editor-popup-bg-color: var(--sys-surface-container);
+  --ngx-editor-popup-border-radius: 4px;
+  --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
+  --ngx-editor-menu-item-active-color: var(--sys-primary);
+  --ngx-editor-menu-item-active-bg-color: var(--sys-surface-container);
+  --ngx-editor-seperator-color: #ccc;
+  --ngx-editor-bubble-bg-color: #000;
+  --ngx-editor-bubble-text-color: #fff;
+  --ngx-editor-bubble-item-hover-color: #636262;
+  --ngx-editor-bubble-seperator-color: #fff;
+  --ngx-editor-focus-ring-color: #5e9ed6;
+  --ngx-editor-error-color: red;
+  --ngx-editor-click-pointer: pointer;
 
-    /* Custom success and error colors for dark theme */
-    --custom-success-color: #4caf50; /* Material Green 500 - brighter for dark theme */
-    --custom-error-color: var(--sys-error);
-    --password-tooltip-bg: var(--sys-surface-container-high);
-    --password-tooltip-border: var(--sys-outline-variant);
+  /* Custom success and error colors for dark theme */
+  --custom-success-color: #4caf50; /* Material Green 500 - brighter for dark theme */
+  --custom-error-color: var(--sys-error);
+  --password-tooltip-bg: var(--sys-surface-container-high);
+  --password-tooltip-border: var(--sys-outline-variant);
 
-    /* Search highlight colors for dark theme */
-    --search-highlight-bg: #fdd835; /* Yellow 600 - high contrast on dark surfaces */
-    --search-highlight-text: #000000;
-  }
+  /* Search highlight colors for dark theme */
+  --search-highlight-bg: #fdd835; /* Yellow 600 - high contrast on dark surfaces */
+  --search-highlight-text: #000000;
 }
 
-body {
-  background-color: var(--mat-app-background-color);
-  color: var(--mat-app-text-color);
-}
-
-.dark-theme body {
-  background-color: var(--mat-app-background-color);
-  color: var(--mat-app-text-color);
-}
 html {
   height: var(--app-height);
 }
+
 body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
@@ -481,7 +469,10 @@ mat-card.mat-mdc-card {
 
 /* Frosted glass effect for Material dialogs */
 /* Light theme (default) */
-body:not(.dark-theme) .cdk-overlay-container .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+body:not(.dark-theme)
+  .cdk-overlay-container
+  .mat-mdc-dialog-container
+  .mat-mdc-dialog-surface {
   background: rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -492,7 +483,10 @@ body:not(.dark-theme) .cdk-overlay-container .mat-mdc-dialog-container .mat-mdc-
 }
 
 /* Dark theme dialog */
-body.dark-theme .cdk-overlay-container .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+body.dark-theme
+  .cdk-overlay-container
+  .mat-mdc-dialog-container
+  .mat-mdc-dialog-surface {
   background: rgba(18, 18, 20, 0.92) !important;
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
@@ -513,6 +507,43 @@ body.dark-theme .cdk-overlay-dark-backdrop {
   background: rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+}
+
+/* Frosted glass effect for Material snackbar */
+/* Light theme (default) */
+body:not(.dark-theme) .mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  background: rgba(50, 50, 55, 0.85) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+
+body:not(.dark-theme) .mat-mdc-snack-bar-container .mdc-snackbar__label {
+  color: #fff !important;
+}
+
+body:not(.dark-theme) .mat-mdc-snack-bar-container .mat-mdc-button {
+  color: var(--sys-primary) !important;
+}
+
+/* Dark theme snackbar */
+body.dark-theme .mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  background: rgba(18, 18, 20, 0.92) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+  color: var(--sys-on-surface);
+}
+
+body.dark-theme .mat-mdc-snack-bar-container .mdc-snackbar__label {
+  color: var(--sys-on-surface) !important;
+}
+
+body.dark-theme .mat-mdc-snack-bar-container .mat-mdc-button {
+  color: var(--sys-primary) !important;
 }
 
 /* Login/Register dialog - allow logo overflow */

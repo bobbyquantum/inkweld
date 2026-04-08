@@ -1,6 +1,7 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
 import { type Page } from '@playwright/test';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
 
 /**
  * Press a keyboard shortcut using the Control modifier key.
@@ -75,7 +76,7 @@ export async function storeRealMediaInIndexedDB(
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+        bytes[i] = binaryString.codePointAt(i)!;
       }
       const blob = new Blob([bytes], { type: 'image/png' });
 
@@ -89,9 +90,8 @@ export async function storeRealMediaInIndexedDB(
         filename,
       };
 
-      return new Promise<void>((resolve, reject) => {
-        // Use prefixed database name for local mode
-        const request = indexedDB.open('local:inkweld-media', 1);
+      const request = indexedDB.open('local:inkweld-media', 1);
+      await new Promise<void>((resolve, reject) => {
         request.onerror = () => reject(new Error('Failed to open database'));
         request.onupgradeneeded = event => {
           const db = (event.target as IDBOpenDBRequest).result;
@@ -99,15 +99,20 @@ export async function storeRealMediaInIndexedDB(
             db.createObjectStore('media', { keyPath: 'id' });
           }
         };
-        request.onsuccess = () => {
-          const db = request.result;
-          const tx = db.transaction('media', 'readwrite');
-          const store = tx.objectStore('media');
-          const putRequest = store.put(record);
-          putRequest.onsuccess = () => resolve();
-          putRequest.onerror = () => reject(new Error('Failed to store media'));
-        };
+        request.onsuccess = () => resolve();
       });
+      const db = request.result;
+      const tx = db.transaction('media', 'readwrite');
+      const store = tx.objectStore('media');
+      store.put(record);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onabort = () =>
+          reject(tx.error ?? new Error('Failed to store media'));
+        tx.onerror = () =>
+          reject(tx.error ?? new Error('Failed to store media'));
+      });
+      db.close();
     },
     { projectKey, mediaId, base64Data, filename }
   );
@@ -144,8 +149,8 @@ export async function storeRealEpubInIndexedDB(
         filename,
       };
 
-      return new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open('local:inkweld-media', 1);
+      const request = indexedDB.open('local:inkweld-media', 1);
+      await new Promise<void>((resolve, reject) => {
         request.onerror = () => reject(new Error('Failed to open database'));
         request.onupgradeneeded = event => {
           const db = (event.target as IDBOpenDBRequest).result;
@@ -153,15 +158,20 @@ export async function storeRealEpubInIndexedDB(
             db.createObjectStore('media', { keyPath: 'id' });
           }
         };
-        request.onsuccess = () => {
-          const db = request.result;
-          const tx = db.transaction('media', 'readwrite');
-          const store = tx.objectStore('media');
-          const putRequest = store.put(record);
-          putRequest.onsuccess = () => resolve();
-          putRequest.onerror = () => reject(new Error('Failed to store epub'));
-        };
+        request.onsuccess = () => resolve();
       });
+      const db = request.result;
+      const tx = db.transaction('media', 'readwrite');
+      const store = tx.objectStore('media');
+      store.put(record);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onabort = () =>
+          reject(tx.error ?? new Error('Failed to store epub'));
+        tx.onerror = () =>
+          reject(tx.error ?? new Error('Failed to store epub'));
+      });
+      db.close();
     },
     { projectKey, fileId, filename }
   );
@@ -447,6 +457,15 @@ export async function createProjectWithTwoSteps(
 
   // Submit the form
   await page.click('button[data-testid="create-project-button"]');
+
+  // Wait for navigation to the new project page
+  await page.waitForURL(url => url.pathname.endsWith(`/${projectSlug}`), {
+    timeout: 15_000,
+  });
+
+  // Dismiss the "Project created successfully!" toast so it doesn't
+  // appear in screenshots or interfere with subsequent interactions.
+  await dismissToastIfPresent(page);
 }
 
 /**
@@ -456,11 +475,9 @@ export async function createProjectWithTwoSteps(
 export async function dismissToastIfPresent(page: Page): Promise<void> {
   try {
     const toast = page.locator('mat-snack-bar-container');
-    const isVisible = await toast.isVisible({ timeout: 2_000 });
-    if (isVisible) {
-      await toast.getByRole('button').click({ timeout: 2_000 });
-    }
+    await toast.waitFor({ state: 'visible', timeout: 2_000 });
+    await toast.getByRole('button').click({ timeout: 2_000 });
   } catch {
-    // No toast present — that's fine
+    // No toast present or timed out — that's fine
   }
 }
