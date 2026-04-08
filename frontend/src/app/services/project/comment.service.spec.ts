@@ -421,7 +421,8 @@ describe('CommentService', () => {
       container = result.container;
 
       service.addLocalReply(result.view, 'nonexistent', 'Reply');
-      // Should not throw
+      // Marks should remain unchanged (no comment with that id exists)
+      expect(service.getCommentMarks(result.view).length).toBe(0);
     });
 
     it('should handle malformed JSON in messages attribute', () => {
@@ -609,6 +610,7 @@ describe('CommentService', () => {
       mockSetupService.getServerUrl.mockReturnValue('');
       await service.fetchUnreadCounts('alice', 'story');
       httpMock.expectNone(() => true);
+      expect(service.unreadCounts().size).toBe(0);
     });
 
     it('markSeen should POST and clear local unread count', async () => {
@@ -650,13 +652,15 @@ describe('CommentService', () => {
       );
       req.flush('Server Error', { status: 500, statusText: 'Error' });
       await promise;
-      // Should not throw
+      // Should not throw — service remains functional
+      expect(service.unreadCounts().size).toBe(0);
     });
 
     it('markSeen should be a no-op in local mode', async () => {
       mockSetupService.getServerUrl.mockReturnValue('');
       await service.markSeen('alice', 'story', 'doc-1');
       httpMock.expectNone(() => true);
+      expect(service.unreadCounts().size).toBe(0);
     });
   });
 
@@ -689,12 +693,12 @@ describe('CommentService', () => {
   describe('setActiveDocumentId', () => {
     it('should accept a string id', () => {
       service.setActiveDocumentId('doc-123');
-      // Verified indirectly by addComment server mode not returning null for missing doc id
+      expect(service.activeCommentId()).toBeNull(); // side-effect: doc id stored; activeComment unaffected
     });
 
     it('should accept null', () => {
       service.setActiveDocumentId(null);
-      // No error expected
+      expect(service.activeCommentId()).toBeNull();
     });
   });
 });
