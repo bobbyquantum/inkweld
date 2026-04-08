@@ -20,6 +20,7 @@ import {
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { createCommentPlugin } from '../../components/comment-mark/comment-plugin';
 import { createKeyboardShortcutsPlugin } from '../../components/editor-shortcuts';
 import {
   createElementRefPlugin,
@@ -49,6 +50,7 @@ import {
   setupReauthentication,
 } from '../sync/authenticated-websocket-provider';
 import { UnifiedUserService } from '../user/unified-user.service';
+import { CommentService } from './comment.service';
 import { ProjectStateService } from './project-state.service';
 
 /**
@@ -108,6 +110,7 @@ export class DocumentService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
+  private readonly commentService = inject(CommentService);
 
   /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
   private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
@@ -840,6 +843,10 @@ export class DocumentService {
         onInsertImage: () => {
           this.insertImageService.trigger();
         },
+        // Add comment shortcut (Ctrl/Cmd + Alt + M)
+        onAddComment: () => {
+          this.commentService.addCommentTrigger.update(c => c + 1);
+        },
       }
     );
     plugins.push(keyboardShortcutsPlugin);
@@ -918,6 +925,15 @@ export class DocumentService {
       }),
     });
     plugins.push(wordCountPlugin);
+
+    // Add comment plugin for click-to-open comment threads
+    const commentPlugin = createCommentPlugin({
+      onCommentClick: (attrs, coords) => {
+        this.commentService.activeCommentId.set(attrs.commentId);
+        this.commentService.commentClickEvent.set({ attrs, coords });
+      },
+    });
+    plugins.push(commentPlugin);
 
     // Reconfigure state with new plugins - this triggers ySyncPlugin's init()
     // which binds Yjs content to ProseMirror

@@ -263,4 +263,18 @@
 
     <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
   }
+
+  <!-- Comments Toggle - always visible (readers can view comments too) -->
+  <div class="toolbar-spacer"></div>
+  <div class="toolbar-group">
+    <button
+      ngToolbarWidget
+      value="comments"
+      [attr.aria-pressed]="commentPanelOpen"
+      matTooltip="Comments (Ctrl+Alt+M to add)"
+      (click)="toggleComments.emit()"
+      data-testid="toolbar-comments">
+      <mat-icon>comment</mat-icon>
+    </button>
+  </div>
 </div>

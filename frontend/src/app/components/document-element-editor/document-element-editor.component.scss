@@ -69,6 +69,13 @@
   overflow: hidden;
 }
 
+.comment-panel-container {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .editor-container {
   display: flex;
   flex-direction: column;
@@ -659,4 +666,52 @@
 ::ng-deep .element-ref-trigger {
   background-color: var(--sys-primary-container, #e8def8);
   border-radius: 2px;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Comment Highlight Styles
+// ─────────────────────────────────────────────────────────────────────────────
+
+::ng-deep .comment-highlight {
+  background-color: rgba(255, 213, 79, 0.35);
+  border-bottom: 2px solid rgba(255, 179, 0, 0.6);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-radius: 2px;
+}
+
+::ng-deep .comment-highlight:hover {
+  background-color: rgba(255, 213, 79, 0.55);
+}
+
+::ng-deep .comment-highlight--resolved {
+  background-color: transparent;
+  border-bottom: none;
+  cursor: default;
+}
+
+::ng-deep .comment-highlight--sidebar-hover {
+  background-color: rgba(255, 213, 79, 0.45) !important;
+  border-bottom: 2px solid rgba(255, 179, 0, 0.6) !important;
+  cursor: pointer !important;
+  transition: background-color 0.15s ease;
+}
+
+:host-context(.dark-theme) ::ng-deep .comment-highlight--resolved {
+  background-color: transparent;
+  border-bottom: none;
+}
+
+:host-context(.dark-theme) ::ng-deep .comment-highlight--sidebar-hover {
+  background-color: rgba(255, 179, 0, 0.3) !important;
+  border-bottom-color: rgba(255, 179, 0, 0.5) !important;
+}
+
+:host-context(.dark-theme) ::ng-deep .comment-highlight {
+  background-color: rgba(255, 179, 0, 0.2);
+  border-bottom-color: rgba(255, 179, 0, 0.4);
+}
+
+:host-context(.dark-theme) ::ng-deep .comment-highlight:hover {
+  background-color: rgba(255, 179, 0, 0.35);
 }
