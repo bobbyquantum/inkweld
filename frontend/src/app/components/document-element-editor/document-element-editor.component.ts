@@ -26,24 +26,31 @@ import {
   NgxEditorModule,
   type Toolbar,
 } from '@bobbyquantum/ngx-editor';
-import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { InsertImageService } from '@services/core/insert-image.service';
-import { SettingsService } from '@services/core/settings.service';
-import { LocalStorageService } from '@services/local/local-storage.service';
-import { DocumentService } from '@services/project/document.service';
-import { ProjectStateService } from '@services/project/project-state.service';
-import { RelationshipService } from '@services/relationship';
-
+import {
+  type CommentMarkAttrs,
+  CommentPanelComponent,
+  CommentPopoverComponent,
+} from '@components/comment-mark';
 import {
   SnapshotsDialogComponent,
   type SnapshotsDialogData,
-} from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
+} from '@dialogs/snapshots-dialog/snapshots-dialog.component';
 import {
   TagEditorDialogComponent,
   type TagEditorDialogData,
-} from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
-import { FindInDocumentService } from '../../services/core/find-in-document.service';
-import { TagService } from '../../services/tag/tag.service';
+} from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { FindInDocumentService } from '@services/core/find-in-document.service';
+import { InsertImageService } from '@services/core/insert-image.service';
+import { SettingsService } from '@services/core/settings.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { CommentService } from '@services/project/comment.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship';
+import { TagService } from '@services/tag/tag.service';
+import { firstValueFrom } from 'rxjs';
+
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -85,6 +92,8 @@ import { type ResolvedTag } from '../tags/tag.model';
     EditorToolbarComponent,
     EditorFloatingMenuComponent,
     FindInDocumentComponent,
+    CommentPopoverComponent,
+    CommentPanelComponent,
   ],
   templateUrl: './document-element-editor.component.html',
   styleUrls: [
@@ -106,6 +115,7 @@ export class DocumentElementEditorComponent
   protected elementRefService = inject(ElementRefService);
   protected findService = inject(FindInDocumentService);
   private readonly tagService = inject(TagService);
+  protected commentService = inject(CommentService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';
@@ -125,6 +135,17 @@ export class DocumentElementEditorComponent
 
   /** Tooltip data for element references */
   tooltipData = signal<ElementRefTooltipData | null>(null);
+
+  /** Comment popover state */
+  commentPopoverAttrs = signal<CommentMarkAttrs | null>(null);
+  commentPopoverPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  /** Comment panel state */
+  commentPanelOpen = signal(false);
+  commentMarks = signal<CommentMarkAttrs[]>([]);
+  commentPositions = signal<Record<string, number>>({});
+  editorScrollTop = signal(0);
+  editorContentHeight = signal(0);
 
   editor!: Editor;
   toolbar: Toolbar = [
@@ -161,6 +182,7 @@ export class DocumentElementEditorComponent
   private idFormatted = false;
   private collaborationSetup = false;
   private destroyed = false; // Track if component is destroyed to prevent stale async operations
+  private editorScrollCleanup: (() => void) | null = null;
   private readonly lintAcceptListener: EventListener = (_event: Event) => {
     // Suggestion accepted - could add analytics here
   };
@@ -276,6 +298,24 @@ export class DocumentElementEditorComponent
         void this.openInsertImageDialog();
       }
     });
+
+    // Watch for comment click events from the plugin
+    effect(() => {
+      const event = this.commentService.commentClickEvent();
+      if (event) {
+        this.commentPopoverAttrs.set(event.attrs);
+        this.commentPopoverPosition.set(event.coords);
+        this.commentService.commentClickEvent.set(null);
+      }
+    });
+
+    // Watch for add-comment keyboard shortcut trigger (Ctrl+Alt+M)
+    effect(() => {
+      const triggerCount = this.commentService.addCommentTrigger();
+      if (triggerCount > 0 && this.editor?.view && this.collaborationSetup) {
+        void this.addComment();
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -334,6 +374,9 @@ export class DocumentElementEditorComponent
 
       // CRITICAL: Set flag IMMEDIATELY to prevent multiple calls
       this.collaborationSetup = true;
+
+      // Set active document ID for comment service (server-mode comments)
+      this.commentService.setActiveDocumentId(this.documentId);
 
       // Use requestAnimationFrame to ensure the view is fully rendered before setup
       requestAnimationFrame(() => {
@@ -435,8 +478,14 @@ export class DocumentElementEditorComponent
     // Mark as destroyed to prevent stale async operations
     this.destroyed = true;
 
+    // Clean up scroll listener
+    this.teardownEditorScrollListener();
+
     // Clear find service editor reference
     this.findService.setEditor(null);
+
+    // Clear active document ID for comment service
+    this.commentService.setActiveDocumentId(null);
 
     // Destroy editor FIRST before disconnecting
     // This prevents awareness cleanup from trying to update a destroyed editor
@@ -826,6 +875,170 @@ export class DocumentElementEditorComponent
       const tr = this.editor.view.state.tr.insert(storedPos, imageNode);
       this.editor.view.dispatch(tr);
       this.editor.view.focus();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Comment operations
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async addComment(): Promise<void> {
+    if (!this.editor?.view) return;
+    const project = this.projectState.project();
+    if (!project) return;
+
+    const { from, to } = this.editor.view.state.selection;
+    if (from === to) return; // No selection
+
+    const { AddCommentDialogComponent } =
+      await import('../../dialogs/add-comment-dialog/add-comment-dialog.component');
+    const dialogRef = this.dialog.open<unknown, unknown, string>(
+      AddCommentDialogComponent,
+      {
+        width: '400px',
+        autoFocus: 'first-tabbable',
+      }
+    );
+
+    const text = await firstValueFrom(dialogRef.afterClosed());
+    if (!text?.trim()) return;
+
+    // Re-apply the selection — dialog may have stolen focus
+    this.editor.view.focus();
+
+    await this.commentService.addComment(
+      this.editor.view,
+      text.trim(),
+      project.username,
+      project.slug,
+      from,
+      to
+    );
+
+    this.refreshCommentPanel();
+  }
+
+  onCommentResolved(commentId: string): void {
+    if (!this.editor?.view) return;
+    // Keep the mark but update its resolved state (visible as faded highlight)
+    this.commentService.updateCommentMarkCache(this.editor.view, commentId, {
+      resolved: true,
+    });
+    this.refreshCommentPanel();
+  }
+
+  onCommentDeleted(commentId: string): void {
+    if (!this.editor?.view) return;
+    this.commentService.removeCommentMark(this.editor.view, commentId);
+    this.refreshCommentPanel();
+  }
+
+  onCommentUpdated(event: {
+    commentId: string;
+    updates: Partial<CommentMarkAttrs>;
+  }): void {
+    if (!this.editor?.view) return;
+    this.commentService.updateCommentMarkCache(
+      this.editor.view,
+      event.commentId,
+      event.updates
+    );
+    this.refreshCommentPanel();
+  }
+
+  closeCommentPopover(): void {
+    this.commentPopoverAttrs.set(null);
+    this.commentService.activeCommentId.set(null);
+  }
+
+  toggleCommentPanel(): void {
+    const isOpen = !this.commentPanelOpen();
+    this.commentPanelOpen.set(isOpen);
+    if (isOpen && this.editor?.view) {
+      this.commentMarks.set(
+        this.commentService.getCommentMarks(this.editor.view)
+      );
+      this.computeCommentPositions();
+      this.setupEditorScrollListener();
+    } else {
+      this.teardownEditorScrollListener();
+    }
+  }
+
+  private refreshCommentPanel(): void {
+    if (this.commentPanelOpen() && this.editor?.view) {
+      this.commentMarks.set(
+        this.commentService.getCommentMarks(this.editor.view)
+      );
+      this.computeCommentPositions();
+    }
+  }
+
+  /** Compute Y offsets of each comment mark relative to the editor content top */
+  private computeCommentPositions(): void {
+    if (!this.editor?.view) return;
+    const view = this.editor.view;
+
+    const scrollContainer = view.dom.closest('.NgxEditor__Content') as
+      | HTMLElement
+      | undefined;
+    if (!scrollContainer) return;
+
+    const scrollTop = scrollContainer.scrollTop;
+    const containerRect = scrollContainer.getBoundingClientRect();
+
+    const marksWithPos = this.commentService.getCommentMarksWithPositions(view);
+    const positions: Record<string, number> = {};
+
+    for (const { attrs, from } of marksWithPos) {
+      try {
+        const coords = view.coordsAtPos(from);
+        // Convert viewport Y to document-relative Y
+        positions[attrs.commentId] = coords.top - containerRect.top + scrollTop;
+      } catch {
+        // Position may be invalid if mark is in a deleted node
+      }
+    }
+
+    this.commentPositions.set(positions);
+    this.editorContentHeight.set(scrollContainer.scrollHeight);
+    this.editorScrollTop.set(scrollTop);
+  }
+
+  /** Listen to editor scroll to keep comment positions in sync */
+  private setupEditorScrollListener(): void {
+    if (this.editorScrollCleanup) return;
+    const scrollContainer = this.editor?.view?.dom.closest(
+      '.NgxEditor__Content'
+    ) as HTMLElement | undefined;
+    if (!scrollContainer) return;
+
+    const handler = () => {
+      this.editorScrollTop.set(scrollContainer.scrollTop);
+      this.computeCommentPositions();
+    };
+    scrollContainer.addEventListener('scroll', handler, { passive: true });
+    this.editorScrollCleanup = () =>
+      scrollContainer.removeEventListener('scroll', handler);
+  }
+
+  private teardownEditorScrollListener(): void {
+    this.editorScrollCleanup?.();
+    this.editorScrollCleanup = null;
+  }
+
+  /** Highlight comment marks in the editor when hovering a sidebar thread */
+  onCommentHover(commentId: string | null): void {
+    // Remove previous hover highlights
+    document
+      .querySelectorAll('.comment-highlight--sidebar-hover')
+      .forEach(el => el.classList.remove('comment-highlight--sidebar-hover'));
+
+    // Add highlight to hovered comment's marks
+    if (commentId) {
+      document
+        .querySelectorAll(`[data-comment-id="${CSS.escape(commentId)}"]`)
+        .forEach(el => el.classList.add('comment-highlight--sidebar-hover'));
     }
   }
 }

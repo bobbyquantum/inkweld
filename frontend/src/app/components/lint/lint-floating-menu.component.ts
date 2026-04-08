@@ -130,6 +130,9 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
   /** Whether mouse is being dragged (selecting text) */
   private isDragging = false;
 
+  /** Whether the current interaction is touch-based */
+  private isTouchInteraction = false;
+
   @HostListener('document:mousedown')
   onDocumentMouseDown(): void {
     this.isDragging = true;
@@ -139,6 +142,21 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
   onDocumentMouseUp(): void {
     this.isDragging = false;
     setTimeout(() => this.updatePosition(), 10);
+  }
+
+  @HostListener('document:touchstart')
+  onDocumentTouchStart(): void {
+    this.isDragging = true;
+    this.isTouchInteraction = true;
+  }
+
+  @HostListener('document:touchend')
+  onDocumentTouchEnd(): void {
+    this.isDragging = false;
+    setTimeout(() => {
+      this.updatePosition();
+      this.isTouchInteraction = false;
+    }, 300);
   }
 
   /**
@@ -236,15 +254,24 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
     const menuHeight = 100;
     const menuWidth = 300;
     const gap = 8;
+    const touchGapBelow = 32;
 
     // Viewport boundaries with some padding
     const viewportTop = 60;
     const viewportLeft = 10;
     const viewportRight = window.innerWidth - 10;
+    const viewportBottom = window.innerHeight - 10;
 
-    // Determine vertical position: prefer above, flip to below if not enough room
+    // On touch devices prefer below to avoid OS context menu conflict
     let top: number;
-    if (selectionTop - menuHeight - gap < viewportTop) {
+    if (this.isTouchInteraction) {
+      const belowPos = selectionBottom + touchGapBelow;
+      if (belowPos + menuHeight < viewportBottom) {
+        top = belowPos;
+      } else {
+        top = Math.max(viewportTop, selectionTop - menuHeight - gap);
+      }
+    } else if (selectionTop - menuHeight - gap < viewportTop) {
       top = selectionBottom + gap;
     } else {
       top = selectionTop - menuHeight - gap;
