@@ -71,7 +71,6 @@ import { FindInDocumentComponent } from '../find-in-document';
 import { createMediaUrl } from '../image-paste';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
-import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { type ResolvedTag } from '../tags/tag.model';
 
 @Component({
@@ -85,7 +84,6 @@ import { type ResolvedTag } from '../tags/tag.model';
     MatOptionModule,
     DragDropModule,
     LintFloatingMenuComponent,
-    MetaPanelComponent,
     ElementRefPopupComponent,
     ElementRefContextMenuComponent,
     ElementRefTooltipComponent,
