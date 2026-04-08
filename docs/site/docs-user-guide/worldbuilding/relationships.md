@@ -13,18 +13,18 @@ Relationships define meaningful connections between your story elements—family
 
 ## Manual vs. Automatic Relationships
 
-| Feature | Element References (@mentions) | Manual Relationships |
-|---------|-------------------------------|----------------------|
-| **Creation** | Automatic when typing `@` | Explicit via dialog |
-| **Display** | Inline links in text | Listed in side panel |
-| **Backlinks** | Yes, in References tab | Yes, with inverse label |
-| **Types** | Generic "references" | Familial, Social, Spatial, etc. |
+| Feature       | Element References (@mentions)               | Manual Relationships                |
+| ------------- | -------------------------------------------- | ----------------------------------- |
+| **Creation**  | Automatic when typing `@`                    | Explicit via dialog                 |
+| **Display**   | Inline links in text                         | Listed in the Relationships section |
+| **Backlinks** | Yes, on the referenced worldbuilding element | Yes, with inverse label             |
+| **Types**     | Generic "references"                         | Familial, Social, Spatial, etc.     |
 
 ## Quick Start
 
 1. Open any worldbuilding element
-2. Click the **panel toggle** button in the toolbar to show the meta panel
-3. Click **"Add Relationship"** at the top of the panel
+2. Open the **Relationships** section in the element navigation
+3. Click **"Add Relationship"** at the top of the section
 4. Select a relationship type (e.g., "Parent", "Sibling", "Located In")
 5. Search and select the target element
 6. Click **Create**
@@ -34,9 +34,9 @@ Relationships define meaningful connections between your story elements—family
   alt="The Add Relationship dialog"
 />
 
-## The Relationships Panel
+## The Relationships Section
 
-When you open a worldbuilding element, the relationships panel shows all connections for that element.
+When you open a worldbuilding element, the Relationships section shows all connections for that element.
 
 <ThemedImage
   src="/img/features/character-relationships-overview"
@@ -54,6 +54,7 @@ When you open a worldbuilding element, the relationships panel shows all connect
 ### Relationship Cards
 
 Each relationship displays as a card showing:
+
 - **Element icon** based on the element's template
 - **Element name** as a clickable link
 - **Delete button** to remove the relationship
@@ -102,11 +103,11 @@ All relationship types are custom—you define them in Project Settings. Demo te
 
 Common relationship patterns include:
 
-| Category | Primary → Inverse |
-|----------|-------------------|
-| Family | Parent ↔ Child of, Sibling ↔ Sibling of, Spouse ↔ Spouse of |
-| Social | Friend ↔ Friend of, Mentor ↔ Student of, Employer ↔ Employee of |
-| Spatial | Located In ↔ Contains, Adjacent To ↔ Adjacent To |
+| Category  | Primary → Inverse                                                |
+| --------- | ---------------------------------------------------------------- |
+| Family    | Parent ↔ Child of, Sibling ↔ Sibling of, Spouse ↔ Spouse of      |
+| Social    | Friend ↔ Friend of, Mentor ↔ Student of, Employer ↔ Employee of  |
+| Spatial   | Located In ↔ Contains, Adjacent To ↔ Adjacent To                 |
 | Ownership | Owns ↔ Owned By, Member Of ↔ Has Member, Created By ↔ Creator of |
 
 ## Multiple Relationships
@@ -123,7 +124,8 @@ An element can have many relationships of different types:
 ### Deleting Relationships
 
 To remove a relationship:
-1. Find the relationship card in the panel
+
+1. Find the relationship card in the Relationships section
 2. Click the **Delete** (trash) button
 3. Confirm the deletion
 
@@ -132,6 +134,7 @@ The relationship is removed from both elements.
 ### Editing Relationships
 
 To change a relationship:
+
 1. Delete the existing relationship
 2. Create a new one with the correct type/target
 
