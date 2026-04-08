@@ -66,12 +66,18 @@ async function resolveWriteAccess(
   return access.canWrite;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function startPingInterval(ws: any, documentId: string, onClear: () => void): Timer {
+/** Minimal WebSocket shape used by this module. raw is optional per Hono's WSContext. */
+interface WsHandle {
+  send(data: string): void;
+  close(code?: number, reason?: string): void;
+  raw?: { ping(): void };
+}
+
+function startPingInterval(ws: WsHandle, documentId: string, onClear: () => void): Timer {
   const PING_INTERVAL = 30000;
   const interval = setInterval(() => {
     try {
-      ws.raw.ping();
+      ws.raw?.ping();
     } catch (error) {
       wsLog.error(`Error sending ping for ${documentId}, closing connection`, error);
       ws.close();
@@ -119,6 +125,7 @@ app.get(
 
     // Connection state
     let authenticated = false;
+    let authInProgress = false;
     let canWrite: boolean | null = false; // Viewers can receive but not send updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
     let doc: any = null;
@@ -128,67 +135,85 @@ app.get(
 
     // Validates token, project access, sets up Yjs connection.
     // Closes over connection state variables for mutation.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Hono WSContext type varies by adapter
-    const authenticateWs = async (token: string, ws: any): Promise<void> => {
-      if (authenticated) return;
+    const authenticateWs = async (token: string, ws: WsHandle): Promise<void> => {
+      if (authenticated || authInProgress) return;
+      authInProgress = true;
+      try {
+        const sessionData = await authService.verifyToken(token, c);
+        if (!sessionData) {
+          wsLog.warn(`Invalid auth token for ${documentId}`);
+          ws.send('access-denied:invalid-token');
+          ws.close(4001, 'Invalid token');
+          return;
+        }
 
-      const sessionData = await authService.verifyToken(token, c);
-      if (!sessionData) {
-        wsLog.warn(`Invalid auth token for ${documentId}`);
-        ws.send('access-denied:invalid-token');
-        ws.close(4001, 'Invalid token');
-        return;
+        const parsed = parseDocumentOwner(documentId);
+        if (!parsed) {
+          wsLog.error(`Invalid document ID format: ${documentId}`);
+          ws.send('access-denied:invalid-document');
+          ws.close(4002, 'Invalid document ID');
+          return;
+        }
+
+        const project = await projectService.findByUsernameAndSlug(
+          db,
+          parsed.projectOwner,
+          parsed.slug
+        );
+        if (!project) {
+          wsLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
+          ws.send('access-denied:project-not-found');
+          ws.close(4003, 'Project not found');
+          return;
+        }
+
+        canWrite = await resolveWriteAccess(
+          db,
+          project,
+          sessionData,
+          parsed.projectOwner,
+          parsed.slug
+        );
+        if (canWrite === null) {
+          ws.send('access-denied:forbidden');
+          ws.close(4003, 'Access denied');
+          return;
+        }
+
+        if (!ws.raw) {
+          wsLog.error(`WebSocket adapter missing raw connection for ${documentId}`);
+          ws.send('access-denied:error');
+          ws.close(4000, 'Authentication error');
+          return;
+        }
+        let connectedDoc: typeof doc;
+        try {
+          connectedDoc = await yjsService.handleConnection(ws.raw, documentId);
+        } catch (err) {
+          wsLog.error(`Failed to initialize Yjs connection for ${documentId}`, err);
+          ws.send('access-denied:error');
+          ws.close(4000, 'Authentication error');
+          return;
+        }
+
+        doc = connectedDoc;
+        authenticated = true;
+        wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
+        ws.send('authenticated');
+
+        for (const data of pendingMessages) {
+          const buffer = Buffer.from(data);
+          if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
+          yjsService.handleMessage(ws.raw, doc, buffer);
+        }
+        pendingMessages = [];
+
+        pingInterval = startPingInterval(ws, documentId, () => {
+          pingInterval = null;
+        });
+      } finally {
+        authInProgress = false;
       }
-
-      const parsed = parseDocumentOwner(documentId);
-      if (!parsed) {
-        wsLog.error(`Invalid document ID format: ${documentId}`);
-        ws.send('access-denied:invalid-document');
-        ws.close(4002, 'Invalid document ID');
-        return;
-      }
-
-      const project = await projectService.findByUsernameAndSlug(
-        db,
-        parsed.projectOwner,
-        parsed.slug
-      );
-      if (!project) {
-        wsLog.warn(`Project not found: ${parsed.projectOwner}/${parsed.slug}`);
-        ws.send('access-denied:project-not-found');
-        ws.close(4003, 'Project not found');
-        return;
-      }
-
-      canWrite = await resolveWriteAccess(
-        db,
-        project,
-        sessionData,
-        parsed.projectOwner,
-        parsed.slug
-      );
-      if (canWrite === null) {
-        ws.send('access-denied:forbidden');
-        ws.close(4003, 'Access denied');
-        return;
-      }
-
-      authenticated = true;
-      wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
-      ws.send('authenticated');
-
-      doc = await yjsService.handleConnection(ws.raw, documentId);
-
-      for (const data of pendingMessages) {
-        const buffer = Buffer.from(data);
-        if (!canWrite && isBlockedForViewer(buffer, documentId)) continue;
-        yjsService.handleMessage(ws.raw, doc, buffer);
-      }
-      pendingMessages = [];
-
-      pingInterval = startPingInterval(ws, documentId, () => {
-        pingInterval = null;
-      });
     };
 
     return {
