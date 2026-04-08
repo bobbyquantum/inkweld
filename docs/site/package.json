@@ -22,22 +22,23 @@
     "gen-api-docs:all": "bun run copy-openapi && docusaurus gen-api-docs all"
   },
   "dependencies": {
-    "@docusaurus/core": "3.9.2",
-    "@docusaurus/preset-classic": "3.9.2",
-    "@docusaurus/theme-mermaid": "^3.9.2",
+    "@docusaurus/core": "3.10.0",
+    "@docusaurus/faster": "3.10.0",
+    "@docusaurus/preset-classic": "3.10.0",
+    "@docusaurus/theme-mermaid": "^3.10.0",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "docusaurus-plugin-openapi-docs": "^4.5.1",
-    "docusaurus-theme-openapi-docs": "^4.5.1",
+    "docusaurus-plugin-openapi-docs": "^5.0.0",
+    "docusaurus-theme-openapi-docs": "^5.0.0",
     "path-browserify": "^1.0.1",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.9.2",
-    "@docusaurus/tsconfig": "3.9.2",
-    "@docusaurus/types": "3.9.2",
+    "@docusaurus/module-type-aliases": "3.10.0",
+    "@docusaurus/tsconfig": "3.10.0",
+    "@docusaurus/types": "3.10.0",
     "baseline-browser-mapping": "^2.9.11",
     "prettier": "^3.7.4",
     "typescript": "~6.0.0"
