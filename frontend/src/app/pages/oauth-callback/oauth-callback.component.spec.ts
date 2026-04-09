@@ -182,6 +182,8 @@ describe('OAuthCallbackComponent', () => {
       createComponent();
 
       expect(component.errorMessage).toBe('');
+      const spinner = fixture.nativeElement.querySelector('mat-spinner');
+      expect(spinner).toBeTruthy();
     });
 
     it('should show error UI when an error message is set', () => {
