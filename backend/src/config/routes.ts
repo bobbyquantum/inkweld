@@ -37,6 +37,7 @@ import {
   adminAnnouncementRoutes,
 } from '../routes/announcement.routes';
 import oauthRoutes from '../routes/oauth.routes';
+import githubAuthRoutes from '../routes/github-auth.routes';
 import robotsRoutes from '../routes/robots.routes';
 import passwordResetRoutes from '../routes/password-reset.routes';
 import { adminEmailRoutes } from '../routes/admin-email.routes';
@@ -111,6 +112,9 @@ export function registerCommonRoutes(app: any): void {
 
   // Password reset (forgot password / reset password, no auth required)
   app.route('/api/v1/auth', passwordResetRoutes);
+
+  // GitHub OAuth (login via GitHub, no auth required)
+  app.route('/api/v1/auth', githubAuthRoutes);
 
   // Admin email settings (test email)
   app.route('/api/v1/admin/email', adminEmailRoutes);

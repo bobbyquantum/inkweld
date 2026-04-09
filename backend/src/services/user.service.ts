@@ -101,7 +101,9 @@ class UserService {
   }
 
   /**
-   * Create or update GitHub user
+   * Create or update GitHub user.
+   * First looks up by githubId. If not found, tries to link by matching email.
+   * Only creates a new user if neither match is found.
    */
   async createOrUpdateGithubUser(
     db: DatabaseInstance,
@@ -112,45 +114,72 @@ class UserService {
       name: string;
     }
   ): Promise<User> {
-    const user = await this.findByGithubId(db, data.githubId);
+    // 1. Look up by GitHub ID (exact match — user has logged in with GitHub before)
+    const existingByGithubId = await this.findByGithubId(db, data.githubId);
 
-    if (user) {
-      // Update existing user
+    if (existingByGithubId) {
+      // Update existing GitHub-linked user (preserve existing email if provider returns empty)
       await db
         .update(users)
         .set({
-          username: data.username,
-          email: data.email,
+          email: data.email || existingByGithubId.email,
           name: data.name,
         })
-        .where(eq(users.id, user.id));
+        .where(eq(users.id, existingByGithubId.id));
 
-      const updated = await this.findById(db, user.id);
+      const updated = await this.findById(db, existingByGithubId.id);
       if (!updated) {
         throw new Error('Failed to update user');
       }
       return updated;
-    } else {
-      // Create new user
-      const id = crypto.randomUUID();
-      const newUser: InsertUser = {
-        id,
-        githubId: data.githubId,
-        username: data.username,
-        email: data.email,
-        name: data.name,
-        enabled: true,
-        approved: false,
-      };
-
-      await db.insert(users).values(newUser);
-
-      const created = await this.findById(db, id);
-      if (created === undefined) {
-        throw new Error('Failed to create user');
-      }
-      return created;
     }
+
+    // 2. Try to link to an existing local user by email (only if exactly one match)
+    if (data.email) {
+      const matchesByEmail = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, data.email))
+        .limit(2);
+
+      if (matchesByEmail.length === 1 && !matchesByEmail[0].githubId) {
+        const existingByEmail = matchesByEmail[0];
+        // Link this GitHub account to the existing local user
+        await db
+          .update(users)
+          .set({
+            githubId: data.githubId,
+            name: existingByEmail.name || data.name,
+          })
+          .where(eq(users.id, existingByEmail.id));
+
+        const updated = await this.findById(db, existingByEmail.id);
+        if (!updated) {
+          throw new Error('Failed to link GitHub account');
+        }
+        return updated;
+      }
+    }
+
+    // 3. Create new user
+    const id = crypto.randomUUID();
+    const newUser: InsertUser = {
+      id,
+      githubId: data.githubId,
+      username: data.username,
+      email: data.email,
+      name: data.name,
+      enabled: true,
+      approved: false,
+    };
+
+    await db.insert(users).values(newUser);
+
+    const created = await this.findById(db, id);
+    if (created === undefined) {
+      throw new Error('Failed to create user');
+    }
+    return created;
   }
 
   /**

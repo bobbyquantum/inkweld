@@ -95,6 +95,10 @@ export const UserSchema = z
     enabled: z.boolean(),
     isAdmin: z.boolean().optional(),
     hasAvatar: z.boolean().optional(),
+    authProvider: z
+      .enum(['local', 'github', 'local+github'])
+      .optional()
+      .openapi({ description: 'How the user authenticates', example: 'local' }),
   })
   .openapi('User', {
     example: {
@@ -106,5 +110,6 @@ export const UserSchema = z
       enabled: true,
       isAdmin: false,
       hasAvatar: false,
+      authProvider: 'local',
     },
   });

@@ -103,6 +103,7 @@ describe('Authentication', () => {
       expect(response.status).toBe(200);
       const data = await json();
       expect(data).toHaveProperty('username', 'testuser');
+      expect(data).toHaveProperty('authProvider', 'local');
     });
 
     it('should return anonymous user when not authenticated', async () => {

@@ -24,6 +24,30 @@
     </mat-form-field>
   }
 
+  @if (authProvider(); as provider) {
+    <div class="auth-provider-section" data-testid="auth-provider-section">
+      <span class="auth-provider-label">Authentication</span>
+      <div class="auth-provider-chips">
+        @if (provider === 'local' || provider === 'local+github') {
+          <mat-chip-set>
+            <mat-chip highlighted data-testid="auth-chip-local">
+              <mat-icon matChipAvatar>password</mat-icon>
+              Password
+            </mat-chip>
+          </mat-chip-set>
+        }
+        @if (provider === 'github' || provider === 'local+github') {
+          <mat-chip-set>
+            <mat-chip highlighted data-testid="auth-chip-github">
+              <mat-icon matChipAvatar>link</mat-icon>
+              GitHub
+            </mat-chip>
+          </mat-chip-set>
+        }
+      </div>
+    </div>
+  }
+
   <div class="actions-row">
     <button
       mat-raised-button

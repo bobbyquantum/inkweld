@@ -18,5 +18,16 @@ export interface User {
     enabled: boolean;
     isAdmin?: boolean;
     hasAvatar?: boolean;
+    /**
+     * How the user authenticates
+     */
+    authProvider?: UserAuthProvider;
 }
+export enum UserAuthProvider {
+    Local = 'local',
+    Github = 'github',
+    Localgithub = 'local+github'
+};
+
+
 

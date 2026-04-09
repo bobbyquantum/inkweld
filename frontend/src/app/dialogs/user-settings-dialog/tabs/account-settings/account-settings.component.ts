@@ -2,11 +2,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { type UserAuthProvider } from '@inkweld/model/user';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 
@@ -15,6 +17,7 @@ import { UserService } from '@services/user/user.service';
   imports: [
     FormsModule,
     MatButtonModule,
+    MatChipsModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -31,6 +34,7 @@ export class AccountSettingsComponent implements OnInit {
 
   readonly isLocalMode = this.systemConfig.isLocalMode;
   readonly isSaving = signal(false);
+  readonly authProvider = signal<UserAuthProvider | undefined>(undefined);
 
   displayName = '';
   email = '';
@@ -39,6 +43,7 @@ export class AccountSettingsComponent implements OnInit {
     const user = this.userService.currentUser();
     this.displayName = user.name ?? '';
     this.email = user.email ?? '';
+    this.authProvider.set(user.authProvider);
   }
 
   async saveProfile(): Promise<void> {

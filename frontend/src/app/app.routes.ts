@@ -43,6 +43,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'oauth/callback',
+    loadComponent: () =>
+      import('./pages/oauth-callback/oauth-callback.component').then(
+        m => m.OAuthCallbackComponent
+      ),
+    title: 'Signing In...',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),
@@ -115,6 +123,14 @@ export const routes: Routes = [
             m => m.AdminEmailSettingsComponent
           ),
         title: 'Admin - Email Settings',
+      },
+      {
+        path: 'github',
+        loadComponent: () =>
+          import('./pages/admin/github-settings/github-settings.component').then(
+            m => m.AdminGithubSettingsComponent
+          ),
+        title: 'Admin - GitHub Settings',
       },
       {
         path: 'image-audits',

@@ -21,6 +21,23 @@
   margin-top: 8px;
 }
 
+.auth-provider-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-provider-label {
+  font-size: 0.85rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.auth-provider-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .button-spinner {
   display: inline-block;
 }
