@@ -80,6 +80,16 @@
           },
           "hasAvatar": {
             "type": "boolean"
+          },
+          "authProvider": {
+            "type": "string",
+            "enum": [
+              "local",
+              "github",
+              "local+github"
+            ],
+            "description": "How the user authenticates",
+            "example": "local"
           }
         },
         "required": [
@@ -95,7 +105,8 @@
           "approved": true,
           "enabled": true,
           "isAdmin": false,
-          "hasAvatar": false
+          "hasAvatar": false,
+          "authProvider": "local"
         }
       },
       "ErrorResponse": {
@@ -3305,6 +3316,217 @@
           "ownerUsername",
           "role",
           "acceptedAt"
+        ]
+      },
+      "CommentThreadSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "resolvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messageCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "projectId",
+          "authorId",
+          "authorName",
+          "resolved",
+          "createdAt",
+          "updatedAt",
+          "messageCount"
+        ]
+      },
+      "CommentThreadResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "resolvedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentMessageResponse"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "projectId",
+          "authorId",
+          "authorName",
+          "resolved",
+          "createdAt",
+          "updatedAt",
+          "messages"
+        ]
+      },
+      "CommentMessageResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "editedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "threadId",
+          "authorId",
+          "authorName",
+          "text",
+          "createdAt"
+        ]
+      },
+      "CreateCommentThreadRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "text"
+        ]
+      },
+      "AddCommentMessageRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "UnreadCount": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "documentId",
+          "count"
+        ]
+      },
+      "MarkCommentsSeenRequest": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "documentId"
         ]
       },
       "MediaListResponse": {
@@ -10246,6 +10468,954 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CollaborationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "listProjectComments",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of comment thread summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentThreadSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "createCommentThread",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentThreadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment thread created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentThreadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/doc/{documentName}": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "listDocumentComments",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Document name (last segment of Yjs documentId)"
+            },
+            "required": true,
+            "description": "Document name (last segment of Yjs documentId)",
+            "name": "documentName",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of comment threads with messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentThreadResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/threads/{threadId}": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "getCommentThread",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comment thread ID"
+            },
+            "required": true,
+            "description": "Comment thread ID",
+            "name": "threadId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment thread with messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentThreadResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Thread not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "deleteCommentThread",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comment thread ID"
+            },
+            "required": true,
+            "description": "Comment thread ID",
+            "name": "threadId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thread deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Thread not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/threads/{threadId}/messages": {
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "addCommentMessage",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comment thread ID"
+            },
+            "required": true,
+            "description": "Comment thread ID",
+            "name": "threadId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCommentMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Thread not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/threads/{threadId}/resolve": {
+      "patch": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "resolveCommentThread",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comment thread ID"
+            },
+            "required": true,
+            "description": "Comment thread ID",
+            "name": "threadId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thread resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Thread not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/threads/{threadId}/unresolve": {
+      "patch": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "unresolveCommentThread",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comment thread ID"
+            },
+            "required": true,
+            "description": "Comment thread ID",
+            "name": "threadId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Thread unresolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Thread not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/threads/{threadId}/messages/{messageId}": {
+      "delete": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "deleteCommentMessage",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comment thread ID"
+            },
+            "required": true,
+            "description": "Comment thread ID",
+            "name": "threadId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comment message ID"
+            },
+            "required": true,
+            "description": "Comment message ID",
+            "name": "messageId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "threadDeleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "threadDeleted"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Message not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/unread": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "getCommentUnreadCounts",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unread comment counts per document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnreadCount"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{username}/{slug}/seen": {
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "operationId": "markCommentsSeen",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkCommentsSeenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comments marked as seen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }

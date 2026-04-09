@@ -98,7 +98,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Image insertion | |
 | ✅ | 🟡 | Zen mode (distraction-free) | |
 | ✅ | 🟡 | Document snapshots | Version history for documents |
-| ⬜ | 🟡 | Comments/Annotations | Inline feedback for collaborators |
+| ✅ | 🟡 | Comments/Annotations | Inline feedback with threaded replies and resolution |
 | ⬜ | 🟢 | Writing statistics | Daily/weekly word counts, session stats, goals |
 
 ### Worldbuilding
@@ -198,8 +198,8 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Password auth | Strong client-side requirements; backend enforces 6-char minimum only |
 | ✅ | 🔥 | CSRF protection | |
 | ✅ | 🟡 | User approval system | |
-| ⬜ | 🔥 | Password reset via email | |
-| ⬜ | 🟡 | OAuth providers | |
+| ✅ | 🔥 | Password reset via email | Forgot/reset flow with emailed token links |
+| ✅ | 🟡 | GitHub OAuth | Optional GitHub sign-in |
 | ⬜ | 🟡 | Two-factor auth | |
 
 ### DevOps & Admin

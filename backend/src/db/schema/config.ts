@@ -137,6 +137,13 @@ export const CONFIG_KEYS = {
     envVar: 'GITHUB_CLIENT_SECRET',
     type: 'string' as const,
   },
+  GITHUB_CALLBACK_URL: {
+    category: 'github' as ConfigCategory,
+    description: 'GitHub OAuth callback URL (auto-detected if not set)',
+    encrypted: false,
+    envVar: 'GITHUB_CALLBACK_URL',
+    type: 'string' as const,
+  },
 
   // AI settings
   AI_KILL_SWITCH: {

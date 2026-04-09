@@ -91,12 +91,15 @@ export class AppComponent implements OnInit {
 
       // Skip user initialization if we're on registration-related pages
       // This prevents session expired errors for users who just registered
-      // but need approval or are being redirected
-      const currentUrl = this.router.url;
+      // but need approval or are being redirected.
+      // Use window.location.pathname because this.router.url is still '/'
+      // during bootstrap before the router resolves the actual URL.
+      const currentPath = globalThis.location.pathname;
       const skipUserLoading =
-        currentUrl.startsWith('/register') ||
-        currentUrl.startsWith('/welcome') ||
-        currentUrl.startsWith('/approval-pending');
+        currentPath.startsWith('/register') ||
+        currentPath.startsWith('/welcome') ||
+        currentPath.startsWith('/approval-pending') ||
+        currentPath.startsWith('/oauth');
 
       if (!skipUserLoading) {
         // Initialize user service based on mode

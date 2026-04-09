@@ -171,4 +171,72 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       expect(component.isSaving()).toBe(false);
     });
   });
+
+  describe('auth provider display', () => {
+    it('should show local auth chip for local users', () => {
+      mockUserService.currentUser.mockReturnValue({
+        id: '1',
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+        enabled: true,
+        authProvider: 'local',
+      });
+
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      const localChip = el.querySelector('[data-testid="auth-chip-local"]');
+      const githubChip = el.querySelector('[data-testid="auth-chip-github"]');
+      expect(localChip).toBeTruthy();
+      expect(githubChip).toBeFalsy();
+    });
+
+    it('should show github auth chip for github users', () => {
+      mockUserService.currentUser.mockReturnValue({
+        id: '1',
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+        enabled: true,
+        authProvider: 'github',
+      });
+
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      const localChip = el.querySelector('[data-testid="auth-chip-local"]');
+      const githubChip = el.querySelector('[data-testid="auth-chip-github"]');
+      expect(localChip).toBeFalsy();
+      expect(githubChip).toBeTruthy();
+    });
+
+    it('should show both chips for linked accounts', () => {
+      mockUserService.currentUser.mockReturnValue({
+        id: '1',
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+        enabled: true,
+        authProvider: 'local+github',
+      });
+
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      const localChip = el.querySelector('[data-testid="auth-chip-local"]');
+      const githubChip = el.querySelector('[data-testid="auth-chip-github"]');
+      expect(localChip).toBeTruthy();
+      expect(githubChip).toBeTruthy();
+    });
+
+    it('should not show auth section when authProvider is undefined', () => {
+      const el: HTMLElement = fixture.nativeElement;
+      const section = el.querySelector('[data-testid="auth-provider-section"]');
+      expect(section).toBeFalsy();
+    });
+  });
 });
