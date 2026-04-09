@@ -80,7 +80,7 @@ export class OAuthCallbackComponent implements OnInit {
     try {
       // Exchange the one-time code for a JWT token
       const baseUrl =
-        this.setupService.getServerUrl() || window.location.origin;
+        this.setupService.getServerUrl() || globalThis.location.origin;
       const response = await firstValueFrom(
         this.http.post<{ token: string }>(
           `${baseUrl}/api/v1/auth/exchange-code`,

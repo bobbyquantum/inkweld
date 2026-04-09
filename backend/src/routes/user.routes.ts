@@ -92,8 +92,12 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
   // Derive auth provider from stored credentials
   const hasPassword = !!user.password;
   const hasGithub = !!user.githubId;
-  const authProvider: 'local' | 'github' | 'local+github' =
-    hasPassword && hasGithub ? 'local+github' : hasGithub ? 'github' : 'local';
+  let authProvider: 'local' | 'github' | 'local+github' = 'local';
+  if (hasPassword && hasGithub) {
+    authProvider = 'local+github';
+  } else if (hasGithub) {
+    authProvider = 'github';
+  }
 
   return c.json(
     {

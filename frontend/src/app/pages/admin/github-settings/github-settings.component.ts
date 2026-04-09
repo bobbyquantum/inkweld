@@ -54,7 +54,7 @@ export class AdminGithubSettingsComponent implements OnInit {
 
   get defaultCallbackUrl(): string {
     const serverUrl =
-      this.setupService.getServerUrl() ?? window.location.origin;
+      this.setupService.getServerUrl() ?? globalThis.location.origin;
     return `${serverUrl}/api/v1/auth/github`;
   }
 

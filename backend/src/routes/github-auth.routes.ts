@@ -100,7 +100,7 @@ githubAuthRoutes.get(
     const githubUser = c.get('user-github');
     const baseUrl = await getBaseUrl(db);
 
-    if (!githubUser || !githubUser.id) {
+    if (!githubUser?.id) {
       log.error('GitHub OAuth callback: no user data received');
       return c.redirect(`${baseUrl}/?error=github_auth_failed`);
     }

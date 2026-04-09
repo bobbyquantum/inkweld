@@ -94,7 +94,7 @@ export class AppComponent implements OnInit {
       // but need approval or are being redirected.
       // Use window.location.pathname because this.router.url is still '/'
       // during bootstrap before the router resolves the actual URL.
-      const currentPath = window.location.pathname;
+      const currentPath = globalThis.location.pathname;
       const skipUserLoading =
         currentPath.startsWith('/register') ||
         currentPath.startsWith('/welcome') ||
