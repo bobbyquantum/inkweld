@@ -25,6 +25,7 @@
       @for (tab of projectState.openTabs(); track tab.id; let i = $index) {
         <button
           cdkDrag
+          [cdkDragStartDelay]="{ touch: 500, mouse: 0 }"
           ngTab
           [value]="'tab-' + i"
           type="button"

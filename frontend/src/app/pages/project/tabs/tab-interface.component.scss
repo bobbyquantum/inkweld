@@ -176,6 +176,9 @@
 
   // Home tab specific styles (no special styling needed, just a regular tab now)
 
+  // Allow touch scrolling; CDK drag activates after long-press delay
+  touch-action: auto;
+
   // Drag state
   &.cdk-drag-preview {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
