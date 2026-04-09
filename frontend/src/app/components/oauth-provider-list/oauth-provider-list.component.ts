@@ -162,7 +162,7 @@ export class OAuthProviderListComponent implements OnInit {
       if (typeof environment !== 'undefined' && environment?.apiUrl) {
         apiUrl = (environment as { apiUrl: string }).apiUrl;
       }
-      window.location.href = `${apiUrl}/oauth2/authorization/${provider.toLowerCase()}`;
+      window.location.href = `${apiUrl}/api/v1/auth/${provider.toLowerCase()}`;
     });
   }
 

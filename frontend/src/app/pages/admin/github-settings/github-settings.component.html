@@ -1,0 +1,198 @@
+<div class="github-settings-container" data-testid="github-settings-page">
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <mat-icon>error</mat-icon>
+        <p>{{ error()?.message }}</p>
+        <button mat-raised-button color="primary" (click)="loadConfig()">
+          Retry
+        </button>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <!-- Enable Toggle -->
+    <mat-card class="setting-card" data-testid="github-enabled-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">
+              <mat-icon class="github-icon" svgIcon="github"></mat-icon>
+              GitHub Sign-In
+            </span>
+            <span class="setting-description">
+              Allow users to sign in with their GitHub account.
+              @if (!isConfigured()) {
+                Configure credentials below first.
+              }
+            </span>
+          </div>
+          <mat-slide-toggle
+            [checked]="githubEnabled()"
+            (change)="toggleGithubEnabled($event.checked)"
+            [disabled]="isSaving() || !isConfigured()"
+            color="primary"
+            data-testid="github-enabled-toggle"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Setup Guide -->
+    <mat-card class="setting-card setup-card" data-testid="github-setup-card">
+      <mat-card-content>
+        <h3 class="section-title">
+          <mat-icon>school</mat-icon>
+          Setup Guide
+        </h3>
+
+        <mat-stepper orientation="vertical" [linear]="false">
+          <!-- Step 1: Create GitHub OAuth App -->
+          <mat-step [completed]="isConfigured()">
+            <ng-template matStepLabel>Create a GitHub OAuth App</ng-template>
+            <div class="step-content">
+              <ol class="setup-steps">
+                <li>
+                  Go to
+                  <a
+                    href="https://github.com/settings/developers"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >GitHub Developer Settings</a
+                  >
+                </li>
+                <li>
+                  Click <strong>OAuth Apps</strong> →
+                  <strong>New OAuth App</strong>
+                </li>
+                <li>
+                  Fill in the form:
+                  <ul>
+                    <li>
+                      <strong>Application name:</strong> Your Inkweld instance
+                      name
+                    </li>
+                    <li><strong>Homepage URL:</strong> Your Inkweld URL</li>
+                    <li>
+                      <strong>Authorization callback URL:</strong>
+                      <code class="copy-url" data-testid="callback-url">{{
+                        defaultCallbackUrl
+                      }}</code>
+                    </li>
+                  </ul>
+                </li>
+                <li>Click <strong>Register application</strong></li>
+                <li>
+                  Copy the <strong>Client ID</strong> shown on the next page
+                </li>
+                <li>
+                  Click <strong>Generate a new client secret</strong> and copy
+                  it immediately
+                </li>
+              </ol>
+            </div>
+          </mat-step>
+
+          <!-- Step 2: Enter Credentials -->
+          <mat-step [completed]="isConfigured()">
+            <ng-template matStepLabel>Enter credentials</ng-template>
+            <div class="step-content">
+              <p class="step-description">
+                Paste the Client ID and Client Secret from GitHub below.
+              </p>
+
+              <div class="form-grid">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Client ID</mat-label>
+                  <input
+                    matInput
+                    [ngModel]="clientId()"
+                    (ngModelChange)="clientId.set($event)"
+                    placeholder="Ov23li..."
+                    data-testid="github-client-id-input" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Client Secret</mat-label>
+                  <input
+                    matInput
+                    type="password"
+                    [ngModel]="clientSecret()"
+                    (ngModelChange)="clientSecret.set($event)"
+                    [placeholder]="
+                      isConfigured()
+                        ? 'Leave blank to keep current'
+                        : 'Paste client secret'
+                    "
+                    data-testid="github-client-secret-input" />
+                  @if (isConfigured()) {
+                    <mat-hint>Leave blank to keep the current secret</mat-hint>
+                  }
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Callback URL (optional)</mat-label>
+                  <input
+                    matInput
+                    [ngModel]="callbackUrl()"
+                    (ngModelChange)="callbackUrl.set($event)"
+                    [placeholder]="defaultCallbackUrl"
+                    data-testid="github-callback-url-input" />
+                  <mat-hint
+                    >Only change this if using a reverse proxy with a different
+                    URL</mat-hint
+                  >
+                </mat-form-field>
+              </div>
+
+              <div class="actions-row">
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="saveCredentials()"
+                  [disabled]="isSaving()"
+                  data-testid="save-github-credentials-button">
+                  @if (isSaving()) {
+                    <mat-spinner
+                      diameter="18"
+                      class="button-spinner"></mat-spinner>
+                  } @else {
+                    Save Credentials
+                  }
+                </button>
+              </div>
+            </div>
+          </mat-step>
+
+          <!-- Step 3: Enable -->
+          <mat-step [completed]="githubEnabled()">
+            <ng-template matStepLabel>Enable GitHub sign-in</ng-template>
+            <div class="step-content">
+              @if (isConfigured()) {
+                <p class="step-description">
+                  Credentials are configured. Toggle the switch above to enable
+                  GitHub sign-in for your users.
+                </p>
+                @if (githubEnabled()) {
+                  <div class="success-banner">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>
+                      GitHub sign-in is active. Users will see a "Sign in with
+                      GitHub" button on the login page.
+                    </span>
+                  </div>
+                }
+              } @else {
+                <p class="step-description">
+                  Complete the previous steps first.
+                </p>
+              }
+            </div>
+          </mat-step>
+        </mat-stepper>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
