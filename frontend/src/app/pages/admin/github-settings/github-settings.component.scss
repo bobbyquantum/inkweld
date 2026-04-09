@@ -1,0 +1,165 @@
+.github-settings-container {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-card {
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--sys-error);
+    }
+
+    p {
+      color: var(--sys-on-surface-variant);
+    }
+  }
+}
+
+.setting-card {
+  mat-card-content {
+    padding: 16px;
+  }
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.setting-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-label {
+  font-weight: 500;
+  color: var(--sys-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .github-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.setting-description {
+  font-size: 13px;
+  color: var(--sys-on-surface-variant);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sys-on-surface);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--sys-primary);
+  }
+}
+
+.step-content {
+  padding: 8px 0;
+}
+
+.step-description {
+  font-size: 13px;
+  color: var(--sys-on-surface-variant);
+  margin: 0 0 12px;
+}
+
+.setup-steps {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--sys-on-surface);
+
+  ul {
+    margin: 4px 0;
+    padding-left: 20px;
+  }
+
+  code.copy-url {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--sys-surface-variant);
+    border-radius: 4px;
+    font-size: 12px;
+    word-break: break-all;
+    user-select: all;
+  }
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.actions-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.button-spinner {
+  display: inline-block;
+}
+
+.success-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  background: rgba(76, 175, 80, 0.1);
+  border-left: 4px solid #4caf50;
+  color: var(--sys-on-surface);
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #4caf50;
+  }
+}

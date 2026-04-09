@@ -283,9 +283,9 @@ describe('AppComponent', () => {
     });
 
     it('should skip user loading on registration pages', async () => {
-      const router = TestBed.inject(Router);
-      Object.defineProperty(router, 'url', {
-        value: '/register',
+      const originalPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: '/register' },
         writable: true,
       });
 
@@ -295,12 +295,17 @@ describe('AppComponent', () => {
 
       // Should not call initialize when on registration page
       expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: originalPathname },
+        writable: true,
+      });
     });
 
     it('should skip user loading on welcome page', async () => {
-      const router = TestBed.inject(Router);
-      Object.defineProperty(router, 'url', {
-        value: '/welcome',
+      const originalPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: '/welcome' },
         writable: true,
       });
 
@@ -310,12 +315,17 @@ describe('AppComponent', () => {
 
       // Should not call initialize when on welcome page
       expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: originalPathname },
+        writable: true,
+      });
     });
 
     it('should skip user loading on approval-pending page', async () => {
-      const router = TestBed.inject(Router);
-      Object.defineProperty(router, 'url', {
-        value: '/approval-pending',
+      const originalPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: '/approval-pending' },
         writable: true,
       });
 
@@ -325,6 +335,11 @@ describe('AppComponent', () => {
 
       // Should not call initialize when on approval-pending page
       expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: originalPathname },
+        writable: true,
+      });
     });
   });
 });

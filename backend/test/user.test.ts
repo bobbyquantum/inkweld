@@ -155,7 +155,7 @@ describe('User Service', () => {
       expect(user.approved).toBe(false); // GitHub users need approval
     });
 
-    it('should update existing GitHub user', async () => {
+    it('should update existing GitHub user (preserving username)', async () => {
       // First create a GitHub user
       await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh789',
@@ -164,7 +164,7 @@ describe('User Service', () => {
         name: 'GitHub User',
       });
 
-      // Then update with new info
+      // Then update with new info — username should NOT change
       const updated = await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh789',
         username: 'updatedgithub',
@@ -172,9 +172,53 @@ describe('User Service', () => {
         name: 'Updated Name',
       });
 
-      expect(updated.username).toBe('updatedgithub');
+      expect(updated.username).toBe('githubuser'); // preserved
       expect(updated.email).toBe('updated@example.com');
       expect(updated.name).toBe('Updated Name');
+    });
+
+    it('should link GitHub account to existing local user by email', async () => {
+      // Create a local user with password
+      const localUser = await userService.create(db, {
+        username: 'localuser',
+        email: 'shared@example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+
+      // Log in with GitHub using the same email
+      const linked = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-link-1',
+        username: 'gh-localuser',
+        email: 'shared@example.com',
+        name: 'GitHub Name',
+      });
+
+      // Should be the same user, now with githubId linked
+      expect(linked.id).toBe(localUser.id);
+      expect(linked.username).toBe('localuser'); // keeps local username
+      expect(linked.githubId).toBe('gh-link-1');
+      expect(linked.name).toBe(localUser.name || 'GitHub Name'); // preserves existing name
+    });
+
+    it('should not link to a user that already has a different GitHub account', async () => {
+      // Create a user already linked to a different GitHub account
+      await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-other',
+        username: 'otherghuser',
+        email: 'taken@example.com',
+        name: 'Other User',
+      });
+
+      // A new GitHub account with the same email should create a new user
+      const newUser = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-new',
+        username: 'newghuser',
+        email: 'taken@example.com',
+        name: 'New User',
+      });
+
+      expect(newUser.githubId).toBe('gh-new');
+      expect(newUser.username).toBe('newghuser'); // new user created
     });
   });
 

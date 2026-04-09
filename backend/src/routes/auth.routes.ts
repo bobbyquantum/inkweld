@@ -6,7 +6,6 @@ import { emailService } from '../services/email.service';
 import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
 import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
-import { config } from '../config/env';
 import { type AppContext } from '../types/context';
 import {
   LoginRequestSchema,
@@ -291,9 +290,11 @@ const providersRoute = createRoute({
 });
 
 authRoutes.openapi(providersRoute, async (c) => {
+  const db = c.get('db');
+  const githubEnabled = await configService.getBoolean(db, 'GITHUB_ENABLED');
   return c.json({
     providers: {
-      github: config.github.enabled,
+      github: githubEnabled,
     },
   });
 });

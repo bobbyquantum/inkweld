@@ -89,6 +89,12 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
     return c.json({ error: 'Account not approved or disabled' }, 403);
   }
 
+  // Derive auth provider from stored credentials
+  const hasPassword = !!user.password;
+  const hasGithub = !!user.githubId;
+  const authProvider: 'local' | 'github' | 'local+github' =
+    hasPassword && hasGithub ? 'local+github' : hasGithub ? 'github' : 'local';
+
   return c.json(
     {
       id: user.id,
@@ -99,6 +105,7 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
       approved: user.approved,
       isAdmin: user.isAdmin,
       hasAvatar: user.hasAvatar,
+      authProvider,
     },
     200
   );
