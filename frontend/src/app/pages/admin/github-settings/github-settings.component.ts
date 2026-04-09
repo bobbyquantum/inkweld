@@ -63,21 +63,20 @@ export class AdminGithubSettingsComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const [enabled, clientId, _clientSecret, callbackUrl] = await Promise.all(
-        [
+      const [enabled, clientId, clientSecretConfig, callbackUrl] =
+        await Promise.all([
           this.configService.getConfig('GITHUB_ENABLED'),
           this.configService.getConfig('GITHUB_CLIENT_ID'),
           this.configService.getConfig('GITHUB_CLIENT_SECRET'),
           this.configService.getConfig('GITHUB_CALLBACK_URL'),
-        ]
-      );
+        ]);
 
       this.githubEnabled.set(enabled?.value === 'true');
       this.clientId.set(clientId?.value || '');
       this.callbackUrl.set(callbackUrl?.value || '');
       // Client secret is masked by the backend — show placeholder
       this.clientSecret.set('');
-      this.isConfigured.set(!!clientId?.value);
+      this.isConfigured.set(!!clientId?.value && !!clientSecretConfig?.value);
     } catch (err) {
       this.error.set(
         err instanceof Error ? err : new Error('Failed to load configuration')

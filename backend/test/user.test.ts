@@ -17,8 +17,16 @@ describe('User Service', () => {
     await db.delete(users).where(eq(users.username, 'passworduser'));
     await db.delete(users).where(eq(users.username, 'zuser'));
     await db.delete(users).where(eq(users.username, 'auser'));
+    await db.delete(users).where(eq(users.username, 'localuser'));
+    await db.delete(users).where(eq(users.username, 'otherghuser'));
+    await db.delete(users).where(eq(users.username, 'newghuser'));
     await db.delete(users).where(eq(users.email, 'service@example.com'));
     await db.delete(users).where(eq(users.email, 'github@example.com'));
+    await db.delete(users).where(eq(users.email, 'shared@example.com'));
+    await db.delete(users).where(eq(users.email, 'taken@example.com'));
+    await db.delete(users).where(eq(users.email, 'updated@example.com'));
+    await db.delete(users).where(eq(users.email, 'password@example.com'));
+    await db.delete(users).where(eq(users.email, 'real@example.com'));
   });
 
   describe('findById', () => {
@@ -219,6 +227,56 @@ describe('User Service', () => {
 
       expect(newUser.githubId).toBe('gh-new');
       expect(newUser.username).toBe('newghuser'); // new user created
+    });
+
+    it('should preserve existing email when GitHub returns empty email', async () => {
+      // Create a GitHub user with a real email
+      await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-email-test',
+        username: 'githubuser',
+        email: 'real@example.com',
+        name: 'Email User',
+      });
+
+      // Update with empty email (GitHub sometimes hides emails)
+      const updated = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-email-test',
+        username: 'githubuser',
+        email: '',
+        name: 'Email User',
+      });
+
+      expect(updated.email).toBe('real@example.com'); // preserved
+    });
+
+    it('should skip email linking when multiple users share the same email', async () => {
+      // Create two local users with the same email (edge case)
+      await userService.create(db, {
+        username: 'localuser',
+        email: 'shared@example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+
+      // Manually insert another user with the same email
+      await db.insert(users).values({
+        id: crypto.randomUUID(),
+        username: 'auser',
+        email: 'shared@example.com',
+        password: 'hashedpass',
+        enabled: true,
+        approved: true,
+      });
+
+      // GitHub login with same email should create a new user (not link)
+      const ghUser = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-multi-email',
+        username: 'newghuser',
+        email: 'shared@example.com',
+        name: 'New GH User',
+      });
+
+      expect(ghUser.username).toBe('newghuser'); // new user, not linked
+      expect(ghUser.githubId).toBe('gh-multi-email');
     });
   });
 

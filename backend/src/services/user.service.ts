@@ -118,11 +118,11 @@ class UserService {
     const existingByGithubId = await this.findByGithubId(db, data.githubId);
 
     if (existingByGithubId) {
-      // Update existing GitHub-linked user
+      // Update existing GitHub-linked user (preserve existing email if provider returns empty)
       await db
         .update(users)
         .set({
-          email: data.email,
+          email: data.email || existingByGithubId.email,
           name: data.name,
         })
         .where(eq(users.id, existingByGithubId.id));
@@ -134,10 +134,16 @@ class UserService {
       return updated;
     }
 
-    // 2. Try to link to an existing local user by email
+    // 2. Try to link to an existing local user by email (only if exactly one match)
     if (data.email) {
-      const existingByEmail = await this.findByEmail(db, data.email);
-      if (existingByEmail && !existingByEmail.githubId) {
+      const matchesByEmail = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, data.email))
+        .limit(2);
+
+      if (matchesByEmail.length === 1 && !matchesByEmail[0].githubId) {
+        const existingByEmail = matchesByEmail[0];
         // Link this GitHub account to the existing local user
         await db
           .update(users)

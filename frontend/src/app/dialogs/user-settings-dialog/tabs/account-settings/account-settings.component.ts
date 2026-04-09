@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { type UserAuthProvider } from '@inkweld/model/user';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 
@@ -33,7 +34,7 @@ export class AccountSettingsComponent implements OnInit {
 
   readonly isLocalMode = this.systemConfig.isLocalMode;
   readonly isSaving = signal(false);
-  readonly authProvider = signal<string | undefined>(undefined);
+  readonly authProvider = signal<UserAuthProvider | undefined>(undefined);
 
   displayName = '';
   email = '';

@@ -1,9 +1,11 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, inject, type OnInit } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router } from '@angular/router';
-
-import { AuthTokenService } from '../../services/auth/auth-token.service';
-import { UserService } from '../../services/user/user.service';
+import { AuthTokenService } from '@services/auth/auth-token.service';
+import { SetupService } from '@services/core/setup.service';
+import { UserService } from '@services/user/user.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-oauth-callback',
@@ -50,7 +52,9 @@ import { UserService } from '../../services/user/user.service';
 export class OAuthCallbackComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
   private readonly authTokenService = inject(AuthTokenService);
+  private readonly setupService = inject(SetupService);
   private readonly userService = inject(UserService);
 
   errorMessage = '';
@@ -60,7 +64,7 @@ export class OAuthCallbackComponent implements OnInit {
   }
 
   private async handleCallback(): Promise<void> {
-    const token = this.route.snapshot.queryParamMap.get('token');
+    const code = this.route.snapshot.queryParamMap.get('code');
     const error = this.route.snapshot.queryParamMap.get('error');
 
     if (error) {
@@ -68,21 +72,33 @@ export class OAuthCallbackComponent implements OnInit {
       return;
     }
 
-    if (!token) {
-      this.errorMessage = 'No authentication token received.';
+    if (!code) {
+      this.errorMessage = 'No authorization code received.';
       return;
     }
 
     try {
+      // Exchange the one-time code for a JWT token
+      const baseUrl =
+        this.setupService.getServerUrl() || window.location.origin;
+      const response = await firstValueFrom(
+        this.http.post<{ token: string }>(
+          `${baseUrl}/api/v1/auth/exchange-code`,
+          { code }
+        )
+      );
+
       // Store the JWT token
-      this.authTokenService.setToken(token);
+      this.authTokenService.setToken(response.token);
 
       // Load the user profile using the new token
       await this.userService.loadCurrentUser();
 
-      // Navigate to home
-      await this.router.navigate(['/']);
+      // Navigate to home (replaceUrl prevents back-nav to callback)
+      await this.router.navigate(['/'], { replaceUrl: true });
     } catch {
+      // Clear any partially stored token on failure
+      this.authTokenService.clearToken();
       this.errorMessage = 'Failed to complete sign-in. Please try again.';
     }
   }

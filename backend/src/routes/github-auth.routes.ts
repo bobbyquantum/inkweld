@@ -12,6 +12,38 @@ const log = logger.child('GitHubAuth');
 const githubAuthRoutes = new Hono<AppContext>();
 
 /**
+ * One-time authorization codes for secure token exchange.
+ * Instead of passing the JWT in a query parameter (which leaks in browser history,
+ * Referer headers, and server logs), we pass a short-lived opaque code that the
+ * frontend exchanges for the JWT via a POST request.
+ */
+const pendingCodes = new Map<string, { token: string; expiresAt: number }>();
+const CODE_TTL_MS = 60_000; // 60 seconds
+
+function generateAuthCode(token: string): string {
+  const code = crypto.randomUUID();
+  pendingCodes.set(code, { token, expiresAt: Date.now() + CODE_TTL_MS });
+
+  // Lazy cleanup of expired codes
+  if (pendingCodes.size > 100) {
+    const now = Date.now();
+    for (const [key, value] of pendingCodes) {
+      if (value.expiresAt <= now) pendingCodes.delete(key);
+    }
+  }
+
+  return code;
+}
+
+function consumeAuthCode(code: string): string | null {
+  const entry = pendingCodes.get(code);
+  if (!entry) return null;
+  pendingCodes.delete(code);
+  if (entry.expiresAt <= Date.now()) return null;
+  return entry.token;
+}
+
+/**
  * GET /github
  *
  * Initiates or completes the GitHub OAuth flow using @hono/oauth-providers.
@@ -45,10 +77,10 @@ githubAuthRoutes.get(
       return c.json({ error: 'GitHub OAuth is not properly configured' }, 500);
     }
 
-    // Determine the redirect URI (callback URL) from DB or env
-    // The callback URL should point back to this same endpoint
+    // Determine the redirect URI (callback URL) from DB config, env, or headers
+    const callbackUrlConfig = await configService.get(db, 'GITHUB_CALLBACK_URL');
     const callbackUrl =
-      process.env.GITHUB_CALLBACK_URL ||
+      (callbackUrlConfig.source !== 'default' && callbackUrlConfig.value) ||
       `${c.req.header('x-forwarded-proto') || 'http'}://${c.req.header('host')}/api/v1/auth/github`;
 
     // Apply the GitHub OAuth middleware dynamically with DB-sourced credentials
@@ -116,14 +148,38 @@ githubAuthRoutes.get(
       // Create JWT session
       const token = await authService.createSession(c, updatedUser);
 
-      // Redirect to frontend with token in query param
-      // The frontend OAuth callback page will extract and store the token
-      return c.redirect(`${baseUrl}/oauth/callback?token=${encodeURIComponent(token)}`);
+      // Generate a one-time authorization code (avoids leaking JWT in URL)
+      const code = generateAuthCode(token);
+
+      // Redirect to frontend with the opaque code
+      return c.redirect(`${baseUrl}/oauth/callback?code=${encodeURIComponent(code)}`);
     } catch (error) {
       log.error('GitHub OAuth user creation failed:', error);
       return c.redirect(`${baseUrl}/?error=github_auth_failed`);
     }
   }
 );
+
+/**
+ * POST /exchange-code
+ *
+ * Exchanges a one-time authorization code for a JWT token.
+ * The code is generated during the OAuth callback and is valid for 60 seconds.
+ */
+githubAuthRoutes.post('/exchange-code', async (c) => {
+  const body = await c.req.json<{ code?: string }>().catch(() => ({}) as { code?: string });
+  const code = body.code;
+
+  if (!code || typeof code !== 'string') {
+    return c.json({ error: 'Authorization code is required' }, 400);
+  }
+
+  const token = consumeAuthCode(code);
+  if (!token) {
+    return c.json({ error: 'Invalid or expired authorization code' }, 401);
+  }
+
+  return c.json({ token });
+});
 
 export default githubAuthRoutes;

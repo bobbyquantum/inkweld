@@ -151,8 +151,8 @@
   border-radius: 4px;
   font-size: 13px;
   line-height: 1.5;
-  background: rgba(76, 175, 80, 0.1);
-  border-left: 4px solid #4caf50;
+  background: color-mix(in srgb, var(--sys-tertiary, #4caf50) 10%, transparent);
+  border-left: 4px solid var(--sys-tertiary, #4caf50);
   color: var(--sys-on-surface);
 
   mat-icon {
@@ -160,6 +160,6 @@
     font-size: 20px;
     width: 20px;
     height: 20px;
-    color: #4caf50;
+    color: var(--sys-tertiary, #4caf50);
   }
 }
