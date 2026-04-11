@@ -26,6 +26,7 @@ import {
   type AppTab,
   ProjectStateService,
 } from '../../../services/project/project-state.service';
+import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { TabInterfaceComponent } from './tab-interface.component';
 
 describe('TabInterfaceComponent', () => {
@@ -34,6 +35,7 @@ describe('TabInterfaceComponent', () => {
   let projectStateService: Partial<ProjectStateService>;
   let documentService: Partial<DocumentService>;
   let dialogGatewayService: Partial<DialogGatewayService>;
+  let worldbuildingService: Partial<WorldbuildingService>;
   let router: Partial<Router>;
   let activatedRoute: Partial<ActivatedRoute>;
   let dialog: Partial<MatDialog>;
@@ -155,6 +157,11 @@ describe('TabInterfaceComponent', () => {
       paramMap: of(convertToParamMap({})),
     } as unknown as ActivatedRoute;
 
+    // Mock worldbuilding service
+    worldbuildingService = {
+      getSchemaById: vi.fn().mockReturnValue(null),
+    };
+
     // Mock dialog
     dialog = {
       open: vi.fn().mockReturnValue({
@@ -188,6 +195,7 @@ describe('TabInterfaceComponent', () => {
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: activatedRoute },
         { provide: MatDialog, useValue: dialog },
+        { provide: WorldbuildingService, useValue: worldbuildingService },
       ],
     }).compileComponents();
 
@@ -695,6 +703,50 @@ describe('TabInterfaceComponent', () => {
         element: mockDocuments[0],
       };
       expect(component.getTabIcon(tab)).toBe('insert_drive_file');
+    });
+
+    it('should return auto_stories for publish-plans system tab', () => {
+      const tab: AppTab = {
+        id: 's',
+        name: 'Plans',
+        type: 'system',
+        systemType: 'publish-plans',
+      };
+      expect(component.getTabIcon(tab)).toBe('auto_stories');
+    });
+
+    it('should return article for system tab with undefined systemType', () => {
+      const tab: AppTab = {
+        id: 's',
+        name: 'X',
+        type: 'system',
+        systemType: undefined,
+      };
+      expect(component.getTabIcon(tab)).toBe('article');
+    });
+
+    it('should return schema icon for worldbuilding tab with schema', () => {
+      (worldbuildingService.getSchemaById as Mock).mockReturnValue({
+        icon: 'person',
+      });
+      const tab: AppTab = {
+        id: 'wb2',
+        name: 'Character',
+        type: 'worldbuilding',
+        element: { ...mockDocuments[0], schemaId: 'schema-1' },
+      };
+      expect(component.getTabIcon(tab)).toBe('person');
+    });
+
+    it('should return metadata icon for worldbuilding tab without schema', () => {
+      (worldbuildingService.getSchemaById as Mock).mockReturnValue(null);
+      const tab: AppTab = {
+        id: 'wb3',
+        name: 'Place',
+        type: 'worldbuilding',
+        element: { ...mockDocuments[0], metadata: { icon: 'place' } },
+      };
+      expect(component.getTabIcon(tab)).toBe('place');
     });
   });
 

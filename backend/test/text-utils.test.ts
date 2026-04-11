@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'bun:test';
 import {
+  countWords,
   filterMoveRootIds,
+  parseMoveElementsArgs,
   textToProseMirrorXml,
+  toErrorResult,
+  validateMoveParent,
   validateSnapshotPayloadForPersistence,
 } from '../src/mcp/tools/mutation.tools';
 import {
@@ -293,5 +297,121 @@ describe('skipTopLevelWhitespace', () => {
   it('does not skip whitespace that contains non-whitespace chars', () => {
     const xml = ' x <p>';
     expect(skipTopLevelWhitespace(xml, 0)).toBe(0);
+  });
+});
+
+describe('parseMoveElementsArgs', () => {
+  it('returns parsed elementIds and newParentId when valid', () => {
+    const result = parseMoveElementsArgs({ elementIds: ['a', 'b'], newParentId: 'parent-1' });
+    expect(result).toEqual({ elementIds: ['a', 'b'], newParentId: 'parent-1' });
+  });
+
+  it('returns null newParentId when not provided', () => {
+    const result = parseMoveElementsArgs({ elementIds: ['a'] });
+    expect(result).toEqual({ elementIds: ['a'], newParentId: null });
+  });
+
+  it('returns null newParentId for empty string', () => {
+    const result = parseMoveElementsArgs({ elementIds: ['a'], newParentId: '' });
+    expect(result).toEqual({ elementIds: ['a'], newParentId: null });
+  });
+
+  it('returns error when elementIds is missing', () => {
+    const result = parseMoveElementsArgs({});
+    expect('error' in result).toBe(true);
+    if ('error' in result) {
+      expect(result.error.isError).toBe(true);
+      expect(result.error.content[0].text).toContain('elementIds');
+    }
+  });
+
+  it('returns error when elementIds is empty array', () => {
+    const result = parseMoveElementsArgs({ elementIds: [] });
+    expect('error' in result).toBe(true);
+  });
+
+  it('returns error when elementIds is not an array', () => {
+    const result = parseMoveElementsArgs({ elementIds: 'not-array' });
+    expect('error' in result).toBe(true);
+  });
+});
+
+describe('validateMoveParent', () => {
+  const elements = [
+    {
+      id: 'folder-1',
+      name: 'Folder',
+      type: 'FOLDER',
+      parentId: null,
+      level: 0,
+      expandable: true,
+      order: 0,
+      version: 0,
+      metadata: {},
+    },
+    {
+      id: 'item-1',
+      name: 'Item',
+      type: 'ITEM',
+      parentId: null,
+      level: 0,
+      expandable: false,
+      order: 1,
+      version: 0,
+      metadata: {},
+    },
+  ];
+
+  it('returns undefined when newParentId is null', () => {
+    expect(validateMoveParent(elements, null)).toBeUndefined();
+  });
+
+  it('returns undefined when parent is a FOLDER', () => {
+    expect(validateMoveParent(elements, 'folder-1')).toBeUndefined();
+  });
+
+  it('returns error when parent is not found', () => {
+    const result = validateMoveParent(elements, 'nonexistent');
+    expect(result).toBeDefined();
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0].text).toContain('not found');
+  });
+
+  it('returns error when parent is not a FOLDER', () => {
+    const result = validateMoveParent(elements, 'item-1');
+    expect(result).toBeDefined();
+    expect(result?.isError).toBe(true);
+    expect(result?.content[0].text).toContain('not a folder');
+  });
+});
+
+describe('toErrorResult', () => {
+  it('creates an error result with text content', () => {
+    const result = toErrorResult('Something went wrong');
+    expect(result.isError).toBe(true);
+    expect(result.content).toHaveLength(1);
+    expect(result.content[0]).toEqual({ type: 'text', text: 'Something went wrong' });
+  });
+});
+
+describe('countWords', () => {
+  it('returns 0 for empty string', () => {
+    expect(countWords('')).toBe(0);
+  });
+
+  it('returns 0 for whitespace-only string', () => {
+    expect(countWords('   \t\n  ')).toBe(0);
+  });
+
+  it('returns 1 for single word', () => {
+    expect(countWords('hello')).toBe(1);
+  });
+
+  it('counts words separated by various whitespace', () => {
+    expect(countWords('one two  three\tfour\nfive')).toBe(5);
+  });
+
+  it('handles leading and trailing whitespace', () => {
+    expect(countWords('  hello world  ')).toBe(2);
   });
 });

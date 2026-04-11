@@ -761,7 +761,7 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
   },
 });
 
-function parseMoveElementsArgs(
+export function parseMoveElementsArgs(
   args: Record<string, unknown>
 ): { elementIds: string[]; newParentId: string | null } | { error: McpToolResult } {
   const elementIds = args.elementIds as string[] | undefined;
@@ -780,7 +780,7 @@ function parseMoveElementsArgs(
   return { elementIds, newParentId };
 }
 
-function validateMoveParent(
+export function validateMoveParent(
   elements: Element[],
   newParentId: string | null
 ): McpToolResult | undefined {
@@ -1875,7 +1875,7 @@ async function extractSnapshotContent(
   return extractSnapshotContentOnBun(username, slug, elementId, elementType);
 }
 
-function toErrorResult(text: string): McpToolResult {
+export function toErrorResult(text: string): McpToolResult {
   return {
     content: [{ type: 'text', text }],
     isError: true,
@@ -1988,7 +1988,7 @@ async function extractSnapshotContentOnBun(
   }
 }
 
-function countWords(text: string): number {
+export function countWords(text: string): number {
   return text.split(/\s+/).filter((w) => w.length > 0).length;
 }
 
