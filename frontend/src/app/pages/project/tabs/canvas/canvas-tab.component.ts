@@ -1629,97 +1629,129 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   private readonly keyHandler = (e: KeyboardEvent) => {
-    // Don't handle shortcuts when typing in an input
+    if (this.isTypingTarget(e.target)) return;
+
+    const key = e.key.toLowerCase();
+    if (this.handleClipboardAndDuplicateShortcuts(e, key)) return;
+    if (this.handleToolSelectionShortcuts(key, e.ctrlKey || e.metaKey)) return;
+    if (this.handleEditingShortcuts(e, key)) return;
+    this.handleZoomShortcuts(e, key);
+  };
+
+  private isTypingTarget(target: EventTarget | null): boolean {
     if (
-      e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLTextAreaElement
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement
     ) {
+      return true;
+    }
+
+    // Check for contentEditable elements
+    if (target instanceof HTMLElement) {
+      return (
+        target.isContentEditable ||
+        target.getAttribute('contenteditable') === 'true'
+      );
+    }
+
+    return false;
+  }
+
+  private handleClipboardAndDuplicateShortcuts(
+    e: KeyboardEvent,
+    key: string
+  ): boolean {
+    if (!e.ctrlKey && !e.metaKey) return false;
+
+    if (key === 'c') {
+      e.preventDefault();
+      this.onCopy();
+      return true;
+    }
+
+    if (key === 'x') {
+      e.preventDefault();
+      this.onCut();
+      return true;
+    }
+
+    if (key === 'v') {
+      e.preventDefault();
+      this.contextMenuCanvasPos = null;
+      this.onPaste();
+      return true;
+    }
+
+    if (key === 'd') {
+      e.preventDefault();
+      this.onDuplicateObject();
+      return true;
+    }
+
+    return false;
+  }
+
+  private static readonly TOOL_KEY_MAP: Record<string, CanvasTool> = {
+    v: 'select',
+    r: 'rectSelect',
+    h: 'pan',
+    p: 'pin',
+    d: 'draw',
+    l: 'line',
+    s: 'shape',
+    t: 'text',
+  };
+
+  private handleToolSelectionShortcuts(
+    key: string,
+    hasModifier: boolean
+  ): boolean {
+    if (hasModifier) return false;
+
+    const tool = CanvasTabComponent.TOOL_KEY_MAP[key];
+    if (!tool) return false;
+
+    this.onToolChange(tool);
+    return true;
+  }
+
+  private handleEditingShortcuts(e: KeyboardEvent, key: string): boolean {
+    if (key === 'delete' || key === 'backspace') {
+      e.preventDefault();
+      this.deleteSelectedObject();
+      return true;
+    }
+
+    if (key !== 'escape') return false;
+
+    this.selectedObjectId.set(null);
+    this.transformer?.nodes([]);
+    this.selectionLayer?.batchDraw();
+    this.activeTool.set('select');
+    return true;
+  }
+
+  private handleZoomShortcuts(e: KeyboardEvent, key: string): void {
+    if (!e.ctrlKey && !e.metaKey) return;
+
+    if (key === '=' || key === '+') {
+      e.preventDefault();
+      this.onZoomIn();
       return;
     }
 
-    switch (e.key.toLowerCase()) {
-      case 'c':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          this.onCopy();
-        }
-        break;
-      case 'x':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          this.onCut();
-        }
-        break;
-      case 'v':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          this.contextMenuCanvasPos = null; // paste at viewport center
-          this.onPaste();
-        } else {
-          this.onToolChange('select');
-        }
-        break;
-      case 'r':
-        this.onToolChange('rectSelect');
-        break;
-      case 'h':
-        this.onToolChange('pan');
-        break;
-      case 'p':
-        this.onToolChange('pin');
-        break;
-      case 'd':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          this.onDuplicateObject();
-        } else {
-          this.onToolChange('draw');
-        }
-        break;
-      case 'l':
-        this.onToolChange('line');
-        break;
-      case 's':
-        // Only change tool if no modifier keys
-        if (!e.ctrlKey && !e.metaKey) {
-          this.onToolChange('shape');
-        }
-        break;
-      case 't':
-        this.onToolChange('text');
-        break;
-      case 'delete':
-      case 'backspace':
-        e.preventDefault();
-        this.deleteSelectedObject();
-        break;
-      case 'escape':
-        this.selectedObjectId.set(null);
-        this.transformer?.nodes([]);
-        this.selectionLayer?.batchDraw();
-        this.activeTool.set('select');
-        break;
-      case '=':
-      case '+':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          this.onZoomIn();
-        }
-        break;
-      case '-':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          this.onZoomOut();
-        }
-        break;
-      case '0':
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault();
-          this.onFitAll();
-        }
-        break;
+    if (key === '-') {
+      e.preventDefault();
+      this.onZoomOut();
+      return;
     }
-  };
+
+    if (key === '0') {
+      e.preventDefault();
+      this.onFitAll();
+    }
+  }
 
   private setupKeyboardShortcuts(): void {
     document.addEventListener('keydown', this.keyHandler);
@@ -1824,37 +1856,66 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     type: string,
     result: { fill?: string; stroke?: string }
   ): void {
-    let node: Konva.Node | undefined;
-
-    for (const [, kLayer] of this.konvaLayers) {
-      const found = kLayer.findOne(`#${objId}`);
-      if (found) {
-        node = found;
-        break;
-      }
-    }
+    const node = this.findKonvaNodeById(objId);
     if (!node) return;
 
-    if (type === 'pin' && node instanceof Konva.Group) {
-      const marker = node.findOne('Circle');
-      if (marker && result.fill) {
-        (marker as Konva.Circle).fill(result.fill);
-      }
-    } else if (type === 'text' && node instanceof Konva.Text) {
-      if (result.fill) node.fill(result.fill);
-    } else if (type === 'path' && node instanceof Konva.Line) {
-      if (result.stroke) node.stroke(result.stroke);
-      if (result.fill) node.fill(result.fill);
-    } else if (type === 'shape') {
-      if (result.fill && 'fill' in node) {
-        (node as Konva.Shape).fill(result.fill);
-      }
-      if (result.stroke && 'stroke' in node) {
-        (node as Konva.Shape).stroke(result.stroke);
-      }
-    }
+    this.applyNodeColorUpdate(node, type, result);
 
     node.getLayer()?.batchDraw();
+  }
+
+  private findKonvaNodeById(objId: string): Konva.Node | undefined {
+    for (const [, kLayer] of this.konvaLayers) {
+      const found = kLayer.findOne(`#${objId}`);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  private applyNodeColorUpdate(
+    node: Konva.Node,
+    type: string,
+    result: { fill?: string; stroke?: string }
+  ): void {
+    if (type === 'pin' && node instanceof Konva.Group) {
+      this.applyPinColor(node, result.fill);
+      return;
+    }
+
+    if (type === 'text' && node instanceof Konva.Text) {
+      if (result.fill) node.fill(result.fill);
+      return;
+    }
+
+    if (type === 'path' && node instanceof Konva.Line) {
+      if (result.stroke) node.stroke(result.stroke);
+      if (result.fill) node.fill(result.fill);
+      return;
+    }
+
+    if (type === 'shape') {
+      this.applyShapeColors(node, result);
+    }
+  }
+
+  private applyPinColor(node: Konva.Group, fill?: string): void {
+    if (!fill) return;
+    const marker = node.findOne('Circle');
+    if (marker) {
+      (marker as Konva.Circle).fill(fill);
+    }
+  }
+
+  private applyShapeColors(
+    node: Konva.Node,
+    result: { fill?: string; stroke?: string }
+  ): void {
+    if (result.fill && 'fill' in node) {
+      (node as Konva.Shape).fill(result.fill);
+    }
+    if (result.stroke && 'stroke' in node) {
+      (node as Konva.Shape).stroke(result.stroke);
+    }
   }
 
   protected async onAddImage(): Promise<void> {
@@ -2205,29 +2266,36 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     // Record canvas-space position for paste
     this.contextMenuCanvasPos = this.getCanvasPointerPosition();
 
-    // If right-clicking a Konva node, select it first
-    if (this.stage) {
-      const pos = this.stage.getPointerPosition();
-      if (pos) {
-        const shape = this.stage.getIntersection(pos);
-        if (shape) {
-          // Walk up to the top-level group/shape within a Konva layer
-          let target: Konva.Node = shape;
-          while (target.parent && !(target.parent instanceof Konva.Layer)) {
-            target = target.parent;
-          }
-          const objId = target.id();
-          if (objId && this.konvaNodes.has(objId)) {
-            this.onSelectObject(objId);
-          }
-        }
-      }
-    }
+    this.selectObjectAtPointer();
 
     // Open the menu on the next tick so Angular picks up position changes
     setTimeout(() => {
       this.contextMenuTrigger()?.openMenu();
     });
+  }
+
+  private selectObjectAtPointer(): void {
+    if (!this.stage) return;
+
+    const pos = this.stage.getPointerPosition();
+    if (!pos) return;
+
+    const shape = this.stage.getIntersection(pos);
+    if (!shape) return;
+
+    const target = this.getTopLayerNode(shape);
+    const objId = target.id();
+    if (objId && this.konvaNodes.has(objId)) {
+      this.onSelectObject(objId);
+    }
+  }
+
+  private getTopLayerNode(shape: Konva.Node): Konva.Node {
+    let target: Konva.Node = shape;
+    while (target.parent && !(target.parent instanceof Konva.Layer)) {
+      target = target.parent;
+    }
+    return target;
   }
 
   /** Copy the selected object to the clipboard */

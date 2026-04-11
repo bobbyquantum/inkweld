@@ -273,6 +273,29 @@ describe('UnifiedSnapshotService', () => {
       expect(snapshotsApi.createProjectSnapshot).not.toHaveBeenCalled();
     });
 
+    it('should strip prefix from documentId when it matches project format', async () => {
+      const ydoc = new Y.Doc();
+      documentService.getYDoc.mockResolvedValue(ydoc);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+
+      await service.createSnapshot(
+        'testuser:test-project:doc-123',
+        'Prefixed Snapshot'
+      );
+
+      // The element lookup should still find 'doc-123' element
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'testuser:test-project:doc-123',
+        expect.objectContaining({
+          name: 'Prefixed Snapshot',
+          metadata: expect.objectContaining({
+            elementName: 'Chapter 1',
+          }),
+        })
+      );
+    });
+
     it('should include worldbuilding data for worldbuilding elements', async () => {
       const element = createElement(
         'char-123',
@@ -435,6 +458,41 @@ describe('UnifiedSnapshotService', () => {
         'testuser/test-project'
       );
     });
+
+    it('should return only local snapshots when offline', async () => {
+      syncFactory.isLocalMode.mockReturnValue(true);
+      localSnapshots.listSnapshotsForProject.mockResolvedValue([
+        mockSnapshotInfo,
+      ]);
+
+      const result = await service.listProjectSnapshots();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isLocal).toBe(true);
+      expect(snapshotsApi.listProjectSnapshots).not.toHaveBeenCalled();
+    });
+
+    it('should throw when no active project', async () => {
+      projectSignal.set(undefined);
+
+      await expect(service.listProjectSnapshots()).rejects.toThrow(
+        'No active project'
+      );
+    });
+
+    it('should handle server fetch failure gracefully', async () => {
+      localSnapshots.listSnapshotsForProject.mockResolvedValue([
+        mockSnapshotInfo,
+      ]);
+      snapshotsApi.listProjectSnapshots.mockReturnValue(
+        throwError(() => new Error('Network error'))
+      );
+
+      const result = await service.listProjectSnapshots();
+
+      expect(result).toHaveLength(1);
+      expect(logger.warn).toHaveBeenCalled();
+    });
   });
 
   describe('getSnapshotForRestore', () => {
@@ -543,6 +601,102 @@ describe('UnifiedSnapshotService', () => {
       await expect(
         service.restoreFromSnapshot('doc-123', emptySnapshot.id)
       ).rejects.toThrow('has no content to restore');
+    });
+
+    it('should throw for worldbuilding snapshot with prose when prose ydoc is unavailable', async () => {
+      const worldbuildingElement = createElement(
+        'wb-123',
+        'Character',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([worldbuildingElement]);
+
+      const worldbuildingSnapshot: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-123:snap-1',
+        documentId: 'wb-123',
+        xmlContent: '<paragraph>Has prose</paragraph>',
+        worldbuildingData: { name: 'Character' },
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(worldbuildingSnapshot);
+      documentService.getYDoc.mockResolvedValue(null);
+
+      await expect(
+        service.restoreFromSnapshot('wb-123', worldbuildingSnapshot.id)
+      ).rejects.toThrow('prose Y.Doc is not available');
+    });
+
+    it('should throw when worldbuilding snapshot has no worldbuildingData', async () => {
+      const wbElement = createElement(
+        'wb-456',
+        'Location',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([wbElement]);
+
+      const wbSnap: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-456:snap-2',
+        documentId: 'wb-456',
+        xmlContent: '',
+        worldbuildingData: undefined,
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(wbSnap);
+
+      await expect(
+        service.restoreFromSnapshot('wb-456', wbSnap.id)
+      ).rejects.toThrow('missing worldbuilding data');
+    });
+
+    it('should throw when worldbuilding ydoc is unavailable', async () => {
+      const wbElement = createElement(
+        'wb-789',
+        'Faction',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([wbElement]);
+
+      const wbSnap: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-789:snap-3',
+        documentId: 'wb-789',
+        xmlContent: '',
+        worldbuildingData: { name: 'Dark Brotherhood' },
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(wbSnap);
+      worldbuildingService.getYDoc.mockReturnValue(null);
+
+      await expect(
+        service.restoreFromSnapshot('wb-789', wbSnap.id)
+      ).rejects.toThrow('not found or not loaded');
+    });
+
+    it('should successfully restore worldbuilding data from snapshot', async () => {
+      const wbElement = createElement(
+        'wb-ok',
+        'Character',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([wbElement]);
+
+      const wbSnap: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-ok:snap-4',
+        documentId: 'wb-ok',
+        xmlContent: '',
+        worldbuildingData: { name: 'Gandalf', traits: ['wise'] },
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(wbSnap);
+
+      const wbYdoc = new Y.Doc();
+      worldbuildingService.getYDoc.mockReturnValue(wbYdoc);
+
+      const result = await service.restoreFromSnapshot('wb-ok', wbSnap.id);
+      expect(result).toBe(true);
+      expect(logger.info).toHaveBeenCalledWith(
+        'UnifiedSnapshot',
+        expect.stringContaining('Restored worldbuilding data')
+      );
     });
   });
 

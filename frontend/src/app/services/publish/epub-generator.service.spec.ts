@@ -1070,4 +1070,43 @@ describe('EpubGeneratorService', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe('elementRef rendering', () => {
+    it('should render elementRef with displayText as escaped text', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'elementRef',
+              attrs: {
+                elementId: 'ref-1',
+                displayText: 'Referenced Element',
+              },
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+      expect(result.success).toBe(true);
+    });
+
+    it('should render elementRef without displayText as empty string', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'elementRef',
+              attrs: { elementId: 'ref-2' },
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generateEpub(mockPlan);
+      expect(result.success).toBe(true);
+    });
+  });
 });

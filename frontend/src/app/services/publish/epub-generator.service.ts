@@ -22,6 +22,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { applyMarks, MARK_TAGS } from './publish-marks-helper';
 
 /**
  * Progress information for EPUB generation
@@ -581,55 +582,14 @@ export class EpubGeneratorService {
   private nodeToHtml(node: ProseMirrorNode): string {
     if (!node) return '';
 
-    // Text node (plain string)
-    if (typeof node === 'string') {
-      return this.escapeHtml(node);
-    }
+    if (typeof node === 'string') return this.escapeHtml(node);
+    if (Array.isArray(node)) return node.map(n => this.nodeToHtml(n)).join('');
 
-    // Array of nodes
-    if (Array.isArray(node)) {
-      return node.map(n => this.nodeToHtml(n)).join('');
-    }
+    const elementRefHtml = this.renderElementRefNode(node);
+    if (elementRefHtml !== null) return elementRefHtml;
 
-    // Handle elementRef nodes - render display text as plain text
-    // These are design-time references, no special rendering or linking in published output
-    if (
-      typeof node === 'object' &&
-      'type' in node &&
-      node.type === 'elementRef'
-    ) {
-      const attrs =
-        'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
-      const displayText = attrs?.['displayText'] as string | undefined;
-      return displayText ? this.escapeHtml(displayText) : '';
-    }
-
-    // ProseMirror text node - has 'type: text' and 'text' property
-    if (
-      typeof node === 'object' &&
-      'type' in node &&
-      node.type === 'text' &&
-      'text' in node
-    ) {
-      const text = this.escapeHtml(String(node.text));
-      // Handle marks (bold, italic, etc.)
-      const marks = this.getMarks(node);
-      let result = text;
-      const MARK_TAGS: Record<string, [string, string]> = {
-        bold: ['<strong>', '</strong>'],
-        strong: ['<strong>', '</strong>'],
-        italic: ['<em>', '</em>'],
-        em: ['<em>', '</em>'],
-        underline: ['<u>', '</u>'],
-        strike: ['<s>', '</s>'],
-        code: ['<code>', '</code>'],
-      };
-      for (const mark of marks) {
-        const tag = MARK_TAGS[mark];
-        if (tag) result = `${tag[0]}${result}${tag[1]}`;
-      }
-      return result;
-    }
+    const textHtml = this.renderMarkedTextNode(node);
+    if (textHtml !== null) return textHtml;
 
     // Element node from ProseMirror/Yjs
     const tagName = this.getTagName(node);
@@ -643,6 +603,42 @@ export class EpubGeneratorService {
 
     const childHtml = children.map(c => this.nodeToHtml(c)).join('');
     return `<${tagName}${attributes}>${childHtml}</${tagName}>`;
+  }
+
+  private renderElementRefNode(node: ProseMirrorNode): string | null {
+    if (
+      !(
+        typeof node === 'object' &&
+        'type' in node &&
+        node.type === 'elementRef'
+      )
+    ) {
+      return null;
+    }
+
+    const attrs =
+      'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
+    const displayText = attrs?.['displayText'] as string | undefined;
+    return displayText ? this.escapeHtml(displayText) : '';
+  }
+
+  private renderMarkedTextNode(node: ProseMirrorNode): string | null {
+    if (
+      !(
+        typeof node === 'object' &&
+        'type' in node &&
+        node.type === 'text' &&
+        'text' in node
+      )
+    ) {
+      return null;
+    }
+
+    const text = this.escapeHtml(String(node.text));
+    const marks = this.getMarks(node);
+    if (marks.length === 0) return text;
+
+    return applyMarks(text, marks, MARK_TAGS);
   }
 
   private getTagName(node: ProseMirrorNode): string {
