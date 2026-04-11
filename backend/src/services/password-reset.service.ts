@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { eq, and, lt, isNotNull, or } from 'drizzle-orm';
 import { passwordResetTokens } from '../db/schema';
 import { userService } from './user.service';

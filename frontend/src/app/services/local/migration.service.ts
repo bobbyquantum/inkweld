@@ -212,13 +212,18 @@ export class MigrationService {
       finalState.completedProjects === finalState.totalProjects;
     const someFailed = finalState.failedProjects > 0;
 
+    let status: MigrationStatus;
+    if (allCompleted) {
+      status = MigrationStatus.Completed;
+    } else if (someFailed) {
+      status = MigrationStatus.Failed;
+    } else {
+      status = MigrationStatus.InProgress;
+    }
+
     this.migrationState.update(state => ({
       ...state,
-      status: allCompleted
-        ? MigrationStatus.Completed
-        : someFailed
-          ? MigrationStatus.Failed
-          : MigrationStatus.InProgress,
+      status,
     }));
 
     this.logger.info(

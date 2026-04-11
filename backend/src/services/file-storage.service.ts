@@ -1,5 +1,5 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { lookup } from 'mime-types';
 import { config } from '../config/env';
 import { BadRequestError } from '../errors';
