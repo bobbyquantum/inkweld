@@ -1851,6 +1851,14 @@ async function extractSnapshotContentOnWorkers(
   | { xmlContent: string; wordCount: number; worldbuildingData: Record<string, unknown> | null }
   | { error: string }
 > {
+  // Fast-fail for ITEM type immediately
+  if (elementType === 'ITEM') {
+    return {
+      error:
+        'Cannot create snapshot on Cloudflare Workers: content extraction is not supported in this environment.',
+    };
+  }
+
   const worldbuildingData = await readWorldbuildingDataFromWorkers(
     ctx,
     username,
@@ -1858,13 +1866,6 @@ async function extractSnapshotContentOnWorkers(
     elementId,
     elementType
   );
-
-  if (elementType === 'ITEM') {
-    return {
-      error:
-        'Cannot create snapshot on Cloudflare Workers: content extraction is not supported in this environment.',
-    };
-  }
 
   return {
     xmlContent: '',

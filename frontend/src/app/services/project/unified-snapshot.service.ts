@@ -385,9 +385,13 @@ export class UnifiedSnapshotService {
       snapshotId,
       isWorldbuilding
     );
-    this.restoreWorldbuildingFromSnapshot(snapshot, elementId, isWorldbuilding);
+    const wbRestoreSuccess = this.restoreWorldbuildingFromSnapshot(
+      snapshot,
+      elementId,
+      isWorldbuilding
+    );
 
-    return true;
+    return wbRestoreSuccess;
   }
 
   private extractElementId(documentId: string, prefix: string): string {
@@ -453,21 +457,24 @@ export class UnifiedSnapshotService {
     snapshot: StoredSnapshot,
     elementId: string,
     isWorldbuilding: boolean
-  ): void {
-    if (!isWorldbuilding) return;
+  ): boolean {
+    if (!isWorldbuilding) return true;
 
     if (!snapshot.worldbuildingData) {
       this.logger.warn(
         'UnifiedSnapshot',
         `No worldbuilding data in snapshot for WB element ${elementId}`
       );
-      return;
+      return false;
     }
 
     this.logger.debug(
       'UnifiedSnapshot',
       `Restoring worldbuilding data for ${elementId}`,
-      { worldbuildingData: snapshot.worldbuildingData }
+      {
+        dataSize: JSON.stringify(snapshot.worldbuildingData).length,
+        keysCount: Object.keys(snapshot.worldbuildingData).length,
+      }
     );
 
     const wbYdoc = this.getWorldbuildingYDoc(elementId);
@@ -478,17 +485,26 @@ export class UnifiedSnapshotService {
     }
 
     const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
-    this.logger.debug('UnifiedSnapshot', `Before restore - dataMap contents:`, {
-      dataMapBefore: dataMap.toJSON(),
-    });
+    this.logger.debug(
+      'UnifiedSnapshot',
+      `Before restore - wordbuilding dataMap metadata`,
+      {
+        keyCount: dataMap.size,
+      }
+    );
     applyJsonToYjsMap(wbYdoc, dataMap, snapshot.worldbuildingData);
-    this.logger.debug('UnifiedSnapshot', `After restore - dataMap contents:`, {
-      dataMapAfter: dataMap.toJSON(),
-    });
+    this.logger.debug(
+      'UnifiedSnapshot',
+      `After restore - worldbuilding dataMap metadata`,
+      {
+        keyCount: dataMap.size,
+      }
+    );
     this.logger.info(
       'UnifiedSnapshot',
       `Restored worldbuilding data for ${elementId}`
     );
+    return true;
   }
 
   /**

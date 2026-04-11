@@ -1639,10 +1639,23 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   };
 
   private isTypingTarget(target: EventTarget | null): boolean {
-    return (
+    if (
       target instanceof HTMLInputElement ||
-      target instanceof HTMLTextAreaElement
-    );
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement
+    ) {
+      return true;
+    }
+
+    // Check for contentEditable elements
+    if (target instanceof HTMLElement) {
+      return (
+        target.isContentEditable ||
+        target.getAttribute('contenteditable') === 'true'
+      );
+    }
+
+    return false;
   }
 
   private handleClipboardAndDuplicateShortcuts(

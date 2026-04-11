@@ -231,7 +231,7 @@ function parseImageSizeProperty(info: ParsedFalModelInfo, prop?: PropertySchema)
 function expandDimensionOptions(options?: PropertySchema[]): string[] {
   if (!options) return [];
 
-  const sizes: string[] = [];
+  const sizes: Set<string> = new Set();
   for (const option of options) {
     const widths = option.properties?.width?.enum;
     const heights = option.properties?.height?.enum;
@@ -239,12 +239,12 @@ function expandDimensionOptions(options?: PropertySchema[]): string[] {
 
     for (const width of widths) {
       for (const height of heights) {
-        sizes.push(`${width}x${height}`);
+        sizes.add(`${width}x${height}`);
       }
     }
   }
 
-  return sizes;
+  return Array.from(sizes);
 }
 
 function parseAspectRatioProperty(info: ParsedFalModelInfo, prop?: PropertySchema): void {

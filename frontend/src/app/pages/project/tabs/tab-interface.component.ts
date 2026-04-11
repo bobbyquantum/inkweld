@@ -37,7 +37,9 @@ import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 
-const SYSTEM_TAB_ICONS: Record<string, string> = {
+const SYSTEM_TAB_ICONS: Partial<
+  Record<Exclude<AppTab['systemType'], undefined>, string>
+> = {
   home: 'home',
   'documents-list': 'list',
   media: 'perm_media',
