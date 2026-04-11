@@ -1353,7 +1353,20 @@ export class DocumentService {
         }
       }
 
-      void storeState(connection.indexeddbProvider, true)
+      let flushPromise: Promise<unknown>;
+      try {
+        flushPromise = storeState(connection.indexeddbProvider, true);
+      } catch (error) {
+        this.logger.warn(
+          'DocumentService',
+          `Error starting IndexedDB flush for ${docId}`,
+          error
+        );
+        this.cleanupSyncState(docId);
+        continue;
+      }
+
+      void flushPromise
         .then(() => connection.indexeddbProvider.destroy())
         .then(() => connection.ydoc.destroy())
         .catch(error => {
@@ -1391,7 +1404,19 @@ export class DocumentService {
       }
     }
 
-    void storeState(connection.indexeddbProvider, true)
+    let flushPromise: Promise<unknown>;
+    try {
+      flushPromise = storeState(connection.indexeddbProvider, true);
+    } catch (error) {
+      this.logger.warn(
+        'DocumentService',
+        `Error starting IndexedDB flush for ${documentId}`,
+        error
+      );
+      flushPromise = Promise.resolve();
+    }
+
+    void flushPromise
       .then(() => connection.indexeddbProvider.destroy())
       .catch(error => {
         this.logger.warn(
