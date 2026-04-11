@@ -367,84 +367,141 @@ export class UnifiedSnapshotService {
       throw new Error('No active project');
     }
 
-    // Extract the element ID from documentId (which may be full ID or just element ID)
     const expectedPrefix = `${project.username}:${project.slug}:`;
-    const elementId = documentId.startsWith(expectedPrefix)
-      ? documentId.slice(expectedPrefix.length)
+    const elementId = this.extractElementId(documentId, expectedPrefix);
+    this.assertSnapshotBelongsToDocument(
+      snapshot,
+      snapshotId,
+      documentId,
+      elementId,
+      expectedPrefix
+    );
+
+    const isWorldbuilding = this.isWorldbuildingElement(elementId);
+    await this.restoreProseFromSnapshot(
+      snapshot,
+      documentId,
+      elementId,
+      snapshotId,
+      isWorldbuilding
+    );
+    this.restoreWorldbuildingFromSnapshot(snapshot, elementId, isWorldbuilding);
+
+    return true;
+  }
+
+  private extractElementId(documentId: string, prefix: string): string {
+    return documentId.startsWith(prefix)
+      ? documentId.slice(prefix.length)
       : documentId;
+  }
 
-    // Verify snapshot belongs to this document (compare element IDs)
-    const snapshotElementId = snapshot.documentId.startsWith(expectedPrefix)
-      ? snapshot.documentId.slice(expectedPrefix.length)
-      : snapshot.documentId;
-
+  private assertSnapshotBelongsToDocument(
+    snapshot: StoredSnapshot,
+    snapshotId: string,
+    documentId: string,
+    elementId: string,
+    expectedPrefix: string
+  ): void {
+    const snapshotElementId = this.extractElementId(
+      snapshot.documentId,
+      expectedPrefix
+    );
     if (snapshotElementId !== elementId) {
       throw new Error(
         `Snapshot ${snapshotId} is for document ${snapshot.documentId}, not ${documentId}`
       );
     }
+  }
 
-    // Check if this is a worldbuilding element
+  private isWorldbuildingElement(elementId: string): boolean {
     const element = this.projectState.elements().find(e => e.id === elementId);
-    const isWorldbuilding = element && this.isWorldbuildingType(element.type);
+    return !!element && this.isWorldbuildingType(element.type);
+  }
 
-    // Restore prose content if available
-    if (snapshot.xmlContent) {
-      const ydoc = await this.getDocumentYDoc(documentId);
-      if (ydoc) {
-        const prosemirror = ydoc.getXmlFragment('prosemirror');
-        applyXmlToFragment(ydoc, prosemirror, snapshot.xmlContent);
-        this.logger.info(
-          'UnifiedSnapshot',
-          `Restored document ${elementId} from snapshot "${snapshot.name}" using XML content`
+  private async restoreProseFromSnapshot(
+    snapshot: StoredSnapshot,
+    documentId: string,
+    elementId: string,
+    snapshotId: string,
+    isWorldbuilding: boolean
+  ): Promise<void> {
+    if (!snapshot.xmlContent) {
+      if (!isWorldbuilding) {
+        throw new Error(`Snapshot ${snapshotId} has no content to restore`);
+      }
+      return;
+    }
+
+    const ydoc = await this.getDocumentYDoc(documentId);
+    if (!ydoc) {
+      if (snapshot.xmlContent) {
+        throw new Error(
+          `Document ${elementId} prose Y.Doc is not available for snapshot restore`
         );
-      } else if (!isWorldbuilding) {
-        // For non-WB elements, prose content is required
+      }
+      if (!isWorldbuilding) {
         throw new Error(`Document ${elementId} not found or not loaded`);
       }
-    } else if (!isWorldbuilding) {
-      // For non-WB elements, must have content to restore
-      throw new Error(`Snapshot ${snapshotId} has no content to restore`);
+      return;
     }
 
-    // Restore worldbuilding data if available
-    if (snapshot.worldbuildingData && isWorldbuilding) {
-      this.logger.debug(
-        'UnifiedSnapshot',
-        `Restoring worldbuilding data for ${elementId}`,
-        { worldbuildingData: snapshot.worldbuildingData }
+    const prosemirror = ydoc.getXmlFragment('prosemirror');
+    applyXmlToFragment(ydoc, prosemirror, snapshot.xmlContent);
+    this.logger.info(
+      'UnifiedSnapshot',
+      `Restored document ${elementId} from snapshot "${snapshot.name}" using XML content`
+    );
+  }
+
+  private restoreWorldbuildingFromSnapshot(
+    snapshot: StoredSnapshot,
+    elementId: string,
+    isWorldbuilding: boolean
+  ): void {
+    if (!isWorldbuilding) return;
+
+    if (!snapshot.worldbuildingData) {
+      throw new Error(
+        `Snapshot is missing worldbuilding data for worldbuilding element ${elementId}`
       );
-      const wbYdoc = this.getWorldbuildingYDoc(elementId);
-      if (wbYdoc) {
-        const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
-        this.logger.debug(
-          'UnifiedSnapshot',
-          `Before restore - dataMap contents:`,
-          { dataMapBefore: dataMap.toJSON() }
-        );
-        applyJsonToYjsMap(wbYdoc, dataMap, snapshot.worldbuildingData);
-        this.logger.debug(
-          'UnifiedSnapshot',
-          `After restore - dataMap contents:`,
-          { dataMapAfter: dataMap.toJSON() }
-        );
-        this.logger.info(
-          'UnifiedSnapshot',
-          `Restored worldbuilding data for ${elementId}`
-        );
-      } else {
-        throw new Error(
-          `Worldbuilding document ${elementId} not found or not loaded`
-        );
+    }
+
+    this.logger.debug(
+      'UnifiedSnapshot',
+      `Restoring worldbuilding data for ${elementId}`,
+      {
+        keysCount: Object.keys(snapshot.worldbuildingData).length,
       }
-    } else if (isWorldbuilding && !snapshot.worldbuildingData) {
-      this.logger.warn(
-        'UnifiedSnapshot',
-        `No worldbuilding data in snapshot for WB element ${elementId}`
+    );
+
+    const wbYdoc = this.getWorldbuildingYDoc(elementId);
+    if (!wbYdoc) {
+      throw new Error(
+        `Worldbuilding document ${elementId} not found or not loaded`
       );
     }
 
-    return true;
+    const dataMap = wbYdoc.getMap<unknown>('worldbuilding');
+    this.logger.debug(
+      'UnifiedSnapshot',
+      `Before restore - wordbuilding dataMap metadata`,
+      {
+        keyCount: dataMap.size,
+      }
+    );
+    applyJsonToYjsMap(wbYdoc, dataMap, snapshot.worldbuildingData);
+    this.logger.debug(
+      'UnifiedSnapshot',
+      `After restore - worldbuilding dataMap metadata`,
+      {
+        keyCount: dataMap.size,
+      }
+    );
+    this.logger.info(
+      'UnifiedSnapshot',
+      `Restored worldbuilding data for ${elementId}`
+    );
   }
 
   /**

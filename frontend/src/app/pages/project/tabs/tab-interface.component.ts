@@ -37,6 +37,24 @@ import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 
+const SYSTEM_TAB_ICONS: Partial<
+  Record<Exclude<AppTab['systemType'], undefined>, string>
+> = {
+  home: 'home',
+  'documents-list': 'list',
+  media: 'perm_media',
+  'templates-list': 'description',
+  settings: 'settings',
+  'publish-plans': 'auto_stories',
+};
+
+const TAB_TYPE_ICONS: Partial<Record<AppTab['type'], string>> = {
+  publishPlan: 'publish',
+  folder: 'folder',
+  'relationship-chart': 'hub',
+  canvas: 'dashboard',
+};
+
 @Component({
   selector: 'app-tab-interface',
   templateUrl: './tab-interface.component.html',
@@ -693,58 +711,33 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   getTabIcon(tab: AppTab): string {
     if (tab.type === 'system') {
-      if (tab.systemType === 'home') {
-        return 'home';
-      } else if (tab.systemType === 'documents-list') {
-        return 'list';
-      } else if (tab.systemType === 'media') {
-        return 'perm_media';
-      } else if (tab.systemType === 'templates-list') {
-        return 'description';
-      } else if (tab.systemType === 'settings') {
-        return 'settings';
-      } else if (tab.systemType === 'publish-plans') {
-        return 'auto_stories';
-      }
-      return 'article';
+      return this.getSystemTabIcon(tab.systemType);
     }
 
-    if (tab.type === 'publishPlan') {
-      return 'publish';
-    }
-
-    if (tab.type === 'folder') {
-      return 'folder';
-    }
-
-    if (tab.type === 'relationship-chart') {
-      return 'hub';
-    }
-
-    if (tab.type === 'canvas') {
-      return 'dashboard';
-    }
+    const staticIcon = TAB_TYPE_ICONS[tab.type];
+    if (staticIcon) return staticIcon;
 
     if (tab.type === 'worldbuilding') {
-      // For worldbuilding elements, look up the icon from the schema
-      if (tab.element?.schemaId) {
-        const schema = this.worldbuildingService.getSchemaById(
-          tab.element.schemaId
-        );
-        if (schema?.icon) {
-          return schema.icon;
-        }
-      }
-
-      // Fallback to metadata icon if available
-      if (tab.element?.metadata?.['icon']) {
-        return tab.element.metadata['icon'];
-      }
-
-      return 'category';
+      return this.getWorldbuildingTabIcon(tab);
     }
 
     return 'insert_drive_file';
+  }
+
+  private getSystemTabIcon(systemType: AppTab['systemType']): string {
+    if (!systemType) return 'article';
+    return SYSTEM_TAB_ICONS[systemType] ?? 'article';
+  }
+
+  private getWorldbuildingTabIcon(tab: AppTab): string {
+    const schemaId = tab.element?.schemaId;
+    if (schemaId) {
+      const schema = this.worldbuildingService.getSchemaById(schemaId);
+      if (schema?.icon) return schema.icon;
+    }
+
+    const metadataIcon = tab.element?.metadata?.['icon'];
+    return metadataIcon || 'category';
   }
 
   /**

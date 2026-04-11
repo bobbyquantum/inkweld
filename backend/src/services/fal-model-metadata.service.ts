@@ -63,7 +63,7 @@ interface SchemaObject {
   $ref?: string;
 }
 
-interface PropertySchema {
+export interface PropertySchema {
   type?: string;
   description?: string;
   default?: unknown;
@@ -220,25 +220,31 @@ function parseImageSizeProperty(info: ParsedFalModelInfo, prop?: PropertySchema)
 
   info.sizeMode = 'dimensions';
 
-  const options = prop.oneOf || prop.anyOf;
-  if (options) {
-    for (const opt of options) {
-      const widthEnum = opt.properties?.width?.enum;
-      const heightEnum = opt.properties?.height?.enum;
-      if (widthEnum && heightEnum) {
-        for (const w of widthEnum) {
-          for (const h of heightEnum) {
-            info.supportedSizes.push(`${w}x${h}`);
-          }
-        }
-      }
-    }
-  }
+  info.supportedSizes = expandDimensionOptions(prop.oneOf || prop.anyOf);
 
   if (info.supportedSizes.length === 0) {
     info.supportsCustomResolutions = true;
     info.supportedSizes = ['1024x1024', '1920x1080', '1080x1920', '1344x768', '768x1344'];
   }
+}
+
+export function expandDimensionOptions(options?: PropertySchema[]): string[] {
+  if (!options) return [];
+
+  const sizes: Set<string> = new Set();
+  for (const option of options) {
+    const widths = option.properties?.width?.enum;
+    const heights = option.properties?.height?.enum;
+    if (!widths || !heights) continue;
+
+    for (const width of widths) {
+      for (const height of heights) {
+        sizes.add(`${width}x${height}`);
+      }
+    }
+  }
+
+  return Array.from(sizes);
 }
 
 function parseAspectRatioProperty(info: ParsedFalModelInfo, prop?: PropertySchema): void {
