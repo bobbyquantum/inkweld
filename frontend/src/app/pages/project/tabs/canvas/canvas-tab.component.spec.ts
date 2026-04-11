@@ -2841,10 +2841,11 @@ describe('CanvasTabComponent', () => {
         mockLayer as unknown as Konva.Layer
       );
 
-      // Should not throw
       component['updateKonvaNodeColors']('missing-id', 'text', {
         fill: '#fff',
       });
+
+      expect(mockLayer.findOne).toHaveBeenCalledWith('#missing-id');
     });
 
     it('should apply color and batch draw when node found', () => {
@@ -2978,12 +2979,14 @@ describe('CanvasTabComponent', () => {
     });
 
     it('should handle missing circle marker gracefully', () => {
+      const findOneFn = vi.fn(() => null);
       const groupNode = {
-        findOne: vi.fn(() => null),
+        findOne: findOneFn,
       } as unknown as Konva.Group;
 
-      // Should not throw
       component['applyPinColor'](groupNode, '#E53935');
+
+      expect(findOneFn).toHaveBeenCalledWith('Circle');
     });
   });
 
