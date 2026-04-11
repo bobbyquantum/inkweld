@@ -169,19 +169,31 @@ export class MarkdownGeneratorService {
   }
 
   private generateFrontmatter(metadata: PublishMetadata): string {
-    const lines = ['---'];
-    lines.push(`title: "${metadata.title}"`);
-    lines.push(`author: "${metadata.author}"`);
-    if (metadata.subtitle) lines.push(`subtitle: "${metadata.subtitle}"`);
-    if (metadata.description)
-      lines.push(`description: "${metadata.description}"`);
-    if (metadata.language) lines.push(`language: ${metadata.language}`);
-    if (metadata.keywords?.length) {
-      const keywordList = metadata.keywords.map(k => '"' + k + '"').join(', ');
-      lines.push(`keywords: [${keywordList}]`);
-    }
-    lines.push('---');
+    const keywordList = metadata.keywords?.length
+      ? metadata.keywords.map(k => this.serializeYamlScalar(k)).join(', ')
+      : null;
+    const lines = [
+      '---',
+      `title: ${this.serializeYamlScalar(metadata.title)}`,
+      `author: ${this.serializeYamlScalar(metadata.author)}`,
+      ...(metadata.subtitle
+        ? [`subtitle: ${this.serializeYamlScalar(metadata.subtitle)}`]
+        : []),
+      ...(metadata.description
+        ? [`description: ${this.serializeYamlScalar(metadata.description)}`]
+        : []),
+      ...(metadata.language
+        ? [`language: ${this.serializeYamlScalar(metadata.language)}`]
+        : []),
+      ...(keywordList ? [`keywords: [${keywordList}]`] : []),
+      '---',
+    ];
     return lines.join('\n');
+  }
+
+  private serializeYamlScalar(value: string): string {
+    // JSON string encoding is valid YAML flow scalar syntax and safely escapes quotes/newlines.
+    return JSON.stringify(value);
   }
 
   private async processItem(
@@ -230,15 +242,13 @@ export class MarkdownGeneratorService {
         options
       );
 
-      parts.push(`# ${formattedTitle}`);
-      parts.push(content);
+      parts.push(`# ${formattedTitle}`, content);
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
       for (const child of children) {
         if (child.type === ElementType.Item) {
           const content = await this.getDocumentContent(child.id);
-          parts.push(`## ${child.name}`);
-          parts.push(content);
+          parts.push(`## ${child.name}`, content);
         }
       }
     }

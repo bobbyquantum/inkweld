@@ -101,7 +101,7 @@ export class ProjectSyncService {
   }
 
   /** In-memory cache of sync states */
-  private syncStates = new Map<
+  private readonly syncStates = new Map<
     string,
     ReturnType<typeof signal<ProjectSyncState>>
   >();
