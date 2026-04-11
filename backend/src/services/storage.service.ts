@@ -53,6 +53,16 @@ export interface StorageService {
 class FileStorageAdapter implements StorageService {
   constructor(private readonly fileStorage: FileStorageService) {}
 
+  private toBuffer(data: BinaryData): Buffer {
+    if (data instanceof Buffer) {
+      return data;
+    }
+    if (data instanceof ArrayBuffer) {
+      return Buffer.from(new Uint8Array(data));
+    }
+    return Buffer.from(data);
+  }
+
   async saveProjectFile(
     username: string,
     projectSlug: string,
@@ -60,14 +70,7 @@ class FileStorageAdapter implements StorageService {
     data: BinaryData,
     _contentType?: string
   ): Promise<void> {
-    let buffer: Buffer;
-    if (data instanceof Buffer) {
-      buffer = data;
-    } else if (data instanceof ArrayBuffer) {
-      buffer = Buffer.from(new Uint8Array(data));
-    } else {
-      buffer = Buffer.from(data);
-    }
+    const buffer = this.toBuffer(data);
     await this.fileStorage.saveProjectFile(username, projectSlug, filename, buffer);
   }
 
@@ -100,14 +103,7 @@ class FileStorageAdapter implements StorageService {
   }
 
   async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
-    let buffer: Buffer;
-    if (data instanceof Buffer) {
-      buffer = data;
-    } else if (data instanceof ArrayBuffer) {
-      buffer = Buffer.from(new Uint8Array(data));
-    } else {
-      buffer = Buffer.from(data);
-    }
+    const buffer = this.toBuffer(data);
     await this.fileStorage.saveUserAvatar(username, buffer);
   }
 

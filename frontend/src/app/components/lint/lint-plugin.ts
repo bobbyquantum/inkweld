@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { isDevMode } from '@angular/core';
 import { type Node } from 'prosemirror-model';
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
@@ -20,6 +21,18 @@ export interface LintState {
 
 // Export the plugin key for testing and state access
 export const pluginKey = new PluginKey<LintState>('lint');
+
+function lintDebugLog(...args: unknown[]): void {
+  if (isDevMode()) {
+    console.log(...args);
+  }
+}
+
+function lintDebugWarn(...args: unknown[]): void {
+  if (isDevMode()) {
+    console.warn(...args);
+  }
+}
 
 /** Preserve leading/trailing whitespace from original text in a suggestion */
 export function preserveWhitespace(
@@ -50,8 +63,15 @@ export function handleAcceptCorrection(
 ): void {
   if (!correction?.correctedText) return;
 
-  console.log(`[LintPlugin] Applying correction: ${correction.correctedText}`);
-  console.log(`[LintPlugin] Original text: "${correction.text || ''}"`);
+  lintDebugLog('[LintPlugin] Applying correction');
+
+  if (
+    !Number.isFinite(correction.startPos) ||
+    !Number.isFinite(correction.endPos)
+  ) {
+    lintDebugWarn('[LintPlugin] Invalid non-finite correction range');
+    return;
+  }
 
   let from = correction.startPos;
   let to = correction.endPos;
@@ -61,33 +81,24 @@ export function handleAcceptCorrection(
   from = from + 1;
   to = to + 1;
 
-  if (
-    typeof from !== 'number' ||
-    typeof to !== 'number' ||
-    from < 0 ||
-    to <= 0 ||
-    from === to
-  ) {
-    console.warn('[LintPlugin] Invalid correction range:', correction);
-    return;
-  }
-
   // Validate positions against document size
   const docSize = view.state.doc.content.size;
   if (from < 0) from = 0;
   if (to > docSize) to = docSize;
 
+  if (from >= to) {
+    lintDebugWarn('[LintPlugin] Invalid correction range after clamping');
+    return;
+  }
+
   // Double-check the text at this position to ensure we're replacing the right thing
-  const actualText = view.state.doc.textBetween(from, to);
-  console.log(
-    `[LintPlugin] Actual text at position ${from}-${to}: "${actualText}"`
-  );
+  lintDebugLog(`[LintPlugin] Applying range ${from}-${to}`);
 
   // Check if we need to preserve leading or trailing whitespace
   const originalText = correction.text || '';
   const suggestion = preserveWhitespace(originalText, correction.correctedText);
 
-  console.log(`[LintPlugin] Modified suggestion: "${suggestion}"`);
+  lintDebugLog('[LintPlugin] Suggestion prepared');
 
   // Create a new transaction that replaces the text precisely at the correction bounds
   const tr = view.state.tr.replaceWith(
@@ -149,12 +160,12 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
       void (async () => {
         try {
           const text = doc.textContent;
-          console.log(
+          lintDebugLog(
             '[LintPlugin] Sending text for linting:',
             text.substring(0, 50) + '...'
           );
           const result = await lintApi.run(text);
-          console.log('[LintPlugin] Received lint result:', result);
+          lintDebugLog('[LintPlugin] Received lint result');
           const pluginState = pluginKey.getState(view.state);
           const tr = view.state.tr.setMeta(pluginKey, {
             type: 'decorations',
@@ -177,14 +188,11 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
       !Array.isArray(lintResult.corrections) ||
       lintResult.corrections.length === 0
     ) {
-      console.log('[LintPlugin] No corrections found in lint result');
+      lintDebugLog('[LintPlugin] No corrections found in lint result');
       return { decos: DecorationSet.empty, suggestions: [] };
     }
 
-    console.log(
-      '[LintPlugin] Creating decorations for corrections:',
-      lintResult.corrections
-    );
+    lintDebugLog('[LintPlugin] Creating decorations for corrections');
 
     // Filter out rejected suggestions
     const filteredCorrections = (
@@ -194,7 +202,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
         !lintStorage.isSuggestionRejected(correction)
     );
 
-    console.log(
+    lintDebugLog(
       `[LintPlugin] Filtered ${lintResult.corrections.length - filteredCorrections.length} rejected suggestions`
     );
 
@@ -215,9 +223,16 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
         // Ensure we have from and to properties - adjust for potential off-by-one issues
         // Note: The server might be sending positions that are off by one character
-        let from =
-          typeof correction.startPos === 'number' ? correction.startPos : 0;
-        let to = typeof correction.endPos === 'number' ? correction.endPos : 0;
+        if (
+          !Number.isFinite(correction.startPos) ||
+          !Number.isFinite(correction.endPos)
+        ) {
+          lintDebugWarn('[LintPlugin] Invalid non-finite decoration range');
+          return null;
+        }
+
+        let from = correction.startPos;
+        let to = correction.endPos;
 
         // Adjust positions to fix off-by-one server issue
         // Skip the leading space by incrementing from by 1
@@ -234,16 +249,12 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
           // Ensure we have a valid range (from < to)
           if (from >= to) {
-            console.warn('[LintPlugin] Invalid range detected, from >= to', {
-              from,
-              to,
-            });
+            lintDebugWarn('[LintPlugin] Invalid range detected, from >= to');
             return null;
           }
 
           // Get the text in this range to store with the correction
           const text = doc.textBetween(from, to);
-          console.log(`[LintPlugin] Text at position ${from}-${to}: "${text}"`);
 
           // Create an extended correction that includes the text and adjusted positions
           const extendedCorrection: ExtendedCorrectionDto = {
@@ -257,8 +268,8 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           // Add to the list of active suggestions
           extendedSuggestions.push(extendedCorrection);
 
-          console.log(
-            `[LintPlugin] Creating decoration from ${from} to ${to} with suggestion: ${correction.correctedText}`
+          lintDebugLog(
+            `[LintPlugin] Creating decoration from ${from} to ${to}`
           );
 
           // Create decoration with validated positions
@@ -273,7 +284,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
       })
       .filter(Boolean) as Decoration[];
 
-    console.log(`[LintPlugin] Created ${decos.length} decorations`);
+    lintDebugLog(`[LintPlugin] Created ${decos.length} decorations`);
     return {
       decos: DecorationSet.create(doc, decos),
       suggestions: extendedSuggestions,
@@ -315,7 +326,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
             // Only update if the reqId is greater than or equal to current
             // (prevents old async results from overwriting newer ones)
             if (meta.reqId >= prev.reqId) {
-              console.log('[LintPlugin] Applying new decorations from meta');
+              lintDebugLog('[LintPlugin] Applying new decorations from meta');
 
               if (meta.type === 'decorations' && meta.res) {
                 const result = createDecorations(newState.doc, meta.res);
@@ -327,7 +338,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
               } else if (meta.type === 'redecorate') {
                 // This is a refresh request after a suggestion was rejected
                 // We need to get the latest lint result
-                console.log(
+                lintDebugLog(
                   '[LintPlugin] Refreshing decorations after rejection'
                 );
                 textUpdates.next(newState.doc);
@@ -360,7 +371,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
         const pluginState = pluginKey.getState(state);
         if (pluginState?.decos) {
           const allDecos = pluginState.decos.find();
-          console.log(
+          lintDebugLog(
             `[LintPlugin] Returning ${allDecos.length} decorations for rendering`
           );
         }
@@ -370,7 +381,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     view(editorView) {
       // Set up the subscription when the plugin starts
-      console.log('[LintPlugin] Initializing lint plugin view');
+      lintDebugLog('[LintPlugin] Initializing lint plugin view');
       createSubscription(editorView);
 
       return {
@@ -381,7 +392,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           }
         },
         destroy() {
-          console.log('[LintPlugin] Destroying lint plugin subscription');
+          lintDebugLog('[LintPlugin] Destroying lint plugin subscription');
           if (subscription) {
             subscription.unsubscribe();
             subscription = null;

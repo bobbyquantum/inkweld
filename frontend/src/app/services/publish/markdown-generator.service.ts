@@ -170,21 +170,30 @@ export class MarkdownGeneratorService {
 
   private generateFrontmatter(metadata: PublishMetadata): string {
     const keywordList = metadata.keywords?.length
-      ? metadata.keywords.map(k => '"' + k + '"').join(', ')
+      ? metadata.keywords.map(k => this.serializeYamlScalar(k)).join(', ')
       : null;
     const lines = [
       '---',
-      `title: "${metadata.title}"`,
-      `author: "${metadata.author}"`,
-      ...(metadata.subtitle ? [`subtitle: "${metadata.subtitle}"`] : []),
-      ...(metadata.description
-        ? [`description: "${metadata.description}"`]
+      `title: ${this.serializeYamlScalar(metadata.title)}`,
+      `author: ${this.serializeYamlScalar(metadata.author)}`,
+      ...(metadata.subtitle
+        ? [`subtitle: ${this.serializeYamlScalar(metadata.subtitle)}`]
         : []),
-      ...(metadata.language ? [`language: ${metadata.language}`] : []),
+      ...(metadata.description
+        ? [`description: ${this.serializeYamlScalar(metadata.description)}`]
+        : []),
+      ...(metadata.language
+        ? [`language: ${this.serializeYamlScalar(metadata.language)}`]
+        : []),
       ...(keywordList ? [`keywords: [${keywordList}]`] : []),
       '---',
     ];
     return lines.join('\n');
+  }
+
+  private serializeYamlScalar(value: string): string {
+    // JSON string encoding is valid YAML flow scalar syntax and safely escapes quotes/newlines.
+    return JSON.stringify(value);
   }
 
   private async processItem(

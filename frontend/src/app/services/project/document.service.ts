@@ -1418,23 +1418,14 @@ export class DocumentService {
 
     void flushPromise
       .then(() => connection.indexeddbProvider.destroy())
+      .then(() => connection.ydoc.destroy())
       .catch(error => {
         this.logger.warn(
           'DocumentService',
-          `Error flushing/destroying IndexedDB provider for ${documentId}`,
+          `Error flushing/destroying IndexedDB provider or Yjs doc for ${documentId}`,
           error
         );
       });
-
-    try {
-      connection.ydoc.destroy();
-    } catch (error) {
-      this.logger.warn(
-        'DocumentService',
-        `Error destroying Yjs doc for ${documentId}`,
-        error
-      );
-    }
   }
 
   private cleanupSyncState(documentId: string): void {

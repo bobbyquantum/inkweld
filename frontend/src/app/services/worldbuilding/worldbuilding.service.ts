@@ -617,8 +617,11 @@ export class WorldbuildingService {
                 // Only set if not already present
                 parentMap.set(childKey, '');
               }
-            } else if (field.type === 'array') {
-              // Handle top-level array fields
+            } else if (
+              field.type === 'array' &&
+              (!dataMap.has(fieldKey) || dataMap.get(fieldKey) == null)
+            ) {
+              // Handle top-level array fields without overriding schema defaults
               dataMap.set(fieldKey, new Y.Array());
             } else if (!dataMap.has(fieldKey)) {
               // Handle top-level non-array fields (only set if not already present)
