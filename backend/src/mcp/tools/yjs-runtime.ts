@@ -10,7 +10,7 @@
 
 import type { McpContext } from '../mcp.types';
 import { type Element } from '../../schemas/element.schemas';
-import { decodeXmlEntities } from '../../utils/xml-utils';
+import { decodeXmlEntities, skipTopLevelWhitespace } from '../../utils/xml-utils';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 
 /**
@@ -322,17 +322,6 @@ function parseXmlToYjsNodes(
   }
 
   return nodes;
-}
-
-function skipTopLevelWhitespace(xml: string, pos: number): number {
-  if (!/\s/.test(xml[pos]) || xml[pos] === '<') {
-    return pos;
-  }
-
-  const wsEnd = xml.indexOf('<', pos);
-  const end = wsEnd === -1 ? xml.length : wsEnd;
-  const ws = xml.substring(pos, end);
-  return ws.trim() ? pos : end;
 }
 
 /**

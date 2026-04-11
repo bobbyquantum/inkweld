@@ -567,6 +567,79 @@ describe('UnifiedSnapshotService', () => {
         service.restoreFromSnapshot('wb-123', worldbuildingSnapshot.id)
       ).rejects.toThrow('prose Y.Doc is not available');
     });
+
+    it('should throw when worldbuilding snapshot has no worldbuildingData', async () => {
+      const wbElement = createElement(
+        'wb-456',
+        'Location',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([wbElement]);
+
+      const wbSnap: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-456:snap-2',
+        documentId: 'wb-456',
+        xmlContent: '',
+        worldbuildingData: undefined,
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(wbSnap);
+
+      await expect(
+        service.restoreFromSnapshot('wb-456', wbSnap.id)
+      ).rejects.toThrow('missing worldbuilding data');
+    });
+
+    it('should throw when worldbuilding ydoc is unavailable', async () => {
+      const wbElement = createElement(
+        'wb-789',
+        'Faction',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([wbElement]);
+
+      const wbSnap: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-789:snap-3',
+        documentId: 'wb-789',
+        xmlContent: '',
+        worldbuildingData: { name: 'Dark Brotherhood' },
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(wbSnap);
+      worldbuildingService.getYDoc.mockReturnValue(null);
+
+      await expect(
+        service.restoreFromSnapshot('wb-789', wbSnap.id)
+      ).rejects.toThrow('not found or not loaded');
+    });
+
+    it('should successfully restore worldbuilding data from snapshot', async () => {
+      const wbElement = createElement(
+        'wb-ok',
+        'Character',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([wbElement]);
+
+      const wbSnap: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-ok:snap-4',
+        documentId: 'wb-ok',
+        xmlContent: '',
+        worldbuildingData: { name: 'Gandalf', traits: ['wise'] },
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(wbSnap);
+
+      const wbYdoc = new Y.Doc();
+      worldbuildingService.getYDoc.mockReturnValue(wbYdoc);
+
+      const result = await service.restoreFromSnapshot('wb-ok', wbSnap.id);
+      expect(result).toBe(true);
+      expect(logger.info).toHaveBeenCalledWith(
+        'UnifiedSnapshot',
+        expect.stringContaining('Restored worldbuilding data')
+      );
+    });
   });
 
   describe('restoreFromContent', () => {

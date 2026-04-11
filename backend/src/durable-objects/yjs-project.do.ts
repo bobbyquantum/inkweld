@@ -28,7 +28,7 @@ import { writeSyncStep1 } from 'y-protocols/sync';
 import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
-import { decodeXmlEntities } from '../utils/xml-utils';
+import { decodeXmlEntities, skipTopLevelWhitespace } from '../utils/xml-utils';
 
 const projDOLog = logger.child('YjsProjectDO');
 
@@ -642,7 +642,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     let pos = 0;
 
     while (pos < xmlString.length) {
-      pos = this.skipTopLevelWhitespace(xmlString, pos);
+      pos = skipTopLevelWhitespace(xmlString, pos);
       if (pos >= xmlString.length) break;
 
       const result = this.parseXmlNode(Y, xmlString, pos);
@@ -652,21 +652,6 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     }
 
     return nodes;
-  }
-
-  /**
-   * Skip whitespace between top-level block elements.
-   * y-prosemirror crashes if XmlText nodes appear at fragment level.
-   */
-  private skipTopLevelWhitespace(xml: string, pos: number): number {
-    if (!/\s/.test(xml[pos]) || xml[pos] === '<') {
-      return pos;
-    }
-
-    const wsEnd = xml.indexOf('<', pos);
-    const end = wsEnd === -1 ? xml.length : wsEnd;
-    const ws = xml.substring(pos, end);
-    return ws.trim() ? pos : end;
   }
 
   /**

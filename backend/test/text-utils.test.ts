@@ -4,7 +4,12 @@ import {
   textToProseMirrorXml,
   validateSnapshotPayloadForPersistence,
 } from '../src/mcp/tools/mutation.tools';
-import { decodeXmlEntities, xmlContentToText, sanitizeFilename } from '../src/utils/xml-utils';
+import {
+  decodeXmlEntities,
+  xmlContentToText,
+  sanitizeFilename,
+  skipTopLevelWhitespace,
+} from '../src/utils/xml-utils';
 import { escapeHtml } from '../src/routes/document.routes';
 
 describe('textToProseMirrorXml', () => {
@@ -263,5 +268,30 @@ describe('validateSnapshotPayloadForPersistence', () => {
 
     expect(itemOk).toBeNull();
     expect(wbOk).toBeNull();
+  });
+});
+
+describe('skipTopLevelWhitespace', () => {
+  it('returns pos unchanged when char is a tag opener', () => {
+    expect(skipTopLevelWhitespace('<p>hello</p>', 0)).toBe(0);
+  });
+
+  it('returns pos unchanged when char is not whitespace', () => {
+    expect(skipTopLevelWhitespace('abc', 0)).toBe(0);
+  });
+
+  it('skips pure whitespace to the next tag', () => {
+    const xml = '  \n  <p>hi</p>';
+    expect(skipTopLevelWhitespace(xml, 0)).toBe(5);
+  });
+
+  it('returns end of string when no tag follows', () => {
+    const xml = '   ';
+    expect(skipTopLevelWhitespace(xml, 0)).toBe(3);
+  });
+
+  it('does not skip whitespace that contains non-whitespace chars', () => {
+    const xml = ' x <p>';
+    expect(skipTopLevelWhitespace(xml, 0)).toBe(0);
   });
 });

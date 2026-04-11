@@ -22,6 +22,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 
 /**
  * Progress information for PDF generation
@@ -738,22 +739,7 @@ export class PdfGeneratorService {
   }
 
   private applyTypstMarks(text: string, marks: string[]): string {
-    const typstMarks: Record<string, [string, string]> = {
-      bold: ['*', '*'],
-      strong: ['*', '*'],
-      italic: ['_', '_'],
-      em: ['_', '_'],
-      underline: ['#underline[', ']'],
-      strike: ['#strike[', ']'],
-      code: ['`', '`'],
-    };
-
-    let result = text;
-    for (const mark of marks) {
-      const wrap = typstMarks[mark];
-      if (wrap) result = `${wrap[0]}${result}${wrap[1]}`;
-    }
-    return result;
+    return applyMarks(text, marks, TYPST_MARK_TAGS);
   }
 
   private extractPlainText(node: ProseMirrorNode): string {

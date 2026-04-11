@@ -1347,6 +1347,85 @@ describe('CanvasTabComponent', () => {
       dispatchKey('0', { ctrlKey: true });
       expect(spy).toHaveBeenCalled();
     });
+
+    it('should ignore shortcuts when target is a select element', () => {
+      const select = document.createElement('select');
+      const event = new KeyboardEvent('keydown', {
+        key: 'v',
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: select });
+      component['keyHandler'](event);
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should ignore shortcuts when target is a textarea element', () => {
+      const textarea = document.createElement('textarea');
+      const event = new KeyboardEvent('keydown', {
+        key: 'd',
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: textarea });
+      component['keyHandler'](event);
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should ignore shortcuts when target is contentEditable', () => {
+      const div = document.createElement('div');
+      div.setAttribute('contenteditable', 'true');
+      document.body.appendChild(div);
+      const event = new KeyboardEvent('keydown', {
+        key: 'r',
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: div });
+      component['keyHandler'](event);
+      expect(component['activeTool']()).toBe('select');
+      div.remove();
+    });
+
+    it('should NOT switch tool when Ctrl+R is pressed', () => {
+      dispatchKey('r', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Ctrl+H is pressed', () => {
+      dispatchKey('h', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Meta+P is pressed', () => {
+      dispatchKey('p', { metaKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Ctrl+L is pressed', () => {
+      dispatchKey('l', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Ctrl+T is pressed', () => {
+      dispatchKey('t', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should not call onZoomIn without modifier on =', () => {
+      const spy = vi.spyOn(component as never, 'onZoomIn');
+      dispatchKey('=');
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should not call onZoomOut without modifier on -', () => {
+      const spy = vi.spyOn(component as never, 'onZoomOut');
+      dispatchKey('-');
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should not respond to unrecognized key', () => {
+      const spy = vi.spyOn(component as never, 'onToolChange');
+      dispatchKey('q');
+      expect(spy).not.toHaveBeenCalled();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────

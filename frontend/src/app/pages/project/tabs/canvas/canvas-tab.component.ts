@@ -1692,51 +1692,28 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     return false;
   }
 
+  private static readonly TOOL_KEY_MAP: Record<string, CanvasTool> = {
+    v: 'select',
+    r: 'rectSelect',
+    h: 'pan',
+    p: 'pin',
+    d: 'draw',
+    l: 'line',
+    s: 'shape',
+    t: 'text',
+  };
+
   private handleToolSelectionShortcuts(
     key: string,
     hasModifier: boolean
   ): boolean {
-    if (key === 'v' && !hasModifier) {
-      this.onToolChange('select');
-      return true;
-    }
+    if (hasModifier) return false;
 
-    if (key === 'r' && !hasModifier) {
-      this.onToolChange('rectSelect');
-      return true;
-    }
+    const tool = CanvasTabComponent.TOOL_KEY_MAP[key];
+    if (!tool) return false;
 
-    if (key === 'h' && !hasModifier) {
-      this.onToolChange('pan');
-      return true;
-    }
-
-    if (key === 'p' && !hasModifier) {
-      this.onToolChange('pin');
-      return true;
-    }
-
-    if (key === 'd' && !hasModifier) {
-      this.onToolChange('draw');
-      return true;
-    }
-
-    if (key === 'l' && !hasModifier) {
-      this.onToolChange('line');
-      return true;
-    }
-
-    if (key === 's' && !hasModifier) {
-      this.onToolChange('shape');
-      return true;
-    }
-
-    if (key === 't' && !hasModifier) {
-      this.onToolChange('text');
-      return true;
-    }
-
-    return false;
+    this.onToolChange(tool);
+    return true;
   }
 
   private handleEditingShortcuts(e: KeyboardEvent, key: string): boolean {

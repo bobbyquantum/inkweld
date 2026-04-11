@@ -11,3 +11,26 @@ export const MARK_TAGS: Record<string, [string, string]> = {
   strike: ['<s>', '</s>'],
   code: ['<code>', '</code>'],
 };
+
+export const TYPST_MARK_TAGS: Record<string, [string, string]> = {
+  bold: ['*', '*'],
+  strong: ['*', '*'],
+  italic: ['_', '_'],
+  em: ['_', '_'],
+  underline: ['#underline[', ']'],
+  strike: ['#strike[', ']'],
+  code: ['`', '`'],
+};
+
+export function applyMarks(
+  text: string,
+  marks: string[],
+  tagMap: Record<string, [string, string]>
+): string {
+  let result = text;
+  for (const mark of marks) {
+    const wrap = tagMap[mark];
+    if (wrap) result = `${wrap[0]}${result}${wrap[1]}`;
+  }
+  return result;
+}

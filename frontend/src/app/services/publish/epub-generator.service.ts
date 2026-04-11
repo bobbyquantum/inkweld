@@ -22,7 +22,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
-import { MARK_TAGS } from './publish-marks-helper';
+import { applyMarks, MARK_TAGS } from './publish-marks-helper';
 
 /**
  * Progress information for EPUB generation
@@ -638,12 +638,7 @@ export class EpubGeneratorService {
     const marks = this.getMarks(node);
     if (marks.length === 0) return text;
 
-    let result = text;
-    for (const mark of marks) {
-      const tag = MARK_TAGS[mark];
-      if (tag) result = `${tag[0]}${result}${tag[1]}`;
-    }
-    return result;
+    return applyMarks(text, marks, MARK_TAGS);
   }
 
   private getTagName(node: ProseMirrorNode): string {
