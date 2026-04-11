@@ -709,52 +709,19 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const elementIds = args.elementIds as string[] | undefined;
-    let newParentId: string | null = null;
-    if (typeof args.newParentId === 'string' && args.newParentId !== '') {
-      newParentId = args.newParentId;
-    }
-
-    if (!elementIds || !Array.isArray(elementIds) || elementIds.length === 0) {
-      return {
-        content: [{ type: 'text', text: 'Error: elementIds array is required' }],
-        isError: true,
-      };
-    }
+    const parsedArgs = parseMoveElementsArgs(args);
+    if ('error' in parsedArgs) return parsedArgs.error;
+    const { elementIds, newParentId } = parsedArgs;
 
     try {
       let currentElements = await runtimeGetElements(ctx, username, slug);
 
-      // Validate new parent exists (if specified)
-      if (newParentId) {
-        const parent = currentElements.find((e) => e.id === newParentId);
-        if (!parent) {
-          return {
-            content: [{ type: 'text', text: `Error: parent "${newParentId}" not found` }],
-            isError: true,
-          };
-        }
-        if (parent.type !== 'FOLDER') {
-          return {
-            content: [{ type: 'text', text: `Error: parent "${newParentId}" is not a folder` }],
-            isError: true,
-          };
-        }
-      }
+      const parentError = validateMoveParent(currentElements, newParentId);
+      if (parentError) return parentError;
 
-      // Move each element
-      const movedElements: string[] = [];
-      const errors: string[] = [];
-
-      for (const id of elementIds) {
-        try {
-          currentElements = moveElement(currentElements, id, newParentId);
-          const el = currentElements.find((e) => e.id === id);
-          if (el) movedElements.push(el.name);
-        } catch (err) {
-          errors.push(`${id}: ${err}`);
-        }
-      }
+      const moveResult = moveRequestedElements(currentElements, elementIds, newParentId);
+      currentElements = moveResult.currentElements;
+      const { movedElements, errors } = moveResult;
 
       if (movedElements.length === 0) {
         return {
@@ -793,6 +760,71 @@ To move multiple elements, call this tool multiple times or provide all IDs.`,
     }
   },
 });
+
+function parseMoveElementsArgs(
+  args: Record<string, unknown>
+): { elementIds: string[]; newParentId: string | null } | { error: McpToolResult } {
+  const elementIds = args.elementIds as string[] | undefined;
+  if (!elementIds || !Array.isArray(elementIds) || elementIds.length === 0) {
+    return {
+      error: {
+        content: [{ type: 'text', text: 'Error: elementIds array is required' }],
+        isError: true,
+      },
+    };
+  }
+
+  const newParentId =
+    typeof args.newParentId === 'string' && args.newParentId !== '' ? args.newParentId : null;
+
+  return { elementIds, newParentId };
+}
+
+function validateMoveParent(
+  elements: Element[],
+  newParentId: string | null
+): McpToolResult | undefined {
+  if (!newParentId) return undefined;
+
+  const parent = elements.find((e) => e.id === newParentId);
+  if (!parent) {
+    return {
+      content: [{ type: 'text', text: `Error: parent "${newParentId}" not found` }],
+      isError: true,
+    };
+  }
+
+  if (parent.type !== 'FOLDER') {
+    return {
+      content: [{ type: 'text', text: `Error: parent "${newParentId}" is not a folder` }],
+      isError: true,
+    };
+  }
+
+  return undefined;
+}
+
+function moveRequestedElements(
+  initialElements: Element[],
+  elementIds: string[],
+  newParentId: string | null
+): { currentElements: Element[]; movedElements: string[]; errors: string[] } {
+  let currentElements = initialElements;
+  const movedElements: string[] = [];
+  const errors: string[] = [];
+
+  for (const id of elementIds) {
+    try {
+      currentElements = moveElement(currentElements, id, newParentId);
+      const moved = currentElements.find((e) => e.id === id);
+      if (moved) movedElements.push(moved.name);
+    } catch (err) {
+      errors.push(`${id}: ${err}`);
+    }
+  }
+
+  return { currentElements, movedElements, errors };
+}
 
 // ============================================
 // reorder_element tool
@@ -1802,54 +1834,110 @@ async function extractSnapshotContent(
   | { xmlContent: string; wordCount: number; worldbuildingData: Record<string, unknown> | null }
   | { error: string }
 > {
+  if (isCloudflareWorkers(ctx)) {
+    return extractSnapshotContentOnWorkers(ctx, username, slug, elementId, elementType);
+  }
+
+  return extractSnapshotContentOnBun(username, slug, elementId, elementType);
+}
+
+async function extractSnapshotContentOnWorkers(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  elementType: string
+): Promise<
+  | { xmlContent: string; wordCount: number; worldbuildingData: Record<string, unknown> | null }
+  | { error: string }
+> {
+  const worldbuildingData = await readWorldbuildingDataFromWorkers(
+    ctx,
+    username,
+    slug,
+    elementId,
+    elementType
+  );
+
+  if (elementType === 'ITEM') {
+    return {
+      error:
+        'Cannot create snapshot on Cloudflare Workers: content extraction is not supported in this environment.',
+    };
+  }
+
+  return {
+    xmlContent: '',
+    wordCount: 0,
+    worldbuildingData,
+  };
+}
+
+async function readWorldbuildingDataFromWorkers(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  elementType: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const wbDoc = await getWorldbuildingDoc(ctx, username, slug, elementId);
+    const docData = wbDoc.toJSON();
+    if (elementType === 'WORLDBUILDING' && Object.keys(docData).length > 0) {
+      return docData;
+    }
+  } catch (err: unknown) {
+    mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+  }
+
+  return null;
+}
+
+async function extractSnapshotContentOnBun(
+  username: string,
+  slug: string,
+  elementId: string,
+  elementType: string
+): Promise<{
+  xmlContent: string;
+  wordCount: number;
+  worldbuildingData: Record<string, unknown> | null;
+}> {
   let xmlContent = '';
   let wordCount = 0;
   let worldbuildingData: Record<string, unknown> | null = null;
 
-  if (isCloudflareWorkers(ctx)) {
-    try {
-      const wbDoc = await getWorldbuildingDoc(ctx, username, slug, elementId);
-      const docData = wbDoc.toJSON();
-      if (elementType === 'WORLDBUILDING' && Object.keys(docData).length > 0) {
-        worldbuildingData = docData;
-      }
-    } catch (err: unknown) {
-      mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+  try {
+    const { yjsService } = await import('../../services/yjs.service');
+    const docContentId = `${username}:${slug}:${elementId}/`;
+    const contentDoc = await yjsService.getDocument(docContentId);
+
+    const xmlFragment = contentDoc.doc.getXmlFragment('prosemirror');
+    xmlContent = xmlFragment.toString();
+    wordCount = countWords(extractTextContent(xmlFragment));
+
+    if (elementType === 'WORLDBUILDING') {
+      worldbuildingData = mapToObject(contentDoc.doc.getMap('worldbuilding'));
     }
-
-    if (elementType === 'ITEM' && !xmlContent && wordCount === 0) {
-      return {
-        error: `Cannot create snapshot on Cloudflare Workers: content extraction is not supported in this environment.`,
-      };
-    }
-  } else {
-    try {
-      const { yjsService } = await import('../../services/yjs.service');
-      const docContentId = `${username}:${slug}:${elementId}/`;
-      const contentDoc = await yjsService.getDocument(docContentId);
-
-      const xmlFragment = contentDoc.doc.getXmlFragment('prosemirror');
-      xmlContent = xmlFragment.toString();
-
-      const textContent = extractTextContent(xmlFragment);
-      wordCount = textContent.split(/\s+/).filter((w) => w.length > 0).length;
-
-      if (elementType === 'WORLDBUILDING') {
-        const dataMap = contentDoc.doc.getMap('worldbuilding');
-        const data: Record<string, unknown> = {};
-        dataMap.forEach((value, key) => {
-          data[key] = value;
-        });
-        if (Object.keys(data).length > 0) {
-          worldbuildingData = data;
-        }
-      }
-    } catch (err: unknown) {
-      mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
-    }
+  } catch (err: unknown) {
+    mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
   }
 
   return { xmlContent, wordCount, worldbuildingData };
+}
+
+function mapToObject(map: {
+  forEach: (fn: (value: unknown, key: string) => void) => void;
+}): Record<string, unknown> | null {
+  const data: Record<string, unknown> = {};
+  map.forEach((value, key) => {
+    data[key] = value;
+  });
+  return Object.keys(data).length > 0 ? data : null;
+}
+
+function countWords(text: string): number {
+  return text.split(/\s+/).filter((w) => w.length > 0).length;
 }
 
 /**

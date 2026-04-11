@@ -312,27 +312,27 @@ function parseXmlToYjsNodes(
   let pos = 0;
 
   while (pos < xmlString.length) {
-    // Skip whitespace between top-level block elements (newlines, indentation)
-    // y-prosemirror crashes (toArray not a function) if XmlText nodes appear at fragment level
-    if (/\s/.test(xmlString[pos]) && xmlString[pos] !== '<') {
-      const wsEnd = xmlString.indexOf('<', pos);
-      const ws = xmlString.substring(pos, wsEnd === -1 ? xmlString.length : wsEnd);
-      if (!ws.trim()) {
-        pos = wsEnd === -1 ? xmlString.length : wsEnd;
-        continue;
-      }
-    }
+    pos = skipTopLevelWhitespace(xmlString, pos);
+    if (pos >= xmlString.length) break;
 
     const result = parseNode(Y, xmlString, pos);
-    if (!result) break;
-    for (const node of result.nodes) {
-      nodes.push(node);
-    }
-    if (result.pos <= pos) break; // prevent infinite loop
+    if (!result || result.pos <= pos) break; // prevent infinite loop
+    nodes.push(...result.nodes);
     pos = result.pos;
   }
 
   return nodes;
+}
+
+function skipTopLevelWhitespace(xml: string, pos: number): number {
+  if (!/\s/.test(xml[pos]) || xml[pos] === '<') {
+    return pos;
+  }
+
+  const wsEnd = xml.indexOf('<', pos);
+  const end = wsEnd === -1 ? xml.length : wsEnd;
+  const ws = xml.substring(pos, end);
+  return ws.trim() ? pos : end;
 }
 
 /**
