@@ -42,6 +42,68 @@ export function preserveWhitespace(
 }
 
 /**
+ * Apply an accepted correction to the given editor view.
+ */
+export function handleAcceptCorrection(
+  view: EditorView,
+  correction: ExtendedCorrectionDto
+): void {
+  if (!correction?.correctedText) return;
+
+  console.log(`[LintPlugin] Applying correction: ${correction.correctedText}`);
+  console.log(`[LintPlugin] Original text: "${correction.text || ''}"`);
+
+  let from = correction.startPos;
+  let to = correction.endPos;
+
+  // Need to add back the +1 adjustment that was made during decoration creation
+  // but removed when storing in the ExtendedCorrectionDto
+  from = from + 1;
+  to = to + 1;
+
+  if (
+    typeof from !== 'number' ||
+    typeof to !== 'number' ||
+    from < 0 ||
+    to <= 0 ||
+    from === to
+  ) {
+    console.warn('[LintPlugin] Invalid correction range:', correction);
+    return;
+  }
+
+  // Validate positions against document size
+  const docSize = view.state.doc.content.size;
+  if (from < 0) from = 0;
+  if (to > docSize) to = docSize;
+
+  // Double-check the text at this position to ensure we're replacing the right thing
+  const actualText = view.state.doc.textBetween(from, to);
+  console.log(
+    `[LintPlugin] Actual text at position ${from}-${to}: "${actualText}"`
+  );
+
+  // Check if we need to preserve leading or trailing whitespace
+  const originalText = correction.text || '';
+  const suggestion = preserveWhitespace(originalText, correction.correctedText);
+
+  console.log(`[LintPlugin] Modified suggestion: "${suggestion}"`);
+
+  // Create a new transaction that replaces the text precisely at the correction bounds
+  const tr = view.state.tr.replaceWith(
+    from,
+    to,
+    view.state.schema.text(suggestion)
+  );
+
+  // After applying the correction, reset the selection to the end of the inserted text
+  const newPos = from + suggestion.length;
+  tr.setSelection(TextSelection.create(tr.doc, newPos, newPos));
+
+  view.dispatch(tr);
+}
+
+/**
  * Create a ProseMirror plugin for linting paragraphs
  * @param lintApi The API service for linting
  * @returns A ProseMirror plugin
@@ -106,73 +168,6 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
       })();
     });
   };
-
-  // Apply an accepted correction
-  function handleAcceptCorrection(
-    view: EditorView,
-    correction: ExtendedCorrectionDto
-  ): void {
-    if (!correction?.correctedText) return;
-
-    console.log(
-      `[LintPlugin] Applying correction: ${correction.correctedText}`
-    );
-    console.log(`[LintPlugin] Original text: "${correction.text || ''}"`);
-
-    let from = correction.startPos;
-    let to = correction.endPos;
-
-    // Need to add back the +1 adjustment that was made during decoration creation
-    // but removed when storing in the ExtendedCorrectionDto
-    from = from + 1;
-    to = to + 1;
-
-    if (
-      typeof from !== 'number' ||
-      typeof to !== 'number' ||
-      from < 0 ||
-      to <= 0 ||
-      from === to
-    ) {
-      console.warn('[LintPlugin] Invalid correction range:', correction);
-      return;
-    }
-
-    // Validate positions against document size
-    const docSize = view.state.doc.content.size;
-    if (from < 0) from = 0;
-    if (to > docSize) to = docSize;
-
-    // Double-check the text at this position to ensure we're replacing the right thing
-    const actualText = view.state.doc.textBetween(from, to);
-    console.log(
-      `[LintPlugin] Actual text at position ${from}-${to}: "${actualText}"`
-    );
-
-    // Check if we need to preserve leading or trailing whitespace
-    const originalText = correction.text || '';
-    const suggestion = preserveWhitespace(
-      originalText,
-      correction.correctedText
-    );
-
-    console.log(`[LintPlugin] Modified suggestion: "${suggestion}"`);
-
-    // Create a new transaction that replaces the text precisely at the correction bounds
-    const tr = view.state.tr.replaceWith(
-      from,
-      to,
-      view.state.schema.text(suggestion)
-    );
-
-    // After applying the correction, reset the selection to the end of the inserted text
-    const newPos = from + suggestion.length;
-    tr.setSelection(TextSelection.create(tr.doc, newPos, newPos));
-
-    view.dispatch(tr);
-  }
-
-  // Create decorations from lint results
   function createDecorations(
     doc: Node,
     lintResult: LintResponse

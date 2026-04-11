@@ -416,7 +416,7 @@ const registerClientHandler = async (c: Context<AppContext>) => {
   // Use await c.req.json() since this handler is shared between routes
   // and c.req.valid('json') doesn't have type context for shared handlers.
   // Validation is handled by the openapi middleware before this runs.
-  const body = (await c.req.json()) as ClientRegistrationRequest;
+  const body = await c.req.json<ClientRegistrationRequest>();
 
   try {
     const result = await mcpOAuthService.registerClient(db, {

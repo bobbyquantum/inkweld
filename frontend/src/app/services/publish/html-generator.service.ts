@@ -273,19 +273,23 @@ export class HtmlGeneratorService {
         options
       );
 
-      parts.push(`<section class="chapter">`);
-      parts.push(`<h1>${this.escapeHtml(formattedTitle)}</h1>`);
-      parts.push(content);
-      parts.push(`</section>`);
+      parts.push(
+        `<section class="chapter">`,
+        `<h1>${this.escapeHtml(formattedTitle)}</h1>`,
+        content,
+        `</section>`
+      );
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
       for (const child of children) {
         if (child.type === ElementType.Item) {
           const content = await this.getDocumentContent(child.id);
-          parts.push(`<section class="section">`);
-          parts.push(`<h2>${this.escapeHtml(child.name)}</h2>`);
-          parts.push(content);
-          parts.push(`</section>`);
+          parts.push(
+            `<section class="section">`,
+            `<h2>${this.escapeHtml(child.name)}</h2>`,
+            content,
+            `</section>`
+          );
         }
       }
     }
@@ -344,8 +348,10 @@ export class HtmlGeneratorService {
       );
     }
 
-    parts.push(`<p class="author">${this.escapeHtml(metadata.author)}</p>`);
-    parts.push('</section>');
+    parts.push(
+      `<p class="author">${this.escapeHtml(metadata.author)}</p>`,
+      '</section>'
+    );
 
     return parts.join('\n');
   }
@@ -356,8 +362,10 @@ export class HtmlGeneratorService {
 
     const copyrightText =
       metadata.copyright || `Copyright © ${year} ${metadata.author}`;
-    parts.push(`<p>${this.escapeHtml(copyrightText)}</p>`);
-    parts.push('<p>All rights reserved.</p>');
+    parts.push(
+      `<p>${this.escapeHtml(copyrightText)}</p>`,
+      '<p>All rights reserved.</p>'
+    );
 
     if (metadata.publisher) {
       parts.push(`<p>Published by ${this.escapeHtml(metadata.publisher)}</p>`);

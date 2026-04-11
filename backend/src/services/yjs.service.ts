@@ -165,7 +165,8 @@ export class YjsService {
     if (typeof value === 'string') return value;
     if (typeof value === 'object' || typeof value === 'symbol') return '';
     if (value == null) return '';
-    return String(value);
+    // value is narrowed to number | bigint | boolean here
+    return (value as number | bigint | boolean).toString();
   }
 
   /**

@@ -617,14 +617,12 @@ export class WorldbuildingService {
                 // Only set if not already present
                 parentMap.set(childKey, '');
               }
-            } else {
-              // Handle top-level fields
-              if (field.type === 'array') {
-                dataMap.set(fieldKey, new Y.Array());
-              } else if (!dataMap.has(fieldKey)) {
-                // Only set if not already present
-                dataMap.set(fieldKey, '');
-              }
+            } else if (field.type === 'array') {
+              // Handle top-level array fields
+              dataMap.set(fieldKey, new Y.Array());
+            } else if (!dataMap.has(fieldKey)) {
+              // Handle top-level non-array fields (only set if not already present)
+              dataMap.set(fieldKey, '');
             }
           });
         });

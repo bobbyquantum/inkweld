@@ -3,6 +3,11 @@ import { FileStorageService } from './file-storage.service';
 import { R2StorageService } from './r2-storage.service';
 
 /**
+ * Binary data types accepted for storage uploads
+ */
+export type BinaryData = Buffer | ArrayBuffer | Uint8Array;
+
+/**
  * Unified storage interface
  * Abstracts file storage operations to work with either filesystem or R2
  */
@@ -11,7 +16,7 @@ export interface StorageService {
     username: string,
     projectSlug: string,
     filename: string,
-    data: Buffer | ArrayBuffer | Uint8Array,
+    data: BinaryData,
     contentType?: string
   ): Promise<void>;
 
@@ -27,7 +32,7 @@ export interface StorageService {
 
   deleteProjectDirectory(username: string, projectSlug: string): Promise<void>;
 
-  saveUserAvatar(username: string, data: Buffer | ArrayBuffer | Uint8Array): Promise<void>;
+  saveUserAvatar(username: string, data: BinaryData): Promise<void>;
 
   getUserAvatar(username: string): Promise<Buffer | ArrayBuffer | null>;
 
@@ -52,7 +57,7 @@ class FileStorageAdapter implements StorageService {
     username: string,
     projectSlug: string,
     filename: string,
-    data: Buffer | ArrayBuffer | Uint8Array,
+    data: BinaryData,
     _contentType?: string
   ): Promise<void> {
     let buffer: Buffer;
@@ -94,7 +99,7 @@ class FileStorageAdapter implements StorageService {
     await this.fileStorage.deleteProjectDirectory(username, projectSlug);
   }
 
-  async saveUserAvatar(username: string, data: Buffer | ArrayBuffer | Uint8Array): Promise<void> {
+  async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
     let buffer: Buffer;
     if (data instanceof Buffer) {
       buffer = data;
@@ -140,7 +145,7 @@ class R2StorageAdapter implements StorageService {
     username: string,
     projectSlug: string,
     filename: string,
-    data: Buffer | ArrayBuffer | Uint8Array,
+    data: BinaryData,
     contentType?: string
   ): Promise<void> {
     await this.r2Storage.saveProjectFile(username, projectSlug, filename, data, contentType);
@@ -170,7 +175,7 @@ class R2StorageAdapter implements StorageService {
     await this.r2Storage.deleteProjectDirectory(username, projectSlug);
   }
 
-  async saveUserAvatar(username: string, data: Buffer | ArrayBuffer | Uint8Array): Promise<void> {
+  async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
     await this.r2Storage.saveUserAvatar(username, data);
   }
 
