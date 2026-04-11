@@ -435,6 +435,11 @@ export class UnifiedSnapshotService {
 
     const ydoc = await this.getDocumentYDoc(documentId);
     if (!ydoc) {
+      if (snapshot.xmlContent) {
+        throw new Error(
+          `Document ${elementId} prose Y.Doc is not available for snapshot restore`
+        );
+      }
       if (!isWorldbuilding) {
         throw new Error(`Document ${elementId} not found or not loaded`);
       }

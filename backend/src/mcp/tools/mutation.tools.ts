@@ -815,9 +815,17 @@ function moveRequestedElements(
     const index = elementIndexById.get(id);
     if (index === undefined) return true;
 
-    const subtree = getSubtree(initialElements, index);
-    const descendantIds = subtree.slice(1).map((element) => element.id);
-    return !descendantIds.some((descendantId) => selectedIdSet.has(descendantId));
+    // Keep only top-level selected roots by dropping any selected id with a selected ancestor.
+    let currentIndex = index;
+    while (true) {
+      const parent = findParentByPosition(initialElements, currentIndex);
+      if (!parent) return true;
+      if (selectedIdSet.has(parent.id)) return false;
+
+      const parentIndex = elementIndexById.get(parent.id);
+      if (parentIndex === undefined) return true;
+      currentIndex = parentIndex;
+    }
   });
 
   const originalNameById = new Map(initialElements.map((element) => [element.id, element.name]));
@@ -1781,6 +1789,30 @@ registerTool({
 
       const { xmlContent, wordCount, worldbuildingData } = docContent;
 
+      if (element.type === 'ITEM' && !xmlContent.trim()) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: failed to extract document content for snapshot of element "${elementId}"`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      if (element.type === 'WORLDBUILDING' && worldbuildingData === null) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: failed to extract worldbuilding data for snapshot of element "${elementId}"`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
       // Create snapshot in database
       // Import dynamically to avoid circular dependency
       const { documentSnapshotService } = await import('../../services/document-snapshot.service');
@@ -1924,27 +1956,22 @@ async function extractSnapshotContentOnBun(
   wordCount: number;
   worldbuildingData: Record<string, unknown> | null;
 }> {
-  let xmlContent = '';
-  let wordCount = 0;
-  let worldbuildingData: Record<string, unknown> | null = null;
-
   try {
     const { yjsService } = await import('../../services/yjs.service');
     const docContentId = `${username}:${slug}:${elementId}/`;
     const contentDoc = await yjsService.getDocument(docContentId);
 
     const xmlFragment = contentDoc.doc.getXmlFragment('prosemirror');
-    xmlContent = xmlFragment.toString();
-    wordCount = countWords(extractTextContent(xmlFragment));
+    const xmlContent = xmlFragment.toString();
+    const wordCount = countWords(extractTextContent(xmlFragment));
+    const worldbuildingData =
+      elementType === 'WORLDBUILDING' ? contentDoc.doc.getMap('worldbuilding').toJSON() : null;
 
-    if (elementType === 'WORLDBUILDING') {
-      worldbuildingData = contentDoc.doc.getMap('worldbuilding').toJSON();
-    }
+    return { xmlContent, wordCount, worldbuildingData };
   } catch (err: unknown) {
     mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+    throw err;
   }
-
-  return { xmlContent, wordCount, worldbuildingData };
 }
 
 function countWords(text: string): number {
