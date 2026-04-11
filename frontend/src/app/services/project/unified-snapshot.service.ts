@@ -385,13 +385,9 @@ export class UnifiedSnapshotService {
       snapshotId,
       isWorldbuilding
     );
-    const wbRestoreSuccess = this.restoreWorldbuildingFromSnapshot(
-      snapshot,
-      elementId,
-      isWorldbuilding
-    );
+    this.restoreWorldbuildingFromSnapshot(snapshot, elementId, isWorldbuilding);
 
-    return wbRestoreSuccess;
+    return true;
   }
 
   private extractElementId(documentId: string, prefix: string): string {
@@ -457,22 +453,19 @@ export class UnifiedSnapshotService {
     snapshot: StoredSnapshot,
     elementId: string,
     isWorldbuilding: boolean
-  ): boolean {
-    if (!isWorldbuilding) return true;
+  ): void {
+    if (!isWorldbuilding) return;
 
     if (!snapshot.worldbuildingData) {
-      this.logger.warn(
-        'UnifiedSnapshot',
-        `No worldbuilding data in snapshot for WB element ${elementId}`
+      throw new Error(
+        `Snapshot is missing worldbuilding data for worldbuilding element ${elementId}`
       );
-      return false;
     }
 
     this.logger.debug(
       'UnifiedSnapshot',
       `Restoring worldbuilding data for ${elementId}`,
       {
-        dataSize: JSON.stringify(snapshot.worldbuildingData).length,
         keysCount: Object.keys(snapshot.worldbuildingData).length,
       }
     );
@@ -504,7 +497,6 @@ export class UnifiedSnapshotService {
       'UnifiedSnapshot',
       `Restored worldbuilding data for ${elementId}`
     );
-    return true;
   }
 
   /**

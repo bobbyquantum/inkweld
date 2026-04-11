@@ -1701,17 +1701,17 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       return true;
     }
 
-    if (key === 'r') {
+    if (key === 'r' && !hasModifier) {
       this.onToolChange('rectSelect');
       return true;
     }
 
-    if (key === 'h') {
+    if (key === 'h' && !hasModifier) {
       this.onToolChange('pan');
       return true;
     }
 
-    if (key === 'p') {
+    if (key === 'p' && !hasModifier) {
       this.onToolChange('pin');
       return true;
     }
@@ -1721,7 +1721,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       return true;
     }
 
-    if (key === 'l') {
+    if (key === 'l' && !hasModifier) {
       this.onToolChange('line');
       return true;
     }
@@ -1731,7 +1731,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       return true;
     }
 
-    if (key === 't') {
+    if (key === 't' && !hasModifier) {
       this.onToolChange('text');
       return true;
     }

@@ -809,15 +809,27 @@ function moveRequestedElements(
   elementIds: string[],
   newParentId: string | null
 ): { currentElements: Element[]; movedElements: string[]; errors: string[] } {
+  const elementIndexById = new Map(initialElements.map((element, index) => [element.id, index]));
+  const selectedIdSet = new Set(elementIds);
+  const filteredRoots = elementIds.filter((id) => {
+    const index = elementIndexById.get(id);
+    if (index === undefined) return true;
+
+    const subtree = getSubtree(initialElements, index);
+    const descendantIds = subtree.slice(1).map((element) => element.id);
+    return !descendantIds.some((descendantId) => selectedIdSet.has(descendantId));
+  });
+
+  const originalNameById = new Map(initialElements.map((element) => [element.id, element.name]));
   let currentElements = initialElements;
   const movedElements: string[] = [];
   const errors: string[] = [];
 
-  for (const id of elementIds) {
+  for (const id of filteredRoots) {
     try {
       currentElements = moveElement(currentElements, id, newParentId);
-      const moved = currentElements.find((e) => e.id === id);
-      if (moved) movedElements.push(moved.name);
+      const originalName = originalNameById.get(id);
+      if (originalName) movedElements.push(originalName);
     } catch (err) {
       errors.push(`${id}: ${err}`);
     }
@@ -1867,6 +1879,13 @@ async function extractSnapshotContentOnWorkers(
     elementType
   );
 
+  if (worldbuildingData === null) {
+    return {
+      error:
+        'Could not read worldbuilding data for snapshot on Cloudflare Workers. Snapshot creation was aborted.',
+    };
+  }
+
   return {
     xmlContent: '',
     wordCount: 0,
@@ -1889,6 +1908,7 @@ async function readWorldbuildingDataFromWorkers(
     }
   } catch (err: unknown) {
     mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
+    throw err;
   }
 
   return null;
@@ -1918,23 +1938,13 @@ async function extractSnapshotContentOnBun(
     wordCount = countWords(extractTextContent(xmlFragment));
 
     if (elementType === 'WORLDBUILDING') {
-      worldbuildingData = mapToObject(contentDoc.doc.getMap('worldbuilding'));
+      worldbuildingData = contentDoc.doc.getMap('worldbuilding').toJSON();
     }
   } catch (err: unknown) {
     mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
   }
 
   return { xmlContent, wordCount, worldbuildingData };
-}
-
-function mapToObject(map: {
-  forEach: (fn: (value: unknown, key: string) => void) => void;
-}): Record<string, unknown> | null {
-  const data: Record<string, unknown> = {};
-  map.forEach((value, key) => {
-    data[key] = value;
-  });
-  return Object.keys(data).length > 0 ? data : null;
 }
 
 function countWords(text: string): number {
