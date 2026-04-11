@@ -82,6 +82,11 @@ export class IdentityPanelComponent implements OnDestroy {
    */
   isLoadingImage = signal(false);
 
+  /**
+   * Whether identity metadata is loading
+   */
+  isIdentityLoading = signal(true);
+
   // Cleanup
   private readonly destroy$ = new Subject<void>();
   private readonly descriptionChange$ = new Subject<string>();
@@ -205,22 +210,27 @@ export class IdentityPanelComponent implements OnDestroy {
   }
 
   private async loadIdentityData(elementId: string): Promise<void> {
-    const data = await this.worldbuildingService.getIdentityData(
-      elementId,
-      this.username(),
-      this.slug()
-    );
-    console.log('[IdentityPanel] Loaded identity data:', {
-      elementId,
-      username: this.username(),
-      slug: this.slug(),
-      image: data?.image,
-      description: data?.description?.substring(0, 50),
-      data,
-    });
-    if (data) {
-      this.identity.set(data);
-      this.description.set(data.description ?? '');
+    this.isIdentityLoading.set(true);
+    try {
+      const data = await this.worldbuildingService.getIdentityData(
+        elementId,
+        this.username(),
+        this.slug()
+      );
+      console.log('[IdentityPanel] Loaded identity data:', {
+        elementId,
+        username: this.username(),
+        slug: this.slug(),
+        image: data?.image,
+        description: data?.description?.substring(0, 50),
+        data,
+      });
+      if (data) {
+        this.identity.set(data);
+        this.description.set(data.description ?? '');
+      }
+    } finally {
+      this.isIdentityLoading.set(false);
     }
   }
 

@@ -74,9 +74,6 @@ export class EditorFloatingMenuComponent implements OnDestroy {
   /** Whether mouse is being dragged (selecting text) */
   private isDragging = false;
 
-  /** Whether the current interaction is touch-based */
-  private isTouchInteraction = false;
-
   constructor() {
     // Watch for editor changes and subscribe to updates
     effect(() => {
@@ -107,18 +104,13 @@ export class EditorFloatingMenuComponent implements OnDestroy {
 
   @HostListener('document:touchstart')
   onDocumentTouchStart(): void {
-    this.isDragging = true;
-    this.isTouchInteraction = true;
+    this.updatePosition();
   }
 
   @HostListener('document:touchend')
   onDocumentTouchEnd(): void {
-    this.isDragging = false;
-    // Longer delay for touch — the OS selection & native menu need time to settle
-    setTimeout(() => {
-      this.updatePosition();
-      this.isTouchInteraction = false;
-    }, 300);
+    // Delay for touch — the OS selection handles and native menu need time to settle
+    setTimeout(() => this.updatePosition(), 300);
   }
 
   ngOnDestroy(): void {
@@ -182,7 +174,7 @@ export class EditorFloatingMenuComponent implements OnDestroy {
     // On touch devices prefer below to avoid conflicting with the OS context menu
     // which appears above the selection on Android.
     let top: number;
-    if (this.isTouchInteraction) {
+    if (this.shouldPreferBelowSelection()) {
       const belowPos = selectionBottom + touchGapBelow;
       if (belowPos + menuHeight < viewportBottom) {
         top = belowPos;
@@ -212,6 +204,13 @@ export class EditorFloatingMenuComponent implements OnDestroy {
       top,
       left,
     });
+  }
+
+  private shouldPreferBelowSelection(): boolean {
+    return (
+      globalThis.matchMedia('(pointer: coarse)').matches ||
+      globalThis.navigator.maxTouchPoints > 0
+    );
   }
 
   private hide(): void {

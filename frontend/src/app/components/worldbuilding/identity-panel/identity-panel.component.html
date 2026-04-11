@@ -10,109 +10,128 @@
 
   @if (isExpanded()) {
     <div class="identity-content">
-      <!-- Name section -->
-      <div class="name-section">
-        <span class="element-name">{{ elementName() }}</span>
-        @if (canWrite()) {
-          <button
-            mat-icon-button
-            class="rename-button"
-            (click)="onRenameClick()"
-            matTooltip="Rename">
-            <mat-icon>edit</mat-icon>
-          </button>
-        }
-      </div>
-
-      <!-- Image section -->
-      @if (showImage()) {
-        <div
-          class="image-section"
-          [class.no-image-container]="!resolvedImageUrl() && !isLoadingImage()">
-          <button
-            class="image-placeholder"
-            [class.no-image]="!resolvedImageUrl() && !isLoadingImage()"
-            [class.readonly]="!canWrite() && !resolvedImageUrl()"
-            (click)="
-              resolvedImageUrl()
-                ? viewImage()
-                : canWrite()
-                  ? onImageClick()
-                  : null
-            "
-            [matTooltip]="
-              resolvedImageUrl()
-                ? 'View full size'
-                : canWrite()
-                  ? 'Click to set image'
-                  : 'No image available'
-            ">
-            @if (isLoadingImage()) {
-              <mat-icon class="placeholder-icon spinning"
-                >hourglass_empty</mat-icon
-              >
-              <span class="placeholder-text">Loading...</span>
-            } @else if (resolvedImageUrl()) {
-              <img [src]="resolvedImageUrl()" [alt]="elementName()" />
-            } @else {
-              <mat-icon class="placeholder-icon">image</mat-icon>
-              <span class="placeholder-text">{{
-                canWrite() ? 'Add Image' : 'No Image'
-              }}</span>
-            }
-          </button>
-          @if (resolvedImageUrl()) {
+      @if (isIdentityLoading()) {
+        <div class="identity-skeleton" data-testid="identity-loading-skeleton">
+          <div class="identity-skeleton-block identity-skeleton-image"></div>
+          <div class="identity-skeleton-block identity-skeleton-title"></div>
+          <div class="identity-skeleton-block identity-skeleton-field"></div>
+          <div class="identity-skeleton-block identity-skeleton-field"></div>
+          <div
+            class="identity-skeleton-block identity-skeleton-field identity-skeleton-field--tall"></div>
+          <div class="identity-skeleton-block identity-skeleton-tags"></div>
+        </div>
+      } @else {
+        <!-- Name section -->
+        <div class="name-section">
+          <span class="element-name">{{ elementName() }}</span>
+          @if (canWrite()) {
             <button
               mat-icon-button
-              class="view-image-button"
-              (click)="viewImage(); $event.stopPropagation()"
-              matTooltip="View full size">
-              <mat-icon>visibility</mat-icon>
-            </button>
-          }
-          @if (resolvedImageUrl() && canWrite()) {
-            <button
-              mat-icon-button
-              class="change-image-button"
-              (click)="onImageClick(); $event.stopPropagation()"
-              matTooltip="Change image">
+              class="rename-button"
+              (click)="onRenameClick()"
+              matTooltip="Rename">
               <mat-icon>edit</mat-icon>
             </button>
           }
         </div>
+
+        <!-- Image section -->
+        @if (showImage()) {
+          <div
+            class="image-section"
+            [class.no-image-container]="
+              !resolvedImageUrl() && !isLoadingImage()
+            ">
+            <button
+              class="image-placeholder"
+              [class.no-image]="!resolvedImageUrl() && !isLoadingImage()"
+              [class.readonly]="!canWrite() && !resolvedImageUrl()"
+              (click)="
+                resolvedImageUrl()
+                  ? viewImage()
+                  : canWrite()
+                    ? onImageClick()
+                    : null
+              "
+              [matTooltip]="
+                resolvedImageUrl()
+                  ? 'View full size'
+                  : canWrite()
+                    ? 'Click to set image'
+                    : 'No image available'
+              ">
+              @if (isLoadingImage()) {
+                <mat-icon class="placeholder-icon spinning"
+                  >hourglass_empty</mat-icon
+                >
+                <span class="placeholder-text">Loading...</span>
+              } @else if (resolvedImageUrl()) {
+                <img [src]="resolvedImageUrl()" [alt]="elementName()" />
+              } @else {
+                <mat-icon class="placeholder-icon">image</mat-icon>
+                <span class="placeholder-text">{{
+                  canWrite() ? 'Add Image' : 'No Image'
+                }}</span>
+              }
+            </button>
+            @if (resolvedImageUrl()) {
+              <button
+                mat-icon-button
+                class="view-image-button"
+                (click)="viewImage(); $event.stopPropagation()"
+                matTooltip="View full size">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            }
+            @if (resolvedImageUrl() && canWrite()) {
+              <button
+                mat-icon-button
+                class="change-image-button"
+                (click)="onImageClick(); $event.stopPropagation()"
+                matTooltip="Change image">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
+          </div>
+        }
+
+        <!-- Description section -->
+        <div class="description-section">
+          <mat-form-field appearance="outline" class="description-field">
+            <mat-label>Description</mat-label>
+            <textarea
+              matInput
+              [ngModel]="description()"
+              (ngModelChange)="onDescriptionChange($event)"
+              placeholder="Brief description (shown in tooltips)"
+              rows="4"
+              cdkTextareaAutosize
+              [readonly]="!canWrite()"></textarea>
+            <mat-hint>Used for tooltips and previews</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <!-- Tags section -->
+        <div class="tags-section">
+          <app-tag-chip-list
+            [elementId]="elementId()"
+            label="Tags"
+            hint="Organize with tags"
+            [compact]="true"
+            [readonly]="!canWrite()">
+          </app-tag-chip-list>
+        </div>
       }
-
-      <!-- Description section -->
-      <div class="description-section">
-        <mat-form-field appearance="outline" class="description-field">
-          <mat-label>Description</mat-label>
-          <textarea
-            matInput
-            [ngModel]="description()"
-            (ngModelChange)="onDescriptionChange($event)"
-            placeholder="Brief description (shown in tooltips)"
-            rows="4"
-            cdkTextareaAutosize
-            [readonly]="!canWrite()"></textarea>
-          <mat-hint>Used for tooltips and previews</mat-hint>
-        </mat-form-field>
-      </div>
-
-      <!-- Tags section -->
-      <div class="tags-section">
-        <app-tag-chip-list
-          [elementId]="elementId()"
-          label="Tags"
-          hint="Organize with tags"
-          [compact]="true"
-          [readonly]="!canWrite()">
-        </app-tag-chip-list>
-      </div>
     </div>
   } @else {
     <!-- Collapsed view - just show image thumbnail -->
     <div class="collapsed-content">
-      @if (resolvedImageUrl()) {
+      @if (isIdentityLoading()) {
+        <div
+          class="identity-skeleton-block identity-skeleton-image identity-skeleton-image--collapsed"></div>
+        <div
+          class="identity-skeleton-block identity-skeleton-title identity-skeleton-title--collapsed"></div>
+      } @else if (resolvedImageUrl()) {
         <img
           class="thumbnail"
           [src]="resolvedImageUrl()"

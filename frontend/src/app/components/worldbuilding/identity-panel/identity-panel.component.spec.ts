@@ -79,7 +79,9 @@ describe('IdentityPanelComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should display the element name', () => {
+  it('should display the element name', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     const nameElement = fixture.nativeElement.querySelector('.element-name');
     expect(nameElement?.textContent).toContain('Test Element');
@@ -96,7 +98,9 @@ describe('IdentityPanelComponent', () => {
     );
   });
 
-  it('should emit renameRequested when rename button is clicked', () => {
+  it('should emit renameRequested when rename button is clicked', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     const renameSpy = vi.fn();
     component.renameRequested.subscribe(renameSpy);
