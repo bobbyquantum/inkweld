@@ -125,7 +125,7 @@
     aspect-ratio: auto;
     margin: 0;
     padding: 8px 16px;
-    
+
     // Flex layout for button content
     display: flex;
     flex-direction: row;
@@ -400,4 +400,67 @@
 // Collapse toggle button
 .collapse-toggle {
   z-index: 1;
+}
+
+.identity-skeleton {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.identity-skeleton-block {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sys-surface-container-high) 90%, transparent) 25%,
+    color-mix(in srgb, var(--sys-surface-container-highest) 94%, white) 50%,
+    color-mix(in srgb, var(--sys-surface-container-high) 90%, transparent) 75%
+  );
+  background-size: 240% 100%;
+  animation: identity-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.identity-skeleton-image {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 1 / 1;
+}
+
+.identity-skeleton-title {
+  width: 65%;
+  height: 20px;
+}
+
+.identity-skeleton-field {
+  width: 100%;
+  height: 42px;
+}
+
+.identity-skeleton-field--tall {
+  height: 96px;
+}
+
+.identity-skeleton-tags {
+  width: 100%;
+  height: 36px;
+}
+
+.identity-skeleton-image--collapsed {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+.identity-skeleton-title--collapsed {
+  flex: 1;
+  height: 16px;
+}
+
+@keyframes identity-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
 }
