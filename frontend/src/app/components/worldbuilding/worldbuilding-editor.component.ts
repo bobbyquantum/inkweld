@@ -144,10 +144,14 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   /** Whether to use sidenav layout (true) or accordion layout (false) */
   useSidenav = signal(true);
 
+  /** Whether the initial schema/data load is still in progress */
+  isInitialLoading = signal(true);
+
   private unsubscribeObserver: (() => void) | null = null;
   private readonly resizeCleanup: (() => void) | null = null;
   private formSubscription: (() => void) | null = null;
   private isUpdatingFromRemote = false;
+  private loadSequence = 0;
 
   constructor() {
     // Layout detection: sidenav for large desktop + tablet landscape, accordion otherwise
@@ -216,6 +220,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   }
 
   private async loadElementData(elementId: string): Promise<void> {
+    const currentLoad = ++this.loadSequence;
+    this.isInitialLoading.set(true);
+    this.schema.set(null);
+    this.form.set(new FormGroup({}));
+
     try {
       const username = this.username();
       const slug = this.slug();
@@ -229,20 +238,16 @@ export class WorldbuildingEditorComponent implements OnDestroy {
           slug
         );
       }
-      this.schema.set(loadedSchema);
+      if (currentLoad !== this.loadSequence) return;
+      let schemaToUse = loadedSchema;
+      if (!schemaToUse && username && slug) {
+        schemaToUse = await this.initializeIfNeeded(elementId, username, slug);
+        if (currentLoad !== this.loadSequence) return;
+      }
 
-      if (!loadedSchema && username && slug) {
-        const reinitializedSchema = await this.initializeIfNeeded(
-          elementId,
-          username,
-          slug
-        );
-        if (reinitializedSchema) {
-          this.schema.set(reinitializedSchema);
-          this.buildFormFromSchema(reinitializedSchema);
-        }
-      } else if (loadedSchema) {
-        this.buildFormFromSchema(loadedSchema);
+      this.schema.set(schemaToUse);
+      if (schemaToUse) {
+        this.buildFormFromSchema(schemaToUse);
       }
 
       const data = await this.worldbuildingService.getWorldbuildingData(
@@ -250,6 +255,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         username,
         slug
       );
+      if (currentLoad !== this.loadSequence) return;
       if (data) {
         this.updateFormFromData(data);
       }
@@ -260,6 +266,10 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       }
     } catch (error) {
       console.error('[WorldbuildingEditor] Error loading element data:', error);
+    } finally {
+      if (currentLoad === this.loadSequence) {
+        this.isInitialLoading.set(false);
+      }
     }
   }
 

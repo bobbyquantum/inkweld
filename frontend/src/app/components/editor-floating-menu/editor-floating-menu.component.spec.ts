@@ -3,7 +3,6 @@ import {
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Subject } from 'rxjs';
 import {
   afterEach,
@@ -88,7 +87,7 @@ describe('EditorFloatingMenuComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [EditorFloatingMenuComponent, NoopAnimationsModule],
+      imports: [EditorFloatingMenuComponent],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [provideZonelessChangeDetection()],
     }).compileComponents();
@@ -171,7 +170,7 @@ describe('EditorFloatingMenuComponent', () => {
     it('should prompt for URL if no link exists', () => {
       mockEditorView.state.doc.rangeHasMark.mockReturnValue(false);
       const promptSpy = vi
-        .spyOn(window, 'prompt')
+        .spyOn(globalThis, 'prompt')
         .mockReturnValue('https://example.com');
 
       component.toggleLink();
@@ -186,7 +185,7 @@ describe('EditorFloatingMenuComponent', () => {
 
     it('should not add link if prompt is cancelled', () => {
       mockEditorView.state.doc.rangeHasMark.mockReturnValue(false);
-      const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null);
+      const promptSpy = vi.spyOn(globalThis, 'prompt').mockReturnValue(null);
 
       component.toggleLink();
 
@@ -206,6 +205,34 @@ describe('EditorFloatingMenuComponent', () => {
 
       // State should be updated based on rangeHasMark returning true
       expect(component.isBold()).toBe(true);
+    });
+
+    it('should prefer below-selection placement on coarse pointers', () => {
+      const matchMediaSpy = vi
+        .spyOn(globalThis, 'matchMedia')
+        .mockImplementation(
+          ((query: string) =>
+            ({
+              matches: query === '(pointer: coarse)',
+              media: query,
+              onchange: null,
+              addListener: vi.fn(),
+              removeListener: vi.fn(),
+              addEventListener: vi.fn(),
+              removeEventListener: vi.fn(),
+              dispatchEvent: vi.fn(),
+            }) as unknown as MediaQueryList) as typeof globalThis.matchMedia
+        );
+
+      updateSubject.next();
+      fixture.detectChanges();
+
+      const position = (
+        component as unknown as { positionState: () => { top: number } }
+      ).positionState();
+      expect(position.top).toBeGreaterThan(120);
+
+      matchMediaSpy.mockRestore();
     });
   });
 });
