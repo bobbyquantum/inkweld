@@ -83,7 +83,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   // Reconnection state
   private reconnectAttempts = 0;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  private reconnectionConfig = DEFAULT_RECONNECTION_CONFIG;
+  private readonly reconnectionConfig = DEFAULT_RECONNECTION_CONFIG;
 
   // Event listeners for cleanup
   private onlineHandler: (() => void) | null = null;
@@ -292,11 +292,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     // Remove network event listeners
     if (this.onlineHandler) {
-      window.removeEventListener('online', this.onlineHandler);
+      globalThis.removeEventListener('online', this.onlineHandler);
       this.onlineHandler = null;
     }
     if (this.offlineHandler) {
-      window.removeEventListener('offline', this.offlineHandler);
+      globalThis.removeEventListener('offline', this.offlineHandler);
       this.offlineHandler = null;
     }
 
@@ -314,15 +314,13 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     }
 
     if (this.idbProvider) {
-      try {
-        void this.idbProvider.destroy();
-      } catch (error) {
+      void this.idbProvider.destroy().catch(error => {
         this.logger.warn(
           'YjsSync',
           'Error destroying IndexedDB provider',
           error
         );
-      }
+      });
       this.idbProvider = null;
     }
 
@@ -860,8 +858,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.syncStateSubject.next(DocumentSyncState.Local);
     };
 
-    window.addEventListener('online', this.onlineHandler);
-    window.addEventListener('offline', this.offlineHandler);
+    globalThis.addEventListener('online', this.onlineHandler);
+    globalThis.addEventListener('offline', this.offlineHandler);
   }
 
   /**

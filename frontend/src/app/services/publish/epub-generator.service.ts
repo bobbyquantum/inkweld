@@ -986,9 +986,7 @@ export class EpubGeneratorService {
     // Add cover items if present
     if (hasCover) {
       manifestParts.push(
-        `    <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>`
-      );
-      manifestParts.push(
+        `    <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>`,
         `    <item id="cover-image" href="images/cover.${coverExt}" media-type="${coverMimeType}" properties="cover-image"/>`
       );
     }

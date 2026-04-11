@@ -637,10 +637,6 @@ export class DocumentService {
           globalThis.open(url, '_blank');
         },
       });
-
-    // // Directly open the API endpoint URL in a new tab
-    // const url = `/api/v1/projects/${username}/${projectSlug}/docs/${docName}/html`;
-    // window.open(url, '_blank');
   }
 
   /**
@@ -1357,24 +1353,29 @@ export class DocumentService {
         }
       }
 
+      let flushPromise: Promise<unknown>;
       try {
-        void storeState(connection.indexeddbProvider, true)
-          .then(() => connection.indexeddbProvider.destroy())
-          .then(() => connection.ydoc.destroy())
-          .catch(error => {
-            this.logger.warn(
-              'DocumentService',
-              `Error flushing/destroying IndexedDB or Yjs doc for ${docId}`,
-              error
-            );
-          });
+        flushPromise = storeState(connection.indexeddbProvider, true);
       } catch (error) {
         this.logger.warn(
           'DocumentService',
           `Error starting IndexedDB flush for ${docId}`,
           error
         );
+        this.cleanupSyncState(docId);
+        continue;
       }
+
+      void flushPromise
+        .then(() => connection.indexeddbProvider.destroy())
+        .then(() => connection.ydoc.destroy())
+        .catch(error => {
+          this.logger.warn(
+            'DocumentService',
+            `Error flushing/destroying IndexedDB or Yjs doc for ${docId}`,
+            error
+          );
+        });
 
       this.cleanupSyncState(docId);
     }
@@ -1403,33 +1404,28 @@ export class DocumentService {
       }
     }
 
+    let flushPromise: Promise<unknown>;
     try {
-      void storeState(connection.indexeddbProvider, true)
-        .then(() => connection.indexeddbProvider.destroy())
-        .catch(error => {
-          this.logger.warn(
-            'DocumentService',
-            `Error flushing/destroying IndexedDB provider for ${documentId}`,
-            error
-          );
-        });
+      flushPromise = storeState(connection.indexeddbProvider, true);
     } catch (error) {
       this.logger.warn(
         'DocumentService',
         `Error starting IndexedDB flush for ${documentId}`,
         error
       );
+      flushPromise = Promise.resolve();
     }
 
-    try {
-      connection.ydoc.destroy();
-    } catch (error) {
-      this.logger.warn(
-        'DocumentService',
-        `Error destroying Yjs doc for ${documentId}`,
-        error
-      );
-    }
+    void flushPromise
+      .then(() => connection.indexeddbProvider.destroy())
+      .then(() => connection.ydoc.destroy())
+      .catch(error => {
+        this.logger.warn(
+          'DocumentService',
+          `Error flushing/destroying IndexedDB provider or Yjs doc for ${documentId}`,
+          error
+        );
+      });
   }
 
   private cleanupSyncState(documentId: string): void {

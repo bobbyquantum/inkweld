@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { config as envConfig } from '../config/env';
 import { config, CONFIG_KEYS, type ConfigKey, type ConfigCategory } from '../db/schema/config';
 import type { DatabaseInstance } from '../types/context';
