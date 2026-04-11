@@ -231,10 +231,10 @@
       <button
         class="tag-icons"
         (click)="openTagsDialog()"
-        aria-label="Manage tags"
         matTooltip="Manage tags"
         matTooltipShowDelay="800"
         type="button">
+        <span>Tags</span>
         @for (tag of elementTags(); track tag.assignment.id) {
           <mat-icon
             aria-hidden="true"

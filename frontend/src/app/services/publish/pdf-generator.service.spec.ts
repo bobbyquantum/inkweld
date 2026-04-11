@@ -951,4 +951,97 @@ describe('PdfGeneratorService', () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe('ProseMirror mark and elementRef handling', () => {
+    it('should render elementRef with displayText', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'elementRef',
+              attrs: {
+                elementId: 'ref-1',
+                displayText: 'A Character',
+              },
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generatePdf(mockPlan);
+      expect(result.success).toBe(true);
+    });
+
+    it('should render elementRef without displayText as empty', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'elementRef',
+              attrs: { elementId: 'ref-2' },
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generatePdf(mockPlan);
+      expect(result.success).toBe(true);
+    });
+
+    it('should apply underline mark as typst function', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Underlined text',
+              marks: [{ type: 'underline' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generatePdf(mockPlan);
+      expect(result.success).toBe(true);
+    });
+
+    it('should apply multiple marks in sequence', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Multi-mark text',
+              marks: [{ type: 'bold' }, { type: 'italic' }, { type: 'code' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generatePdf(mockPlan);
+      expect(result.success).toBe(true);
+    });
+
+    it('should skip unknown mark types', async () => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Unknown mark text',
+              marks: [{ type: 'custom-mark' }],
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.generatePdf(mockPlan);
+      expect(result.success).toBe(true);
+    });
+  });
 });

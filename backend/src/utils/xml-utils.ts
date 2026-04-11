@@ -85,3 +85,18 @@ export function sanitizeFilename(filename: string): string {
   }
   return result;
 }
+
+/**
+ * Skip whitespace between top-level block elements during XML parsing.
+ * y-prosemirror crashes if XmlText nodes appear at fragment level.
+ */
+export function skipTopLevelWhitespace(xml: string, pos: number): number {
+  if (!/\s/.test(xml[pos]) || xml[pos] === '<') {
+    return pos;
+  }
+
+  const wsEnd = xml.indexOf('<', pos);
+  const end = wsEnd === -1 ? xml.length : wsEnd;
+  const ws = xml.substring(pos, end);
+  return ws.trim() ? pos : end;
+}

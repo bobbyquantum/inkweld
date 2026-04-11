@@ -18,7 +18,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
-import type Konva from 'konva';
+import Konva from 'konva';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -136,7 +136,10 @@ describe('CanvasTabComponent', () => {
   };
 
   const mockDialogGateway = {
-    openInsertImageDialog: vi.fn(() => Promise.resolve(undefined)),
+    openInsertImageDialog: vi.fn(
+      (): Promise<{ mediaId: string; imageBlob: Blob } | undefined> =>
+        Promise.resolve(undefined)
+    ),
   };
 
   const mockLocalStorageService = {
@@ -1347,6 +1350,85 @@ describe('CanvasTabComponent', () => {
       dispatchKey('0', { ctrlKey: true });
       expect(spy).toHaveBeenCalled();
     });
+
+    it('should ignore shortcuts when target is a select element', () => {
+      const select = document.createElement('select');
+      const event = new KeyboardEvent('keydown', {
+        key: 'v',
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: select });
+      component['keyHandler'](event);
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should ignore shortcuts when target is a textarea element', () => {
+      const textarea = document.createElement('textarea');
+      const event = new KeyboardEvent('keydown', {
+        key: 'd',
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: textarea });
+      component['keyHandler'](event);
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should ignore shortcuts when target is contentEditable', () => {
+      const div = document.createElement('div');
+      div.setAttribute('contenteditable', 'true');
+      document.body.appendChild(div);
+      const event = new KeyboardEvent('keydown', {
+        key: 'r',
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: div });
+      component['keyHandler'](event);
+      expect(component['activeTool']()).toBe('select');
+      div.remove();
+    });
+
+    it('should NOT switch tool when Ctrl+R is pressed', () => {
+      dispatchKey('r', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Ctrl+H is pressed', () => {
+      dispatchKey('h', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Meta+P is pressed', () => {
+      dispatchKey('p', { metaKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Ctrl+L is pressed', () => {
+      dispatchKey('l', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should NOT switch tool when Ctrl+T is pressed', () => {
+      dispatchKey('t', { ctrlKey: true });
+      expect(component['activeTool']()).toBe('select');
+    });
+
+    it('should not call onZoomIn without modifier on =', () => {
+      const spy = vi.spyOn(component as never, 'onZoomIn');
+      dispatchKey('=');
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should not call onZoomOut without modifier on -', () => {
+      const spy = vi.spyOn(component as never, 'onZoomOut');
+      dispatchKey('-');
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('should not respond to unrecognized key', () => {
+      const spy = vi.spyOn(component as never, 'onToolChange');
+      dispatchKey('q');
+      expect(spy).not.toHaveBeenCalled();
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -2120,6 +2202,844 @@ describe('CanvasTabComponent', () => {
         expect(component['drawingShape']).toBeTruthy();
         expect(mockLayer.add).toHaveBeenCalled();
       });
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // onEditObjectColors
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('onEditObjectColors', () => {
+    const layerId = defaultConfig.layers[0].id;
+
+    function makeShape(overrides: Record<string, unknown>): CanvasShape {
+      return {
+        id: 'shape-1',
+        layerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        fill: '#FF0000',
+        stroke: '#000000',
+        strokeWidth: 2,
+        ...overrides,
+      } as CanvasShape;
+    }
+
+    it('should do nothing when no object is selected', () => {
+      component['selectedObjectId'].set(null);
+      component['onEditObjectColors']();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when config is null', () => {
+      component['selectedObjectId'].set('obj-1');
+      mockCanvasService.activeConfig.set(null);
+      component['onEditObjectColors']();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when object not found', () => {
+      component['selectedObjectId'].set('nonexistent');
+      mockCanvasService.activeConfig.set({ ...defaultConfig, objects: [] });
+      component['onEditObjectColors']();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should open color dialog for text object with fill only', () => {
+      const textObj: CanvasText = {
+        id: 'text-1',
+        layerId,
+        type: 'text',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        text: 'Hello',
+        fontSize: 16,
+        fontFamily: 'Arial',
+        fontStyle: 'normal',
+        fill: '#333333',
+        width: 0,
+        align: 'left',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [textObj],
+      });
+      component['selectedObjectId'].set('text-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockDialog.open).toHaveBeenCalled();
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.showStroke).toBe(false);
+      expect(dialogData.fill).toBe('#333333');
+    });
+
+    it('should open color dialog for shape object with fill and stroke', () => {
+      const shapeObj = makeShape({});
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [shapeObj],
+      });
+      component['selectedObjectId'].set('shape-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.showStroke).toBe(true);
+      expect(dialogData.fill).toBe('#FF0000');
+      expect(dialogData.stroke).toBe('#000000');
+    });
+
+    it('should open color dialog for path object with stroke only (open path)', () => {
+      const pathObj: CanvasPath = {
+        id: 'path-1',
+        layerId,
+        type: 'path',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        points: [0, 0, 100, 100],
+        stroke: '#0000FF',
+        strokeWidth: 2,
+        closed: false,
+        tension: 0,
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [pathObj],
+      });
+      component['selectedObjectId'].set('path-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showStroke).toBe(true);
+      expect(dialogData.showFill).toBe(false);
+    });
+
+    it('should open color dialog for closed path with fill and stroke', () => {
+      const closedPath: CanvasPath = {
+        id: 'path-2',
+        layerId,
+        type: 'path',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        points: [0, 0, 100, 100, 50, 50],
+        stroke: '#0000FF',
+        strokeWidth: 2,
+        closed: true,
+        fill: '#00FF00',
+        tension: 0,
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [closedPath],
+      });
+      component['selectedObjectId'].set('path-2');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showStroke).toBe(true);
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.fill).toBe('#00FF00');
+    });
+
+    it('should open color dialog for pin with fill (color)', () => {
+      const pin: CanvasPin = {
+        id: 'pin-1',
+        layerId,
+        type: 'pin',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        label: 'Pin',
+        icon: 'place',
+        color: '#E53935',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [pin],
+      });
+      component['selectedObjectId'].set('pin-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.showStroke).toBe(false);
+      expect(dialogData.fill).toBe('#E53935');
+    });
+
+    it('should return early for image objects (no editable colors)', () => {
+      const imageObj: CanvasImage = {
+        id: 'img-1',
+        layerId,
+        type: 'image',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        src: 'test.png',
+        width: 100,
+        height: 100,
+        name: 'test',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [imageObj],
+      });
+      component['selectedObjectId'].set('img-1');
+
+      component['onEditObjectColors']();
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should update shape object colors when dialog returns result', () => {
+      const shapeObj = makeShape({});
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [shapeObj],
+      });
+      component['selectedObjectId'].set('shape-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of({ fill: '#AABB00', stroke: '#112233' }),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith(
+        'shape-1',
+        expect.objectContaining({ fill: '#AABB00', stroke: '#112233' })
+      );
+    });
+
+    it('should update pin color via "color" key when dialog returns result', () => {
+      const pin: CanvasPin = {
+        id: 'pin-2',
+        layerId,
+        type: 'pin',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        label: 'P',
+        icon: 'place',
+        color: '#E53935',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [pin],
+      });
+      component['selectedObjectId'].set('pin-2');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of({ fill: '#00FF00' }),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith(
+        'pin-2',
+        expect.objectContaining({ color: '#00FF00' })
+      );
+    });
+
+    it('should not update when dialog is cancelled', () => {
+      const shapeObj = makeShape({});
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [shapeObj],
+      });
+      component['selectedObjectId'].set('shape-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockCanvasService.updateObject).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // exportAsPng / exportAsHighResPng
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('exportAsPng', () => {
+    let clickSpy: ReturnType<typeof vi.fn>;
+    let createElementSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      clickSpy = vi.fn();
+      const originalCreateElement = document.createElement.bind(document);
+      createElementSpy = vi
+        .spyOn(document, 'createElement')
+        .mockImplementation(
+          (tagName: string, options?: ElementCreationOptions) => {
+            if (tagName === 'a') {
+              return {
+                href: '',
+                download: '',
+                click: clickSpy,
+              } as unknown as HTMLAnchorElement;
+            }
+            return originalCreateElement(tagName, options);
+          }
+        );
+    });
+
+    afterEach(() => {
+      createElementSpy.mockRestore();
+    });
+
+    it('should do nothing when stage is null', () => {
+      component['stage'] = null as unknown as Konva.Stage;
+      component['exportAsPng']();
+      expect(clickSpy).not.toHaveBeenCalled();
+    });
+
+    it('should export PNG with pixelRatio 2', () => {
+      component['stage'] = {
+        toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
+      } as unknown as Konva.Stage;
+
+      component['exportAsPng']();
+
+      expect(component['stage'].toDataURL).toHaveBeenCalledWith({
+        pixelRatio: 2,
+      });
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('should export high-res PNG with pixelRatio 3', () => {
+      component['stage'] = {
+        toDataURL: vi.fn(() => 'data:image/png;base64,xyz'),
+      } as unknown as Konva.Stage;
+
+      component['exportAsHighResPng']();
+
+      expect(component['stage'].toDataURL).toHaveBeenCalledWith({
+        pixelRatio: 3,
+      });
+      expect(clickSpy).toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // onAddImage early returns
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('onAddImage', () => {
+    it('should return early when project is null', async () => {
+      mockProjectState.project.set(null);
+      await component['onAddImage']();
+      expect(mockDialogGateway.openInsertImageDialog).not.toHaveBeenCalled();
+    });
+
+    it('should return early when dialog returns undefined', async () => {
+      mockDialogGateway.openInsertImageDialog.mockResolvedValue(undefined);
+      await component['onAddImage']();
+      expect(mockLocalStorageService.saveMedia).not.toHaveBeenCalled();
+    });
+
+    it('should return early when dialog returns no mediaId', async () => {
+      mockDialogGateway.openInsertImageDialog.mockResolvedValue({
+        mediaId: '',
+        imageBlob: new Blob(),
+      });
+      await component['onAddImage']();
+      expect(mockLocalStorageService.saveMedia).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // onDeleteLayer – post-delete layer selection
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('onDeleteLayer post-delete selection', () => {
+    it('should select first remaining layer after deletion', async () => {
+      const config: CanvasConfig = {
+        ...defaultConfig,
+        layers: [
+          {
+            id: 'layer-a',
+            name: 'A',
+            order: 0,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+          {
+            id: 'layer-b',
+            name: 'B',
+            order: 1,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+        ],
+      };
+      mockCanvasService.activeConfig.set(config);
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(true),
+      } as MatDialogRef<unknown>);
+
+      // Delete layer-b; layer-a remains first and is not the deleted one
+      await component['onDeleteLayer']('layer-b');
+
+      expect(component['activeLayerId']()).toBe('layer-a');
+    });
+
+    it('should select second layer when first layer is the deleted one', async () => {
+      const config: CanvasConfig = {
+        ...defaultConfig,
+        layers: [
+          {
+            id: 'layer-a',
+            name: 'A',
+            order: 0,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+          {
+            id: 'layer-b',
+            name: 'B',
+            order: 1,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+        ],
+      };
+      mockCanvasService.activeConfig.set(config);
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(true),
+      } as MatDialogRef<unknown>);
+
+      // Delete layer-a; it's still first in sortedLayers (not yet removed from signal),
+      // so fallback to second remaining layer
+      await component['onDeleteLayer']('layer-a');
+
+      expect(component['activeLayerId']()).toBe('layer-b');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // handleStageClick – tool dispatch branches
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('handleStageClick', () => {
+    const fakeEvent = {} as Konva.KonvaEventObject<MouseEvent>;
+
+    it('should deselect when tool is select', () => {
+      component['activeTool'].set('select');
+      component['selectedObjectId'].set('some-id');
+      component['transformer'] = {
+        nodes: vi.fn(),
+      } as any;
+      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+
+      component['handleStageClick'](fakeEvent);
+
+      expect(component['selectedObjectId']()).toBeNull();
+      expect(component['transformer']!.nodes).toHaveBeenCalledWith([]);
+    });
+
+    it('should deselect when tool is pan', () => {
+      component['activeTool'].set('pan');
+      component['selectedObjectId'].set('some-id');
+      component['transformer'] = { nodes: vi.fn() } as any;
+      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+
+      component['handleStageClick'](fakeEvent);
+
+      expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('should deselect when tool is rectSelect', () => {
+      component['activeTool'].set('rectSelect');
+      component['selectedObjectId'].set('some-id');
+      component['transformer'] = { nodes: vi.fn() } as any;
+      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+
+      component['handleStageClick'](fakeEvent);
+
+      expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('should call placePin when tool is pin', () => {
+      component['activeTool'].set('pin');
+      const spy = vi
+        .spyOn(component as any, 'placePin')
+        .mockImplementation(() => {});
+      component['handleStageClick'](fakeEvent);
+      expect(spy).toHaveBeenCalledWith(fakeEvent);
+    });
+
+    it('should call placeText when tool is text', () => {
+      component['activeTool'].set('text');
+      const spy = vi
+        .spyOn(component as any, 'placeText')
+        .mockImplementation(() => {});
+      component['handleStageClick'](fakeEvent);
+      expect(spy).toHaveBeenCalledWith(fakeEvent);
+    });
+
+    it('should call placeDefaultShape when tool is shape', () => {
+      component['activeTool'].set('shape');
+      const spy = vi
+        .spyOn(component as any, 'placeDefaultShape')
+        .mockImplementation(() => {});
+      component['handleStageClick'](fakeEvent);
+      expect(spy).toHaveBeenCalledWith(fakeEvent);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // updatePinLinkIndicator
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('updatePinLinkIndicator', () => {
+    it('should not add duplicate badge when hasLink=true and badge already exists', () => {
+      const group = {
+        findOne: vi.fn((name: string) =>
+          name === '.linkBadge' ? { existing: true } : null
+        ),
+        add: vi.fn(),
+      } as unknown as Konva.Group;
+
+      component['updatePinLinkIndicator'](group, true);
+
+      expect(
+        (group as unknown as { add: ReturnType<typeof vi.fn> }).add
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should destroy badge and icon when hasLink=false', () => {
+      const badge = { destroy: vi.fn() };
+      const icon = { destroy: vi.fn() };
+      const group = {
+        findOne: vi.fn((name: string) => {
+          if (name === '.linkBadge') return badge;
+          if (name === '.linkIcon') return icon;
+          return null;
+        }),
+      } as unknown as Konva.Group;
+
+      component['updatePinLinkIndicator'](group, false);
+
+      expect(badge.destroy).toHaveBeenCalled();
+      expect(icon.destroy).toHaveBeenCalled();
+    });
+
+    it('should handle hasLink=false when no existing badge/icon', () => {
+      const group = {
+        findOne: vi.fn(() => null),
+      } as unknown as Konva.Group;
+
+      // Should not throw
+      component['updatePinLinkIndicator'](group, false);
+      expect(
+        (group as unknown as { findOne: ReturnType<typeof vi.fn> }).findOne
+      ).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // findKonvaNodeById & updateKonvaNodeColors
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('findKonvaNodeById', () => {
+    it('should find node in konvaLayers', () => {
+      const mockNode = { id: vi.fn(() => 'obj-1') };
+      const mockLayer = {
+        findOne: vi.fn((selector: string) =>
+          selector === '#obj-1' ? mockNode : null
+        ),
+      };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        mockLayer as unknown as Konva.Layer
+      );
+
+      const result = component['findKonvaNodeById']('obj-1');
+      expect(result).toBe(mockNode);
+    });
+
+    it('should return undefined when node not found', () => {
+      const mockLayer = { findOne: vi.fn(() => null) };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        mockLayer as unknown as Konva.Layer
+      );
+
+      const result = component['findKonvaNodeById']('nonexistent');
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('updateKonvaNodeColors', () => {
+    it('should return early when node not found', () => {
+      const mockLayer = { findOne: vi.fn(() => null) };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        mockLayer as unknown as Konva.Layer
+      );
+
+      component['updateKonvaNodeColors']('missing-id', 'text', {
+        fill: '#fff',
+      });
+
+      expect(mockLayer.findOne).toHaveBeenCalledWith('#missing-id');
+    });
+
+    it('should apply color and batch draw when node found', () => {
+      const mockKonvaLayer = { batchDraw: vi.fn() };
+      const mockNode = {
+        fill: vi.fn(),
+        getLayer: vi.fn(() => mockKonvaLayer),
+      };
+      const spy = vi
+        .spyOn(component as any, 'applyNodeColorUpdate')
+        .mockImplementation(() => {});
+
+      const findLayer = {
+        findOne: vi.fn(() => mockNode),
+      };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        findLayer as unknown as Konva.Layer
+      );
+
+      component['updateKonvaNodeColors']('obj-1', 'text', {
+        fill: '#ff0000',
+      });
+
+      expect(spy).toHaveBeenCalledWith(mockNode, 'text', {
+        fill: '#ff0000',
+      });
+      expect(mockKonvaLayer.batchDraw).toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // applyNodeColorUpdate – type branches
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('applyNodeColorUpdate', () => {
+    it('should apply fill to text node', () => {
+      const textNode = Object.create(Konva.Text.prototype) as Konva.Text;
+      textNode.fill = vi.fn();
+
+      component['applyNodeColorUpdate'](textNode, 'text', {
+        fill: '#333',
+      });
+
+      expect(textNode.fill).toHaveBeenCalledWith('#333');
+    });
+
+    it('should apply stroke and fill to path node', () => {
+      const lineNode = Object.create(Konva.Line.prototype) as Konva.Line;
+      lineNode.stroke = vi.fn();
+      lineNode.fill = vi.fn();
+
+      component['applyNodeColorUpdate'](lineNode, 'path', {
+        stroke: '#ff0000',
+        fill: '#00ff00',
+      });
+
+      expect(lineNode.stroke).toHaveBeenCalledWith('#ff0000');
+      expect(lineNode.fill).toHaveBeenCalledWith('#00ff00');
+    });
+
+    it('should apply fill only to path node when no stroke', () => {
+      const lineNode = Object.create(Konva.Line.prototype) as Konva.Line;
+      lineNode.stroke = vi.fn();
+      lineNode.fill = vi.fn();
+
+      component['applyNodeColorUpdate'](lineNode, 'path', {
+        fill: '#00ff00',
+      });
+
+      expect(lineNode.stroke).not.toHaveBeenCalled();
+      expect(lineNode.fill).toHaveBeenCalledWith('#00ff00');
+    });
+
+    it('should delegate to applyPinColor for pin groups', () => {
+      const groupNode = Object.create(Konva.Group.prototype) as Konva.Group;
+      const spy = vi
+        .spyOn(component as any, 'applyPinColor')
+        .mockImplementation(() => {});
+
+      component['applyNodeColorUpdate'](groupNode, 'pin', {
+        fill: '#E53935',
+      });
+
+      expect(spy).toHaveBeenCalledWith(groupNode, '#E53935');
+    });
+
+    it('should delegate to applyShapeColors for shape type', () => {
+      const rectNode = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+      const spy = vi
+        .spyOn(component as any, 'applyShapeColors')
+        .mockImplementation(() => {});
+
+      component['applyNodeColorUpdate'](rectNode, 'shape', {
+        fill: '#aaa',
+        stroke: '#bbb',
+      });
+
+      expect(spy).toHaveBeenCalledWith(rectNode, {
+        fill: '#aaa',
+        stroke: '#bbb',
+      });
+    });
+  });
+
+  describe('applyPinColor', () => {
+    it('should set fill on circle marker inside group', () => {
+      const circleMock = { fill: vi.fn() };
+      const groupNode = {
+        findOne: vi.fn(() => circleMock),
+      } as unknown as Konva.Group;
+
+      component['applyPinColor'](groupNode, '#E53935');
+
+      expect(circleMock.fill).toHaveBeenCalledWith('#E53935');
+    });
+
+    it('should do nothing when fill is undefined', () => {
+      const findOneSpy = vi.fn();
+      const groupNode = {
+        findOne: findOneSpy,
+      } as unknown as Konva.Group;
+
+      component['applyPinColor'](groupNode, undefined);
+
+      expect(findOneSpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing circle marker gracefully', () => {
+      const findOneFn = vi.fn(() => null);
+      const groupNode = {
+        findOne: findOneFn,
+      } as unknown as Konva.Group;
+
+      component['applyPinColor'](groupNode, '#E53935');
+
+      expect(findOneFn).toHaveBeenCalledWith('Circle');
+    });
+  });
+
+  describe('applyShapeColors', () => {
+    it('should apply fill and stroke to shape', () => {
+      const node = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+
+      component['applyShapeColors'](node, {
+        fill: '#ff0000',
+        stroke: '#0000ff',
+      });
+
+      expect(
+        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
+      ).toHaveBeenCalledWith('#ff0000');
+      expect(
+        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
+      ).toHaveBeenCalledWith('#0000ff');
+    });
+
+    it('should apply only fill when stroke not provided', () => {
+      const node = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+
+      component['applyShapeColors'](node, { fill: '#ff0000' });
+
+      expect(
+        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
+      ).toHaveBeenCalledWith('#ff0000');
+      expect(
+        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should apply only stroke when fill not provided', () => {
+      const node = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+
+      component['applyShapeColors'](node, { stroke: '#0000ff' });
+
+      expect(
+        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
+      ).toHaveBeenCalledWith('#0000ff');
+      expect(
+        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
+      ).not.toHaveBeenCalled();
     });
   });
 });

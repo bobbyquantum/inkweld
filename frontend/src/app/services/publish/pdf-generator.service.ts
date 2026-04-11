@@ -22,6 +22,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 
 /**
  * Progress information for PDF generation
@@ -702,53 +703,43 @@ export class PdfGeneratorService {
   private extractTypstText(node: ProseMirrorNode): string {
     if (!node) return '';
 
-    if (typeof node === 'string') {
-      return this.escapeTypst(node);
-    }
-
-    if (Array.isArray(node)) {
+    if (typeof node === 'string') return this.escapeTypst(node);
+    if (Array.isArray(node))
       return node.map(n => this.extractTypstText(n)).join('');
-    }
 
     const nodeName = this.getNodeName(node);
-    const children = this.getChildren(node);
+    if (nodeName === 'elementref') return this.extractElementRefTypstText(node);
+    if (nodeName === 'text' || !nodeName)
+      return this.extractMarkedTypstText(node);
+
+    return this.getChildren(node)
+      .map(c => this.extractTypstText(c))
+      .join('');
+  }
+
+  private extractElementRefTypstText(node: ProseMirrorNode): string {
+    const attrs = (node as Record<string, unknown>)['attrs'] as
+      | Record<string, unknown>
+      | undefined;
+    const displayText = attrs?.['displayText'];
+    return typeof displayText === 'string' && displayText
+      ? this.escapeTypst(displayText)
+      : '';
+  }
+
+  private extractMarkedTypstText(node: ProseMirrorNode): string {
+    const rawText = (node as Record<string, unknown>)['text'];
+    const baseText =
+      typeof rawText === 'string' ? this.escapeTypst(rawText) : '';
+
     const marks = this.getMarks(node);
+    if (marks.length === 0) return baseText;
 
-    // Handle elementRef nodes
-    if (nodeName === 'elementref') {
-      const attrs = (node as Record<string, unknown>)['attrs'] as
-        | Record<string, unknown>
-        | undefined;
-      const displayText = attrs?.['displayText'];
-      return typeof displayText === 'string' && displayText
-        ? this.escapeTypst(displayText)
-        : '';
-    }
+    return this.applyTypstMarks(baseText, marks);
+  }
 
-    // Text node with marks
-    if (nodeName === 'text' || !nodeName) {
-      const rawText = (node as Record<string, unknown>)['text'];
-      let text = typeof rawText === 'string' ? this.escapeTypst(rawText) : '';
-
-      if (marks.length === 0) return text;
-
-      const TYPST_MARKS: Record<string, [string, string]> = {
-        bold: ['*', '*'],
-        strong: ['*', '*'],
-        italic: ['_', '_'],
-        em: ['_', '_'],
-        underline: ['#underline[', ']'],
-        strike: ['#strike[', ']'],
-        code: ['`', '`'],
-      };
-      for (const mark of marks) {
-        const wrap = TYPST_MARKS[mark];
-        if (wrap) text = `${wrap[0]}${text}${wrap[1]}`;
-      }
-      return text;
-    }
-
-    return children.map(c => this.extractTypstText(c)).join('');
+  private applyTypstMarks(text: string, marks: string[]): string {
+    return applyMarks(text, marks, TYPST_MARK_TAGS);
   }
 
   private extractPlainText(node: ProseMirrorNode): string {
