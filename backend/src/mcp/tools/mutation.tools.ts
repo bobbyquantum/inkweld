@@ -809,24 +809,7 @@ function moveRequestedElements(
   elementIds: string[],
   newParentId: string | null
 ): { currentElements: Element[]; movedElements: string[]; errors: string[] } {
-  const elementIndexById = new Map(initialElements.map((element, index) => [element.id, index]));
-  const selectedIdSet = new Set(elementIds);
-  const filteredRoots = elementIds.filter((id) => {
-    const index = elementIndexById.get(id);
-    if (index === undefined) return true;
-
-    // Keep only top-level selected roots by dropping any selected id with a selected ancestor.
-    let currentIndex = index;
-    while (true) {
-      const parent = findParentByPosition(initialElements, currentIndex);
-      if (!parent) return true;
-      if (selectedIdSet.has(parent.id)) return false;
-
-      const parentIndex = elementIndexById.get(parent.id);
-      if (parentIndex === undefined) return true;
-      currentIndex = parentIndex;
-    }
-  });
+  const filteredRoots = filterMoveRootIds(initialElements, elementIds);
 
   const originalNameById = new Map(initialElements.map((element) => [element.id, element.name]));
   let currentElements = initialElements;
@@ -844,6 +827,28 @@ function moveRequestedElements(
   }
 
   return { currentElements, movedElements, errors };
+}
+
+export function filterMoveRootIds(initialElements: Element[], elementIds: string[]): string[] {
+  const elementIndexById = new Map(initialElements.map((element, index) => [element.id, index]));
+  const selectedIdSet = new Set(elementIds);
+
+  return elementIds.filter((id) => {
+    const index = elementIndexById.get(id);
+    if (index === undefined) return true;
+
+    // Keep only top-level selected roots by dropping any selected id with a selected ancestor.
+    let currentIndex = index;
+    while (true) {
+      const parent = findParentByPosition(initialElements, currentIndex);
+      if (!parent) return true;
+      if (selectedIdSet.has(parent.id)) return false;
+
+      const parentIndex = elementIndexById.get(parent.id);
+      if (parentIndex === undefined) return true;
+      currentIndex = parentIndex;
+    }
+  });
 }
 
 // ============================================
@@ -1788,29 +1793,14 @@ registerTool({
       }
 
       const { xmlContent, wordCount, worldbuildingData } = docContent;
-
-      if (element.type === 'ITEM' && !xmlContent.trim()) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error: failed to extract document content for snapshot of element "${elementId}"`,
-            },
-          ],
-          isError: true,
-        };
-      }
-
-      if (element.type === 'WORLDBUILDING' && worldbuildingData === null) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error: failed to extract worldbuilding data for snapshot of element "${elementId}"`,
-            },
-          ],
-          isError: true,
-        };
+      const snapshotPayloadError = validateSnapshotPayloadForPersistence(
+        element.type,
+        elementId,
+        xmlContent,
+        worldbuildingData
+      );
+      if (snapshotPayloadError) {
+        return toErrorResult(snapshotPayloadError);
       }
 
       // Create snapshot in database
@@ -1883,6 +1873,30 @@ async function extractSnapshotContent(
   }
 
   return extractSnapshotContentOnBun(username, slug, elementId, elementType);
+}
+
+function toErrorResult(text: string): McpToolResult {
+  return {
+    content: [{ type: 'text', text }],
+    isError: true,
+  };
+}
+
+export function validateSnapshotPayloadForPersistence(
+  elementType: ElementType,
+  elementId: string,
+  xmlContent: string,
+  worldbuildingData: Record<string, unknown> | null
+): string | null {
+  if (elementType === 'ITEM' && !xmlContent.trim()) {
+    return `Error: failed to extract document content for snapshot of element "${elementId}"`;
+  }
+
+  if (elementType === 'WORLDBUILDING' && worldbuildingData === null) {
+    return `Error: failed to extract worldbuilding data for snapshot of element "${elementId}"`;
+  }
+
+  return null;
 }
 
 async function extractSnapshotContentOnWorkers(

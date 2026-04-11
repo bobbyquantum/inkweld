@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { textToProseMirrorXml } from '../src/mcp/tools/mutation.tools';
+import {
+  filterMoveRootIds,
+  textToProseMirrorXml,
+  validateSnapshotPayloadForPersistence,
+} from '../src/mcp/tools/mutation.tools';
 import { decodeXmlEntities, xmlContentToText, sanitizeFilename } from '../src/utils/xml-utils';
 import { escapeHtml } from '../src/routes/document.routes';
 
@@ -173,5 +177,91 @@ describe('escapeHtml', () => {
   it('should handle multiple occurrences with replaceAll', () => {
     expect(escapeHtml('a & b & c')).toBe('a &amp; b &amp; c');
     expect(escapeHtml('<<>>')).toBe('&lt;&lt;&gt;&gt;');
+  });
+});
+
+describe('filterMoveRootIds', () => {
+  it('keeps ancestor and drops selected descendants', () => {
+    const elements = [
+      {
+        id: 'folder',
+        name: 'Folder',
+        type: 'FOLDER',
+        parentId: null,
+        level: 0,
+        expandable: true,
+        order: 0,
+        version: 0,
+        metadata: {},
+      },
+      {
+        id: 'child',
+        name: 'Child',
+        type: 'ITEM',
+        parentId: 'folder',
+        level: 1,
+        expandable: false,
+        order: 1,
+        version: 0,
+        metadata: {},
+      },
+      {
+        id: 'grandchild',
+        name: 'Grandchild',
+        type: 'ITEM',
+        parentId: 'child',
+        level: 2,
+        expandable: false,
+        order: 2,
+        version: 0,
+        metadata: {},
+      },
+      {
+        id: 'peer',
+        name: 'Peer',
+        type: 'ITEM',
+        parentId: null,
+        level: 0,
+        expandable: false,
+        order: 3,
+        version: 0,
+        metadata: {},
+      },
+    ];
+
+    const filtered = filterMoveRootIds(elements, ['folder', 'child', 'grandchild', 'peer']);
+    expect(filtered).toEqual(['folder', 'peer']);
+  });
+
+  it('keeps ids that are not present in the element array', () => {
+    const filtered = filterMoveRootIds([], ['missing-id']);
+    expect(filtered).toEqual(['missing-id']);
+  });
+});
+
+describe('validateSnapshotPayloadForPersistence', () => {
+  it('returns an error when ITEM xml content is empty', () => {
+    const error = validateSnapshotPayloadForPersistence('ITEM', 'doc-1', '  ', null);
+    expect(error).toContain('failed to extract document content');
+  });
+
+  it('returns an error when WORLDBUILDING data is missing', () => {
+    const error = validateSnapshotPayloadForPersistence('WORLDBUILDING', 'wb-1', '', null);
+    expect(error).toContain('failed to extract worldbuilding data');
+  });
+
+  it('returns null when payload is valid', () => {
+    const itemOk = validateSnapshotPayloadForPersistence(
+      'ITEM',
+      'doc-1',
+      '<paragraph>ok</paragraph>',
+      null
+    );
+    const wbOk = validateSnapshotPayloadForPersistence('WORLDBUILDING', 'wb-1', '', {
+      name: 'Hero',
+    });
+
+    expect(itemOk).toBeNull();
+    expect(wbOk).toBeNull();
   });
 });

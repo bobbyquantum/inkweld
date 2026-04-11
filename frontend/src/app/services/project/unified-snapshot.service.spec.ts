@@ -544,6 +544,29 @@ describe('UnifiedSnapshotService', () => {
         service.restoreFromSnapshot('doc-123', emptySnapshot.id)
       ).rejects.toThrow('has no content to restore');
     });
+
+    it('should throw for worldbuilding snapshot with prose when prose ydoc is unavailable', async () => {
+      const worldbuildingElement = createElement(
+        'wb-123',
+        'Character',
+        ElementType.Worldbuilding
+      );
+      elementsSignal.set([worldbuildingElement]);
+
+      const worldbuildingSnapshot: StoredSnapshot = {
+        ...mockStoredSnapshot,
+        id: 'testuser/test-project:wb-123:snap-1',
+        documentId: 'wb-123',
+        xmlContent: '<paragraph>Has prose</paragraph>',
+        worldbuildingData: { name: 'Character' },
+      };
+      localSnapshots.getSnapshotById.mockResolvedValue(worldbuildingSnapshot);
+      documentService.getYDoc.mockResolvedValue(null);
+
+      await expect(
+        service.restoreFromSnapshot('wb-123', worldbuildingSnapshot.id)
+      ).rejects.toThrow('prose Y.Doc is not available');
+    });
   });
 
   describe('restoreFromContent', () => {
