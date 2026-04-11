@@ -18,7 +18,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
-import type Konva from 'konva';
+import Konva from 'konva';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -2673,6 +2673,370 @@ describe('CanvasTabComponent', () => {
       await component['onDeleteLayer']('layer-a');
 
       expect(component['activeLayerId']()).toBe('layer-b');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // handleStageClick – tool dispatch branches
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('handleStageClick', () => {
+    const fakeEvent = {} as Konva.KonvaEventObject<MouseEvent>;
+
+    it('should deselect when tool is select', () => {
+      component['activeTool'].set('select');
+      component['selectedObjectId'].set('some-id');
+      component['transformer'] = {
+        nodes: vi.fn(),
+      } as any;
+      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+
+      component['handleStageClick'](fakeEvent);
+
+      expect(component['selectedObjectId']()).toBeNull();
+      expect(component['transformer']!.nodes).toHaveBeenCalledWith([]);
+    });
+
+    it('should deselect when tool is pan', () => {
+      component['activeTool'].set('pan');
+      component['selectedObjectId'].set('some-id');
+      component['transformer'] = { nodes: vi.fn() } as any;
+      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+
+      component['handleStageClick'](fakeEvent);
+
+      expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('should deselect when tool is rectSelect', () => {
+      component['activeTool'].set('rectSelect');
+      component['selectedObjectId'].set('some-id');
+      component['transformer'] = { nodes: vi.fn() } as any;
+      component['selectionLayer'] = { batchDraw: vi.fn() } as any;
+
+      component['handleStageClick'](fakeEvent);
+
+      expect(component['selectedObjectId']()).toBeNull();
+    });
+
+    it('should call placePin when tool is pin', () => {
+      component['activeTool'].set('pin');
+      const spy = vi
+        .spyOn(component as any, 'placePin')
+        .mockImplementation(() => {});
+      component['handleStageClick'](fakeEvent);
+      expect(spy).toHaveBeenCalledWith(fakeEvent);
+    });
+
+    it('should call placeText when tool is text', () => {
+      component['activeTool'].set('text');
+      const spy = vi
+        .spyOn(component as any, 'placeText')
+        .mockImplementation(() => {});
+      component['handleStageClick'](fakeEvent);
+      expect(spy).toHaveBeenCalledWith(fakeEvent);
+    });
+
+    it('should call placeDefaultShape when tool is shape', () => {
+      component['activeTool'].set('shape');
+      const spy = vi
+        .spyOn(component as any, 'placeDefaultShape')
+        .mockImplementation(() => {});
+      component['handleStageClick'](fakeEvent);
+      expect(spy).toHaveBeenCalledWith(fakeEvent);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // updatePinLinkIndicator
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('updatePinLinkIndicator', () => {
+    it('should not add duplicate badge when hasLink=true and badge already exists', () => {
+      const group = {
+        findOne: vi.fn((name: string) =>
+          name === '.linkBadge' ? { existing: true } : null
+        ),
+        add: vi.fn(),
+      } as unknown as Konva.Group;
+
+      component['updatePinLinkIndicator'](group, true);
+
+      expect(
+        (group as unknown as { add: ReturnType<typeof vi.fn> }).add
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should destroy badge and icon when hasLink=false', () => {
+      const badge = { destroy: vi.fn() };
+      const icon = { destroy: vi.fn() };
+      const group = {
+        findOne: vi.fn((name: string) => {
+          if (name === '.linkBadge') return badge;
+          if (name === '.linkIcon') return icon;
+          return null;
+        }),
+      } as unknown as Konva.Group;
+
+      component['updatePinLinkIndicator'](group, false);
+
+      expect(badge.destroy).toHaveBeenCalled();
+      expect(icon.destroy).toHaveBeenCalled();
+    });
+
+    it('should handle hasLink=false when no existing badge/icon', () => {
+      const group = {
+        findOne: vi.fn(() => null),
+      } as unknown as Konva.Group;
+
+      // Should not throw
+      component['updatePinLinkIndicator'](group, false);
+      expect(
+        (group as unknown as { findOne: ReturnType<typeof vi.fn> }).findOne
+      ).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // findKonvaNodeById & updateKonvaNodeColors
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('findKonvaNodeById', () => {
+    it('should find node in konvaLayers', () => {
+      const mockNode = { id: vi.fn(() => 'obj-1') };
+      const mockLayer = {
+        findOne: vi.fn((selector: string) =>
+          selector === '#obj-1' ? mockNode : null
+        ),
+      };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        mockLayer as unknown as Konva.Layer
+      );
+
+      const result = component['findKonvaNodeById']('obj-1');
+      expect(result).toBe(mockNode);
+    });
+
+    it('should return undefined when node not found', () => {
+      const mockLayer = { findOne: vi.fn(() => null) };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        mockLayer as unknown as Konva.Layer
+      );
+
+      const result = component['findKonvaNodeById']('nonexistent');
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('updateKonvaNodeColors', () => {
+    it('should return early when node not found', () => {
+      const mockLayer = { findOne: vi.fn(() => null) };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        mockLayer as unknown as Konva.Layer
+      );
+
+      // Should not throw
+      component['updateKonvaNodeColors']('missing-id', 'text', {
+        fill: '#fff',
+      });
+    });
+
+    it('should apply color and batch draw when node found', () => {
+      const mockKonvaLayer = { batchDraw: vi.fn() };
+      const mockNode = {
+        fill: vi.fn(),
+        getLayer: vi.fn(() => mockKonvaLayer),
+      };
+      const spy = vi
+        .spyOn(component as any, 'applyNodeColorUpdate')
+        .mockImplementation(() => {});
+
+      const findLayer = {
+        findOne: vi.fn(() => mockNode),
+      };
+      component['konvaLayers'].clear();
+      component['konvaLayers'].set(
+        'layer-1',
+        findLayer as unknown as Konva.Layer
+      );
+
+      component['updateKonvaNodeColors']('obj-1', 'text', {
+        fill: '#ff0000',
+      });
+
+      expect(spy).toHaveBeenCalledWith(mockNode, 'text', {
+        fill: '#ff0000',
+      });
+      expect(mockKonvaLayer.batchDraw).toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // applyNodeColorUpdate – type branches
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('applyNodeColorUpdate', () => {
+    it('should apply fill to text node', () => {
+      const textNode = Object.create(Konva.Text.prototype) as Konva.Text;
+      textNode.fill = vi.fn();
+
+      component['applyNodeColorUpdate'](textNode, 'text', {
+        fill: '#333',
+      });
+
+      expect(textNode.fill).toHaveBeenCalledWith('#333');
+    });
+
+    it('should apply stroke and fill to path node', () => {
+      const lineNode = Object.create(Konva.Line.prototype) as Konva.Line;
+      lineNode.stroke = vi.fn();
+      lineNode.fill = vi.fn();
+
+      component['applyNodeColorUpdate'](lineNode, 'path', {
+        stroke: '#ff0000',
+        fill: '#00ff00',
+      });
+
+      expect(lineNode.stroke).toHaveBeenCalledWith('#ff0000');
+      expect(lineNode.fill).toHaveBeenCalledWith('#00ff00');
+    });
+
+    it('should apply fill only to path node when no stroke', () => {
+      const lineNode = Object.create(Konva.Line.prototype) as Konva.Line;
+      lineNode.stroke = vi.fn();
+      lineNode.fill = vi.fn();
+
+      component['applyNodeColorUpdate'](lineNode, 'path', {
+        fill: '#00ff00',
+      });
+
+      expect(lineNode.stroke).not.toHaveBeenCalled();
+      expect(lineNode.fill).toHaveBeenCalledWith('#00ff00');
+    });
+
+    it('should delegate to applyPinColor for pin groups', () => {
+      const groupNode = Object.create(Konva.Group.prototype) as Konva.Group;
+      const spy = vi
+        .spyOn(component as any, 'applyPinColor')
+        .mockImplementation(() => {});
+
+      component['applyNodeColorUpdate'](groupNode, 'pin', {
+        fill: '#E53935',
+      });
+
+      expect(spy).toHaveBeenCalledWith(groupNode, '#E53935');
+    });
+
+    it('should delegate to applyShapeColors for shape type', () => {
+      const rectNode = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+      const spy = vi
+        .spyOn(component as any, 'applyShapeColors')
+        .mockImplementation(() => {});
+
+      component['applyNodeColorUpdate'](rectNode, 'shape', {
+        fill: '#aaa',
+        stroke: '#bbb',
+      });
+
+      expect(spy).toHaveBeenCalledWith(rectNode, {
+        fill: '#aaa',
+        stroke: '#bbb',
+      });
+    });
+  });
+
+  describe('applyPinColor', () => {
+    it('should set fill on circle marker inside group', () => {
+      const circleMock = { fill: vi.fn() };
+      const groupNode = {
+        findOne: vi.fn(() => circleMock),
+      } as unknown as Konva.Group;
+
+      component['applyPinColor'](groupNode, '#E53935');
+
+      expect(circleMock.fill).toHaveBeenCalledWith('#E53935');
+    });
+
+    it('should do nothing when fill is undefined', () => {
+      const findOneSpy = vi.fn();
+      const groupNode = {
+        findOne: findOneSpy,
+      } as unknown as Konva.Group;
+
+      component['applyPinColor'](groupNode, undefined);
+
+      expect(findOneSpy).not.toHaveBeenCalled();
+    });
+
+    it('should handle missing circle marker gracefully', () => {
+      const groupNode = {
+        findOne: vi.fn(() => null),
+      } as unknown as Konva.Group;
+
+      // Should not throw
+      component['applyPinColor'](groupNode, '#E53935');
+    });
+  });
+
+  describe('applyShapeColors', () => {
+    it('should apply fill and stroke to shape', () => {
+      const node = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+
+      component['applyShapeColors'](node, {
+        fill: '#ff0000',
+        stroke: '#0000ff',
+      });
+
+      expect(
+        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
+      ).toHaveBeenCalledWith('#ff0000');
+      expect(
+        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
+      ).toHaveBeenCalledWith('#0000ff');
+    });
+
+    it('should apply only fill when stroke not provided', () => {
+      const node = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+
+      component['applyShapeColors'](node, { fill: '#ff0000' });
+
+      expect(
+        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
+      ).toHaveBeenCalledWith('#ff0000');
+      expect(
+        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should apply only stroke when fill not provided', () => {
+      const node = {
+        fill: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as Konva.Node;
+
+      component['applyShapeColors'](node, { stroke: '#0000ff' });
+
+      expect(
+        (node as unknown as { stroke: ReturnType<typeof vi.fn> }).stroke
+      ).toHaveBeenCalledWith('#0000ff');
+      expect(
+        (node as unknown as { fill: ReturnType<typeof vi.fn> }).fill
+      ).not.toHaveBeenCalled();
     });
   });
 });
