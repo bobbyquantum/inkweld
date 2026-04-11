@@ -77,7 +77,37 @@
 
     <!-- Content area -->
     <div class="wb-content">
-      @if (useSidenav()) {
+      @if (isInitialLoading()) {
+        <div class="wb-loading-shell" data-testid="worldbuilding-loading-shell">
+          @if (useSidenav()) {
+            <div class="wb-loading-grid">
+              <div class="wb-loading-card wb-loading-card--identity">
+                <div class="wb-skeleton wb-skeleton-circle"></div>
+                <div class="wb-skeleton wb-skeleton-title"></div>
+                <div class="wb-skeleton wb-skeleton-line"></div>
+                <div
+                  class="wb-skeleton wb-skeleton-line wb-skeleton-line--short"></div>
+              </div>
+              <div class="wb-loading-card wb-loading-card--fields">
+                <div class="wb-skeleton wb-skeleton-heading"></div>
+                <div class="wb-skeleton wb-skeleton-field"></div>
+                <div class="wb-skeleton wb-skeleton-field"></div>
+                <div
+                  class="wb-skeleton wb-skeleton-field wb-skeleton-field--tall"></div>
+              </div>
+            </div>
+          } @else {
+            <div class="wb-loading-accordion">
+              @for (panel of [1, 2, 3]; track panel) {
+                <div class="wb-loading-card wb-loading-card--accordion">
+                  <div class="wb-skeleton wb-skeleton-heading"></div>
+                  <div class="wb-skeleton wb-skeleton-field"></div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @else if (useSidenav()) {
         <!-- ===== Sidenav mode: show selected section ===== -->
         <div
           class="section-content identity-inline"

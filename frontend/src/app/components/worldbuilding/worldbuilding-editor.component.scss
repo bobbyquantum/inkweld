@@ -340,6 +340,95 @@ mat-accordion {
   padding: 3rem;
 }
 
+.wb-loading-shell {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.wb-loading-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 1rem;
+
+  @container wb-content (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wb-loading-accordion {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wb-loading-card {
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--sys-surface-container-low);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wb-loading-card--identity {
+  align-content: start;
+}
+
+.wb-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--sys-surface-container-high) 92%, transparent) 25%,
+    color-mix(in srgb, var(--sys-surface-container-highest) 95%, white) 50%,
+    color-mix(in srgb, var(--sys-surface-container-high) 92%, transparent) 75%
+  );
+  background-size: 240% 100%;
+  animation: wb-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.wb-skeleton-circle {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+}
+
+.wb-skeleton-title {
+  width: 60%;
+  height: 20px;
+}
+
+.wb-skeleton-heading {
+  width: 40%;
+  height: 18px;
+}
+
+.wb-skeleton-line {
+  width: 100%;
+  height: 14px;
+}
+
+.wb-skeleton-line--short {
+  width: 72%;
+}
+
+.wb-skeleton-field {
+  width: 100%;
+  height: 42px;
+}
+
+.wb-skeleton-field--tall {
+  height: 96px;
+}
+
+@keyframes wb-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
 // Improve disabled state styling for read-only viewers
 form {
   &.ng-invalid,
