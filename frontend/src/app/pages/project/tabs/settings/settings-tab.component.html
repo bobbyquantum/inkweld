@@ -778,11 +778,12 @@
   <section class="settings-section">
     <h3>
       <mat-icon>key</mat-icon>
-      MCP API Keys
+      MCP Access
     </h3>
     <p class="section-description">
-      Create API keys to allow external tools (like AI assistants) to access
-      your project via the Model Context Protocol (MCP).
+      Connect external tools (like AI assistants) to your project via the Model
+      Context Protocol (MCP). Most tools sign in through your browser with OAuth
+      — no API key required.
     </p>
 
     @if (isAiKillSwitchEnabled()) {
@@ -792,7 +793,7 @@
             <mat-icon>block</mat-icon>
             <div>
               <strong>AI features are disabled by the administrator.</strong>
-              MCP API keys cannot be used while this setting is active. Contact
+              MCP access is unavailable while this setting is active. Contact
               your administrator for more information.
             </div>
           </div>
@@ -807,9 +808,10 @@
             <div>
               <strong>MCP Endpoint URL</strong>
               <p class="mcp-instructions-text">
-                Use this URL to connect AI tools like Claude Desktop, Cursor, or
-                Windsurf to your project via MCP. Add it as a Streamable HTTP
-                MCP server in your tool's settings.
+                Add this URL to an MCP-capable tool (Cursor, Windsurf, Claude
+                Code, or Claude Desktop via a custom connector) as a Streamable
+                HTTP MCP server. On first use the tool will open your browser to
+                sign in and pick which projects to share.
               </p>
               <div class="mcp-url-display" data-testid="mcp-url-display">
                 <code class="mcp-url">{{ getMcpEndpointUrl() }}</code>
@@ -822,7 +824,8 @@
                 </button>
               </div>
               <p class="mcp-instructions-hint">
-                You'll also need an API key (created below) for authentication.
+                For scripts or tools that don't support OAuth, you can create a
+                legacy API key below instead.
               </p>
             </div>
           </div>
@@ -850,6 +853,12 @@
           </mat-card-content>
         </mat-card>
       } @else {
+        <h4 class="legacy-keys-heading">Legacy API Keys</h4>
+        <p class="legacy-keys-description">
+          Long-lived tokens for tools and scripts that don't support OAuth. Each
+          key is scoped to this project only.
+        </p>
+
         <!-- Existing Keys List -->
         @if (mcpKeys().length > 0) {
           <mat-card class="keys-card">
@@ -967,7 +976,7 @@
             (click)="openCreateKeyDialog()"
             data-testid="create-key-button">
             <mat-icon>add</mat-icon>
-            Create New API Key
+            Create Legacy API Key
           </button>
         }
       }
@@ -977,8 +986,8 @@
           <div class="info-content">
             <mat-icon>cloud_off</mat-icon>
             <div>
-              MCP API keys require a server connection. Switch to server mode in
-              the Connection settings to create API keys.
+              MCP access requires a server connection. Switch to server mode in
+              the Connection settings to enable it.
             </div>
           </div>
         </mat-card-content>
