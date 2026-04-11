@@ -273,6 +273,29 @@ describe('UnifiedSnapshotService', () => {
       expect(snapshotsApi.createProjectSnapshot).not.toHaveBeenCalled();
     });
 
+    it('should strip prefix from documentId when it matches project format', async () => {
+      const ydoc = new Y.Doc();
+      documentService.getYDoc.mockResolvedValue(ydoc);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+
+      await service.createSnapshot(
+        'testuser:test-project:doc-123',
+        'Prefixed Snapshot'
+      );
+
+      // The element lookup should still find 'doc-123' element
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'testuser:test-project:doc-123',
+        expect.objectContaining({
+          name: 'Prefixed Snapshot',
+          metadata: expect.objectContaining({
+            elementName: 'Chapter 1',
+          }),
+        })
+      );
+    });
+
     it('should include worldbuilding data for worldbuilding elements', async () => {
       const element = createElement(
         'char-123',
@@ -434,6 +457,41 @@ describe('UnifiedSnapshotService', () => {
       expect(localSnapshots.listSnapshotsForProject).toHaveBeenCalledWith(
         'testuser/test-project'
       );
+    });
+
+    it('should return only local snapshots when offline', async () => {
+      syncFactory.isLocalMode.mockReturnValue(true);
+      localSnapshots.listSnapshotsForProject.mockResolvedValue([
+        mockSnapshotInfo,
+      ]);
+
+      const result = await service.listProjectSnapshots();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isLocal).toBe(true);
+      expect(snapshotsApi.listProjectSnapshots).not.toHaveBeenCalled();
+    });
+
+    it('should throw when no active project', async () => {
+      projectSignal.set(undefined);
+
+      await expect(service.listProjectSnapshots()).rejects.toThrow(
+        'No active project'
+      );
+    });
+
+    it('should handle server fetch failure gracefully', async () => {
+      localSnapshots.listSnapshotsForProject.mockResolvedValue([
+        mockSnapshotInfo,
+      ]);
+      snapshotsApi.listProjectSnapshots.mockReturnValue(
+        throwError(() => new Error('Network error'))
+      );
+
+      const result = await service.listProjectSnapshots();
+
+      expect(result).toHaveLength(1);
+      expect(logger.warn).toHaveBeenCalled();
     });
   });
 

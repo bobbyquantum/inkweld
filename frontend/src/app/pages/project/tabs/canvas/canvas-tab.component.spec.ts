@@ -136,7 +136,10 @@ describe('CanvasTabComponent', () => {
   };
 
   const mockDialogGateway = {
-    openInsertImageDialog: vi.fn(() => Promise.resolve(undefined)),
+    openInsertImageDialog: vi.fn(
+      (): Promise<{ mediaId: string; imageBlob: Blob } | undefined> =>
+        Promise.resolve(undefined)
+    ),
   };
 
   const mockLocalStorageService = {
@@ -2199,6 +2202,477 @@ describe('CanvasTabComponent', () => {
         expect(component['drawingShape']).toBeTruthy();
         expect(mockLayer.add).toHaveBeenCalled();
       });
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // onEditObjectColors
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('onEditObjectColors', () => {
+    const layerId = defaultConfig.layers[0].id;
+
+    function makeShape(overrides: Record<string, unknown>): CanvasShape {
+      return {
+        id: 'shape-1',
+        layerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 50,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        fill: '#FF0000',
+        stroke: '#000000',
+        strokeWidth: 2,
+        ...overrides,
+      } as CanvasShape;
+    }
+
+    it('should do nothing when no object is selected', () => {
+      component['selectedObjectId'].set(null);
+      component['onEditObjectColors']();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when config is null', () => {
+      component['selectedObjectId'].set('obj-1');
+      mockCanvasService.activeConfig.set(null);
+      component['onEditObjectColors']();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should do nothing when object not found', () => {
+      component['selectedObjectId'].set('nonexistent');
+      mockCanvasService.activeConfig.set({ ...defaultConfig, objects: [] });
+      component['onEditObjectColors']();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should open color dialog for text object with fill only', () => {
+      const textObj: CanvasText = {
+        id: 'text-1',
+        layerId,
+        type: 'text',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        text: 'Hello',
+        fontSize: 16,
+        fontFamily: 'Arial',
+        fontStyle: 'normal',
+        fill: '#333333',
+        width: 0,
+        align: 'left',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [textObj],
+      });
+      component['selectedObjectId'].set('text-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockDialog.open).toHaveBeenCalled();
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.showStroke).toBe(false);
+      expect(dialogData.fill).toBe('#333333');
+    });
+
+    it('should open color dialog for shape object with fill and stroke', () => {
+      const shapeObj = makeShape({});
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [shapeObj],
+      });
+      component['selectedObjectId'].set('shape-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.showStroke).toBe(true);
+      expect(dialogData.fill).toBe('#FF0000');
+      expect(dialogData.stroke).toBe('#000000');
+    });
+
+    it('should open color dialog for path object with stroke only (open path)', () => {
+      const pathObj: CanvasPath = {
+        id: 'path-1',
+        layerId,
+        type: 'path',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        points: [0, 0, 100, 100],
+        stroke: '#0000FF',
+        strokeWidth: 2,
+        closed: false,
+        tension: 0,
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [pathObj],
+      });
+      component['selectedObjectId'].set('path-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showStroke).toBe(true);
+      expect(dialogData.showFill).toBe(false);
+    });
+
+    it('should open color dialog for closed path with fill and stroke', () => {
+      const closedPath: CanvasPath = {
+        id: 'path-2',
+        layerId,
+        type: 'path',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        points: [0, 0, 100, 100, 50, 50],
+        stroke: '#0000FF',
+        strokeWidth: 2,
+        closed: true,
+        fill: '#00FF00',
+        tension: 0,
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [closedPath],
+      });
+      component['selectedObjectId'].set('path-2');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showStroke).toBe(true);
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.fill).toBe('#00FF00');
+    });
+
+    it('should open color dialog for pin with fill (color)', () => {
+      const pin: CanvasPin = {
+        id: 'pin-1',
+        layerId,
+        type: 'pin',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        label: 'Pin',
+        icon: 'place',
+        color: '#E53935',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [pin],
+      });
+      component['selectedObjectId'].set('pin-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      const dialogData = mockDialog.open.mock.calls[0][1].data;
+      expect(dialogData.showFill).toBe(true);
+      expect(dialogData.showStroke).toBe(false);
+      expect(dialogData.fill).toBe('#E53935');
+    });
+
+    it('should return early for image objects (no editable colors)', () => {
+      const imageObj: CanvasImage = {
+        id: 'img-1',
+        layerId,
+        type: 'image',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        src: 'test.png',
+        width: 100,
+        height: 100,
+        name: 'test',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [imageObj],
+      });
+      component['selectedObjectId'].set('img-1');
+
+      component['onEditObjectColors']();
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('should update shape object colors when dialog returns result', () => {
+      const shapeObj = makeShape({});
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [shapeObj],
+      });
+      component['selectedObjectId'].set('shape-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of({ fill: '#AABB00', stroke: '#112233' }),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith(
+        'shape-1',
+        expect.objectContaining({ fill: '#AABB00', stroke: '#112233' })
+      );
+    });
+
+    it('should update pin color via "color" key when dialog returns result', () => {
+      const pin: CanvasPin = {
+        id: 'pin-2',
+        layerId,
+        type: 'pin',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        label: 'P',
+        icon: 'place',
+        color: '#E53935',
+      };
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [pin],
+      });
+      component['selectedObjectId'].set('pin-2');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of({ fill: '#00FF00' }),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith(
+        'pin-2',
+        expect.objectContaining({ color: '#00FF00' })
+      );
+    });
+
+    it('should not update when dialog is cancelled', () => {
+      const shapeObj = makeShape({});
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        objects: [shapeObj],
+      });
+      component['selectedObjectId'].set('shape-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(undefined),
+      });
+
+      component['onEditObjectColors']();
+
+      expect(mockCanvasService.updateObject).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // exportAsPng / exportAsHighResPng
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('exportAsPng', () => {
+    let clickSpy: ReturnType<typeof vi.fn>;
+    let createElementSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      clickSpy = vi.fn();
+      const originalCreateElement = document.createElement.bind(document);
+      createElementSpy = vi
+        .spyOn(document, 'createElement')
+        .mockImplementation(
+          (tagName: string, options?: ElementCreationOptions) => {
+            if (tagName === 'a') {
+              return {
+                href: '',
+                download: '',
+                click: clickSpy,
+              } as unknown as HTMLAnchorElement;
+            }
+            return originalCreateElement(tagName, options);
+          }
+        );
+    });
+
+    afterEach(() => {
+      createElementSpy.mockRestore();
+    });
+
+    it('should do nothing when stage is null', () => {
+      component['stage'] = null as unknown as Konva.Stage;
+      component['exportAsPng']();
+      expect(clickSpy).not.toHaveBeenCalled();
+    });
+
+    it('should export PNG with pixelRatio 2', () => {
+      component['stage'] = {
+        toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
+      } as unknown as Konva.Stage;
+
+      component['exportAsPng']();
+
+      expect(component['stage'].toDataURL).toHaveBeenCalledWith({
+        pixelRatio: 2,
+      });
+      expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('should export high-res PNG with pixelRatio 3', () => {
+      component['stage'] = {
+        toDataURL: vi.fn(() => 'data:image/png;base64,xyz'),
+      } as unknown as Konva.Stage;
+
+      component['exportAsHighResPng']();
+
+      expect(component['stage'].toDataURL).toHaveBeenCalledWith({
+        pixelRatio: 3,
+      });
+      expect(clickSpy).toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // onAddImage early returns
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('onAddImage', () => {
+    it('should return early when project is null', async () => {
+      mockProjectState.project.set(null);
+      await component['onAddImage']();
+      expect(mockDialogGateway.openInsertImageDialog).not.toHaveBeenCalled();
+    });
+
+    it('should return early when dialog returns undefined', async () => {
+      mockDialogGateway.openInsertImageDialog.mockResolvedValue(undefined);
+      await component['onAddImage']();
+      expect(mockLocalStorageService.saveMedia).not.toHaveBeenCalled();
+    });
+
+    it('should return early when dialog returns no mediaId', async () => {
+      mockDialogGateway.openInsertImageDialog.mockResolvedValue({
+        mediaId: '',
+        imageBlob: new Blob(),
+      });
+      await component['onAddImage']();
+      expect(mockLocalStorageService.saveMedia).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // onDeleteLayer – post-delete layer selection
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('onDeleteLayer post-delete selection', () => {
+    it('should select first remaining layer after deletion', async () => {
+      const config: CanvasConfig = {
+        ...defaultConfig,
+        layers: [
+          {
+            id: 'layer-a',
+            name: 'A',
+            order: 0,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+          {
+            id: 'layer-b',
+            name: 'B',
+            order: 1,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+        ],
+      };
+      mockCanvasService.activeConfig.set(config);
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(true),
+      } as MatDialogRef<unknown>);
+
+      // Delete layer-b; layer-a remains first and is not the deleted one
+      await component['onDeleteLayer']('layer-b');
+
+      expect(component['activeLayerId']()).toBe('layer-a');
+    });
+
+    it('should select second layer when first layer is the deleted one', async () => {
+      const config: CanvasConfig = {
+        ...defaultConfig,
+        layers: [
+          {
+            id: 'layer-a',
+            name: 'A',
+            order: 0,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+          {
+            id: 'layer-b',
+            name: 'B',
+            order: 1,
+            visible: true,
+            locked: false,
+            opacity: 1,
+          },
+        ],
+      };
+      mockCanvasService.activeConfig.set(config);
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of(true),
+      } as MatDialogRef<unknown>);
+
+      // Delete layer-a; it's still first in sortedLayers (not yet removed from signal),
+      // so fallback to second remaining layer
+      await component['onDeleteLayer']('layer-a');
+
+      expect(component['activeLayerId']()).toBe('layer-b');
     });
   });
 });
