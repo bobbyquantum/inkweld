@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'bun:test';
 import {
   countWords,
+  extractTextContent,
   filterMoveRootIds,
+  moveRequestedElements,
   parseMoveElementsArgs,
   textToProseMirrorXml,
   toErrorResult,
   validateMoveParent,
   validateSnapshotPayloadForPersistence,
 } from '../src/mcp/tools/mutation.tools';
+import { expandDimensionOptions } from '../src/services/fal-model-metadata.service';
 import {
   decodeXmlEntities,
   xmlContentToText,
@@ -413,5 +416,173 @@ describe('countWords', () => {
 
   it('handles leading and trailing whitespace', () => {
     expect(countWords('  hello world  ')).toBe(2);
+  });
+});
+
+describe('moveRequestedElements', () => {
+  const makeElement = (id: string, name: string, type: string, level: number, order: number) => ({
+    id,
+    name,
+    type,
+    parentId: null,
+    level,
+    expandable: type === 'FOLDER',
+    order,
+    version: 0,
+    metadata: {},
+  });
+
+  it('moves a single root element to a folder', () => {
+    const folder = makeElement('f1', 'Folder', 'FOLDER', 0, 0);
+    const item = makeElement('i1', 'Item', 'ITEM', 0, 1);
+    const result = moveRequestedElements([folder, item], ['i1'], 'f1');
+    expect(result.movedElements).toEqual(['Item']);
+    expect(result.errors).toEqual([]);
+    // Item should now be inside the folder (level 1)
+    const moved = result.currentElements.find((e) => e.id === 'i1');
+    expect(moved?.level).toBe(1);
+  });
+
+  it('moves multiple elements to root (null parent)', () => {
+    const folder = makeElement('f1', 'Folder', 'FOLDER', 0, 0);
+    const item1 = { ...makeElement('i1', 'Item1', 'ITEM', 1, 1), parentId: 'f1' };
+    const item2 = { ...makeElement('i2', 'Item2', 'ITEM', 1, 2), parentId: 'f1' };
+    const result = moveRequestedElements([folder, item1, item2], ['i1', 'i2'], null);
+    expect(result.movedElements).toEqual(['Item1', 'Item2']);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('collects errors for elements that fail to move', () => {
+    const item = makeElement('i1', 'Item', 'ITEM', 0, 0);
+    // Moving to a non-existent parent ID will throw in moveElement
+    const result = moveRequestedElements([item], ['i1'], 'nonexistent');
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors[0]).toContain('i1');
+  });
+
+  it('returns empty results for empty elementIds', () => {
+    const item = makeElement('i1', 'Item', 'ITEM', 0, 0);
+    const result = moveRequestedElements([item], [], null);
+    expect(result.movedElements).toEqual([]);
+    expect(result.errors).toEqual([]);
+    expect(result.currentElements).toEqual([item]);
+  });
+});
+
+describe('extractTextContent', () => {
+  it('extracts text from a simple node with toString', () => {
+    const fragment = {
+      toString: () => 'Hello world',
+    };
+    expect(extractTextContent(fragment)).toBe('Hello world');
+  });
+
+  it('skips nodes whose toString starts with <', () => {
+    const fragment = {
+      toString: () => '<paragraph>',
+      toArray: () => [{ toString: () => 'child text' }],
+    };
+    expect(extractTextContent(fragment)).toBe('child text');
+  });
+
+  it('traverses nested children via toArray', () => {
+    const fragment = {
+      toString: () => '<doc>',
+      toArray: () => [
+        { toString: () => 'first' },
+        {
+          toString: () => '<p>',
+          toArray: () => [{ toString: () => 'second' }],
+        },
+      ],
+    };
+    expect(extractTextContent(fragment)).toBe('first second');
+  });
+
+  it('returns empty string for null fragment', () => {
+    expect(extractTextContent(null)).toBe('');
+  });
+
+  it('handles fragment with no toArray by using toString', () => {
+    // Plain objects have toString() returning "[object Object]" which is non-XML, so treated as text
+    expect(extractTextContent({})).toBe('[object Object]');
+  });
+
+  it('trims whitespace from result', () => {
+    const fragment = {
+      toString: () => '  hello  ',
+    };
+    expect(extractTextContent(fragment)).toBe('hello');
+  });
+});
+
+describe('expandDimensionOptions', () => {
+  it('returns empty array for undefined input', () => {
+    expect(expandDimensionOptions(undefined)).toEqual([]);
+  });
+
+  it('returns empty array for empty options', () => {
+    expect(expandDimensionOptions([])).toEqual([]);
+  });
+
+  it('computes cross product of widths and heights', () => {
+    const result = expandDimensionOptions([
+      {
+        properties: {
+          width: { enum: [512, 1024] },
+          height: { enum: [512, 768] },
+        },
+      },
+    ]);
+    expect(result).toEqual(['512x512', '512x768', '1024x512', '1024x768']);
+  });
+
+  it('skips options without both width and height enums', () => {
+    const result = expandDimensionOptions([
+      { properties: { width: { enum: [512] } } },
+      {
+        properties: {
+          width: { enum: [256] },
+          height: { enum: [256] },
+        },
+      },
+    ]);
+    expect(result).toEqual(['256x256']);
+  });
+
+  it('deduplicates identical dimension strings', () => {
+    const result = expandDimensionOptions([
+      {
+        properties: {
+          width: { enum: [512] },
+          height: { enum: [512] },
+        },
+      },
+      {
+        properties: {
+          width: { enum: [512] },
+          height: { enum: [512] },
+        },
+      },
+    ]);
+    expect(result).toEqual(['512x512']);
+  });
+
+  it('handles multiple options with different dimensions', () => {
+    const result = expandDimensionOptions([
+      {
+        properties: {
+          width: { enum: [512] },
+          height: { enum: [512] },
+        },
+      },
+      {
+        properties: {
+          width: { enum: [1024] },
+          height: { enum: [1024] },
+        },
+      },
+    ]);
+    expect(result).toEqual(['512x512', '1024x1024']);
   });
 });

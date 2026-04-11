@@ -63,7 +63,7 @@ interface SchemaObject {
   $ref?: string;
 }
 
-interface PropertySchema {
+export interface PropertySchema {
   type?: string;
   description?: string;
   default?: unknown;
@@ -228,7 +228,7 @@ function parseImageSizeProperty(info: ParsedFalModelInfo, prop?: PropertySchema)
   }
 }
 
-function expandDimensionOptions(options?: PropertySchema[]): string[] {
+export function expandDimensionOptions(options?: PropertySchema[]): string[] {
   if (!options) return [];
 
   const sizes: Set<string> = new Set();

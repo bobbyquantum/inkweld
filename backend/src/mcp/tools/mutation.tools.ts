@@ -804,7 +804,7 @@ export function validateMoveParent(
   return undefined;
 }
 
-function moveRequestedElements(
+export function moveRequestedElements(
   initialElements: Element[],
   elementIds: string[],
   newParentId: string | null
@@ -1996,7 +1996,7 @@ export function countWords(text: string): number {
  * Extract plain text from a Yjs XmlFragment
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractTextContent(fragment: any): string {
+export function extractTextContent(fragment: any): string {
   const parts: string[] = [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
