@@ -15,6 +15,10 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# version.txt changes every deploy — must not be cached immutably
+/assets/version.txt
+  Cache-Control: no-cache
+
 # WASM files are pre-compressed with Brotli to fit under Cloudflare's 25MB limit
 /assets/wasm/*.wasm
   Content-Encoding: br
