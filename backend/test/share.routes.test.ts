@@ -163,7 +163,7 @@ describe('Share Routes', () => {
       const db = getDatabase();
       privateToken = 'private-token-' + Date.now();
 
-      // Create a published file with no sharing (sharePermission = 'none')
+      // Create a published file with no public sharing
       await db.insert(publishedFiles).values({
         id: crypto.randomUUID(),
         projectId,
@@ -175,7 +175,7 @@ describe('Share Routes', () => {
         metaTitle: 'Private Story',
         metaAuthor: 'Author',
         shareToken: privateToken,
-        sharePermission: 'none',
+        sharePermission: 'private',
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
