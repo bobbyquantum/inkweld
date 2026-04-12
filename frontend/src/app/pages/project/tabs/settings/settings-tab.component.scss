@@ -477,6 +477,19 @@ mat-card {
   color: var(--sys-on-surface-variant);
 }
 
+.legacy-keys-heading {
+  margin: 24px 0 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--sys-on-surface);
+}
+
+.legacy-keys-description {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--sys-on-surface-variant);
+}
+
 .full-key {
   flex: 1;
   font-family: monospace;
