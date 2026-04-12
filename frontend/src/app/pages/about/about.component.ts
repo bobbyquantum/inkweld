@@ -89,7 +89,12 @@ export class AboutComponent {
 
   constructor() {
     this.http.get('/assets/version.txt', { responseType: 'text' }).subscribe({
-      next: text => this.commitHash.set(text.trim()),
+      next: text => {
+        const hash = text.trim();
+        if (/^[0-9a-f]{7,40}$/i.test(hash)) {
+          this.commitHash.set(hash);
+        }
+      },
       error: () => {
         /* version.txt only exists in production builds */
       },
