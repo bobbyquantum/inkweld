@@ -12,12 +12,15 @@ describe('UpdateService', () => {
   let swUpdateMock: any;
   let dialogMock: any;
   let versionUpdatesSubject: Subject<any>;
+  let unrecoverableSubject: Subject<any>;
 
   beforeEach(() => {
     versionUpdatesSubject = new Subject();
+    unrecoverableSubject = new Subject();
     swUpdateMock = {
       isEnabled: true,
       versionUpdates: versionUpdatesSubject.asObservable(),
+      unrecoverable: unrecoverableSubject.asObservable(),
       checkForUpdate: vi.fn().mockResolvedValue(true),
     };
 
@@ -39,6 +42,12 @@ describe('UpdateService', () => {
     Object.defineProperty(window, 'location', {
       writable: true,
       value: { reload: vi.fn() },
+    });
+
+    // Default to online
+    Object.defineProperty(navigator, 'onLine', {
+      writable: true,
+      value: true,
     });
 
     service = TestBed.inject(UpdateService);
@@ -105,6 +114,25 @@ describe('UpdateService', () => {
     swUpdateMock.checkForUpdate.mockRejectedValue(new Error('Network error'));
     const result = await service.checkForUpdate();
     expect(result).toBe(false);
+  });
+
+  it('should skip update check when offline', async () => {
+    swUpdateMock.checkForUpdate.mockClear();
+    Object.defineProperty(navigator, 'onLine', { value: false });
+    const result = await service.checkForUpdate();
+    expect(result).toBe(false);
+    expect(swUpdateMock.checkForUpdate).not.toHaveBeenCalled();
+  });
+
+  it('should reload on unrecoverable state when online', () => {
+    unrecoverableSubject.next({ reason: 'Hash mismatch' });
+    expect(window.location.reload).toHaveBeenCalled();
+  });
+
+  it('should not reload on unrecoverable state when offline', () => {
+    Object.defineProperty(navigator, 'onLine', { value: false });
+    unrecoverableSubject.next({ reason: 'Hash mismatch' });
+    expect(window.location.reload).not.toHaveBeenCalled();
   });
 });
 
