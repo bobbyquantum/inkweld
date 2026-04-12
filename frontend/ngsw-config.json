@@ -9,6 +9,7 @@
     "!/api/**",
     "!/auth/**"
   ],
+  "navigationRequestStrategy": "performance",
   "assetGroups": [
     {
       "name": "app",
