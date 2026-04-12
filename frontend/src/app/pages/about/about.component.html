@@ -19,7 +19,14 @@
       <mat-card-header>
         <mat-icon mat-card-avatar>info</mat-icon>
         <mat-card-title>{{ appName }}</mat-card-title>
-        <mat-card-subtitle>Version {{ appVersion }}</mat-card-subtitle>
+        <mat-card-subtitle
+          >Version {{ appVersion }}
+          @if (commitHash()) {
+            <span class="commit-hash" data-testid="commit-hash"
+              >({{ commitHash() }})</span
+            >
+          }
+        </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <p class="app-description">{{ appDescription }}</p>
