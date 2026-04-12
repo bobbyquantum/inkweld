@@ -52,7 +52,7 @@ jobs:
       # Build frontend (preview config) + backend
       - name: Build frontend
         working-directory: frontend
-        run: bun run clean && bun run ng build --configuration=preview && bun run compress-wasm
+        run: bun run clean && bun run ng build --configuration=preview && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
 
       - name: Generate frontend imports & build backend
         working-directory: backend

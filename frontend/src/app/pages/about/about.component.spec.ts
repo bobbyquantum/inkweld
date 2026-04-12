@@ -76,6 +76,17 @@ describe('AboutComponent', () => {
     expect(component.commitHash()).toBe('abc1234');
   });
 
+  it('ignores version.txt when response is not a valid git hash', () => {
+    const fixture = TestBed.createComponent(AboutComponent);
+    const component = fixture.componentInstance;
+
+    httpTesting
+      .expectOne('/assets/version.txt')
+      .flush('<!DOCTYPE html><html><head>...');
+
+    expect(component.commitHash()).toBeNull();
+  });
+
   it('navigates back to the home page', async () => {
     const fixture = TestBed.createComponent(AboutComponent);
     const component = fixture.componentInstance;
