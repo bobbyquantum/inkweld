@@ -115,6 +115,22 @@ function compressAssets() {
     }
   }
 
+  // Remove hashes for URLs that Cloudflare Pages may modify at the edge.
+  // Cloudflare injects analytics scripts into HTML responses, which changes
+  // the content hash. Without a matching hash, NGSW enters degraded mode
+  // and stops caching entirely. Removing the hash lets NGSW still prefetch
+  // and cache these URLs — it just skips hash verification for them.
+  // Content-hashed files (JS/CSS chunks) are unaffected and still verified.
+  if (ngsw?.hashTable) {
+    const edgeModifiedUrls = ['/index.html'];
+    for (const url of edgeModifiedUrls) {
+      if (ngsw.hashTable[url]) {
+        delete ngsw.hashTable[url];
+        console.log(`  Removed hash for ${url} (edge-modified by CDN)`);
+      }
+    }
+  }
+
   // Save updated ngsw.json and re-compress it so the .br sidecar reflects the
   // updated hash table (the sidecar written during the main loop used stale content)
   if (ngsw) {
