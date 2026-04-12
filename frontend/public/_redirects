@@ -1,6 +1,9 @@
 # Cloudflare Pages routing
 
 # Note: /mcp is handled by a Pages Function (functions/mcp.ts) for dynamic routing
+# Note: /index.html is handled by a Pages Function (functions/index.html.ts)
+#       to bypass Cloudflare's built-in 308 redirect that breaks Angular NGSW
+#       offline caching.
 
 # SPA routing - all other routes fallback to index.html for Angular router
 /*    /index.html   200
