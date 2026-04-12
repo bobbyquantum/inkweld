@@ -38,7 +38,17 @@ export class UpdateService {
           this.showUpdateDialog();
         });
 
-      // Check for updates immediately on startup (don't wait an hour!)
+      // Subscribe to unrecoverable state — the SW's cache has been
+      // invalidated (e.g. by the browser evicting storage). Force reload
+      // when back online so the user gets a fresh install.
+      this.swUpdate.unrecoverable.subscribe(evt => {
+        console.error('Service worker unrecoverable state:', evt.reason);
+        if (navigator.onLine) {
+          globalThis.location.reload();
+        }
+      });
+
+      // Check for updates immediately on startup (only if online)
       void this.checkForUpdate();
 
       // Then check every hour
@@ -51,9 +61,11 @@ export class UpdateService {
   /**
    * Manually check for updates.
    * Returns true if an update is available.
+   * Skips the check when the browser is offline to avoid
+   * pushing the service worker into a degraded state.
    */
   async checkForUpdate(): Promise<boolean> {
-    if (!this.swUpdate?.isEnabled) {
+    if (!this.swUpdate?.isEnabled || !navigator.onLine) {
       return false;
     }
 
