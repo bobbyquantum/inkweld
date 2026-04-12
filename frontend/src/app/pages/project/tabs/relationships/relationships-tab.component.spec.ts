@@ -23,6 +23,8 @@ describe('RelationshipsTabComponent', () => {
   let projectStateMock: Partial<ProjectStateService>;
   let dialogGatewayMock: Partial<DialogGatewayService>;
   let snackBarMock: Partial<MatSnackBar>;
+  let allTypesSignal: ReturnType<typeof signal<RelationshipTypeDefinition[]>>;
+  let syncStateSignal: ReturnType<typeof signal<DocumentSyncState>>;
 
   const mockProject = {
     username: 'testuser',
@@ -56,8 +58,11 @@ describe('RelationshipsTabComponent', () => {
   ];
 
   beforeEach(async () => {
+    allTypesSignal = signal(mockTypes);
+    syncStateSignal = signal(DocumentSyncState.Synced);
+
     relationshipServiceMock = {
-      allTypes: signal(mockTypes),
+      allTypes: allTypesSignal,
       getAllTypes: vi.fn().mockReturnValue(mockTypes),
       getTypeById: vi
         .fn()
@@ -74,7 +79,7 @@ describe('RelationshipsTabComponent', () => {
     projectStateMock = {
       project: signal(mockProject as any),
       isLoading: signal(false),
-      getSyncState: signal(DocumentSyncState.Synced),
+      getSyncState: syncStateSignal,
       openSystemTab: vi.fn(),
     };
 
@@ -215,6 +220,14 @@ describe('RelationshipsTabComponent', () => {
     expect(component.isLoading()).toBe(true);
   });
 
+  it('should show loading state while syncing with no relationship types', () => {
+    allTypesSignal.set([]);
+    syncStateSignal.set(DocumentSyncState.Syncing);
+    fixture.detectChanges();
+
+    expect(component.isLoading()).toBe(true);
+  });
+
   it('should show error state', () => {
     component.error.set('Test error');
     fixture.detectChanges();
@@ -228,5 +241,26 @@ describe('RelationshipsTabComponent', () => {
     component.refresh();
 
     expect(loadSpy).toHaveBeenCalled();
+  });
+
+  it('should show an error when duplicating a type whose source is missing', async () => {
+    vi.mocked(relationshipServiceMock.getTypeById!).mockReturnValue(undefined);
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes().find(t => t.id === 'parent')!;
+
+    await component.cloneType(type);
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to duplicate relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 });
