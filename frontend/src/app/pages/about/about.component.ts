@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
@@ -39,8 +40,10 @@ function stripSemverPrefix(version: string): string {
 export class AboutComponent {
   protected router = inject(Router);
   protected userService = inject(UnifiedUserService);
+  private http = inject(HttpClient);
 
   readonly appVersion = packageJson.version;
+  readonly commitHash = signal<string | null>(null);
   readonly appName = 'Inkweld';
   readonly appDescription = packageJson.description;
 
@@ -83,6 +86,15 @@ export class AboutComponent {
   ];
 
   readonly currentYear = new Date().getFullYear();
+
+  constructor() {
+    this.http.get('/assets/version.txt', { responseType: 'text' }).subscribe({
+      next: text => this.commitHash.set(text.trim()),
+      error: () => {
+        /* version.txt only exists in production builds */
+      },
+    });
+  }
 
   goBack(): void {
     void this.router.navigate(['/']);
