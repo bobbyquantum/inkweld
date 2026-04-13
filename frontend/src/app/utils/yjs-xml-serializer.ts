@@ -19,6 +19,45 @@
 import * as Y from 'yjs';
 
 /**
+ * Map from ProseMirror mark name to XML tag name for serialization.
+ */
+const MARK_TO_TAG: Record<string, string> = {
+  strong: 'strong',
+  em: 'em',
+  u: 'u',
+  s: 's',
+  code: 'code',
+  link: 'a',
+};
+
+/**
+ * Map from XML tag name to ProseMirror mark name for deserialization.
+ * Includes common aliases (e.g., bold → strong, italic → em).
+ */
+const TAG_TO_MARK: Record<string, string> = {
+  strong: 'strong',
+  bold: 'strong',
+  b: 'strong',
+  em: 'em',
+  italic: 'em',
+  i: 'em',
+  u: 'u',
+  underline: 'u',
+  s: 's',
+  strike: 's',
+  strikethrough: 's',
+  del: 's',
+  code: 'code',
+  a: 'link',
+};
+
+/**
+ * Mark attribute names that map to XML element attributes for the link mark.
+ * These are placed directly on the `<a>` tag instead of generic `data-` attributes.
+ */
+const LINK_ATTR_NAMES = ['href', 'title', 'target'];
+
+/**
  * Escape special XML characters in text content.
  */
 function escapeXml(text: string): string {
@@ -42,14 +81,76 @@ function escapeAttrValue(value: string): string {
 }
 
 /**
- * Serialize a Yjs XmlText node to XML string.
+ * Wrap text content in a single mark tag.
+ * Known marks use standard HTML-like tags; unknown marks use `<span data-mark="...">`.
+ */
+function wrapInMarkTag(
+  markName: string,
+  markAttrs: Record<string, unknown>,
+  innerContent: string
+): string {
+  const tagName = MARK_TO_TAG[markName];
+
+  if (tagName === 'a') {
+    // Link mark: place href/title/target as element attributes
+    const attrs = LINK_ATTR_NAMES.filter(
+      k => markAttrs[k] !== undefined && markAttrs[k] !== null
+    )
+      .map(k => `${k}="${escapeAttrValue(String(markAttrs[k]))}"`)
+      .join(' ');
+    return attrs ? `<a ${attrs}>${innerContent}</a>` : `<a>${innerContent}</a>`;
+  }
+
+  if (tagName) {
+    // Simple known mark (strong, em, u, s, code)
+    return `<${tagName}>${innerContent}</${tagName}>`;
+  }
+
+  // Unknown / generic mark — use <span data-mark="...">
+  const attrParts = [`data-mark="${escapeAttrValue(markName)}"`];
+  for (const [key, value] of Object.entries(markAttrs)) {
+    if (value !== undefined && value !== null) {
+      const strValue =
+        typeof value === 'object'
+          ? JSON.stringify(value)
+          : String(value as string | number | boolean);
+      attrParts.push(`${key}="${escapeAttrValue(strValue)}"`);
+    }
+  }
+  return `<span ${attrParts.join(' ')}>${innerContent}</span>`;
+}
+
+/**
+ * Serialize a Yjs XmlText node to XML string, preserving formatting marks.
+ *
+ * Uses `toDelta()` to iterate formatting runs. Each run's attributes
+ * correspond to ProseMirror marks (bold, italic, link, etc.) which are
+ * serialized as nested XML tags.
  */
 function xmlTextToXmlString(text: Y.XmlText): string {
-  // XmlText can have formatting runs with different attributes
-  // For now, we just get the plain text content
-  // TODO: Handle text formatting marks if needed
-  const textContent = text.toString() as string;
-  return escapeXml(textContent);
+  const delta = text.toDelta() as {
+    insert: string;
+    attributes?: Record<string, Record<string, unknown>>;
+  }[];
+
+  let result = '';
+  for (const op of delta) {
+    let fragment = escapeXml(op.insert);
+    if (op.attributes) {
+      // Sort mark names for deterministic output
+      const sortedMarks = Object.keys(op.attributes).sort();
+      // Wrap innermost-first so output reads outermost-first
+      for (const markName of sortedMarks) {
+        fragment = wrapInMarkTag(
+          markName,
+          op.attributes[markName] ?? {},
+          fragment
+        );
+      }
+    }
+    result += fragment;
+  }
+  return result;
 }
 
 /**
@@ -114,7 +215,7 @@ function xmlElementToXmlString(element: Y.XmlElement): string {
  * @example
  * ```typescript
  * const xml = xmlFragmentToXmlString(fragment);
- * // Returns: "<paragraph>Hello <text bold="true">world</text></paragraph>"
+ * // Returns: "<paragraph>Hello <strong>world</strong></paragraph>"
  * ```
  */
 export function xmlFragmentToXmlString(fragment: Y.XmlFragment): string {
@@ -153,48 +254,174 @@ function parseAttrValue(value: string): unknown {
 }
 
 /**
- * Recursively convert a DOM Node to a Yjs XmlElement or XmlText.
+ * Determine if a DOM element represents a formatting mark (bold, italic, etc.)
+ * rather than a structural element (paragraph, heading, etc.).
+ *
+ * Checks both the known TAG_TO_MARK mapping and the `data-mark` attribute
+ * used for generic/unknown marks.
  */
-function domNodeToYjsNode(node: Node): Y.XmlElement | Y.XmlText | null {
+function isMarkElement(element: Element): boolean {
+  const tagName = element.nodeName.toLowerCase();
+  return (
+    tagName in TAG_TO_MARK ||
+    (tagName === 'span' && element.hasAttribute('data-mark'))
+  );
+}
+
+/**
+ * Resolve the ProseMirror mark name and attributes from a DOM element.
+ *
+ * For known marks (strong, em, a, etc.) the tag name maps directly.
+ * For generic marks serialized as `<span data-mark="...">`, the mark name
+ * comes from the attribute and remaining attributes become mark attrs.
+ */
+function getMarkFromElement(element: Element): {
+  name: string;
+  attrs: Record<string, unknown>;
+} {
+  const tagName = element.nodeName.toLowerCase();
+
+  // Generic mark via data-mark attribute on <span>
+  if (tagName === 'span' && element.hasAttribute('data-mark')) {
+    const markName = element.getAttribute('data-mark')!;
+    const attrs: Record<string, unknown> = {};
+    for (const attr of Array.from(element.attributes)) {
+      if (attr.name === 'data-mark') continue;
+      attrs[attr.name] = parseAttrValue(attr.value);
+    }
+    return { name: markName, attrs };
+  }
+
+  const markName = TAG_TO_MARK[tagName];
+  if (markName === 'link') {
+    // Link mark: extract href, title, target from element attributes
+    const attrs: Record<string, unknown> = {};
+    for (const attrName of LINK_ATTR_NAMES) {
+      if (element.hasAttribute(attrName)) {
+        attrs[attrName] = element.getAttribute(attrName);
+      }
+    }
+    return { name: markName, attrs };
+  }
+
+  // Simple mark (strong, em, u, s, code) — no attributes
+  return { name: markName, attrs: {} };
+}
+
+/**
+ * Recursively collect text runs from a DOM subtree, accumulating marks.
+ *
+ * Mark tags (strong, em, a, etc.) add to the current mark set.
+ * Text nodes produce runs with the accumulated marks.
+ * Non-mark elements are NOT expected here and will be skipped.
+ */
+function collectTextRuns(
+  node: Node,
+  marks: Record<string, Record<string, unknown>>
+): { text: string; attrs: Record<string, Record<string, unknown>> }[] {
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent || '';
-    if (text.trim() === '' && text !== ' ') {
-      // Skip whitespace-only text nodes (but preserve single spaces)
-      return null;
-    }
-    const yText = new Y.XmlText();
-    yText.insert(0, text);
-    return yText;
+    if (text === '') return [];
+    return [{ text, attrs: { ...marks } }];
   }
 
   if (node.nodeType === Node.ELEMENT_NODE) {
     const element = node as Element;
-    const yElement = new Y.XmlElement(element.nodeName.toLowerCase());
 
-    // Copy attributes
-    for (const attr of Array.from(element.attributes)) {
-      const value = parseAttrValue(attr.value);
-      // Yjs setAttribute accepts any value at runtime, but TypeScript types are strict
-      yElement.setAttribute(attr.name, value as string);
-    }
-
-    // Process children
-    const children: (Y.XmlElement | Y.XmlText)[] = [];
-    for (const childNode of Array.from(element.childNodes)) {
-      const yNode = domNodeToYjsNode(childNode);
-      if (yNode) {
-        children.push(yNode);
+    if (isMarkElement(element)) {
+      const { name, attrs } = getMarkFromElement(element);
+      const newMarks = { ...marks, [name]: attrs };
+      const runs: {
+        text: string;
+        attrs: Record<string, Record<string, unknown>>;
+      }[] = [];
+      for (const child of Array.from(element.childNodes)) {
+        runs.push(...collectTextRuns(child, newMarks));
       }
+      return runs;
     }
-
-    if (children.length > 0) {
-      yElement.insert(0, children);
-    }
-
-    return yElement;
   }
 
-  return null;
+  return [];
+}
+
+/**
+ * Process the children of a structural DOM element and return Yjs nodes.
+ *
+ * Inline content (text nodes and mark elements) is coalesced into single
+ * XmlText nodes with formatting applied via delta. Structural child elements
+ * are converted to XmlElement nodes.
+ */
+function processElementChildren(parent: Element): (Y.XmlElement | Y.XmlText)[] {
+  const result: (Y.XmlElement | Y.XmlText)[] = [];
+  let pendingRuns: {
+    text: string;
+    attrs: Record<string, Record<string, unknown>>;
+  }[] = [];
+
+  function flushTextRuns(): void {
+    if (pendingRuns.length === 0) return;
+    const yText = new Y.XmlText();
+    const delta = pendingRuns.map(run => {
+      const entry: {
+        insert: string;
+        attributes?: Record<string, Record<string, unknown>>;
+      } = { insert: run.text };
+      if (Object.keys(run.attrs).length > 0) {
+        entry.attributes = run.attrs;
+      }
+      return entry;
+    });
+    yText.applyDelta(delta);
+    result.push(yText);
+    pendingRuns = [];
+  }
+
+  for (const child of Array.from(parent.childNodes)) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      const text = child.textContent || '';
+      if (text.trim() === '' && text !== ' ') continue; // skip whitespace-only
+      pendingRuns.push({ text, attrs: {} });
+    } else if (child.nodeType === Node.ELEMENT_NODE) {
+      const element = child as Element;
+      if (isMarkElement(element)) {
+        // Collect formatted text runs
+        pendingRuns.push(...collectTextRuns(element, {}));
+      } else {
+        // Structural element — flush any pending text, then recurse
+        flushTextRuns();
+        const yElement = domElementToYjsElement(element);
+        if (yElement) result.push(yElement);
+      }
+    }
+  }
+
+  flushTextRuns();
+  return result;
+}
+
+/**
+ * Convert a structural DOM Element to a Yjs XmlElement.
+ *
+ * Mark-tag children are handled by `processElementChildren`, which coalesces
+ * them into XmlText with formatting attributes.
+ */
+function domElementToYjsElement(element: Element): Y.XmlElement | null {
+  const yElement = new Y.XmlElement(element.nodeName.toLowerCase());
+
+  // Copy attributes
+  for (const attr of Array.from(element.attributes)) {
+    const value = parseAttrValue(attr.value);
+    yElement.setAttribute(attr.name, value as string);
+  }
+
+  // Process children with mark-awareness
+  const children = processElementChildren(element);
+  if (children.length > 0) {
+    yElement.insert(0, children);
+  }
+
+  return yElement;
 }
 
 /**
@@ -232,14 +459,8 @@ export function applyXmlToFragment(
     throw new Error(`XML parse error: ${parseError.textContent}`);
   }
 
-  // Convert all children to Yjs nodes
-  const children: (Y.XmlElement | Y.XmlText)[] = [];
-  for (const childNode of Array.from(root.childNodes)) {
-    const yNode = domNodeToYjsNode(childNode);
-    if (yNode) {
-      children.push(yNode);
-    }
-  }
+  // Convert all children to Yjs nodes (mark-aware)
+  const children = processElementChildren(root);
 
   // Apply as a single transaction (forward CRDT operations)
   Y.transact(ydoc, () => {
