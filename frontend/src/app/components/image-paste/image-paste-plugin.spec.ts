@@ -1,14 +1,15 @@
 /**
  * Tests for Image Paste ProseMirror Plugin
  */
-import { Schema } from 'prosemirror-model';
+import { type Node as ProseMirrorNode, Schema } from 'prosemirror-model';
 import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   base64ToBlob,
   createImagePastePlugin,
+  createMediaImageNodeViews,
   createMediaUrl,
   extractMediaId,
   extractMimeType,
@@ -18,6 +19,8 @@ import {
   isBase64ImageUrl,
   isMediaUrl,
   MEDIA_URL_PREFIX,
+  MediaImageNodeView,
+  type MediaImageNodeViewOptions,
 } from './image-paste-plugin';
 
 // Test data
@@ -483,5 +486,516 @@ describe('Plugin Integration', () => {
     view.dispatch(tr);
 
     expect(view.state.doc.textContent).toContain('!');
+  });
+
+  describe('handlePaste', () => {
+    it('should save image files and insert media URL nodes', async () => {
+      const plugin = view.state.plugins[0];
+      const imageFile = new File(['fake-png'], 'test.png', {
+        type: 'image/png',
+      });
+
+      const clipboardEvent = {
+        clipboardData: {
+          files: [imageFile],
+        },
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+
+      plugin.props.handlePaste!.call(
+        plugin,
+        view,
+        clipboardEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice
+      );
+
+      // Wait for async handler to complete
+      await vi.waitFor(() => {
+        expect(callbacks.saveImage).toHaveBeenCalledWith(
+          imageFile,
+          'image/png'
+        );
+      });
+
+      expect(clipboardEvent.preventDefault).toHaveBeenCalled();
+    });
+
+    it('should not process paste without clipboardData', () => {
+      const plugin = view.state.plugins[0];
+
+      const clipboardEvent = {
+        clipboardData: null,
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+
+      plugin.props.handlePaste!.call(
+        plugin,
+        view,
+        clipboardEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice
+      );
+
+      expect(callbacks.saveImage).not.toHaveBeenCalled();
+      expect(clipboardEvent.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('should not process paste when no project key', async () => {
+      (callbacks.getProjectKey as ReturnType<typeof vi.fn>).mockReturnValue(
+        null
+      );
+      const plugin = view.state.plugins[0];
+      const imageFile = new File(['fake-png'], 'test.png', {
+        type: 'image/png',
+      });
+
+      const clipboardEvent = {
+        clipboardData: {
+          files: [imageFile],
+        },
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+
+      plugin.props.handlePaste!.call(
+        plugin,
+        view,
+        clipboardEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice
+      );
+
+      // Give async handler time to run
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(callbacks.saveImage).not.toHaveBeenCalled();
+      expect(clipboardEvent.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('should skip non-image files in clipboard', async () => {
+      const plugin = view.state.plugins[0];
+      const textFile = new File(['hello'], 'test.txt', {
+        type: 'text/plain',
+      });
+
+      const clipboardEvent = {
+        clipboardData: {
+          files: [textFile],
+        },
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+
+      plugin.props.handlePaste!.call(
+        plugin,
+        view,
+        clipboardEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(callbacks.saveImage).not.toHaveBeenCalled();
+      expect(clipboardEvent.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('should handle saveImage failure gracefully', async () => {
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      (callbacks.saveImage as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Save failed')
+      );
+
+      const plugin = view.state.plugins[0];
+      const imageFile = new File(['fake-png'], 'test.png', {
+        type: 'image/png',
+      });
+
+      const clipboardEvent = {
+        clipboardData: {
+          files: [imageFile],
+        },
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+
+      plugin.props.handlePaste!.call(
+        plugin,
+        view,
+        clipboardEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice
+      );
+
+      await vi.waitFor(() => {
+        expect(callbacks.saveImage).toHaveBeenCalled();
+      });
+
+      // Should not crash — error logged
+      consoleError.mockRestore();
+    });
+  });
+
+  describe('handleDrop', () => {
+    it('should save dropped image files and insert at drop position', async () => {
+      const plugin = view.state.plugins[0];
+      const imageFile = new File(['fake-png'], 'dropped.png', {
+        type: 'image/png',
+      });
+
+      // Mock posAtCoords since JSDOM doesn't support layout
+      vi.spyOn(view, 'posAtCoords').mockReturnValue({ pos: 1, inside: -1 });
+
+      const dropEvent = {
+        dataTransfer: {
+          files: [imageFile],
+        },
+        clientX: 10,
+        clientY: 10,
+        preventDefault: vi.fn(),
+      } as unknown as DragEvent;
+
+      plugin.props.handleDrop!.call(
+        plugin,
+        view,
+        dropEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice,
+        false
+      );
+
+      await vi.waitFor(() => {
+        expect(callbacks.saveImage).toHaveBeenCalledWith(
+          imageFile,
+          'image/png'
+        );
+      });
+
+      expect(dropEvent.preventDefault).toHaveBeenCalled();
+    });
+
+    it('should not process drop without dataTransfer', () => {
+      const plugin = view.state.plugins[0];
+
+      const dropEvent = {
+        dataTransfer: null,
+        preventDefault: vi.fn(),
+      } as unknown as DragEvent;
+
+      plugin.props.handleDrop!.call(
+        plugin,
+        view,
+        dropEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice,
+        false
+      );
+
+      expect(callbacks.saveImage).not.toHaveBeenCalled();
+    });
+
+    it('should not process drop when no project key', async () => {
+      (callbacks.getProjectKey as ReturnType<typeof vi.fn>).mockReturnValue(
+        null
+      );
+      const plugin = view.state.plugins[0];
+      const imageFile = new File(['fake-png'], 'test.png', {
+        type: 'image/png',
+      });
+
+      const dropEvent = {
+        dataTransfer: {
+          files: [imageFile],
+        },
+        clientX: 10,
+        clientY: 10,
+        preventDefault: vi.fn(),
+      } as unknown as DragEvent;
+
+      plugin.props.handleDrop!.call(
+        plugin,
+        view,
+        dropEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice,
+        false
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(callbacks.saveImage).not.toHaveBeenCalled();
+    });
+
+    it('should skip non-image files in drop', async () => {
+      const plugin = view.state.plugins[0];
+      const textFile = new File(['hello'], 'test.txt', {
+        type: 'text/plain',
+      });
+
+      const dropEvent = {
+        dataTransfer: {
+          files: [textFile],
+        },
+        clientX: 10,
+        clientY: 10,
+        preventDefault: vi.fn(),
+      } as unknown as DragEvent;
+
+      plugin.props.handleDrop!.call(
+        plugin,
+        view,
+        dropEvent,
+        view.state.doc.content as unknown as import('prosemirror-model').Slice,
+        false
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(callbacks.saveImage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('transformPasted', () => {
+    it('should return slice unchanged', () => {
+      const plugin = view.state.plugins[0];
+      const slice = view.state.doc
+        .content as unknown as import('prosemirror-model').Slice;
+
+      const result = plugin.props.transformPasted!.call(
+        plugin,
+        slice,
+        view,
+        false
+      );
+
+      expect(result).toBe(slice);
+    });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MediaImageNodeView
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('MediaImageNodeView', () => {
+  let options: MediaImageNodeViewOptions;
+
+  beforeEach(() => {
+    options = {
+      getImageUrl: vi.fn((mediaId: string) =>
+        Promise.resolve(`blob:http://localhost/${mediaId}`)
+      ),
+    };
+  });
+
+  function createImageNode(
+    attrs: Record<string, string | null> = {}
+  ): ProseMirrorNode {
+    return testSchema.nodes['image'].create({
+      src: 'media:img-test-123',
+      alt: 'Test image',
+      ...attrs,
+    });
+  }
+
+  function createNodeView(node?: ProseMirrorNode): MediaImageNodeView {
+    const imageNode = node ?? createImageNode();
+    const mockView = {} as EditorView;
+    const mockGetPos = () => 0;
+    return new MediaImageNodeView(imageNode, mockView, mockGetPos, options);
+  }
+
+  describe('constructor', () => {
+    it('should create DOM container and img element', () => {
+      const nodeView = createNodeView();
+
+      expect(nodeView.dom).toBeInstanceOf(HTMLElement);
+      expect(nodeView.dom.tagName).toBe('SPAN');
+      expect(nodeView.dom.className).toBe('media-image-container');
+
+      const img = nodeView.dom.querySelector('img');
+      expect(img).toBeTruthy();
+      expect(img!.className).toBe('media-image');
+    });
+
+    it('should copy non-src attributes to img', () => {
+      const node = createImageNode({ alt: 'My photo', title: 'Photo title' });
+      const nodeView = createNodeView(node);
+
+      const img = nodeView.dom.querySelector('img')!;
+      expect(img.getAttribute('alt')).toBe('My photo');
+      expect(img.getAttribute('title')).toBe('Photo title');
+    });
+
+    it('should not set src attribute directly', () => {
+      const nodeView = createNodeView();
+
+      const img = nodeView.dom.querySelector('img')!;
+      // src should NOT be set by constructor — init() handles it
+      expect(img.getAttribute('src')).toBeNull();
+    });
+  });
+
+  describe('init', () => {
+    it('should resolve media: URL to blob URL', async () => {
+      const nodeView = createNodeView();
+      nodeView.init('media:img-test-123');
+
+      await vi.waitFor(() => {
+        const img = nodeView.dom.querySelector('img')!;
+        expect(img.src).toContain('blob:http://localhost/img-test-123');
+      });
+
+      expect(options.getImageUrl).toHaveBeenCalledWith('img-test-123');
+    });
+
+    it('should use non-media URL directly', async () => {
+      const nodeView = createNodeView();
+      nodeView.init('https://example.com/photo.png');
+
+      // Non-media URLs go directly to src
+      await vi.waitFor(() => {
+        const img = nodeView.dom.querySelector('img')!;
+        expect(img.src).toBe('https://example.com/photo.png');
+      });
+
+      expect(options.getImageUrl).not.toHaveBeenCalled();
+    });
+
+    it('should set empty src for null/undefined', async () => {
+      const nodeView = createNodeView();
+      nodeView.init(null);
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const img = nodeView.dom.querySelector('img')!;
+      expect(img.getAttribute('src')).toBe('');
+    });
+
+    it('should show not-found state when getImageUrl returns null', async () => {
+      (options.getImageUrl as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      const nodeView = createNodeView();
+      nodeView.init('media:img-missing');
+
+      await vi.waitFor(() => {
+        const img = nodeView.dom.querySelector('img')!;
+        expect(img.alt).toBe('Image not found');
+        expect(img.style.opacity).toBe('0.5');
+      });
+    });
+
+    it('should handle getImageUrl rejection', async () => {
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      (options.getImageUrl as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Network error')
+      );
+
+      const nodeView = createNodeView();
+      nodeView.init('media:img-error');
+
+      await vi.waitFor(() => {
+        const img = nodeView.dom.querySelector('img')!;
+        expect(img.alt).toBe('Failed to load image');
+        expect(img.style.opacity).toBe('0.5');
+      });
+
+      consoleError.mockRestore();
+    });
+
+    it('should not update img after destroy', async () => {
+      const nodeView = createNodeView();
+      nodeView.destroy();
+      nodeView.init('media:img-test-123');
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const img = nodeView.dom.querySelector('img')!;
+      // src should remain empty since the view was destroyed
+      expect(img.getAttribute('src')).toBeNull();
+      expect(options.getImageUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update', () => {
+    it('should return true for same node type', () => {
+      const nodeView = createNodeView();
+      const newNode = createImageNode({ src: 'media:img-new' });
+
+      const result = nodeView.update(newNode);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false for different node type', () => {
+      const nodeView = createNodeView();
+      const textNode = testSchema.node('paragraph', null, [
+        testSchema.text('Hello'),
+      ]);
+
+      const result = nodeView.update(textNode);
+
+      expect(result).toBe(false);
+    });
+
+    it('should re-resolve image src on update', async () => {
+      const nodeView = createNodeView();
+      const newNode = createImageNode({ src: 'media:img-updated' });
+
+      nodeView.update(newNode);
+
+      await vi.waitFor(() => {
+        expect(options.getImageUrl).toHaveBeenCalledWith('img-updated');
+      });
+    });
+
+    it('should update non-src attributes', () => {
+      const nodeView = createNodeView();
+      const newNode = createImageNode({
+        alt: 'Updated alt',
+        title: 'New title',
+      });
+
+      nodeView.update(newNode);
+
+      const img = nodeView.dom.querySelector('img')!;
+      expect(img.getAttribute('alt')).toBe('Updated alt');
+      expect(img.getAttribute('title')).toBe('New title');
+    });
+  });
+
+  describe('destroy', () => {
+    it('should mark the node view as destroyed', async () => {
+      const nodeView = createNodeView();
+      nodeView.destroy();
+
+      // After destroy, resolving should be a no-op
+      nodeView.init('media:img-test-123');
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(options.getImageUrl).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('createMediaImageNodeViews', () => {
+  it('should return an object with image key', () => {
+    const nodeViews = createMediaImageNodeViews({
+      getImageUrl: vi.fn(),
+    });
+
+    expect(nodeViews).toHaveProperty('image');
+    expect(typeof nodeViews['image']).toBe('function');
+  });
+
+  it('should create MediaImageNodeView and call init', () => {
+    const getImageUrl = vi.fn(() => Promise.resolve('blob:url'));
+    const nodeViews = createMediaImageNodeViews({ getImageUrl });
+
+    const node = testSchema.nodes['image'].create({
+      src: 'media:img-factory-test',
+    });
+    const mockView = {} as EditorView;
+    const mockGetPos = () => 0;
+
+    const nodeView = nodeViews['image'](node, mockView, mockGetPos);
+
+    expect(nodeView).toBeInstanceOf(MediaImageNodeView);
+    // init was called with the src
+    expect(getImageUrl).toHaveBeenCalledWith('img-factory-test');
   });
 });
