@@ -948,6 +948,44 @@ describe('ProjectComponent', () => {
     });
   });
 
+  describe('setupBreakpointObserver', () => {
+    it('should set sidenav to side mode and open on desktop', () => {
+      const mockSidenav = {
+        mode: 'over' as string,
+        open: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+      component.sidenav = mockSidenav as any;
+
+      (breakpointObserver.observe as ReturnType<typeof vi.fn>).mockReturnValue(
+        of({ matches: false, breakpoints: {} } as BreakpointState)
+      );
+
+      component.setupBreakpointObserver();
+
+      expect(mockSidenav.mode).toBe('side');
+      expect(mockSidenav.open).toHaveBeenCalled();
+    });
+
+    it('should set sidenav to over mode and close on mobile', () => {
+      const mockSidenav = {
+        mode: 'side' as string,
+        open: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+      component.sidenav = mockSidenav as any;
+
+      (breakpointObserver.observe as ReturnType<typeof vi.fn>).mockReturnValue(
+        of({ matches: true, breakpoints: {} } as BreakpointState)
+      );
+
+      component.setupBreakpointObserver();
+
+      expect(mockSidenav.mode).toBe('over');
+      expect(mockSidenav.close).toHaveBeenCalled();
+    });
+  });
+
   describe('miscellaneous actions', () => {
     it('should open the new document dialog at the root level', () => {
       component.onCreateNewDocument();

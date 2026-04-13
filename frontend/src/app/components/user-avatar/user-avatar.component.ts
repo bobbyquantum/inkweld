@@ -73,7 +73,8 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.username) return;
 
     // Generate a deterministic fractal avatar based on username
-    const size = this.size === 'small' ? 64 : this.size === 'medium' ? 96 : 256;
+    const sizeMap: Record<string, number> = { small: 64, medium: 96 };
+    const size = sizeMap[this.size] ?? 256;
     this.fallbackAvatarUrl = generateFracticonDataURL(this.username, {
       size,
       circular: true,

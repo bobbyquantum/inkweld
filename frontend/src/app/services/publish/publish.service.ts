@@ -879,9 +879,8 @@ export class PublishService {
       return;
     }
 
-    const filename = customFilename
-      ? customFilename
-      : result.filename || this.generateFilename(plan);
+    const filename =
+      customFilename || result.filename || this.generateFilename(plan);
 
     const url = URL.createObjectURL(result.file);
     const link = document.createElement('a');

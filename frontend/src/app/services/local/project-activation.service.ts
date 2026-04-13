@@ -109,9 +109,7 @@ export class ProjectActivationService {
       this.activatedKeys.set(new Set());
     }
 
-    if (!this.initializePromise) {
-      this.initializePromise = this.doInitialize();
-    }
+    this.initializePromise ??= this.doInitialize();
     return this.initializePromise;
   }
 

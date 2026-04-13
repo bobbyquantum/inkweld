@@ -12,8 +12,8 @@ PORT="${PORT:-8333}"
 
 # Check if required environment variables are set
 if [[ -z "$GITHUB_REPOSITORY_OWNER" ]]; then
-    echo "Error: GITHUB_REPOSITORY_OWNER environment variable is required"
-    echo "Example: export GITHUB_REPOSITORY_OWNER=bobbyquantum"
+    echo "Error: GITHUB_REPOSITORY_OWNER environment variable is required" >&2
+    echo "Example: export GITHUB_REPOSITORY_OWNER=bobbyquantum" >&2
     exit 1
 fi
 
