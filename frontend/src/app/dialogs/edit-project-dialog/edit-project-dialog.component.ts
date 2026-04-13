@@ -60,7 +60,7 @@ export class EditProjectDialogComponent implements OnInit {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly projectService = inject(ProjectService);
   private readonly unifiedProjectService = inject(UnifiedProjectService);
-  private dialogData = inject<Project>(MAT_DIALOG_DATA);
+  private readonly dialogData = inject<Project>(MAT_DIALOG_DATA);
   private readonly snackBar = inject(MatSnackBar);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly cdr = inject(ChangeDetectorRef);

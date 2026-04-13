@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root',
 })
 export class SettingsService {
-  private settingsKey = 'userSettings';
+  private readonly settingsKey = 'userSettings';
 
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();

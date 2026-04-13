@@ -40,7 +40,7 @@ function stripSemverPrefix(version: string): string {
 export class AboutComponent {
   protected router = inject(Router);
   protected userService = inject(UnifiedUserService);
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
 
   readonly appVersion = packageJson.version;
   readonly commitHash = signal<string | null>(null);

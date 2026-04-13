@@ -45,7 +45,8 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  @ViewChild(UserAvatarComponent) private avatarComponent!: UserAvatarComponent;
+  @ViewChild(UserAvatarComponent)
+  private readonly avatarComponent!: UserAvatarComponent;
 
   username: string | null = null;
   profileUser: User | null = null;
@@ -54,7 +55,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   loadError = false;
   isOwner = false;
 
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   ngOnInit(): void {
     this.setupBreakpointObserver();

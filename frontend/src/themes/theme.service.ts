@@ -16,14 +16,16 @@ export type ThemeOption = 'light-theme' | 'dark-theme' | 'system';
   providedIn: 'root',
 })
 export class ThemeService implements OnDestroy {
-  private renderer: Renderer2;
-  private colorTheme = new BehaviorSubject<ThemeOption>('system');
-  private systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
+  private readonly renderer: Renderer2;
+  private readonly colorTheme = new BehaviorSubject<ThemeOption>('system');
+  private readonly systemDarkMode = window.matchMedia(
+    '(prefers-color-scheme: dark)'
+  );
 
-  private document = inject(DOCUMENT);
-  private rendererFactory = inject(RendererFactory2);
-  private matIconRegistry = inject(MatIconRegistry);
-  private domSanitizer = inject(DomSanitizer);
+  private readonly document = inject(DOCUMENT);
+  private readonly rendererFactory = inject(RendererFactory2);
+  private readonly matIconRegistry = inject(MatIconRegistry);
+  private readonly domSanitizer = inject(DomSanitizer);
 
   constructor() {
     this.renderer = this.rendererFactory.createRenderer(null, null);

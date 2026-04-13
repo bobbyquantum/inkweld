@@ -87,7 +87,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly dialogGateway = inject(DialogGatewayService);
   private readonly worldbuildingService = inject(WorldbuildingService);
 
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
   private routerSubscription: Subscription | null = null;
   private initialSyncDone = false; // Flag to ensure initial sync runs only once
   private lastProjectId: string | undefined; // Track project changes

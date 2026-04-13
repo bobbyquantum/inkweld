@@ -91,7 +91,7 @@ export class LocalStorageService {
   private initPromise: Promise<IDBDatabase> | null = null;
 
   /** Cache of active blob URLs to prevent memory leaks */
-  private activeUrls = new Map<string, string>();
+  private readonly activeUrls = new Map<string, string>();
 
   /**
    * Get the database config with the prefixed database name
