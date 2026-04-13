@@ -112,6 +112,77 @@ describe('yjs-xml-serializer', () => {
       expect(result).toContain('bold');
     });
 
+    it('should serialize text with bold formatting', () => {
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      text.insert(0, 'bold', { strong: {} });
+      paragraph.insert(0, [text]);
+      fragment.insert(0, [paragraph]);
+
+      const result = xmlFragmentToXmlString(fragment);
+      expect(result).toBe('<paragraph><strong>bold</strong></paragraph>');
+    });
+
+    it('should serialize text with multiple marks', () => {
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      text.insert(0, 'formatted', { strong: {}, em: {} });
+      paragraph.insert(0, [text]);
+      fragment.insert(0, [paragraph]);
+
+      const result = xmlFragmentToXmlString(fragment);
+      // Marks are sorted alphabetically: em wraps first, then strong around it
+      expect(result).toBe(
+        '<paragraph><strong><em>formatted</em></strong></paragraph>'
+      );
+    });
+
+    it('should serialize mixed plain and formatted text', () => {
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      // Use applyDelta to create precise formatting runs
+      text.applyDelta([
+        { insert: 'Hello ' },
+        { insert: 'world', attributes: { strong: {} } },
+        { insert: ' today' },
+      ]);
+      paragraph.insert(0, [text]);
+      fragment.insert(0, [paragraph]);
+
+      const result = xmlFragmentToXmlString(fragment);
+      expect(result).toBe(
+        '<paragraph>Hello <strong>world</strong> today</paragraph>'
+      );
+    });
+
+    it('should serialize link marks with attributes', () => {
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      text.insert(0, 'click here', {
+        link: { href: 'https://example.com', title: 'Example' },
+      });
+      paragraph.insert(0, [text]);
+      fragment.insert(0, [paragraph]);
+
+      const result = xmlFragmentToXmlString(fragment);
+      expect(result).toBe(
+        '<paragraph><a href="https://example.com" title="Example">click here</a></paragraph>'
+      );
+    });
+
+    it('should serialize unknown marks using span with data-mark', () => {
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      text.insert(0, 'colored', { text_color: { color: '#ff0000' } });
+      paragraph.insert(0, [text]);
+      fragment.insert(0, [paragraph]);
+
+      const result = xmlFragmentToXmlString(fragment);
+      expect(result).toBe(
+        '<paragraph><span data-mark="text_color" color="#ff0000">colored</span></paragraph>'
+      );
+    });
+
     it('should use self-closing tags for empty non-block elements', () => {
       const element = new Y.XmlElement('image');
       element.setAttribute('src', 'test.jpg');
@@ -193,6 +264,97 @@ describe('yjs-xml-serializer', () => {
       expect(fragment.length).toBe(2);
       const first = fragment.get(0) as Y.XmlElement;
       expect(first.nodeName).toBe('heading');
+    });
+
+    it('should deserialize bold mark tags to formatted XmlText', () => {
+      applyXmlToFragment(
+        ydoc,
+        fragment,
+        '<paragraph>Hello <strong>world</strong></paragraph>'
+      );
+
+      const paragraph = fragment.get(0) as Y.XmlElement;
+      expect(paragraph.nodeName).toBe('paragraph');
+      // Should have a single XmlText with formatting runs
+      expect(paragraph.length).toBe(1);
+      const text = paragraph.get(0) as Y.XmlText;
+      const delta = text.toDelta();
+      expect(delta).toEqual([
+        { insert: 'Hello ' },
+        { insert: 'world', attributes: { strong: {} } },
+      ]);
+    });
+
+    it('should deserialize nested marks (bold + italic)', () => {
+      applyXmlToFragment(
+        ydoc,
+        fragment,
+        '<paragraph><strong><em>both</em></strong></paragraph>'
+      );
+
+      const paragraph = fragment.get(0) as Y.XmlElement;
+      const text = paragraph.get(0) as Y.XmlText;
+      const delta = text.toDelta();
+      expect(delta).toEqual([
+        { insert: 'both', attributes: { strong: {}, em: {} } },
+      ]);
+    });
+
+    it('should deserialize link mark tags with attributes', () => {
+      applyXmlToFragment(
+        ydoc,
+        fragment,
+        '<paragraph><a href="https://example.com" title="Example">link</a></paragraph>'
+      );
+
+      const paragraph = fragment.get(0) as Y.XmlElement;
+      const text = paragraph.get(0) as Y.XmlText;
+      const delta = text.toDelta();
+      expect(delta).toEqual([
+        {
+          insert: 'link',
+          attributes: {
+            link: { href: 'https://example.com', title: 'Example' },
+          },
+        },
+      ]);
+    });
+
+    it('should deserialize generic marks from span with data-mark', () => {
+      applyXmlToFragment(
+        ydoc,
+        fragment,
+        '<paragraph><span data-mark="text_color" color="#ff0000">colored</span></paragraph>'
+      );
+
+      const paragraph = fragment.get(0) as Y.XmlElement;
+      const text = paragraph.get(0) as Y.XmlText;
+      const delta = text.toDelta();
+      expect(delta).toEqual([
+        {
+          insert: 'colored',
+          attributes: { text_color: { color: '#ff0000' } },
+        },
+      ]);
+    });
+
+    it('should deserialize tag aliases (b, i, del)', () => {
+      applyXmlToFragment(
+        ydoc,
+        fragment,
+        '<paragraph><b>bold</b> <i>italic</i> <del>struck</del></paragraph>'
+      );
+
+      const paragraph = fragment.get(0) as Y.XmlElement;
+      const text = paragraph.get(0) as Y.XmlText;
+      const delta = text.toDelta();
+      expect(delta).toEqual([
+        { insert: 'bold', attributes: { strong: {} } },
+        { insert: ' ' },
+        { insert: 'italic', attributes: { em: {} } },
+        { insert: ' ' },
+        { insert: 'struck', attributes: { s: {} } },
+      ]);
     });
 
     // Note: Skipped because DOMParser behavior varies between environments.
@@ -280,6 +442,80 @@ describe('yjs-xml-serializer', () => {
       fragment1.insert(0, [blockquote]);
 
       // Roundtrip
+      const xml = xmlFragmentToXmlString(fragment1);
+      const ydoc2 = new Y.Doc();
+      const fragment2 = ydoc2.getXmlFragment('test');
+      applyXmlToFragment(ydoc2, fragment2, xml);
+
+      const xml2 = xmlFragmentToXmlString(fragment2);
+      expect(xml2).toBe(xml);
+    });
+
+    it('should roundtrip bold and italic formatted text', () => {
+      const ydoc1 = new Y.Doc();
+      const fragment1 = ydoc1.getXmlFragment('test');
+
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      // Use applyDelta to create precise formatting runs
+      text.applyDelta([
+        { insert: 'Hello ' },
+        { insert: 'bold', attributes: { strong: {} } },
+        { insert: ' and ' },
+        { insert: 'italic', attributes: { em: {} } },
+        { insert: ' text' },
+      ]);
+      paragraph.insert(0, [text]);
+      fragment1.insert(0, [paragraph]);
+
+      const xml = xmlFragmentToXmlString(fragment1);
+      expect(xml).toBe(
+        '<paragraph>Hello <strong>bold</strong> and <em>italic</em> text</paragraph>'
+      );
+
+      const ydoc2 = new Y.Doc();
+      const fragment2 = ydoc2.getXmlFragment('test');
+      applyXmlToFragment(ydoc2, fragment2, xml);
+
+      const xml2 = xmlFragmentToXmlString(fragment2);
+      expect(xml2).toBe(xml);
+    });
+
+    it('should roundtrip link marks with attributes', () => {
+      const ydoc1 = new Y.Doc();
+      const fragment1 = ydoc1.getXmlFragment('test');
+
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      text.insert(0, 'Visit ');
+      text.insert(6, 'this site', {
+        link: { href: 'https://example.com' },
+      });
+      text.insert(15, ' for more.');
+      paragraph.insert(0, [text]);
+      fragment1.insert(0, [paragraph]);
+
+      const xml = xmlFragmentToXmlString(fragment1);
+      const ydoc2 = new Y.Doc();
+      const fragment2 = ydoc2.getXmlFragment('test');
+      applyXmlToFragment(ydoc2, fragment2, xml);
+
+      const xml2 = xmlFragmentToXmlString(fragment2);
+      expect(xml2).toBe(xml);
+    });
+
+    it('should roundtrip generic marks via data-mark spans', () => {
+      const ydoc1 = new Y.Doc();
+      const fragment1 = ydoc1.getXmlFragment('test');
+
+      const paragraph = new Y.XmlElement('paragraph');
+      const text = new Y.XmlText();
+      text.insert(0, 'red text', {
+        text_color: { color: '#ff0000' },
+      });
+      paragraph.insert(0, [text]);
+      fragment1.insert(0, [paragraph]);
+
       const xml = xmlFragmentToXmlString(fragment1);
       const ydoc2 = new Y.Doc();
       const fragment2 = ydoc2.getXmlFragment('test');
