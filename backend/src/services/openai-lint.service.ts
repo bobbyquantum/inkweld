@@ -32,7 +32,7 @@ interface LintResponseDto {
 }
 
 export class OpenAILintService {
-  private openai: OpenAI | null = null;
+  private readonly openai: OpenAI | null = null;
   private readonly isEnabled: boolean;
   private readonly cache = new Map<string, CacheEntry<LintResponseDto>>();
   private readonly CACHE_TTL = 300000; // 5 minutes

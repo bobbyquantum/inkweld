@@ -56,7 +56,7 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   @Input() selectedCategory: SettingsCategory = 'account';
   previousCategory: SettingsCategory = 'account';
   isMobile = false;
-  private destroyed = new Subject<void>();
+  private readonly destroyed = new Subject<void>();
 
   ngOnInit() {
     this.breakpointObserver

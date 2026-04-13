@@ -5,7 +5,7 @@ import {
 } from '@angular/router';
 
 export class CustomRouteReuseStrategy implements RouteReuseStrategy {
-  private handlers: Map<string, DetachedRouteHandle> = new Map();
+  private readonly handlers: Map<string, DetachedRouteHandle> = new Map();
 
   /**
    * Determines if a route should be detached for later reuse
