@@ -44,7 +44,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   @Input() coverMediaId?: string;
 
   /** Signal for cover blob URL (from IndexedDB) */
-  private coverBlobUrl = signal<string | null>(null);
+  private readonly coverBlobUrl = signal<string | null>(null);
 
   /** Whether we're in offline mode */
   private readonly isOffline = computed(

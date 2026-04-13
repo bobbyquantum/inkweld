@@ -79,7 +79,7 @@ export class SystemConfigService {
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
   private readonly configLoadedSuccessfully = signal<boolean>(false);
 
-  private isLoaded = signal(false);
+  private readonly isLoaded = signal(false);
 
   // Public readonly signals
   public readonly systemFeatures = this.systemFeaturesSignal.asReadonly();
