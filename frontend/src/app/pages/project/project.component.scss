@@ -178,11 +178,6 @@ as-split {
   }
 }
 
-// Mobile open tabs - fixed at top
-.mobile-open-tabs {
-  flex-shrink: 0;
-}
-
 // Mobile sidenav bottom navigation
 .mobile-sidenav-bottom-nav {
   display: flex;
@@ -244,6 +239,7 @@ as-split {
 
 // Mobile open tabs section
 .mobile-open-tabs {
+  flex-shrink: 0;
   border-bottom: 1px solid var(--sys-outline-variant);
   background-color: var(--sys-surface-container-high);
   padding: 8px 8px 8px;

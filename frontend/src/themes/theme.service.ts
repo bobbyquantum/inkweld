@@ -18,7 +18,7 @@ export type ThemeOption = 'light-theme' | 'dark-theme' | 'system';
 export class ThemeService implements OnDestroy {
   private readonly renderer: Renderer2;
   private readonly colorTheme = new BehaviorSubject<ThemeOption>('system');
-  private readonly systemDarkMode = window.matchMedia(
+  private readonly systemDarkMode = globalThis.matchMedia(
     '(prefers-color-scheme: dark)'
   );
 

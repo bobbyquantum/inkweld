@@ -288,12 +288,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe(result => {
         this.isMobile.set(result.matches);
         if (this.sidenav) {
-          if (!result.matches) {
-            this.sidenav.mode = 'side';
-            void this.sidenav.open();
-          } else {
+          if (result.matches) {
             this.sidenav.mode = 'over';
             void this.sidenav.close();
+          } else {
+            this.sidenav.mode = 'side';
+            void this.sidenav.open();
           }
         }
       });
