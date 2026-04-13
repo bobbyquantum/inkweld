@@ -23,6 +23,8 @@ describe('RelationshipsTabComponent', () => {
   let projectStateMock: Partial<ProjectStateService>;
   let dialogGatewayMock: Partial<DialogGatewayService>;
   let snackBarMock: Partial<MatSnackBar>;
+  let allTypesSignal: ReturnType<typeof signal<RelationshipTypeDefinition[]>>;
+  let syncStateSignal: ReturnType<typeof signal<DocumentSyncState>>;
 
   const mockProject = {
     username: 'testuser',
@@ -56,8 +58,11 @@ describe('RelationshipsTabComponent', () => {
   ];
 
   beforeEach(async () => {
+    allTypesSignal = signal(mockTypes);
+    syncStateSignal = signal(DocumentSyncState.Synced);
+
     relationshipServiceMock = {
-      allTypes: signal(mockTypes),
+      allTypes: allTypesSignal,
       getAllTypes: vi.fn().mockReturnValue(mockTypes),
       getTypeById: vi
         .fn()
@@ -74,7 +79,7 @@ describe('RelationshipsTabComponent', () => {
     projectStateMock = {
       project: signal(mockProject as any),
       isLoading: signal(false),
-      getSyncState: signal(DocumentSyncState.Synced),
+      getSyncState: syncStateSignal,
       openSystemTab: vi.fn(),
     };
 
@@ -115,18 +120,18 @@ describe('RelationshipsTabComponent', () => {
     expect(component.relationshipTypes().length).toBe(2);
   });
 
-  it('should separate built-in and custom types', () => {
+  it('should sort types by category then name', () => {
     component.loadRelationshipTypes();
 
-    expect(component.builtInTypes().length).toBe(1);
-    expect(component.customTypes().length).toBe(1);
-    expect(component.builtInTypes()[0].id).toBe('parent');
-    expect(component.customTypes()[0].id).toBe('custom-nemesis');
+    const types = component.relationshipTypes();
+    // Custom category comes before Family alphabetically
+    expect(types[0].id).toBe('custom-nemesis');
+    expect(types[1].id).toBe('parent');
   });
 
-  it('should create a new custom type', async () => {
+  it('should create a new type', async () => {
     component.loadRelationshipTypes();
-    await component.createCustomType();
+    await component.createType();
 
     expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalledTimes(2);
     expect(relationshipServiceMock.addCustomType).toHaveBeenCalled();
@@ -136,43 +141,31 @@ describe('RelationshipsTabComponent', () => {
   it('should not create type if user cancels name dialog', async () => {
     vi.mocked(dialogGatewayMock.openRenameDialog!).mockResolvedValueOnce(null);
 
-    await component.createCustomType();
+    await component.createType();
 
     expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
   });
 
-  it('should edit a custom type', async () => {
+  it('should edit a type', async () => {
     component.loadRelationshipTypes();
-    const customType = component.customTypes()[0];
-    await component.editType(customType);
+    const type = component.relationshipTypes()[0];
+    await component.editType(type);
 
     expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalled();
     expect(relationshipServiceMock.updateCustomType).toHaveBeenCalledWith(
-      'custom-nemesis',
+      type.id,
       { name: 'New Name' }
     );
   });
 
-  it('should edit built-in types (now editable)', async () => {
+  it('should delete a type after confirmation', async () => {
     component.loadRelationshipTypes();
-    const builtInType = component.builtInTypes()[0];
-    await component.editType(builtInType);
-
-    expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalled();
-    expect(relationshipServiceMock.updateCustomType).toHaveBeenCalledWith(
-      'parent',
-      { name: 'New Name' }
-    );
-  });
-
-  it('should delete a custom type after confirmation', async () => {
-    component.loadRelationshipTypes();
-    const customType = component.customTypes()[0];
-    await component.deleteType(customType);
+    const type = component.relationshipTypes()[0];
+    await component.deleteType(type);
 
     expect(dialogGatewayMock.openConfirmationDialog).toHaveBeenCalled();
     expect(relationshipServiceMock.removeCustomType).toHaveBeenCalledWith(
-      'custom-nemesis'
+      type.id
     );
   });
 
@@ -182,33 +175,24 @@ describe('RelationshipsTabComponent', () => {
     );
 
     component.loadRelationshipTypes();
-    const customType = component.customTypes()[0];
-    await component.deleteType(customType);
+    const type = component.relationshipTypes()[0];
+    await component.deleteType(type);
 
     expect(relationshipServiceMock.removeCustomType).not.toHaveBeenCalled();
   });
 
-  it('should delete built-in types (now deletable)', async () => {
+  it('should duplicate a type preserving its category', async () => {
     component.loadRelationshipTypes();
-    const builtInType = component.builtInTypes()[0];
-    await component.deleteType(builtInType);
-
-    expect(dialogGatewayMock.openConfirmationDialog).toHaveBeenCalled();
-    expect(relationshipServiceMock.removeCustomType).toHaveBeenCalledWith(
-      'parent'
-    );
-  });
-
-  it('should clone a type as custom', async () => {
-    component.loadRelationshipTypes();
-    const builtInType = component.builtInTypes()[0];
-    await component.cloneType(builtInType);
+    const familialType = component
+      .relationshipTypes()
+      .find(t => t.id === 'parent')!;
+    await component.cloneType(familialType);
 
     expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalled();
     expect(relationshipServiceMock.addCustomType).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'New Name',
-        category: RelationshipCategory.Custom,
+        category: RelationshipCategory.Familial,
       })
     );
   });
@@ -216,12 +200,14 @@ describe('RelationshipsTabComponent', () => {
   it('should format constraints correctly', () => {
     component.loadRelationshipTypes();
 
-    const parentType = component.builtInTypes().find(t => t.id === 'parent');
+    const parentType = component
+      .relationshipTypes()
+      .find(t => t.id === 'parent');
     expect(parentType?.sourceConstraints).toBe('character-v1');
     expect(parentType?.targetConstraints).toBe('character-v1 · max 2');
 
     const customType = component
-      .customTypes()
+      .relationshipTypes()
       .find(t => t.id === 'custom-nemesis');
     expect(customType?.sourceConstraints).toBe('Any element');
     expect(customType?.targetConstraints).toBe('Any element');
@@ -229,6 +215,14 @@ describe('RelationshipsTabComponent', () => {
 
   it('should show loading state', () => {
     (projectStateMock.isLoading as any).set(true);
+    fixture.detectChanges();
+
+    expect(component.isLoading()).toBe(true);
+  });
+
+  it('should show loading state while syncing with no relationship types', () => {
+    allTypesSignal.set([]);
+    syncStateSignal.set(DocumentSyncState.Syncing);
     fixture.detectChanges();
 
     expect(component.isLoading()).toBe(true);
@@ -247,5 +241,26 @@ describe('RelationshipsTabComponent', () => {
     component.refresh();
 
     expect(loadSpy).toHaveBeenCalled();
+  });
+
+  it('should show an error when duplicating a type whose source is missing', async () => {
+    vi.mocked(relationshipServiceMock.getTypeById!).mockReturnValue(undefined);
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes().find(t => t.id === 'parent')!;
+
+    await component.cloneType(type);
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to duplicate relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 });
