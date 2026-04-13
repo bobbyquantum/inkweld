@@ -138,7 +138,9 @@ function xmlTextToXmlString(text: Y.XmlText): string {
     let fragment = escapeXml(op.insert);
     if (op.attributes) {
       // Sort mark names for deterministic output
-      const sortedMarks = Object.keys(op.attributes).sort();
+      const sortedMarks = Object.keys(op.attributes).sort((a, b) =>
+        a.localeCompare(b)
+      );
       // Wrap innermost-first so output reads outermost-first
       for (const markName of sortedMarks) {
         fragment = wrapInMarkTag(
@@ -262,6 +264,8 @@ function parseAttrValue(value: string): unknown {
  */
 function isMarkElement(element: Element): boolean {
   const tagName = element.nodeName.toLowerCase();
+  // Note: hasAttribute is used intentionally — these are XML Element nodes from
+  // DOMParser('text/xml'), not HTMLElement, so .dataset is not available.
   return (
     tagName in TAG_TO_MARK ||
     (tagName === 'span' && element.hasAttribute('data-mark'))
@@ -282,6 +286,8 @@ function getMarkFromElement(element: Element): {
   const tagName = element.nodeName.toLowerCase();
 
   // Generic mark via data-mark attribute on <span>
+  // Note: hasAttribute/getAttribute used intentionally — these are XML Element
+  // nodes from DOMParser('text/xml'), not HTMLElement, so .dataset is unavailable.
   if (tagName === 'span' && element.hasAttribute('data-mark')) {
     const markName = element.getAttribute('data-mark')!;
     const attrs: Record<string, unknown> = {};
@@ -352,51 +358,74 @@ function collectTextRuns(
  * XmlText nodes with formatting applied via delta. Structural child elements
  * are converted to XmlElement nodes.
  */
-function processElementChildren(parent: Element): (Y.XmlElement | Y.XmlText)[] {
-  const result: (Y.XmlElement | Y.XmlText)[] = [];
-  let pendingRuns: {
-    text: string;
-    attrs: Record<string, Record<string, unknown>>;
-  }[] = [];
+type TextRun = {
+  text: string;
+  attrs: Record<string, Record<string, unknown>>;
+};
 
-  function flushTextRuns(): void {
-    if (pendingRuns.length === 0) return;
-    const yText = new Y.XmlText();
-    const delta = pendingRuns.map(run => {
-      const entry: {
-        insert: string;
-        attributes?: Record<string, Record<string, unknown>>;
-      } = { insert: run.text };
-      if (Object.keys(run.attrs).length > 0) {
-        entry.attributes = run.attrs;
-      }
-      return entry;
-    });
-    yText.applyDelta(delta);
-    result.push(yText);
-    pendingRuns = [];
+/**
+ * Convert pending text runs into a single Yjs XmlText with formatting applied.
+ */
+function textRunsToXmlText(runs: TextRun[]): Y.XmlText {
+  const yText = new Y.XmlText();
+  const delta = runs.map(run => {
+    const entry: {
+      insert: string;
+      attributes?: Record<string, Record<string, unknown>>;
+    } = { insert: run.text };
+    if (Object.keys(run.attrs).length > 0) {
+      entry.attributes = run.attrs;
+    }
+    return entry;
+  });
+  yText.applyDelta(delta);
+  return yText;
+}
+
+/**
+ * Classify a child DOM node and either append text runs or flush and add a structural element.
+ */
+function processChildNode(
+  child: Node,
+  pendingRuns: TextRun[],
+  result: (Y.XmlElement | Y.XmlText)[]
+): TextRun[] {
+  if (child.nodeType === Node.TEXT_NODE) {
+    const text = child.textContent || '';
+    if (text.trim() !== '' || text === ' ') {
+      pendingRuns.push({ text, attrs: {} });
+    }
+    return pendingRuns;
   }
 
-  for (const child of Array.from(parent.childNodes)) {
-    if (child.nodeType === Node.TEXT_NODE) {
-      const text = child.textContent || '';
-      if (text.trim() === '' && text !== ' ') continue; // skip whitespace-only
-      pendingRuns.push({ text, attrs: {} });
-    } else if (child.nodeType === Node.ELEMENT_NODE) {
-      const element = child as Element;
-      if (isMarkElement(element)) {
-        // Collect formatted text runs
-        pendingRuns.push(...collectTextRuns(element, {}));
-      } else {
-        // Structural element — flush any pending text, then recurse
-        flushTextRuns();
-        const yElement = domElementToYjsElement(element);
-        if (yElement) result.push(yElement);
+  if (child.nodeType === Node.ELEMENT_NODE) {
+    const element = child as Element;
+    if (isMarkElement(element)) {
+      pendingRuns.push(...collectTextRuns(element, {}));
+    } else {
+      if (pendingRuns.length > 0) {
+        result.push(textRunsToXmlText(pendingRuns));
+        pendingRuns = [];
       }
+      const yElement = domElementToYjsElement(element);
+      if (yElement) result.push(yElement);
     }
   }
 
-  flushTextRuns();
+  return pendingRuns;
+}
+
+function processElementChildren(parent: Element): (Y.XmlElement | Y.XmlText)[] {
+  const result: (Y.XmlElement | Y.XmlText)[] = [];
+  let pendingRuns: TextRun[] = [];
+
+  for (const child of Array.from(parent.childNodes)) {
+    pendingRuns = processChildNode(child, pendingRuns, result);
+  }
+
+  if (pendingRuns.length > 0) {
+    result.push(textRunsToXmlText(pendingRuns));
+  }
   return result;
 }
 
