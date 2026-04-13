@@ -375,21 +375,21 @@ export function createQuickExportPlan(
   const plan = createDefaultPublishPlan(projectTitle, authorName);
   plan.name = 'Quick Export';
 
-  // Add title page
-  plan.items.push({
-    id: crypto.randomUUID(),
-    type: PublishPlanItemType.Frontmatter,
-    contentType: FrontmatterType.TitlePage,
-  });
-
-  // Add TOC
-  plan.items.push({
-    id: crypto.randomUUID(),
-    type: PublishPlanItemType.TableOfContents,
-    title: 'Contents',
-    depth: 2,
-    includePageNumbers: false,
-  });
+  // Add title page and TOC
+  plan.items.push(
+    {
+      id: crypto.randomUUID(),
+      type: PublishPlanItemType.Frontmatter,
+      contentType: FrontmatterType.TitlePage,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: PublishPlanItemType.TableOfContents,
+      title: 'Contents',
+      depth: 2,
+      includePageNumbers: false,
+    }
+  );
 
   // Add all elements
   for (const elementId of elementIds) {

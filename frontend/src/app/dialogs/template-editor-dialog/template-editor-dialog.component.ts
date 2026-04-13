@@ -25,8 +25,10 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { MatExpansionPanel } from '@angular/material/expansion';
-import { MatExpansionModule } from '@angular/material/expansion';
+import {
+  MatExpansionModule,
+  MatExpansionPanel,
+} from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -122,15 +124,13 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
 
   constructor() {
     // Deep clone tabs to avoid mutating original
-    const tabs = JSON.parse(
-      JSON.stringify(this.data.schema.tabs)
-    ) as TabSchema[];
+    const tabs: TabSchema[] = structuredClone(this.data.schema.tabs);
 
     // Ensure all fields have IDs for tracking
     tabs.forEach(tab => {
       tab.fields.forEach(field => {
         if (!field.id) {
-          field.id = `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          field.id = `field_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         }
       });
     });
@@ -163,8 +163,8 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
     // Generate unique tab label
     let label = 'New Tab';
     let counter = 1;
-    const existingLabels = this.tabs().map(t => t.label.toLowerCase());
-    while (existingLabels.includes(label.toLowerCase())) {
+    const existingLabels = new Set(this.tabs().map(t => t.label.toLowerCase()));
+    while (existingLabels.has(label.toLowerCase())) {
       label = `New Tab ${counter}`;
       counter++;
     }
@@ -217,7 +217,7 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
    * Add a field to a tab
    */
   addField(tabIndex: number): void {
-    const fieldId = `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const fieldId = `field_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     const newField: FieldSchema = {
       id: fieldId,
       key: `field_${Date.now()}`,

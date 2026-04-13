@@ -37,9 +37,9 @@ export class FolderTabComponent implements OnInit, OnDestroy {
 
       console.log(
         `[FolderTab] Folder ID from route params: ${newElementId}` +
-          (this.elementId !== newElementId
-            ? ' (changed from ' + this.elementId + ')'
-            : '')
+          (this.elementId === newElementId
+            ? ''
+            : ' (changed from ' + this.elementId + ')')
       );
 
       // Update element ID
