@@ -214,7 +214,7 @@ export const routes: Routes = [
     path: ':username/:slug',
     loadComponent: () =>
       import('./pages/project/project.component').then(m => m.ProjectComponent),
-    title: 'Project',
+    // Title is set dynamically by ProjectComponent based on project name
     canActivate: [authGuard],
     canDeactivate: [
       (component: ProjectComponent) =>
