@@ -995,3 +995,772 @@ describe('elementRefNodeSpec', () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugin Props Handlers
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Plugin Props Handlers', () => {
+  let callbacks: ElementRefPluginCallbacks;
+
+  beforeEach(() => {
+    callbacks = {
+      onOpen: vi.fn(),
+      onClose: vi.fn(),
+      onQueryChange: vi.fn(),
+      onRefClick: vi.fn(),
+      onRefHover: vi.fn(),
+      onRefHoverEnd: vi.fn(),
+    };
+  });
+
+  function createStateWithPlugin(
+    docContent: string,
+    active = false,
+    triggerPos: number | null = null
+  ) {
+    const plugin = createElementRefPlugin(callbacks);
+    let state = EditorState.create({
+      schema: testSchema,
+      doc: testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [testSchema.text(docContent)]),
+      ]),
+      plugins: [plugin],
+    });
+
+    if (active && triggerPos !== null) {
+      const tr = state.tr.setMeta(elementRefPluginKey, {
+        type: 'activate',
+        triggerPos,
+        popupPosition: { x: 100, y: 200 },
+      });
+      state = state.apply(tr);
+    }
+
+    return { state, plugin };
+  }
+
+  function createStateWithElementRef() {
+    const plugin = createElementRefPlugin(callbacks);
+    const elementRefNode = testSchema.nodes[ELEMENT_REF_NODE_NAME].create({
+      elementId: 'test-id',
+      elementType: ElementType.Worldbuilding,
+      displayText: 'John Smith',
+      originalName: 'John Smith',
+      relationshipId: 'rel-1',
+      relationshipTypeId: 'referenced-in',
+    });
+
+    const state = EditorState.create({
+      schema: testSchema,
+      doc: testSchema.node('doc', null, [
+        testSchema.node('paragraph', null, [
+          testSchema.text('Hello '),
+          elementRefNode,
+          testSchema.text(' world'),
+        ]),
+      ]),
+      plugins: [plugin],
+    });
+
+    return { state, plugin };
+  }
+
+  describe('handleKeyDown', () => {
+    it('should close popup on Escape when active', () => {
+      const { state, plugin } = createStateWithPlugin('Hello @', true, 7);
+      const dispatched: Transaction[] = [];
+
+      const view = {
+        state,
+        dispatch: vi.fn((tr: Transaction) => {
+          dispatched.push(tr);
+        }),
+      } as unknown as EditorView;
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      const result = plugin.props.handleKeyDown!.call(plugin, view, event);
+
+      expect(result).toBe(true);
+      expect(view.dispatch).toHaveBeenCalled();
+      const action = dispatched[0].getMeta(elementRefPluginKey);
+      expect(action).toEqual({ type: 'deactivate' });
+    });
+
+    it('should return false on Escape when not active', () => {
+      const { state, plugin } = createStateWithPlugin('Hello world');
+
+      const view = {
+        state,
+        dispatch: vi.fn(),
+      } as unknown as EditorView;
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      const result = plugin.props.handleKeyDown!.call(plugin, view, event);
+
+      expect(result).toBe(false);
+      expect(view.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should return false for non-Escape keys when active', () => {
+      const { state, plugin } = createStateWithPlugin('Hello @', true, 7);
+
+      const view = {
+        state,
+        dispatch: vi.fn(),
+      } as unknown as EditorView;
+
+      const event = new KeyboardEvent('keydown', { key: 'a' });
+      const result = plugin.props.handleKeyDown!.call(plugin, view, event);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('handleTextInput', () => {
+    it('should activate plugin when @ is typed', () => {
+      const { state, plugin } = createStateWithPlugin('Hello ');
+      const dispatched: Transaction[] = [];
+
+      const view = {
+        state,
+        dispatch: vi.fn((tr: Transaction) => {
+          dispatched.push(tr);
+        }),
+        coordsAtPos: vi.fn(() => ({
+          left: 50,
+          right: 55,
+          top: 10,
+          bottom: 20,
+        })),
+      } as unknown as EditorView;
+
+      const result = plugin.props.handleTextInput!.call(
+        plugin,
+        view,
+        7,
+        7,
+        '@',
+        () => view.state.tr
+      );
+
+      expect(result).toBe(false); // Returns false to let @ be inserted normally
+      expect(view.dispatch).toHaveBeenCalled();
+      const action = dispatched[0].getMeta(elementRefPluginKey);
+      expect(action.type).toBe('activate');
+      expect(action.triggerPos).toBe(7);
+      expect(callbacks.onOpen).toHaveBeenCalledWith(
+        { x: 50, y: 24 }, // bottom + 4
+        ''
+      );
+    });
+
+    it('should not re-trigger when @ is typed while already active', () => {
+      const { state, plugin } = createStateWithPlugin('Hello @', true, 7);
+
+      const view = {
+        state,
+        dispatch: vi.fn(),
+        coordsAtPos: vi.fn(() => ({
+          left: 50,
+          right: 55,
+          top: 10,
+          bottom: 20,
+        })),
+      } as unknown as EditorView;
+
+      const result = plugin.props.handleTextInput!.call(
+        plugin,
+        view,
+        8,
+        8,
+        '@',
+        () => view.state.tr
+      );
+
+      expect(result).toBe(false);
+      expect(view.dispatch).not.toHaveBeenCalled();
+      expect(callbacks.onOpen).not.toHaveBeenCalled();
+    });
+
+    it('should return false for non-@ text', () => {
+      const { state, plugin } = createStateWithPlugin('Hello');
+
+      const view = {
+        state,
+        dispatch: vi.fn(),
+      } as unknown as EditorView;
+
+      const result = plugin.props.handleTextInput!.call(
+        plugin,
+        view,
+        6,
+        6,
+        'a',
+        () => view.state.tr
+      );
+
+      expect(result).toBe(false);
+      expect(view.dispatch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleClick', () => {
+    it('should call onRefClick when clicking on an elementRef node', () => {
+      const { state, plugin } = createStateWithElementRef();
+
+      const mouseEvent = new MouseEvent('click');
+      const view = { state } as unknown as EditorView;
+
+      // Position 7 is where the elementRef node starts (after "Hello ")
+      const result = plugin.props.handleClick!.call(
+        plugin,
+        view,
+        7,
+        mouseEvent
+      );
+
+      expect(result).toBe(true);
+      expect(callbacks.onRefClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          elementId: 'test-id',
+          elementType: ElementType.Worldbuilding,
+          displayText: 'John Smith',
+          originalName: 'John Smith',
+          relationshipId: 'rel-1',
+          nodePos: 7,
+          mouseEvent,
+          isContextMenu: false,
+        })
+      );
+    });
+
+    it('should return false when clicking on a text node', () => {
+      const { state, plugin } = createStateWithPlugin('Hello world');
+
+      const mouseEvent = new MouseEvent('click');
+      const view = { state } as unknown as EditorView;
+
+      const result = plugin.props.handleClick!.call(
+        plugin,
+        view,
+        3,
+        mouseEvent
+      );
+
+      expect(result).toBe(false);
+      expect(callbacks.onRefClick).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleDOMEvents.contextmenu', () => {
+    it('should handle right-click on a span with data-element-ref via DOM target', () => {
+      const { state, plugin } = createStateWithElementRef();
+      const contextmenuHandler =
+        plugin.props.handleDOMEvents!['contextmenu']!.bind(plugin);
+
+      const refSpan = document.createElement('span');
+      refSpan.setAttribute('data-element-ref', 'true');
+      refSpan.dataset['elementId'] = 'dom-id';
+      refSpan.dataset['elementType'] = ElementType.Item;
+      refSpan.dataset['originalName'] = 'Jane';
+      refSpan.dataset['relationshipId'] = 'rel-3';
+      refSpan.textContent = 'Jane Doe';
+
+      const event = new MouseEvent('contextmenu', {
+        clientX: 50,
+        clientY: 100,
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: refSpan });
+
+      const view = {
+        state,
+        posAtDOM: vi.fn(() => 7),
+      } as unknown as EditorView;
+
+      const result = contextmenuHandler(view, event as unknown as PointerEvent);
+
+      expect(result).toBe(true);
+      expect(callbacks.onRefClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          elementId: 'dom-id',
+          elementType: ElementType.Item,
+          displayText: 'Jane Doe',
+          originalName: 'Jane',
+          relationshipId: 'rel-3',
+          isContextMenu: true,
+        })
+      );
+    });
+
+    it('should handle right-click when posAtDOM throws', () => {
+      const { state, plugin } = createStateWithElementRef();
+      const contextmenuHandler =
+        plugin.props.handleDOMEvents!['contextmenu']!.bind(plugin);
+
+      const refSpan = document.createElement('span');
+      refSpan.setAttribute('data-element-ref', 'true');
+      refSpan.dataset['elementId'] = 'dom-id';
+      refSpan.dataset['elementType'] = ElementType.Item;
+      refSpan.textContent = 'Item';
+
+      const event = new MouseEvent('contextmenu', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: refSpan });
+
+      const view = {
+        state,
+        posAtDOM: vi.fn(() => {
+          throw new Error('Position resolution failed');
+        }),
+      } as unknown as EditorView;
+
+      const result = contextmenuHandler(view, event as unknown as PointerEvent);
+
+      expect(result).toBe(true);
+      expect(callbacks.onRefClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nodePos: -1,
+          isContextMenu: true,
+        })
+      );
+    });
+
+    it('should fall back to coordinate-based resolution for elementRef', () => {
+      const { state, plugin } = createStateWithElementRef();
+      const contextmenuHandler =
+        plugin.props.handleDOMEvents!['contextmenu']!.bind(plugin);
+
+      // Target is NOT a span[data-element-ref]
+      const target = document.createElement('div');
+      const event = new MouseEvent('contextmenu', {
+        clientX: 50,
+        clientY: 100,
+        bubbles: true,
+      });
+      Object.defineProperty(event, 'target', { value: target });
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+      } as unknown as EditorView;
+
+      const result = contextmenuHandler(view, event as unknown as PointerEvent);
+
+      expect(result).toBe(true);
+      expect(callbacks.onRefClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          elementId: 'test-id',
+          nodePos: 7,
+          isContextMenu: true,
+        })
+      );
+    });
+
+    it('should return false when coordinate fallback finds no elementRef', () => {
+      const { state, plugin } = createStateWithPlugin('Hello world');
+      const contextmenuHandler =
+        plugin.props.handleDOMEvents!['contextmenu']!.bind(plugin);
+
+      const target = document.createElement('div');
+      const event = new MouseEvent('contextmenu', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: target });
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => ({ pos: 3, inside: -1 })),
+      } as unknown as EditorView;
+
+      const result = contextmenuHandler(view, event as unknown as PointerEvent);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when posAtCoords returns null', () => {
+      const { state, plugin } = createStateWithPlugin('Hello world');
+      const contextmenuHandler =
+        plugin.props.handleDOMEvents!['contextmenu']!.bind(plugin);
+
+      const target = document.createElement('div');
+      const event = new MouseEvent('contextmenu', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: target });
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => null),
+      } as unknown as EditorView;
+
+      const result = contextmenuHandler(view, event as unknown as PointerEvent);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('handleDOMEvents.touchstart', () => {
+    it('should set up long-press timer on elementRef node', () => {
+      vi.useFakeTimers();
+      const { state, plugin } = createStateWithElementRef();
+      const touchHandler =
+        plugin.props.handleDOMEvents!['touchstart']!.bind(plugin);
+
+      const dom = document.createElement('div');
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+        dom,
+      } as unknown as EditorView;
+
+      const touch = { clientX: 50, clientY: 100 };
+      const event = {
+        touches: [touch],
+        preventDefault: vi.fn(),
+      } as unknown as TouchEvent;
+
+      touchHandler(view, event);
+
+      // Before 500ms, onRefClick should NOT have been called
+      expect(callbacks.onRefClick).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(500);
+
+      expect(callbacks.onRefClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          elementId: 'test-id',
+          nodePos: 7,
+          isContextMenu: true,
+        })
+      );
+
+      vi.useRealTimers();
+    });
+
+    it('should cancel long-press on touchend', () => {
+      vi.useFakeTimers();
+      const { state, plugin } = createStateWithElementRef();
+      const touchHandler =
+        plugin.props.handleDOMEvents!['touchstart']!.bind(plugin);
+
+      const dom = document.createElement('div');
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+        dom,
+      } as unknown as EditorView;
+
+      const touch = { clientX: 50, clientY: 100 };
+      const event = {
+        touches: [touch],
+        preventDefault: vi.fn(),
+      } as unknown as TouchEvent;
+
+      touchHandler(view, event);
+
+      // Simulate touchend before 500ms
+      dom.dispatchEvent(new Event('touchend'));
+      vi.advanceTimersByTime(500);
+
+      expect(callbacks.onRefClick).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('should cancel long-press on touchmove', () => {
+      vi.useFakeTimers();
+      const { state, plugin } = createStateWithElementRef();
+      const touchHandler =
+        plugin.props.handleDOMEvents!['touchstart']!.bind(plugin);
+
+      const dom = document.createElement('div');
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => ({ pos: 7, inside: -1 })),
+        dom,
+      } as unknown as EditorView;
+
+      const touch = { clientX: 50, clientY: 100 };
+      const event = {
+        touches: [touch],
+        preventDefault: vi.fn(),
+      } as unknown as TouchEvent;
+
+      touchHandler(view, event);
+
+      dom.dispatchEvent(new Event('touchmove'));
+      vi.advanceTimersByTime(500);
+
+      expect(callbacks.onRefClick).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('should return false when touch is not on elementRef', () => {
+      const { state, plugin } = createStateWithPlugin('Hello world');
+      const touchHandler =
+        plugin.props.handleDOMEvents!['touchstart']!.bind(plugin);
+
+      const dom = document.createElement('div');
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => ({ pos: 3, inside: -1 })),
+        dom,
+      } as unknown as EditorView;
+
+      const touch = { clientX: 50, clientY: 100 };
+      const event = {
+        touches: [touch],
+        preventDefault: vi.fn(),
+      } as unknown as TouchEvent;
+
+      const result = touchHandler(view, event);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for multi-touch events', () => {
+      const { state, plugin } = createStateWithPlugin('Hello world');
+      const touchHandler =
+        plugin.props.handleDOMEvents!['touchstart']!.bind(plugin);
+
+      const view = {
+        state,
+        dom: document.createElement('div'),
+      } as unknown as EditorView;
+
+      const event = {
+        touches: [
+          { clientX: 50, clientY: 100 },
+          { clientX: 60, clientY: 110 },
+        ],
+        preventDefault: vi.fn(),
+      } as unknown as TouchEvent;
+
+      const result = touchHandler(view, event);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when posAtCoords returns null', () => {
+      const { state, plugin } = createStateWithPlugin('Hello');
+      const touchHandler =
+        plugin.props.handleDOMEvents!['touchstart']!.bind(plugin);
+
+      const view = {
+        state,
+        posAtCoords: vi.fn(() => null),
+        dom: document.createElement('div'),
+      } as unknown as EditorView;
+
+      const touch = { clientX: 50, clientY: 100 };
+      const event = {
+        touches: [touch],
+        preventDefault: vi.fn(),
+      } as unknown as TouchEvent;
+
+      const result = touchHandler(view, event);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('handleDOMEvents.mouseover', () => {
+    it('should call onRefHover when hovering over an elementRef span', () => {
+      const { state, plugin } = createStateWithElementRef();
+      const mouseoverHandler =
+        plugin.props.handleDOMEvents!['mouseover']!.bind(plugin);
+
+      const refSpan = document.createElement('span');
+      refSpan.setAttribute('data-element-ref', 'true');
+      refSpan.getBoundingClientRect = vi.fn(() => ({
+        left: 10,
+        right: 50,
+        top: 5,
+        bottom: 20,
+        width: 40,
+        height: 15,
+        x: 10,
+        y: 5,
+        toJSON: vi.fn(),
+      }));
+
+      const event = new MouseEvent('mouseover');
+      Object.defineProperty(event, 'target', { value: refSpan });
+
+      const view = {
+        state,
+        posAtDOM: vi.fn(() => 7),
+      } as unknown as EditorView;
+
+      const result = mouseoverHandler(view, event);
+
+      expect(result).toBe(true);
+      expect(callbacks.onRefHover).toHaveBeenCalledWith(
+        expect.objectContaining({
+          elementId: 'test-id',
+          displayText: 'John Smith',
+          originalName: 'John Smith',
+          elementType: ElementType.Worldbuilding,
+          position: { x: 30, y: 20 }, // left + width/2, bottom
+        })
+      );
+    });
+
+    it('should return false when target is not an elementRef span', () => {
+      const { state, plugin } = createStateWithPlugin('Hello world');
+      const mouseoverHandler =
+        plugin.props.handleDOMEvents!['mouseover']!.bind(plugin);
+
+      const target = document.createElement('div');
+      const event = new MouseEvent('mouseover');
+      Object.defineProperty(event, 'target', { value: target });
+
+      const view = { state } as unknown as EditorView;
+
+      const result = mouseoverHandler(view, event);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when onRefHover callback is not provided', () => {
+      callbacks.onRefHover = undefined;
+      const plugin = createElementRefPlugin(callbacks);
+      const state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello')]),
+        ]),
+        plugins: [plugin],
+      });
+      const mouseoverHandler =
+        plugin.props.handleDOMEvents!['mouseover']!.bind(plugin);
+
+      const refSpan = document.createElement('span');
+      refSpan.setAttribute('data-element-ref', 'true');
+      const event = new MouseEvent('mouseover');
+      Object.defineProperty(event, 'target', { value: refSpan });
+
+      const view = { state } as unknown as EditorView;
+
+      const result = mouseoverHandler(view, event);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('handleDOMEvents.mouseout', () => {
+    it('should call onRefHoverEnd when leaving an elementRef span', () => {
+      const { state, plugin } = createStateWithPlugin('Hello');
+      const mouseoutHandler =
+        plugin.props.handleDOMEvents!['mouseout']!.bind(plugin);
+
+      const refSpan = document.createElement('span');
+      refSpan.setAttribute('data-element-ref', 'true');
+
+      const unrelatedTarget = document.createElement('div');
+
+      const event = new MouseEvent('mouseout', {
+        relatedTarget: unrelatedTarget,
+      });
+      Object.defineProperty(event, 'target', { value: refSpan });
+
+      const view = { state } as unknown as EditorView;
+
+      const result = mouseoutHandler(view, event);
+
+      expect(result).toBe(false); // Returns false per implementation
+      expect(callbacks.onRefHoverEnd).toHaveBeenCalled();
+    });
+
+    it('should not call onRefHoverEnd when moving to tooltip', () => {
+      const { state, plugin } = createStateWithPlugin('Hello');
+      const mouseoutHandler =
+        plugin.props.handleDOMEvents!['mouseout']!.bind(plugin);
+
+      const refSpan = document.createElement('span');
+      refSpan.setAttribute('data-element-ref', 'true');
+
+      const tooltip = document.createElement('div');
+      tooltip.classList.add('element-ref-tooltip');
+
+      const event = new MouseEvent('mouseout', { relatedTarget: tooltip });
+      Object.defineProperty(event, 'target', { value: refSpan });
+
+      const view = { state } as unknown as EditorView;
+
+      const result = mouseoutHandler(view, event);
+
+      expect(result).toBe(false);
+      expect(callbacks.onRefHoverEnd).not.toHaveBeenCalled();
+    });
+
+    it('should return false when target is not an elementRef span', () => {
+      const { state, plugin } = createStateWithPlugin('Hello');
+      const mouseoutHandler =
+        plugin.props.handleDOMEvents!['mouseout']!.bind(plugin);
+
+      const target = document.createElement('div');
+      const event = new MouseEvent('mouseout');
+      Object.defineProperty(event, 'target', { value: target });
+
+      const view = { state } as unknown as EditorView;
+
+      const result = mouseoutHandler(view, event);
+
+      expect(result).toBe(false);
+      expect(callbacks.onRefHoverEnd).not.toHaveBeenCalled();
+    });
+
+    it('should return false when onRefHoverEnd callback is not provided', () => {
+      callbacks.onRefHoverEnd = undefined;
+      const plugin = createElementRefPlugin(callbacks);
+      const state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello')]),
+        ]),
+        plugins: [plugin],
+      });
+      const mouseoutHandler =
+        plugin.props.handleDOMEvents!['mouseout']!.bind(plugin);
+
+      const refSpan = document.createElement('span');
+      refSpan.setAttribute('data-element-ref', 'true');
+      const event = new MouseEvent('mouseout');
+      Object.defineProperty(event, 'target', { value: refSpan });
+
+      const view = { state } as unknown as EditorView;
+
+      const result = mouseoutHandler(view, event);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('props.decorations', () => {
+    it('should return plugin decorations from state', () => {
+      const { state, plugin } = createStateWithPlugin('Hello @', true, 7);
+
+      const decorations = plugin.props.decorations!.call(plugin, state);
+
+      expect(decorations).not.toBe(DecorationSet.empty);
+    });
+
+    it('should return empty DecorationSet when plugin state is missing', () => {
+      // State without the plugin installed
+      const state = EditorState.create({
+        schema: testSchema,
+        doc: testSchema.node('doc', null, [
+          testSchema.node('paragraph', null, [testSchema.text('Hello')]),
+        ]),
+      });
+
+      const plugin = createElementRefPlugin(callbacks);
+      const decorations = plugin.props.decorations!.call(plugin, state);
+
+      expect(decorations).toBe(DecorationSet.empty);
+    });
+  });
+});
