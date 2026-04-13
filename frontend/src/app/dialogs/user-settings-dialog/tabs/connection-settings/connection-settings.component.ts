@@ -122,7 +122,7 @@ export class ConnectionSettingsComponent {
       this.currentMode = 'server';
 
       // Reload the page to reinitialize with new server
-      window.location.reload();
+      globalThis.location.reload();
     } catch (error) {
       console.error('Failed to connect to server:', error);
       this.connectionError.set(
@@ -320,7 +320,7 @@ export class ConnectionSettingsComponent {
         // This ensures Angular picks up the new mode from localStorage
         setTimeout(() => {
           console.log('[Migration] About to reload...');
-          window.location?.reload?.();
+          globalThis.location?.reload?.();
         }, 1000);
       } else if (state.status === MigrationStatus.Failed) {
         this.snackBar.open(

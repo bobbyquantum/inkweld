@@ -5,7 +5,7 @@ import { z } from '@hono/zod-openapi';
 import { UserSchema } from './common.schemas';
 
 // Re-export UserSchema for convenience
-export { UserSchema };
+export { UserSchema } from './common.schemas';
 
 /**
  * User registration request (duplicate of auth but may have different fields)
