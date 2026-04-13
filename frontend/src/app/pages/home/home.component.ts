@@ -206,7 +206,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   });
 
   // Private state
-  private searchTerm = signal('');
+  private readonly searchTerm = signal('');
 
   ngOnInit() {
     void this.loadProjects();
