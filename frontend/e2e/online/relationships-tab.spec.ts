@@ -5,7 +5,7 @@
  * works correctly in server mode with the real backend.
  *
  * Note: Relationship Types is now a sub-tab within Project Settings.
- * New projects start with default relationship types seeded from templates.
+ * All relationship types are per-project, stored in Yjs (no backend API needed).
  */
 import { expect, type Page, test } from './fixtures';
 
@@ -31,10 +31,10 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
 }
 
 /**
- * Helper to create a custom relationship type from the empty state.
+ * Helper to create a relationship type.
  * Returns after the type is created and visible.
  */
-async function createCustomRelationshipType(
+async function createRelationshipType(
   page: Page,
   name: string,
   inverseName: string
@@ -101,9 +101,6 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // New projects now start with default relationship types seeded from templates
-      // Should see the Custom Types section with relationship type cards
-      await expect(page.locator('h3:has-text("Custom Types")')).toBeVisible();
-
       // Should see at least one relationship type card
       await expect(
         page.getByTestId('relationship-type-card').first()
@@ -136,7 +133,7 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // Create a new relationship type (new projects have default types)
-      await createCustomRelationshipType(page, 'Test Parent', 'Test Child');
+      await createRelationshipType(page, 'Test Parent', 'Test Child');
 
       // Get the first card
       const firstCard = page
@@ -166,10 +163,8 @@ test.describe('Relationships Tab', () => {
     });
   });
 
-  test.describe('Create Custom Type', () => {
-    // TODO: These tests require backend API support for custom relationship types
-    // Skip until backend endpoints are implemented
-    test('should create a new custom relationship type', async ({
+  test.describe('Create Type', () => {
+    test('should create a new relationship type', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -190,7 +185,7 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // Use helper for robust type creation
-      await createCustomRelationshipType(page, 'Nemesis of', 'Hunted by');
+      await createRelationshipType(page, 'Nemesis of', 'Hunted by');
 
       // Should see success snackbar
       await expect(
@@ -227,7 +222,7 @@ test.describe('Relationships Tab', () => {
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
       // Create a relationship type first (new projects start empty)
-      await createCustomRelationshipType(page, 'Test Type', 'Test Inverse');
+      await createRelationshipType(page, 'Test Type', 'Test Inverse');
 
       // Wait for relationship types to load and get initial count
       const typeCards = page.getByTestId('relationship-type-card');
@@ -252,9 +247,8 @@ test.describe('Relationships Tab', () => {
     });
   });
 
-  test.describe('Edit Custom Type', () => {
-    // TODO: These tests require backend API support for custom relationship types
-    test('should edit a custom relationship type name', async ({
+  test.describe('Edit Type', () => {
+    test('should edit a relationship type name', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -274,21 +268,17 @@ test.describe('Relationships Tab', () => {
       const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
-      // First create a custom type
+      // First create a type
       const originalName = `Original Name ${Date.now()}`;
       const updatedName = `Updated Name ${Date.now()}`;
-      await createCustomRelationshipType(
-        page,
-        originalName,
-        'Original Inverse'
-      );
+      await createRelationshipType(page, originalName, 'Original Inverse');
 
-      // Find the custom type card and open its menu
-      const customCard = page
-        .locator('.type-card.custom')
+      // Find the type card and open its menu
+      const typeCard = page
+        .getByTestId('relationship-type-card')
         .filter({ hasText: originalName })
         .first();
-      await customCard.locator('[data-testid="type-menu-button"]').click();
+      await typeCard.locator('[data-testid="type-menu-button"]').click();
 
       // Click Edit from the menu
       await page.getByTestId('edit-type-button').click();
@@ -347,7 +337,7 @@ test.describe('Relationships Tab', () => {
 
       // Create a relationship type first (new projects start empty)
       const typeName = `Editable Type ${Date.now()}`;
-      await createCustomRelationshipType(page, typeName, 'Editable Inverse');
+      await createRelationshipType(page, typeName, 'Editable Inverse');
 
       // Find the specific card and open its menu
       const typeCard = page
@@ -363,15 +353,14 @@ test.describe('Relationships Tab', () => {
       // Should see Edit option (all types are now editable per-project)
       await expect(menu.getByTestId('edit-type-button')).toBeVisible();
 
-      // Should also see Clone and Delete options
-      await expect(menu.locator('button:has-text("Clone")')).toBeVisible();
+      // Should also see Duplicate and Delete options
+      await expect(menu.locator('button:has-text("Duplicate")')).toBeVisible();
       await expect(menu.locator('button:has-text("Delete")')).toBeVisible();
     });
   });
 
-  test.describe('Delete Custom Type', () => {
-    // TODO: These tests require backend API support for custom relationship types
-    test('should delete a custom relationship type', async ({
+  test.describe('Delete Type', () => {
+    test('should delete a relationship type', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -391,16 +380,16 @@ test.describe('Relationships Tab', () => {
       const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
       await navigateToRelationshipsTab(page, projectBaseUrl);
 
-      // First create a custom type
+      // First create a type
       const deleteName = `Type to Delete ${Date.now()}`;
-      await createCustomRelationshipType(page, deleteName, 'Delete Inverse');
+      await createRelationshipType(page, deleteName, 'Delete Inverse');
 
       // Open the menu and click Delete
-      const customCard = page
-        .locator('.type-card.custom')
+      const typeCard = page
+        .getByTestId('relationship-type-card')
         .filter({ hasText: deleteName })
         .first();
-      await customCard.locator('[data-testid="type-menu-button"]').click();
+      await typeCard.locator('[data-testid="type-menu-button"]').click();
       await page.locator('[data-testid="delete-type-button"]').click();
 
       // Confirm deletion in dialog
@@ -428,8 +417,8 @@ test.describe('Relationships Tab', () => {
     });
   });
 
-  test.describe('Clone Type', () => {
-    test('should clone a type', async ({ authenticatedPage: page }) => {
+  test.describe('Duplicate Type', () => {
+    test('should duplicate a type', async ({ authenticatedPage: page }) => {
       // Create a project
       await page.goto('/create-project');
       const uniqueSlug = `rel-clone-${Date.now()}`;
@@ -449,13 +438,9 @@ test.describe('Relationships Tab', () => {
 
       // Create a relationship type first (new projects start empty)
       const originalName = `Original Type ${Date.now()}`;
-      const cloneName = 'My Custom Clone';
+      const duplicateName = 'My Duplicate Type';
 
-      await createCustomRelationshipType(
-        page,
-        originalName,
-        'Original Inverse'
-      );
+      await createRelationshipType(page, originalName, 'Original Inverse');
 
       // Find the specific card we created instead of .first()
       const typeCard = page
@@ -470,75 +455,37 @@ test.describe('Relationships Tab', () => {
       const menu = page.locator('.mat-mdc-menu-panel');
       await expect(menu).toBeVisible();
 
-      // Click "Clone" - it's a menu item, not a testid button
-      await menu.locator('button:has-text("Clone")').click();
+      // Click "Duplicate" from the menu
+      await menu.locator('button:has-text("Duplicate")').click();
 
-      // Should see Rename dialog with title "Clone Relationship Type"
+      // Should see Rename dialog with title "Duplicate Relationship Type"
       await expect(
-        page.locator('app-rename-dialog h2:has-text("Clone Relationship Type")')
+        page.locator(
+          'app-rename-dialog h2:has-text("Duplicate Relationship Type")'
+        )
       ).toBeVisible();
 
-      // Enter new name for the clone using data-testid from RenameDialog
+      // Enter new name for the duplicate using data-testid from RenameDialog
       const input = page.getByTestId('rename-input');
       await input.clear();
-      await input.fill(cloneName);
+      await input.fill(duplicateName);
       await page.getByTestId('rename-confirm-button').click();
 
       // Wait for dialog to close
       await expect(page.locator('app-rename-dialog')).not.toBeVisible();
 
-      // Should see success snackbar for cloning
+      // Should see success snackbar for duplicating
       await expect(
         page.locator('simple-snack-bar').filter({
-          hasText: `Cloned relationship type: ${cloneName}`,
+          hasText: `Duplicated relationship type: ${duplicateName}`,
         })
       ).toBeVisible();
 
-      // Should see the cloned type in the list
+      // Should see the duplicated type in the list
       await expect(
         page
           .getByTestId('relationship-type-title')
-          .filter({ hasText: new RegExp(`^${cloneName}$`) })
-      ).toBeVisible();
-    });
-  });
-
-  test.describe('Refresh', () => {
-    test('should refresh the relationship types list', async ({
-      authenticatedPage: page,
-    }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-refresh-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Refresh Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
-
-      // Create a relationship type first (new projects start empty)
-      await createCustomRelationshipType(
-        page,
-        'Refresh Type',
-        'Refresh Inverse'
-      );
-
-      // Click refresh button
-      await page
-        .locator('button[mattooltip="Refresh relationship types"]')
-        .click();
-
-      // Should still see relationship types
-      await expect(
-        page.locator('[data-testid="relationship-type-card"]').first()
+          .filter({ hasText: new RegExp(`^${duplicateName}$`) })
       ).toBeVisible();
     });
   });

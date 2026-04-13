@@ -30,7 +30,6 @@ interface RelationshipTypeView {
   icon: string;
   category: RelationshipCategory;
   categoryLabel: string;
-  isBuiltIn: boolean;
   color?: string;
   sourceConstraints: string;
   targetConstraints: string;
@@ -77,11 +76,8 @@ export class RelationshipsTabComponent {
     const types = this.allTypes();
     const views = types.map(type => this.toView(type));
 
-    // Sort: custom first, then by category, then by name
+    // Sort by category, then by name
     return [...views].sort((a, b) => {
-      if (a.isBuiltIn !== b.isBuiltIn) {
-        return a.isBuiltIn ? 1 : -1; // Custom first
-      }
       if (a.category !== b.category) {
         return a.categoryLabel.localeCompare(b.categoryLabel);
       }
@@ -90,12 +86,6 @@ export class RelationshipsTabComponent {
   });
 
   readonly hasTypes = computed(() => this.relationshipTypes().length > 0);
-  readonly builtInTypes = computed(() =>
-    this.relationshipTypes().filter(t => t.isBuiltIn)
-  );
-  readonly customTypes = computed(() =>
-    this.relationshipTypes().filter(t => !t.isBuiltIn)
-  );
 
   constructor() {
     // We no longer need the effect to manually load types
@@ -122,7 +112,6 @@ export class RelationshipsTabComponent {
       icon: type.icon || this.getCategoryIcon(type.category),
       category: type.category,
       categoryLabel: this.getCategoryLabel(type.category),
-      isBuiltIn: type.isBuiltIn,
       color: type.color,
       sourceConstraints: this.formatConstraints(type.sourceEndpoint),
       targetConstraints: this.formatConstraints(type.targetEndpoint),
@@ -211,9 +200,9 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Create a new custom relationship type
+   * Create a new relationship type
    */
-  async createCustomType(): Promise<void> {
+  async createType(): Promise<void> {
     const project = this.project();
     if (!project) {
       return;
@@ -271,7 +260,6 @@ export class RelationshipsTabComponent {
 
   /**
    * Edit a relationship type
-   * All types are now editable since they're stored per-project
    */
   async editType(type: RelationshipTypeView): Promise<void> {
     // Ask for the new name
@@ -313,7 +301,6 @@ export class RelationshipsTabComponent {
 
   /**
    * Delete a relationship type
-   * All types are now deletable since they're stored per-project
    */
   async deleteType(type: RelationshipTypeView): Promise<void> {
     const confirmed = await this.dialogGateway.openConfirmationDialog({
@@ -357,7 +344,7 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Clone a relationship type as a custom type
+   * Duplicate a relationship type
    */
   async cloneType(type: RelationshipTypeView): Promise<void> {
     const project = this.project();
@@ -367,7 +354,7 @@ export class RelationshipsTabComponent {
 
     // Ask for the new name
     const newName = await this.dialogGateway.openRenameDialog({
-      title: 'Clone Relationship Type',
+      title: 'Duplicate Relationship Type',
       currentName: `${type.name} (Copy)`,
     });
 
@@ -388,14 +375,14 @@ export class RelationshipsTabComponent {
           inverseLabel: original.inverseLabel,
           showInverse: original.showInverse,
           icon: original.icon,
-          category: RelationshipCategory.Custom,
+          category: original.category,
           color: original.color,
           sourceEndpoint: { ...original.sourceEndpoint },
           targetEndpoint: { ...original.targetEndpoint },
         });
 
         this.snackBar.open(
-          `✓ Cloned relationship type: ${newType.name}`,
+          `✓ Duplicated relationship type: ${newType.name}`,
           'Close',
           {
             duration: 3000,
@@ -404,10 +391,10 @@ export class RelationshipsTabComponent {
       });
     } catch (err: unknown) {
       console.error(
-        '[RelationshipsTab] Error cloning type:',
+        '[RelationshipsTab] Error duplicating type:',
         err instanceof Error ? err.message : err
       );
-      this.snackBar.open('Failed to clone relationship type', 'Close', {
+      this.snackBar.open('Failed to duplicate relationship type', 'Close', {
         duration: 5000,
       });
     }

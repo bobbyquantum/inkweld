@@ -116,27 +116,6 @@
   }
 }
 
-// Section
-.section {
-  margin-bottom: 32px;
-
-  .section-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 0 16px;
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--sys-on-surface-variant);
-
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-  }
-}
-
 // Types grid
 .types-grid {
   display: grid;
@@ -180,40 +159,10 @@
     top: 8px;
     right: 8px;
   }
-
-  &.built-in {
-    opacity: 0.85;
-
-    mat-card-header mat-icon[mat-card-avatar] {
-      background: var(--sys-surface-container);
-    }
-  }
-
-  &.custom {
-    border-left: 3px solid var(--sys-primary);
-  }
 }
 
 // Chips
-.built-in-chip {
-
-  --mat-chip-label-text-color: var(--sys-on-surface-variant);
-
-  font-size: 0.75rem;
-}
-
-.custom-chip {
-
-  --mat-chip-label-text-color: var(--sys-on-primary-container);
-
-  --mat-chip-selected-label-text-color: var(--sys-on-primary-container);
-
-  background: var(--sys-primary-container) !important;
-  font-size: 0.75rem;
-}
-
 .category-chip {
-
   --mat-chip-label-text-color: var(--sys-on-surface-variant);
 
   font-size: 0.75rem;
