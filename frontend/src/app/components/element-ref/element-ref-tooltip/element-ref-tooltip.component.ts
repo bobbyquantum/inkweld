@@ -513,11 +513,18 @@ export class ElementRefTooltipComponent {
     return this.elementRefService.getDefaultIconForType(data.elementType);
   }
 
-  /** Format element type for display (delegates to service) */
+  /** Format element type for display (delegates to service, resolving schema name for worldbuilding) */
   formatElementType(): string {
-    const type = this._data()?.elementType;
-    if (!type) return 'Unknown';
-    return this.elementRefService.formatElementType(type);
+    const data = this._data();
+    if (!data) return 'Unknown';
+
+    // Try to resolve the full element for schema-aware formatting
+    const element = this.elementRefService.getElementById(data.elementId);
+    if (element) {
+      return this.elementRefService.formatElementTypeForElement(element);
+    }
+
+    return this.elementRefService.formatElementType(data.elementType);
   }
 
   /** Resolve a media:// URL to a displayable blob URL */

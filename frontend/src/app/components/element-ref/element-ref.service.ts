@@ -250,6 +250,29 @@ export class ElementRefService {
   }
 
   /**
+   * Format element type for display, resolving schema name for worldbuilding elements.
+   * Falls back to generic type formatting if schema is unavailable.
+   */
+  formatElementTypeForElement(element: Element): string {
+    if (element.type === ElementType.Worldbuilding && element.schemaId) {
+      const project = this.projectState.project();
+      const projectKey = project
+        ? `${project.username}/${project.slug}`
+        : 'unknown';
+      const schema = this.worldbuildingService.getSchemaFromLibrary(
+        projectKey,
+        element.schemaId,
+        project?.username,
+        project?.slug
+      );
+      if (schema?.name) {
+        return schema.name;
+      }
+    }
+    return this.formatElementType(element.type);
+  }
+
+  /**
    * Build a breadcrumb path for an element
    */
   private buildElementPath(element: Element): string {

@@ -267,27 +267,95 @@ describe('ElementRefTooltipComponent', () => {
   });
 
   describe('type formatting', () => {
-    const typeTestCases = [
-      { type: ElementType.Item, label: 'Document' },
-      { type: ElementType.Worldbuilding, label: 'Worldbuilding' },
-      { type: ElementType.Folder, label: 'Folder' },
-    ];
+    it('should format Item as Document', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: 200 },
+      };
 
-    typeTestCases.forEach(({ type, label }) => {
-      it(`should format ${type} as '${label}'`, () => {
-        const tooltipData: ElementRefTooltipData = {
-          elementId: 'test-id',
-          elementType: type,
-          displayText: 'Test',
-          originalName: 'Test',
-          position: { x: 100, y: 200 },
-        };
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
 
-        component.tooltipData = tooltipData;
-        fixture.detectChanges();
+      expect(component.formatElementType()).toBe('Document');
+    });
 
-        expect(component.formatElementType()).toBe(label);
+    it('should format Worldbuilding as fallback when element not found', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'nonexistent-wb',
+        elementType: ElementType.Worldbuilding,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
+
+      expect(component.formatElementType()).toBe('Worldbuilding');
+    });
+
+    it('should format Folder as fallback when element not found', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'nonexistent-folder',
+        elementType: ElementType.Folder,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
+
+      expect(component.formatElementType()).toBe('Folder');
+    });
+
+    it('should return schema name for worldbuilding element with resolved schema', () => {
+      const worldbuildingElement: Element = {
+        id: 'wb-char-1',
+        name: 'Elara',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-schema',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      // Set up elements and project in the mock state
+      const projectState = TestBed.inject(ProjectStateService) as unknown as {
+        elements: ReturnType<typeof signal<Element[]>>;
+        project: ReturnType<typeof signal>;
+      };
+      projectState.elements.set([worldbuildingElement]);
+      projectState.project.set({
+        username: 'testuser',
+        slug: 'testproject',
       });
+
+      const worldbuildingService = TestBed.inject(WorldbuildingService);
+      vi.spyOn(worldbuildingService, 'getSchemaFromLibrary').mockReturnValue({
+        id: 'character-schema',
+        name: 'Character',
+        icon: 'person_pin',
+      } as ReturnType<WorldbuildingService['getSchemaFromLibrary']>);
+
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'wb-char-1',
+        elementType: ElementType.Worldbuilding,
+        displayText: 'Elara',
+        originalName: 'Elara',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
+
+      expect(component.formatElementType()).toBe('Character');
     });
   });
 

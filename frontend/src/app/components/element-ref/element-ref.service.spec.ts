@@ -475,6 +475,91 @@ describe('ElementRefService', () => {
     });
   });
 
+  describe('formatElementTypeForElement', () => {
+    it('should return schema name for worldbuilding element with schemaId', () => {
+      const mockProjectStateWithProject = {
+        elements: signal(mockElements),
+        project: signal({
+          username: 'testuser',
+          slug: 'testproject',
+        }),
+      };
+      const mockWorldbuildingService = {
+        getSchemaFromLibrary: vi.fn().mockReturnValue({
+          id: 'character-schema',
+          name: 'Character',
+          icon: 'person_pin',
+        }),
+      };
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          ElementRefService,
+          {
+            provide: ProjectStateService,
+            useValue: mockProjectStateWithProject,
+          },
+          { provide: LoggerService, useValue: { debug: vi.fn() } },
+          { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+        ],
+      });
+
+      const serviceWithSchema = TestBed.inject(ElementRefService);
+
+      const worldbuildingElement: Element = {
+        id: 'wb-1',
+        name: 'Test Character',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-schema',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      expect(
+        serviceWithSchema.formatElementTypeForElement(worldbuildingElement)
+      ).toBe('Character');
+    });
+
+    it('should fall back to generic type when no schemaId', () => {
+      const worldbuildingElement: Element = {
+        id: 'wb-2',
+        name: 'Test Element',
+        type: ElementType.Worldbuilding,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      expect(service.formatElementTypeForElement(worldbuildingElement)).toBe(
+        'Worldbuilding'
+      );
+    });
+
+    it('should return formatted type for non-worldbuilding elements', () => {
+      const docElement: Element = {
+        id: 'doc-1',
+        name: 'Chapter 1',
+        type: ElementType.Item,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      expect(service.formatElementTypeForElement(docElement)).toBe('Document');
+    });
+  });
+
   describe('tooltip control', () => {
     it('should show tooltip with data', () => {
       const tooltipData = {
