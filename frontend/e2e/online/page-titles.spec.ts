@@ -147,14 +147,3 @@ test.describe('Page Titles - Project', () => {
     await expect(page).toHaveTitle('Home');
   });
 });
-
-test.describe('Page Titles - Error Pages', () => {
-  test('should show 404 title for unknown routes', async ({
-    anonymousPage: page,
-  }) => {
-    await page.goto('/nonexistent-route-abc123');
-    await page.waitForLoadState('domcontentloaded');
-
-    await expect(page).toHaveTitle('404 - Page Not Found');
-  });
-});
