@@ -156,7 +156,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       const project = this.projectState.project() as Project | null;
       if (project) {
-        this.title.setTitle(`${project.title}`);
+        this.title.setTitle(`Inkweld \u2013 ${project.title}`);
       }
     });
 
