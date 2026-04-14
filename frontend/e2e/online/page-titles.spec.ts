@@ -16,36 +16,62 @@ test.describe('Page Titles - Public', () => {
     await expect(page).toHaveTitle('Home');
   });
 
-  test('should show correct title on about page', async ({
-    anonymousPage: page,
-  }) => {
-    // Mock API calls to prevent 401-triggered redirect from AuthInterceptor
-    // (UserMenuComponent calls loadUnreadCount() which returns 401 for anonymous users)
-    await page.route('**/api/**', route =>
-      route.fulfill({
-        status: 200,
-        body: '{}',
-        contentType: 'application/json',
-      })
-    );
+  test('should show correct title on about page', async ({ browser }) => {
+    // Use a context with local-mode config to avoid AuthInterceptor
+    // redirecting to Home on 401 from server API calls during init
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          version: 2,
+          activeConfigId: 'local-1',
+          configurations: [
+            {
+              id: 'local-1',
+              type: 'local',
+              displayName: 'Local',
+              addedAt: now,
+              lastUsedAt: now,
+              userProfile: { name: 'Test', username: 'test' },
+            },
+          ],
+        })
+      );
+    });
     await page.goto('/about');
-
     await expect(page).toHaveTitle('About Inkweld');
+    await context.close();
   });
 
-  test('should show correct title on changelog page', async ({
-    anonymousPage: page,
-  }) => {
-    await page.route('**/api/**', route =>
-      route.fulfill({
-        status: 200,
-        body: '{}',
-        contentType: 'application/json',
-      })
-    );
+  test('should show correct title on changelog page', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      const now = Date.now();
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          version: 2,
+          activeConfigId: 'local-1',
+          configurations: [
+            {
+              id: 'local-1',
+              type: 'local',
+              displayName: 'Local',
+              addedAt: now,
+              lastUsedAt: now,
+              userProfile: { name: 'Test', username: 'test' },
+            },
+          ],
+        })
+      );
+    });
     await page.goto('/about/changelog');
-
     await expect(page).toHaveTitle('Changelog');
+    await context.close();
   });
 });
 
