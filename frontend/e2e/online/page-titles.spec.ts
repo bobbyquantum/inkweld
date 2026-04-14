@@ -12,7 +12,6 @@ test.describe('Page Titles - Public', () => {
     anonymousPage: page,
   }) => {
     await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
 
     await expect(page).toHaveTitle('Home');
   });
@@ -20,8 +19,16 @@ test.describe('Page Titles - Public', () => {
   test('should show correct title on about page', async ({
     anonymousPage: page,
   }) => {
+    // Mock API calls to prevent 401-triggered redirect from AuthInterceptor
+    // (UserMenuComponent calls loadUnreadCount() which returns 401 for anonymous users)
+    await page.route('**/api/**', route =>
+      route.fulfill({
+        status: 200,
+        body: '{}',
+        contentType: 'application/json',
+      })
+    );
     await page.goto('/about');
-    await page.waitForLoadState('domcontentloaded');
 
     await expect(page).toHaveTitle('About Inkweld');
   });
@@ -29,8 +36,14 @@ test.describe('Page Titles - Public', () => {
   test('should show correct title on changelog page', async ({
     anonymousPage: page,
   }) => {
+    await page.route('**/api/**', route =>
+      route.fulfill({
+        status: 200,
+        body: '{}',
+        contentType: 'application/json',
+      })
+    );
     await page.goto('/about/changelog');
-    await page.waitForLoadState('domcontentloaded');
 
     await expect(page).toHaveTitle('Changelog');
   });
