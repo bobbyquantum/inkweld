@@ -29,4 +29,4 @@ CI will deploy the output in `docs/site/build/` to `docs.inkweld.org` once the h
 - Keep `docusaurus.config.ts` current (site title, links, metadata).
 - Update this README anytime the workflow changes.
 
-For contribution guidelines, see [documentation pull request template](../.github/PULL_REQUEST_TEMPLATE/documentation.md).
+For contribution guidelines, see the [pull request template](../.github/PULL_REQUEST_TEMPLATE.md).

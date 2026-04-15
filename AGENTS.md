@@ -206,7 +206,7 @@ src/
 bun install
 
 # Start development servers (both frontend & backend)
-npm start
+npm run dev
 
 # Run tests
 npm test
