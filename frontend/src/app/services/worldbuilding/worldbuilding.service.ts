@@ -110,6 +110,21 @@ export class WorldbuildingService {
   }
 
   /**
+   * Destroy a Yjs connection for a specific element, releasing all resources.
+   * Used by export flows to clean up after reading data in batch.
+   */
+  destroyConnection(elementId: string, username: string, slug: string): void {
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
+    const connection = this.connections.get(connectionKey);
+    if (!connection) return;
+
+    connection.provider?.disconnect();
+    void connection.indexeddbProvider.destroy();
+    connection.ydoc.destroy();
+    this.connections.delete(connectionKey);
+  }
+
+  /**
    * Return all schemas currently loaded for the active project.
    * Useful for populating filter dropdowns, schema pickers, etc.
    */

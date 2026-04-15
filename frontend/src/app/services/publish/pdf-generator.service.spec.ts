@@ -26,6 +26,7 @@ import {
   type PdfProgress,
   type PdfResult,
 } from './pdf-generator.service';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 describe('PdfGeneratorService', () => {
   let service: PdfGeneratorService;
@@ -67,6 +68,11 @@ describe('PdfGeneratorService', () => {
       id: 'doc-2',
       name: 'Chapter 2',
       type: ElementType.Item,
+    } as Element,
+    {
+      id: 'wb-1',
+      name: 'Test Character',
+      type: ElementType.Worldbuilding,
     } as Element,
   ];
 
@@ -199,6 +205,10 @@ describe('PdfGeneratorService', () => {
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: LocalStorageService, useValue: localStorageMock },
+        {
+          provide: WorldbuildingExportService,
+          useValue: { loadWorldbuildingEntry: vi.fn().mockResolvedValue(null) },
+        },
       ],
     });
 

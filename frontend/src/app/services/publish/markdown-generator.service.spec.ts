@@ -19,6 +19,7 @@ import {
   MarkdownPhase,
   type MarkdownProgress,
 } from './markdown-generator.service';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 describe('MarkdownGeneratorService', () => {
   let service: MarkdownGeneratorService;
@@ -57,6 +58,17 @@ describe('MarkdownGeneratorService', () => {
       expandable: false,
       version: 1,
       metadata: {},
+    } as Element,
+    {
+      id: 'wb-1',
+      name: 'Test Character',
+      type: ElementType.Worldbuilding,
+      parentId: null,
+      order: 1,
+      level: 0,
+      expandable: false,
+      version: 1,
+      metadata: { schemaId: 'character-v1' },
     } as Element,
   ];
 
@@ -153,6 +165,10 @@ describe('MarkdownGeneratorService', () => {
         { provide: LoggerService, useValue: loggerMock },
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
+        {
+          provide: WorldbuildingExportService,
+          useValue: { loadWorldbuildingEntry: vi.fn().mockResolvedValue(null) },
+        },
       ],
     });
 

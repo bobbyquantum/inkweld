@@ -21,6 +21,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 export interface HtmlProgress {
   phase: HtmlPhase;
@@ -67,6 +68,7 @@ export class HtmlGeneratorService {
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly worldbuildingExport = inject(WorldbuildingExportService);
 
   private coverImageData: string | null = null;
 
@@ -291,6 +293,41 @@ export class HtmlGeneratorService {
             `</section>`
           );
         }
+      }
+    } else if (element.type === ElementType.Worldbuilding) {
+      const entry = await this.worldbuildingExport.loadWorldbuildingEntry(
+        element.id,
+        item.titleOverride || element.name
+      );
+      if (entry) {
+        parts.push('<section class="worldbuilding">');
+        parts.push(`<h1>${this.escapeHtml(entry.title)}</h1>`);
+
+        if (entry.image) {
+          const dataUrl = await this.blobToBase64(entry.image);
+          parts.push(
+            `<div class="wb-image"><img src="${dataUrl}" alt="${this.escapeHtml(entry.title)}" /></div>`
+          );
+        }
+
+        if (entry.description) {
+          parts.push(
+            `<p class="wb-description">${this.escapeHtml(entry.description)}</p>`
+          );
+        }
+
+        for (const section of entry.sections) {
+          parts.push(`<h2>${this.escapeHtml(section.heading)}</h2>`);
+          parts.push('<table class="wb-fields">');
+          for (const field of section.fields) {
+            parts.push(
+              `<tr><th>${this.escapeHtml(field.label)}</th><td>${this.escapeHtml(field.value)}</td></tr>`
+            );
+          }
+          parts.push('</table>');
+        }
+
+        parts.push('</section>');
       }
     }
 

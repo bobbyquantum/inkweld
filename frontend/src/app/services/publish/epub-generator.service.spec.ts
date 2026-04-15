@@ -21,6 +21,7 @@ import {
   type EpubProgress,
   type EpubResult,
 } from './epub-generator.service';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 // Uses real JSZip (same as project-export and project-import specs).
 // Avoids vi.mock('@progress/jszip-esm') which intermittently fails with
@@ -67,6 +68,11 @@ describe('EpubGeneratorService', () => {
       id: 'doc-2',
       name: 'Chapter 2',
       type: ElementType.Item,
+    } as Element,
+    {
+      id: 'wb-1',
+      name: 'Test Character',
+      type: ElementType.Worldbuilding,
     } as Element,
   ];
 
@@ -177,6 +183,10 @@ describe('EpubGeneratorService', () => {
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: LocalStorageService, useValue: localStorageMock },
+        {
+          provide: WorldbuildingExportService,
+          useValue: { loadWorldbuildingEntry: vi.fn().mockResolvedValue(null) },
+        },
       ],
     });
 

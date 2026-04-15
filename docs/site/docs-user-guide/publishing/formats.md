@@ -11,11 +11,11 @@ Inkweld can export your writing in four formats: EPUB, PDF, HTML, and Markdown.
 
 ## Available Formats
 
-| Format | Best For |
-|--------|----------|
-| **EPUB** | E-readers, digital distribution |
-| **PDF** | Print, manuscripts, archival |
-| **HTML** | Web publishing, previewing |
+| Format       | Best For                           |
+| ------------ | ---------------------------------- |
+| **EPUB**     | E-readers, digital distribution    |
+| **PDF**      | Print, manuscripts, archival       |
+| **HTML**     | Web publishing, previewing         |
 | **Markdown** | Backup, version control, migration |
 
 ### EPUB
@@ -54,6 +54,7 @@ Each export includes:
 - **Cover image** — Your project cover (if enabled)
 - **Table of contents** — Generated from your content items
 - **Document content** — The documents you added to the plan
+- **Worldbuilding entries** — Character profiles, locations, and other worldbuilding elements with structured fields and cover images
 - **Metadata** — Title, author, language, description
 
 ## Client-Side Generation

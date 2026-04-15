@@ -20,6 +20,7 @@ import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 export interface MarkdownProgress {
   phase: MarkdownPhase;
@@ -65,6 +66,7 @@ export class MarkdownGeneratorService {
   private readonly logger = inject(LoggerService);
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
+  private readonly worldbuildingExport = inject(WorldbuildingExportService);
 
   private readonly progressSubject = new BehaviorSubject<MarkdownProgress>({
     phase: MarkdownPhase.Idle,
@@ -249,6 +251,34 @@ export class MarkdownGeneratorService {
         if (child.type === ElementType.Item) {
           const content = await this.getDocumentContent(child.id);
           parts.push(`## ${child.name}`, content);
+        }
+      }
+    } else if (element.type === ElementType.Worldbuilding) {
+      const entry = await this.worldbuildingExport.loadWorldbuildingEntry(
+        element.id,
+        item.titleOverride || element.name
+      );
+      if (entry) {
+        parts.push(`# ${entry.title}`);
+
+        if (entry.image) {
+          const dataUrl = await this.blobToDataUrl(entry.image);
+          parts.push(`![${entry.title}](${dataUrl})`);
+        }
+
+        if (entry.description) {
+          parts.push(entry.description);
+        }
+
+        for (const section of entry.sections) {
+          parts.push(`## ${section.heading}`);
+          parts.push('| Field | Value |');
+          parts.push('| --- | --- |');
+          for (const field of section.fields) {
+            parts.push(
+              `| ${this.escapeMarkdownCell(field.label)} | ${this.escapeMarkdownCell(field.value)} |`
+            );
+          }
         }
       }
     }
@@ -700,6 +730,19 @@ export class MarkdownGeneratorService {
       );
     }
     return String(num);
+  }
+
+  private async blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  private escapeMarkdownCell(text: string): string {
+    return text.replaceAll('|', '\\|').replaceAll('\n', ' ');
   }
 
   private generateFilename(title: string): string {

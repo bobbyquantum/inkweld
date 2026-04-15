@@ -324,10 +324,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.updatePlan({ items });
   }
 
-  /** Predicate: only allow non-folder elements to be dropped into the list */
+  /** Predicate: only allow publishable elements to be dropped into the list */
   canEnterPublishList = (drag: CdkDrag): boolean => {
     const data = drag.data as { type?: ElementType } | undefined;
-    return data?.type !== undefined && data.type !== ElementType.Folder;
+    if (!data?.type) return false;
+    return (
+      data.type === ElementType.Item || data.type === ElementType.Worldbuilding
+    );
   };
 
   /** Handle element selection from dropdown */
@@ -522,8 +525,10 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
   getItemIcon(item: PublishPlanItem): string {
     switch (item.type) {
-      case PublishPlanItemType.Element:
-        return 'description';
+      case PublishPlanItemType.Element: {
+        const el = this.elements().find(e => e.id === item.elementId);
+        return el ? this.getElementIcon(el) : 'description';
+      }
       case PublishPlanItemType.Frontmatter:
         return 'first_page';
       case PublishPlanItemType.Backmatter:

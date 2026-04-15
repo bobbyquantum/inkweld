@@ -13,7 +13,7 @@ A publish plan saves your export configuration so you can generate consistent ou
 
 - **Format** — EPUB, PDF, HTML, or Markdown
 - **Metadata** — Title, author, language, description
-- **Content items** — Which documents to include, in what order
+- **Content items** — Which documents and worldbuilding entries to include, in what order
 - **Options** — Include TOC, include cover
 
 ## Creating a Plan
@@ -26,23 +26,25 @@ A publish plan saves your export configuration so you can generate consistent ou
 
 ### Metadata Section
 
-| Field | Purpose |
-|-------|---------|
-| **Plan Name** | Internal name (e.g., "Final EPUB") |
-| **Format** | Output format |
-| **Book Title** | Title in the exported file |
-| **Author** | Author name |
-| **Language** | Content language code (e.g., "en") |
-| **Description** | Back cover blurb or summary |
+| Field           | Purpose                            |
+| --------------- | ---------------------------------- |
+| **Plan Name**   | Internal name (e.g., "Final EPUB") |
+| **Format**      | Output format                      |
+| **Book Title**  | Title in the exported file         |
+| **Author**      | Author name                        |
+| **Language**    | Content language code (e.g., "en") |
+| **Description** | Back cover blurb or summary        |
 
 ### Contents Section
 
-Add documents to your publication:
+Add content to your publication:
 
-1. Use the dropdown to select a document
+1. Use the dropdown to select a document or worldbuilding element
 2. It appears in the content list
 3. Drag items to reorder
 4. Click the trash icon to remove
+
+Use **Add Everything** to include all documents and worldbuilding entries at once.
 
 Click **Add TOC** to insert a table of contents entry.
 
@@ -68,6 +70,7 @@ Plans appear on your project home page. Click a plan to open and edit it.
 **Save/Discard**: Changes show Save and Discard buttons. Click Save to persist changes.
 
 **Multiple Plans**: Create different plans for different purposes:
+
 - "Manuscript PDF" for editors
 - "Beta EPUB" for early readers
 - "Archive Markdown" for backup

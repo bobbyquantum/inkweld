@@ -20,6 +20,7 @@ import {
   HtmlPhase,
   type HtmlProgress,
 } from './html-generator.service';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 describe('HtmlGeneratorService', () => {
   let service: HtmlGeneratorService;
@@ -39,6 +40,9 @@ describe('HtmlGeneratorService', () => {
   };
   let localStorageMock: {
     getMedia: ReturnType<typeof vi.fn>;
+  };
+  let worldbuildingExportMock: {
+    loadWorldbuildingEntry: ReturnType<typeof vi.fn>;
   };
 
   const mockProject: Project = {
@@ -62,6 +66,17 @@ describe('HtmlGeneratorService', () => {
       expandable: false,
       version: 1,
       metadata: {},
+    } as Element,
+    {
+      id: 'wb-1',
+      name: 'Test Character',
+      type: ElementType.Worldbuilding,
+      parentId: null,
+      order: 1,
+      level: 0,
+      expandable: false,
+      version: 1,
+      metadata: { schemaId: 'character-v1' },
     } as Element,
   ];
 
@@ -116,6 +131,10 @@ describe('HtmlGeneratorService', () => {
       getMedia: vi.fn().mockResolvedValue(null),
     };
 
+    worldbuildingExportMock = {
+      loadWorldbuildingEntry: vi.fn().mockResolvedValue(null),
+    };
+
     // Mock IndexedDB
     const mockIndexedDB = {
       open: vi.fn().mockImplementation(() => {
@@ -164,6 +183,10 @@ describe('HtmlGeneratorService', () => {
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: LocalStorageService, useValue: localStorageMock },
+        {
+          provide: WorldbuildingExportService,
+          useValue: worldbuildingExportMock,
+        },
       ],
     });
 
@@ -1476,6 +1499,75 @@ describe('HtmlGeneratorService', () => {
       const result = await service.generateHtml(planWithElement);
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('worldbuilding element', () => {
+    it('should render worldbuilding entry as HTML section', async () => {
+      worldbuildingExportMock.loadWorldbuildingEntry.mockResolvedValue({
+        title: 'Test Character',
+        image: null,
+        imageMimeType: null,
+        description: 'A brave hero',
+        sections: [
+          {
+            heading: 'Basic Info',
+            fields: [
+              { label: 'Name', value: 'Test Character' },
+              { label: 'Age', value: '25' },
+            ],
+          },
+        ],
+      });
+
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'wb-1',
+            includeChildren: false,
+          },
+        ],
+      };
+
+      const result = await service.generateHtml(plan);
+
+      expect(result.success).toBe(true);
+      const html = await result.file!.text();
+      expect(html).toContain('Test Character');
+      expect(html).toContain('A brave hero');
+      expect(html).toContain('Basic Info');
+      expect(html).toContain('Age');
+      expect(html).toContain('25');
+    });
+
+    it('should not count worldbuilding elements as chapters', async () => {
+      worldbuildingExportMock.loadWorldbuildingEntry.mockResolvedValue({
+        title: 'Test Character',
+        image: null,
+        imageMimeType: null,
+        description: null,
+        sections: [],
+      });
+
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'wb-1',
+            includeChildren: false,
+          },
+        ],
+      };
+
+      const result = await service.generateHtml(plan);
+
+      expect(result.success).toBe(true);
+      expect(result.stats!.chapterCount).toBe(0);
     });
   });
 });

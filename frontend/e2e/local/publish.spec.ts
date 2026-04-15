@@ -527,4 +527,257 @@ test.describe('Local Publishing Workflow', () => {
       expect(names).toContain('Chapter2');
     });
   });
+
+  test.describe('Worldbuilding Publishing', () => {
+    /**
+     * Helper: create a worldbuilding (character) element in the project tree.
+     * Uses the "character-v1" built-in schema.
+     */
+    async function createWorldbuildingElement(
+      page: import('@playwright/test').Page,
+      name: string
+    ): Promise<void> {
+      await page.getByTestId('create-new-element').click();
+
+      // Wait for the new-element dialog worldbuilding options to load
+      const wbSelector = '[data-testid="element-type-character-v1"]';
+      try {
+        await page.waitForSelector(wbSelector);
+      } catch {
+        // If element type is not visible, the dialog might need a moment
+        await page.waitForTimeout(500);
+      }
+
+      await page.getByTestId('element-type-character-v1').click();
+      const nameInput = page.getByTestId('element-name-input');
+      await nameInput.waitFor({ state: 'visible' });
+      await nameInput.fill(name);
+      await page.getByTestId('create-element-button').click();
+
+      // Wait for dialog to close and element to appear
+      await expect(page.locator('mat-dialog-container')).toBeHidden();
+      await expect(page.getByTestId(`element-${name}`)).toBeVisible();
+    }
+
+    /**
+     * Helper: set up a project with a worldbuilding element and open a publish plan.
+     */
+    async function navigateToPublishPlanWithWorldbuilding(
+      page: import('@playwright/test').Page,
+      wbName = 'TestCharacter'
+    ): Promise<void> {
+      // Open the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+
+      // Create a worldbuilding element
+      await createWorldbuildingElement(page, wbName);
+
+      // Navigate to Publishing tab
+      await navigateToPublishingTab(page);
+
+      // Create a new publish plan
+      await page.getByTestId('create-publish-plan-button').click();
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+    }
+
+    test('should include worldbuilding element via add everything', async ({
+      localPageWithProject: page,
+    }) => {
+      await navigateToPublishPlanWithWorldbuilding(page);
+
+      // Navigate to Contents section
+      await selectSection(page, 'contents');
+
+      // Click add everything — should include the worldbuilding element
+      await page.getByTestId('add-everything-button').click();
+
+      // Verify the worldbuilding element appears in the content list
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
+      await expect(page.getByTestId('content-item-0')).toBeVisible();
+      await expect(
+        page.getByTestId('content-item-0').getByTestId('item-name')
+      ).toContainText('TestCharacter');
+    });
+
+    test('should generate EPUB with worldbuilding content', async ({
+      localPageWithProject: page,
+    }) => {
+      await navigateToPublishPlanWithWorldbuilding(page, 'EpubCharacter');
+
+      // Add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
+
+      // Select EPUB format (format-select is on the metadata section)
+      await selectSection(page, 'metadata');
+      await page.getByTestId('format-select').click();
+      await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
+
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
+      await page.getByTestId('generate-button').click();
+
+      // Wait for the complete dialog
+      await expect(
+        page.getByTestId('publish-complete-dialog-title')
+      ).toBeVisible();
+
+      // Verify file info shows EPUB
+      await expect(page.getByTestId('filename')).toBeVisible();
+      await expect(page.getByTestId('format-name')).toContainText('EPUB');
+      await expect(page.getByTestId('file-size')).toBeVisible();
+
+      // Download and verify filename
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toContain('.epub');
+    });
+
+    test('should generate PDF with worldbuilding content', async ({
+      localPageWithProject: page,
+    }) => {
+      await navigateToPublishPlanWithWorldbuilding(page, 'PdfCharacter');
+
+      // Add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
+
+      // Select PDF format (format-select is on the metadata section)
+      await selectSection(page, 'metadata');
+      await page.getByTestId('format-select').click();
+      await page.getByRole('option', { name: 'PDF' }).click();
+
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
+      await page.getByTestId('generate-button').click();
+
+      // Wait for the complete dialog
+      await expect(
+        page.getByTestId('publish-complete-dialog-title')
+      ).toBeVisible();
+
+      // Verify file info shows PDF
+      await expect(page.getByTestId('format-name')).toContainText('PDF');
+
+      // Download and verify filename
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toContain('.pdf');
+    });
+
+    test('should generate HTML with worldbuilding content', async ({
+      localPageWithProject: page,
+    }) => {
+      await navigateToPublishPlanWithWorldbuilding(page, 'HtmlCharacter');
+
+      // Add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
+
+      // Select HTML format (format-select is on the metadata section)
+      await selectSection(page, 'metadata');
+      await page.getByTestId('format-select').click();
+      await page.getByRole('option', { name: 'HTML' }).click();
+
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
+      await page.getByTestId('generate-button').click();
+
+      // Wait for the complete dialog
+      await expect(
+        page.getByTestId('publish-complete-dialog-title')
+      ).toBeVisible();
+
+      // Verify file info shows HTML
+      await expect(page.getByTestId('format-name')).toContainText('HTML');
+
+      // Download and verify filename
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toContain('.html');
+    });
+
+    test('should generate Markdown with worldbuilding content', async ({
+      localPageWithProject: page,
+    }) => {
+      await navigateToPublishPlanWithWorldbuilding(page, 'MdCharacter');
+
+      // Add content
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
+
+      // Select Markdown format (format-select is on the metadata section)
+      await selectSection(page, 'metadata');
+      await page.getByTestId('format-select').click();
+      await page.getByRole('option', { name: 'Markdown' }).click();
+
+      // Navigate to Publish section and generate
+      await selectSection(page, 'publish');
+      await page.getByTestId('generate-button').click();
+
+      // Wait for the complete dialog
+      await expect(
+        page.getByTestId('publish-complete-dialog-title')
+      ).toBeVisible();
+
+      // Verify file info shows Markdown
+      await expect(page.getByTestId('format-name')).toContainText('Markdown');
+
+      // Download and verify filename
+      const downloadPromise = page.waitForEvent('download');
+      await page.getByTestId('download-button').click();
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toContain('.md');
+    });
+
+    test('should include both documents and worldbuilding in the same plan', async ({
+      localPageWithProject: page,
+    }) => {
+      // Open the project
+      await page.getByTestId('project-card').first().click();
+      await page.waitForURL(/\/.+\/.+/);
+
+      // Create a document element
+      await createDocumentElement(page, 'Chapter1');
+
+      // Create a worldbuilding element
+      await createWorldbuildingElement(page, 'MixedCharacter');
+
+      // Navigate to Publishing tab and create plan
+      await navigateToPublishingTab(page);
+      await page.getByTestId('create-publish-plan-button').click();
+      await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+
+      // Add everything
+      await selectSection(page, 'contents');
+      await page.getByTestId('add-everything-button').click();
+
+      // Verify both items are in the content list
+      await expect(page.getByTestId('content-items-list')).toBeVisible();
+      await expect(page.getByTestId('content-item-0')).toBeVisible();
+      await expect(page.getByTestId('content-item-1')).toBeVisible();
+      const names = await page
+        .locator('[data-testid="item-name"]')
+        .allTextContents();
+      expect(names).toContain('Chapter1');
+      expect(names).toContain('MixedCharacter');
+
+      // Generate and verify it completes successfully
+      await selectSection(page, 'publish');
+      await page.getByTestId('generate-button').click();
+
+      await expect(
+        page.getByTestId('publish-complete-dialog-title')
+      ).toBeVisible();
+      await expect(page.getByTestId('file-size')).toBeVisible();
+    });
+  });
 });

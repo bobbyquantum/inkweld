@@ -23,6 +23,7 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 /**
  * Progress information for PDF generation
@@ -91,6 +92,7 @@ export class PdfGeneratorService {
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly worldbuildingExport = inject(WorldbuildingExportService);
 
   private coverImageData: CoverImageData | null = null;
 
@@ -463,6 +465,34 @@ export class PdfGeneratorService {
         if (child.type === ElementType.Item) {
           ctx.markup += `== ${child.name}\n\n`;
           await this.addDocumentContent(child.id, ctx);
+        }
+      }
+    } else if (element.type === ElementType.Worldbuilding) {
+      const entry = await this.worldbuildingExport.loadWorldbuildingEntry(
+        element.id,
+        item.titleOverride || element.name
+      );
+      if (entry) {
+        ctx.markup += '#pagebreak(weak: true)\n';
+        ctx.markup += `= ${this.escapeTypst(entry.title)}\n\n`;
+
+        if (entry.image) {
+          const base64 = await this.blobToBase64(entry.image);
+          const mimeType = entry.imageMimeType || 'image/png';
+          ctx.markup += `#align(center, image.decode(bytes("${base64}"), format: "${this.getTypstImageFormat(mimeType)}", width: 40%))\n\n`;
+        }
+
+        if (entry.description) {
+          ctx.markup += `${this.escapeTypst(entry.description)}\n\n`;
+        }
+
+        for (const section of entry.sections) {
+          ctx.markup += `== ${this.escapeTypst(section.heading)}\n\n`;
+          ctx.markup += '#table(columns: 2, stroke: 0.5pt + luma(200),\n';
+          for (const field of section.fields) {
+            ctx.markup += `  [*${this.escapeTypst(field.label)}*], [${this.escapeTypst(field.value)}],\n`;
+          }
+          ctx.markup += ')\n\n';
         }
       }
     }
@@ -844,6 +874,13 @@ export class PdfGeneratorService {
       .replaceAll('[', String.raw`\[`)
       .replaceAll(']', String.raw`\]`)
       .replaceAll('`', String.raw`\``);
+  }
+
+  private getTypstImageFormat(mimeType: string): string {
+    if (mimeType.includes('png')) return 'png';
+    if (mimeType.includes('gif')) return 'gif';
+    if (mimeType.includes('svg')) return 'svg';
+    return 'jpg';
   }
 
   private toRoman(num: number): string {

@@ -190,6 +190,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Markdown export | Plain text with formatting |
 | ✅ | 🔥 | HTML export | Single-file web output |
 | ✅ | 🟡 | Publish plans | Save export configurations for reuse |
+| ✅ | 🟡 | Worldbuilding in exports | Include worldbuilding entries in all export formats |
 | ⬜ | 🟡 | Typography customization | Print formatting options |
 
 ### Auth & Security

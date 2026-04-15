@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **EPUB Export**: Export projects and documents to EPUB format for e-readers
 - **PDF Export**: High-quality PDF generation using the Typst typesetting system with full offline support
+- **Worldbuilding in Exports**: Include worldbuilding entries (characters, locations, etc.) in all four export formats (EPUB, PDF, HTML, Markdown) with structured field rendering and cover images
 
 #### Authentication & Security
 

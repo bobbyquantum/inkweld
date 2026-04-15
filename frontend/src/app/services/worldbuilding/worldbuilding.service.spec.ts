@@ -978,4 +978,24 @@ describe('WorldbuildingService', () => {
       expect(typeof service.localEdit$.subscribe).toBe('function');
     });
   });
+
+  describe('destroyConnection', () => {
+    it('should remove connection after creating one', async () => {
+      const elementId = 'destroy-test-123';
+
+      // Create a connection by reading data
+      await service.getWorldbuildingData(elementId, username, slug);
+
+      // Destroy should not throw
+      expect(() =>
+        service.destroyConnection(elementId, username, slug)
+      ).not.toThrow();
+    });
+
+    it('should not throw if connection does not exist', () => {
+      expect(() =>
+        service.destroyConnection('nonexistent', username, slug)
+      ).not.toThrow();
+    });
+  });
 });

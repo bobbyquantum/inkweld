@@ -23,6 +23,7 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { applyMarks, MARK_TAGS } from './publish-marks-helper';
+import { WorldbuildingExportService } from './worldbuilding-export.service';
 
 /**
  * Progress information for EPUB generation
@@ -84,6 +85,10 @@ interface Chapter {
   content: string;
   order: number;
   level: number;
+  /** Whether this chapter should be numbered (default: true) */
+  isNumbered?: boolean;
+  /** Optional embedded image for worldbuilding entries */
+  imageData?: { blob: Blob; mimeType: string; filename: string };
 }
 
 /**
@@ -112,6 +117,7 @@ export class EpubGeneratorService {
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly worldbuildingExport = inject(WorldbuildingExportService);
 
   // Cover image data (set during generation)
   private coverImageData: { blob: Blob; mimeType: string } | null = null;
@@ -231,7 +237,9 @@ export class EpubGeneratorService {
       result.filename = this.generateFilename(plan.metadata.title);
       result.stats = {
         wordCount,
-        chapterCount: chapters.filter(ch => ch.level === 0).length,
+        chapterCount: chapters.filter(
+          ch => ch.level === 0 && ch.isNumbered !== false
+        ).length,
         documentCount: chapters.length,
         fileSize: blob.size,
         generationTimeMs: Date.now() - startTime,
@@ -302,7 +310,8 @@ export class EpubGeneratorService {
         );
 
         for (const chapter of itemChapters) {
-          if (chapter.level === 0) chapterNumber++;
+          if (chapter.level === 0 && chapter.isNumbered !== false)
+            chapterNumber++;
           chapters.push(chapter);
         }
       } catch (error) {
@@ -415,6 +424,55 @@ export class EpubGeneratorService {
             level: child.level - element.level,
           });
         }
+      }
+    } else if (element.type === ElementType.Worldbuilding) {
+      const entry = await this.worldbuildingExport.loadWorldbuildingEntry(
+        element.id,
+        item.titleOverride || element.name
+      );
+      if (entry) {
+        const title = entry.title;
+        let imageTag = '';
+        let imageData: Chapter['imageData'];
+
+        if (entry.image) {
+          const ext = this.getImageExtension(
+            entry.imageMimeType || 'image/png'
+          );
+          const imgFilename = `wb_${element.id}.${ext}`;
+          imageTag = `<div class="wb-image"><img src="images/${imgFilename}" alt="${this.escapeHtml(title)}"/></div>`;
+          imageData = {
+            blob: entry.image,
+            mimeType: entry.imageMimeType || 'image/png',
+            filename: imgFilename,
+          };
+        }
+
+        const descriptionHtml = entry.description
+          ? `<p class="wb-description">${this.escapeHtml(entry.description)}</p>`
+          : '';
+
+        let sectionsHtml = '';
+        for (const section of entry.sections) {
+          sectionsHtml += `<h2>${this.escapeHtml(section.heading)}</h2>\n<table class="wb-fields">\n`;
+          for (const field of section.fields) {
+            sectionsHtml += `<tr><th>${this.escapeHtml(field.label)}</th><td>${this.escapeHtml(field.value)}</td></tr>\n`;
+          }
+          sectionsHtml += `</table>\n`;
+        }
+
+        const content = `<h1>${this.escapeHtml(title)}</h1>\n${imageTag}\n${descriptionHtml}\n${sectionsHtml}`;
+
+        chapters.push({
+          id: element.id,
+          title,
+          filename: `chapter_${String(chapters.length + 1).padStart(3, '0')}.xhtml`,
+          content: this.wrapInXhtml(title, content),
+          order: chapters.length,
+          level: 0,
+          isNumbered: false,
+          imageData,
+        });
       }
     }
 
@@ -891,6 +949,13 @@ export class EpubGeneratorService {
     // Add chapters
     for (const chapter of chapters) {
       zip.file(`OEBPS/${chapter.filename}`, chapter.content);
+      // Add worldbuilding images to the zip
+      if (chapter.imageData) {
+        zip.file(
+          `OEBPS/images/${chapter.imageData.filename}`,
+          chapter.imageData.blob
+        );
+      }
     }
 
     // Add stylesheet
@@ -918,6 +983,17 @@ export class EpubGeneratorService {
     if (mimeType.includes('png')) return 'png';
     if (mimeType.includes('gif')) return 'gif';
     if (mimeType.includes('webp')) return 'webp';
+    return 'jpg';
+  }
+
+  /**
+   * Get file extension from a MIME type
+   */
+  private getImageExtension(mimeType: string): string {
+    if (mimeType.includes('png')) return 'png';
+    if (mimeType.includes('gif')) return 'gif';
+    if (mimeType.includes('webp')) return 'webp';
+    if (mimeType.includes('svg')) return 'svg';
     return 'jpg';
   }
 
@@ -992,6 +1068,12 @@ export class EpubGeneratorService {
       manifestParts.push(
         `    <item id="chapter${i}" href="${ch.filename}" media-type="application/xhtml+xml"/>`
       );
+      // Add worldbuilding image to manifest
+      if (ch.imageData) {
+        manifestParts.push(
+          `    <item id="wb-img-${i}" href="images/${ch.imageData.filename}" media-type="${ch.imageData.mimeType}"/>`
+        );
+      }
     });
 
     const manifestItems = manifestParts.join('\n');
