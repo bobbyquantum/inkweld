@@ -182,26 +182,16 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
  * Helper to navigate to media tab in project
  */
 async function navigateToMediaTab(page: Page): Promise<void> {
-  // Media Library button can be in sidebar or on project home page
-  await page
-    .getByRole('button', { name: /Media Library/i })
-    .first()
-    .click();
-  // Wait for networkidle to ensure system config API call completes,
-  // which determines if the generate image button should be visible
+  // Use the sidebar media button (same pattern as local tests)
+  const mediaButton = page.getByTestId('sidebar-media-button');
+  await mediaButton.click();
+  await page.waitForURL(/\/media$/);
   await page.waitForLoadState('networkidle');
 
   // Wait for the media tab content to be active
-  // Use toPass to handle potential timing issues with tab switching
-  await expect(async () => {
-    // Check that we're on the media tab by looking for media-specific content
-    const mediaContent = page.locator('[data-testid="media-tab-content"]');
-    const generateButton = page.locator(
-      '[data-testid="generate-image-button"]'
-    );
-    // Either the media content container or the generate button should be visible
-    await expect(mediaContent.or(generateButton)).toBeVisible();
-  }).toPass();
+  await expect(
+    page.locator('[data-testid="media-search-input"]')
+  ).toBeVisible();
 }
 
 test.describe('Image Generation - Admin Profile Management', () => {
@@ -388,7 +378,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await context.close();
   });
 
-  test('should show image generation button on media tab', async ({
+  test('should show add media button with generate option on media tab', async ({
     authenticatedPage,
   }) => {
     const testSlug = `test-img-gen-${Date.now()}`;
@@ -396,11 +386,25 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await createProject(authenticatedPage, 'Image Gen Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    const generateButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
+    // The + button opens the add media dialog
+    const addButton = authenticatedPage.locator(
+      '[data-testid="add-media-button"]'
     );
-    await expect(generateButton).toBeVisible();
-    await expect(generateButton).toBeEnabled();
+    await expect(addButton).toBeVisible();
+    await expect(addButton).toBeEnabled();
+    await addButton.click();
+
+    // The generate option should be available in the dialog
+    const generateOption = authenticatedPage.locator(
+      '[data-testid="add-media-generate"]'
+    );
+    await expect(generateOption).toBeVisible();
+    await expect(generateOption).toBeEnabled();
+
+    // Close dialog
+    await authenticatedPage
+      .locator('mat-dialog-container button', { hasText: 'Cancel' })
+      .click();
   });
 
   test('should open image generation dialog with profiles loaded', async ({
@@ -411,12 +415,11 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await createProject(authenticatedPage, 'Image Dialog Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    // Wait for button to be visible (may take time for config to load)
-    const genButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
-    );
-    await expect(genButton).toBeVisible();
-    await genButton.click();
+    // Open add media dialog, then choose generate
+    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
+    await authenticatedPage
+      .locator('[data-testid="add-media-generate"]')
+      .click();
 
     // Wait for dialog title
     const dialogTitle = authenticatedPage.locator(
@@ -436,12 +439,11 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await createProject(authenticatedPage, 'Image Prompt Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    // Wait for button to be visible (may take time for config to load)
-    const generateButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
-    );
-    await expect(generateButton).toBeVisible();
-    await generateButton.click();
+    // Open add media dialog, then choose generate
+    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
+    await authenticatedPage
+      .locator('[data-testid="add-media-generate"]')
+      .click();
 
     // Wait for dialog and loading to complete
     await expect(
@@ -471,12 +473,11 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await createProject(authenticatedPage, 'Fill Prompt Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    // Wait for button to be visible (may take time for config to load)
-    const genButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
-    );
-    await expect(genButton).toBeVisible();
-    await genButton.click();
+    // Open add media dialog, then choose generate
+    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
+    await authenticatedPage
+      .locator('[data-testid="add-media-generate"]')
+      .click();
 
     // Wait for dialog to be fully loaded
     await waitForDialogReady(authenticatedPage);
@@ -510,12 +511,11 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await createProject(authenticatedPage, 'Gen Fail Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    // Wait for button to be visible (may take time for config to load)
-    const genButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
-    );
-    await expect(genButton).toBeVisible();
-    await genButton.click();
+    // Open add media dialog, then choose generate
+    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
+    await authenticatedPage
+      .locator('[data-testid="add-media-generate"]')
+      .click();
 
     // Wait for dialog to be fully loaded
     await waitForDialogReady(authenticatedPage);
@@ -560,12 +560,11 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await createProject(authenticatedPage, 'Close Dialog Test', testSlug);
     await navigateToMediaTab(authenticatedPage);
 
-    // Wait for button to be visible (may take time for config to load)
-    const genButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
-    );
-    await expect(genButton).toBeVisible();
-    await genButton.click();
+    // Open add media dialog, then choose generate
+    await authenticatedPage.locator('[data-testid="add-media-button"]').click();
+    await authenticatedPage
+      .locator('[data-testid="add-media-generate"]')
+      .click();
 
     const dialogTitle = authenticatedPage.locator(
       '[data-testid="image-gen-dialog-title"]'

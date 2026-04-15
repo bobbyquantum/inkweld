@@ -1,21 +1,44 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import {
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   type OnDestroy,
   type OnInit,
   signal,
+  viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { type MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { createMediaUrl, extractMediaId } from '@components/image-paste';
+import { MediaItemCardComponent } from '@components/media-item-card/media-item-card.component';
+import { type TagDefinition } from '@components/tags/tag.model';
+import {
+  AddMediaDialogComponent,
+  type AddMediaDialogData,
+  type AddMediaDialogResult,
+} from '@dialogs/add-media-dialog/add-media-dialog.component';
+import { FileUploadComponent } from '@dialogs/file-upload/file-upload.component';
+import {
+  TagPickerDialogComponent,
+  type TagPickerDialogData,
+  type TagPickerDialogResult,
+} from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
+import { ElementType } from '@inkweld/index';
+import type { CanvasConfig } from '@models/canvas.model';
 import {
   type GenerationJob,
   ImageGenerationService,
@@ -28,10 +51,22 @@ import {
   type MediaInfo,
 } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
+import { MediaTagService } from '@services/media-tag/media-tag.service';
+import { DocumentService } from '@services/project/document.service';
+import { MediaProjectTagService } from '@services/project/media-project-tag.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
+import { TagService } from '@services/tag/tag.service';
+import { firstValueFrom } from 'rxjs';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
+import {
+  type FilterElement,
+  type FilterTag,
+  type MediaCategory as FilterCategory,
+  MediaFilterPanelComponent,
+  type MediaFilterState,
+} from './media-filter-panel/media-filter-panel.component';
 
 export type MediaCategory =
   | 'cover'
@@ -60,15 +95,19 @@ export interface MediaItem extends MediaInfo {
   styleUrls: ['./media-tab.component.scss'],
   imports: [
     FormsModule,
+    MatBadgeModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
+    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MediaItemCardComponent,
+    MatSidenavModule,
     MatTooltipModule,
-    MatMenuModule,
     FileSizePipe,
+    MediaFilterPanelComponent,
   ],
 })
 export class MediaTabComponent implements OnInit, OnDestroy {
@@ -80,6 +119,16 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly setupService = inject(SetupService);
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
+  private readonly mediaTagService = inject(MediaTagService);
+  private readonly mediaProjectTagService = inject(MediaProjectTagService);
+  private readonly tagService = inject(TagService);
+  private readonly documentService = inject(DocumentService);
+  private readonly dialog = inject(MatDialog);
+  private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Reference to the filter sidenav (large screens) */
+  readonly filterSidenav = viewChild<MatSidenav>('filterSidenav');
 
   // AI generation status - considers mode, config, and connection state
   readonly aiGenerationStatus = computed(() =>
@@ -92,8 +141,99 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   mediaItems = signal<MediaItem[]>([]);
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
-  selectedCategory = signal<string>('all');
   searchQuery = signal<string>('');
+
+  /** Unified filter state */
+  readonly filterState = signal<MediaFilterState>({
+    category: 'all',
+    elementIds: [],
+    tagIds: [],
+    dateFrom: null,
+    dateTo: null,
+  });
+
+  /** Whether we're on a small screen */
+  readonly isSmallScreen = signal(false);
+
+  /** localStorage key prefix for persisting search/filter state */
+  private get storageKeyPrefix(): string {
+    const project = this.projectState.project();
+    if (!project?.username || !project?.slug) return '';
+    return `media-tab:${project.username}:${project.slug}`;
+  }
+
+  /** Persist search query and filter state to localStorage */
+  private readonly persistEffect = effect(() => {
+    const query = this.searchQuery();
+    const filters = this.filterState();
+    const prefix = this.storageKeyPrefix;
+    if (!prefix) return;
+
+    try {
+      window.localStorage.setItem(`${prefix}:search`, query);
+      window.localStorage.setItem(
+        `${prefix}:filters`,
+        JSON.stringify({
+          category: filters.category,
+          elementIds: filters.elementIds,
+          tagIds: filters.tagIds,
+          // Dates stored as ISO strings (or null)
+          dateFrom: filters.dateFrom?.toISOString() ?? null,
+          dateTo: filters.dateTo?.toISOString() ?? null,
+        })
+      );
+    } catch {
+      // localStorage may be unavailable — silently ignore
+    }
+  });
+
+  // Legacy compatibility — keep these as computed from filterState
+  selectedCategory = computed(() => this.filterState().category);
+  elementFilter = computed(() =>
+    this.filterState().elementIds.length === 1
+      ? this.filterState().elementIds[0]
+      : null
+  );
+  tagFilter = computed(() =>
+    this.filterState().tagIds.length === 1 ? this.filterState().tagIds[0] : null
+  );
+
+  /** Number of active filters (for badge) */
+  readonly activeFilterCount = computed(() => {
+    const f = this.filterState();
+    let count = 0;
+    if (f.category !== 'all') count++;
+    count += f.elementIds.length;
+    count += f.tagIds.length;
+    if (f.dateFrom) count++;
+    if (f.dateTo) count++;
+    return count;
+  });
+
+  /** Available elements for filter panel */
+  readonly filterElements = computed<FilterElement[]>(() => {
+    return this.projectState
+      .elements()
+      .filter(
+        el =>
+          el.type === ElementType.Worldbuilding || el.type === ElementType.Item
+      )
+      .map(el => ({
+        id: el.id,
+        name: el.name,
+        icon: this.getElementIcon(el.id),
+      }));
+  });
+
+  /** Available tags for filter panel */
+  readonly filterTags = computed<FilterTag[]>(() => {
+    return this.tagService.allTags().map(t => ({
+      id: t.id,
+      name: t.name,
+      icon: t.icon,
+      color: t.color,
+    }));
+  });
 
   // Stats
   totalSize = signal<number>(0);
@@ -154,16 +294,57 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.restorePersistedState();
     void this.loadMedia();
+
+    // Track viewport size for responsive filter panel
+    this.breakpointObserver
+      .observe('(max-width: 900px)')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(result => this.isSmallScreen.set(result.matches));
   }
 
   ngOnDestroy(): void {
     this.projectEffect.destroy();
     this.jobEffect.destroy();
     this.syncVersionEffect.destroy();
+    this.persistEffect.destroy();
     this.stopJobPolling();
     // Cleanup blob URLs
     this.revokeAllUrls();
+  }
+
+  /** Restore persisted search query and filter state from localStorage */
+  private restorePersistedState(): void {
+    const prefix = this.storageKeyPrefix;
+    if (!prefix) return;
+
+    try {
+      const savedQuery = window.localStorage.getItem(`${prefix}:search`);
+      if (savedQuery) {
+        this.searchQuery.set(savedQuery);
+      }
+
+      const savedFilters = window.localStorage.getItem(`${prefix}:filters`);
+      if (savedFilters) {
+        const parsed = JSON.parse(savedFilters) as {
+          category?: string;
+          elementIds?: string[];
+          tagIds?: string[];
+          dateFrom?: string | null;
+          dateTo?: string | null;
+        };
+        this.filterState.set({
+          category: (parsed.category as MediaFilterState['category']) ?? 'all',
+          elementIds: Array.isArray(parsed.elementIds) ? parsed.elementIds : [],
+          tagIds: Array.isArray(parsed.tagIds) ? parsed.tagIds : [],
+          dateFrom: parsed.dateFrom ? new Date(parsed.dateFrom) : null,
+          dateTo: parsed.dateTo ? new Date(parsed.dateTo) : null,
+        });
+      }
+    } catch {
+      // Corrupted data — ignore and use defaults
+    }
   }
 
   private startJobPolling(): void {
@@ -274,11 +455,12 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Filtered media items based on selected category and search query.
+   * Filtered media items based on filter state and search query.
    * Uses computed() for automatic reactivity and memoization.
    */
   readonly filteredItems = computed(() => {
-    const category = this.selectedCategory();
+    const { category, elementIds, tagIds, dateFrom, dateTo } =
+      this.filterState();
     const query = this.searchQuery().trim().toLowerCase();
 
     let items = this.mediaItems();
@@ -287,20 +469,98 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       items = items.filter(item => item.category === category);
     }
 
+    // Multi-element filter: item must be tagged with ALL selected elements
+    if (elementIds.length > 0) {
+      items = items.filter(item => {
+        const tagged = new Set(
+          this.mediaTagService.getElementsForMedia(item.mediaId)
+        );
+        return elementIds.every(id => tagged.has(id));
+      });
+    }
+
+    // Multi-tag filter: item must be tagged with ALL selected tags
+    if (tagIds.length > 0) {
+      items = items.filter(item => {
+        const tagged = new Set(
+          this.mediaProjectTagService.getTagsForMedia(item.mediaId)
+        );
+        return tagIds.every(id => tagged.has(id));
+      });
+    }
+
+    // Date range filter
+    if (dateFrom) {
+      const fromTime = dateFrom.getTime();
+      items = items.filter(
+        item => new Date(item.createdAt).getTime() >= fromTime
+      );
+    }
+    if (dateTo) {
+      // Include the entire "to" day
+      const toTime = new Date(dateTo).setHours(23, 59, 59, 999);
+      items = items.filter(
+        item => new Date(item.createdAt).getTime() <= toTime
+      );
+    }
+
     if (query) {
+      // Build lookup of element names and project tag names matching the query
+      const matchingElementIds = new Set(
+        this.projectState
+          .elements()
+          .filter(el => el.name.toLowerCase().includes(query))
+          .map(el => el.id)
+      );
+      const matchingTagIds = new Set(
+        this.tagService
+          .allTags()
+          .filter(t => t.name.toLowerCase().includes(query))
+          .map(t => t.id)
+      );
+
       items = items.filter(item => {
         const filename = (item.filename || '').toLowerCase();
         const mediaId = item.mediaId.toLowerCase();
         const prompt = (item.generation?.prompt || '').toLowerCase();
-        return (
+
+        // Match by filename, mediaId, or generation prompt
+        if (
           filename.includes(query) ||
           mediaId.includes(query) ||
           prompt.includes(query)
+        ) {
+          return true;
+        }
+
+        // Match by tagged element names
+        const taggedElementIds = this.mediaTagService.getElementsForMedia(
+          item.mediaId
         );
+        if (taggedElementIds.some(id => matchingElementIds.has(id))) {
+          return true;
+        }
+
+        // Match by project tag names
+        const taggedTagIds = this.mediaProjectTagService.getTagsForMedia(
+          item.mediaId
+        );
+        if (taggedTagIds.some(id => matchingTagIds.has(id))) {
+          return true;
+        }
+
+        return false;
       });
     }
 
     return items;
+  });
+
+  /**
+   * Total size of filtered items
+   */
+  readonly filteredSize = computed(() => {
+    return this.filteredItems().reduce((sum, item) => sum + item.size, 0);
   });
 
   /**
@@ -311,10 +571,94 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Open filter panel (sidenav toggle — overlay on mobile, side on desktop)
+   */
+  openFilters(): void {
+    void this.filterSidenav()?.toggle();
+  }
+
+  /**
+   * Handle filter state changes from the filter panel
+   */
+  onFilterChange(state: MediaFilterState): void {
+    this.filterState.set(state);
+  }
+
+  /**
+   * Clear all filters (reset to defaults)
+   */
+  clearAllFilters(): void {
+    this.filterState.set({
+      category: 'all',
+      elementIds: [],
+      tagIds: [],
+      dateFrom: null,
+      dateTo: null,
+    });
+  }
+
+  /**
+   * Open dialog to add element(s) to the filter
+   */
+  async onAddFilterElement(): Promise<void> {
+    const allTagIds = this.tagService.allTags().map(t => t.id);
+    const dialogRef = this.dialog.open<
+      TagPickerDialogComponent,
+      TagPickerDialogData,
+      TagPickerDialogResult
+    >(TagPickerDialogComponent, {
+      data: {
+        title: 'Add Element Filter',
+        subtitle: 'Select elements to filter media by.',
+        excludeElementIds: this.filterState().elementIds,
+        excludeTagIds: allTagIds,
+      },
+      width: '500px',
+    });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (result?.elements.length) {
+      this.filterState.update(f => ({
+        ...f,
+        elementIds: [...f.elementIds, ...result.elements.map(e => e.id)],
+      }));
+    }
+  }
+
+  /**
+   * Open dialog to add tag(s) to the filter
+   */
+  async onAddFilterTag(): Promise<void> {
+    const allElementIds = this.projectState.elements().map(e => e.id);
+    const dialogRef = this.dialog.open<
+      TagPickerDialogComponent,
+      TagPickerDialogData,
+      TagPickerDialogResult
+    >(TagPickerDialogComponent, {
+      data: {
+        title: 'Add Tag Filter',
+        subtitle: 'Select tags to filter media by.',
+        excludeElementIds: allElementIds,
+        excludeTagIds: this.filterState().tagIds,
+      },
+      width: '500px',
+    });
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (result?.tags.length) {
+      this.filterState.update(f => ({
+        ...f,
+        tagIds: [...f.tagIds, ...result.tags.map(t => t.id)],
+      }));
+    }
+  }
+
+  /**
    * Set the category filter
    */
   setCategory(category: string): void {
-    this.selectedCategory.set(category);
+    this.filterState.update(f => ({
+      ...f,
+      category: category as FilterCategory,
+    }));
   }
 
   /**
@@ -356,12 +700,26 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   /**
    * View an image in the image viewer dialog
    */
-  viewImage(item: MediaItem): void {
+  async viewImage(item: MediaItem): Promise<void> {
     if (item.url && item.isImage) {
-      void this.dialogGateway.openImageViewerDialog({
+      const result = await this.dialogGateway.openImageViewerDialog({
         imageUrl: item.url,
         fileName: item.filename || item.mediaId,
+        mediaId: item.mediaId,
+        metadata: {
+          category: item.categoryLabel,
+          size: new FileSizePipe().transform(item.size),
+          date: this.formatDate(item.createdAt),
+          generationPrompt: item.generation?.prompt,
+          generationModel: item.generation?.model,
+          generationSize: item.generation?.size,
+        },
       });
+      // Blur active element so the overlay doesn't stay visible via :focus-within
+      (document.activeElement as HTMLElement)?.blur?.();
+      if (result === 'delete') {
+        await this.deleteMedia(item);
+      }
     }
   }
 
@@ -389,12 +747,22 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Delete a media item after confirmation
+   * Delete a media item after confirmation.
+   * Scans for usages across the project and warns the user.
    */
   async deleteMedia(item: MediaItem): Promise<void> {
+    const usages = await this.findMediaUsages(item.mediaId);
+    const displayName = item.filename || item.mediaId;
+
+    let message = `Are you sure you want to delete "${displayName}"?`;
+    if (usages.length > 0) {
+      message += ' This media is currently in use:';
+    }
+
     const confirmed = await this.dialogGateway.openConfirmationDialog({
       title: 'Delete Media',
-      message: `Are you sure you want to delete "${item.filename || item.mediaId}"?`,
+      message,
+      details: usages.length > 0 ? usages : undefined,
       confirmText: 'Delete',
       cancelText: 'Cancel',
     });
@@ -404,9 +772,99 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       if (!project?.username || !project?.slug) return;
 
       const projectKey = `${project.username}/${project.slug}`;
+      this.mediaTagService.removeAllForMedia(item.mediaId);
+      this.mediaProjectTagService.removeAllForMedia(item.mediaId);
       await this.localStorage.deleteMedia(projectKey, item.mediaId);
       await this.loadMedia();
     }
+  }
+
+  /**
+   * Scan the project for all references to a given media item.
+   * Returns a list of human-readable usage descriptions.
+   */
+  private async findMediaUsages(mediaId: string): Promise<string[]> {
+    const usages: string[] = [];
+    const project = this.projectState.project();
+    if (!project?.username || !project?.slug) return usages;
+
+    // 1. Cover image
+    if (this.projectState.coverMediaId() === mediaId) {
+      usages.push('Used as the project cover image');
+    }
+
+    const elements = this.projectState.elements();
+    const mediaUrl = createMediaUrl(mediaId);
+
+    // 2. Canvas images
+    for (const el of elements.filter(e => e.type === ElementType.Canvas)) {
+      const configStr = el.metadata?.['canvasConfig'];
+      if (configStr) {
+        try {
+          const config = JSON.parse(configStr) as CanvasConfig;
+          const hasImage = config.objects?.some(
+            obj => obj.type === 'image' && obj.src === mediaUrl
+          );
+          if (hasImage) {
+            usages.push(`Placed on canvas "${el.name}"`);
+          }
+        } catch {
+          /* ignore malformed config */
+        }
+      }
+    }
+
+    // 3. Document embedded images
+    for (const el of elements.filter(e => e.type === ElementType.Item)) {
+      const docId = `${project.username}:${project.slug}:${el.id}`;
+      try {
+        const content = await this.documentService.getDocumentContent(docId);
+        if (content && this.prosemirrorContainsMedia(content, mediaId)) {
+          usages.push(`Embedded in document "${el.name}"`);
+        }
+      } catch {
+        /* skip unreadable docs */
+      }
+    }
+
+    // 4. Element associations
+    const taggedElements = this.mediaTagService.getElementsForMedia(mediaId);
+    for (const elId of taggedElements) {
+      usages.push(`Tagged on element "${this.getElementName(elId)}"`);
+    }
+
+    return usages;
+  }
+
+  /**
+   * Recursively check if ProseMirror JSON content contains a reference
+   * to a given media ID.
+   */
+  private prosemirrorContainsMedia(node: unknown, mediaId: string): boolean {
+    if (!node || typeof node !== 'object') return false;
+
+    // Handle top-level array (getDocumentContent returns content array)
+    if (Array.isArray(node)) {
+      return node.some(child => this.prosemirrorContainsMedia(child, mediaId));
+    }
+
+    const obj = node as Record<string, unknown>;
+
+    // Check image node
+    if (obj['type'] === 'image') {
+      const attrs = obj['attrs'] as Record<string, unknown> | undefined;
+      const src = attrs?.['src'] as string | undefined;
+      if (src && extractMediaId(src) === mediaId) return true;
+    }
+
+    // Recurse into content array
+    if (Array.isArray(obj['content'])) {
+      return (obj['content'] as unknown[]).some(child =>
+        this.prosemirrorContainsMedia(child, mediaId)
+      );
+    }
+
+    return false;
   }
 
   /**
@@ -458,6 +916,157 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       default:
         return job.message;
     }
+  }
+
+  // ============================================
+  // ELEMENT TAGGING
+  // ============================================
+
+  /** Worldbuilding elements available for tagging */
+  readonly worldbuildingElements = computed(() => {
+    return this.projectState
+      .elements()
+      .filter(el => el.type === ElementType.Worldbuilding);
+  });
+
+  /** Get element name by ID */
+  getElementName(elementId: string): string {
+    const el = this.projectState.elements().find(e => e.id === elementId);
+    return el?.name ?? 'Unknown';
+  }
+
+  /** Get element icon by ID */
+  getElementIcon(elementId: string): string {
+    const el = this.projectState.elements().find(e => e.id === elementId);
+    return (el?.metadata?.['icon'] as string) || 'category';
+  }
+
+  /** Get tagged element IDs for a media item */
+  getTaggedElements(mediaId: string): string[] {
+    return this.mediaTagService.getElementsForMedia(mediaId);
+  }
+
+  /** Toggle element filter (from overlay chip click) */
+  toggleElementFilter(elementId: string): void {
+    this.filterState.update(f => {
+      const has = f.elementIds.includes(elementId);
+      return {
+        ...f,
+        elementIds: has
+          ? f.elementIds.filter(id => id !== elementId)
+          : [...f.elementIds, elementId],
+      };
+    });
+  }
+
+  /** Get the active element filter name for display */
+  readonly elementFilterName = computed(() => {
+    const id = this.elementFilter();
+    if (!id) return null;
+    return this.getElementName(id);
+  });
+
+  /** Open unified tag picker to tag a media item with elements and/or project tags */
+  async tagMedia(item: MediaItem): Promise<void> {
+    const excludeElementIds = this.mediaTagService.getElementsForMedia(
+      item.mediaId
+    );
+    const excludeTagIds = this.mediaProjectTagService.getTagsForMedia(
+      item.mediaId
+    );
+
+    const dialogRef = this.dialog.open<
+      TagPickerDialogComponent,
+      TagPickerDialogData,
+      TagPickerDialogResult
+    >(TagPickerDialogComponent, {
+      data: {
+        title: 'Add Tags',
+        subtitle: `Tag "${item.filename || item.mediaId}" with elements or project tags.`,
+        excludeElementIds,
+        excludeTagIds,
+      },
+      width: '500px',
+    });
+
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    if (result) {
+      for (const el of result.elements) {
+        this.mediaTagService.addTag(item.mediaId, el.id);
+      }
+      for (const tag of result.tags) {
+        this.mediaProjectTagService.addTag(item.mediaId, tag.id);
+      }
+    }
+  }
+
+  /** Remove a tag from a media item */
+  removeMediaTag(mediaId: string, elementId: string): void {
+    this.mediaTagService.removeTag(mediaId, elementId);
+  }
+
+  // ============================================
+  // PROJECT TAG DISPLAY & FILTER
+  // ============================================
+
+  /** Get resolved project tags for a media item */
+  getProjectTags(mediaId: string): TagDefinition[] {
+    const tagIds = this.mediaProjectTagService.getTagsForMedia(mediaId);
+    const allDefs = this.tagService.allTags();
+    return tagIds
+      .map(id => allDefs.find(d => d.id === id))
+      .filter((d): d is TagDefinition => d !== undefined);
+  }
+
+  /** Toggle project tag filter (from overlay chip click) */
+  toggleTagFilter(tagId: string): void {
+    this.filterState.update(f => {
+      const has = f.tagIds.includes(tagId);
+      return {
+        ...f,
+        tagIds: has
+          ? f.tagIds.filter(id => id !== tagId)
+          : [...f.tagIds, tagId],
+      };
+    });
+  }
+
+  /** Get the active tag filter name for display */
+  readonly tagFilterName = computed(() => {
+    const id = this.tagFilter();
+    if (!id) return null;
+    const def = this.tagService.allTags().find(d => d.id === id);
+    return def?.name ?? 'Unknown Tag';
+  });
+
+  /** Open autocomplete-like tag picker for a media item via a simple dialog approach */
+  tagMediaWithProjectTag(item: MediaItem): void {
+    const currentTagIds = this.mediaProjectTagService.getTagsForMedia(
+      item.mediaId
+    );
+    const allDefs = this.tagService.allTags();
+    const available = allDefs.filter(d => !currentTagIds.includes(d.id));
+
+    if (available.length === 0) return;
+
+    // Apply the first available tag
+    this.mediaProjectTagService.addTag(item.mediaId, available[0].id);
+  }
+
+  /** Add a project tag to a media item */
+  addMediaProjectTag(mediaId: string, tagId: string): void {
+    this.mediaProjectTagService.addTag(mediaId, tagId);
+  }
+
+  /** Remove a project tag from a media item */
+  removeMediaProjectTag(mediaId: string, tagId: string): void {
+    this.mediaProjectTagService.removeTag(mediaId, tagId);
+  }
+
+  /** Available project tags for a media item (not yet assigned) */
+  getAvailableProjectTags(mediaId: string): TagDefinition[] {
+    const currentTagIds = this.mediaProjectTagService.getTagsForMedia(mediaId);
+    return this.tagService.allTags().filter(d => !currentTagIds.includes(d.id));
   }
 
   // ============================================
@@ -517,27 +1126,88 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Open the add media dialog (upload or generate)
+   */
+  async openAddMedia(): Promise<void> {
+    const status = this.aiGenerationStatus();
+    const dialogRef = this.dialog.open<
+      AddMediaDialogComponent,
+      AddMediaDialogData,
+      AddMediaDialogResult
+    >(AddMediaDialogComponent, {
+      data: {
+        canGenerate: status.status === 'enabled',
+        generateTooltip: status.tooltip ?? undefined,
+      },
+      width: '480px',
+      maxWidth: '95vw',
+    });
+
+    const choice = await firstValueFrom(dialogRef.afterClosed());
+    if (choice === 'upload') {
+      await this.uploadMedia();
+    } else if (choice === 'generate') {
+      await this.openImageGenerator();
+    }
+  }
+
+  /**
+   * Upload an image file to the media library
+   */
+  private async uploadMedia(): Promise<void> {
+    const uploadRef = this.dialog.open<FileUploadComponent, void, File>(
+      FileUploadComponent,
+      {
+        width: '480px',
+        maxWidth: '95vw',
+      }
+    );
+
+    const file = await firstValueFrom(uploadRef.afterClosed());
+    if (!file) return;
+
+    const project = this.projectState.project();
+    if (!project?.username || !project?.slug) return;
+
+    try {
+      const timestamp = Date.now();
+      const ext = file.name.split('.').pop() || 'bin';
+      const mediaId = `upload-${timestamp}`;
+      const projectKey = `${project.username}/${project.slug}`;
+
+      await this.localStorage.saveMedia(
+        projectKey,
+        mediaId,
+        file,
+        `${file.name.replace(/\.[^.]+$/, '')}-${timestamp}.${ext}`
+      );
+
+      void this.mediaAutoSync.triggerSyncAfterUpload();
+      await this.loadMedia();
+    } catch (err) {
+      console.error('Failed to upload media:', err);
+      this.error.set('Failed to upload media');
+    }
+  }
+
+  /**
    * Open the image generation dialog
    */
-  async openImageGenerator(): Promise<void> {
+  private async openImageGenerator(): Promise<void> {
     const result = await this.dialogGateway.openImageGenerationDialog();
 
     if (result?.saved && result.imageData) {
-      // Save the generated image to media library
       const project = this.projectState.project();
       if (!project?.username || !project?.slug) return;
 
       try {
-        // Convert base64/URL to blob
         const response = await fetch(result.imageData);
         const blob = await response.blob();
 
-        // Generate a unique ID for the media
         const timestamp = Date.now();
         const mediaId = `generated-${timestamp}`;
         const projectKey = `${project.username}/${project.slug}`;
 
-        // Save to offline storage
         await this.localStorage.saveMedia(
           projectKey,
           mediaId,
@@ -545,10 +1215,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
           `ai-generated-${timestamp}.png`
         );
 
-        // Trigger media sync to upload to server
         void this.mediaAutoSync.triggerSyncAfterUpload();
-
-        // Reload media list
         await this.loadMedia();
       } catch (err) {
         console.error('Failed to save generated image:', err);

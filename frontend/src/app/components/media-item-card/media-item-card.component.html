@@ -1,0 +1,45 @@
+<!-- Image / file preview with blur background -->
+<div
+  class="card-preview"
+  role="button"
+  tabindex="0"
+  (click)="isImage() && cardClick.emit()"
+  (keydown.enter)="isImage() && cardClick.emit()">
+  @if (isImage() && imageUrl()) {
+    <img
+      [src]="imageUrl()"
+      [alt]="altText()"
+      class="thumbnail-blur"
+      aria-hidden="true" />
+    <img [src]="imageUrl()" [alt]="altText()" class="thumbnail" />
+  } @else if (!isImage()) {
+    <mat-icon class="file-icon">{{ fileIcon() }}</mat-icon>
+  } @else {
+    <div class="placeholder">
+      <mat-icon>image</mat-icon>
+    </div>
+  }
+</div>
+
+<!-- Hover overlay with projected action/info content -->
+<div
+  class="card-overlay"
+  (click)="isImage() && cardClick.emit()"
+  (keydown.enter)="isImage() && cardClick.emit()"
+  (keydown.space)="isImage() && cardClick.emit(); $event.preventDefault()"
+  [attr.tabindex]="isImage() ? 0 : null"
+  [attr.role]="isImage() ? 'button' : null"
+  [attr.aria-label]="altText()"
+  [style.cursor]="isImage() ? 'pointer' : 'default'">
+  <div class="overlay-top">
+    <div class="overlay-top-left">
+      <ng-content select="[cardTopLeft]"></ng-content>
+    </div>
+    <div class="overlay-top-right">
+      <ng-content select="[cardTopRight]"></ng-content>
+    </div>
+  </div>
+  <div class="overlay-bottom">
+    <ng-content select="[cardBottom]"></ng-content>
+  </div>
+</div>

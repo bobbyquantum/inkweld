@@ -13,6 +13,8 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type MediaProjectTag } from '../../models/media-project-tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -35,6 +37,8 @@ describe('LocalElementSyncProvider', () => {
     schemas: ReturnType<typeof vi.fn>;
     elementTags: ReturnType<typeof vi.fn>;
     customTags: ReturnType<typeof vi.fn>;
+    mediaTags: ReturnType<typeof vi.fn>;
+    mediaProjectTags: ReturnType<typeof vi.fn>;
     projectMeta: ReturnType<typeof vi.fn>;
     saveElements: ReturnType<typeof vi.fn>;
     savePublishPlans: ReturnType<typeof vi.fn>;
@@ -43,6 +47,8 @@ describe('LocalElementSyncProvider', () => {
     saveSchemas: ReturnType<typeof vi.fn>;
     saveElementTags: ReturnType<typeof vi.fn>;
     saveCustomTags: ReturnType<typeof vi.fn>;
+    saveMediaTags: ReturnType<typeof vi.fn>;
+    saveMediaProjectTags: ReturnType<typeof vi.fn>;
     saveProjectMeta: ReturnType<typeof vi.fn>;
     closeConnection: ReturnType<typeof vi.fn>;
     _elementsSubject: BehaviorSubject<Element[]>;
@@ -52,6 +58,8 @@ describe('LocalElementSyncProvider', () => {
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
     _elementTagsSubject: BehaviorSubject<ElementTag[]>;
     _customTagsSubject: BehaviorSubject<TagDefinition[]>;
+    _mediaTagsSubject: BehaviorSubject<MediaTag[]>;
+    _mediaProjectTagsSubject: BehaviorSubject<MediaProjectTag[]>;
     _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
     _errorsSubject: Subject<string>;
   };
@@ -153,6 +161,8 @@ describe('LocalElementSyncProvider', () => {
     const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
     const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
     const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
+    const mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
+    const mediaProjectTagsSubject = new BehaviorSubject<MediaProjectTag[]>([]);
     const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
       undefined
     );
@@ -167,6 +177,8 @@ describe('LocalElementSyncProvider', () => {
       schemas: vi.fn(() => schemasSubject.getValue()),
       elementTags: vi.fn(() => elementTagsSubject.getValue()),
       customTags: vi.fn(() => customTagsSubject.getValue()),
+      mediaTags: vi.fn(() => mediaTagsSubject.getValue()),
+      mediaProjectTags: vi.fn(() => mediaProjectTagsSubject.getValue()),
       projectMeta: vi.fn(() => projectMetaSubject.getValue()),
       saveElements: vi.fn().mockResolvedValue(undefined),
       savePublishPlans: vi.fn().mockResolvedValue(undefined),
@@ -175,6 +187,8 @@ describe('LocalElementSyncProvider', () => {
       saveSchemas: vi.fn().mockResolvedValue(undefined),
       saveElementTags: vi.fn().mockResolvedValue(undefined),
       saveCustomTags: vi.fn().mockResolvedValue(undefined),
+      saveMediaTags: vi.fn().mockResolvedValue(undefined),
+      saveMediaProjectTags: vi.fn().mockResolvedValue(undefined),
       saveProjectMeta: vi.fn().mockResolvedValue(undefined),
       closeConnection: vi.fn().mockResolvedValue(undefined),
       _elementsSubject: elementsSubject,
@@ -184,6 +198,8 @@ describe('LocalElementSyncProvider', () => {
       _schemasSubject: schemasSubject,
       _elementTagsSubject: elementTagsSubject,
       _customTagsSubject: customTagsSubject,
+      _mediaTagsSubject: mediaTagsSubject,
+      _mediaProjectTagsSubject: mediaProjectTagsSubject,
       _projectMetaSubject: projectMetaSubject,
       _errorsSubject: errorsSubject,
     };

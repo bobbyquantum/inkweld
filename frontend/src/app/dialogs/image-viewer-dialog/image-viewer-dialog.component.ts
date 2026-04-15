@@ -1,33 +1,64 @@
 import {
   Component,
+  computed,
   type ElementRef,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import {
   MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { type TagDefinition } from '@components/tags/tag.model';
+import {
+  TagPickerDialogComponent,
+  type TagPickerDialogData,
+  type TagPickerDialogResult,
+} from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
+import { type Element } from '@inkweld/index';
+import { MediaTagService } from '@services/media-tag/media-tag.service';
+import { MediaProjectTagService } from '@services/project/media-project-tag.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { TagService } from '@services/tag/tag.service';
 
 export interface ImageViewerDialogData {
   imageUrl: string;
   fileName: string;
   canEdit?: boolean;
+  /** Media item ID — enables download and tag management */
+  mediaId?: string;
+  /** Optional metadata displayed in an expandable info panel (mobile-friendly) */
+  metadata?: {
+    category?: string;
+    size?: string;
+    date?: string;
+    generationPrompt?: string;
+    generationModel?: string;
+    generationSize?: string;
+  };
 }
 
-export type ImageViewerDialogResult = 'change-image' | undefined;
+export type ImageViewerDialogResult = 'change-image' | 'delete' | undefined;
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 5;
 
 @Component({
   selector: 'app-image-viewer-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [
+    MatButtonModule,
+    MatChipsModule,
+    MatDialogModule,
+    MatIconModule,
+    MatTooltipModule,
+  ],
   templateUrl: './image-viewer-dialog.component.html',
   styleUrl: './image-viewer-dialog.component.scss',
 })
@@ -36,14 +67,57 @@ export class ImageViewerDialogComponent {
     MatDialogRef<ImageViewerDialogComponent, ImageViewerDialogResult>
   );
   data = inject<ImageViewerDialogData>(MAT_DIALOG_DATA);
+  private readonly tagService = inject(TagService);
+  private readonly mediaProjectTagService = inject(MediaProjectTagService);
+  private readonly mediaTagService = inject(MediaTagService);
+  private readonly projectState = inject(ProjectStateService);
+  private readonly matDialog = inject(MatDialog);
 
   viewerContainer = viewChild<ElementRef<HTMLElement>>('viewerContainer');
   imageElement = viewChild<ElementRef<HTMLImageElement>>('imageElement');
+
+  showInfo = signal(false);
 
   // Zoom and pan state
   zoomLevel = signal(MIN_ZOOM);
   panX = signal(0);
   panY = signal(0);
+
+  // Tag management (active when mediaId is provided)
+  /** Resolved project tags assigned to this media item */
+  resolvedProjectTags = computed(() => {
+    if (!this.data.mediaId) return [];
+    const tagIds = this.mediaProjectTagService.getTagsForMedia(
+      this.data.mediaId
+    );
+    const allDefs = this.tagService.allTags();
+    return tagIds
+      .map(id => allDefs.find(d => d.id === id))
+      .filter((d): d is TagDefinition => d !== undefined);
+  });
+
+  /** Available project tags (not yet assigned to this media) */
+  filteredAvailableTags = computed(() => {
+    const allDefs = this.tagService.allTags();
+    const assignedIds = new Set(
+      this.data.mediaId
+        ? this.mediaProjectTagService.getTagsForMedia(this.data.mediaId)
+        : []
+    );
+    return allDefs.filter(d => !assignedIds.has(d.id));
+  });
+
+  /** Resolved element tags assigned to this media item */
+  resolvedElementTags = computed(() => {
+    if (!this.data.mediaId) return [];
+    const elementIds = this.mediaTagService.getElementsForMedia(
+      this.data.mediaId
+    );
+    const allElements = this.projectState.elements();
+    return elementIds
+      .map(id => allElements.find(e => e.id === id))
+      .filter((e): e is Element => e !== undefined);
+  });
 
   // Pointer tracking for pan/pinch
   private readonly activePointers = new Map<
@@ -58,6 +132,68 @@ export class ImageViewerDialogComponent {
 
   closeDialog(): void {
     this.dialogRef.close();
+  }
+
+  downloadImage(): void {
+    const a = document.createElement('a');
+    a.href = this.data.imageUrl;
+    a.download = this.data.fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  addProjectTagById(tag: TagDefinition): void {
+    if (this.data.mediaId) {
+      this.mediaProjectTagService.addTag(this.data.mediaId, tag.id);
+    }
+  }
+
+  removeProjectTag(tag: TagDefinition): void {
+    if (this.data.mediaId) {
+      this.mediaProjectTagService.removeTag(this.data.mediaId, tag.id);
+    }
+  }
+
+  addTags(): void {
+    if (!this.data.mediaId) return;
+    const mediaId = this.data.mediaId;
+    const excludeElementIds = this.resolvedElementTags().map(e => e.id);
+    const excludeTagIds = this.resolvedProjectTags().map(t => t.id);
+    this.matDialog
+      .open<
+        TagPickerDialogComponent,
+        TagPickerDialogData,
+        TagPickerDialogResult
+      >(TagPickerDialogComponent, {
+        data: {
+          title: 'Add Tags',
+          excludeElementIds,
+          excludeTagIds,
+        },
+        width: '400px',
+      })
+      .afterClosed()
+      .subscribe(result => {
+        if (result) {
+          for (const el of result.elements) {
+            this.mediaTagService.addTag(mediaId, el.id);
+          }
+          for (const tag of result.tags) {
+            this.mediaProjectTagService.addTag(mediaId, tag.id);
+          }
+        }
+      });
+  }
+
+  removeElementTag(elementId: string): void {
+    if (this.data.mediaId) {
+      this.mediaTagService.removeTag(this.data.mediaId, elementId);
+    }
+  }
+
+  deleteImage(): void {
+    this.dialogRef.close('delete');
   }
 
   changeImage(): void {

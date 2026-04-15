@@ -1,0 +1,152 @@
+<div class="filter-panel" data-testid="filter-panel">
+  <div class="filter-header">
+    <h3>Filters</h3>
+    <button mat-icon-button (click)="onClose()" matTooltip="Close filters">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Category -->
+  <section class="filter-section">
+    <h4 class="section-label">Category</h4>
+    <div class="category-chips">
+      @for (cat of categories; track cat.value) {
+        <button
+          mat-stroked-button
+          class="category-chip"
+          [class.active]="filters().category === cat.value"
+          (click)="setCategory(cat.value)"
+          data-testid="filter-category">
+          {{ cat.label }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- Elements -->
+  @if (availableElements().length > 0) {
+    <section class="filter-section">
+      <div class="section-header">
+        <h4 class="section-label">Elements</h4>
+        <button
+          mat-icon-button
+          class="add-filter-button"
+          (click)="onAddElement()"
+          matTooltip="Add element filter"
+          data-testid="filter-add-element">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+      @if (selectedElements().length > 0) {
+        <div class="selected-filters">
+          @for (el of selectedElements(); track el.id) {
+            <div class="filter-chip">
+              <span class="material-symbols-outlined filter-chip-icon">{{
+                el.icon
+              }}</span>
+              <span class="filter-chip-name" [title]="el.name">{{
+                el.name
+              }}</span>
+              <button
+                mat-icon-button
+                class="filter-chip-remove"
+                (click)="removeElement(el.id)"
+                matTooltip="Remove">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="empty-hint">No element filters applied</p>
+      }
+    </section>
+  }
+
+  <!-- Project Tags -->
+  @if (availableTags().length > 0) {
+    <section class="filter-section">
+      <div class="section-header">
+        <h4 class="section-label">Project Tags</h4>
+        <button
+          mat-icon-button
+          class="add-filter-button"
+          (click)="onAddTag()"
+          matTooltip="Add tag filter"
+          data-testid="filter-add-tag">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+      @if (selectedTags().length > 0) {
+        <div class="selected-filters">
+          @for (tag of selectedTags(); track tag.id) {
+            <div
+              class="filter-chip"
+              [style.background-color]="tag.color + '22'">
+              <mat-icon class="filter-chip-icon" [style.color]="tag.color">
+                {{ tag.icon }}
+              </mat-icon>
+              <span class="filter-chip-name" [title]="tag.name">{{
+                tag.name
+              }}</span>
+              <button
+                mat-icon-button
+                class="filter-chip-remove"
+                (click)="removeTag(tag.id)"
+                matTooltip="Remove">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="empty-hint">No tag filters applied</p>
+      }
+    </section>
+  }
+
+  <!-- Date range -->
+  <section class="filter-section">
+    <h4 class="section-label">Date Range</h4>
+    <div class="date-range">
+      <mat-form-field appearance="outline" class="date-field">
+        <mat-label>From</mat-label>
+        <input
+          matInput
+          [matDatepicker]="fromPicker"
+          [ngModel]="filters().dateFrom"
+          (dateChange)="setDateFrom($event.value)"
+          data-testid="filter-date-from" />
+        <mat-datepicker-toggle matSuffix [for]="fromPicker">
+        </mat-datepicker-toggle>
+        <mat-datepicker #fromPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="date-field">
+        <mat-label>To</mat-label>
+        <input
+          matInput
+          [matDatepicker]="toPicker"
+          [ngModel]="filters().dateTo"
+          (dateChange)="setDateTo($event.value)"
+          data-testid="filter-date-to" />
+        <mat-datepicker-toggle matSuffix [for]="toPicker">
+        </mat-datepicker-toggle>
+        <mat-datepicker #toPicker></mat-datepicker>
+      </mat-form-field>
+    </div>
+  </section>
+
+  <!-- Clear all -->
+  @if (activeFilterCount() > 0) {
+    <div class="clear-all">
+      <button
+        mat-button
+        color="warn"
+        (click)="onClearAll()"
+        data-testid="filter-clear-all">
+        <mat-icon>filter_alt_off</mat-icon>
+        Clear All Filters
+      </button>
+    </div>
+  }
+</div>

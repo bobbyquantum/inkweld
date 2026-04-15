@@ -13,11 +13,15 @@ import {
   type MediaInfo,
 } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
+import { MediaTagService } from '@services/media-tag/media-tag.service';
+import { MediaProjectTagService } from '@services/project/media-project-tag.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { TagService } from '@services/tag/tag.service';
 import { vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
+import { DocumentService } from '../../../../services/project/document.service';
 import { type MediaItem, MediaTabComponent } from './media-tab.component';
 
 describe('MediaTabComponent', () => {
@@ -28,6 +32,10 @@ describe('MediaTabComponent', () => {
   let dialogGateway: Partial<DialogGatewayService>;
   let mediaSyncService: Partial<MediaSyncService>;
   let setupService: Partial<SetupService>;
+  let mediaTagService: Partial<MediaTagService>;
+  let mediaProjectTagService: Partial<MediaProjectTagService>;
+  let tagService: Partial<TagService>;
+  let documentService: Partial<DocumentService>;
 
   const mockProject = {
     username: 'testuser',
@@ -67,6 +75,8 @@ describe('MediaTabComponent', () => {
     projectStateService = {
       project: signal(mockProject),
       getSyncState: signal(DocumentSyncState.Synced),
+      elements: signal([]),
+      coverMediaId: signal(undefined),
     };
 
     localStorage = {
@@ -95,6 +105,29 @@ describe('MediaTabComponent', () => {
       getMode: vi.fn().mockReturnValue('server'),
     };
 
+    mediaTagService = {
+      getElementsForMedia: vi.fn().mockReturnValue([]),
+      addTag: vi.fn(),
+      removeTag: vi.fn(),
+      removeAllForMedia: vi.fn(),
+    };
+
+    mediaProjectTagService = {
+      getTagsForMedia: vi.fn().mockReturnValue([]),
+      getMediaForTag: vi.fn().mockReturnValue([]),
+      addTag: vi.fn(),
+      removeTag: vi.fn(),
+      removeAllForMedia: vi.fn(),
+    };
+
+    tagService = {
+      allTags: signal([]),
+    };
+
+    documentService = {
+      getDocumentContent: vi.fn().mockResolvedValue([]),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         MatButtonModule,
@@ -113,6 +146,10 @@ describe('MediaTabComponent', () => {
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: MediaSyncService, useValue: mediaSyncService },
         { provide: SetupService, useValue: setupService },
+        { provide: MediaTagService, useValue: mediaTagService },
+        { provide: MediaProjectTagService, useValue: mediaProjectTagService },
+        { provide: TagService, useValue: tagService },
+        { provide: DocumentService, useValue: documentService },
       ],
     }).compileComponents();
 
@@ -176,10 +213,19 @@ describe('MediaTabComponent', () => {
 
     const coverItem = component.mediaItems().find(i => i.mediaId === 'cover');
     if (coverItem) {
-      component.viewImage(coverItem);
+      await component.viewImage(coverItem);
       expect(dialogGateway.openImageViewerDialog).toHaveBeenCalledWith({
         imageUrl: expect.any(String),
         fileName: 'cover.jpg',
+        mediaId: 'cover',
+        metadata: {
+          category: coverItem.categoryLabel,
+          size: expect.any(String),
+          date: expect.any(String),
+          generationPrompt: undefined,
+          generationModel: undefined,
+          generationSize: undefined,
+        },
       });
     }
   });
@@ -218,6 +264,7 @@ describe('MediaTabComponent', () => {
     expect(dialogGateway.openConfirmationDialog).toHaveBeenCalledWith({
       title: 'Delete Media',
       message: `Are you sure you want to delete "${item.filename}"?`,
+      details: undefined,
       confirmText: 'Delete',
       cancelText: 'Cancel',
     });
@@ -334,7 +381,10 @@ describe('MediaTabComponent', () => {
       imageData: 'data:image/png;base64,abc123',
     });
 
-    await component.openImageGenerator();
+    // openImageGenerator is now private — call via bracket notation
+    await (component as unknown as Record<string, () => Promise<void>>)[
+      'openImageGenerator'
+    ]();
 
     expect(fetchSpy).toHaveBeenCalledWith('data:image/png;base64,abc123');
     expect(localStorage.saveMedia).toHaveBeenCalledWith(

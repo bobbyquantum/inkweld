@@ -2,7 +2,8 @@
  * Media Tab Tests - Local Mode
  *
  * Tests that verify the Media tab functionality works correctly.
- * The Media tab displays all media stored in IndexedDB:
+ * The Media tab displays all media stored in IndexedDB using a card-based
+ * gallery with a search header, filter sidenav, and status bar:
  * - Project covers
  * - Inline images (from documents)
  * - Published exports (EPUB, PDF, etc.)
@@ -29,6 +30,45 @@ function getProjectKeyFromUrl(pageUrl: string): string {
     : 'testuser/test-project';
 }
 
+/**
+ * Navigate to a project and then to the media tab.
+ * Returns the project URL (without /media suffix).
+ */
+async function _navigateToMediaTab(
+  page: import('@playwright/test').Page
+): Promise<string> {
+  await page.getByTestId('project-card').first().click();
+  await page.waitForURL(/\/.+\/.+/);
+  await page.waitForLoadState('domcontentloaded');
+  const url = page.url();
+
+  const mediaButton = page.getByTestId('sidebar-media-button');
+  await mediaButton.click();
+  await page.waitForURL(/\/media$/);
+
+  return url;
+}
+
+/**
+ * Open the filter sidenav and click a category button by label.
+ */
+async function selectCategoryFilter(
+  page: import('@playwright/test').Page,
+  label: string
+): Promise<void> {
+  // Open the filter panel
+  await page.getByTestId('media-filter-button').click();
+
+  // Wait for the filter sidenav to appear
+  await page.waitForSelector('[data-testid="filter-panel"]', {
+    state: 'visible',
+  });
+
+  // Click the matching category chip
+  const categoryButtons = page.locator('[data-testid="filter-category"]');
+  await categoryButtons.getByText(label, { exact: true }).click();
+}
+
 test.describe('Media Tab', () => {
   test.describe('Navigation', () => {
     test('should navigate to media tab from home tab', async ({
@@ -47,9 +87,9 @@ test.describe('Media Tab', () => {
       // Should navigate to media route
       await page.waitForURL(/\/media$/);
 
-      // Should show media tab content
+      // Should show media tab content (search header + sidenav container)
       await expect(page.locator('.media-container')).toBeVisible();
-      await expect(page.locator('h1')).toContainText('Project Media');
+      await expect(page.getByTestId('media-search-input')).toBeVisible();
     });
 
     test('should show media tab in toolbar menu', async ({
@@ -130,11 +170,11 @@ test.describe('Media Tab', () => {
 
       // Should show media grid with items
       await expect(page.getByTestId('media-grid')).toBeVisible();
-      const mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('app-media-item-card');
       await expect(mediaItems).toHaveCount(3);
     });
 
-    test('should show media stats and category counts', async ({
+    test('should show status bar with item count and size', async ({
       localPageWithProject: page,
     }) => {
       // Navigate to the project
@@ -170,23 +210,17 @@ test.describe('Media Tab', () => {
       // Navigate to media tab
       await page.goto(`${url}/media`);
       await page.waitForLoadState('domcontentloaded');
+      await expect(page.getByTestId('media-grid')).toBeVisible();
 
-      // Should show header stats
-      await expect(page.locator('.header-stats')).toBeVisible();
-
-      // Should have category filter buttons (in the .category-filter section)
-      const filterSection = page.locator('.category-filter');
-      await expect(
-        filterSection.getByRole('button', { name: /All/i })
-      ).toBeVisible();
-      await expect(
-        filterSection.getByRole('button', { name: /^Cover$/i })
-      ).toBeVisible();
+      // Should show status bar with item count
+      const statusBar = page.locator('.media-status-bar');
+      await expect(statusBar).toBeVisible();
+      await expect(statusBar).toContainText('3 items');
     });
   });
 
   test.describe('Filtering', () => {
-    test('should filter media by category', async ({
+    test('should filter media by category via filter panel', async ({
       localPageWithProject: page,
     }) => {
       // Navigate to the project
@@ -226,23 +260,29 @@ test.describe('Media Tab', () => {
       await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Should show all 3 items initially
-      const mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('app-media-item-card');
       await expect(mediaItems).toHaveCount(3);
 
-      // Click "Cover" filter
-      await page.getByRole('button', { name: /^Cover$/i }).click();
+      // Open filter panel and select "Cover"
+      await selectCategoryFilter(page, 'Cover');
 
       // Should show only 1 cover
       await expect(mediaItems).toHaveCount(1);
 
-      // Click "Inline Images" filter
-      await page.getByRole('button', { name: /Inline Images/i }).click();
+      // Switch to "Inline Images"
+      await page
+        .locator('[data-testid="filter-category"]')
+        .getByText('Inline Images', { exact: true })
+        .click();
 
       // Should show 2 inline images
       await expect(mediaItems).toHaveCount(2);
 
-      // Click "All" to show everything again
-      await page.getByRole('button', { name: /All/i }).click();
+      // Switch back to "All"
+      await page
+        .locator('[data-testid="filter-category"]')
+        .getByText('All', { exact: true })
+        .click();
 
       await expect(mediaItems).toHaveCount(3);
     });
@@ -274,8 +314,8 @@ test.describe('Media Tab', () => {
       await page.waitForLoadState('domcontentloaded');
       await expect(page.getByTestId('media-grid')).toBeVisible();
 
-      // Click on the media item to open preview
-      await page.locator('.media-item').first().click();
+      // Click on the media card overlay to open preview
+      await page.locator('app-media-item-card .card-overlay').first().click();
 
       // Should open image viewer dialog
       await expect(page.locator('app-image-viewer-dialog')).toBeVisible();
@@ -311,11 +351,10 @@ test.describe('Media Tab', () => {
       // Set up download listener
       const downloadPromise = page.waitForEvent('download');
 
-      // Click download button on the media item (button with "Download" tooltip)
-      await page
-        .locator('button:has(mat-icon:text("download"))')
-        .first()
-        .click();
+      // Hover on the card to reveal overlay buttons, then click download
+      const card = page.locator('app-media-item-card').first();
+      await card.hover();
+      await card.locator('button:has(mat-icon:text("download"))').click();
 
       // Should trigger download
       const download = await downloadPromise;
@@ -357,15 +396,13 @@ test.describe('Media Tab', () => {
       await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Should have 2 items
-      const mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('app-media-item-card');
       await expect(mediaItems).toHaveCount(2);
 
-      // Click delete button on first item (button with "delete" icon)
-      await page
-        .locator('.media-item')
-        .first()
-        .locator('button:has(mat-icon:text("delete"))')
-        .click();
+      // Hover on first card and click delete button
+      const firstCard = mediaItems.first();
+      await firstCard.hover();
+      await firstCard.locator('button:has(mat-icon:text("delete"))').click();
 
       // Should show confirmation dialog
       await expect(page.locator('app-confirmation-dialog')).toBeVisible();
@@ -410,11 +447,11 @@ test.describe('Media Tab', () => {
       await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Should show published items
-      const mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('app-media-item-card');
       await expect(mediaItems).toHaveCount(2);
 
-      // Filter to show only published files
-      await page.getByRole('button', { name: /Published/i }).click();
+      // Open filter panel and select "Published"
+      await selectCategoryFilter(page, 'Published');
 
       // Should still show 2 (both are published)
       await expect(mediaItems).toHaveCount(2);
@@ -462,7 +499,7 @@ test.describe('Media Tab', () => {
       await expect(page.getByTestId('media-grid')).toBeVisible();
 
       // Should show all 3 items initially
-      const mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('app-media-item-card');
       await expect(mediaItems).toHaveCount(3);
 
       // Search for "hero"
@@ -541,7 +578,7 @@ test.describe('Media Tab', () => {
       await page.waitForLoadState('domcontentloaded');
       await expect(page.getByTestId('media-grid')).toBeVisible();
 
-      const mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('app-media-item-card');
       await expect(mediaItems).toHaveCount(2);
 
       // Search to filter down
@@ -595,10 +632,10 @@ test.describe('Media Tab', () => {
       await page.waitForLoadState('domcontentloaded');
       await expect(page.getByTestId('media-grid')).toBeVisible();
 
-      const mediaItems = page.locator('.media-item');
+      const mediaItems = page.locator('app-media-item-card');
 
-      // Filter to inline images first
-      await page.getByRole('button', { name: /Inline Images/i }).click();
+      // Open filter panel and select "Inline Images"
+      await selectCategoryFilter(page, 'Inline Images');
       await expect(mediaItems).toHaveCount(2);
 
       // Now search within the inline category

@@ -131,6 +131,7 @@ describe('ProjectImportService', () => {
     elementTags: [],
     publishPlans: [],
     media: [],
+    mediaTags: [],
   };
 
   const mockCreatedProject: Project = {

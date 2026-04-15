@@ -15,6 +15,8 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type MediaProjectTag } from '../../models/media-project-tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
@@ -106,6 +108,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   );
   private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
+  private readonly mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
+  private readonly mediaProjectTagsSubject = new BehaviorSubject<
+    MediaProjectTag[]
+  >([]);
   private readonly projectMetaSubject = new BehaviorSubject<
     ProjectMeta | undefined
   >(undefined);
@@ -134,6 +140,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.elementTagsSubject.asObservable();
   readonly customTags$: Observable<TagDefinition[]> =
     this.customTagsSubject.asObservable();
+  readonly mediaTags$: Observable<MediaTag[]> =
+    this.mediaTagsSubject.asObservable();
+  readonly mediaProjectTags$: Observable<MediaProjectTag[]> =
+    this.mediaProjectTagsSubject.asObservable();
   readonly projectMeta$: Observable<ProjectMeta | undefined> =
     this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
@@ -346,6 +356,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.relationshipsSubject.next([]);
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
+    this.mediaTagsSubject.next([]);
+    this.mediaProjectTagsSubject.next([]);
     this.projectMetaSubject.next(undefined);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
@@ -640,6 +652,87 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Media Tags (media-to-element associations)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getMediaTags(): MediaTag[] {
+    return this.mediaTagsSubject.getValue();
+  }
+
+  /**
+   * Update media tags in the Yjs document.
+   * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
+   */
+  updateMediaTags(tags: MediaTag[]): void {
+    if (!this.doc) {
+      this.logger.warn('YjsSync', 'Cannot update media tags - not connected');
+      return;
+    }
+
+    this.logger.debug('YjsSync', `Writing ${tags.length} media tags to Yjs`);
+
+    // Optimistic update: emit immediately for responsive UI
+    this.mediaTagsSubject.next(tags);
+
+    const mediaTagsArray = this.doc.getArray<MediaTag>('mediaTags');
+
+    this.doc.transact(() => {
+      mediaTagsArray.delete(0, mediaTagsArray.length);
+      mediaTagsArray.insert(0, tags);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${mediaTagsArray.length} media tags`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Media Project Tags (media-to-project-tag associations)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getMediaProjectTags(): MediaProjectTag[] {
+    return this.mediaProjectTagsSubject.getValue();
+  }
+
+  /**
+   * Update media project tags in the Yjs document.
+   * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
+   */
+  updateMediaProjectTags(tags: MediaProjectTag[]): void {
+    if (!this.doc) {
+      this.logger.warn(
+        'YjsSync',
+        'Cannot update media project tags - not connected'
+      );
+      return;
+    }
+
+    this.logger.debug(
+      'YjsSync',
+      `Writing ${tags.length} media project tags to Yjs`
+    );
+
+    // Optimistic update: emit immediately for responsive UI
+    this.mediaProjectTagsSubject.next(tags);
+
+    const mediaProjectTagsArray =
+      this.doc.getArray<MediaProjectTag>('mediaProjectTags');
+
+    this.doc.transact(() => {
+      mediaProjectTagsArray.delete(0, mediaProjectTagsArray.length);
+      mediaProjectTagsArray.insert(0, tags);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${mediaProjectTagsArray.length} media project tags`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Project Metadata (name, description, cover - synced via Yjs for offline-first)
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -917,6 +1010,26 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.schemasSubject.next(schemas);
     });
 
+    // Media tags observer
+    const mediaTagsArray = this.doc.getArray<MediaTag>('mediaTags');
+    mediaTagsArray.observe(() => {
+      const mediaTags = mediaTagsArray.toArray();
+      this.logger.debug('YjsSync', `Media tags changed: ${mediaTags.length}`);
+      this.mediaTagsSubject.next(mediaTags);
+    });
+
+    // Media project tags observer
+    const mediaProjectTagsArray =
+      this.doc.getArray<MediaProjectTag>('mediaProjectTags');
+    mediaProjectTagsArray.observe(() => {
+      const mediaProjectTags = mediaProjectTagsArray.toArray();
+      this.logger.debug(
+        'YjsSync',
+        `Media project tags changed: ${mediaProjectTags.length}`
+      );
+      this.mediaProjectTagsSubject.next(mediaProjectTags);
+    });
+
     // Project metadata observer
     const metaMap = this.doc.getMap<string>('projectMeta');
     metaMap.observe(() => {
@@ -1018,6 +1131,25 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       `Loaded ${customTags.length} custom tag definitions from Yjs`
     );
     this.customTagsSubject.next(customTags);
+
+    // Load media tags
+    const mediaTagsArray = this.doc.getArray<MediaTag>('mediaTags');
+    const mediaTags = mediaTagsArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${mediaTags.length} media tags from Yjs`
+    );
+    this.mediaTagsSubject.next(mediaTags);
+
+    // Load media project tags
+    const mediaProjectTagsArray =
+      this.doc.getArray<MediaProjectTag>('mediaProjectTags');
+    const mediaProjectTags = mediaProjectTagsArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${mediaProjectTags.length} media project tags from Yjs`
+    );
+    this.mediaProjectTagsSubject.next(mediaProjectTags);
 
     // Load project metadata
     const metaMap = this.doc.getMap<string>('projectMeta');

@@ -7,6 +7,7 @@ import {
   type ElementTag,
   type TagDefinition,
 } from '../components/tags/tag.model';
+import { type MediaTag } from './media-tag.model';
 import { type PublishPlan } from './publish-plan';
 import { type ElementTypeSchema } from './schema-types';
 
@@ -212,6 +213,8 @@ export interface ProjectArchive {
   tags: TagDefinition[];
   /** Element tag assignments */
   elementTags: ElementTag[];
+  /** Media-to-element tag associations */
+  mediaTags?: MediaTag[];
   /** Publish plans */
   publishPlans: PublishPlan[];
   /** Media file manifest */

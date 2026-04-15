@@ -382,27 +382,35 @@ test.describe('Image Generation Dialog Screenshots', () => {
       document.documentElement.classList.add('light-mode');
     });
 
-    // Look for the generate image button
-    const generateButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
+    // Look for the add media button (opens dialog with generate option)
+    const addMediaButton = authenticatedPage.locator(
+      '[data-testid="add-media-button"]'
     );
 
     // Check if the button exists (might not in offline mode)
-    if (await generateButton.isVisible()) {
-      // Click to open dialog
-      await generateButton.click();
+    if (await addMediaButton.isVisible()) {
+      // Click to open add media dialog
+      await addMediaButton.click();
 
-      // Wait for dialog to appear
-      await authenticatedPage.waitForSelector('mat-dialog-container');
+      // Click generate option
+      const generateOption = authenticatedPage.locator(
+        '[data-testid="add-media-generate"]'
+      );
+      if (await generateOption.isVisible()) {
+        await generateOption.click();
 
-      // Wait a moment for the dialog to fully render
-      await authenticatedPage.waitForTimeout(500);
+        // Wait for dialog to appear
+        await authenticatedPage.waitForSelector('mat-dialog-container');
 
-      // Take screenshot of the dialog
-      const dialog = authenticatedPage.locator('mat-dialog-container');
-      await dialog.screenshot({
-        path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-light.png'),
-      });
+        // Wait a moment for the dialog to fully render
+        await authenticatedPage.waitForTimeout(500);
+
+        // Take screenshot of the dialog
+        const dialog = authenticatedPage.locator('mat-dialog-container');
+        await dialog.screenshot({
+          path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-light.png'),
+        });
+      }
     }
   });
 
@@ -419,27 +427,35 @@ test.describe('Image Generation Dialog Screenshots', () => {
       document.documentElement.classList.add('dark-mode');
     });
 
-    // Look for the generate image button
-    const generateButton = authenticatedPage.locator(
-      '[data-testid="generate-image-button"]'
+    // Look for the add media button
+    const addMediaButton2 = authenticatedPage.locator(
+      '[data-testid="add-media-button"]'
     );
 
     // Check if the button exists
-    if (await generateButton.isVisible()) {
-      // Click to open dialog
-      await generateButton.click();
+    if (await addMediaButton2.isVisible()) {
+      // Click to open add media dialog
+      await addMediaButton2.click();
 
-      // Wait for dialog to appear
-      await authenticatedPage.waitForSelector('mat-dialog-container');
+      // Click generate option
+      const generateOption2 = authenticatedPage.locator(
+        '[data-testid="add-media-generate"]'
+      );
+      if (await generateOption2.isVisible()) {
+        await generateOption2.click();
 
-      // Wait a moment for the dialog to fully render
-      await authenticatedPage.waitForTimeout(500);
+        // Wait for dialog to appear
+        await authenticatedPage.waitForSelector('mat-dialog-container');
 
-      // Take screenshot of the dialog
-      const dialog = authenticatedPage.locator('mat-dialog-container');
-      await dialog.screenshot({
-        path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-dark.png'),
-      });
+        // Wait a moment for the dialog to fully render
+        await authenticatedPage.waitForTimeout(500);
+
+        // Take screenshot of the dialog
+        const dialog = authenticatedPage.locator('mat-dialog-container');
+        await dialog.screenshot({
+          path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-dark.png'),
+        });
+      }
     }
   });
 });

@@ -1,6 +1,14 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogRef,
+} from '@angular/material/dialog';
+import { MediaTagService } from '@services/media-tag/media-tag.service';
+import { MediaProjectTagService } from '@services/project/media-project-tag.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { TagService } from '@services/tag/tag.service';
 import { vi } from 'vitest';
 
 import {
@@ -21,6 +29,32 @@ describe('ImageViewerDialogComponent', () => {
     fileName: 'test.jpg',
   };
 
+  const mockTagService = {
+    allTags: signal([]),
+  };
+
+  const mockMediaProjectTagService = {
+    getTagsForMedia: vi.fn().mockReturnValue([]),
+    addTag: vi.fn(),
+    removeTag: vi.fn(),
+  };
+
+  const mockMediaTagService = {
+    getElementsForMedia: vi.fn().mockReturnValue([]),
+    addTag: vi.fn(),
+    removeTag: vi.fn(),
+  };
+
+  const mockProjectState = {
+    elements: signal([]),
+  };
+
+  const mockMatDialog = {
+    open: vi
+      .fn()
+      .mockReturnValue({ afterClosed: () => ({ subscribe: vi.fn() }) }),
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ImageViewerDialogComponent],
@@ -28,6 +62,14 @@ describe('ImageViewerDialogComponent', () => {
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
+        { provide: TagService, useValue: mockTagService },
+        {
+          provide: MediaProjectTagService,
+          useValue: mockMediaProjectTagService,
+        },
+        { provide: MediaTagService, useValue: mockMediaTagService },
+        { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: MatDialog, useValue: mockMatDialog },
       ],
     }).compileComponents();
 
@@ -40,14 +82,11 @@ describe('ImageViewerDialogComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should display the image and filename', () => {
-    const titleElement =
-      fixture.nativeElement.querySelector('[mat-dialog-title]');
+  it('should display the image', () => {
     const imageElement = fixture.nativeElement.querySelector(
       '.viewer-container img'
     );
 
-    expect(titleElement.textContent).toContain('test.jpg');
     expect(imageElement.src).toContain('http://example.com/test.jpg');
     expect(imageElement.alt).toBe('test.jpg');
   });
