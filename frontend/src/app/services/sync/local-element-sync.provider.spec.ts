@@ -601,4 +601,143 @@ describe('LocalElementSyncProvider', () => {
       );
     });
   });
+
+  describe('Media Tags', () => {
+    const config = { username: 'testuser', slug: 'test-project' };
+    const sampleMediaTags: MediaTag[] = [
+      {
+        id: 'mt-1',
+        mediaId: 'media-1',
+        elementId: 'elem-1',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+    const sampleMediaProjectTags: MediaProjectTag[] = [
+      {
+        id: 'mpt-1',
+        mediaId: 'media-1',
+        tagId: 'tag-1',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+
+    it('should return empty media tags initially', () => {
+      expect(provider.getMediaTags()).toEqual([]);
+    });
+
+    it('should return empty media project tags initially', () => {
+      expect(provider.getMediaProjectTags()).toEqual([]);
+    });
+
+    it('should update media tags and save to offline storage', async () => {
+      await provider.connect(config);
+
+      provider.updateMediaTags(sampleMediaTags);
+
+      expect(provider.getMediaTags()).toEqual(sampleMediaTags);
+      // Wait for the async save
+      await vi.waitFor(() => {
+        expect(mockOfflineElementsService.saveMediaTags).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          sampleMediaTags
+        );
+      });
+    });
+
+    it('should update media project tags and save to offline storage', async () => {
+      await provider.connect(config);
+
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+
+      expect(provider.getMediaProjectTags()).toEqual(sampleMediaProjectTags);
+      await vi.waitFor(() => {
+        expect(
+          mockOfflineElementsService.saveMediaProjectTags
+        ).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          sampleMediaProjectTags
+        );
+      });
+    });
+
+    it('should warn when updating media tags while not connected', () => {
+      provider.updateMediaTags(sampleMediaTags);
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Cannot update media tags - not connected'
+      );
+      expect(mockOfflineElementsService.saveMediaTags).not.toHaveBeenCalled();
+    });
+
+    it('should warn when updating media project tags while not connected', () => {
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Cannot update media project tags - not connected'
+      );
+      expect(
+        mockOfflineElementsService.saveMediaProjectTags
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should emit media tags via observable', async () => {
+      await provider.connect(config);
+
+      const emitted: MediaTag[][] = [];
+      provider.mediaTags$.subscribe(tags => emitted.push(tags));
+
+      provider.updateMediaTags(sampleMediaTags);
+
+      expect(emitted).toContainEqual(sampleMediaTags);
+    });
+
+    it('should emit media project tags via observable', async () => {
+      await provider.connect(config);
+
+      const emitted: MediaProjectTag[][] = [];
+      provider.mediaProjectTags$.subscribe(tags => emitted.push(tags));
+
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+
+      expect(emitted).toContainEqual(sampleMediaProjectTags);
+    });
+
+    it('should handle save error for media tags', async () => {
+      await provider.connect(config);
+
+      mockOfflineElementsService.saveMediaTags.mockRejectedValueOnce(
+        new Error('Save failed')
+      );
+
+      provider.updateMediaTags(sampleMediaTags);
+
+      await vi.waitFor(() => {
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'OfflineSync',
+          'Failed to save media tags',
+          expect.any(Error)
+        );
+      });
+    });
+
+    it('should handle save error for media project tags', async () => {
+      await provider.connect(config);
+
+      mockOfflineElementsService.saveMediaProjectTags.mockRejectedValueOnce(
+        new Error('Save failed')
+      );
+
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+
+      await vi.waitFor(() => {
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'OfflineSync',
+          'Failed to save media project tags',
+          expect.any(Error)
+        );
+      });
+    });
+  });
 });

@@ -10,6 +10,8 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type MediaProjectTag } from '../../models/media-project-tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -508,6 +510,122 @@ describe('YjsElementSyncProvider', () => {
       expect(websocketProvider.destroy).toHaveBeenCalledTimes(1);
       expect(provider.isConnected()).toBe(false);
       expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+    });
+  });
+
+  describe('Media Tags', () => {
+    const sampleMediaTags: MediaTag[] = [
+      {
+        id: 'mt-1',
+        mediaId: 'media-1',
+        elementId: 'elem-1',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+    const sampleMediaProjectTags: MediaProjectTag[] = [
+      {
+        id: 'mpt-1',
+        mediaId: 'media-1',
+        tagId: 'tag-1',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+
+    it('should return empty media tags initially', () => {
+      expect(provider.getMediaTags()).toEqual([]);
+    });
+
+    it('should return empty media project tags initially', () => {
+      expect(provider.getMediaProjectTags()).toEqual([]);
+    });
+
+    it('should update media tags in yjs doc', () => {
+      const doc = attachDoc();
+      provider.updateMediaTags(sampleMediaTags);
+      expect(provider.getMediaTags()).toEqual(sampleMediaTags);
+      expect(doc.getArray('mediaTags').toArray()).toEqual(sampleMediaTags);
+    });
+
+    it('should update media project tags in yjs doc', () => {
+      const doc = attachDoc();
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+      expect(provider.getMediaProjectTags()).toEqual(sampleMediaProjectTags);
+      expect(doc.getArray('mediaProjectTags').toArray()).toEqual(
+        sampleMediaProjectTags
+      );
+    });
+
+    it('should warn when updating media tags without doc', () => {
+      provider.updateMediaTags(sampleMediaTags);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'YjsSync',
+        'Cannot update media tags - not connected'
+      );
+    });
+
+    it('should warn when updating media project tags without doc', () => {
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'YjsSync',
+        'Cannot update media project tags - not connected'
+      );
+    });
+
+    it('should load media tags from existing yjs doc', () => {
+      const doc = attachDoc();
+      doc.getArray<MediaTag>('mediaTags').insert(0, sampleMediaTags);
+      doc
+        .getArray<MediaProjectTag>('mediaProjectTags')
+        .insert(0, sampleMediaProjectTags);
+
+      (
+        provider as unknown as { loadElementsFromDoc: () => void }
+      ).loadElementsFromDoc();
+
+      expect(provider.getMediaTags()).toEqual(sampleMediaTags);
+      expect(provider.getMediaProjectTags()).toEqual(sampleMediaProjectTags);
+    });
+
+    it('should emit media tags via observable', () => {
+      attachDoc();
+      const emitted: MediaTag[][] = [];
+      provider.mediaTags$.subscribe(tags => emitted.push(tags));
+
+      provider.updateMediaTags(sampleMediaTags);
+      expect(emitted).toContainEqual(sampleMediaTags);
+    });
+
+    it('should emit media project tags via observable', () => {
+      attachDoc();
+      const emitted: MediaProjectTag[][] = [];
+      provider.mediaProjectTags$.subscribe(tags => emitted.push(tags));
+
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+      expect(emitted).toContainEqual(sampleMediaProjectTags);
+    });
+
+    it('should replace existing media tags on update', () => {
+      const doc = attachDoc();
+      provider.updateMediaTags(sampleMediaTags);
+      expect(provider.getMediaTags().length).toBe(1);
+
+      const newTags: MediaTag[] = [
+        {
+          id: 'mt-2',
+          mediaId: 'media-2',
+          elementId: 'elem-2',
+          createdAt: '2025-01-02T00:00:00Z',
+        },
+        {
+          id: 'mt-3',
+          mediaId: 'media-3',
+          elementId: 'elem-3',
+          createdAt: '2025-01-03T00:00:00Z',
+        },
+      ];
+      provider.updateMediaTags(newTags);
+      expect(provider.getMediaTags()).toEqual(newTags);
+      expect(doc.getArray('mediaTags').toArray()).toEqual(newTags);
     });
   });
 });

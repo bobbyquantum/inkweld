@@ -159,6 +159,33 @@ describe('MediaPanelComponent', () => {
     expect(dialogGateway.openImageViewerDialog).not.toHaveBeenCalled();
   });
 
+  it('should remove tag when image viewer returns delete', async () => {
+    localStorageService.getMediaUrl.mockResolvedValue(
+      'blob:http://localhost/test'
+    );
+    dialogGateway.openImageViewerDialog.mockResolvedValue('delete');
+    fixture.detectChanges();
+
+    await component.viewImage('img-1');
+
+    expect(mediaTagService.removeTag).toHaveBeenCalledWith(
+      'img-1',
+      'test-element'
+    );
+  });
+
+  it('should not remove tag when image viewer returns undefined', async () => {
+    localStorageService.getMediaUrl.mockResolvedValue(
+      'blob:http://localhost/test'
+    );
+    dialogGateway.openImageViewerDialog.mockResolvedValue(undefined);
+    fixture.detectChanges();
+
+    await component.viewImage('img-1');
+
+    expect(mediaTagService.removeTag).not.toHaveBeenCalled();
+  });
+
   it('should load media URLs for tagged media', async () => {
     mockMediaTags.set(['img-1']);
     fixture.detectChanges();
