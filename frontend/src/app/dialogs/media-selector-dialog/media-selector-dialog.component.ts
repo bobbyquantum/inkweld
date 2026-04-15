@@ -328,6 +328,8 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
         selected.mediaId
       );
 
+      if (!blob) return;
+
       this.dialogRef.close({
         selected,
         blob,

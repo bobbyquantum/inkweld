@@ -402,9 +402,7 @@ test.describe('Image Generation - User Dialog Flow', () => {
     await expect(generateOption).toBeEnabled();
 
     // Close dialog
-    await authenticatedPage
-      .locator('mat-dialog-container button', { hasText: 'Cancel' })
-      .click();
+    await authenticatedPage.locator('[data-testid="add-media-cancel"]').click();
   });
 
   test('should open image generation dialog with profiles loaded', async ({

@@ -15,6 +15,7 @@
       <button
         matSuffix
         mat-icon-button
+        aria-label="Clear search"
         (click)="clearSearch()"
         data-testid="media-search-clear">
         <mat-icon>close</mat-icon>
@@ -24,6 +25,7 @@
   <div class="header-actions">
     <button
       mat-icon-button
+      aria-label="Add media"
       (click)="openAddMedia()"
       matTooltip="Add media"
       data-testid="add-media-button">
@@ -32,6 +34,7 @@
     <button
       mat-icon-button
       class="filter-toggle-button"
+      aria-label="Open filters"
       (click)="openFilters()"
       [matBadge]="activeFilterCount() || null"
       matBadgeSize="small"
@@ -189,6 +192,9 @@
                 <button
                   mat-icon-button
                   matTooltip="Add tag"
+                  [attr.aria-label]="
+                    'Add tag to ' + (item.filename || item.mediaId)
+                  "
                   (click)="tagMedia(item); $event.stopPropagation()"
                   data-testid="tag-media-button">
                   <mat-icon>sell</mat-icon>
@@ -199,6 +205,9 @@
                   <button
                     mat-icon-button
                     matTooltip="View"
+                    [attr.aria-label]="
+                      'View ' + (item.filename || item.mediaId)
+                    "
                     (click)="viewImage(item); $event.stopPropagation()">
                     <mat-icon>visibility</mat-icon>
                   </button>
@@ -206,12 +215,18 @@
                 <button
                   mat-icon-button
                   matTooltip="Download"
+                  [attr.aria-label]="
+                    'Download ' + (item.filename || item.mediaId)
+                  "
                   (click)="downloadMedia(item); $event.stopPropagation()">
                   <mat-icon>download</mat-icon>
                 </button>
                 <button
                   mat-icon-button
                   matTooltip="Delete"
+                  [attr.aria-label]="
+                    'Delete ' + (item.filename || item.mediaId)
+                  "
                   (click)="deleteMedia(item); $event.stopPropagation()"
                   [disabled]="item.category === 'cover'">
                   <mat-icon>delete</mat-icon>

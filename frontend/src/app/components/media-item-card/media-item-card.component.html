@@ -1,10 +1,12 @@
 <!-- Image / file preview with blur background -->
 <div
   class="card-preview"
-  role="button"
-  tabindex="0"
+  [attr.role]="isImage() ? 'button' : null"
+  [attr.tabindex]="isImage() ? 0 : null"
+  [attr.aria-label]="isImage() ? altText() : null"
   (click)="isImage() && cardClick.emit()"
-  (keydown.enter)="isImage() && cardClick.emit()">
+  (keydown.enter)="isImage() && cardClick.emit()"
+  (keydown.space)="isImage() && cardClick.emit(); $event.preventDefault()">
   @if (isImage() && imageUrl()) {
     <img
       [src]="imageUrl()"

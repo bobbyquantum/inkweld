@@ -44,7 +44,9 @@ export type AddMediaDialogResult = 'upload' | 'generate';
       </div>
     </mat-dialog-content>
     <mat-dialog-actions>
-      <button mat-button mat-dialog-close>Cancel</button>
+      <button mat-button mat-dialog-close data-testid="add-media-cancel">
+        Cancel
+      </button>
     </mat-dialog-actions>
   `,
   styles: [

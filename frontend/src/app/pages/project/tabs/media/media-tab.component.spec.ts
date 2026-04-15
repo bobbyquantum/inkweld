@@ -217,6 +217,7 @@ describe('MediaTabComponent', () => {
       expect(dialogGateway.openImageViewerDialog).toHaveBeenCalledWith({
         imageUrl: expect.any(String),
         fileName: 'cover.jpg',
+        canEdit: true,
         mediaId: 'cover',
         metadata: {
           category: coverItem.categoryLabel,

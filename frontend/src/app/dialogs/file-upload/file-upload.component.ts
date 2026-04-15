@@ -58,7 +58,7 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
   styles: [
     `
       .upload-area {
-        border: 2px dashed var(--sys-color-outline-variant);
+        border: 2px dashed var(--sys-outline-variant);
         border-radius: 12px;
         padding: 2rem;
         text-align: center;
@@ -66,13 +66,13 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
         margin: 1rem 0;
       }
       .upload-area:hover {
-        border-color: var(--sys-color-primary);
+        border-color: var(--sys-primary);
       }
       .upload-prompt {
-        color: var(--sys-color-on-surface-variant);
+        color: var(--sys-on-surface-variant);
       }
       .file-info {
-        color: var(--sys-color-on-surface);
+        color: var(--sys-on-surface);
       }
     `,
   ],

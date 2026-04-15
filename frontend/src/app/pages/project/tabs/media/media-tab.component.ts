@@ -705,6 +705,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       const result = await this.dialogGateway.openImageViewerDialog({
         imageUrl: item.url,
         fileName: item.filename || item.mediaId,
+        canEdit: true,
         mediaId: item.mediaId,
         metadata: {
           category: item.categoryLabel,
@@ -1038,20 +1039,6 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     const def = this.tagService.allTags().find(d => d.id === id);
     return def?.name ?? 'Unknown Tag';
   });
-
-  /** Open autocomplete-like tag picker for a media item via a simple dialog approach */
-  tagMediaWithProjectTag(item: MediaItem): void {
-    const currentTagIds = this.mediaProjectTagService.getTagsForMedia(
-      item.mediaId
-    );
-    const allDefs = this.tagService.allTags();
-    const available = allDefs.filter(d => !currentTagIds.includes(d.id));
-
-    if (available.length === 0) return;
-
-    // Apply the first available tag
-    this.mediaProjectTagService.addTag(item.mediaId, available[0].id);
-  }
 
   /** Add a project tag to a media item */
   addMediaProjectTag(mediaId: string, tagId: string): void {

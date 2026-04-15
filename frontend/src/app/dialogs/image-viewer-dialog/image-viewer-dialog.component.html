@@ -26,14 +26,16 @@
         matTooltip="Download">
         <mat-icon>download</mat-icon>
       </button>
-      <button
-        mat-icon-button
-        (click)="deleteImage()"
-        aria-label="Delete image"
-        matTooltip="Delete"
-        class="delete-button">
-        <mat-icon>delete</mat-icon>
-      </button>
+      @if (data.canEdit) {
+        <button
+          mat-icon-button
+          (click)="deleteImage()"
+          aria-label="Delete image"
+          matTooltip="Delete"
+          class="delete-button">
+          <mat-icon>delete</mat-icon>
+        </button>
+      }
     }
     <span class="title-spacer"></span>
     <button mat-icon-button (click)="closeDialog()" aria-label="Close dialog">
@@ -101,7 +103,7 @@
       (dragstart)="onDragStart($event)" />
   </div>
 </mat-dialog-content>
-@if (data.mediaId) {
+@if (data.mediaId && data.canEdit) {
   <mat-dialog-actions class="action-bar">
     <div class="tag-buttons">
       <button

@@ -28,12 +28,14 @@
       @for (mediaId of taggedMediaIds(); track mediaId) {
         <app-media-item-card
           [imageUrl]="mediaUrls().get(mediaId)"
+          [altText]="mediaId"
           [isImage]="true"
           (cardClick)="viewImage(mediaId)">
           <div cardTopRight>
             <button
               mat-icon-button
               matTooltip="Remove tag"
+              [attr.aria-label]="'Remove tag from ' + mediaId"
               (click)="removeTag(mediaId); $event.stopPropagation()"
               data-testid="remove-media-tag">
               <mat-icon>close</mat-icon>

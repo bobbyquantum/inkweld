@@ -92,11 +92,14 @@ export class MediaPanelComponent {
     const projectKey = `${this.username()}/${this.slug()}`;
     const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
     if (url) {
-      void this.dialogGateway.openImageViewerDialog({
+      const result = await this.dialogGateway.openImageViewerDialog({
         imageUrl: url,
         fileName: mediaId,
         mediaId,
       });
+      if (result === 'delete') {
+        this.removeTag(mediaId);
+      }
     }
   }
 

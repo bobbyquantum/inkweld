@@ -9,11 +9,13 @@
   @media (hover: hover) {
     &:hover .card-overlay {
       opacity: 1;
+      pointer-events: auto;
     }
   }
 
   &:focus-within .card-overlay {
     opacity: 1;
+    pointer-events: auto;
   }
 }
 
@@ -70,6 +72,7 @@
   flex-direction: column;
   justify-content: space-between;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.2s ease;
 
   @media (prefers-reduced-motion: reduce) {
