@@ -14,3 +14,23 @@ if [ "$branch" = "main" ]; then
   echo ""
   exit 1
 fi
+
+# Validate conventional commit format for all new commits being pushed.
+while read local_ref local_oid remote_ref remote_oid; do
+  # Skip branch deletions
+  [ "$local_oid" = "0000000000000000000000000000000000000000" ] && continue
+
+  if [ "$remote_oid" = "0000000000000000000000000000000000000000" ]; then
+    # New branch — lint commits not yet on any remote
+    from_flag="--from=HEAD~$(git log --oneline "$local_oid" --not --remotes | wc -l | tr -d ' ')~1"
+  else
+    from_flag="--from=$remote_oid"
+  fi
+
+  npx --no -- commitlint $from_flag --to "$local_oid" || {
+    echo ""
+    echo "   Fix commit messages or bypass with: git push --no-verify"
+    echo ""
+    exit 1
+  }
+done
