@@ -445,6 +445,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should revoke a key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       const keyToRevoke = component['mcpKeys']()[0];
 
@@ -464,6 +467,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should delete a key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       const keyToDelete = component['mcpKeys']()[0];
 
@@ -595,6 +601,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should handle error when revoking key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       (mcpKeysService.revokeMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
         throwError(() => new Error('Failed'))
@@ -614,6 +623,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should handle error when deleting key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       (mcpKeysService.deleteMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
         throwError(() => new Error('Failed'))

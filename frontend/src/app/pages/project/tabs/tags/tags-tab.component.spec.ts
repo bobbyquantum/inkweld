@@ -72,6 +72,12 @@ describe('TagsTabComponent', () => {
         owner: { username: 'testuser' },
       } as never),
       openSystemTab: vi.fn(),
+      elements: signal([
+        { id: 'a', name: 'Element A', type: 'ITEM' },
+        { id: 'b', name: 'Element B', type: 'ITEM' },
+        { id: 'c', name: 'Element C', type: 'ITEM' },
+      ] as never[]),
+      openDocument: vi.fn(),
     };
 
     mockSnackBar = {
@@ -219,7 +225,7 @@ describe('TagsTabComponent', () => {
       );
     });
 
-    it('should show count message when tag has elements', () => {
+    it('should open first tagged element and show count message when tag has multiple elements', () => {
       const tag = {
         id: '1',
         name: 'Test',
@@ -229,14 +235,17 @@ describe('TagsTabComponent', () => {
         elementIds: ['a', 'b', 'c'],
       };
       component.viewTaggedElements(tag);
+      expect(mockProjectState.openDocument).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'a', name: 'Element A' })
+      );
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        '3 element(s) have the "Test" tag',
+        'Opened "Element A". 2 more element(s) also have this tag.',
         'Dismiss',
-        { duration: 3000 }
+        { duration: 4000 }
       );
     });
 
-    it('should show singular element when count is 1', () => {
+    it('should open single tagged element without extra message', () => {
       const tag = {
         id: '1',
         name: 'Single',
@@ -246,11 +255,10 @@ describe('TagsTabComponent', () => {
         elementIds: ['a'],
       };
       component.viewTaggedElements(tag);
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        '1 element(s) have the "Single" tag',
-        'Dismiss',
-        { duration: 3000 }
+      expect(mockProjectState.openDocument).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'a', name: 'Element A' })
       );
+      expect(mockSnackBar.open).not.toHaveBeenCalled();
     });
   });
 
