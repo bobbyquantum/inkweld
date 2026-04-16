@@ -1,0 +1,40 @@
+name: Validate PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  validate-title:
+    name: Conventional Commit Title
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          # Require a scope description to be present (optional — remove to make scope optional)
+          requireScope: false
+          # Disallow uppercase subject start (e.g. "feat: Add" should be "feat: add")
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" must start with a lowercase letter.
+            Example: feat: add login page  ✅
+            Example: feat: Add login page  ❌
+          # Helpful error message shown on failure
+          wip: true
+          validateSingleCommit: false
