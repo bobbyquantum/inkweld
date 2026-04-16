@@ -157,6 +157,7 @@ export class ProjectExportService {
       );
       const tags = await this.getTags(username, slug);
       const elementTags = await this.getElementTags(username, slug);
+      const mediaTags = await this.getMediaTags(username, slug);
       const publishPlans = await this.getPublishPlans(username, slug);
 
       // Phase 3: Get snapshots
@@ -199,6 +200,7 @@ export class ProjectExportService {
         customRelationshipTypes,
         tags,
         elementTags,
+        mediaTags,
         publishPlans,
         media: mediaManifest,
         snapshots,
@@ -579,6 +581,17 @@ export class ProjectExportService {
   }
 
   /**
+   * Get media tag assignments (media-to-element associations).
+   */
+  private async getMediaTags(username: string, slug: string) {
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.mediaTags();
+    }
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.mediaTags();
+  }
+
+  /**
    * Get publish plans.
    */
   private async getPublishPlans(
@@ -720,6 +733,10 @@ export class ProjectExportService {
     );
     zip.file('tags.json', JSON.stringify(archive.tags, null, 2));
     zip.file('element-tags.json', JSON.stringify(archive.elementTags, null, 2));
+    zip.file(
+      'media-tags.json',
+      JSON.stringify(archive.mediaTags ?? [], null, 2)
+    );
     zip.file(
       'publish-plans.json',
       JSON.stringify(archive.publishPlans, null, 2)

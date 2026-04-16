@@ -1,0 +1,56 @@
+<div class="media-panel" data-testid="media-panel">
+  @if (taggedMediaIds().length === 0) {
+    <div class="media-panel-empty">
+      <mat-icon>perm_media</mat-icon>
+      <p>No media tagged with this element yet.</p>
+      <button
+        mat-stroked-button
+        (click)="openMediaSelector()"
+        data-testid="tag-media-button">
+        <mat-icon>add_photo_alternate</mat-icon>
+        Tag Media
+      </button>
+    </div>
+  } @else {
+    <div class="media-panel-header">
+      <span class="media-count"
+        >{{ taggedMediaIds().length }} tagged media</span
+      >
+      <button
+        mat-stroked-button
+        (click)="openMediaSelector()"
+        data-testid="tag-more-media-button">
+        <mat-icon>add_photo_alternate</mat-icon>
+        Tag More
+      </button>
+    </div>
+    <div class="media-panel-grid" data-testid="media-panel-grid">
+      @for (mediaId of taggedMediaIds(); track mediaId) {
+        <app-media-item-card
+          [imageUrl]="mediaUrls().get(mediaId)"
+          [altText]="mediaId"
+          [isImage]="true"
+          (cardClick)="viewImage(mediaId)">
+          <div cardTopRight>
+            <button
+              mat-icon-button
+              matTooltip="Remove tag"
+              [attr.aria-label]="'Remove tag from ' + mediaId"
+              (click)="removeTag(mediaId); $event.stopPropagation()"
+              data-testid="remove-media-tag">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <div cardBottom>
+            <span
+              class="media-panel-name"
+              [matTooltip]="mediaId"
+              [matTooltipShowDelay]="800">
+              {{ mediaId }}
+            </span>
+          </div>
+        </app-media-item-card>
+      }
+    </div>
+  }
+</div>

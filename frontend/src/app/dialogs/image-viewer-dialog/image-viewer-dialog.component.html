@@ -1,6 +1,14 @@
 <div class="dialog-title-bar">
   <h2 mat-dialog-title class="dialog-title">
-    <span class="title-text">{{ data.fileName }}</span>
+    @if (data.metadata) {
+      <button
+        mat-icon-button
+        (click)="showInfo.set(!showInfo())"
+        [attr.aria-label]="showInfo() ? 'Hide info' : 'Show info'"
+        [matTooltip]="showInfo() ? 'Hide info' : 'Show info'">
+        <mat-icon>{{ showInfo() ? 'info' : 'info_outline' }}</mat-icon>
+      </button>
+    }
     @if (data.canEdit) {
       <button
         mat-icon-button
@@ -10,12 +18,72 @@
         <mat-icon>edit</mat-icon>
       </button>
     }
+    @if (data.mediaId) {
+      <button
+        mat-icon-button
+        (click)="downloadImage()"
+        aria-label="Download image"
+        matTooltip="Download">
+        <mat-icon>download</mat-icon>
+      </button>
+      @if (data.canEdit) {
+        <button
+          mat-icon-button
+          (click)="deleteImage()"
+          aria-label="Delete image"
+          matTooltip="Delete"
+          class="delete-button">
+          <mat-icon>delete</mat-icon>
+        </button>
+      }
+    }
+    <span class="title-spacer"></span>
     <button mat-icon-button (click)="closeDialog()" aria-label="Close dialog">
       <mat-icon>close</mat-icon>
     </button>
   </h2>
 </div>
 <mat-dialog-content class="image-container">
+  @if (showInfo() && data.metadata) {
+    <div class="info-panel">
+      @if (data.metadata.category) {
+        <div class="info-row">
+          <mat-icon class="info-icon">category</mat-icon>
+          <span>{{ data.metadata.category }}</span>
+        </div>
+      }
+      @if (data.metadata.size) {
+        <div class="info-row">
+          <mat-icon class="info-icon">straighten</mat-icon>
+          <span>{{ data.metadata.size }}</span>
+        </div>
+      }
+      @if (data.metadata.date) {
+        <div class="info-row">
+          <mat-icon class="info-icon">calendar_today</mat-icon>
+          <span>{{ data.metadata.date }}</span>
+        </div>
+      }
+      @if (data.metadata.generationModel) {
+        <div class="info-row">
+          <mat-icon class="info-icon">auto_awesome</mat-icon>
+          <span>{{ data.metadata.generationModel }}</span>
+        </div>
+      }
+      @if (data.metadata.generationSize) {
+        <div class="info-row">
+          <mat-icon class="info-icon">aspect_ratio</mat-icon>
+          <span>{{ data.metadata.generationSize }}</span>
+        </div>
+      }
+      @if (data.metadata.generationPrompt) {
+        <div class="info-row info-row-prompt">
+          <mat-icon class="info-icon">notes</mat-icon>
+          <span class="prompt-text">{{ data.metadata.generationPrompt }}</span>
+        </div>
+      }
+    </div>
+  }
   <div
     class="viewer-container"
     #viewerContainer
@@ -35,3 +103,44 @@
       (dragstart)="onDragStart($event)" />
   </div>
 </mat-dialog-content>
+@if (data.mediaId && data.canEdit) {
+  <mat-dialog-actions class="action-bar">
+    <div class="tag-buttons">
+      <button
+        mat-icon-button
+        (click)="addTags()"
+        aria-label="Add tags"
+        matTooltip="Add tags">
+        <mat-icon>sell</mat-icon>
+      </button>
+    </div>
+    <div class="tag-chips">
+      <mat-chip-set>
+        @for (el of resolvedElementTags(); track el.id) {
+          <mat-chip
+            [removable]="true"
+            (removed)="removeElementTag(el.id)"
+            class="element-tag-chip"
+            [matTooltip]="el.name">
+            <mat-icon matChipAvatar>category</mat-icon>
+            {{ el.name }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+        }
+        @for (tag of resolvedProjectTags(); track tag.id) {
+          <mat-chip
+            [removable]="true"
+            (removed)="removeProjectTag(tag)"
+            [style.background-color]="tag.color + '44'"
+            [matTooltip]="tag.description || tag.name">
+            <mat-icon matChipAvatar [style.color]="tag.color">{{
+              tag.icon
+            }}</mat-icon>
+            {{ tag.name }}
+            <mat-icon matChipRemove>cancel</mat-icon>
+          </mat-chip>
+        }
+      </mat-chip-set>
+    </div>
+  </mat-dialog-actions>
+}

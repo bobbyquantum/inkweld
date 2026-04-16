@@ -274,7 +274,7 @@ test.describe('Worldbuilding Snapshots', () => {
     // In sidenav mode, click the first schema tab to see form fields
     const firstSchemaTab = page
       .locator(
-        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
+        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"]):not([data-testid="nav-media"])'
       )
       .first();
     await firstSchemaTab.click();
@@ -346,7 +346,7 @@ test.describe('Worldbuilding Snapshots', () => {
     // In sidenav mode, click the first schema tab to see form fields
     const firstSchemaTab = page
       .locator(
-        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"])'
+        '[data-testid^="nav-"]:not([data-testid="nav-identity"]):not([data-testid="nav-relationships"]):not([data-testid="nav-media"])'
       )
       .first();
     await firstSchemaTab.click();

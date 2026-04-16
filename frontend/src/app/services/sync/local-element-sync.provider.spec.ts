@@ -13,6 +13,8 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type MediaProjectTag } from '../../models/media-project-tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import {
   ChapterNumbering,
   PublishFormat,
@@ -35,6 +37,8 @@ describe('LocalElementSyncProvider', () => {
     schemas: ReturnType<typeof vi.fn>;
     elementTags: ReturnType<typeof vi.fn>;
     customTags: ReturnType<typeof vi.fn>;
+    mediaTags: ReturnType<typeof vi.fn>;
+    mediaProjectTags: ReturnType<typeof vi.fn>;
     projectMeta: ReturnType<typeof vi.fn>;
     saveElements: ReturnType<typeof vi.fn>;
     savePublishPlans: ReturnType<typeof vi.fn>;
@@ -43,6 +47,8 @@ describe('LocalElementSyncProvider', () => {
     saveSchemas: ReturnType<typeof vi.fn>;
     saveElementTags: ReturnType<typeof vi.fn>;
     saveCustomTags: ReturnType<typeof vi.fn>;
+    saveMediaTags: ReturnType<typeof vi.fn>;
+    saveMediaProjectTags: ReturnType<typeof vi.fn>;
     saveProjectMeta: ReturnType<typeof vi.fn>;
     closeConnection: ReturnType<typeof vi.fn>;
     _elementsSubject: BehaviorSubject<Element[]>;
@@ -52,6 +58,8 @@ describe('LocalElementSyncProvider', () => {
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
     _elementTagsSubject: BehaviorSubject<ElementTag[]>;
     _customTagsSubject: BehaviorSubject<TagDefinition[]>;
+    _mediaTagsSubject: BehaviorSubject<MediaTag[]>;
+    _mediaProjectTagsSubject: BehaviorSubject<MediaProjectTag[]>;
     _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
     _errorsSubject: Subject<string>;
   };
@@ -153,6 +161,8 @@ describe('LocalElementSyncProvider', () => {
     const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
     const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
     const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
+    const mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
+    const mediaProjectTagsSubject = new BehaviorSubject<MediaProjectTag[]>([]);
     const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
       undefined
     );
@@ -167,6 +177,8 @@ describe('LocalElementSyncProvider', () => {
       schemas: vi.fn(() => schemasSubject.getValue()),
       elementTags: vi.fn(() => elementTagsSubject.getValue()),
       customTags: vi.fn(() => customTagsSubject.getValue()),
+      mediaTags: vi.fn(() => mediaTagsSubject.getValue()),
+      mediaProjectTags: vi.fn(() => mediaProjectTagsSubject.getValue()),
       projectMeta: vi.fn(() => projectMetaSubject.getValue()),
       saveElements: vi.fn().mockResolvedValue(undefined),
       savePublishPlans: vi.fn().mockResolvedValue(undefined),
@@ -175,6 +187,8 @@ describe('LocalElementSyncProvider', () => {
       saveSchemas: vi.fn().mockResolvedValue(undefined),
       saveElementTags: vi.fn().mockResolvedValue(undefined),
       saveCustomTags: vi.fn().mockResolvedValue(undefined),
+      saveMediaTags: vi.fn().mockResolvedValue(undefined),
+      saveMediaProjectTags: vi.fn().mockResolvedValue(undefined),
       saveProjectMeta: vi.fn().mockResolvedValue(undefined),
       closeConnection: vi.fn().mockResolvedValue(undefined),
       _elementsSubject: elementsSubject,
@@ -184,6 +198,8 @@ describe('LocalElementSyncProvider', () => {
       _schemasSubject: schemasSubject,
       _elementTagsSubject: elementTagsSubject,
       _customTagsSubject: customTagsSubject,
+      _mediaTagsSubject: mediaTagsSubject,
+      _mediaProjectTagsSubject: mediaProjectTagsSubject,
       _projectMetaSubject: projectMetaSubject,
       _errorsSubject: errorsSubject,
     };
@@ -583,6 +599,145 @@ describe('LocalElementSyncProvider', () => {
           'Failed to save project metadata offline',
         ])
       );
+    });
+  });
+
+  describe('Media Tags', () => {
+    const config = { username: 'testuser', slug: 'test-project' };
+    const sampleMediaTags: MediaTag[] = [
+      {
+        id: 'mt-1',
+        mediaId: 'media-1',
+        elementId: 'elem-1',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+    const sampleMediaProjectTags: MediaProjectTag[] = [
+      {
+        id: 'mpt-1',
+        mediaId: 'media-1',
+        tagId: 'tag-1',
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+
+    it('should return empty media tags initially', () => {
+      expect(provider.getMediaTags()).toEqual([]);
+    });
+
+    it('should return empty media project tags initially', () => {
+      expect(provider.getMediaProjectTags()).toEqual([]);
+    });
+
+    it('should update media tags and save to offline storage', async () => {
+      await provider.connect(config);
+
+      provider.updateMediaTags(sampleMediaTags);
+
+      expect(provider.getMediaTags()).toEqual(sampleMediaTags);
+      // Wait for the async save
+      await vi.waitFor(() => {
+        expect(mockOfflineElementsService.saveMediaTags).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          sampleMediaTags
+        );
+      });
+    });
+
+    it('should update media project tags and save to offline storage', async () => {
+      await provider.connect(config);
+
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+
+      expect(provider.getMediaProjectTags()).toEqual(sampleMediaProjectTags);
+      await vi.waitFor(() => {
+        expect(
+          mockOfflineElementsService.saveMediaProjectTags
+        ).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          sampleMediaProjectTags
+        );
+      });
+    });
+
+    it('should warn when updating media tags while not connected', () => {
+      provider.updateMediaTags(sampleMediaTags);
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Cannot update media tags - not connected'
+      );
+      expect(mockOfflineElementsService.saveMediaTags).not.toHaveBeenCalled();
+    });
+
+    it('should warn when updating media project tags while not connected', () => {
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'OfflineSync',
+        'Cannot update media project tags - not connected'
+      );
+      expect(
+        mockOfflineElementsService.saveMediaProjectTags
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should emit media tags via observable', async () => {
+      await provider.connect(config);
+
+      const emitted: MediaTag[][] = [];
+      provider.mediaTags$.subscribe(tags => emitted.push(tags));
+
+      provider.updateMediaTags(sampleMediaTags);
+
+      expect(emitted).toContainEqual(sampleMediaTags);
+    });
+
+    it('should emit media project tags via observable', async () => {
+      await provider.connect(config);
+
+      const emitted: MediaProjectTag[][] = [];
+      provider.mediaProjectTags$.subscribe(tags => emitted.push(tags));
+
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+
+      expect(emitted).toContainEqual(sampleMediaProjectTags);
+    });
+
+    it('should handle save error for media tags', async () => {
+      await provider.connect(config);
+
+      mockOfflineElementsService.saveMediaTags.mockRejectedValueOnce(
+        new Error('Save failed')
+      );
+
+      provider.updateMediaTags(sampleMediaTags);
+
+      await vi.waitFor(() => {
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'OfflineSync',
+          'Failed to save media tags',
+          expect.any(Error)
+        );
+      });
+    });
+
+    it('should handle save error for media project tags', async () => {
+      await provider.connect(config);
+
+      mockOfflineElementsService.saveMediaProjectTags.mockRejectedValueOnce(
+        new Error('Save failed')
+      );
+
+      provider.updateMediaProjectTags(sampleMediaProjectTags);
+
+      await vi.waitFor(() => {
+        expect(mockLoggerService.error).toHaveBeenCalledWith(
+          'OfflineSync',
+          'Failed to save media project tags',
+          expect.any(Error)
+        );
+      });
     });
   });
 });

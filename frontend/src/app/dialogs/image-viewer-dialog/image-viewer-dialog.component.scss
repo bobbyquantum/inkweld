@@ -19,11 +19,8 @@
   padding: 8px 16px;
 }
 
-.title-text {
+.title-spacer {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Image container fills remaining space */
@@ -31,10 +28,44 @@
   flex: 1;
   padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   overflow: hidden;
   min-height: 0; /* Allow flex shrinking */
+}
+
+.info-panel {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  opacity: 0.85;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .info-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+  }
+}
+
+.info-row-prompt {
+  flex-basis: 100%;
+}
+
+.prompt-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .viewer-container {
@@ -70,4 +101,40 @@
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none; /* Let container handle all pointer events */
+}
+
+/* Action bar with download + tag management */
+.action-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 4px 16px;
+  border-top: 1px solid
+    var(--mat-sys-outline-variant, rgba(255, 255, 255, 0.12));
+  min-height: 48px;
+}
+
+.tag-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delete-button {
+  color: var(--mat-sys-error, #f44336);
+}
+
+.tag-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.element-tag-chip {
+  --mdc-chip-elevated-container-color: rgba(128, 128, 128, 0.15);
 }

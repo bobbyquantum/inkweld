@@ -71,6 +71,18 @@
             <mat-icon matListItemIcon>link</mat-icon>
             <span matListItemTitle>Relationships</span>
           </a>
+
+          <a
+            mat-list-item
+            (click)="selectSection('media')"
+            (keydown.enter)="selectSection('media')"
+            [attr.aria-current]="selectedSection() === 'media' ? 'true' : null"
+            [class.active]="selectedSection() === 'media'"
+            tabindex="0"
+            data-testid="nav-media">
+            <mat-icon matListItemIcon>perm_media</mat-icon>
+            <span matListItemTitle>Media</span>
+          </a>
         </mat-nav-list>
       </nav>
     }
@@ -130,6 +142,16 @@
               [elementId]="elementId()"
               [isOpen]="true">
             </app-meta-panel>
+          </div>
+        }
+
+        @if (selectedSection() === 'media') {
+          <div class="section-content media-inline">
+            <app-media-panel
+              [elementId]="elementId()"
+              [username]="username()"
+              [slug]="slug()">
+            </app-media-panel>
           </div>
         }
 
@@ -218,6 +240,23 @@
                 [elementId]="elementId()"
                 [isOpen]="true">
               </app-meta-panel>
+            </div>
+          </mat-expansion-panel>
+
+          <!-- Media panel -->
+          <mat-expansion-panel data-testid="accordion-media">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="panel-title-icon">perm_media</mat-icon>
+                Media
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <div class="media-inline">
+              <app-media-panel
+                [elementId]="elementId()"
+                [username]="username()"
+                [slug]="slug()">
+              </app-media-panel>
             </div>
           </mat-expansion-panel>
         </mat-accordion>

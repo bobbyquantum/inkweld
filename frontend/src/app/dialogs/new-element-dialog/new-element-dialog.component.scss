@@ -1,14 +1,14 @@
 // General dialog styling
 mat-dialog-content {
   padding: 1rem;
-  
+
   &.type-selection-content {
     min-width: 600px;
     max-width: 900px;
     max-height: 70vh;
     overflow-y: auto;
   }
-  
+
   &.name-content {
     min-width: 400px;
     max-width: 500px;
@@ -22,6 +22,7 @@ mat-dialog-actions {
 
 // Search field
 .search-field {
+  --mat-form-field-outlined-container-shape: 28px !important;
   width: 100%;
   margin-bottom: 1.5rem;
 }
@@ -29,7 +30,7 @@ mat-dialog-actions {
 // Category sections
 .category-section {
   margin-bottom: 2rem;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -43,7 +44,7 @@ mat-dialog-actions {
   font-size: 1.1rem;
   font-weight: 500;
   color: var(--sys-on-surface-variant);
-  
+
   mat-icon {
     font-size: 1.2rem;
     height: 1.2rem;
@@ -70,30 +71,30 @@ mat-dialog-actions {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
-  
+
   &.selected {
     border: 2px solid var(--sys-primary);
     background-color: var(--sys-primary-container);
   }
-  
+
   .type-icon {
     font-size: 2.5rem;
     width: 2.5rem;
     height: 2.5rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .type-label {
     margin: 0.5rem 0;
     font-size: 1rem;
     font-weight: 500;
   }
-  
+
   .type-description {
     margin: 0;
     font-size: 0.75rem;
@@ -107,7 +108,7 @@ mat-dialog-actions {
   text-align: center;
   padding: 3rem 1rem;
   color: var(--sys-on-surface-variant);
-  
+
   mat-icon {
     font-size: 3rem;
     width: 3rem;
@@ -115,7 +116,7 @@ mat-dialog-actions {
     margin-bottom: 1rem;
     opacity: 0.5;
   }
-  
+
   p {
     margin: 0;
     font-size: 1rem;
@@ -131,14 +132,14 @@ mat-dialog-actions {
   margin-bottom: 1.5rem;
   background-color: var(--sys-surface-variant);
   border-radius: 8px;
-  
+
   .type-icon-large {
     font-size: 3rem;
     width: 3rem;
     height: 3rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .type-description {
     margin: 0;
     text-align: center;
@@ -155,7 +156,7 @@ mat-dialog-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+
   button[mat-icon-button] {
     margin-left: -8px;
   }
@@ -167,24 +168,24 @@ mat-dialog-title {
     min-width: unset;
     width: 90vw;
   }
-  
+
   .type-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-  
+
   .type-card {
     min-height: 120px;
-    
+
     .type-icon {
       font-size: 2rem;
       width: 2rem;
       height: 2rem;
     }
-    
+
     .type-label {
       font-size: 0.9rem;
     }
-    
+
     .type-description {
       font-size: 0.7rem;
     }

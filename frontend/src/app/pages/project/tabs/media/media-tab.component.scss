@@ -1,34 +1,53 @@
-.media-container {
-  padding: 16px;
+:host {
   display: flex;
   flex-direction: column;
-  // Desktop with tabs: toolbar (48px) + tabs header (~82px) = 130px
-  height: var(--app-height-offset-130);
-  overflow: auto;
+  height: var(--app-height-offset-50);
+  overflow: hidden;
 
-  // Mobile without tabs: only toolbar (48px) + padding (~34px) = 82px
   @media (max-width: 759px) {
     height: var(--app-height-offset-82);
+  }
+}
+
+.media-container {
+  flex: 1;
+  min-height: 0;
+
+  // Mobile overlay backdrop — semi-transparent so users can click to close
+  ::ng-deep .mat-drawer-backdrop.mat-drawer-shown {
+    background-color: rgba(0, 0, 0, 0.4);
   }
 }
 
 .media-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
   gap: 12px;
+  padding: 12px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface);
 
-  h1 {
-    margin: 0;
-    font-size: 24px;
+  .search-field {
+    --mat-form-field-outlined-container-shape: 28px !important;
+    flex: 1;
+    min-width: 0;
+
+    mat-icon[matPrefix] {
+      margin-right: 8px;
+      color: var(--sys-on-surface-variant);
+    }
+
+    button[matSuffix] {
+      margin-right: 4px;
+    }
   }
 
   .header-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
-    margin-left: auto;
+    flex-shrink: 0;
 
     button {
       display: flex;
@@ -44,49 +63,37 @@
       opacity: 0.7;
     }
   }
-
-  .header-stats {
-    display: flex;
-    gap: 16px;
-    color: var(--sys-color-on-surface-variant);
-
-    .stat {
-      font-size: 14px;
-    }
-  }
 }
 
-.search-filter-bar {
+// Gallery content area gets padding via the gallery wrapper, not ::ng-deep
+// (::ng-deep on mat-sidenav-content leaks to the parent project layout)
+
+.filter-toggle-button {
+  flex-shrink: 0;
+}
+
+// Filter sidenav — full height, different surface level
+.filter-sidenav {
+  width: 280px;
+  border-left: 1px solid var(--sys-outline-variant);
+  background: var(--sys-surface-container);
+}
+
+// Bottom status bar — matches document/worldbuilding editor pattern
+.media-status-bar {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
-}
+  padding: 0 16px;
+  height: 24px;
+  background-color: var(--sys-surface-container);
+  border-top: 1px solid var(--sys-outline-variant);
+  font-size: 0.875rem;
+  color: var(--sys-on-surface);
 
-.search-field {
-  width: 100%;
-  max-width: 400px;
-
-  mat-icon[matPrefix] {
-    margin-right: 8px;
-    color: var(--sys-color-on-surface-variant);
-  }
-}
-
-.category-filter {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-
-  button {
-    border-radius: 16px;
-    min-width: auto;
-    padding: 0 12px;
-
-    &.active {
-      background-color: var(--sys-color-primary-container);
-      color: var(--sys-color-on-primary-container);
-    }
+  .separator {
+    opacity: 0.5;
   }
 }
 
@@ -101,8 +108,13 @@
 
   p {
     margin-top: 16px;
-    color: var(--sys-color-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
+}
+
+// Gallery scroll area gets padding
+.gallery-content {
+  padding: 16px;
 }
 
 .error-card,
@@ -122,82 +134,57 @@
       height: 64px;
       width: 64px;
       margin-bottom: 16px;
-      color: var(--sys-color-outline);
+      color: var(--sys-outline);
     }
 
     p {
       margin: 0 0 8px;
-      color: var(--sys-color-on-surface);
+      color: var(--sys-on-surface);
     }
 
     .hint {
       font-size: 14px;
-      color: var(--sys-color-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 }
 
 .media-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
 
-.media-item {
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  background: var(--sys-color-surface-container);
-  overflow: hidden;
-  transition: box-shadow 0.2s;
+// Overlay button styles (projected into the shared card component)
+app-media-item-card {
+  [cardTopLeft],
+  [cardTopRight] {
+    button {
+      color: white;
+      opacity: 0.8;
 
-  &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
+      &:hover {
+        opacity: 1;
+      }
 
-  &.is-image .media-preview {
-    cursor: pointer;
-
-    &:hover {
-      opacity: 0.9;
+      &:disabled {
+        opacity: 0.3;
+      }
     }
   }
 }
 
-.media-preview {
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--sys-color-surface-container-low);
-  overflow: hidden;
-
-  .thumbnail {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .file-icon {
-    font-size: 64px;
-    height: 64px;
-    width: 64px;
-    color: var(--sys-color-outline);
-  }
-}
-
-.media-info {
-  flex: 1;
-  padding: 12px;
+.overlay-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .media-name {
   font-weight: 500;
-  font-size: 14px;
-  color: var(--sys-color-on-surface);
+  font-size: 13px;
+  color: white;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -206,33 +193,33 @@
 .media-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--sys-color-on-surface-variant);
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .category-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background: var(--sys-color-secondary-container);
-  color: var(--sys-color-on-secondary-container);
-  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .media-date {
-  font-size: 12px;
-  color: var(--sys-color-on-surface-variant);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .generation-prompt {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
-  color: var(--sys-color-on-surface-variant);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
   font-style: italic;
   white-space: nowrap;
   overflow: hidden;
@@ -243,32 +230,8 @@
     font-size: 14px;
     width: 14px;
     height: 14px;
-    color: var(--sys-color-primary);
+    color: rgba(255, 255, 255, 0.9);
     flex-shrink: 0;
-  }
-}
-
-.generation-meta {
-  font-size: 11px;
-  color: var(--sys-color-outline);
-}
-
-.media-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 4px 8px 8px;
-  gap: 4px;
-
-  button {
-    opacity: 0.7;
-
-    &:hover {
-      opacity: 1;
-    }
-
-    &:disabled {
-      opacity: 0.3;
-    }
   }
 }
 
@@ -276,7 +239,7 @@
 .active-jobs-section {
   margin-bottom: 24px;
   padding: 16px;
-  background: var(--sys-color-surface-container);
+  background: var(--sys-surface-container);
   border-radius: 12px;
 
   .section-title {
@@ -286,7 +249,7 @@
     margin: 0 0 12px 0;
     font-size: 16px;
     font-weight: 500;
-    color: var(--sys-color-primary);
+    color: var(--sys-primary);
 
     mat-icon {
       font-size: 20px;
@@ -307,18 +270,18 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--sys-color-surface);
+  background: var(--sys-surface);
   border-radius: 8px;
-  border: 1px solid var(--sys-color-outline-variant);
+  border: 1px solid var(--sys-outline-variant);
 
   &.completed {
-    border-color: var(--sys-color-primary);
-    background: var(--sys-color-primary-container);
+    border-color: var(--sys-primary);
+    background: var(--sys-primary-container);
   }
 
   &.failed {
-    border-color: var(--sys-color-error);
-    background: var(--sys-color-error-container);
+    border-color: var(--sys-error);
+    background: var(--sys-error-container);
   }
 
   .job-status {
@@ -335,11 +298,11 @@
       height: 24px;
 
       &.success {
-        color: var(--sys-color-primary);
+        color: var(--sys-primary);
       }
 
       &.error {
-        color: var(--sys-color-error);
+        color: var(--sys-error);
       }
     }
   }
@@ -362,7 +325,7 @@
 
     .job-meta {
       font-size: 12px;
-      color: var(--sys-color-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 
@@ -375,5 +338,18 @@
       object-fit: cover;
       border-radius: 4px;
     }
+  }
+}
+
+.media-element-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+
+  .element-tag-chip,
+  .project-tag-chip {
+    cursor: pointer;
+    font-size: 10px;
   }
 }

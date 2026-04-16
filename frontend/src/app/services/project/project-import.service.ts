@@ -12,6 +12,7 @@ import {
   type ElementTag,
   type TagDefinition,
 } from '../../components/tags/tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import {
   ARCHIVE_VERSION,
   type ArchiveDocumentContent,
@@ -407,6 +408,11 @@ export class ProjectImportService {
       'element-tags.json',
       []
     );
+    const mediaTagsJson = await this.readJsonFile<MediaTag[]>(
+      zip,
+      'media-tags.json',
+      []
+    );
     const publishPlansJson = await this.readJsonFile<PublishPlan[]>(
       zip,
       'publish-plans.json',
@@ -436,6 +442,7 @@ export class ProjectImportService {
       customRelationshipTypes: customTypesJson,
       tags: tagsJson,
       elementTags: elementTagsJson,
+      mediaTags: mediaTagsJson,
       publishPlans: publishPlansJson,
       media: mediaIndexJson,
       snapshots: snapshotsJson,
@@ -732,6 +739,11 @@ export class ProjectImportService {
         slug,
         archive.elementTags
       );
+    }
+
+    // Import media tag assignments
+    if (archive.mediaTags && archive.mediaTags.length > 0) {
+      await this.localElements.saveMediaTags(username, slug, archive.mediaTags);
     }
 
     // Import publish plans

@@ -426,7 +426,7 @@ mat-sidenav-content {
 
 .content-area {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
 }
 
@@ -438,6 +438,13 @@ app-home-tab {
   width: 100%;
   height: 100%;
   overflow: auto;
+}
+
+app-media-tab {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 // User menu on desktop

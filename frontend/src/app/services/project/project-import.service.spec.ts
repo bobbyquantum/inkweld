@@ -47,6 +47,8 @@ async function createTestArchive(archive: ProjectArchive): Promise<File> {
     JSON.stringify(archive.customRelationshipTypes)
   );
   zip.file('tags.json', JSON.stringify(archive.tags));
+  zip.file('element-tags.json', JSON.stringify(archive.elementTags));
+  zip.file('media-tags.json', JSON.stringify(archive.mediaTags ?? []));
   zip.file('publish-plans.json', JSON.stringify(archive.publishPlans));
   zip.file('media-index.json', JSON.stringify(archive.media));
   zip.file('snapshots.json', JSON.stringify(archive.snapshots ?? []));
@@ -131,6 +133,7 @@ describe('ProjectImportService', () => {
     elementTags: [],
     publishPlans: [],
     media: [],
+    mediaTags: [],
   };
 
   const mockCreatedProject: Project = {
@@ -635,6 +638,44 @@ describe('ProjectImportService', () => {
       await service.importProject(file, { slug: 'imported-project' });
 
       expect(localElements.savePublishPlans).toHaveBeenCalled();
+    });
+
+    it('should import media tags when present', async () => {
+      const archiveWithMediaTags = {
+        ...mockArchive,
+        mediaTags: [
+          {
+            id: 'mt-1',
+            mediaId: 'media-1',
+            elementId: 'elem-1',
+            createdAt: '2025-01-01T00:00:00Z',
+          },
+          {
+            id: 'mt-2',
+            mediaId: 'media-2',
+            elementId: 'elem-2',
+            createdAt: '2025-01-02T00:00:00Z',
+          },
+        ],
+      };
+      localElements.saveMediaTags.mockResolvedValue(undefined);
+      const file = await createTestArchive(archiveWithMediaTags);
+
+      await service.importProject(file, { slug: 'imported-project' });
+
+      expect(localElements.saveMediaTags).toHaveBeenCalledWith(
+        'testuser',
+        'imported-project',
+        archiveWithMediaTags.mediaTags
+      );
+    });
+
+    it('should skip saving media tags when array is empty', async () => {
+      const file = await createTestArchive(mockArchive);
+
+      await service.importProject(file, { slug: 'imported-project' });
+
+      expect(localElements.saveMediaTags).not.toHaveBeenCalled();
     });
 
     it('should cleanup on project creation failure', async () => {
