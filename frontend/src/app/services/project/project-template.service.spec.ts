@@ -1,6 +1,7 @@
+import { provideHttpClient } from '@angular/common/http';
 import {
-  HttpClientTestingModule,
   HttpTestingController,
+  provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -61,8 +62,11 @@ describe('ProjectTemplateService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [ProjectTemplateService],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        ProjectTemplateService,
+      ],
     });
 
     service = TestBed.inject(ProjectTemplateService);
@@ -161,6 +165,46 @@ describe('ProjectTemplateService', () => {
       indexReq.flush(mockTemplateIndex);
 
       await expect(promise).rejects.toThrow('Template not found: nonexistent');
+    });
+
+    it('should load media tags from media-tags.json', async () => {
+      const mockMediaTags = [
+        {
+          id: 'mt-hero',
+          mediaId: 'img-hero',
+          elementId: 'char-hero',
+          createdAt: '2024-12-21T00:00:00.000Z',
+        },
+      ];
+
+      const promise = service.loadTemplate('empty');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(mockTemplateIndex);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(mockEmptyTemplate.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockEmptyTemplate.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockEmptyTemplate.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockEmptyTemplate.documents);
+        } else if (req.request.url.includes('media-tags.json')) {
+          req.flush(mockMediaTags);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      const archive = await promise;
+      expect(archive.mediaTags).toEqual(mockMediaTags);
     });
   });
 

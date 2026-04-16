@@ -10,6 +10,7 @@ import {
   type ElementTag,
   type TagDefinition,
 } from '../../components/tags/tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import {
   type ArchiveDocumentContent,
   type ArchiveElement,
@@ -127,6 +128,7 @@ export class ProjectTemplateService {
       publishPlans,
       snapshots,
       media,
+      mediaTags,
     ] = await Promise.all([
       this.loadJsonFile<ArchiveManifest>(basePath, 'manifest.json'),
       this.loadJsonFile<ArchiveProject>(basePath, 'project.json'),
@@ -152,6 +154,7 @@ export class ProjectTemplateService {
       this.loadJsonFile<PublishPlan[]>(basePath, 'publish-plans.json', []),
       this.loadJsonFile<ArchiveSnapshot[]>(basePath, 'snapshots.json', []),
       this.loadJsonFile<ArchiveMediaFile[]>(basePath, 'media.json', []),
+      this.loadJsonFile<MediaTag[]>(basePath, 'media-tags.json', []),
     ]);
 
     return {
@@ -168,7 +171,7 @@ export class ProjectTemplateService {
       publishPlans,
       snapshots,
       media: await this.loadMediaBlobs(basePath, media),
-      mediaTags: [],
+      mediaTags,
     };
   }
 
