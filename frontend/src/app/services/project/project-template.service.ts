@@ -168,6 +168,7 @@ export class ProjectTemplateService {
       publishPlans,
       snapshots,
       media: await this.loadMediaBlobs(basePath, media),
+      mediaTags: [],
     };
   }
 

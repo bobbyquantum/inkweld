@@ -1,3 +1,14 @@
 .full-width {
   width: 100%;
 }
+
+.details-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: var(--sys-on-surface-variant);
+
+  li {
+    margin-bottom: 4px;
+  }
+}

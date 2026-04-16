@@ -1,0 +1,68 @@
+.media-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  color: var(--sys-color-on-surface-variant);
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.media-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+
+  .media-count {
+    font-size: 13px;
+    color: var(--sys-color-on-surface-variant);
+  }
+}
+
+.media-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+// Overlay button styles (projected into the shared card component)
+app-media-item-card {
+  [cardTopLeft],
+  [cardTopRight] {
+    button {
+      color: white;
+      opacity: 0.8;
+
+      &:hover {
+        opacity: 1;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+    }
+  }
+}
+
+.media-panel-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}

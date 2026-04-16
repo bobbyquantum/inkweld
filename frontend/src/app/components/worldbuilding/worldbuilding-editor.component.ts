@@ -57,6 +57,7 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { type ResolvedTag } from '../tags/tag.model';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
+import { MediaPanelComponent } from './media-panel/media-panel.component';
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -79,6 +80,7 @@ import { IdentityPanelComponent } from './identity-panel/identity-panel.componen
     MatTooltipModule,
     MetaPanelComponent,
     IdentityPanelComponent,
+    MediaPanelComponent,
   ],
   templateUrl: './worldbuilding-editor.component.html',
   styleUrls: ['./worldbuilding-editor.component.scss'],
@@ -493,7 +495,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   /** Whether the currently selected section is a schema tab */
   isTabSection(): boolean {
     const section = this.selectedSection();
-    return !!section && section !== 'identity' && section !== 'relationships';
+    return (
+      !!section &&
+      section !== 'identity' &&
+      section !== 'relationships' &&
+      section !== 'media'
+    );
   }
 
   /** Get the display label for a section */

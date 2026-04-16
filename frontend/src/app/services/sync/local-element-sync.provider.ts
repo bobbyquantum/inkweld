@@ -11,6 +11,8 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type MediaProjectTag } from '../../models/media-project-tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
@@ -65,6 +67,10 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
   );
   private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
+  private readonly mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
+  private readonly mediaProjectTagsSubject = new BehaviorSubject<
+    MediaProjectTag[]
+  >([]);
   private readonly projectMetaSubject = new BehaviorSubject<
     ProjectMeta | undefined
   >(undefined);
@@ -91,6 +97,10 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     this.elementTagsSubject.asObservable();
   readonly customTags$: Observable<TagDefinition[]> =
     this.customTagsSubject.asObservable();
+  readonly mediaTags$: Observable<MediaTag[]> =
+    this.mediaTagsSubject.asObservable();
+  readonly mediaProjectTags$: Observable<MediaProjectTag[]> =
+    this.mediaProjectTagsSubject.asObservable();
   readonly projectMeta$: Observable<ProjectMeta | undefined> =
     this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
@@ -128,6 +138,8 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       const schemas = this.localService.schemas();
       const elementTags = this.localService.elementTags();
       const customTags = this.localService.customTags();
+      const mediaTags = this.localService.mediaTags();
+      const mediaProjectTags = this.localService.mediaProjectTags();
       const projectMeta = this.localService.projectMeta();
 
       this.elementsSubject.next(elements);
@@ -137,6 +149,8 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       this.schemasSubject.next(schemas);
       this.elementTagsSubject.next(elementTags);
       this.customTagsSubject.next(customTags);
+      this.mediaTagsSubject.next(mediaTags);
+      this.mediaProjectTagsSubject.next(mediaProjectTags);
       this.projectMetaSubject.next(projectMeta);
       this.syncStateSubject.next(DocumentSyncState.Local);
 
@@ -190,6 +204,8 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     this.schemasSubject.next([]);
     this.elementTagsSubject.next([]);
     this.customTagsSubject.next([]);
+    this.mediaTagsSubject.next([]);
+    this.mediaProjectTagsSubject.next([]);
     this.projectMetaSubject.next(undefined);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
@@ -451,6 +467,83 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       .catch(error => {
         this.logger.error('OfflineSync', 'Failed to save custom tags', error);
         this.errorsSubject.next('Failed to save custom tags offline');
+      });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────────
+  // Media Tags (media-to-element associations)
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  getMediaTags(): MediaTag[] {
+    return this.mediaTagsSubject.getValue();
+  }
+
+  /**
+   * Update media tags in offline storage.
+   */
+  updateMediaTags(tags: MediaTag[]): void {
+    if (!this.connected || !this.currentUsername || !this.currentSlug) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update media tags - not connected'
+      );
+      return;
+    }
+
+    // Update local state immediately
+    this.mediaTagsSubject.next(tags);
+
+    // Save to offline service asynchronously
+    void this.localService
+      .saveMediaTags(this.currentUsername, this.currentSlug, tags)
+      .then(() => {
+        this.logger.debug('OfflineSync', `Saved ${tags.length} media tags`);
+      })
+      .catch(error => {
+        this.logger.error('OfflineSync', 'Failed to save media tags', error);
+        this.errorsSubject.next('Failed to save media tags offline');
+      });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────────
+  // Media Project Tags (media-to-project-tag associations)
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  getMediaProjectTags(): MediaProjectTag[] {
+    return this.mediaProjectTagsSubject.getValue();
+  }
+
+  /**
+   * Update media project tags in offline storage.
+   */
+  updateMediaProjectTags(tags: MediaProjectTag[]): void {
+    if (!this.connected || !this.currentUsername || !this.currentSlug) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update media project tags - not connected'
+      );
+      return;
+    }
+
+    // Update local state immediately
+    this.mediaProjectTagsSubject.next(tags);
+
+    // Save to offline service asynchronously
+    void this.localService
+      .saveMediaProjectTags(this.currentUsername, this.currentSlug, tags)
+      .then(() => {
+        this.logger.debug(
+          'OfflineSync',
+          `Saved ${tags.length} media project tags`
+        );
+      })
+      .catch(error => {
+        this.logger.error(
+          'OfflineSync',
+          'Failed to save media project tags',
+          error
+        );
+        this.errorsSubject.next('Failed to save media project tags offline');
       });
   }
 

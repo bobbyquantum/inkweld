@@ -15,6 +15,7 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
@@ -42,6 +43,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
   const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
+  const mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
   const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
     undefined
   );
@@ -63,6 +65,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     getSchemas: vi.fn(() => schemasSubject.getValue()),
     getElementTags: vi.fn(() => elementTagsSubject.getValue()),
     getCustomTags: vi.fn(() => customTagsSubject.getValue()),
+    getMediaTags: vi.fn(() => mediaTagsSubject.getValue()),
+    getMediaProjectTags: vi.fn().mockReturnValue([]),
     getProjectMeta: vi.fn(() => projectMetaSubject.getValue()),
     updateElements: vi.fn(),
     updatePublishPlans: vi.fn(),
@@ -73,6 +77,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     }),
     updateElementTags: vi.fn(),
     updateCustomTags: vi.fn(),
+    updateMediaTags: vi.fn(),
+    updateMediaProjectTags: vi.fn(),
     updateProjectMeta: vi.fn(),
 
     syncState$: syncStateSubject.asObservable(),
@@ -83,6 +89,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     schemas$: schemasSubject.asObservable(),
     elementTags$: elementTagsSubject.asObservable(),
     customTags$: customTagsSubject.asObservable(),
+    mediaTags$: mediaTagsSubject.asObservable(),
+    mediaProjectTags$: new BehaviorSubject([]).asObservable(),
     projectMeta$: projectMetaSubject.asObservable(),
     errors$: new BehaviorSubject<string>('').asObservable(),
     lastConnectionError$: new BehaviorSubject<string | null>(

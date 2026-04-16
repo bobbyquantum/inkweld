@@ -193,6 +193,7 @@
   margin-bottom: 1rem;
 
   .search-field {
+    --mat-form-field-outlined-container-shape: 28px !important;
     flex: 1;
     max-width: 400px;
   }

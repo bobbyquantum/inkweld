@@ -58,21 +58,21 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
   styles: [
     `
       .upload-area {
-        border: 2px dashed #ccc;
-        border-radius: 4px;
+        border: 2px dashed var(--sys-outline-variant);
+        border-radius: 12px;
         padding: 2rem;
         text-align: center;
         cursor: pointer;
         margin: 1rem 0;
       }
       .upload-area:hover {
-        border-color: #666;
+        border-color: var(--sys-primary);
       }
       .upload-prompt {
-        color: #666;
+        color: var(--sys-on-surface-variant);
       }
       .file-info {
-        color: #333;
+        color: var(--sys-on-surface);
       }
     `,
   ],

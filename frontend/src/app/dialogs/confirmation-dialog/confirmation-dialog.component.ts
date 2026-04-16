@@ -15,6 +15,8 @@ export interface ConfirmationDialogData {
   cancelText?: string;
   confirmText?: string;
   requireConfirmationText?: string;
+  /** Optional list of detail lines displayed below the message */
+  details?: string[];
 }
 
 @Component({

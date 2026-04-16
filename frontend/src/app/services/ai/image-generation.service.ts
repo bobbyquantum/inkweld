@@ -13,6 +13,7 @@ import {
   type GenerationMetadata,
   LocalStorageService,
 } from '../local/local-storage.service';
+import { MediaTagService } from '../media-tag/media-tag.service';
 import { ProjectService } from '../project/project.service';
 
 /**
@@ -107,6 +108,7 @@ export class ImageGenerationService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectService = inject(ProjectService);
   private readonly authTokenService = inject(AuthTokenService);
+  private readonly mediaTagService = inject(MediaTagService);
 
   /** All active and recent generation jobs */
   readonly jobs = signal<GenerationJob[]>([]);
@@ -308,6 +310,7 @@ export class ImageGenerationService {
   ): Promise<void> {
     this.markJobSaving(jobId, response);
     const savedMediaIds = await this.saveGeneratedImages(job, response);
+    this.autoTagWithWorldbuildingElements(savedMediaIds, job.request);
 
     this.updateJob(jobId, {
       status: 'completed',
@@ -627,6 +630,7 @@ export class ImageGenerationService {
     }
 
     const savedMediaIds = await this.saveGeneratedImages(currentJob, response);
+    this.autoTagWithWorldbuildingElements(savedMediaIds, currentJob.request);
     this.updateJob(jobId, {
       status: 'completed',
       message: this.getCompletionMessage(
@@ -646,6 +650,23 @@ export class ImageGenerationService {
       partialImageUrl: undefined,
     });
     this.updateActiveJobs();
+  }
+
+  /**
+   * Auto-tag saved media with the worldbuilding elements used during generation.
+   */
+  private autoTagWithWorldbuildingElements(
+    savedMediaIds: string[],
+    request: ImageGenerateRequest
+  ): void {
+    const elementIds = request.worldbuildingContext?.map(ctx => ctx.elementId);
+    if (!elementIds?.length || !savedMediaIds.length) return;
+
+    for (const mediaId of savedMediaIds) {
+      for (const elementId of elementIds) {
+        this.mediaTagService.addTag(mediaId, elementId);
+      }
+    }
   }
 
   /**

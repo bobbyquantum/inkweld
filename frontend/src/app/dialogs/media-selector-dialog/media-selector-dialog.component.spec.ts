@@ -260,4 +260,116 @@ describe('MediaSelectorDialogComponent', () => {
 
     expect(component.isLoading()).toBe(false);
   });
+
+  it('should not close dialog when blob is null on confirm', async () => {
+    fixture.detectChanges();
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    const items = component.mediaItems();
+    component.selectItem(items[0]);
+
+    localStorageService.getMedia.mockResolvedValueOnce(null as unknown as Blob);
+    await component.confirm();
+
+    expect(dialogRef.close).not.toHaveBeenCalled();
+  });
+
+  describe('multiSelect mode', () => {
+    let multiFixture: ComponentFixture<MediaSelectorDialogComponent>;
+    let multiComponent: MediaSelectorDialogComponent;
+
+    beforeEach(async () => {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [MediaSelectorDialogComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          { provide: MatDialogRef, useValue: dialogRef },
+          {
+            provide: MAT_DIALOG_DATA,
+            useValue: {
+              username: 'testuser',
+              slug: 'test-project',
+              filterType: 'image',
+              multiSelect: true,
+            } satisfies MediaSelectorDialogData,
+          },
+          { provide: LocalStorageService, useValue: localStorageService },
+        ],
+      }).compileComponents();
+
+      multiFixture = TestBed.createComponent(MediaSelectorDialogComponent);
+      multiComponent = multiFixture.componentInstance;
+      multiFixture.detectChanges();
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+    });
+
+    it('should be in multiSelect mode', () => {
+      expect(multiComponent.multiSelect).toBe(true);
+    });
+
+    it('should toggle selection of items', () => {
+      const items = multiComponent.mediaItems();
+      expect(multiComponent.selectedItems().size).toBe(0);
+
+      multiComponent.selectItem(items[0]);
+      expect(multiComponent.selectedItems().has(items[0].mediaId)).toBe(true);
+
+      multiComponent.selectItem(items[1]);
+      expect(multiComponent.selectedItems().size).toBe(2);
+
+      // Deselect first item
+      multiComponent.selectItem(items[0]);
+      expect(multiComponent.selectedItems().has(items[0].mediaId)).toBe(false);
+      expect(multiComponent.selectedItems().size).toBe(1);
+    });
+
+    it('should report isSelected correctly in multi mode', () => {
+      const items = multiComponent.mediaItems();
+      multiComponent.selectItem(items[0]);
+
+      expect(multiComponent.isSelected(items[0])).toBe(true);
+      expect(multiComponent.isSelected(items[1])).toBe(false);
+    });
+
+    it('should report hasSelection correctly in multi mode', () => {
+      expect(multiComponent.hasSelection()).toBe(false);
+
+      const items = multiComponent.mediaItems();
+      multiComponent.selectItem(items[0]);
+      expect(multiComponent.hasSelection()).toBe(true);
+    });
+
+    it('should close dialog with selectedItems array on confirm', async () => {
+      const items = multiComponent.mediaItems();
+      multiComponent.selectItem(items[0]);
+      multiComponent.selectItem(items[1]);
+
+      await multiComponent.confirm();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        selectedItems: expect.arrayContaining([items[0], items[1]]),
+      });
+    });
+
+    it('should not confirm when no items are selected in multi mode', async () => {
+      await multiComponent.confirm();
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('should report selectedCount correctly', () => {
+      const items = multiComponent.mediaItems();
+      expect(multiComponent.selectedCount()).toBe(0);
+
+      multiComponent.selectItem(items[0]);
+      expect(multiComponent.selectedCount()).toBe(1);
+
+      multiComponent.selectItem(items[1]);
+      expect(multiComponent.selectedCount()).toBe(2);
+    });
+  });
 });
