@@ -108,7 +108,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | Relationships with backlinks | Bidirectional connections |
 | ✅ | 🔥 | Element references (@mentions) | |
 | ✅ | 🟡 | Tags on documents & elements | Categorize and organize content |
-| ⬜ | 🟡 | Tags on images | Extend tagging to media library |
+| ✅ | 🟡 | Tags on images | Extend tagging to media library |
 | ⬜ | 🟡 | Random generators | Names, locations, prompts for inspiration |
 | ⬜ | 🟡 | Custom calendar systems | Fantasy calendars with custom months/years |
 | ⬜ | 🟢 | Language/Conlang tools | Vocabulary lists, alphabets |
@@ -123,7 +123,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟡 | Cover images | Project and element covers |
 | ✅ | 🟡 | Category filtering | Filter by generated, inline, published, etc. |
 | ✅ | 🟡 | Server sync | Bi-directional sync when connected |
-| ⬜ | 🟡 | Image search/filtering | Search within media library |
+| ✅ | 🟡 | Image search/filtering | Search within media library |
 | ⬜ | 🟢 | Bulk image operations | Multi-select, batch delete |
 
 ### Collaboration

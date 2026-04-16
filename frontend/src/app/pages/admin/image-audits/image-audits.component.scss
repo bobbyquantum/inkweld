@@ -54,6 +54,7 @@
   flex-wrap: wrap;
 
   .search-field {
+    --mat-form-field-outlined-container-shape: 28px !important;
     flex: 1;
     min-width: 250px;
   }

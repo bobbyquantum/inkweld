@@ -12,6 +12,8 @@ import {
   type ElementTag,
   type TagDefinition,
 } from '../../components/tags/tag.model';
+import { type MediaProjectTag } from '../../models/media-project-tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
@@ -40,6 +42,8 @@ interface YjsProjectConnection {
   schemasArray: Y.Array<ElementTypeSchema>;
   elementTagsArray: Y.Array<ElementTag>;
   customTagsArray: Y.Array<TagDefinition>;
+  mediaTagsArray: Y.Array<MediaTag>;
+  mediaProjectTagsArray: Y.Array<MediaProjectTag>;
   projectMetaMap: Y.Map<string>;
 }
 
@@ -79,6 +83,8 @@ export class LocalProjectElementsService {
   readonly schemas = signal<ElementTypeSchema[]>([]);
   readonly elementTags = signal<ElementTag[]>([]);
   readonly customTags = signal<TagDefinition[]>([]);
+  readonly mediaTags = signal<MediaTag[]>([]);
+  readonly mediaProjectTags = signal<MediaProjectTag[]>([]);
   readonly projectMeta = signal<ProjectMeta | undefined>(undefined);
   readonly isLoading = signal(false);
 
@@ -102,6 +108,8 @@ export class LocalProjectElementsService {
       this.schemas.set(connection.schemasArray.toArray());
       this.elementTags.set(connection.elementTagsArray.toArray());
       this.customTags.set(connection.customTagsArray.toArray());
+      this.mediaTags.set(connection.mediaTagsArray.toArray());
+      this.mediaProjectTags.set(connection.mediaProjectTagsArray.toArray());
       this.projectMeta.set(this.extractProjectMeta(connection.projectMetaMap));
 
       this.logger.debug(
@@ -110,7 +118,8 @@ export class LocalProjectElementsService {
           `${connection.publishPlansArray.length} publish plans, ` +
           `${connection.relationshipsArray.length} relationships, ` +
           `${connection.schemasArray.length} schemas, ` +
-          `${connection.customTagsArray.length} tags ` +
+          `${connection.customTagsArray.length} tags, ` +
+          `${connection.mediaTagsArray.length} media tags ` +
           `for ${username}/${slug}`
       );
     } catch (error) {
@@ -127,6 +136,8 @@ export class LocalProjectElementsService {
       this.schemas.set([]);
       this.elementTags.set([]);
       this.customTags.set([]);
+      this.mediaTags.set([]);
+      this.mediaProjectTags.set([]);
       this.projectMeta.set(undefined);
     } finally {
       this.isLoading.set(false);
@@ -384,6 +395,79 @@ export class LocalProjectElementsService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Media Tags
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save media tags (media-to-element associations) for a specific project using Yjs
+   */
+  async saveMediaTags(
+    username: string,
+    slug: string,
+    tags: MediaTag[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.mediaTagsArray.delete(0, connection.mediaTagsArray.length);
+        connection.mediaTagsArray.insert(0, tags);
+      });
+
+      this.mediaTags.set(tags);
+      this.logger.debug(
+        'LocalProjectElements',
+        `Saved ${tags.length} media tags for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'LocalProjectElements',
+        'Failed to save media tags',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Media Project Tags
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save media project tags (media-to-project-tag associations) for a specific project using Yjs
+   */
+  async saveMediaProjectTags(
+    username: string,
+    slug: string,
+    tags: MediaProjectTag[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.mediaProjectTagsArray.delete(
+          0,
+          connection.mediaProjectTagsArray.length
+        );
+        connection.mediaProjectTagsArray.insert(0, tags);
+      });
+
+      this.mediaProjectTags.set(tags);
+      this.logger.debug(
+        'LocalProjectElements',
+        `Saved ${tags.length} media project tags for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'LocalProjectElements',
+        'Failed to save media project tags',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Project Metadata
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -480,6 +564,9 @@ export class LocalProjectElementsService {
     const schemasArray = doc.getArray<ElementTypeSchema>('schemas');
     const elementTagsArray = doc.getArray<ElementTag>('elementTags');
     const customTagsArray = doc.getArray<TagDefinition>('customTags');
+    const mediaTagsArray = doc.getArray<MediaTag>('mediaTags');
+    const mediaProjectTagsArray =
+      doc.getArray<MediaProjectTag>('mediaProjectTags');
     const projectMetaMap = doc.getMap<string>('projectMeta');
 
     // Set up observers for all arrays
@@ -511,6 +598,14 @@ export class LocalProjectElementsService {
       this.customTags.set(customTagsArray.toArray());
     });
 
+    mediaTagsArray.observe(() => {
+      this.mediaTags.set(mediaTagsArray.toArray());
+    });
+
+    mediaProjectTagsArray.observe(() => {
+      this.mediaProjectTags.set(mediaProjectTagsArray.toArray());
+    });
+
     projectMetaMap.observe(() => {
       this.projectMeta.set(this.extractProjectMeta(projectMetaMap));
     });
@@ -530,6 +625,8 @@ export class LocalProjectElementsService {
       schemasArray,
       elementTagsArray,
       customTagsArray,
+      mediaTagsArray,
+      mediaProjectTagsArray,
       projectMetaMap,
     };
     this.yjsConnections.set(projectKey, connection);

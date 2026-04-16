@@ -10,6 +10,8 @@ import {
   type TagDefinition,
 } from '../../components/tags/tag.model';
 import { type DocumentSyncState } from '../../models/document-sync-state';
+import { type MediaProjectTag } from '../../models/media-project-tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 
@@ -262,6 +264,54 @@ export interface IElementSyncProvider {
    * @param tags The new custom tag definitions array
    */
   updateCustomTags(tags: TagDefinition[]): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Media Tags (media-to-element associations)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the current media tags array.
+   * Returns an empty array if not connected.
+   */
+  getMediaTags(): MediaTag[];
+
+  /**
+   * Observable stream of media tag changes.
+   * Emits whenever media items are tagged/untagged from elements.
+   */
+  mediaTags$: Observable<MediaTag[]>;
+
+  /**
+   * Update the entire media tags array.
+   * The provider handles merging/conflict resolution.
+   *
+   * @param tags The new media tags array
+   */
+  updateMediaTags(tags: MediaTag[]): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Media Project Tags (media-to-project-tag associations)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the current media project tags array.
+   * Returns an empty array if not connected.
+   */
+  getMediaProjectTags(): MediaProjectTag[];
+
+  /**
+   * Observable stream of media project tag changes.
+   * Emits whenever media items are tagged/untagged with project tags.
+   */
+  mediaProjectTags$: Observable<MediaProjectTag[]>;
+
+  /**
+   * Update the entire media project tags array.
+   * The provider handles merging/conflict resolution.
+   *
+   * @param tags The new media project tags array
+   */
+  updateMediaProjectTags(tags: MediaProjectTag[]): void;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Project Metadata (name, description, cover - synced via Yjs for offline-first)

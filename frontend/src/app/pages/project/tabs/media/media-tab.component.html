@@ -1,279 +1,333 @@
-<div class="media-container">
-  <div class="media-header">
-    <h1>Project Media</h1>
-    <div class="header-actions">
-      @if (aiGenerationStatus().status !== 'hidden') {
-        <button
-          mat-stroked-button
-          (click)="openImageGenerator()"
-          [disabled]="aiGenerationStatus().status === 'disabled'"
-          [matTooltip]="aiGenerationStatus().tooltip ?? ''"
-          data-testid="generate-image-button">
-          <mat-icon>auto_awesome</mat-icon>
-          Generate Image
-          @if (aiGenerationStatus().status === 'disabled') {
-            <mat-icon class="disconnected-icon">cloud_off</mat-icon>
-          }
-        </button>
-      }
-    </div>
-    <div class="header-stats">
-      <span class="stat">{{ totalCount() }} items</span>
-      <span class="stat">{{ totalSize() | fileSize }}</span>
-    </div>
+<!-- Fixed search toolbar -->
+<div class="media-header">
+  <mat-form-field
+    appearance="outline"
+    class="search-field"
+    subscriptSizing="dynamic">
+    <mat-icon matPrefix>search</mat-icon>
+    <input
+      matInput
+      placeholder="Search media, elements, or tags..."
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+      data-testid="media-search-input" />
+    @if (searchQuery()) {
+      <button
+        matSuffix
+        mat-icon-button
+        aria-label="Clear search"
+        (click)="clearSearch()"
+        data-testid="media-search-clear">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+  <div class="header-actions">
+    <button
+      mat-icon-button
+      aria-label="Add media"
+      (click)="openAddMedia()"
+      matTooltip="Add media"
+      data-testid="add-media-button">
+      <mat-icon>add</mat-icon>
+    </button>
+    <button
+      mat-icon-button
+      class="filter-toggle-button"
+      aria-label="Open filters"
+      (click)="openFilters()"
+      [matBadge]="activeFilterCount() || null"
+      matBadgeSize="small"
+      matBadgeColor="primary"
+      matTooltip="Filters"
+      data-testid="media-filter-button">
+      <mat-icon>filter_list</mat-icon>
+    </button>
   </div>
+</div>
 
-  <!-- Search and filter bar -->
-  <div class="search-filter-bar">
-    <mat-form-field
-      appearance="outline"
-      class="search-field"
-      subscriptSizing="dynamic">
-      <mat-icon matPrefix>search</mat-icon>
-      <input
-        matInput
-        placeholder="Search media by name or prompt..."
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-        data-testid="media-search-input" />
-      @if (searchQuery()) {
-        <button
-          matSuffix
-          mat-icon-button
-          (click)="clearSearch()"
-          data-testid="media-search-clear">
-          <mat-icon>close</mat-icon>
-        </button>
-      }
-    </mat-form-field>
+<!-- Scrollable gallery + filter panel -->
+<mat-sidenav-container class="media-container">
+  <mat-sidenav
+    #filterSidenav
+    position="end"
+    [mode]="isSmallScreen() ? 'over' : 'side'"
+    class="filter-sidenav">
+    <app-media-filter-panel
+      [filters]="filterState()"
+      [availableElements]="filterElements()"
+      [availableTags]="filterTags()"
+      (filtersChange)="onFilterChange($event)"
+      (addElement)="onAddFilterElement()"
+      (addTag)="onAddFilterTag()"
+      (clearAll)="clearAllFilters()"
+      (closePanel)="filterSidenav.close()">
+    </app-media-filter-panel>
+  </mat-sidenav>
 
-    <!-- Category filter -->
-    <div class="category-filter">
-      <button
-        mat-button
-        [class.active]="selectedCategory() === 'all'"
-        (click)="setCategory('all')">
-        All
-      </button>
-      <button
-        mat-button
-        [class.active]="selectedCategory() === 'generated'"
-        (click)="setCategory('generated')">
-        Generated
-      </button>
-      <button
-        mat-button
-        [class.active]="selectedCategory() === 'cover'"
-        (click)="setCategory('cover')">
-        Cover
-      </button>
-      <button
-        mat-button
-        [class.active]="selectedCategory() === 'inline'"
-        (click)="setCategory('inline')">
-        Inline Images
-      </button>
-      <button
-        mat-button
-        [class.active]="selectedCategory() === 'published'"
-        (click)="setCategory('published')">
-        Published
-      </button>
-      <button
-        mat-button
-        [class.active]="selectedCategory() === 'other'"
-        (click)="setCategory('other')">
-        Other
-      </button>
-    </div>
-  </div>
-
-  <!-- Active generation jobs -->
-  @if (hasActiveJobs()) {
-    <div class="active-jobs-section">
-      <h3 class="section-title">
-        <mat-icon>auto_awesome</mat-icon>
-        Generating Images
-      </h3>
-      <div class="active-jobs-grid">
-        @for (job of activeJobs(); track job.id) {
-          <div
-            class="active-job-card"
-            [class.completed]="job.status === 'completed'"
-            [class.failed]="job.status === 'failed'">
-            <div class="job-status">
-              @if (
-                job.status === 'pending' ||
-                job.status === 'generating' ||
-                job.status === 'saving'
-              ) {
-                <mat-spinner diameter="24"></mat-spinner>
-              } @else if (job.status === 'completed') {
-                <mat-icon class="status-icon success">check_circle</mat-icon>
-              } @else if (job.status === 'failed') {
-                <mat-icon class="status-icon error">error</mat-icon>
-              }
-            </div>
-            <div class="job-info">
-              <span class="job-prompt" [matTooltip]="job.request.prompt">
-                {{ truncatePrompt(job.request.prompt, 60) }}
-              </span>
-              <span class="job-meta">
-                {{ getJobProviderLabel(job) }} ·
-                @switch (job.status) {
-                  @case ('pending') {
-                    Queued...
+  <mat-sidenav-content>
+    <div class="gallery-content">
+      <!-- Active generation jobs -->
+      @if (hasActiveJobs()) {
+        <div class="active-jobs-section">
+          <h3 class="section-title">
+            <mat-icon>auto_awesome</mat-icon>
+            Generating Images
+          </h3>
+          <div class="active-jobs-grid">
+            @for (job of activeJobs(); track job.id) {
+              <div
+                class="active-job-card"
+                [class.completed]="job.status === 'completed'"
+                [class.failed]="job.status === 'failed'">
+                <div class="job-status">
+                  @if (
+                    job.status === 'pending' ||
+                    job.status === 'generating' ||
+                    job.status === 'saving'
+                  ) {
+                    <mat-spinner diameter="24"></mat-spinner>
+                  } @else if (job.status === 'completed') {
+                    <mat-icon class="status-icon success"
+                      >check_circle</mat-icon
+                    >
+                  } @else if (job.status === 'failed') {
+                    <mat-icon class="status-icon error">error</mat-icon>
                   }
-                  @case ('generating') {
-                    Generating...
-                  }
-                  @case ('saving') {
-                    Saving to library...
-                  }
-                  @case ('completed') {
-                    {{ job.images.length }} image(s) saved
-                  }
-                  @case ('failed') {
-                    Failed: {{ job.error }}
-                  }
+                </div>
+                <div class="job-info">
+                  <span class="job-prompt" [matTooltip]="job.request.prompt">
+                    {{ truncatePrompt(job.request.prompt, 60) }}
+                  </span>
+                  <span class="job-meta">
+                    {{ getJobProviderLabel(job) }} ·
+                    @switch (job.status) {
+                      @case ('pending') {
+                        Queued...
+                      }
+                      @case ('generating') {
+                        Generating...
+                      }
+                      @case ('saving') {
+                        Saving to library...
+                      }
+                      @case ('completed') {
+                        {{ job.images.length }} image(s) saved
+                      }
+                      @case ('failed') {
+                        Failed: {{ job.error }}
+                      }
+                    }
+                  </span>
+                </div>
+                @if (job.status === 'completed' && job.images.length > 0) {
+                  <div class="job-preview">
+                    <img
+                      [src]="job.images[0]"
+                      alt="Generated preview"
+                      class="preview-thumbnail" />
+                  </div>
                 }
-              </span>
-            </div>
-            @if (job.status === 'completed' && job.images.length > 0) {
-              <div class="job-preview">
-                <img
-                  [src]="job.images[0]"
-                  alt="Generated preview"
-                  class="preview-thumbnail" />
               </div>
             }
           </div>
-        }
-      </div>
-    </div>
-  }
+        </div>
+      }
 
-  <!-- Loading state -->
-  @if (isLoading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="40"></mat-spinner>
-      <p>Loading media...</p>
-    </div>
-  }
+      <!-- Loading state -->
+      @if (isLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading media...</p>
+        </div>
+      }
 
-  <!-- Error state -->
-  @if (error() && !isLoading()) {
-    <mat-card class="error-card">
-      <mat-card-content>
-        <mat-icon color="warn">error</mat-icon>
-        <p>{{ error() }}</p>
-        <button mat-button color="primary" (click)="loadMedia()">
-          Try Again
-        </button>
-      </mat-card-content>
-    </mat-card>
-  }
+      <!-- Error state -->
+      @if (error() && !isLoading()) {
+        <mat-card class="error-card">
+          <mat-card-content>
+            <mat-icon color="warn">error</mat-icon>
+            <p>{{ error() }}</p>
+            <button mat-button color="primary" (click)="loadMedia()">
+              Try Again
+            </button>
+          </mat-card-content>
+        </mat-card>
+      }
 
-  <!-- Empty state -->
-  @if (!isLoading() && !error() && filteredItems().length === 0) {
-    <mat-card class="empty-card" data-testid="empty-card">
-      <mat-card-content>
-        <mat-icon>perm_media</mat-icon>
-        @if (searchQuery()) {
-          <p>No media matching "{{ searchQuery() }}".</p>
-          <button mat-button color="primary" (click)="clearSearch()">
-            Clear Search
-          </button>
-        } @else if (selectedCategory() === 'all') {
-          <p>No media stored locally for this project.</p>
-          <p class="hint">
-            Media includes cover images, inline images in documents, and
-            published exports (EPUB, PDF, etc.)
-          </p>
-        } @else {
-          <p>No {{ selectedCategory() }} media found.</p>
-        }
-      </mat-card-content>
-    </mat-card>
-  }
-
-  <!-- Media grid -->
-  @if (!isLoading() && !error() && filteredItems().length > 0) {
-    <div class="media-grid" data-testid="media-grid">
-      @for (item of filteredItems(); track item.mediaId) {
-        <div class="media-item" [class.is-image]="item.isImage">
-          <!-- Thumbnail / Icon -->
-          <div
-            class="media-preview"
-            [attr.tabindex]="item.isImage ? 0 : null"
-            [attr.role]="item.isImage ? 'button' : null"
-            (click)="item.isImage && viewImage(item)"
-            (keydown.enter)="item.isImage && viewImage(item)"
-            (keydown.space)="
-              item.isImage && viewImage(item); $event.preventDefault()
-            ">
-            @if (item.isImage && item.url) {
-              <img
-                [src]="item.url"
-                [alt]="item.filename || item.mediaId"
-                class="thumbnail" />
-            } @else {
-              <mat-icon class="file-icon">{{ getMediaIcon(item) }}</mat-icon>
-            }
-          </div>
-
-          <!-- Info -->
-          <div class="media-info">
-            <span
-              class="media-name"
-              [matTooltip]="item.filename || item.mediaId">
-              {{ item.filename || item.mediaId }}
-            </span>
-            <span class="media-meta">
-              <span class="category-badge">{{ item.categoryLabel }}</span>
-              <span class="size">{{ item.size | fileSize }}</span>
-            </span>
-            @if (item.generation) {
-              <span
-                class="generation-prompt"
-                [matTooltip]="item.generation.prompt">
-                <mat-icon class="prompt-icon">auto_awesome</mat-icon>
-                {{ truncatePrompt(item.generation.prompt) }}
-              </span>
-              <span class="generation-meta">
-                {{ item.generation.model }} · {{ item.generation.size }}
-              </span>
-            } @else {
-              <span class="media-date">{{ formatDate(item.createdAt) }}</span>
-            }
-          </div>
-
-          <!-- Actions -->
-          <div class="media-actions">
-            @if (item.isImage) {
-              <button
-                mat-icon-button
-                matTooltip="View"
-                (click)="viewImage(item)">
-                <mat-icon>visibility</mat-icon>
+      <!-- Empty state -->
+      @if (!isLoading() && !error() && filteredItems().length === 0) {
+        <mat-card class="empty-card" data-testid="empty-card">
+          <mat-card-content>
+            <mat-icon>perm_media</mat-icon>
+            @if (searchQuery()) {
+              <p>No media matching "{{ searchQuery() }}".</p>
+              <button mat-button color="primary" (click)="clearSearch()">
+                Clear Search
               </button>
+            } @else if (selectedCategory() === 'all') {
+              <p>No media stored locally for this project.</p>
+              <p class="hint">
+                Media includes cover images, inline images in documents, and
+                published exports (EPUB, PDF, etc.)
+              </p>
+            } @else {
+              <p>No {{ selectedCategory() }} media found.</p>
             }
-            <button
-              mat-icon-button
-              matTooltip="Download"
-              (click)="downloadMedia(item)">
-              <mat-icon>download</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              matTooltip="Delete"
-              (click)="deleteMedia(item)"
-              [disabled]="item.category === 'cover'">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <!-- Media grid -->
+      @if (!isLoading() && !error() && filteredItems().length > 0) {
+        <div class="media-grid" data-testid="media-grid">
+          @for (item of filteredItems(); track item.mediaId) {
+            <app-media-item-card
+              [imageUrl]="item.url"
+              [altText]="item.filename || item.mediaId"
+              [isImage]="item.isImage"
+              [fileIcon]="getMediaIcon(item)"
+              (cardClick)="viewImage(item)">
+              <div cardTopLeft>
+                <button
+                  mat-icon-button
+                  matTooltip="Add tag"
+                  [attr.aria-label]="
+                    'Add tag to ' + (item.filename || item.mediaId)
+                  "
+                  (click)="tagMedia(item); $event.stopPropagation()"
+                  data-testid="tag-media-button">
+                  <mat-icon>sell</mat-icon>
+                </button>
+              </div>
+              <div cardTopRight>
+                @if (item.isImage) {
+                  <button
+                    mat-icon-button
+                    matTooltip="View"
+                    [attr.aria-label]="
+                      'View ' + (item.filename || item.mediaId)
+                    "
+                    (click)="viewImage(item); $event.stopPropagation()">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                }
+                <button
+                  mat-icon-button
+                  matTooltip="Download"
+                  [attr.aria-label]="
+                    'Download ' + (item.filename || item.mediaId)
+                  "
+                  (click)="downloadMedia(item); $event.stopPropagation()">
+                  <mat-icon>download</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  matTooltip="Delete"
+                  [attr.aria-label]="
+                    'Delete ' + (item.filename || item.mediaId)
+                  "
+                  (click)="deleteMedia(item); $event.stopPropagation()"
+                  [disabled]="item.category === 'cover'">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+              <div cardBottom>
+                <div class="overlay-info">
+                  <span
+                    class="media-name"
+                    [matTooltip]="item.filename || item.mediaId"
+                    [matTooltipShowDelay]="800">
+                    {{ item.filename || item.mediaId }}
+                  </span>
+                  <span class="media-meta">
+                    <span class="category-badge">{{ item.categoryLabel }}</span>
+                    <span class="size">{{ item.size | fileSize }}</span>
+                  </span>
+                  @if (item.generation) {
+                    <span
+                      class="generation-prompt"
+                      [matTooltip]="item.generation.prompt"
+                      [matTooltipShowDelay]="800">
+                      <mat-icon class="prompt-icon">auto_awesome</mat-icon>
+                      {{ truncatePrompt(item.generation.prompt) }}
+                    </span>
+                  } @else {
+                    <span class="media-date">{{
+                      formatDate(item.createdAt)
+                    }}</span>
+                  }
+                </div>
+                <!-- Element tags -->
+                @if (
+                  getTaggedElements(item.mediaId).length > 0 ||
+                  getProjectTags(item.mediaId).length > 0
+                ) {
+                  <div class="media-element-tags">
+                    <mat-chip-set>
+                      @for (
+                        elId of getTaggedElements(item.mediaId);
+                        track elId
+                      ) {
+                        <mat-chip
+                          class="element-tag-chip"
+                          (removed)="removeMediaTag(item.mediaId, elId)"
+                          (click)="
+                            toggleElementFilter(elId); $event.stopPropagation()
+                          "
+                          (keydown.enter)="
+                            toggleElementFilter(elId); $event.stopPropagation()
+                          ">
+                          <mat-icon matChipAvatar>{{
+                            getElementIcon(elId)
+                          }}</mat-icon>
+                          {{ getElementName(elId) }}
+                          <button
+                            matChipRemove
+                            (click)="$event.stopPropagation()">
+                            <mat-icon>cancel</mat-icon>
+                          </button>
+                        </mat-chip>
+                      }
+                      @for (tag of getProjectTags(item.mediaId); track tag.id) {
+                        <mat-chip
+                          class="project-tag-chip"
+                          [style.background-color]="tag.color + '44'"
+                          (removed)="
+                            removeMediaProjectTag(item.mediaId, tag.id)
+                          "
+                          (click)="
+                            toggleTagFilter(tag.id); $event.stopPropagation()
+                          "
+                          (keydown.enter)="
+                            toggleTagFilter(tag.id); $event.stopPropagation()
+                          ">
+                          <mat-icon matChipAvatar [style.color]="tag.color">{{
+                            tag.icon
+                          }}</mat-icon>
+                          {{ tag.name }}
+                          <button
+                            matChipRemove
+                            (click)="$event.stopPropagation()">
+                            <mat-icon>cancel</mat-icon>
+                          </button>
+                        </mat-chip>
+                      }
+                    </mat-chip-set>
+                  </div>
+                }
+              </div>
+            </app-media-item-card>
+          }
         </div>
       }
     </div>
-  }
+  </mat-sidenav-content>
+</mat-sidenav-container>
+
+<!-- Fixed status bar -->
+<div class="media-status-bar">
+  <span>{{ filteredItems().length }} items</span>
+  <span class="separator">·</span>
+  <span>{{ filteredSize() | fileSize }}</span>
 </div>

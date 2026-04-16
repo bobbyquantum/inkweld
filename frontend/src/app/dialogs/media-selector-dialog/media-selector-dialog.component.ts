@@ -37,13 +37,17 @@ export interface MediaSelectorDialogData {
   filterType?: 'image' | 'all';
   /** Dialog title */
   title?: string;
+  /** Allow selecting multiple items */
+  multiSelect?: boolean;
 }
 
 export interface MediaSelectorDialogResult {
-  /** The selected media item */
+  /** The selected media item (single-select mode) */
   selected?: MediaInfo;
-  /** The blob data for the selected item */
+  /** The blob data for the selected item (single-select mode) */
   blob?: Blob;
+  /** All selected media items (multi-select mode) */
+  selectedItems?: MediaInfo[];
 }
 
 interface MediaItem extends MediaInfo {
@@ -77,6 +81,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   private readonly mediaSync = inject(MediaSyncService);
 
   readonly title = this.data.title || 'Select Image';
+  readonly multiSelect = this.data.multiSelect ?? false;
   readonly isLoading = signal(true);
   readonly isSyncing = signal(false);
   readonly syncProgress = signal(0);
@@ -84,7 +89,10 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly mediaItems = signal<MediaItem[]>([]);
   readonly selectedItem = signal<MediaItem | null>(null);
+  readonly selectedItems = signal<Map<string, MediaItem>>(new Map());
   readonly searchQuery = signal('');
+
+  readonly selectedCount = computed(() => this.selectedItems().size);
 
   private readonly objectUrls: string[] = [];
   private projectKey = '';
@@ -273,27 +281,60 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   selectItem(item: MediaItem): void {
     // Don't allow selecting items that aren't downloaded
     if (this.needsDownload(item)) return;
-    this.selectedItem.set(item);
+
+    if (this.multiSelect) {
+      this.selectedItems.update(map => {
+        const next = new Map(map);
+        if (next.has(item.mediaId)) {
+          next.delete(item.mediaId);
+        } else {
+          next.set(item.mediaId, item);
+        }
+        return next;
+      });
+    } else {
+      this.selectedItem.set(item);
+    }
   }
 
   isSelected(item: MediaItem): boolean {
+    if (this.multiSelect) {
+      return this.selectedItems().has(item.mediaId);
+    }
     return this.selectedItem()?.mediaId === item.mediaId;
   }
 
+  hasSelection(): boolean {
+    if (this.multiSelect) {
+      return this.selectedItems().size > 0;
+    }
+    return this.selectedItem() !== null;
+  }
+
   async confirm(): Promise<void> {
-    const selected = this.selectedItem();
-    if (!selected) return;
+    if (this.multiSelect) {
+      const items = Array.from(this.selectedItems().values());
+      if (items.length === 0) return;
+      this.dialogRef.close({
+        selectedItems: items,
+      } as MediaSelectorDialogResult);
+    } else {
+      const selected = this.selectedItem();
+      if (!selected) return;
 
-    // Get the blob for the selected item
-    const blob = await this.localStorage.getMedia(
-      this.projectKey,
-      selected.mediaId
-    );
+      // Get the blob for the selected item
+      const blob = await this.localStorage.getMedia(
+        this.projectKey,
+        selected.mediaId
+      );
 
-    this.dialogRef.close({
-      selected,
-      blob,
-    } as MediaSelectorDialogResult);
+      if (!blob) return;
+
+      this.dialogRef.close({
+        selected,
+        blob,
+      } as MediaSelectorDialogResult);
+    }
   }
 
   cancel(): void {

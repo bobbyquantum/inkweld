@@ -1395,8 +1395,14 @@ test.describe('PWA Screenshots', () => {
       state: 'visible',
     });
 
-    // Click the "Inline Images" filter
-    await page.click('button:has-text("Inline Images")');
+    // Open the filter panel, then click "Inline Images" category
+    await page.click('[data-testid="media-filter-button"]');
+    await page.waitForSelector('[data-testid="filter-panel"]', {
+      state: 'visible',
+    });
+    await page.click(
+      '[data-testid="filter-category"]:has-text("Inline Images")'
+    );
     await page.waitForTimeout(300);
 
     // Take screenshot showing filtered view

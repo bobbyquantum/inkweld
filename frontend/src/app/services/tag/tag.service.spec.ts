@@ -13,6 +13,7 @@ import {
   type ElementTag,
   type TagDefinition,
 } from '../../components/tags/tag.model';
+import { type MediaTag } from '../../models/media-tag.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
@@ -104,17 +105,23 @@ describe('TagService', () => {
       relationshipSubjects$: of([]),
       elementTags$: elementTagsSubject.asObservable(),
       customTags$: customTagsSubject.asObservable(),
+      mediaTags$: of([] as MediaTag[]),
+      mediaProjectTags$: of([]),
       getElements: vi.fn().mockReturnValue([]),
       getRelationships: vi.fn().mockReturnValue([]),
       getRelationshipSubjects: vi.fn().mockReturnValue([]),
       getElementTags: vi.fn().mockReturnValue([]),
       getCustomTags: vi.fn().mockReturnValue([]),
+      getMediaTags: vi.fn().mockReturnValue([]),
+      getMediaProjectTags: vi.fn().mockReturnValue([]),
       updateElement: vi.fn(),
       updateElements: vi.fn(),
       updateRelationships: vi.fn(),
       updateRelationshipSubjects: vi.fn(),
       updateElementTags: vi.fn(),
       updateCustomTags: vi.fn(),
+      updateMediaTags: vi.fn(),
+      updateMediaProjectTags: vi.fn(),
     } as unknown as IElementSyncProvider & {
       getElementTags: MockInstance;
       getCustomTags: MockInstance;

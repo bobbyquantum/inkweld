@@ -529,4 +529,101 @@ describe('LocalProjectElementsService', () => {
       expect(service.elements()).toHaveLength(project2Elements.length);
     });
   });
+
+  describe('saveMediaTags', () => {
+    it('should save media tags and update signal', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+
+      const mediaTags = [
+        {
+          id: 'mt-1',
+          mediaId: 'media-1',
+          elementId: 'el-1',
+          createdAt: '2025-01-01T00:00:00Z',
+        },
+      ];
+
+      await service.saveMediaTags(TEST_USERNAME, TEST_SLUG, mediaTags);
+      expect(service.mediaTags()).toEqual(mediaTags);
+    });
+
+    it('should overwrite existing media tags', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+
+      const first = [
+        {
+          id: 'mt-1',
+          mediaId: 'media-1',
+          elementId: 'el-1',
+          createdAt: '2025-01-01T00:00:00Z',
+        },
+      ];
+      await service.saveMediaTags(TEST_USERNAME, TEST_SLUG, first);
+      expect(service.mediaTags().length).toBe(1);
+
+      const second = [
+        {
+          id: 'mt-2',
+          mediaId: 'media-2',
+          elementId: 'el-2',
+          createdAt: '2025-01-02T00:00:00Z',
+        },
+        {
+          id: 'mt-3',
+          mediaId: 'media-3',
+          elementId: 'el-3',
+          createdAt: '2025-01-03T00:00:00Z',
+        },
+      ];
+      await service.saveMediaTags(TEST_USERNAME, TEST_SLUG, second);
+      expect(service.mediaTags()).toEqual(second);
+    });
+  });
+
+  describe('saveMediaProjectTags', () => {
+    it('should save media project tags and update signal', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+
+      const mediaProjectTags = [
+        {
+          id: 'mpt-1',
+          mediaId: 'media-1',
+          tagId: 'tag-1',
+          createdAt: '2025-01-01T00:00:00Z',
+        },
+      ];
+
+      await service.saveMediaProjectTags(
+        TEST_USERNAME,
+        TEST_SLUG,
+        mediaProjectTags
+      );
+      expect(service.mediaProjectTags()).toEqual(mediaProjectTags);
+    });
+
+    it('should overwrite existing media project tags', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+
+      const first = [
+        {
+          id: 'mpt-1',
+          mediaId: 'media-1',
+          tagId: 'tag-1',
+          createdAt: '2025-01-01T00:00:00Z',
+        },
+      ];
+      await service.saveMediaProjectTags(TEST_USERNAME, TEST_SLUG, first);
+
+      const second = [
+        {
+          id: 'mpt-2',
+          mediaId: 'media-2',
+          tagId: 'tag-2',
+          createdAt: '2025-01-02T00:00:00Z',
+        },
+      ];
+      await service.saveMediaProjectTags(TEST_USERNAME, TEST_SLUG, second);
+      expect(service.mediaProjectTags()).toEqual(second);
+    });
+  });
 });

@@ -124,8 +124,12 @@
   <button
     mat-raised-button
     color="primary"
-    [disabled]="!selectedItem()"
+    [disabled]="!hasSelection()"
     (click)="confirm()">
-    Select
+    @if (multiSelect && selectedCount() > 0) {
+      Select {{ selectedCount() }}
+    } @else {
+      Select
+    }
   </button>
 </mat-dialog-actions>

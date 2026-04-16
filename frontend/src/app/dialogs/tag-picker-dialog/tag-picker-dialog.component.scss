@@ -1,0 +1,111 @@
+.dialog-subtitle {
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+}
+
+.search-field {
+  --mat-form-field-outlined-container-shape: 28px !important;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.item-list {
+  max-height: 350px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: var(--hover-bg, rgba(0, 0, 0, 0.04));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color, #673ab7);
+    outline-offset: -2px;
+  }
+
+  &.selected {
+    background-color: var(
+      --selected-bg,
+      rgba(var(--primary-rgb, 103, 58, 183), 0.08)
+    );
+  }
+
+  .item-icon {
+    font-size: 20px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  &.is-tag .item-icon {
+    /* Project tag icons use their own color via [style.color] */
+  }
+
+  .item-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+
+    .item-name {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-type {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: capitalize;
+    }
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    text-align: center;
+  }
+}
+
+.selection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}

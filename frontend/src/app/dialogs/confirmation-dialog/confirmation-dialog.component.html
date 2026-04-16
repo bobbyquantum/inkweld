@@ -2,6 +2,14 @@
 <mat-dialog-content>
   <p>{{ data.message }}</p>
 
+  @if (data.details && data.details.length > 0) {
+    <ul class="details-list">
+      @for (detail of data.details; track detail) {
+        <li>{{ detail }}</li>
+      }
+    </ul>
+  }
+
   @if (data.requireConfirmationText) {
     <mat-form-field appearance="outline" class="full-width">
       <mat-label

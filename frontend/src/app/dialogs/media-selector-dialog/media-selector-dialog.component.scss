@@ -36,6 +36,7 @@
 }
 
 .dialog-search-field {
+  --mat-form-field-outlined-container-shape: 28px !important;
   width: 100%;
   margin-bottom: 8px;
 
@@ -75,8 +76,8 @@
   }
 
   &.selected {
-    border-color: var(--sys-color-primary);
-    box-shadow: 0 0 0 2px var(--sys-color-primary-container);
+    border-color: #4caf50;
+    box-shadow: inset 0 0 0 2px #4caf50;
   }
 
   .thumbnail {
@@ -102,7 +103,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(var(--sys-color-primary-rgb, 0, 0, 0), 0.3);
+    background: rgba(0, 0, 0, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -111,8 +112,8 @@
       font-size: 36px;
       width: 36px;
       height: 36px;
-      color: var(--sys-color-primary);
-      background: var(--sys-color-surface);
+      color: white;
+      background: #4caf50;
       border-radius: 50%;
     }
   }
