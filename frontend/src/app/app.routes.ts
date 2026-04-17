@@ -330,6 +330,16 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'timeline/:tabId',
+        loadComponent: () =>
+          import('./pages/project/tabs/timeline/timeline-tab.component').then(
+            m => m.TimelineTabComponent
+          ),
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
         path: 'publish-plan/:tabId',
         loadComponent: () =>
           import('./pages/project/tabs/publish-plan/publish-plan-tab.component').then(

@@ -124,6 +124,13 @@ export class NewElementDialogComponent {
         'Infinite canvas for maps, mood boards, storyboards, and visual layouts with layers',
       category: 'visualization',
     },
+    {
+      type: ElementType.Timeline,
+      label: 'Timeline',
+      icon: 'timeline',
+      description: 'Chronological visualization with tracks, events, and eras',
+      category: 'visualization',
+    },
   ];
 
   // Element type options (document types + dynamically loaded worldbuilding types)

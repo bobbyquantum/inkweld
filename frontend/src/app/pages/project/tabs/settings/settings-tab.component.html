@@ -69,6 +69,15 @@
           </div>
         </div>
 
+        <!-- Time Systems section -->
+        <div
+          class="section-content"
+          [class.section-hidden]="selectedSection() !== 'time-systems'">
+          <div class="section-inner">
+            <app-time-systems-settings />
+          </div>
+        </div>
+
         <!-- Sync section -->
         <div
           class="section-content"
@@ -154,6 +163,18 @@
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <ng-container *ngTemplateOutlet="tagsTemplate" />
+            </mat-expansion-panel>
+
+            <mat-expansion-panel
+              [expanded]="timeSystemsExpanded()"
+              (opened)="timeSystemsExpanded.set(true)"
+              (closed)="timeSystemsExpanded.set(false)">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>schedule</mat-icon> Time Systems
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <app-time-systems-settings />
             </mat-expansion-panel>
           }
 

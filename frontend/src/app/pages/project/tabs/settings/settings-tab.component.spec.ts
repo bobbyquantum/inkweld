@@ -17,7 +17,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { type CreateMcpKeyDialogResult } from '@dialogs/create-mcp-key-dialog/create-mcp-key-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
@@ -311,6 +311,15 @@ describe('SettingsTabComponent', () => {
         { provide: MatDialog, useValue: dialog },
         { provide: ProjectsService, useValue: projectsService },
         { provide: Router, useValue: router },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: { get: (_: string): string | null => null },
+              paramMap: { get: (_: string): string | null => null },
+            },
+          },
+        },
       ],
     })
       .overrideComponent(SettingsTabComponent, {
@@ -439,6 +448,9 @@ describe('SettingsTabComponent', () => {
       await component.loadMcpKeys();
       const keyToRevoke = component['mcpKeys']()[0];
 
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.revokeKey(keyToRevoke);
 
       expect(mcpKeysService.revokeMcpKey).toHaveBeenCalledWith(
@@ -455,6 +467,9 @@ describe('SettingsTabComponent', () => {
       await component.loadMcpKeys();
       const keyToDelete = component['mcpKeys']()[0];
 
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.deleteKey(keyToDelete);
 
       expect(mcpKeysService.deleteMcpKey).toHaveBeenCalledWith(
@@ -586,6 +601,9 @@ describe('SettingsTabComponent', () => {
       );
 
       const keyToRevoke = component['mcpKeys']()[0];
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.revokeKey(keyToRevoke);
 
       expect(snackBar.open).toHaveBeenCalledWith(
@@ -602,6 +620,9 @@ describe('SettingsTabComponent', () => {
       );
 
       const keyToDelete = component['mcpKeys']()[0];
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.deleteKey(keyToDelete);
 
       expect(snackBar.open).toHaveBeenCalledWith(

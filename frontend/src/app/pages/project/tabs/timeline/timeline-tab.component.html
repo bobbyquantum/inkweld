@@ -1,0 +1,418 @@
+<div class="toolbar" data-testid="timeline-toolbar">
+  @if (hasActiveSystem()) {
+    <div
+      class="system-chip"
+      matTooltip="Time system is locked for this timeline. Create a new timeline to use a different calendar."
+      data-testid="timeline-system-chip">
+      <mat-icon>schedule</mat-icon>
+      <span>{{ activeSystemName() }}</span>
+      <mat-icon class="lock-icon" aria-hidden="true">lock</mat-icon>
+    </div>
+  } @else if (availableSystems().length === 0) {
+    <button
+      mat-stroked-button
+      color="primary"
+      (click)="onOpenTimeSystemSettings()"
+      data-testid="timeline-install-systems">
+      <mat-icon>schedule</mat-icon>
+      Install a time system
+    </button>
+  }
+
+  <button
+    mat-stroked-button
+    (click)="onAddEvent()"
+    [disabled]="!hasActiveSystem()"
+    data-testid="timeline-add-event">
+    <mat-icon>add</mat-icon>
+    Add event
+  </button>
+
+  <button
+    mat-stroked-button
+    (click)="onAddTrack()"
+    [disabled]="!hasActiveSystem()"
+    data-testid="timeline-add-track">
+    <mat-icon>playlist_add</mat-icon>
+    Add track
+  </button>
+
+  <button
+    mat-stroked-button
+    (click)="onAddEra()"
+    [disabled]="!hasActiveSystem()"
+    data-testid="timeline-add-era">
+    <mat-icon>view_week</mat-icon>
+    Add era
+  </button>
+
+  <span class="spacer"></span>
+
+  <button
+    mat-icon-button
+    matTooltip="Zoom out"
+    (click)="onZoom(1.25)"
+    [disabled]="!hasActiveSystem()"
+    data-testid="timeline-zoom-out">
+    <mat-icon>zoom_out</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    matTooltip="Zoom in"
+    (click)="onZoom(0.8)"
+    [disabled]="!hasActiveSystem()"
+    data-testid="timeline-zoom-in">
+    <mat-icon>zoom_in</mat-icon>
+  </button>
+  <button
+    mat-icon-button
+    matTooltip="Fit contents"
+    (click)="onFit()"
+    [disabled]="!hasActiveSystem()"
+    data-testid="timeline-fit">
+    <mat-icon>fit_screen</mat-icon>
+  </button>
+</div>
+
+@if (needsSystemSelection()) {
+  <!--
+    Setup overlay: shown once per timeline, before any time system is
+    committed. After commit, the system is locked for the lifetime of this
+    timeline. Rendered outside `.canvas-wrap` so pointer events don't hit
+    the (possibly partly-initialised) svg layers behind it.
+  -->
+  <div class="setup-overlay" data-testid="timeline-setup">
+    <div class="setup-card">
+      <mat-icon class="setup-icon">schedule</mat-icon>
+      <h2>Choose a time system</h2>
+      <p class="setup-hint">
+        Events and eras on this timeline will be anchored to the time system you
+        pick here. This choice
+        <strong>locks in</strong> for the timeline — create a new timeline if
+        you later want to use a different calendar.
+      </p>
+
+      @if (availableSystems().length === 0) {
+        <p class="setup-hint">
+          No time systems are installed in this project yet.
+        </p>
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="onOpenTimeSystemSettings()"
+          data-testid="timeline-setup-open-settings">
+          <mat-icon>settings</mat-icon>
+          Open time system settings
+        </button>
+      } @else {
+        <mat-form-field appearance="outline" class="setup-select">
+          <mat-label>Time system</mat-label>
+          <mat-select
+            [value]="pendingSystemId()"
+            (valueChange)="onPendingSystemChange($event)"
+            data-testid="timeline-setup-system-select">
+            @for (system of availableSystems(); track system.id) {
+              <mat-option [value]="system.id">{{ system.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="setup-actions">
+          <button
+            mat-stroked-button
+            (click)="onOpenTimeSystemSettings()"
+            data-testid="timeline-setup-manage">
+            Manage time systems
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            [disabled]="!pendingSystemId()"
+            (click)="onCommitTimeSystem()"
+            data-testid="timeline-setup-commit">
+            <mat-icon>check</mat-icon>
+            Use this system
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="canvas-wrap" #wrap data-testid="timeline-canvas">
+    <svg
+      class="timeline-svg timeline-svg-top"
+      [style.height.px]="topBandHeight"
+      [attr.viewBox]="'0 0 ' + viewWidth() + ' ' + topBandHeight"
+      preserveAspectRatio="none"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+      data-testid="timeline-svg-top">
+      <rect
+        class="left-column-bg"
+        [attr.x]="0"
+        [attr.y]="0"
+        [attr.width]="labelGutter"
+        [attr.height]="topBandHeight" />
+      <rect
+        class="era-header-bg"
+        [attr.x]="labelGutter"
+        [attr.y]="0"
+        [attr.width]="viewWidth() - labelGutter"
+        [attr.height]="eraHeaderHeight" />
+
+      @for (band of eraBands(); track band.id) {
+        <g data-testid="timeline-era-header">
+          <rect
+            class="era-header-chip"
+            [attr.x]="band.x"
+            [attr.y]="2"
+            [attr.width]="band.width"
+            [attr.height]="eraHeaderHeight - 4"
+            [attr.fill]="band.color" />
+          <text
+            class="era-label"
+            [attr.x]="band.x + 8"
+            [attr.y]="band.labelY"
+            [attr.data-testid]="'timeline-era-label-' + band.id">
+            {{ band.name }}
+          </text>
+        </g>
+      }
+
+      <line
+        class="axis-line"
+        [attr.x1]="labelGutter"
+        [attr.x2]="viewWidth()"
+        [attr.y1]="topAxisY"
+        [attr.y2]="topAxisY" />
+
+      @for (tick of tickMarks(); track tick.tick.toString()) {
+        <g>
+          <line
+            class="tick-line"
+            [attr.x1]="tick.x"
+            [attr.x2]="tick.x"
+            [attr.y1]="topAxisY - 6"
+            [attr.y2]="topAxisY + 6" />
+          <text
+            class="tick-label tick-label-top"
+            data-testid="tick-label"
+            [attr.x]="tick.x + 3"
+            [attr.y]="topAxisY - 8">
+            {{ tick.label }}
+          </text>
+        </g>
+      }
+    </svg>
+
+    <div class="tracks-scroll" data-testid="timeline-tracks-scroll">
+      <svg
+        #svg
+        class="timeline-svg timeline-svg-tracks"
+        [style.height.px]="tracksCanvasHeight()"
+        [attr.viewBox]="'0 0 ' + viewWidth() + ' ' + tracksCanvasHeight()"
+        preserveAspectRatio="none"
+        (wheel)="onWheel($event)"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp($event)"
+        (pointercancel)="onPointerUp($event)"
+        data-testid="timeline-svg-tracks">
+        <rect
+          class="left-column-bg"
+          [attr.x]="0"
+          [attr.y]="0"
+          [attr.width]="labelGutter"
+          [attr.height]="tracksCanvasHeight()" />
+
+        @for (band of eraBands(); track band.id) {
+          <g data-testid="timeline-era">
+            <rect
+              class="era-band"
+              [attr.x]="band.x"
+              [attr.y]="band.bandY"
+              [attr.width]="band.width"
+              [attr.height]="band.bandHeight"
+              [attr.fill]="band.color"
+              [attr.data-testid]="'timeline-era-body-' + band.id"
+              (pointerdown)="onEraPointerDown($event, band.era, 'move')"
+              (pointermove)="onEraPointerMove($event)"
+              (pointerup)="onEraPointerUp($event, band.era)"
+              (pointercancel)="onEraPointerUp($event, band.era)" />
+            <rect
+              class="era-handle era-handle-start"
+              [attr.x]="band.x - 3"
+              [attr.y]="band.bandY"
+              [attr.width]="6"
+              [attr.height]="band.bandHeight"
+              [attr.data-testid]="'timeline-era-handle-start-' + band.id"
+              (pointerdown)="onEraPointerDown($event, band.era, 'resize-start')"
+              (pointermove)="onEraPointerMove($event)"
+              (pointerup)="onEraPointerUp($event, band.era)"
+              (pointercancel)="onEraPointerUp($event, band.era)" />
+            <rect
+              class="era-handle era-handle-end"
+              [attr.x]="band.x + band.width - 3"
+              [attr.y]="band.bandY"
+              [attr.width]="6"
+              [attr.height]="band.bandHeight"
+              [attr.data-testid]="'timeline-era-handle-end-' + band.id"
+              (pointerdown)="onEraPointerDown($event, band.era, 'resize-end')"
+              (pointermove)="onEraPointerMove($event)"
+              (pointerup)="onEraPointerUp($event, band.era)"
+              (pointercancel)="onEraPointerUp($event, band.era)" />
+          </g>
+        }
+
+        @for (row of trackRows(); track row.track.id) {
+          <g>
+            <text
+              class="track-label"
+              [attr.x]="8"
+              [attr.y]="row.y + trackHeight / 2"
+              [attr.data-testid]="'timeline-track-label-' + row.track.id"
+              (click)="onTrackLabelClick(row.track)"
+              (keydown.enter)="onTrackLabelClick(row.track)"
+              (keydown.space)="onTrackLabelClick(row.track)"
+              tabindex="0"
+              role="button">
+              {{ row.track.name }}
+            </text>
+            <line
+              class="tick-line track-divider"
+              [attr.x1]="0"
+              [attr.x2]="viewWidth()"
+              [attr.y1]="row.y + trackHeight"
+              [attr.y2]="row.y + trackHeight" />
+          </g>
+        }
+
+        @for (pill of eventPills(); track pill.event.id) {
+          <g
+            class="event-pill"
+            [attr.data-testid]="'timeline-event-' + pill.event.id">
+            <rect
+              [attr.x]="pill.x"
+              [attr.y]="pill.y"
+              [attr.width]="pill.width"
+              [attr.height]="pill.height"
+              [attr.rx]="pill.height / 2"
+              [attr.ry]="pill.height / 2"
+              [attr.fill]="pill.color"
+              [attr.data-testid]="'timeline-event-body-' + pill.event.id"
+              (pointerdown)="onEventPointerDown($event, pill.event, 'move')"
+              (pointermove)="onEventPointerMove($event)"
+              (pointerup)="onEventPointerUp($event, pill.event)"
+              (pointercancel)="onEventPointerUp($event, pill.event)"
+              (keydown.enter)="onEventClick(pill.event)"
+              (keydown.space)="onEventClick(pill.event)"
+              tabindex="0"
+              role="button" />
+            @if (pill.event.end) {
+              <rect
+                class="event-handle event-handle-start"
+                [attr.x]="pill.x - 3"
+                [attr.y]="pill.y"
+                [attr.width]="6"
+                [attr.height]="pill.height"
+                [attr.data-testid]="
+                  'timeline-event-handle-start-' + pill.event.id
+                "
+                (pointerdown)="
+                  onEventPointerDown($event, pill.event, 'resize-start')
+                "
+                (pointermove)="onEventPointerMove($event)"
+                (pointerup)="onEventPointerUp($event, pill.event)"
+                (pointercancel)="onEventPointerUp($event, pill.event)" />
+              <rect
+                class="event-handle event-handle-end"
+                [attr.x]="pill.x + pill.width - 3"
+                [attr.y]="pill.y"
+                [attr.width]="6"
+                [attr.height]="pill.height"
+                [attr.data-testid]="
+                  'timeline-event-handle-end-' + pill.event.id
+                "
+                (pointerdown)="
+                  onEventPointerDown($event, pill.event, 'resize-end')
+                "
+                (pointermove)="onEventPointerMove($event)"
+                (pointerup)="onEventPointerUp($event, pill.event)"
+                (pointercancel)="onEventPointerUp($event, pill.event)" />
+            }
+            <text
+              [attr.x]="pill.x + 10"
+              [attr.y]="pill.y + pill.height / 2"
+              fill="var(--timeline-pill-text, #fff)"
+              font-size="11"
+              dominant-baseline="middle"
+              style="pointer-events: none">
+              {{ pill.event.title }}
+            </text>
+          </g>
+        }
+      </svg>
+    </div>
+
+    <svg
+      class="timeline-svg timeline-svg-bottom"
+      [style.height.px]="bottomBandHeight"
+      [attr.viewBox]="'0 0 ' + viewWidth() + ' ' + bottomBandHeight"
+      preserveAspectRatio="none"
+      (wheel)="onWheel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+      data-testid="timeline-svg-bottom">
+      <rect
+        class="left-column-bg"
+        [attr.x]="0"
+        [attr.y]="0"
+        [attr.width]="labelGutter"
+        [attr.height]="bottomBandHeight" />
+
+      <line
+        class="axis-line"
+        [attr.x1]="labelGutter"
+        [attr.x2]="viewWidth()"
+        [attr.y1]="bottomAxisY"
+        [attr.y2]="bottomAxisY" />
+
+      @for (tick of tickMarks(); track tick.tick.toString()) {
+        <g>
+          <line
+            class="tick-line"
+            [attr.x1]="tick.x"
+            [attr.x2]="tick.x"
+            [attr.y1]="bottomAxisY - 1"
+            [attr.y2]="bottomAxisY + 6" />
+          <text
+            class="tick-label"
+            data-testid="tick-label"
+            [attr.x]="tick.x + 3"
+            [attr.y]="bottomAxisY + 8">
+            {{ tick.label }}
+          </text>
+        </g>
+      }
+    </svg>
+
+    @if (hasActiveSystem() && events().length === 0 && eras().length === 0) {
+      <div class="empty" data-testid="timeline-empty">
+        <mat-icon>schedule</mat-icon>
+        <div>This timeline is empty.</div>
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="onAddEvent()"
+          data-testid="timeline-empty-add-event">
+          Add your first event
+        </button>
+      </div>
+    }
+  </div>
+}

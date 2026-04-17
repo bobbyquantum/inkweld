@@ -127,6 +127,7 @@ describe('ProjectImportService', () => {
     documents: [{ elementId: 'elem-2', content: [{ type: 'paragraph' }] }],
     worldbuilding: [],
     schemas: [],
+    timeSystems: [],
     relationships: [],
     customRelationshipTypes: [],
     tags: [],

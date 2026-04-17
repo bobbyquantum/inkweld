@@ -1,0 +1,284 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--sys-surface, #fafafa);
+  color: var(--sys-on-surface, #111);
+
+  // Theme-aware timeline palette — mapped to Material system tokens so pills
+  // remain legible against both light and dark surfaces. Event/track colours
+  // declared in model reference these variables.
+  --timeline-color-1: var(--sys-primary);
+  --timeline-color-2: var(--sys-tertiary);
+  --timeline-color-3: var(--sys-secondary);
+  --timeline-color-4: var(--sys-error);
+  --timeline-color-5: var(--sys-primary-container);
+  --timeline-color-6: var(--sys-tertiary-container);
+  --timeline-pill-text: var(--sys-on-primary);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sys-outline-variant, #ddd);
+  flex: 0 0 auto;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+.system-select {
+  min-width: 180px;
+}
+
+.system-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 999px;
+  background: var(--sys-surface-container-low);
+  color: var(--sys-on-surface);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: default;
+  user-select: none;
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .lock-icon {
+    color: var(--sys-on-surface-variant);
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.setup-overlay {
+  // Setup state is rendered as a sibling of `.canvas-wrap` (the @else
+  // branch of `needsSystemSelection`), so it needs to claim the remaining
+  // flex space within the host column rather than positioning absolutely
+  // (which would anchor to a far ancestor and clip the card).
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: auto;
+  background: var(--sys-surface);
+}
+
+.setup-card {
+  max-width: 520px;
+  width: 100%;
+  padding: 32px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 12px;
+  background: var(--sys-surface-container-low);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .setup-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: var(--sys-primary);
+  }
+
+  .setup-hint {
+    margin: 0;
+    color: var(--sys-on-surface-variant);
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .setup-select {
+    align-self: stretch;
+  }
+
+  .setup-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-self: stretch;
+    flex-wrap: wrap;
+  }
+}
+
+.canvas-wrap {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tracks-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--sys-surface-container-lowest);
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  gap: 8px;
+  color: var(--sys-on-surface-variant, #666);
+  pointer-events: none;
+
+  button {
+    pointer-events: auto;
+  }
+}
+
+svg.timeline-svg {
+  width: 100%;
+  display: block;
+  cursor: grab;
+  user-select: none;
+}
+
+.timeline-svg-top,
+.timeline-svg-bottom {
+  flex: 0 0 auto;
+}
+
+.timeline-svg-tracks {
+  flex: 0 0 auto;
+}
+
+svg.timeline-svg:active {
+  cursor: grabbing;
+}
+
+.axis-line {
+  stroke: var(--sys-outline, #999);
+  stroke-width: 1;
+}
+
+.tick-line {
+  stroke: var(--sys-outline-variant, #ccc);
+  stroke-width: 1;
+}
+
+.tick-label {
+  fill: var(--sys-on-surface-variant, #666);
+  font-size: 11px;
+  dominant-baseline: hanging;
+}
+
+.track-label {
+  fill: var(--sys-on-surface-variant, #666);
+  font-size: 12px;
+  dominant-baseline: middle;
+  cursor: text;
+
+  &:hover {
+    fill: var(--sys-on-surface, #111);
+    text-decoration: underline;
+  }
+}
+
+.left-column-bg {
+  fill: var(--sys-surface-container-high);
+}
+
+.era-header-bg {
+  fill: var(--sys-surface-container-low);
+}
+
+.era-header-chip {
+  opacity: 0.35;
+  pointer-events: none;
+  rx: 4px;
+  ry: 4px;
+}
+
+.era-band {
+  opacity: 0.18;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.era-label {
+  fill: var(--sys-on-surface);
+  font-size: 12px;
+  font-weight: 500;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.era-handle {
+  fill: transparent;
+  cursor: ew-resize;
+
+  &:hover {
+    fill: var(--sys-primary);
+    opacity: 0.3;
+  }
+}
+
+.event-pill {
+  cursor: pointer;
+}
+
+.event-pill rect {
+  cursor: grab;
+}
+
+.event-pill rect:active {
+  cursor: grabbing;
+}
+
+.event-pill:hover > rect:first-of-type {
+  filter: brightness(1.1);
+}
+
+.event-handle {
+  fill: transparent;
+  cursor: ew-resize;
+
+  &:hover {
+    fill: var(--sys-primary);
+    opacity: 0.4;
+  }
+}
+
+.track-divider {
+  stroke: var(--sys-outline-variant);
+  stroke-opacity: 0.7;
+}
+
+.tick-label-top {
+  dominant-baseline: auto;
+}

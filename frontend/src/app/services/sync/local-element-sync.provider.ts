@@ -15,6 +15,7 @@ import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import {
@@ -65,6 +66,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
   );
+  private readonly timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
   private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   private readonly mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -93,6 +95,8 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
+  readonly timeSystems$: Observable<TimeSystem[]> =
+    this.timeSystemsSubject.asObservable();
   readonly elementTags$: Observable<ElementTag[]> =
     this.elementTagsSubject.asObservable();
   readonly customTags$: Observable<TagDefinition[]> =
@@ -136,6 +140,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       const relationships = this.localService.relationships();
       const customTypes = this.localService.customRelationshipTypes();
       const schemas = this.localService.schemas();
+      const timeSystems = this.localService.timeSystems();
       const elementTags = this.localService.elementTags();
       const customTags = this.localService.customTags();
       const mediaTags = this.localService.mediaTags();
@@ -147,6 +152,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       this.relationshipsSubject.next(relationships);
       this.customRelationshipTypesSubject.next(customTypes);
       this.schemasSubject.next(schemas);
+      this.timeSystemsSubject.next(timeSystems);
       this.elementTagsSubject.next(elementTags);
       this.customTagsSubject.next(customTags);
       this.mediaTagsSubject.next(mediaTags);
@@ -202,6 +208,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     this.relationshipsSubject.next([]);
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
+    this.timeSystemsSubject.next([]);
     this.elementTagsSubject.next([]);
     this.customTagsSubject.next([]);
     this.mediaTagsSubject.next([]);
@@ -397,6 +404,44 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       .catch(error => {
         this.logger.error('OfflineSync', 'Failed to save schemas', error);
         this.errorsSubject.next('Failed to save schemas offline');
+      });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────────
+  // Time Systems
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  getTimeSystems(): TimeSystem[] {
+    return this.timeSystemsSubject.getValue();
+  }
+
+  /**
+   * Update time systems in offline storage.
+   */
+  updateTimeSystems(systems: TimeSystem[]): void {
+    if (!this.connected || !this.currentUsername || !this.currentSlug) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update time systems - not connected'
+      );
+      return;
+    }
+
+    // Update local state immediately
+    this.timeSystemsSubject.next(systems);
+
+    // Save to offline service asynchronously
+    void this.localService
+      .saveTimeSystems(this.currentUsername, this.currentSlug, systems)
+      .then(() => {
+        this.logger.debug(
+          'OfflineSync',
+          `Saved ${systems.length} time systems`
+        );
+      })
+      .catch(error => {
+        this.logger.error('OfflineSync', 'Failed to save time systems', error);
+        this.errorsSubject.next('Failed to save time systems offline');
       });
   }
 

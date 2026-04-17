@@ -23,6 +23,7 @@ import {
 } from '../../models/project-archive';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 
 /**
@@ -121,6 +122,7 @@ export class ProjectTemplateService {
       documents,
       worldbuilding,
       schemas,
+      timeSystems,
       relationships,
       customRelationshipTypes,
       tags,
@@ -139,6 +141,7 @@ export class ProjectTemplateService {
         'worldbuilding.json'
       ),
       this.loadJsonFile<ElementTypeSchema[]>(basePath, 'schemas.json', []),
+      this.loadJsonFile<TimeSystem[]>(basePath, 'time-systems.json', []),
       this.loadJsonFile<ElementRelationship[]>(
         basePath,
         'relationships.json',
@@ -164,6 +167,7 @@ export class ProjectTemplateService {
       documents,
       worldbuilding,
       schemas,
+      timeSystems,
       relationships,
       customRelationshipTypes,
       tags,

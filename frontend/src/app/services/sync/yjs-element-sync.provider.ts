@@ -19,6 +19,7 @@ import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -106,6 +107,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
   );
+  private readonly timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
   private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   private readonly mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -136,6 +138,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
+  readonly timeSystems$: Observable<TimeSystem[]> =
+    this.timeSystemsSubject.asObservable();
   readonly elementTags$: Observable<ElementTag[]> =
     this.elementTagsSubject.asObservable();
   readonly customTags$: Observable<TagDefinition[]> =
@@ -356,6 +360,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.relationshipsSubject.next([]);
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
+    this.timeSystemsSubject.next([]);
     this.mediaTagsSubject.next([]);
     this.mediaProjectTagsSubject.next([]);
     this.projectMetaSubject.next(undefined);
@@ -571,6 +576,46 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.logger.debug(
       'YjsSync',
       `Yjs doc now contains ${schemasArray.length} schemas`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Time Systems (project calendar library)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getTimeSystems(): TimeSystem[] {
+    return this.timeSystemsSubject.getValue();
+  }
+
+  /**
+   * Update time systems in the Yjs document.
+   * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
+   */
+  updateTimeSystems(systems: TimeSystem[]): void {
+    if (!this.doc) {
+      this.logger.warn('YjsSync', 'Cannot update time systems - not connected');
+      return;
+    }
+
+    this.logger.debug(
+      'YjsSync',
+      `Writing ${systems.length} time systems to Yjs`
+    );
+
+    // Optimistic update: emit immediately for responsive UI
+    this.timeSystemsSubject.next(systems);
+
+    const timeSystemsArray = this.doc.getArray<TimeSystem>('timeSystems');
+
+    this.doc.transact(() => {
+      timeSystemsArray.delete(0, timeSystemsArray.length);
+      timeSystemsArray.insert(0, systems);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${timeSystemsArray.length} time systems`
     );
   }
 
@@ -1010,6 +1055,14 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.schemasSubject.next(schemas);
     });
 
+    // Time systems observer
+    const timeSystemsArray = this.doc.getArray<TimeSystem>('timeSystems');
+    timeSystemsArray.observe(() => {
+      const systems = timeSystemsArray.toArray();
+      this.logger.debug('YjsSync', `Time systems changed: ${systems.length}`);
+      this.timeSystemsSubject.next(systems);
+    });
+
     // Media tags observer
     const mediaTagsArray = this.doc.getArray<MediaTag>('mediaTags');
     mediaTagsArray.observe(() => {
@@ -1112,6 +1165,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     const schemas = schemasArray.toArray();
     this.logger.debug('YjsSync', `Loaded ${schemas.length} schemas from Yjs`);
     this.schemasSubject.next(schemas);
+
+    // Load time systems
+    const timeSystemsArray = this.doc.getArray<TimeSystem>('timeSystems');
+    const timeSystems = timeSystemsArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${timeSystems.length} time systems from Yjs`
+    );
+    this.timeSystemsSubject.next(timeSystems);
 
     // Load element tags
     const elementTagsArray = this.doc.getArray<ElementTag>('elementTags');
