@@ -106,7 +106,8 @@ interface OverrideRow {
         <mat-label>Name</mat-label>
         <input
           matInput
-          [(ngModel)]="name"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
           data-testid="unit-editor-name"
           cdkFocusInitial />
       </mat-form-field>
@@ -119,7 +120,8 @@ interface OverrideRow {
             type="number"
             min="1"
             step="1"
-            [(ngModel)]="subdivision"
+            [ngModel]="subdivision()"
+            (ngModelChange)="subdivision.set($event)"
             data-testid="unit-editor-subdivision" />
         </mat-form-field>
       }
@@ -353,8 +355,8 @@ export class UnitEditorDialogComponent {
   protected readonly hasChildUnit = !!this.data.childUnitName;
   protected readonly defaultSubdivisionPlaceholder = 'default';
 
-  protected name = this.seed.name;
-  protected subdivision: number | null = this.seed.subdivision;
+  protected readonly name = signal(this.seed.name);
+  protected readonly subdivision = signal<number | null>(this.seed.subdivision);
   protected allowZero = this.seed.allowZero;
   protected inputMode: 'numeric' | 'dropdown' = this.seed.inputMode;
 
@@ -378,7 +380,7 @@ export class UnitEditorDialogComponent {
    */
   protected readonly effectiveSuggestedCount = computed(() => {
     if (this.isTopUnit) return 0;
-    const n = Number(this.subdivision);
+    const n = Number(this.subdivision());
     return Number.isInteger(n) && n > 0 ? n : 0;
   });
 
@@ -393,9 +395,9 @@ export class UnitEditorDialogComponent {
   });
 
   protected readonly canSave = computed(() => {
-    if (!this.name?.trim()) return false;
+    if (!this.name().trim()) return false;
     if (!this.isTopUnit) {
-      const sub = Number(this.subdivision);
+      const sub = Number(this.subdivision());
       if (!Number.isInteger(sub) || sub <= 0) return false;
     }
     return true;
@@ -403,7 +405,7 @@ export class UnitEditorDialogComponent {
 
   protected subdivisionLabel(): string {
     const parent = this.data.parentUnitName?.trim() || 'parent';
-    const child = this.name.trim() || 'units';
+    const child = this.name().trim() || 'units';
     return `${child}s per ${parent}`;
   }
 
@@ -446,9 +448,10 @@ export class UnitEditorDialogComponent {
     this.rows.update(rows => rows.filter(r => r.id !== id));
   }
 
-  protected onValueChange(id: number, value: string): void {
+  protected onValueChange(id: number, value: string | number | null): void {
+    const normalized = value == null ? '' : String(value);
     this.rows.update(rows =>
-      rows.map(r => (r.id === id ? { ...r, value } : r))
+      rows.map(r => (r.id === id ? { ...r, value: normalized } : r))
     );
   }
 
@@ -458,9 +461,13 @@ export class UnitEditorDialogComponent {
     );
   }
 
-  protected onSubdivisionChange(id: number, subdivision: string): void {
+  protected onSubdivisionChange(
+    id: number,
+    subdivision: string | number | null
+  ): void {
+    const normalized = subdivision == null ? '' : String(subdivision);
     this.rows.update(rows =>
-      rows.map(r => (r.id === id ? { ...r, subdivision } : r))
+      rows.map(r => (r.id === id ? { ...r, subdivision: normalized } : r))
     );
   }
 
@@ -509,8 +516,8 @@ export class UnitEditorDialogComponent {
     this.dialogRef.close({
       kind: 'save',
       unit: {
-        name: this.name.trim(),
-        subdivision: this.isTopUnit ? null : Number(this.subdivision),
+        name: this.name().trim(),
+        subdivision: this.isTopUnit ? null : Number(this.subdivision()),
         allowZero: this.allowZero,
         inputMode: this.inputMode,
         aliases,

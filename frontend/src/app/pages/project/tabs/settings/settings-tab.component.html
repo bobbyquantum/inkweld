@@ -70,13 +70,15 @@
         </div>
 
         <!-- Time Systems section -->
-        <div
-          class="section-content"
-          [class.section-hidden]="selectedSection() !== 'time-systems'">
-          <div class="section-inner">
-            <app-time-systems-settings />
+        @if (projectState.accessLoaded() && projectState.canWrite()) {
+          <div
+            class="section-content"
+            [class.section-hidden]="selectedSection() !== 'time-systems'">
+            <div class="section-inner">
+              <app-time-systems-settings />
+            </div>
           </div>
-        </div>
+        }
 
         <!-- Sync section -->
         <div

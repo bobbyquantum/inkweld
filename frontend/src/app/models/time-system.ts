@@ -278,6 +278,10 @@ export function unitMinValue(system: TimeSystem, i: number): number {
  * Maximum allowed value for unit `i`, or `null` for the top-level unit which
  * is unbounded. For non-top units, the maximum is
  * `unitMin + subdivisions[i-1] - 1`.
+ *
+ * TODO: add a parent-value-aware overload `unitMaxValueFor(system, i,
+ * parentValue)` that uses {@link effectiveSubdivision} for callers that need
+ * override-aware bounds (e.g. a Gregorian February editor).
  */
 export function unitMaxValue(system: TimeSystem, i: number): number | null {
   if (i <= 0) return null;
@@ -423,7 +427,7 @@ export function parseTimePoint(
       : rawParts;
   if (parts.length !== system.unitLabels.length) return null;
   for (const p of parts) {
-    if (!/^-?\d+$/.test(p)) return null;
+    if (!/^[+-]?\d+$/.test(p)) return null;
   }
   return {
     systemId: system.id,

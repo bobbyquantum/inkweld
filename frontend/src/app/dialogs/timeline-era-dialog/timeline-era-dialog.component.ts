@@ -325,6 +325,7 @@ export class TimelineEraDialogComponent {
         ? { endBeforeStart: true }
         : null;
     });
+    this.form.updateValueAndValidity();
 
     this.startDateSignal.set(this.unitsToIsoDate('start'));
     this.endDateSignal.set(this.unitsToIsoDate('end'));

@@ -68,7 +68,7 @@ test.describe('Timeline Tab', () => {
     await createTimelineAndOpen(page);
     await expect(page).toHaveURL(/timeline\/.+/);
     await expect(page.getByTestId('timeline-toolbar')).toBeVisible();
-    await expect(page.getByTestId('timeline-svg')).toBeVisible();
+    await expect(page.getByTestId('timeline-svg-tracks')).toBeVisible();
   });
 
   test('shows the empty-state hint when the timeline has no events', async ({
