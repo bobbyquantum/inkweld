@@ -435,7 +435,8 @@ export class RelationshipChartService {
     return (
       element.type === ElementType.Folder ||
       element.type === ElementType.RelationshipChart ||
-      element.type === ElementType.Canvas
+      element.type === ElementType.Canvas ||
+      element.type === ElementType.Timeline
     );
   }
 

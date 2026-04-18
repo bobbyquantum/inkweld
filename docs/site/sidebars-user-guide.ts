@@ -65,6 +65,7 @@ const sidebars: SidebarsConfig = {
         'worldbuilding/relationships',
         'worldbuilding/relationship-charts',
         'worldbuilding/canvas',
+        'worldbuilding/timeline',
       ],
     },
     {
@@ -75,10 +76,7 @@ const sidebars: SidebarsConfig = {
         type: 'generated-index',
         description: 'Work together with co-authors in real-time.',
       },
-      items: [
-        'collaboration/real-time',
-        'collaboration/sharing',
-      ],
+      items: ['collaboration/real-time', 'collaboration/sharing'],
     },
     {
       type: 'category',
@@ -86,8 +84,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       link: {
         type: 'generated-index',
-        description:
-          'Manage images, covers, and media assets in your project.',
+        description: 'Manage images, covers, and media assets in your project.',
       },
       items: ['media/library', 'media/covers', 'media/ai-generation'],
     },

@@ -20,6 +20,7 @@ import {
 } from '../../models/project-archive';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { LocalSnapshotService } from '../local/local-snapshot.service';
@@ -150,6 +151,7 @@ export class ProjectExportService {
 
       // Get additional project data
       const schemas = await this.getSchemas();
+      const timeSystems = await this.getTimeSystems(username, slug);
       const relationships = await this.getRelationships(username, slug);
       const customRelationshipTypes = await this.getCustomRelationshipTypes(
         username,
@@ -196,6 +198,7 @@ export class ProjectExportService {
         documents,
         worldbuilding,
         schemas,
+        timeSystems,
         relationships,
         customRelationshipTypes,
         tags,
@@ -533,6 +536,23 @@ export class ProjectExportService {
   }
 
   /**
+   * Get time systems for the project.
+   * Reads through localElements in both modes (the online sync provider
+   * persists the same Yjs doc to IndexedDB via y-indexeddb, so reading the
+   * local mirror is safe and consistent).
+   */
+  private async getTimeSystems(
+    username: string,
+    slug: string
+  ): Promise<TimeSystem[]> {
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.timeSystems();
+    }
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.timeSystems();
+  }
+
+  /**
    * Get element relationships.
    */
   private async getRelationships(
@@ -723,6 +743,7 @@ export class ProjectExportService {
       JSON.stringify(archive.worldbuilding, null, 2)
     );
     zip.file('schemas.json', JSON.stringify(archive.schemas, null, 2));
+    zip.file('time-systems.json', JSON.stringify(archive.timeSystems, null, 2));
     zip.file(
       'relationships.json',
       JSON.stringify(archive.relationships, null, 2)

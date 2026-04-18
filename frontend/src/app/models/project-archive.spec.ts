@@ -13,7 +13,7 @@ import {
 describe('project-archive models', () => {
   describe('Constants', () => {
     it('should export ARCHIVE_VERSION', () => {
-      expect(ARCHIVE_VERSION).toBe(1);
+      expect(ARCHIVE_VERSION).toBe(2);
     });
 
     it('should export MIN_SUPPORTED_VERSION', () => {
@@ -234,6 +234,7 @@ describe('project-archive models', () => {
         documents: [],
         worldbuilding: [],
         schemas: [],
+        timeSystems: [],
         relationships: [],
         customRelationshipTypes: [],
         tags: [],
@@ -263,6 +264,7 @@ describe('project-archive models', () => {
         documents: [],
         worldbuilding: [],
         schemas: [],
+        timeSystems: [],
         relationships: [],
         customRelationshipTypes: [],
         tags: [],

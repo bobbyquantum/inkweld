@@ -59,6 +59,11 @@ export class TreeNodeIconComponent {
       return 'dashboard';
     }
 
+    // Timeline elements use timeline icon
+    if (this.type === (ElementType.Timeline as string)) {
+      return 'timeline';
+    }
+
     // For custom types, check metadata cache
     if (this.metadata?.['icon']) {
       return this.metadata['icon'] as string;

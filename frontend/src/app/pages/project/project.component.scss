@@ -447,6 +447,18 @@ app-media-tab {
   overflow: hidden;
 }
 
+app-timeline-tab,
+app-canvas-tab,
+app-relationships-tab,
+app-worldbuilding-tab,
+app-settings-tab,
+app-templates-tab {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 // User menu on desktop
 .desktop-user-menu {
   position: fixed;

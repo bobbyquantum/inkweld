@@ -1,0 +1,11 @@
+[
+  {
+    "id": "moonveil-reckoning",
+    "name": "Moonveil Reckoning",
+    "isBuiltIn": true,
+    "unitLabels": ["Cycle", "Moon", "Night"],
+    "subdivisions": [13, 28],
+    "format": "C{u0} M{u1} N{u2}",
+    "parseSeparator": "-"
+  }
+]

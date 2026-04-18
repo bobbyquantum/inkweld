@@ -18,6 +18,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
@@ -41,6 +42,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     []
   );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+  const timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
   const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   const mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -63,6 +65,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     getRelationships: vi.fn(() => relationshipsSubject.getValue()),
     getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
     getSchemas: vi.fn(() => schemasSubject.getValue()),
+    getTimeSystems: vi.fn(() => timeSystemsSubject.getValue()),
     getElementTags: vi.fn(() => elementTagsSubject.getValue()),
     getCustomTags: vi.fn(() => customTagsSubject.getValue()),
     getMediaTags: vi.fn(() => mediaTagsSubject.getValue()),
@@ -74,6 +77,9 @@ function createMockSyncProvider(): IElementSyncProvider & {
     updateCustomRelationshipTypes: vi.fn(),
     updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
       schemasSubject.next(schemas);
+    }),
+    updateTimeSystems: vi.fn((systems: TimeSystem[]) => {
+      timeSystemsSubject.next(systems);
     }),
     updateElementTags: vi.fn(),
     updateCustomTags: vi.fn(),
@@ -87,6 +93,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     relationships$: relationshipsSubject.asObservable(),
     customRelationshipTypes$: customTypesSubject.asObservable(),
     schemas$: schemasSubject.asObservable(),
+    timeSystems$: timeSystemsSubject.asObservable(),
     elementTags$: elementTagsSubject.asObservable(),
     customTags$: customTagsSubject.asObservable(),
     mediaTags$: mediaTagsSubject.asObservable(),

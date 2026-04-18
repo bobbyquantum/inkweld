@@ -22,7 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   CreateMcpKeyDialogComponent,
   type CreateMcpKeyDialogResult,
@@ -50,6 +50,7 @@ import { firstValueFrom } from 'rxjs';
 import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
 import { TagsTabComponent } from '../tags/tags-tab.component';
 import { TemplatesTabComponent } from '../templates/templates-tab.component';
+import { TimeSystemsSettingsComponent } from './time-systems-settings/time-systems-settings.component';
 
 /**
  * Project Settings Tab Component
@@ -82,6 +83,7 @@ import { TemplatesTabComponent } from '../templates/templates-tab.component';
     RelationshipsTabComponent,
     TagsTabComponent,
     TemplatesTabComponent,
+    TimeSystemsSettingsComponent,
   ],
 })
 export class SettingsTabComponent implements OnDestroy {
@@ -98,7 +100,8 @@ export class SettingsTabComponent implements OnDestroy {
       sections.push(
         { key: 'templates', icon: 'description', label: 'Templates' },
         { key: 'relationships', icon: 'hub', label: 'Relationships' },
-        { key: 'tags', icon: 'local_offer', label: 'Tags' }
+        { key: 'tags', icon: 'local_offer', label: 'Tags' },
+        { key: 'time-systems', icon: 'schedule', label: 'Time Systems' }
       );
     }
 
@@ -124,6 +127,7 @@ export class SettingsTabComponent implements OnDestroy {
   protected templatesExpanded = signal(false);
   protected relationshipsExpanded = signal(false);
   protected tagsExpanded = signal(false);
+  protected timeSystemsExpanded = signal(false);
   protected syncExpanded = signal(false);
   protected collaborationExpanded = signal(false);
   protected mcpExpanded = signal(false);
@@ -135,6 +139,7 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly projectService = inject(UnifiedProjectService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly setupService = inject(SetupService);
   private readonly mediaSyncService = inject(MediaSyncService);
@@ -252,6 +257,23 @@ export class SettingsTabComponent implements OnDestroy {
       this.resizeCleanup = () =>
         browserWindow.removeEventListener('resize', updateLayout);
     }
+
+    // Honor ?section=<key> query param (e.g. deep link from timeline tab).
+    // Deferred via effect() because write-gated sections (like time-systems)
+    // only appear once canWrite() resolves, which may happen after init.
+    const requestedSection = this.route.snapshot.queryParamMap.get('section');
+    if (requestedSection) {
+      let applied = false;
+      effect(() => {
+        if (applied) return;
+        const validKeys = this.sections().map(s => s.key);
+        if (validKeys.includes(requestedSection)) {
+          applied = true;
+          this.selectedSection.set(requestedSection);
+          this.expandSection(requestedSection);
+        }
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -263,6 +285,23 @@ export class SettingsTabComponent implements OnDestroy {
   /** Select a section by key */
   selectSection(section: string): void {
     this.selectedSection.set(section);
+  }
+
+  /** Expand the accordion panel for the given section key (mobile layout). */
+  private expandSection(key: string): void {
+    const map: Record<string, ReturnType<typeof signal<boolean>> | undefined> =
+      {
+        actions: this.actionsExpanded,
+        templates: this.templatesExpanded,
+        relationships: this.relationshipsExpanded,
+        tags: this.tagsExpanded,
+        'time-systems': this.timeSystemsExpanded,
+        sync: this.syncExpanded,
+        collaboration: this.collaborationExpanded,
+        mcp: this.mcpExpanded,
+        danger: this.dangerExpanded,
+      };
+    map[key]?.set(true);
   }
 
   // =====================
@@ -316,7 +355,14 @@ export class SettingsTabComponent implements OnDestroy {
     const project = this.projectState.project();
     if (!project) return;
 
-    // TODO: Add confirmation dialog
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: 'Revoke API key',
+      message: `Revoke this API key? It will no longer be usable for authentication.`,
+      confirmText: 'Revoke',
+      cancelText: 'Cancel',
+    });
+    if (!confirmed) return;
+
     try {
       await firstValueFrom(
         this.mcpKeysService.revokeMcpKey(project.username, project.slug, key.id)
@@ -340,7 +386,14 @@ export class SettingsTabComponent implements OnDestroy {
     const project = this.projectState.project();
     if (!project) return;
 
-    // TODO: Add confirmation dialog
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: 'Delete API key',
+      message: `Permanently delete this API key? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+    });
+    if (!confirmed) return;
+
     try {
       await firstValueFrom(
         this.mcpKeysService.deleteMcpKey(project.username, project.slug, key.id)

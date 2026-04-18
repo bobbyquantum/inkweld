@@ -152,6 +152,7 @@ export class ProjectSearchDialogComponent implements AfterViewInit, OnDestroy {
     },
     { type: ElementType.RelationshipChart, label: 'Charts', icon: 'hub' },
     { type: ElementType.Canvas, label: 'Canvas', icon: 'dashboard' },
+    { type: ElementType.Timeline, label: 'Timelines', icon: 'timeline' },
   ];
 
   /** Elements available for the relationship filter dropdown */
@@ -450,6 +451,8 @@ export class ProjectSearchDialogComponent implements AfterViewInit, OnDestroy {
         return 'hub';
       case ElementType.Canvas:
         return 'dashboard';
+      case ElementType.Timeline:
+        return 'timeline';
       default:
         return 'description';
     }

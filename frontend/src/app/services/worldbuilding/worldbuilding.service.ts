@@ -868,6 +868,7 @@ export class WorldbuildingService {
       [ElementType.Folder]: 'folder',
       [ElementType.RelationshipChart]: 'hub',
       [ElementType.Canvas]: 'dashboard',
+      [ElementType.Timeline]: 'timeline',
     };
 
     // Check if it's a built-in type

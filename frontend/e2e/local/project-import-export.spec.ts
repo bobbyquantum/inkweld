@@ -88,7 +88,7 @@ test.describe('Local Project Export', () => {
     // Verify manifest.json exists and has correct content
     expect(files).toContain('manifest.json');
     expect(manifest).toBeDefined();
-    expect(manifest?.['version']).toBe(1);
+    expect(manifest?.['version']).toBe(2);
     expect(manifest?.['originalSlug']).toBe('test-project');
     expect(manifest?.['projectTitle']).toBe('Test Project');
 
