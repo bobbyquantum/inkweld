@@ -42,6 +42,7 @@ async function createTestArchive(archive: ProjectArchive): Promise<File> {
   zip.file('worldbuilding.json', JSON.stringify(archive.worldbuilding));
   zip.file('schemas.json', JSON.stringify(archive.schemas));
   zip.file('relationships.json', JSON.stringify(archive.relationships));
+  zip.file('time-systems.json', JSON.stringify(archive.timeSystems ?? []));
   zip.file(
     'relationship-types.json',
     JSON.stringify(archive.customRelationshipTypes)
@@ -127,6 +128,7 @@ describe('ProjectImportService', () => {
     documents: [{ elementId: 'elem-2', content: [{ type: 'paragraph' }] }],
     worldbuilding: [],
     schemas: [],
+    timeSystems: [],
     relationships: [],
     customRelationshipTypes: [],
     tags: [],
@@ -164,6 +166,7 @@ describe('ProjectImportService', () => {
     localProject.deleteProject.mockReturnValue(undefined);
     localElements.saveElements.mockResolvedValue(undefined);
     localElements.saveSchemas.mockResolvedValue(undefined);
+    localElements.saveTimeSystems.mockResolvedValue(undefined);
     localElements.saveRelationships.mockResolvedValue(undefined);
     localElements.saveCustomRelationshipTypes.mockResolvedValue(undefined);
     localElements.saveCustomTags.mockResolvedValue(undefined);
@@ -549,6 +552,32 @@ describe('ProjectImportService', () => {
       await service.importProject(file, { slug: 'imported-project' });
 
       expect(localElements.saveSchemas).toHaveBeenCalled();
+    });
+
+    it('should import time systems', async () => {
+      const archiveWithTimeSystems: ProjectArchive = {
+        ...mockArchive,
+        timeSystems: [
+          {
+            id: 'ts-1',
+            name: 'Gregorian',
+            unitLabels: ['Year', 'Month', 'Day'],
+            subdivisions: [12, 30],
+            displayFormat: '{0}-{1}-{2}',
+          } as any,
+        ],
+      };
+      const file = await createTestArchive(archiveWithTimeSystems);
+
+      await service.importProject(file, { slug: 'imported-project' });
+
+      expect(localElements.saveTimeSystems).toHaveBeenCalledWith(
+        'testuser',
+        'imported-project',
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'ts-1', name: 'Gregorian' }),
+        ])
+      );
     });
 
     it('should import relationships', async () => {
@@ -994,6 +1023,22 @@ describe('ProjectImportService', () => {
         archiveMigrations.ARCHIVE_MIGRATIONS.length = 0;
         archiveMigrations.ARCHIVE_MIGRATIONS.push(...originalMigrations);
       }
+    });
+
+    it('v1→v2 migration should default timeSystems to empty array', async () => {
+      const v1Archive: ProjectArchive = {
+        ...mockArchive,
+        manifest: { ...mockManifest, version: 1 },
+        // v1 archives have no time-systems.json entry; the field
+        // may already be [] from parsing but the migration guarantees it.
+      };
+      const file = await createTestArchive(v1Archive);
+
+      await service.importProject(file, { slug: 'imported-project' });
+
+      // The migration sets timeSystems = [] and saveTimeSystems should
+      // NOT be called when the array is empty.
+      expect(localElements.saveTimeSystems).not.toHaveBeenCalled();
     });
   });
 });

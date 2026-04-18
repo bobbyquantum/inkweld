@@ -248,7 +248,11 @@ export class CanvasPinDialogComponent {
       title: 'Link to Element',
       subtitle: 'Choose an element to link this pin to.',
       maxSelections: 1,
-      excludeTypes: [ElementType.Folder, ElementType.Canvas],
+      excludeTypes: [
+        ElementType.Folder,
+        ElementType.Canvas,
+        ElementType.Timeline,
+      ],
     };
     const pickerRef = this.dialog.open(ElementPickerDialogComponent, {
       width: '480px',

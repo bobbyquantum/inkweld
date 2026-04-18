@@ -19,6 +19,8 @@ export enum ElementType {
 
     RelationshipChart = 'RELATIONSHIP_CHART',
 
-    Canvas = 'CANVAS'
+    Canvas = 'CANVAS',
+
+    Timeline = 'TIMELINE'
 }
 

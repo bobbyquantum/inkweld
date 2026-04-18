@@ -727,7 +727,8 @@
           "ITEM",
           "WORLDBUILDING",
           "RELATIONSHIP_CHART",
-          "CANVAS"
+          "CANVAS",
+          "TIMELINE"
         ]
       },
       "ElementError": {

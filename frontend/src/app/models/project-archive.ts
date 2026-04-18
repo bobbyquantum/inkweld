@@ -10,6 +10,7 @@ import {
 import { type MediaTag } from './media-tag.model';
 import { type PublishPlan } from './publish-plan';
 import { type ElementTypeSchema } from './schema-types';
+import { type TimeSystem } from './time-system';
 
 /**
  * Current archive format version.
@@ -37,8 +38,13 @@ import { type ElementTypeSchema } from './schema-types';
  * - snapshots.json: Document version history (optional)
  * - media-index.json: Media file manifest
  * - media/: Cover and inline images
+ *
+ * ### Version 2 (April 2026) - Time Systems
+ * Adds project-owned time-system library used by the Timeline feature.
+ * - time-systems.json: Installed TimeSystem definitions for the project
+ *   (empty array for v1 archives imported into v2; no destructive changes).
  */
-export const ARCHIVE_VERSION = 1;
+export const ARCHIVE_VERSION = 2;
 
 /**
  * Minimum supported archive version for import.
@@ -205,6 +211,8 @@ export interface ProjectArchive {
   worldbuilding: ArchiveWorldbuildingData[];
   /** Worldbuilding schemas/templates */
   schemas: ElementTypeSchema[];
+  /** Time systems (calendars) installed in the project */
+  timeSystems: TimeSystem[];
   /** Element relationships */
   relationships: ElementRelationship[];
   /** Custom relationship types */

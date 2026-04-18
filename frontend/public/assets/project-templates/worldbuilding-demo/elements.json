@@ -138,5 +138,18 @@
     "metadata": {
       "chartConfig": "{\"elementId\":\"chart-character-web\",\"layout\":\"force\",\"filters\":{\"mode\":\"curated\",\"includedElementIds\":[\"char-elara\",\"char-theron\",\"char-mira\",\"loc-silverhollow\",\"loc-thornwood\",\"loc-cloudspire\"],\"relationshipTypeIds\":[],\"schemaIds\":[],\"elementTypes\":[],\"showOrphans\":false}}"
     }
+  },
+  {
+    "id": "timeline-moonveil",
+    "name": "Moonveil Chronicle",
+    "type": "TIMELINE",
+    "order": 5,
+    "level": 0,
+    "parentId": null,
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "timelineConfig": "{\"version\":1,\"timeSystemId\":\"moonveil-reckoning\",\"tracks\":[{\"id\":\"tr-main\",\"name\":\"Main events\",\"color\":\"var(--timeline-color-1)\",\"visible\":true,\"order\":0},{\"id\":\"tr-chars\",\"name\":\"Characters\",\"color\":\"var(--timeline-color-2)\",\"visible\":true,\"order\":1},{\"id\":\"tr-politics\",\"name\":\"Politics\",\"color\":\"var(--timeline-color-3)\",\"visible\":true,\"order\":2}],\"events\":[{\"id\":\"ev-elara-birth\",\"trackId\":\"tr-chars\",\"title\":\"Elara is born\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1198\",\"5\",\"12\"]},\"linkedElementId\":\"char-elara\",\"color\":\"var(--timeline-color-2)\"},{\"id\":\"ev-theron-birth\",\"trackId\":\"tr-chars\",\"title\":\"Theron is born\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1195\",\"9\",\"3\"]},\"linkedElementId\":\"char-theron\",\"color\":\"var(--timeline-color-2)\"},{\"id\":\"ev-accord\",\"trackId\":\"tr-main\",\"title\":\"The Moonveil Accord\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"6\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"6\",\"14\"]},\"description\":\"Treaty signed between the houses at Cloudspire Academy.\",\"color\":\"var(--timeline-color-1)\"},{\"id\":\"ev-cloudspire\",\"trackId\":\"tr-politics\",\"title\":\"Cloudspire founded\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1150\",\"1\",\"1\"]},\"linkedElementId\":\"loc-cloudspire\",\"color\":\"var(--timeline-color-3)\"},{\"id\":\"ev-war\",\"trackId\":\"tr-politics\",\"title\":\"Thornwood War\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1215\",\"3\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1219\",\"11\",\"28\"]},\"linkedElementId\":\"loc-thornwood\",\"color\":\"var(--timeline-color-4)\"}],\"eras\":[{\"id\":\"era-silver\",\"name\":\"Silver Age\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1100\",\"1\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1210\",\"12\",\"28\"]},\"color\":\"var(--timeline-color-5)\"},{\"id\":\"era-accord\",\"name\":\"Accord Era\",\"start\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1220\",\"1\",\"1\"]},\"end\":{\"systemId\":\"moonveil-reckoning\",\"units\":[\"1260\",\"12\",\"28\"]},\"color\":\"var(--timeline-color-6)\"}]}"
+    }
   }
 ]
