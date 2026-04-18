@@ -184,7 +184,8 @@ test.describe('Timeline Tab Screenshots', () => {
     await eraName.fill('Age of Heroes');
     await expect(eraName).toHaveValue('Age of Heroes');
     await page.getByTestId('timeline-era-start-date').fill('2020-01-01');
-    await page.getByTestId('timeline-era-end-date').fill('2025-12-31');
+    await page.getByTestId('timeline-era-end-date').fill('2025-12-30');
+    await page.getByTestId('timeline-era-color').fill('#8b5cf6');
     const eraSave = page.getByTestId('timeline-era-save');
     await expect(eraSave).toBeEnabled({ timeout: 5000 });
     await eraSave.click();
