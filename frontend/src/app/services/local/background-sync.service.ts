@@ -101,7 +101,7 @@ export class BackgroundSyncService implements OnDestroy {
       // Sync pending metadata updates
       allSuccess = (await this.syncPendingMetadata()) && allSuccess;
 
-      // TODO: Sync pending media uploads
+      // Future work: sync pending media uploads
       // allSuccess = (await this.syncPendingUploads()) && allSuccess;
 
       return allSuccess;

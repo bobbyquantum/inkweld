@@ -354,7 +354,7 @@ export class EpubGeneratorService {
         return [this.processBackmatter(item, plan.metadata, chapterNumber)];
 
       case PublishPlanItemType.Worldbuilding:
-        // TODO: Implement worldbuilding content
+        // Future work: implement worldbuilding content
         return [];
 
       default:

@@ -133,7 +133,12 @@ function formatError(
     if (typeof error === 'object' && error !== null) {
       return '[object Object]';
     }
-    return String(error);
+    if (typeof error === 'symbol') {
+      return error.toString();
+    }
+    // error is a primitive (string, number, boolean, bigint, null, undefined)
+    const primitive = error as string | number | boolean | bigint | null | undefined;
+    return String(primitive);
   })();
 
   return {

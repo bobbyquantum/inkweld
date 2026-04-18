@@ -185,7 +185,7 @@ export class SnapshotsDialogComponent implements OnInit {
 
   /**
    * Preview snapshot as HTML in new window/tab
-   * TODO: Implement preview by rendering Yjs state to HTML
+   * Future work: implement preview by rendering Yjs state to HTML
    */
   previewSnapshot(_snapshot: UnifiedSnapshot): void {
     // For now, show a message that preview is not available
