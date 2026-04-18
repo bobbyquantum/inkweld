@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { type Element } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
@@ -257,7 +258,6 @@ export class TagsTabComponent {
    * Navigate to an element with this tag
    */
   viewTaggedElements(tag: TagView): void {
-    // TODO: Could open a panel showing elements with this tag
     if (tag.count === 0) {
       this.snackBar.open('No elements have this tag', 'Dismiss', {
         duration: 3000,
@@ -265,12 +265,29 @@ export class TagsTabComponent {
       return;
     }
 
-    // For now, just show a message
-    this.snackBar.open(
-      `${tag.count} element(s) have the "${tag.name}" tag`,
-      'Dismiss',
-      { duration: 3000 }
-    );
+    // Resolve element IDs to project elements and open the first one
+    const allElements = this.projectState.elements();
+    const taggedElements = tag.elementIds
+      .map(id => allElements.find(e => e.id === id))
+      .filter((e): e is Element => e !== undefined);
+
+    if (taggedElements.length === 0) {
+      this.snackBar.open('Tagged elements not found', 'Dismiss', {
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Open the first tagged element
+    this.projectState.openDocument(taggedElements[0]);
+
+    if (taggedElements.length > 1) {
+      this.snackBar.open(
+        `Opened "${taggedElements[0].name}". ${taggedElements.length - 1} more element(s) also have this tag.`,
+        'Dismiss',
+        { duration: 4000 }
+      );
+    }
   }
 
   /**

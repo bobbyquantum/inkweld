@@ -24,11 +24,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
 
-import { type ElementType } from '../../../../api-client';
+import { ElementType } from '../../../../api-client';
 import { environment } from '../../../../environments/environment';
 import { LocalStorageService } from '../../../services/local/local-storage.service';
+import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
+import { flattenToPlainText } from '../../../utils/prosemirror-text';
 import { isWorldbuildingType } from '../../../utils/worldbuilding.utils';
 import { ElementRefService } from '../element-ref.service';
 
@@ -434,6 +436,7 @@ export class ElementRefTooltipComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly http = inject(HttpClient);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly documentService = inject(DocumentService);
 
   /** The tooltip data */
   @Input() set tooltipData(value: ElementRefTooltipData | null) {
@@ -605,8 +608,32 @@ export class ElementRefTooltipComponent {
           }
         }
 
-        // For non-worldbuilding elements, show basic info
-        // TODO: Load document excerpt asynchronously for Item type
+        // For non-worldbuilding elements, load document excerpt for Item type
+        const project = this.projectState.project();
+        if (element.type === ElementType.Item && project) {
+          try {
+            const docId = `${project.username}:${project.slug}:${elementId}`;
+            const content =
+              await this.documentService.getDocumentContent(docId);
+            if (content && Array.isArray(content) && content.length > 0) {
+              const plainText = flattenToPlainText(content).trim();
+              const wordCount = plainText ? plainText.split(/\s+/).length : 0;
+              const excerpt =
+                plainText.length > 200
+                  ? plainText.substring(0, 200) + '…'
+                  : plainText || undefined;
+              this.previewContent.set({
+                path: undefined,
+                excerpt,
+                wordCount: wordCount > 0 ? wordCount : undefined,
+              });
+              return;
+            }
+          } catch {
+            // Fall through to default empty preview
+          }
+        }
+
         this.previewContent.set({
           path: undefined,
           excerpt: undefined,
