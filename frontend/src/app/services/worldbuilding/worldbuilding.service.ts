@@ -519,8 +519,11 @@ export class WorldbuildingService {
     key: string,
     obj: Record<string, unknown>
   ): void {
-    let nestedMap = dataMap.get(key) as Y.Map<unknown> | undefined;
-    if (!(nestedMap instanceof Y.Map)) {
+    const existing = dataMap.get(key);
+    let nestedMap: Y.Map<unknown>;
+    if (existing instanceof Y.Map) {
+      nestedMap = existing;
+    } else {
       nestedMap = new Y.Map();
       dataMap.set(key, nestedMap);
     }
@@ -602,10 +605,11 @@ export class WorldbuildingService {
               const [parentKey, childKey] = fieldKey.split('.');
 
               // Get or create parent Y.Map
-              let parentMap = dataMap.get(parentKey) as
-                | Y.Map<unknown>
-                | undefined;
-              if (!(parentMap instanceof Y.Map)) {
+              const existingParent = dataMap.get(parentKey);
+              let parentMap: Y.Map<unknown>;
+              if (existingParent instanceof Y.Map) {
+                parentMap = existingParent;
+              } else {
                 parentMap = new Y.Map();
                 dataMap.set(parentKey, parentMap);
               }

@@ -119,7 +119,7 @@ async function handleInitialize(
     },
     capabilities: {
       resources: {
-        subscribe: false, // TODO: implement subscriptions
+        subscribe: false, // future work: implement subscriptions
         listChanged: false,
       },
       tools: {
@@ -369,7 +369,7 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
         break;
 
       case 'resources/templates/list':
-        // TODO: implement resource templates
+        // Future work: implement resource templates
         result = { resourceTemplates: [] };
         break;
 

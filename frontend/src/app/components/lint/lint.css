@@ -46,12 +46,12 @@
 }
 
 .lint-accept-button {
-  background-color: #4caf50 !important;
+  background-color: #2e7d32 !important;
   color: white !important;
 }
 
 .lint-reject-button {
-  background-color: #f44336 !important;
+  background-color: #c62828 !important;
   color: white !important;
 }
 

@@ -66,16 +66,14 @@
     } @else {
       <div class="tabs-editor">
         <!-- Tab List -->
-        <div
+        <ul
           class="tabs-list"
-          role="list"
           cdkDropList
           (cdkDropListDropped)="onTabsDrop($event)">
           @for (tab of tabs(); track tab.key; let i = $index) {
-            <div
+            <li
               class="tab-item"
               cdkDrag
-              role="listitem"
               [class.selected]="selectedTabIndex() === i">
               <mat-icon class="drag-handle" cdkDragHandle
                 >drag_indicator</mat-icon
@@ -93,9 +91,9 @@
                 [disabled]="tabs().length === 1">
                 <mat-icon>close</mat-icon>
               </button>
-            </div>
+            </li>
           }
-        </div>
+        </ul>
 
         <!-- Tab Editor -->
         @if (tabs()[selectedTabIndex()]; as currentTab) {

@@ -9,7 +9,7 @@
  * This wrapper patches the scopeManager to implement addGlobals() correctly
  * by defining variables directly in scopes[0].
  *
- * TODO: Remove this once angular-eslint releases ESLint 10 support.
+ * Future cleanup: remove this once angular-eslint releases ESLint 10 support.
  */
 import * as templateParser from '@angular-eslint/template-parser';
 

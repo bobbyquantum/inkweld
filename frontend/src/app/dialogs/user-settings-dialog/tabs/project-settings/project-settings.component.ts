@@ -20,11 +20,7 @@ export class ProjectSettingsComponent {
   }
 
   set zenModeFullscreen(value: boolean) {
-    if (typeof value === 'boolean') {
-      this.settingsService.setSetting<boolean>('zenModeFullscreen', value);
-    } else {
-      this.settingsService.setSetting<boolean>('zenModeFullscreen', true);
-    }
+    this.settingsService.setSetting<boolean>('zenModeFullscreen', value);
   }
 
   get useTabsDesktop(): boolean {
@@ -32,11 +28,7 @@ export class ProjectSettingsComponent {
   }
 
   set useTabsDesktop(value: boolean) {
-    if (typeof value === 'boolean') {
-      this.settingsService.setSetting<boolean>('useTabsDesktop', value);
-    } else {
-      this.settingsService.setSetting<boolean>('useTabsDesktop', true);
-    }
+    this.settingsService.setSetting<boolean>('useTabsDesktop', value);
   }
 
   get autoSnapshots(): boolean {
@@ -44,10 +36,6 @@ export class ProjectSettingsComponent {
   }
 
   set autoSnapshots(value: boolean) {
-    if (typeof value === 'boolean') {
-      this.autoSnapshotService.setEnabled(value);
-    } else {
-      this.autoSnapshotService.setEnabled(true);
-    }
+    this.autoSnapshotService.setEnabled(value);
   }
 }

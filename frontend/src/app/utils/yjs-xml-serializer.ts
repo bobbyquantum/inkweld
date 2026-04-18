@@ -156,6 +156,26 @@ function xmlTextToXmlString(text: Y.XmlText): string {
 }
 
 /**
+ * Convert a Yjs attribute value to its serialized string form.
+ */
+function attributeValueToString(value: unknown): string {
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'symbol') {
+    return value.toString();
+  }
+  const primitive = value as
+    | string
+    | number
+    | boolean
+    | bigint
+    | null
+    | undefined;
+  return String(primitive);
+}
+
+/**
  * Serialize a Yjs XmlElement to XML string.
  *
  * Recursively processes all child elements and text nodes.
@@ -168,14 +188,7 @@ function xmlElementToXmlString(element: Y.XmlElement): string {
   const attributes = element.getAttributes();
   for (const [key, value] of Object.entries(attributes)) {
     if (value !== undefined && value !== null) {
-      // Handle different value types
-      let strValue: string;
-      if (typeof value === 'object') {
-        strValue = JSON.stringify(value);
-      } else {
-        strValue = String(value);
-      }
-      attrs.push(`${key}="${escapeAttrValue(strValue)}"`);
+      attrs.push(`${key}="${escapeAttrValue(attributeValueToString(value))}"`);
     }
   }
   const attrsStr = attrs.length > 0 ? ' ' + attrs.join(' ') : '';

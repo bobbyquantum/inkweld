@@ -312,7 +312,7 @@ class UserService {
     }
 
     if (whereClause) {
-      query = query.where(whereClause) as typeof query;
+      query = query.where(whereClause);
     }
 
     // Get paginated results

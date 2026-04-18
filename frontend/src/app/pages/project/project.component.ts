@@ -202,7 +202,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   onBeforeUnload(event: BeforeUnloadEvent) {
     if (this.hasUnsavedChanges) {
       event.preventDefault();
-      event.returnValue = '';
       return '';
     }
     return true;

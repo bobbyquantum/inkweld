@@ -799,33 +799,12 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
     // 2. Canvas images
     for (const el of elements.filter(e => e.type === ElementType.Canvas)) {
-      const configStr = el.metadata?.['canvasConfig'];
-      if (configStr) {
-        try {
-          const config = JSON.parse(configStr) as CanvasConfig;
-          const hasImage = config.objects?.some(
-            obj => obj.type === 'image' && obj.src === mediaUrl
-          );
-          if (hasImage) {
-            usages.push(`Placed on canvas "${el.name}"`);
-          }
-        } catch {
-          /* ignore malformed config */
-        }
-      }
+      this.collectCanvasUsage(el, mediaUrl, usages);
     }
 
     // 3. Document embedded images
     for (const el of elements.filter(e => e.type === ElementType.Item)) {
-      const docId = `${project.username}:${project.slug}:${el.id}`;
-      try {
-        const content = await this.documentService.getDocumentContent(docId);
-        if (content && this.prosemirrorContainsMedia(content, mediaId)) {
-          usages.push(`Embedded in document "${el.name}"`);
-        }
-      } catch {
-        /* skip unreadable docs */
-      }
+      await this.collectDocumentUsage(el, project, mediaId, usages);
     }
 
     // 4. Element associations
@@ -835,6 +814,45 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     }
 
     return usages;
+  }
+
+  /** Append a canvas usage entry if the element references the given media URL. */
+  private collectCanvasUsage(
+    el: { name: string; metadata?: Record<string, string | undefined> },
+    mediaUrl: string,
+    usages: string[]
+  ): void {
+    const configStr = el.metadata?.['canvasConfig'];
+    if (!configStr) return;
+    try {
+      const config = JSON.parse(configStr) as CanvasConfig;
+      const hasImage = config.objects?.some(
+        obj => obj.type === 'image' && obj.src === mediaUrl
+      );
+      if (hasImage) {
+        usages.push(`Placed on canvas "${el.name}"`);
+      }
+    } catch {
+      /* ignore malformed config */
+    }
+  }
+
+  /** Append a document usage entry if the element's document embeds the media. */
+  private async collectDocumentUsage(
+    el: { id: string; name: string },
+    project: { username: string; slug: string },
+    mediaId: string,
+    usages: string[]
+  ): Promise<void> {
+    const docId = `${project.username}:${project.slug}:${el.id}`;
+    try {
+      const content = await this.documentService.getDocumentContent(docId);
+      if (content && this.prosemirrorContainsMedia(content, mediaId)) {
+        usages.push(`Embedded in document "${el.name}"`);
+      }
+    } catch {
+      /* skip unreadable docs */
+    }
   }
 
   /**

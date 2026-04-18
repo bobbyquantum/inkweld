@@ -91,8 +91,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
         return 'Invalid date';
       }
       return format(dateObject, 'MMM d, yyyy h:mm a');
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_) {
+    } catch {
       return 'Invalid date';
     }
   }
