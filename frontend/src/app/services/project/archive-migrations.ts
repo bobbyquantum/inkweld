@@ -39,8 +39,17 @@ export interface ArchiveMigration {
  * ```
  */
 export const ARCHIVE_MIGRATIONS: ArchiveMigration[] = [
-  // No migrations yet - ARCHIVE_VERSION is still 1
-  // Add migrations here when the archive format changes
+  {
+    fromVersion: 1,
+    toVersion: 2,
+    description:
+      'Add time-systems array (project-owned calendars for the Timeline feature). v1 archives default to an empty library.',
+    migrate: archive => ({
+      ...archive,
+      timeSystems: [],
+      manifest: { ...archive.manifest, version: 2 },
+    }),
+  },
 ];
 
 /**

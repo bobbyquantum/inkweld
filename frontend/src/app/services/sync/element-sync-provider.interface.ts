@@ -14,6 +14,7 @@ import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 
 /**
  * Project metadata stored in Yjs for offline-first sync.
@@ -222,6 +223,30 @@ export interface IElementSyncProvider {
    * @param schemas The new schemas array
    */
   updateSchemas(schemas: ElementTypeSchema[]): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Time Systems (project calendar / time system library)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the current time systems installed in the project.
+   * Returns an empty array if not connected.
+   */
+  getTimeSystems(): TimeSystem[];
+
+  /**
+   * Observable stream of time-system changes.
+   * Emits whenever time systems are installed, removed, or modified.
+   */
+  timeSystems$: Observable<TimeSystem[]>;
+
+  /**
+   * Update the entire time-systems array.
+   * The provider handles merging/conflict resolution.
+   *
+   * @param systems The new time systems array
+   */
+  updateTimeSystems(systems: TimeSystem[]): void;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Tags (element tagging system)

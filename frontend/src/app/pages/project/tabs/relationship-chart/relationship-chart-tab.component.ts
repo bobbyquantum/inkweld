@@ -220,7 +220,8 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
             e =>
               e.type !== ElementType.Folder &&
               e.type !== ElementType.RelationshipChart &&
-              e.type !== ElementType.Canvas
+              e.type !== ElementType.Canvas &&
+              e.type !== ElementType.Timeline
           )
           .map(e => e.id)
       );
@@ -595,6 +596,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
           ElementType.Folder,
           ElementType.RelationshipChart,
           ElementType.Canvas,
+          ElementType.Timeline,
         ],
       },
     });

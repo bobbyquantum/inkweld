@@ -21,6 +21,7 @@ import {
   type PublishPlan,
 } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { type ProjectMeta } from './element-sync-provider.interface';
@@ -35,6 +36,7 @@ describe('LocalElementSyncProvider', () => {
     relationships: ReturnType<typeof vi.fn>;
     customRelationshipTypes: ReturnType<typeof vi.fn>;
     schemas: ReturnType<typeof vi.fn>;
+    timeSystems: ReturnType<typeof vi.fn>;
     elementTags: ReturnType<typeof vi.fn>;
     customTags: ReturnType<typeof vi.fn>;
     mediaTags: ReturnType<typeof vi.fn>;
@@ -45,6 +47,7 @@ describe('LocalElementSyncProvider', () => {
     saveRelationships: ReturnType<typeof vi.fn>;
     saveCustomRelationshipTypes: ReturnType<typeof vi.fn>;
     saveSchemas: ReturnType<typeof vi.fn>;
+    saveTimeSystems: ReturnType<typeof vi.fn>;
     saveElementTags: ReturnType<typeof vi.fn>;
     saveCustomTags: ReturnType<typeof vi.fn>;
     saveMediaTags: ReturnType<typeof vi.fn>;
@@ -56,6 +59,7 @@ describe('LocalElementSyncProvider', () => {
     _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
     _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+    _timeSystemsSubject: BehaviorSubject<TimeSystem[]>;
     _elementTagsSubject: BehaviorSubject<ElementTag[]>;
     _customTagsSubject: BehaviorSubject<TagDefinition[]>;
     _mediaTagsSubject: BehaviorSubject<MediaTag[]>;
@@ -159,6 +163,7 @@ describe('LocalElementSyncProvider', () => {
       RelationshipTypeDefinition[]
     >([]);
     const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+    const timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
     const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
     const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
     const mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -175,6 +180,7 @@ describe('LocalElementSyncProvider', () => {
       relationships: vi.fn(() => relationshipsSubject.getValue()),
       customRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
       schemas: vi.fn(() => schemasSubject.getValue()),
+      timeSystems: vi.fn(() => timeSystemsSubject.getValue()),
       elementTags: vi.fn(() => elementTagsSubject.getValue()),
       customTags: vi.fn(() => customTagsSubject.getValue()),
       mediaTags: vi.fn(() => mediaTagsSubject.getValue()),
@@ -185,6 +191,7 @@ describe('LocalElementSyncProvider', () => {
       saveRelationships: vi.fn().mockResolvedValue(undefined),
       saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
       saveSchemas: vi.fn().mockResolvedValue(undefined),
+      saveTimeSystems: vi.fn().mockResolvedValue(undefined),
       saveElementTags: vi.fn().mockResolvedValue(undefined),
       saveCustomTags: vi.fn().mockResolvedValue(undefined),
       saveMediaTags: vi.fn().mockResolvedValue(undefined),
@@ -196,6 +203,7 @@ describe('LocalElementSyncProvider', () => {
       _relationshipsSubject: relationshipsSubject,
       _customTypesSubject: customTypesSubject,
       _schemasSubject: schemasSubject,
+      _timeSystemsSubject: timeSystemsSubject,
       _elementTagsSubject: elementTagsSubject,
       _customTagsSubject: customTagsSubject,
       _mediaTagsSubject: mediaTagsSubject,

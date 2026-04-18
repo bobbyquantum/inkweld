@@ -12,6 +12,7 @@ import {
 } from '../../components/tags/tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import {
+  ARCHIVE_VERSION,
   type ArchiveDocumentContent,
   type ArchiveElement,
   type ArchiveManifest,
@@ -23,6 +24,7 @@ import {
 } from '../../models/project-archive';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 
 /**
@@ -121,6 +123,7 @@ export class ProjectTemplateService {
       documents,
       worldbuilding,
       schemas,
+      timeSystems,
       relationships,
       customRelationshipTypes,
       tags,
@@ -139,6 +142,7 @@ export class ProjectTemplateService {
         'worldbuilding.json'
       ),
       this.loadJsonFile<ElementTypeSchema[]>(basePath, 'schemas.json', []),
+      this.loadJsonFile<TimeSystem[]>(basePath, 'time-systems.json', []),
       this.loadJsonFile<ElementRelationship[]>(
         basePath,
         'relationships.json',
@@ -157,6 +161,11 @@ export class ProjectTemplateService {
       this.loadJsonFile<MediaTag[]>(basePath, 'media-tags.json', []),
     ]);
 
+    // Templates are always authored against the current schema, so force
+    // the manifest version to ARCHIVE_VERSION to prevent migrations from
+    // wiping populated data (e.g. time-systems.json in a v1 manifest).
+    manifest.version = ARCHIVE_VERSION;
+
     return {
       manifest,
       project,
@@ -164,6 +173,7 @@ export class ProjectTemplateService {
       documents,
       worldbuilding,
       schemas,
+      timeSystems,
       relationships,
       customRelationshipTypes,
       tags,

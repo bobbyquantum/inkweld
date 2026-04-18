@@ -16,6 +16,7 @@ import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { type ProjectMeta } from '../sync/element-sync-provider.interface';
@@ -40,6 +41,7 @@ interface YjsProjectConnection {
   relationshipsArray: Y.Array<ElementRelationship>;
   customTypesArray: Y.Array<RelationshipTypeDefinition>;
   schemasArray: Y.Array<ElementTypeSchema>;
+  timeSystemsArray: Y.Array<TimeSystem>;
   elementTagsArray: Y.Array<ElementTag>;
   customTagsArray: Y.Array<TagDefinition>;
   mediaTagsArray: Y.Array<MediaTag>;
@@ -81,6 +83,7 @@ export class LocalProjectElementsService {
   readonly relationships = signal<ElementRelationship[]>([]);
   readonly customRelationshipTypes = signal<RelationshipTypeDefinition[]>([]);
   readonly schemas = signal<ElementTypeSchema[]>([]);
+  readonly timeSystems = signal<TimeSystem[]>([]);
   readonly elementTags = signal<ElementTag[]>([]);
   readonly customTags = signal<TagDefinition[]>([]);
   readonly mediaTags = signal<MediaTag[]>([]);
@@ -106,6 +109,7 @@ export class LocalProjectElementsService {
       this.relationships.set(connection.relationshipsArray.toArray());
       this.customRelationshipTypes.set(connection.customTypesArray.toArray());
       this.schemas.set(connection.schemasArray.toArray());
+      this.timeSystems.set(connection.timeSystemsArray.toArray());
       this.elementTags.set(connection.elementTagsArray.toArray());
       this.customTags.set(connection.customTagsArray.toArray());
       this.mediaTags.set(connection.mediaTagsArray.toArray());
@@ -134,6 +138,7 @@ export class LocalProjectElementsService {
       this.relationships.set([]);
       this.customRelationshipTypes.set([]);
       this.schemas.set([]);
+      this.timeSystems.set([]);
       this.elementTags.set([]);
       this.customTags.set([]);
       this.mediaTags.set([]);
@@ -319,6 +324,44 @@ export class LocalProjectElementsService {
       this.logger.error(
         'LocalProjectElements',
         'Failed to save schemas',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Time Systems
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save time systems for a specific project using Yjs
+   */
+  async saveTimeSystems(
+    username: string,
+    slug: string,
+    systems: TimeSystem[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.timeSystemsArray.delete(
+          0,
+          connection.timeSystemsArray.length
+        );
+        connection.timeSystemsArray.insert(0, systems);
+      });
+
+      this.timeSystems.set(systems);
+      this.logger.debug(
+        'LocalProjectElements',
+        `Saved ${systems.length} time systems for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'LocalProjectElements',
+        'Failed to save time systems',
         error
       );
       throw error;
@@ -562,6 +605,7 @@ export class LocalProjectElementsService {
       'customRelationshipTypes'
     );
     const schemasArray = doc.getArray<ElementTypeSchema>('schemas');
+    const timeSystemsArray = doc.getArray<TimeSystem>('timeSystems');
     const elementTagsArray = doc.getArray<ElementTag>('elementTags');
     const customTagsArray = doc.getArray<TagDefinition>('customTags');
     const mediaTagsArray = doc.getArray<MediaTag>('mediaTags');
@@ -588,6 +632,10 @@ export class LocalProjectElementsService {
 
     schemasArray.observe(() => {
       this.schemas.set(schemasArray.toArray());
+    });
+
+    timeSystemsArray.observe(() => {
+      this.timeSystems.set(timeSystemsArray.toArray());
     });
 
     elementTagsArray.observe(() => {
@@ -623,6 +671,7 @@ export class LocalProjectElementsService {
       relationshipsArray,
       customTypesArray,
       schemasArray,
+      timeSystemsArray,
       elementTagsArray,
       customTagsArray,
       mediaTagsArray,

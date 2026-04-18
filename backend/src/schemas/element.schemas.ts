@@ -10,6 +10,7 @@ export const ELEMENT_TYPES = [
   'WORLDBUILDING',
   'RELATIONSHIP_CHART',
   'CANVAS',
+  'TIMELINE',
 ] as const;
 
 export const ElementTypeSchema = z.enum(ELEMENT_TYPES).openapi('ElementType');

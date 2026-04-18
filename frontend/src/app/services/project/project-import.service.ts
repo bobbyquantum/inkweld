@@ -30,6 +30,7 @@ import {
 } from '../../models/project-archive';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
+import { type TimeSystem } from '../../models/time-system';
 import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectService } from '../local/local-project.service';
@@ -390,6 +391,11 @@ export class ProjectImportService {
       'schemas.json',
       []
     );
+    const timeSystemsJson = await this.readJsonFile<TimeSystem[]>(
+      zip,
+      'time-systems.json',
+      []
+    );
     const relationshipsJson = await this.readJsonFile<ElementRelationship[]>(
       zip,
       'relationships.json',
@@ -438,6 +444,7 @@ export class ProjectImportService {
       documents: documentsJson,
       worldbuilding: worldbuildingJson,
       schemas: schemasJson,
+      timeSystems: timeSystemsJson,
       relationships: relationshipsJson,
       customRelationshipTypes: customTypesJson,
       tags: tagsJson,
@@ -707,6 +714,15 @@ export class ProjectImportService {
     // Import schemas
     if (archive.schemas.length > 0) {
       await this.localElements.saveSchemas(username, slug, archive.schemas);
+    }
+
+    // Import time systems
+    if (archive.timeSystems.length > 0) {
+      await this.localElements.saveTimeSystems(
+        username,
+        slug,
+        archive.timeSystems
+      );
     }
 
     // Import relationships

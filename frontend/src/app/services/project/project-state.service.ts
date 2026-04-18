@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { type ProjectElement } from '@models/project-element';
+import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { nanoid } from 'nanoid';
 import { type Subscription } from 'rxjs';
 
@@ -80,6 +81,7 @@ export class ProjectStateService implements OnDestroy {
   private readonly storageService = inject(StorageService);
   private readonly logger = inject(LoggerService);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly timeSystemLibrary = inject(TimeSystemLibraryService);
   private readonly elementTreeService = inject(ElementTreeService);
   private readonly tabManager = inject(TabManagerService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
@@ -497,6 +499,7 @@ export class ProjectStateService implements OnDestroy {
     // Set WorldbuildingService sync provider BEFORE subscribing to observables
     // This ensures schemasCache is populated when elements$ triggers component effects
     this.worldbuildingService.setSyncProvider(this.syncProvider);
+    this.timeSystemLibrary.setSyncProvider(this.syncProvider);
 
     // Subscribe to provider observables
     this.setupProviderSubscriptions();
@@ -659,6 +662,7 @@ export class ProjectStateService implements OnDestroy {
 
     // Clear WorldbuildingService sync provider
     this.worldbuildingService.setSyncProvider(null);
+    this.timeSystemLibrary.setSyncProvider(null);
 
     // Disconnect sync provider
     this.cleanupProviderSubscriptions();

@@ -167,6 +167,7 @@ describe('ProjectExportService', () => {
     syncFactory.isLocalMode.mockReturnValue(true);
     localElements.elements.mockReturnValue(mockElements);
     localElements.schemas.mockReturnValue([]);
+    localElements.timeSystems.mockReturnValue([]);
     localElements.relationships.mockReturnValue([]);
     localElements.customRelationshipTypes.mockReturnValue([]);
     localElements.publishPlans.mockReturnValue([]);
