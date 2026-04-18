@@ -117,13 +117,7 @@ DB_PATH=./data/inkweld.db PORT=8333 ./dist/inkweld
 DB_PATH=:memory: ./dist/inkweld
 ```
 
-The binary automatically detects embedded frontend assets and serves them. Visit `http://localhost:8333` in your browser to access the application.
-
-# With custom configuration
-DB_PATH=./data/inkweld.db PORT=8333 ./dist/inkweld-backend
-```
-
-The binary automatically detects embedded frontend assets and serves them at the root path. No need to set `FRONTEND_DIST` environment variable.
+The binary automatically detects embedded frontend assets and serves them at the root path. Visit `http://localhost:8333` in your browser to access the application. No need to set `FRONTEND_DIST` environment variable.
 
 #### Standard Runtime
 
@@ -138,23 +132,19 @@ bun start
 ```
 backend/
 ├── src/
-│   ├── config/          # Configuration (env)
+│   ├── config/          # Configuration (env, route registration)
 │   ├── db/              # Drizzle schema and database setup
 │   ├── middleware/      # Middleware (auth, session, CSRF, error handling)
-│   ├── routes/          # API routes
-│   │   ├── auth.routes.ts
-│   │   ├── user.routes.ts
-│   │   ├── project.routes.ts
-│   │   ├── image.routes.ts
-│   │   ├── snapshot.routes.ts
-│   │   ├── csrf.routes.ts
-│   │   ├── health.routes.ts
-│   │   └── config.routes.ts
+│   ├── routes/          # API routes (auth, user, project, document,
+│   │                    # element, image, snapshot, admin, ai-*, mcp,
+│   │                    # collaboration, comment, media, share,
+│   │                    # announcement, oauth, github-auth,
+│   │                    # password-reset, published-file, etc.)
+│   ├── schemas/         # Zod/OpenAPI request/response schemas
 │   ├── services/        # Business logic services
-│   │   ├── file-storage.service.ts
-│   │   ├── image.service.ts
-│   │   └── yjs.service.ts
-│   └── index.ts         # Application entry point
+│   ├── bun-app.ts       # Bun runtime entry point
+│   ├── node-app.ts      # Node.js runtime entry point
+│   └── worker-app.ts    # Cloudflare Workers runtime entry point
 ├── test/                # Test suite
 ├── package.json
 ├── tsconfig.json
@@ -163,48 +153,32 @@ backend/
 
 ## API Endpoints
 
-### Health
-- `GET /api/health` - Health check
-- `GET /api/health/ready` - Readiness check
+Most application API routes are mounted under `/api/v1/`, with some exceptions
+such as `/.well-known/*` (OAuth metadata), middleware paths like `/oauth/*`, and
+`/register` which remain root-mounted. The canonical reference is the
+auto-generated OpenAPI spec at [`backend/openapi.json`](./openapi.json) and the
+interactive API docs on the documentation site.
 
-### Configuration
-- `GET /api/config` - Get public configuration
+High-level groups:
 
-### Authentication
-- `POST /api/auth/login` - Login with username/password
-- `POST /api/auth/logout` - Logout
-- `GET /api/auth/me` - Get current user
-- `GET /api/auth/providers` - Get available OAuth providers
-- `GET /api/auth/authorization/github` - Initiate GitHub OAuth
-- `GET /api/auth/code/github` - GitHub OAuth callback
+- **Health & config** — `/api/v1/health`, `/api/v1/config`
+- **Auth** — `/api/v1/auth/*` (login/logout, GitHub OAuth, password reset)
+- **Users** — `/api/v1/users/*` (profile, search, avatars, registration)
+- **Projects** — `/api/v1/projects/*` (projects, documents, elements, images,
+  published files)
+- **Snapshots** — `/api/v1/snapshots/*`
+- **Collaboration** — `/api/v1/collaboration/*`, `/api/v1/comments/*`,
+  `/api/v1/share/*`
+- **Media** — `/api/v1/media/*`
+- **AI** — `/api/v1/ai/lint`, `/api/v1/ai/image`, `/api/v1/ai/text`,
+  `/api/v1/ai/providers`, `/api/v1/ai/mcp`, `/api/v1/ai/image-profiles`
+- **MCP keys** — `/api/v1/mcp-keys/*`
+- **Admin** — `/api/v1/admin/*` (users, stats, config, announcements,
+  image profiles, image audits, email)
+- **Announcements** — `/api/v1/announcements/*`
+- **OAuth metadata** — `/.well-known/*` (mounted at root for MCP OAuth 2.1)
 
-### Users
-- `GET /api/user/me` - Get current user profile
-- `GET /api/user` - Get paginated users
-- `GET /api/user/search` - Search users
-- `POST /api/user/register` - Register new user
-- `GET /api/user/check-username` - Check username availability
-
-### Projects
-- `GET /api/projects` - Get all projects for current user
-- `GET /api/projects/:username/:slug` - Get single project
-- `POST /api/projects` - Create project
-- `PUT /api/projects/:username/:slug` - Update project
-- `DELETE /api/projects/:username/:slug` - Delete project
-
-### Images
-- `POST /api/images/:username/:slug/cover` - Upload project cover
-- `GET /api/images/:username/:slug/cover` - Get project cover
-- `DELETE /api/images/:username/:slug/cover` - Delete project cover
-
-### Snapshots
-- `GET /api/snapshots/:username/:slug` - List snapshots for project
-- `GET /api/snapshots/:username/:slug/:id` - Get single snapshot
-- `POST /api/snapshots/:username/:slug` - Create snapshot
-- `DELETE /api/snapshots/:username/:slug/:id` - Delete snapshot
-
-### CSRF
-- `GET /api/csrf/token` - Get CSRF token for protected requests
+CSRF protection is applied via middleware (origin-based), not a token endpoint.
 
 ## Design Choices
 
@@ -216,55 +190,36 @@ This Hono backend was designed with the following principles:
 4. **Multi-Platform**: Can deploy to Bun, Node.js, Cloudflare Workers, Vercel, AWS Lambda, etc.
 5. **Performance**: Lightweight and fast
 
-## Migration Status
+## Implemented Features
 
-### ✅ Fully Implemented
-- Complete project structure
 - Database configuration (Drizzle ORM with SQLite/D1)
 - Session management with signed cookies
-- Authentication (login, logout, session-based, GitHub OAuth)
+- Authentication (login, logout, session-based, GitHub OAuth, password reset)
 - User management (register, search, profile, avatars)
-- Project CRUD operations (create, read, update, delete)
-- Document CRUD operations (create, read, update, delete)
-- Element hierarchy management (folders, files, worldbuilding items)
-- Document snapshots (create, list, get, delete)
-- Image upload and processing (project covers, user avatars)
-- File storage service (per-project and user files)
-- EPUB export functionality
-- CSRF protection
-- WebSocket support for Yjs collaboration (Bun runtime)
-- LevelDB persistence for documents
+- Project CRUD and sharing (collaborators, invitations, share links)
+- Document CRUD, element hierarchy, document snapshots
+- Worldbuilding elements with schemas and templates
+- Inline comments and threads
+- Image upload/processing (project covers, user avatars)
+- Per-project media library with server sync
+- EPUB, PDF (Typst), Markdown, and HTML export; publish plans
+- Project archive import/export
+- CSRF protection (origin-based middleware)
+- WebSocket support for Yjs collaboration (Bun runtime + Durable Objects
+  on Workers)
+- LevelDB persistence for documents (Bun/Node)
 - Health check and config endpoints
 - Request validation with Zod
 - Error handling middleware
 - CORS and security headers
-- AI Linting (OpenAI integration)
-- AI Image generation (OpenAI GPT Image)
-- MCP (Model Context Protocol) integration
+- AI text/lint features with provider abstraction (OpenAI, OpenRouter,
+  Fal.ai, Stable Diffusion, Workers AI)
+- AI image generation with admin-configured model profiles
+- MCP (Model Context Protocol) endpoint with OAuth 2.1 + PKCE
+- Admin dashboard APIs (stats, config, announcements, image audits, email)
 
-### ❌ Not Yet Implemented (Critical Features)
-
-The following features have **NOT** been implemented yet:
-
-#### **Worldbuilding Schema System** (HIGH PRIORITY)
-- **Missing**: Schema Service for managing worldbuilding templates
-- **Missing**: Schema Controller/Routes for template management API
-- **Impact**: Users cannot initialize or manage worldbuilding templates (character, location, etc.)
-- **API Endpoints Needed**:
-  - `POST /api/v1/projects/:username/:slug/schemas/initialize-defaults`
-  - Schema library CRUD operations
-  - Custom template creation/editing
-
-#### **Worldbuilding Service** (HIGH PRIORITY)
-- **Missing**: Service to initialize worldbuilding elements with schema snapshots
-- **Missing**: Schema embedding into Yjs documents
-- **Impact**: Worldbuilding elements lack structured templates and default data
-
-**Note**: The frontend expects these APIs and the feature is advertised as a core capability. This is the most critical missing feature for production readiness.
-
-### 🔶 Partially Implemented
-- Archive import/export (basic structure exists, needs completion)
-- Project renaming/slug changes (not yet supported)
+Refer to the root [`README.md`](../README.md#feature-roadmap) for the
+project-wide feature roadmap.
 
 ## Testing
 

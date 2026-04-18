@@ -26,7 +26,7 @@
 <!-- Summarize what you've changed and why -->
 
 ## Testing (Remove unused options)
-<!-- Describe how these changes were tested -- >
+<!-- Describe how these changes were tested -->
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
 - [ ] Manual testing performed

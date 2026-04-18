@@ -176,5 +176,5 @@ For multi-platform testing, use BuildKit: `docker buildx build --platform linux/
 ## Next steps
 
 - Review the [Docker deployment guide](./installation/docker) for production hardening.
-- Learn how CI/CD publishes the container in [Deployment → CI/CD](./admin-guide/ci-cd).
+- Learn how CI/CD publishes the container in [Admin Guide → CI/CD](./admin-guide/ci-cd).
 - If something breaks in production, start with the [Troubleshooting](./troubleshooting/logging) section.

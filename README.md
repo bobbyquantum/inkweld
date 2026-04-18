@@ -280,7 +280,7 @@ git clone https://github.com/bobbyquantum/inkweld.git
 cd inkweld
 bun install
 cp .env.example .env
-npm start
+npm run dev
 ```
 
 Frontend runs on `:4200`, backend on `:8333`.
@@ -289,7 +289,7 @@ Frontend runs on `:4200`, backend on `:8333`.
 
 | Task | Command |
 |------|---------|
-| Dev servers | `npm start` |
+| Dev servers | `npm run dev` |
 | Run tests | `npm test` |
 | Build | `npm run build` |
 | Docker | `npm run compose:up:prod` |
