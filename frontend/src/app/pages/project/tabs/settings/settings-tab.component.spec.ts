@@ -491,6 +491,26 @@ describe('SettingsTabComponent', () => {
       });
     });
 
+    it('should not revoke key when confirmation is cancelled', async () => {
+      await component.loadMcpKeys();
+      const keyToRevoke = component['mcpKeys']()[0];
+
+      // Default mock returns false (cancelled)
+      await component.revokeKey(keyToRevoke);
+
+      expect(mcpKeysService.revokeMcpKey).not.toHaveBeenCalled();
+    });
+
+    it('should not delete key when confirmation is cancelled', async () => {
+      await component.loadMcpKeys();
+      const keyToDelete = component['mcpKeys']()[0];
+
+      // Default mock returns false (cancelled)
+      await component.deleteKey(keyToDelete);
+
+      expect(mcpKeysService.deleteMcpKey).not.toHaveBeenCalled();
+    });
+
     it('should get active keys count', async () => {
       await component.loadMcpKeys();
 
