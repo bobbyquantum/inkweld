@@ -14,7 +14,7 @@ const baseData: TimelineEraDialogData = {
   system: GREGORIAN_SYSTEM,
   defaultColor: '#3f88c5',
   defaultStart: { systemId: 'gregorian', units: ['2000', '1', '1'] },
-  defaultEnd: { systemId: 'gregorian', units: ['2000', '12', '31'] },
+  defaultEnd: { systemId: 'gregorian', units: ['2000', '12', '30'] },
 };
 
 async function createComponent(data: TimelineEraDialogData = baseData) {
@@ -160,7 +160,7 @@ describe('TimelineEraDialogComponent', () => {
       form.controls.startUnits.controls[2].setValue('1');
       form.controls.endUnits.controls[0].setValue('2010');
       form.controls.endUnits.controls[1].setValue('12');
-      form.controls.endUnits.controls[2].setValue('31');
+      form.controls.endUnits.controls[2].setValue('30');
       (component as unknown as { onSave: () => void }).onSave();
       expect(closeSpy).toHaveBeenCalledWith(
         expect.objectContaining({ kind: 'save' })
@@ -191,7 +191,7 @@ describe('TimelineEraDialogComponent', () => {
       form.controls.startUnits.controls[2].setValue('1');
       form.controls.endUnits.controls[0].setValue('2000');
       form.controls.endUnits.controls[1].setValue('12');
-      form.controls.endUnits.controls[2].setValue('31');
+      form.controls.endUnits.controls[2].setValue('30');
       form.updateValueAndValidity();
       (component as unknown as { onSave: () => void }).onSave();
       expect(closeSpy).not.toHaveBeenCalled();
@@ -265,7 +265,7 @@ describe('TimelineEraDialogComponent', () => {
 
   // ─── Seed fallback for different system ────────────────────────────────────
 
-  it('seeds units with zeros when era system differs from dialog system', async () => {
+  it('seeds units with per-unit minimums when era system differs from dialog system', async () => {
     const data: TimelineEraDialogData = {
       ...baseData,
       era: {
@@ -284,7 +284,7 @@ describe('TimelineEraDialogComponent', () => {
     )
       .startUnits()
       .getRawValue();
-    expect(startVals.every(v => v === '0')).toBe(true);
+    expect(startVals).toEqual(['1', '1', '1']);
   });
 
   // ─── Start / end units accessors ──────────────────────────────────────────

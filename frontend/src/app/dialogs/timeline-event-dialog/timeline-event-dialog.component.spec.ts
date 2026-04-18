@@ -378,7 +378,7 @@ describe('TimelineEventDialogComponent', () => {
 
   // ─── Seed fallback path for different system ──────────────────────────────
 
-  it('seeds units with zeros when event system differs from dialog system', async () => {
+  it('seeds units with per-unit minimums when event system differs from dialog system', async () => {
     const data: TimelineEventDialogData = {
       ...baseData,
       event: {
@@ -399,8 +399,7 @@ describe('TimelineEventDialogComponent', () => {
     )
       .startUnits()
       .getRawValue();
-    // Should be all '0' since system doesn't match
-    expect(startVals.every(v => v === '0')).toBe(true);
+    expect(startVals).toEqual(['1', '1', '1']);
   });
 
   // ─── Save with description & existing event metadata ──────────────────────

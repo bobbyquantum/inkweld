@@ -59,24 +59,24 @@ describe('timeline-view-math', () => {
 
     it('pads 10% on each side around events', () => {
       // Two events spread apart so we get a meaningful range
-      const events = [evt('e1', ['0', '1', '1']), evt('e2', ['1', '1', '1'])];
+      const events = [evt('e1', ['1', '1', '1']), evt('e2', ['2', '1', '1'])];
       const b = computeDefaultBounds(SYS, events, []);
       // The bounds should extend beyond the raw min/max of events
-      const rawMin = 0n; // Year 0 in gregorian
+      const rawMin = 391n; // 1y + 1m + 1d in simplified Gregorian
       expect(b.minTick).toBeLessThan(rawMin);
     });
 
     it('handles a single-point event (min === max)', () => {
-      const events = [evt('e1', ['0', '1', '1'])];
+      const events = [evt('e1', ['1', '1', '1'])];
       const b = computeDefaultBounds(SYS, events, []);
       // When min === max the function bumps max to min+1, then pads
       expect(b.maxTick).toBeGreaterThan(b.minTick);
     });
 
     it('includes era boundaries in bounds', () => {
-      const eras = [era('era1', ['0', '1', '1'], ['10', '1', '1'])];
+      const eras = [era('era1', ['1', '1', '1'], ['10', '1', '1'])];
       const b = computeDefaultBounds(SYS, [], eras);
-      expect(b.minTick).toBeLessThan(0n);
+      expect(b.minTick).toBeLessThan(391n);
       expect(b.maxTick).toBeGreaterThan(0n);
     });
 
@@ -249,8 +249,8 @@ describe('timeline-view-math', () => {
   describe('sortEventsByStart', () => {
     it('sorts events by start time', () => {
       const events = [
-        evt('b', ['1', '1', '1']),
-        evt('a', ['0', '1', '1']),
+        evt('b', ['1', '1', '2']),
+        evt('a', ['1', '1', '1']),
         evt('c', ['2', '1', '1']),
       ];
       const sorted = sortEventsByStart(events, SYS);
@@ -264,7 +264,7 @@ describe('timeline-view-math', () => {
         start: { systemId: 'other-sys', units: ['1'] },
         title: 'other',
       };
-      const events = [evt('a', ['0', '1', '1']), otherEvent];
+      const events = [evt('a', ['1', '1', '1']), otherEvent];
       const sorted = sortEventsByStart(events, SYS);
       expect(sorted).toHaveLength(1);
       expect(sorted[0].id).toBe('a');
@@ -272,8 +272,8 @@ describe('timeline-view-math', () => {
 
     it('sorts by end when starts are equal', () => {
       const events = [
-        evt('long', ['0', '1', '1'], ['5', '1', '1']),
-        evt('short', ['0', '1', '1'], ['1', '1', '1']),
+        evt('long', ['1', '1', '1'], ['5', '1', '1']),
+        evt('short', ['1', '1', '1'], ['2', '1', '1']),
       ];
       const sorted = sortEventsByStart(events, SYS);
       expect(sorted[0].id).toBe('short');
@@ -282,8 +282,8 @@ describe('timeline-view-math', () => {
 
     it('ranks events with end before those without when starts equal', () => {
       const events = [
-        evt('no-end', ['0', '1', '1']),
-        evt('has-end', ['0', '1', '1'], ['1', '1', '1']),
+        evt('no-end', ['1', '1', '1']),
+        evt('has-end', ['1', '1', '1'], ['2', '1', '1']),
       ];
       const sorted = sortEventsByStart(events, SYS);
       expect(sorted[0].id).toBe('has-end');

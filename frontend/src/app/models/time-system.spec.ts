@@ -124,12 +124,12 @@ describe('time-system', () => {
       expect(isValidTimePointFor(tp, GREGORIAN_SYSTEM)).toBe(true);
     });
 
-    it('accepts negative years', () => {
+    it('rejects negative years', () => {
       const tp: TimePoint = {
         systemId: 'gregorian',
         units: ['-44', '3', '15'],
       };
-      expect(isValidTimePointFor(tp, GREGORIAN_SYSTEM)).toBe(true);
+      expect(isValidTimePointFor(tp, GREGORIAN_SYSTEM)).toBe(false);
     });
 
     it('rejects mismatched systemId', () => {
@@ -169,22 +169,24 @@ describe('time-system', () => {
       expect(timePointToAbsolute(tp, RELATIVE_YEARS_SYSTEM)).toBe(42n);
     });
 
-    it('preserves sign for negative values', () => {
+    it('throws for negative values outside allowed range', () => {
       const tp: TimePoint = {
         systemId: 'gregorian',
-        units: ['-1', '0', '0'],
+        units: ['-1', '1', '1'],
       };
-      expect(timePointToAbsolute(tp, GREGORIAN_SYSTEM)).toBe(-360n);
+      expect(() => timePointToAbsolute(tp, GREGORIAN_SYSTEM)).toThrow(
+        /does not match TimeSystem/
+      );
     });
 
     it('handles magnitudes larger than Number.MAX_SAFE_INTEGER', () => {
       const bigYear = '1000000000000000000'; // 1e18
       const tp: TimePoint = {
         systemId: 'gregorian',
-        units: [bigYear, '0', '0'],
+        units: [bigYear, '1', '1'],
       };
       const abs = timePointToAbsolute(tp, GREGORIAN_SYSTEM);
-      expect(abs).toBe(BigInt(bigYear) * 360n);
+      expect(abs).toBe(BigInt(bigYear) * 360n + 31n);
     });
 
     it('throws on invalid point', () => {
