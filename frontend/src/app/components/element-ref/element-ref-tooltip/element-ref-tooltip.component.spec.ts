@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../../api-client';
 import { LoggerService } from '../../../services/core/logger.service';
+import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 import { ElementRefService } from '../element-ref.service';
@@ -40,6 +41,12 @@ describe('ElementRefTooltipComponent', () => {
       imports: [ElementRefTooltipComponent],
       providers: [
         ElementRefService,
+        {
+          provide: DocumentService,
+          useValue: {
+            getDocumentContent: vi.fn().mockResolvedValue(null),
+          },
+        },
         {
           provide: ProjectStateService,
           useValue: {
@@ -669,6 +676,121 @@ describe('ElementRefTooltipComponent', () => {
       expect(component.previewContent()?.excerpt).toBe(
         'A brave warrior from the north.'
       );
+    });
+  });
+
+  describe('document excerpt loading for Item type', () => {
+    it('should load document excerpt for Item elements', async () => {
+      const projectStateService = TestBed.inject(ProjectStateService);
+      const documentService = TestBed.inject(DocumentService);
+
+      (projectStateService.project as any).set({
+        username: 'testuser',
+        slug: 'test-project',
+      });
+      vi.mocked(documentService.getDocumentContent).mockResolvedValue([
+        { type: 'paragraph', content: [{ type: 'text', text: 'Hello world' }] },
+      ]);
+
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test Element',
+        originalName: 'Test Element',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(documentService.getDocumentContent).toHaveBeenCalledWith(
+        'testuser:test-project:test-id'
+      );
+      expect(component.previewContent()?.excerpt).toBe('Hello world');
+      expect(component.previewContent()?.wordCount).toBe(2);
+    });
+
+    it('should truncate excerpts longer than 200 characters', async () => {
+      const projectStateService = TestBed.inject(ProjectStateService);
+      const documentService = TestBed.inject(DocumentService);
+
+      (projectStateService.project as any).set({
+        username: 'testuser',
+        slug: 'test-project',
+      });
+      const longText = 'a'.repeat(250);
+      vi.mocked(documentService.getDocumentContent).mockResolvedValue([
+        { type: 'paragraph', content: [{ type: 'text', text: longText }] },
+      ]);
+
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test Element',
+        originalName: 'Test Element',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.previewContent()?.excerpt).toBe('a'.repeat(200) + '…');
+    });
+
+    it('should fall through to empty preview when document content is empty', async () => {
+      const projectStateService = TestBed.inject(ProjectStateService);
+      const documentService = TestBed.inject(DocumentService);
+
+      (projectStateService.project as any).set({
+        username: 'testuser',
+        slug: 'test-project',
+      });
+      vi.mocked(documentService.getDocumentContent).mockResolvedValue([]);
+
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test Element',
+        originalName: 'Test Element',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.previewContent()?.excerpt).toBeUndefined();
+    });
+
+    it('should handle DocumentService errors gracefully', async () => {
+      const projectStateService = TestBed.inject(ProjectStateService);
+      const documentService = TestBed.inject(DocumentService);
+
+      (projectStateService.project as any).set({
+        username: 'testuser',
+        slug: 'test-project',
+      });
+      vi.mocked(documentService.getDocumentContent).mockRejectedValue(
+        new Error('Failed to load')
+      );
+
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test Element',
+        originalName: 'Test Element',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      // Should fall through to default empty preview
+      expect(component.previewContent()?.excerpt).toBeUndefined();
+      expect(component.previewContent()?.wordCount).toBeUndefined();
     });
   });
 });
