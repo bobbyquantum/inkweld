@@ -138,7 +138,8 @@ export interface TimePoint {
 /** Runtime validation of a {@link TimeSystem}. Throws on invalid input. */
 export function assertValidTimeSystem(system: TimeSystem): void {
   if (!system.id) throw new Error('TimeSystem.id is required');
-  if (!system.name) throw new Error('TimeSystem.name is required');
+  const name = system.name?.trim();
+  if (!name) throw new Error('TimeSystem.name is required');
   if (system.unitLabels.length === 0) {
     throw new Error('TimeSystem.unitLabels must have at least one entry');
   }
@@ -210,8 +211,15 @@ export function isValidTimePointFor(
 ): boolean {
   if (point.systemId !== system.id) return false;
   if (point.units.length !== system.unitLabels.length) return false;
-  for (const u of point.units) {
+  for (let i = 0; i < point.units.length; i++) {
+    const u = point.units[i];
     if (!/^-?\d+$/.test(u)) return false;
+    const numValue = Number(u);
+    if (!Number.isFinite(numValue)) return false;
+    const min = unitMinValue(system, i);
+    const max = unitMaxValue(system, i);
+    if (numValue < min) return false;
+    if (max !== null && numValue > max) return false;
   }
   return true;
 }

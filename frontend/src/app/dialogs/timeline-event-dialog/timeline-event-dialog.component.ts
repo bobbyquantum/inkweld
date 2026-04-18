@@ -320,7 +320,15 @@ export class TimelineEventDialogComponent {
       if (point?.systemId === this.data.system.id) {
         return point.units.slice(0, n).map(String);
       }
-      return Array.from({ length: n }, () => '0');
+      return Array.from({ length: n }, (_, i) => {
+        const mode = unitInputModeFor(this.data.system, i);
+        if (mode === 'dropdown') {
+          const options = unitDropdownOptions(this.data.system, i);
+          return options[0]?.value ?? '0';
+        }
+        const min = this.data.system.unitAllowZero?.[i] ? 0 : 1;
+        return String(min);
+      });
     };
     const startSeed = seed(this.data.event?.start);
     const endSeed = seed(this.data.event?.end);
@@ -421,8 +429,8 @@ export class TimelineEventDialogComponent {
     if (!this.isGregorian()) return '';
     const u =
       which === 'start'
-        ? this.data.event?.start?.units
-        : this.data.event?.end?.units;
+        ? this.form.controls.startUnits.getRawValue()
+        : this.form.controls.endUnits.getRawValue();
     if (u?.length !== 3) return '';
     const [y, m, d] = u.map(Number);
     if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
@@ -477,6 +485,13 @@ export class TimelineEventDialogComponent {
   protected onSave(): void {
     if (this.form.invalid) return;
     const raw = this.form.getRawValue();
+    const trimmedTitle = raw.title.trim();
+
+    if (trimmedTitle === '') {
+      this.form.controls.title.setErrors({ whitespace: true });
+      return;
+    }
+
     const start = this.pointFromUnits(raw.startUnits);
     if (!start || !isValidTimePointFor(start, this.data.system)) return;
     let end: TimePoint | undefined;
@@ -489,7 +504,7 @@ export class TimelineEventDialogComponent {
     const base: TimelineEvent = {
       id: this.data.event?.id ?? '',
       trackId: raw.trackId,
-      title: raw.title.trim(),
+      title: trimmedTitle,
       start,
       ...(end ? { end } : {}),
       ...(raw.description.trim().length > 0

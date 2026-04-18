@@ -284,7 +284,15 @@ export class TimelineEraDialogComponent {
       if (point?.systemId === this.data.system.id) {
         return point.units.slice(0, n).map(String);
       }
-      return Array.from({ length: n }, () => '0');
+      return Array.from({ length: n }, (_, i) => {
+        const mode = unitInputModeFor(this.data.system, i);
+        if (mode === 'dropdown') {
+          const options = unitDropdownOptions(this.data.system, i);
+          return options[0]?.value ?? '0';
+        }
+        const min = this.data.system.unitAllowZero?.[i] ? 0 : 1;
+        return String(min);
+      });
     };
     const startSeed = seed(this.data.era?.start ?? this.data.defaultStart);
     const endSeed = seed(this.data.era?.end ?? this.data.defaultEnd);
@@ -420,6 +428,18 @@ export class TimelineEraDialogComponent {
   protected onSave(): void {
     if (this.form.invalid) return;
     const raw = this.form.getRawValue();
+    const trimmedName = raw.name.trim();
+    const trimmedColor = raw.color.trim();
+
+    if (trimmedName === '') {
+      this.form.controls.name.setErrors({ whitespace: true });
+      return;
+    }
+    if (trimmedColor === '') {
+      this.form.controls.color.setErrors({ whitespace: true });
+      return;
+    }
+
     const start = this.pointFromUnits(raw.startUnits);
     const end = this.pointFromUnits(raw.endUnits);
     if (!start || !end) return;
@@ -432,10 +452,10 @@ export class TimelineEraDialogComponent {
 
     const era: TimelineEra = {
       id: this.data.era?.id ?? '',
-      name: raw.name.trim(),
+      name: trimmedName,
       start,
       end,
-      color: raw.color.trim(),
+      color: trimmedColor,
     };
 
     this.dialogRef.close({ kind: 'save', era });

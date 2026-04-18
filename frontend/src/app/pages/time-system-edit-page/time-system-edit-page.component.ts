@@ -667,19 +667,33 @@ export class TimeSystemEditPageComponent {
     if (!this.canSave()) return;
     const raw = this.form.getRawValue();
     const list = this.units();
+    const id = this.systemId();
+    const aliasesResult = buildOptionalAliasArray(list);
+    const allowZeroResult = buildOptionalAllowZeroArray(list);
+    const inputModeResult = buildOptionalInputModeArray(list);
+    const subdivisionOverridesResult = buildOptionalSubdivisionOverridesArray(list);
+
     const payload: Omit<TimeSystem, 'id' | 'isBuiltIn'> = {
       name: raw.name.trim(),
       unitLabels: list.map(u => u.name.trim()),
       subdivisions: list.slice(1).map(u => u.subdivision ?? 1),
       format: raw.format,
       parseSeparator: raw.parseSeparator,
-      ...buildOptionalAliasArray(list),
-      ...buildOptionalAllowZeroArray(list),
-      ...buildOptionalInputModeArray(list),
-      ...buildOptionalSubdivisionOverridesArray(list),
+      ...(id
+        ? {
+            unitAliases: 'unitAliases' in aliasesResult ? aliasesResult.unitAliases : [],
+            unitAllowZero: 'unitAllowZero' in allowZeroResult ? allowZeroResult.unitAllowZero : [],
+            unitInputMode: 'unitInputMode' in inputModeResult ? inputModeResult.unitInputMode : [],
+            unitSubdivisionOverrides: 'unitSubdivisionOverrides' in subdivisionOverridesResult ? subdivisionOverridesResult.unitSubdivisionOverrides : [],
+          }
+        : {
+            ...aliasesResult,
+            ...allowZeroResult,
+            ...inputModeResult,
+            ...subdivisionOverridesResult,
+          }),
     };
 
-    const id = this.systemId();
     if (id) {
       this.library.updateSystem(id, payload);
     } else {

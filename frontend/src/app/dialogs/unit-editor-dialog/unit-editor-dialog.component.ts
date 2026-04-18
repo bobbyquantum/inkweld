@@ -405,7 +405,7 @@ export class UnitEditorDialogComponent {
 
   protected subdivisionLabel(): string {
     const parent = this.data.parentUnitName?.trim() || 'parent';
-    const child = this.name().trim() || 'units';
+    const child = this.name().trim() || 'unit';
     return `${child}s per ${parent}`;
   }
 

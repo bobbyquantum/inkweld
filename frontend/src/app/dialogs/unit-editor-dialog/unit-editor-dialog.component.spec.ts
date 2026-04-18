@@ -376,7 +376,7 @@ describe('UnitEditorDialogComponent', () => {
     const label = (
       component as unknown as { subdivisionLabel: () => string }
     ).subdivisionLabel();
-    expect(label).toBe('unitss per parent');
+    expect(label).toBe('units per parent');
   });
 
   it('subdivisionOverrideLabel uses fallback when childUnitName is missing', async () => {
