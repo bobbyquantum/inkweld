@@ -20,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import {
   TimelineEraDialogComponent,
   type TimelineEraDialogData,
@@ -44,6 +45,7 @@ import {
 } from '@models/timeline.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
+import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   TIMELINE_CONFIG_META_KEY,
@@ -108,6 +110,7 @@ type DragKind = 'move' | 'resize-start' | 'resize-end';
     MatIconModule,
     MatSelectModule,
     MatTooltipModule,
+    TabPresenceIndicatorComponent,
   ],
   providers: [
     // Each timeline tab gets its own service so state never bleeds between
@@ -124,6 +127,13 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
   private readonly dialogs = inject(DialogGatewayService);
+  private readonly presence = inject(PresenceService);
+
+  /** Stable location key broadcast via awareness so peers see who is here. */
+  protected readonly presenceLocation = computed(() => {
+    const id = this.elementId();
+    return id ? `timeline:${id}` : null;
+  });
 
   protected readonly wrapRef = viewChild<ElementRef<HTMLDivElement>>('wrap');
 
@@ -463,8 +473,15 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     queueMicrotask(() => this.measureViewport());
   }
 
+  /** Mirror the route's elementId into awareness so other peers see us here. */
+  private readonly presenceLocationEffect = effect(() => {
+    this.presence.setActiveLocation(this.presenceLocation());
+  });
+
   ngOnDestroy(): void {
     this.cancelActiveDrags();
+    // Clear our presence so we vanish from other peers' indicators.
+    this.presence.setActiveLocation(null);
   }
 
   /** Cancel any in-flight pointer interactions and clear preview state. */

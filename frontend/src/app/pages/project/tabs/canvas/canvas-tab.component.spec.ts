@@ -16,6 +16,7 @@ import { CanvasService } from '@services/canvas/canvas.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
@@ -188,6 +189,14 @@ describe('CanvasTabComponent', () => {
         { provide: LocalStorageService, useValue: mockLocalStorageService },
         { provide: LoggerService, useValue: mockLogger },
         { provide: RelationshipService, useValue: mockRelationshipService },
+        {
+          provide: PresenceService,
+          useValue: {
+            setActiveLocation: vi.fn(),
+            usersAtLocation: () => signal([]).asReadonly(),
+            users: signal([]).asReadonly(),
+          },
+        },
       ],
     })
       // CanvasService is a component-level provider; override it

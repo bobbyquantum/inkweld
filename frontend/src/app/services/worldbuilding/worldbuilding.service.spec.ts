@@ -103,6 +103,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     lastConnectionError$: new BehaviorSubject<string | null>(
       null
     ).asObservable(),
+    remotePresence$: new BehaviorSubject([]).asObservable(),
+    setLocalAwareness: vi.fn(),
   };
 }
 

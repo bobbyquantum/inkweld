@@ -30,6 +30,8 @@ import {
 } from './authenticated-websocket-provider';
 import {
   type IElementSyncProvider,
+  type LocalAwarenessFields,
+  type PresenceUser,
   type ProjectMeta,
   type SyncConnectionConfig,
   type SyncConnectionResult,
@@ -121,6 +123,13 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly lastConnectionErrorSubject = new BehaviorSubject<
     string | null
   >(null);
+  private readonly remotePresenceSubject = new BehaviorSubject<PresenceUser[]>(
+    []
+  );
+
+  /** Pending awareness fields applied as soon as wsProvider is ready. */
+  private pendingAwareness: LocalAwarenessFields = {};
+  private awarenessChangeHandler: (() => void) | null = null;
 
   // Flag to skip observer emission during local updates (prevents feedback loop)
   private isUpdatingProjectMeta = false;
@@ -153,6 +162,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
   readonly lastConnectionError$: Observable<string | null> =
     this.lastConnectionErrorSubject.asObservable();
+  readonly remotePresence$: Observable<PresenceUser[]> =
+    this.remotePresenceSubject.asObservable();
 
   /**
    * Connect to a project's element sync.
@@ -266,6 +277,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.setupWebSocketHandlers();
       this.setupNetworkHandlers();
       this.setupDocumentObserver();
+      this.setupAwarenessHandlers();
 
       // Don't wait for WebSocket sync - this is local-first
       // We already have data from IndexedDB, WebSocket syncs in background
@@ -340,6 +352,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     if (this.wsProvider) {
       try {
+        const awareness = this.wsProvider.awareness;
+        if (awareness) {
+          if (this.awarenessChangeHandler) {
+            awareness.off('change', this.awarenessChangeHandler);
+            awareness.off('update', this.awarenessChangeHandler);
+          }
+          // Clear our local awareness state so other peers see us leave.
+          awareness.setLocalState(null);
+        }
         this.wsProvider.destroy();
       } catch (error) {
         this.logger.warn(
@@ -350,6 +371,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       }
       this.wsProvider = null;
     }
+    this.awarenessChangeHandler = null;
+    this.remotePresenceSubject.next([]);
+    this.pendingAwareness = {};
 
     this.docId = null;
     this.localDocId = null;
@@ -837,6 +861,71 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Awareness / Presence
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  setLocalAwareness(fields: LocalAwarenessFields): void {
+    // Merge with anything queued before wsProvider was ready.
+    this.pendingAwareness = mergeAwarenessFields(this.pendingAwareness, fields);
+    this.applyPendingAwareness();
+  }
+
+  /**
+   * Apply queued local awareness fields to the underlying wsProvider, if it
+   * exists. Safe to call repeatedly; only fields actually present in the
+   * pending state are written.
+   */
+  private applyPendingAwareness(): void {
+    const ws = this.wsProvider;
+    if (!ws) return;
+    const fields = this.pendingAwareness;
+    if (fields.user !== undefined) {
+      ws.awareness.setLocalStateField('user', fields.user);
+    }
+    if (fields.location !== undefined) {
+      ws.awareness.setLocalStateField('location', fields.location);
+    }
+  }
+
+  private setupAwarenessHandlers(): void {
+    if (!this.wsProvider) return;
+    // Apply anything queued before connect().
+    this.applyPendingAwareness();
+    // Emit initial snapshot and then on every awareness change.
+    const handler = (): void => {
+      this.emitRemotePresence();
+    };
+    this.awarenessChangeHandler = handler;
+    this.wsProvider.awareness.on('change', handler);
+    this.wsProvider.awareness.on('update', handler);
+    this.emitRemotePresence();
+  }
+
+  private emitRemotePresence(): void {
+    const ws = this.wsProvider;
+    if (!ws) {
+      this.remotePresenceSubject.next([]);
+      return;
+    }
+    const myClientId = ws.awareness.clientID;
+    const states = ws.awareness.getStates();
+    const users: PresenceUser[] = [];
+    states.forEach((state, clientId) => {
+      if (clientId === myClientId) return;
+      const user = (state as { user?: { name?: string; color?: string } }).user;
+      if (!user?.name) return;
+      const location = (state as { location?: string | null }).location;
+      users.push({
+        clientId,
+        username: user.name,
+        color: user.color ?? '#9e9e9e',
+        location: typeof location === 'string' ? location : undefined,
+      });
+    });
+    this.remotePresenceSubject.next(users);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Private Methods
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1239,4 +1328,18 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       },
     ];
   }
+}
+
+/**
+ * Merge two LocalAwarenessFields snapshots, with `incoming` overriding
+ * `existing`. Exported for unit-testing the merge semantics.
+ */
+function mergeAwarenessFields(
+  existing: LocalAwarenessFields,
+  incoming: LocalAwarenessFields
+): LocalAwarenessFields {
+  const merged: LocalAwarenessFields = { ...existing };
+  if (incoming.user !== undefined) merged.user = incoming.user;
+  if (incoming.location !== undefined) merged.location = incoming.location;
+  return merged;
 }

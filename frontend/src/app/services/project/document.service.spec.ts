@@ -15,6 +15,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
+import { generateUserColor } from '../presence/user-color';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
@@ -591,16 +592,11 @@ describe('DocumentService', () => {
 
     it('should generate a stable user color and derive the project key', () => {
       const privateService = service as unknown as {
-        generateUserColor: (username: string) => string;
         getProjectKey: () => string | null;
       };
 
-      expect(privateService.generateUserColor('testuser')).toMatch(
-        /^#[0-9a-f]{6}$/i
-      );
-      expect(privateService.generateUserColor('testuser')).toBe(
-        privateService.generateUserColor('testuser')
-      );
+      expect(generateUserColor('testuser')).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(generateUserColor('testuser')).toBe(generateUserColor('testuser'));
       expect(privateService.getProjectKey()).toBe('testuser/test-project');
     });
 

@@ -25,6 +25,7 @@ import {
   extractMediaId,
   isMediaUrl,
 } from '@components/image-paste/image-paste-plugin';
+import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
 import {
   CanvasColorDialogComponent,
   type CanvasColorDialogData,
@@ -64,6 +65,7 @@ import { CanvasService } from '@services/canvas/canvas.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
@@ -99,6 +101,7 @@ const ZOOM_STEP = 1.1;
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
+    TabPresenceIndicatorComponent,
   ],
   providers: [
     // Each canvas tab gets its own service instance so config never bleeds
@@ -116,6 +119,18 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly logger = inject(LoggerService);
   private readonly relationshipService = inject(RelationshipService);
+  private readonly presence = inject(PresenceService);
+
+  /** Stable awareness location for this canvas tab. */
+  protected readonly presenceLocation = computed(() => {
+    const id = this.elementId();
+    return id ? `canvas:${id}` : null;
+  });
+
+  /** Mirror our presence into the project's awareness whenever the route changes. */
+  private readonly presenceLocationEffect = effect(() => {
+    this.presence.setActiveLocation(this.presenceLocation());
+  });
 
   /** Reference to the canvas container <div> */
   private readonly canvasContainer =
@@ -341,6 +356,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     this.saveViewport();
     this.destroyStage();
     this.resizeObserver?.disconnect();
+    // Stop broadcasting our presence on this canvas.
+    this.presence.setActiveLocation(null);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
