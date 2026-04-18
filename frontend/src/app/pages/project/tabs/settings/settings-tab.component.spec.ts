@@ -445,6 +445,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should revoke a key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       const keyToRevoke = component['mcpKeys']()[0];
 
@@ -464,6 +467,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should delete a key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       const keyToDelete = component['mcpKeys']()[0];
 
@@ -483,6 +489,26 @@ describe('SettingsTabComponent', () => {
       expect(snackBar.open).toHaveBeenCalledWith('API key deleted', 'Close', {
         duration: 3000,
       });
+    });
+
+    it('should not revoke key when confirmation is cancelled', async () => {
+      await component.loadMcpKeys();
+      const keyToRevoke = component['mcpKeys']()[0];
+
+      // Default mock returns false (cancelled)
+      await component.revokeKey(keyToRevoke);
+
+      expect(mcpKeysService.revokeMcpKey).not.toHaveBeenCalled();
+    });
+
+    it('should not delete key when confirmation is cancelled', async () => {
+      await component.loadMcpKeys();
+      const keyToDelete = component['mcpKeys']()[0];
+
+      // Default mock returns false (cancelled)
+      await component.deleteKey(keyToDelete);
+
+      expect(mcpKeysService.deleteMcpKey).not.toHaveBeenCalled();
     });
 
     it('should get active keys count', async () => {
@@ -595,6 +621,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should handle error when revoking key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       (mcpKeysService.revokeMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
         throwError(() => new Error('Failed'))
@@ -614,6 +643,9 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should handle error when deleting key', async () => {
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(true);
       await component.loadMcpKeys();
       (mcpKeysService.deleteMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
         throwError(() => new Error('Failed'))

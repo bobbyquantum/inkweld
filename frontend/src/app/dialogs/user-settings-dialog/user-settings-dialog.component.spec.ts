@@ -5,6 +5,7 @@ import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -114,6 +115,7 @@ describe('UserSettingsDialogComponent', () => {
       imports: [TestWrapperComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideNoopAnimations(),
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
@@ -152,7 +154,7 @@ describe('UserSettingsDialogComponent', () => {
     expect(component.getLeaveAnimationClass()).toBe('slide-to-bottom');
   });
 
-  // TODO: Fix animation timing issue in zoneless mode
+  // TODO: Animation timing issue with zoneless change detection - content not rendered after category switch
   it.skip('should display correct content based on selected category', async () => {
     // Component already starts with 'project-tree', so just verify it
     await fixture.whenStable();
