@@ -9,6 +9,7 @@ import {
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { createCommentPlugin } from '@components/comment-mark/comment-plugin';
 import { DocumentsService } from '@inkweld/index';
+import { generateUserColor } from '@services/presence/user-color';
 import { Plugin } from 'prosemirror-state';
 import { Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
@@ -45,7 +46,6 @@ import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { LocalStorageService } from '../local/local-storage.service';
-import { generateUserColor } from '../presence/user-color';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,

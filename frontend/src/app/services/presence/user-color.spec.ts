@@ -1,6 +1,5 @@
+import { generateUserColor } from '@services/presence/user-color';
 import { describe, expect, it } from 'vitest';
-
-import { generateUserColor } from './user-color';
 
 describe('generateUserColor', () => {
   it('returns a stable color for the same username', () => {

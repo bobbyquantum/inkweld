@@ -180,8 +180,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       };
     }
 
-    // Disconnect any existing session first
+    // Disconnect any existing session first. Preserve queued awareness
+    // so pre-connect setLocalAwareness() calls still apply once ws is ready.
+    const pendingAwareness = this.pendingAwareness;
     this.disconnect();
+    this.pendingAwareness = pendingAwareness;
 
     // Document ID for server communication (unprefixed)
     this.docId = `${username}:${slug}:elements`;

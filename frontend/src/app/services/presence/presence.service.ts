@@ -6,14 +6,13 @@ import {
   type Signal,
   signal,
 } from '@angular/core';
-
-import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
+import { generateUserColor } from '@services/presence/user-color';
+import { ElementSyncProviderFactory } from '@services/sync/element-sync-provider.factory';
 import {
   type IElementSyncProvider,
   type PresenceUser,
-} from '../sync/element-sync-provider.interface';
-import { UnifiedUserService } from '../user/unified-user.service';
-import { generateUserColor } from './user-color';
+} from '@services/sync/element-sync-provider.interface';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 
 /**
  * Central service that owns the local user's awareness state and exposes a

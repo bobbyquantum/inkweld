@@ -463,6 +463,34 @@ describe('YjsElementSyncProvider', () => {
       expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
     });
 
+    it('preserves queued awareness across pre-connect cleanup', () => {
+      provider.setLocalAwareness({
+        user: { name: 'alice', color: '#abcdef' },
+        location: 'timeline:e1',
+      });
+
+      // Simulate connect() preserving pending awareness across disconnect().
+      const queued = (provider as unknown as { pendingAwareness: unknown })
+        .pendingAwareness;
+      provider.disconnect();
+      (provider as unknown as { pendingAwareness: unknown }).pendingAwareness =
+        queued;
+
+      (
+        provider as unknown as { wsProvider: typeof websocketProvider | null }
+      ).wsProvider = websocketProvider;
+      (
+        provider as unknown as { setupAwarenessHandlers: () => void }
+      ).setupAwarenessHandlers();
+
+      expect(
+        websocketProvider.awareness.setLocalStateField
+      ).toHaveBeenCalledWith('user', { name: 'alice', color: '#abcdef' });
+      expect(
+        websocketProvider.awareness.setLocalStateField
+      ).toHaveBeenCalledWith('location', 'timeline:e1');
+    });
+
     it.skip('falls back to local mode when websocket authentication fails', async () => {
       websocketModuleMocks.createAuthenticatedWebsocketProvider.mockRejectedValueOnce(
         new Error('auth failed')

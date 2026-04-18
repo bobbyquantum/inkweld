@@ -5,11 +5,9 @@ import {
   inject,
   input,
 } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
-import { PresenceService } from '../../services/presence/presence.service';
-import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
+import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
+import { PresenceService } from '@services/presence/presence.service';
 
 /**
  * Compact presence indicator for collaborative tabs (timeline, canvas, …).
@@ -20,7 +18,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
  */
 @Component({
   selector: 'app-tab-presence-indicator',
-  imports: [MatIconModule, MatTooltipModule, UserAvatarComponent],
+  imports: [MatTooltipModule, UserAvatarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visibleUsers().length > 0) {
