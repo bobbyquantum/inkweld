@@ -12,6 +12,7 @@ import {
 } from '../../components/tags/tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import {
+  ARCHIVE_VERSION,
   type ArchiveDocumentContent,
   type ArchiveElement,
   type ArchiveManifest,
@@ -159,6 +160,11 @@ export class ProjectTemplateService {
       this.loadJsonFile<ArchiveMediaFile[]>(basePath, 'media.json', []),
       this.loadJsonFile<MediaTag[]>(basePath, 'media-tags.json', []),
     ]);
+
+    // Templates are always authored against the current schema, so force
+    // the manifest version to ARCHIVE_VERSION to prevent migrations from
+    // wiping populated data (e.g. time-systems.json in a v1 manifest).
+    manifest.version = ARCHIVE_VERSION;
 
     return {
       manifest,

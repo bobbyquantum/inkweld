@@ -1,6 +1,7 @@
 import {
   assertValidTimeSystem,
   compareTimePoints,
+  effectiveSubdivision,
   findTemplateSystem,
   formatTimePoint,
   GREGORIAN_SYSTEM,
@@ -15,6 +16,7 @@ import {
   unitDropdownOptions,
   unitInputModeFor,
   unitMaxValue,
+  unitMaxValueFor,
   unitMinValue,
 } from './time-system';
 
@@ -473,6 +475,55 @@ describe('time-system', () => {
           unitInputMode: ['numeric', 'dropdown'],
         })
       ).toThrow(/unitInputMode length/);
+    });
+  });
+
+  describe('effectiveSubdivision', () => {
+    const systemWithOverrides: TimeSystem = {
+      ...GREGORIAN_SYSTEM,
+      unitSubdivisionOverrides: [
+        // overrides for month→day subdivision (index 1, keyed by month value)
+        {},
+        { '2': 28 },
+      ],
+    };
+
+    it('returns override when present', () => {
+      expect(effectiveSubdivision(systemWithOverrides, 2, '2')).toBe(28);
+    });
+
+    it('falls back to uniform subdivision when no override', () => {
+      expect(effectiveSubdivision(systemWithOverrides, 2, '1')).toBe(
+        GREGORIAN_SYSTEM.subdivisions[1]
+      );
+    });
+
+    it('returns null for top unit', () => {
+      expect(effectiveSubdivision(systemWithOverrides, 0, '1')).toBeNull();
+    });
+  });
+
+  describe('unitMaxValueFor', () => {
+    const systemWithOverrides: TimeSystem = {
+      ...GREGORIAN_SYSTEM,
+      unitSubdivisionOverrides: [{}, { '2': 28 }],
+    };
+
+    it('returns null for top unit', () => {
+      expect(unitMaxValueFor(systemWithOverrides, 0, '1')).toBeNull();
+    });
+
+    it('returns override-aware max when override applies', () => {
+      // February (month 2) has 28 days: max = unitMin(2) + 28 - 1
+      const min = systemWithOverrides.unitAllowZero?.[2] ? 0 : 1;
+      expect(unitMaxValueFor(systemWithOverrides, 2, '2')).toBe(min + 28 - 1);
+    });
+
+    it('falls back to uniform max when no override applies', () => {
+      // Standard month subdivision
+      expect(unitMaxValueFor(systemWithOverrides, 2, '1')).toBe(
+        unitMaxValue(systemWithOverrides, 2)
+      );
     });
   });
 });

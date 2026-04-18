@@ -6,6 +6,7 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { ARCHIVE_VERSION } from '../../models/project-archive';
 import {
   type ProjectTemplateInfo,
   ProjectTemplateService,
@@ -205,6 +206,39 @@ describe('ProjectTemplateService', () => {
 
       const archive = await promise;
       expect(archive.mediaTags).toEqual(mockMediaTags);
+    });
+
+    it('should force manifest version to ARCHIVE_VERSION', async () => {
+      // Template ships with version: 1 manifest
+      const promise = service.loadTemplate('empty');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(mockTemplateIndex);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          // Simulate a v1 manifest
+          req.flush({ ...mockEmptyTemplate.manifest, version: 1 });
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockEmptyTemplate.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockEmptyTemplate.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockEmptyTemplate.documents);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      const archive = await promise;
+      // Even though manifest.json said version: 1, loadTemplate should
+      // force it to the current ARCHIVE_VERSION.
+      expect(archive.manifest.version).toBe(ARCHIVE_VERSION);
     });
   });
 

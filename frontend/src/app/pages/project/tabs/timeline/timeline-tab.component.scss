@@ -204,6 +204,13 @@ svg.timeline-svg:active {
     fill: var(--sys-on-surface, #111);
     text-decoration: underline;
   }
+
+  &:focus-visible {
+    fill: var(--sys-on-surface, #111);
+    text-decoration: underline;
+    outline: 2px solid var(--sys-primary, #6750a4);
+    outline-offset: 2px;
+  }
 }
 
 .left-column-bg {
@@ -254,6 +261,12 @@ svg.timeline-svg:active {
 
 .event-pill rect {
   cursor: grab;
+
+  &:focus-visible {
+    stroke: var(--sys-primary, #6750a4);
+    stroke-width: 2;
+    outline: none;
+  }
 }
 
 .event-pill rect:active {

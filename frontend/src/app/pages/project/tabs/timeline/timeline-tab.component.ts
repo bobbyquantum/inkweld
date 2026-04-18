@@ -895,6 +895,9 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
 function tickToTimePoint(tick: bigint, system: TimeSystem): TimePoint {
   // Convert an absolute tick (smallest-unit count) back to unit strings,
   // most-significant first. Mirrors the inverse of `timePointToAbsolute`.
+  //
+  // For negative ticks, normalise with borrow so lower-level units stay
+  // within [0, subdivision-1] and only the top unit carries the sign.
   const weights: bigint[] = [];
   const n = system.unitLabels.length;
   let acc = 1n;
@@ -907,9 +910,20 @@ function tickToTimePoint(tick: bigint, system: TimeSystem): TimePoint {
   let remainder = tick;
   for (let i = 0; i < n; i++) {
     const w = weights[i];
-    const value = i === n - 1 ? remainder : remainder / w;
-    units[i] = value.toString();
-    remainder = i === n - 1 ? 0n : remainder - value * w;
+    if (i === n - 1) {
+      units[i] = remainder.toString();
+    } else {
+      let value = remainder / w;
+      let leftover = remainder - value * w;
+      // Borrow: if the leftover is negative, decrement this unit and
+      // make the leftover positive so lower units stay in-range.
+      if (leftover < 0n) {
+        value -= 1n;
+        leftover += w;
+      }
+      units[i] = value.toString();
+      remainder = leftover;
+    }
   }
   return { systemId: system.id, units };
 }

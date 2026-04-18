@@ -261,7 +261,11 @@ export class SettingsTabComponent implements OnDestroy {
     // Honor ?section=<key> query param (e.g. deep link from timeline tab).
     const requestedSection = this.route.snapshot.queryParamMap.get('section');
     if (requestedSection) {
-      this.selectedSection.set(requestedSection);
+      const validKeys = this.sections().map(s => s.key);
+      if (validKeys.includes(requestedSection)) {
+        this.selectedSection.set(requestedSection);
+        this.expandSection(requestedSection);
+      }
     }
   }
 
@@ -274,6 +278,23 @@ export class SettingsTabComponent implements OnDestroy {
   /** Select a section by key */
   selectSection(section: string): void {
     this.selectedSection.set(section);
+  }
+
+  /** Expand the accordion panel for the given section key (mobile layout). */
+  private expandSection(key: string): void {
+    const map: Record<string, ReturnType<typeof signal<boolean>> | undefined> =
+      {
+        actions: this.actionsExpanded,
+        templates: this.templatesExpanded,
+        relationships: this.relationshipsExpanded,
+        tags: this.tagsExpanded,
+        'time-systems': this.timeSystemsExpanded,
+        sync: this.syncExpanded,
+        collaboration: this.collaborationExpanded,
+        mcp: this.mcpExpanded,
+        danger: this.dangerExpanded,
+      };
+    map[key]?.set(true);
   }
 
   // =====================

@@ -278,15 +278,30 @@ export function unitMinValue(system: TimeSystem, i: number): number {
  * Maximum allowed value for unit `i`, or `null` for the top-level unit which
  * is unbounded. For non-top units, the maximum is
  * `unitMin + subdivisions[i-1] - 1`.
- *
- * TODO: add a parent-value-aware overload `unitMaxValueFor(system, i,
- * parentValue)` that uses {@link effectiveSubdivision} for callers that need
- * override-aware bounds (e.g. a Gregorian February editor).
  */
 export function unitMaxValue(system: TimeSystem, i: number): number | null {
   if (i <= 0) return null;
   const sub = system.subdivisions[i - 1];
   if (!Number.isInteger(sub) || sub <= 0) return null;
+  return unitMinValue(system, i) + sub - 1;
+}
+
+/**
+ * Override-aware maximum for unit `i` when the parent unit's value is known.
+ * Uses {@link effectiveSubdivision} so that, e.g., February in a Gregorian
+ * calendar correctly reports 28 or 29 days rather than the generic 31.
+ *
+ * Falls back to the uniform {@link unitMaxValue} when no parent-specific
+ * override applies.
+ */
+export function unitMaxValueFor(
+  system: TimeSystem,
+  i: number,
+  parentValue: string
+): number | null {
+  if (i <= 0) return null;
+  const sub = effectiveSubdivision(system, i, parentValue);
+  if (sub === null || sub <= 0) return null;
   return unitMinValue(system, i) + sub - 1;
 }
 

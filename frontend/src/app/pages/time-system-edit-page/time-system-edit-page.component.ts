@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
@@ -383,6 +385,7 @@ interface UnitDraft {
 export class TimeSystemEditPageComponent {
   private readonly library = inject(TimeSystemLibraryService);
   private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
 
   /**
    * System ID to edit. When absent the editor starts in "create" mode.
@@ -449,9 +452,9 @@ export class TimeSystemEditPageComponent {
   });
 
   constructor() {
-    this.form.valueChanges.subscribe(() =>
-      this.formTickSignal.update(n => n + 1)
-    );
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.formTickSignal.update(n => n + 1));
 
     // React to the systemId input to load or initialise.
     effect(() => {

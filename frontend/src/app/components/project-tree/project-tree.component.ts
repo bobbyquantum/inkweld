@@ -176,7 +176,8 @@ export class ProjectTreeComponent implements OnDestroy {
         if (
           (tab?.type === 'document' ||
             tab?.type === 'folder' ||
-            tab?.type === 'worldbuilding') &&
+            tab?.type === 'worldbuilding' ||
+            tab?.type === 'timeline') &&
           tab.element
         ) {
           elemId = tab.element.id;
