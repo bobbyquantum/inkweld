@@ -75,7 +75,7 @@
               class="tab-item"
               cdkDrag
               [class.selected]="selectedTabIndex() === i">
-              <mat-icon class="drag-handle" cdkDragHandle
+              <mat-icon class="drag-handle" cdkDragHandle aria-label="Drag tab"
                 >drag_indicator</mat-icon
               >
               <button
@@ -172,6 +172,7 @@
                             <mat-icon
                               class="drag-handle"
                               cdkDragHandle
+                              aria-label="Drag field"
                               (click)="$event.stopPropagation()"
                               (keydown)="$event.stopPropagation()">
                               drag_indicator

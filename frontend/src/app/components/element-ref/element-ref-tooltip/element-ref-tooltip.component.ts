@@ -608,11 +608,20 @@ export class ElementRefTooltipComponent {
     elementId: string,
     project: { username: string; slug: string }
   ): Promise<void> {
-    const identityData = await this.worldbuildingService.getIdentityData(
-      elementId,
-      project.username,
-      project.slug
-    );
+    let identityData: Awaited<
+      ReturnType<typeof this.worldbuildingService.getIdentityData>
+    >;
+    try {
+      identityData = await this.worldbuildingService.getIdentityData(
+        elementId,
+        project.username,
+        project.slug
+      );
+    } catch (error) {
+      console.error('Failed to load worldbuilding preview', error);
+      this.previewContent.set({});
+      return;
+    }
 
     this.previewContent.set({
       path: undefined,
