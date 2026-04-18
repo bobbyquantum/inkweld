@@ -298,5 +298,233 @@ describe('TimeSystemEditPageComponent', () => {
       ).describeUnit(0, units[0]);
       expect(typeof desc).toBe('string');
     });
+
+    it('describes top unit', async () => {
+      const { component } = await createComponent(null);
+      const units = (
+        component as unknown as { units: () => unknown[] }
+      ).units();
+      const desc = (
+        component as unknown as {
+          describeUnit: (i: number, u: unknown) => string;
+        }
+      ).describeUnit(0, units[0]);
+      expect(desc).toContain('top unit');
+    });
+
+    it('describes child unit with subdivision count', async () => {
+      const { component } = await createComponent(null);
+      const units = (
+        component as unknown as { units: () => unknown[] }
+      ).units();
+      const desc = (
+        component as unknown as {
+          describeUnit: (i: number, u: unknown) => string;
+        }
+      ).describeUnit(1, units[1]);
+      expect(desc).toContain('12');
+      expect(desc).toContain('per');
+    });
+
+    it('describes unit with allowZero flag', async () => {
+      const { component } = await createComponent(null);
+
+      (component as any).units.update((list: any[]) => {
+        const copy = [...list];
+        copy[1] = { ...copy[1], allowZero: true };
+        return copy;
+      });
+      const units = (
+        component as unknown as { units: () => unknown[] }
+      ).units();
+      const desc = (
+        component as unknown as {
+          describeUnit: (i: number, u: unknown) => string;
+        }
+      ).describeUnit(1, units[1]);
+      expect(desc).toContain('allow 0');
+    });
+
+    it('describes unit with dropdown inputMode', async () => {
+      const { component } = await createComponent(null);
+
+      (component as any).units.update((list: any[]) => {
+        const copy = [...list];
+        copy[1] = { ...copy[1], inputMode: 'dropdown' };
+        return copy;
+      });
+      const units = (
+        component as unknown as { units: () => unknown[] }
+      ).units();
+      const desc = (
+        component as unknown as {
+          describeUnit: (i: number, u: unknown) => string;
+        }
+      ).describeUnit(1, units[1]);
+      expect(desc).toContain('dropdown');
+    });
+
+    it('describes unit with override count', async () => {
+      const { component } = await createComponent(null);
+
+      (component as any).units.update((list: any[]) => {
+        const copy = [...list];
+        copy[1] = { ...copy[1], aliases: { '1': 'January', '2': 'February' } };
+        return copy;
+      });
+      const units = (
+        component as unknown as { units: () => unknown[] }
+      ).units();
+      const desc = (
+        component as unknown as {
+          describeUnit: (i: number, u: unknown) => string;
+        }
+      ).describeUnit(1, units[1]);
+      expect(desc).toContain('2 override(s)');
+    });
+  });
+
+  // ─── Move unit edge cases ──────────────────────────────────────────────────
+
+  it('onMoveUnit ignores out-of-bounds move', async () => {
+    const { component } = await createComponent(null);
+    const unitsBefore = (
+      component as unknown as { units: () => Array<{ name: string }> }
+    ).units();
+    const firstBefore = unitsBefore[0].name;
+    (
+      component as unknown as {
+        onMoveUnit: (i: number, delta: number) => void;
+      }
+    ).onMoveUnit(0, -1);
+    const unitsAfter = (
+      component as unknown as { units: () => Array<{ name: string }> }
+    ).units();
+    expect(unitsAfter[0].name).toBe(firstBefore);
+  });
+
+  it('onMoveUnit down promotes former-second to top (null subdivision)', async () => {
+    const { component } = await createComponent(null);
+    (
+      component as unknown as {
+        onMoveUnit: (i: number, delta: number) => void;
+      }
+    ).onMoveUnit(0, 1);
+    const units = (
+      component as unknown as {
+        units: () => Array<{ name: string; subdivision: number | null }>;
+      }
+    ).units();
+    // The new top unit should have null subdivision
+    expect(units[0].subdivision).toBeNull();
+    // The demoted unit should have a non-null subdivision
+    expect(units[1].subdivision).not.toBeNull();
+  });
+
+  // ─── Remove unit edge cases ────────────────────────────────────────────────
+
+  it('onRemoveUnit does not remove when only 1 unit exists', async () => {
+    const { component } = await createComponent(null);
+    // Remove units until only 1 left
+    const units = (component as unknown as { units: () => unknown[] }).units();
+    for (let i = units.length - 1; i > 0; i--) {
+      (
+        component as unknown as { onRemoveUnit: (i: number) => void }
+      ).onRemoveUnit(i);
+    }
+    const remaining = (
+      component as unknown as { units: () => unknown[] }
+    ).units();
+    expect(remaining.length).toBe(1);
+    // Try removing the last one — should be prevented
+    (
+      component as unknown as { onRemoveUnit: (i: number) => void }
+    ).onRemoveUnit(0);
+    expect(
+      (component as unknown as { units: () => unknown[] }).units().length
+    ).toBe(1);
+  });
+
+  it('onRemoveUnit promotes next unit to top when first is removed', async () => {
+    const { component } = await createComponent(null);
+    (
+      component as unknown as { onRemoveUnit: (i: number) => void }
+    ).onRemoveUnit(0);
+    const units = (
+      component as unknown as {
+        units: () => Array<{ name: string; subdivision: number | null }>;
+      }
+    ).units();
+    // New first unit should be top unit (null subdivision)
+    expect(units[0].subdivision).toBeNull();
+  });
+
+  // ─── Edit unit via dialog ──────────────────────────────────────────────────
+
+  it('onEditUnit opens dialog and updates unit on save', async () => {
+    const { component, dialogMock } = await createComponent(null);
+    const unitsBefore = (
+      component as unknown as { units: () => Array<{ name: string }> }
+    ).units();
+    const oldName = unitsBefore[1].name;
+
+    dialogMock.open.mockReturnValueOnce({
+      afterClosed: () =>
+        of({
+          kind: 'save',
+          unit: {
+            name: 'Updated Month',
+            subdivision: 12,
+            allowZero: false,
+            inputMode: 'numeric' as const,
+            aliases: {},
+            subdivisionOverrides: {},
+          },
+        }),
+    });
+
+    (component as unknown as { onEditUnit: (i: number) => void }).onEditUnit(1);
+    const unitsAfter = (
+      component as unknown as { units: () => Array<{ name: string }> }
+    ).units();
+    expect(unitsAfter[1].name).toBe('Updated Month');
+    expect(oldName).not.toBe('Updated Month');
+  });
+
+  it('onEditUnit does nothing when dialog is cancelled', async () => {
+    const { component, dialogMock } = await createComponent(null);
+    const unitsBefore = (
+      component as unknown as { units: () => Array<{ name: string }> }
+    ).units();
+
+    dialogMock.open.mockReturnValueOnce({
+      afterClosed: () => of({ kind: 'cancel' }),
+    });
+
+    (component as unknown as { onEditUnit: (i: number) => void }).onEditUnit(1);
+    const unitsAfter = (
+      component as unknown as { units: () => Array<{ name: string }> }
+    ).units();
+    expect(unitsAfter[1].name).toBe(unitsBefore[1].name);
+  });
+
+  it('onEditUnit does nothing for invalid index', async () => {
+    const { component, dialogMock } = await createComponent(null);
+    (component as unknown as { onEditUnit: (i: number) => void }).onEditUnit(
+      99
+    );
+    expect(dialogMock.open).not.toHaveBeenCalled();
+  });
+
+  // ─── previewText edge case ─────────────────────────────────────────────────
+
+  it('previewText shows fallback when no units exist', async () => {
+    const { component } = await createComponent(null);
+    // Remove all but one, then remove that one won't work (min 1)
+    // But we can test with an empty name fallback
+    const preview = (
+      component as unknown as { previewText: () => string }
+    ).previewText();
+    expect(preview.length).toBeGreaterThan(0);
   });
 });

@@ -259,13 +259,20 @@ export class SettingsTabComponent implements OnDestroy {
     }
 
     // Honor ?section=<key> query param (e.g. deep link from timeline tab).
+    // Deferred via effect() because write-gated sections (like time-systems)
+    // only appear once canWrite() resolves, which may happen after init.
     const requestedSection = this.route.snapshot.queryParamMap.get('section');
     if (requestedSection) {
-      const validKeys = this.sections().map(s => s.key);
-      if (validKeys.includes(requestedSection)) {
-        this.selectedSection.set(requestedSection);
-        this.expandSection(requestedSection);
-      }
+      let applied = false;
+      effect(() => {
+        if (applied) return;
+        const validKeys = this.sections().map(s => s.key);
+        if (validKeys.includes(requestedSection)) {
+          applied = true;
+          this.selectedSection.set(requestedSection);
+          this.expandSection(requestedSection);
+        }
+      });
     }
   }
 

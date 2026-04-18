@@ -197,4 +197,133 @@ describe('TimelineEraDialogComponent', () => {
       expect(closeSpy).not.toHaveBeenCalled();
     });
   });
+
+  // ─── Date change handlers ──────────────────────────────────────────────────
+
+  it('onStartDateChange updates start units from Event', async () => {
+    const { component } = await createComponent();
+    const c = component as unknown as {
+      onStartDateChange: (e: Event) => void;
+      startUnits: () => { getRawValue: () => string[] };
+    };
+    const fakeEvent = { target: { value: '2023-04-15' } } as unknown as Event;
+    c.onStartDateChange(fakeEvent);
+    const values = c.startUnits().getRawValue();
+    expect(values[0]).toBe('2023');
+    expect(values[1]).toBe('4');
+    expect(values[2]).toBe('15');
+  });
+
+  it('onEndDateChange updates end units from Event', async () => {
+    const { component } = await createComponent();
+    const c = component as unknown as {
+      onEndDateChange: (e: Event) => void;
+      endUnits: () => { getRawValue: () => string[] };
+    };
+    const fakeEvent = { target: { value: '2024-11-20' } } as unknown as Event;
+    c.onEndDateChange(fakeEvent);
+    const values = c.endUnits().getRawValue();
+    expect(values[0]).toBe('2024');
+    expect(values[1]).toBe('11');
+    expect(values[2]).toBe('20');
+  });
+
+  it('ignores invalid ISO date strings', async () => {
+    const { component } = await createComponent();
+    const c = component as unknown as {
+      onStartDateChange: (e: Event) => void;
+      startUnits: () => { getRawValue: () => string[] };
+    };
+    const before = c.startUnits().getRawValue();
+    const fakeEvent = { target: { value: 'invalid' } } as unknown as Event;
+    c.onStartDateChange(fakeEvent);
+    const after = c.startUnits().getRawValue();
+    expect(after).toEqual(before);
+  });
+
+  // ─── Dropdown input mode ───────────────────────────────────────────────────
+
+  it('inputModeFor returns the unit mode from the system', async () => {
+    const { component } = await createComponent();
+    const mode = (
+      component as unknown as {
+        inputModeFor: (i: number) => 'numeric' | 'dropdown';
+      }
+    ).inputModeFor(0);
+    expect(mode).toBe('numeric');
+  });
+
+  it('optionsFor returns dropdown options for month unit', async () => {
+    const { component } = await createComponent();
+    const opts = (
+      component as unknown as {
+        optionsFor: (i: number) => readonly { value: string; label: string }[];
+      }
+    ).optionsFor(1);
+    expect(opts.length).toBe(12);
+  });
+
+  // ─── Seed fallback for different system ────────────────────────────────────
+
+  it('seeds units with zeros when era system differs from dialog system', async () => {
+    const data: TimelineEraDialogData = {
+      ...baseData,
+      era: {
+        id: 'era-diff',
+        name: 'Different',
+        color: '#000',
+        start: { systemId: 'other-system', units: ['100', '200', '300'] },
+        end: { systemId: 'other-system', units: ['400', '500', '600'] },
+      },
+    };
+    const { component } = await createComponent(data);
+    const startVals = (
+      component as unknown as {
+        startUnits: () => { getRawValue: () => string[] };
+      }
+    )
+      .startUnits()
+      .getRawValue();
+    expect(startVals.every(v => v === '0')).toBe(true);
+  });
+
+  // ─── Start / end units accessors ──────────────────────────────────────────
+
+  it('startUnits returns the form start units array', async () => {
+    const { component } = await createComponent();
+    const startUnits = (
+      component as unknown as {
+        startUnits: () => { getRawValue: () => string[] };
+      }
+    ).startUnits();
+    expect(startUnits.getRawValue().length).toBe(3);
+    expect(startUnits.getRawValue()[0]).toBe('2000');
+  });
+
+  it('endUnits returns the form end units array', async () => {
+    const { component } = await createComponent();
+    const endUnits = (
+      component as unknown as {
+        endUnits: () => { getRawValue: () => string[] };
+      }
+    ).endUnits();
+    expect(endUnits.getRawValue().length).toBe(3);
+    expect(endUnits.getRawValue()[0]).toBe('2000');
+  });
+
+  // ─── Non-Gregorian rendering ────────────────────────────────────────────────
+
+  it('renders unit fields for non-Gregorian system', async () => {
+    const data: TimelineEraDialogData = {
+      ...baseData,
+      system: RELATIVE_YEARS_SYSTEM,
+      defaultStart: { systemId: RELATIVE_YEARS_SYSTEM.id, units: ['0'] },
+      defaultEnd: { systemId: RELATIVE_YEARS_SYSTEM.id, units: ['100'] },
+    };
+    const { fixture } = await createComponent(data);
+    const unitFields = fixture.nativeElement.querySelectorAll(
+      '[data-testid^="timeline-era-start-unit-"]'
+    );
+    expect(unitFields.length).toBeGreaterThanOrEqual(1);
+  });
 });
