@@ -1,7 +1,6 @@
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   TIME_SYSTEM_TEMPLATES,
@@ -94,7 +93,7 @@ describe('TimelineTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TimelineTabComponent, NoopAnimationsModule],
+      imports: [TimelineTabComponent],
       providers: [
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: Router, useValue: { navigate: vi.fn() } },
