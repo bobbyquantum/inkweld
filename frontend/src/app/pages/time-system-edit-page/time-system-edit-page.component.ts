@@ -671,7 +671,8 @@ export class TimeSystemEditPageComponent {
     const aliasesResult = buildOptionalAliasArray(list);
     const allowZeroResult = buildOptionalAllowZeroArray(list);
     const inputModeResult = buildOptionalInputModeArray(list);
-    const subdivisionOverridesResult = buildOptionalSubdivisionOverridesArray(list);
+    const subdivisionOverridesResult =
+      buildOptionalSubdivisionOverridesArray(list);
 
     const payload: Omit<TimeSystem, 'id' | 'isBuiltIn'> = {
       name: raw.name.trim(),
@@ -681,10 +682,20 @@ export class TimeSystemEditPageComponent {
       parseSeparator: raw.parseSeparator,
       ...(id
         ? {
-            unitAliases: 'unitAliases' in aliasesResult ? aliasesResult.unitAliases : [],
-            unitAllowZero: 'unitAllowZero' in allowZeroResult ? allowZeroResult.unitAllowZero : [],
-            unitInputMode: 'unitInputMode' in inputModeResult ? inputModeResult.unitInputMode : [],
-            unitSubdivisionOverrides: 'unitSubdivisionOverrides' in subdivisionOverridesResult ? subdivisionOverridesResult.unitSubdivisionOverrides : [],
+            unitAliases:
+              'unitAliases' in aliasesResult ? aliasesResult.unitAliases : [],
+            unitAllowZero:
+              'unitAllowZero' in allowZeroResult
+                ? allowZeroResult.unitAllowZero
+                : [],
+            unitInputMode:
+              'unitInputMode' in inputModeResult
+                ? inputModeResult.unitInputMode
+                : [],
+            unitSubdivisionOverrides:
+              'unitSubdivisionOverrides' in subdivisionOverridesResult
+                ? subdivisionOverridesResult.unitSubdivisionOverrides
+                : [],
           }
         : {
             ...aliasesResult,
