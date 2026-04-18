@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, Injector } from '@angular/core';
 import { type Element, type Project } from '@inkweld/index';
 
+import { type ProjectArchive } from '../../models/project-archive';
 import { trimHyphens } from '../../utils/string-utils';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -385,22 +386,27 @@ export class UnifiedProjectService {
       );
     }
 
-    // Import media files from template
-    if (archive.media.length > 0) {
-      const projectKey = `${username}/${slug}`;
-      for (const media of archive.media) {
-        if (media.blob) {
-          await this.localStorage.saveMedia(
-            projectKey,
-            media.mediaId,
-            media.blob,
-            media.filename
-          );
-        }
-      }
-    }
+    await this.importTemplateMedia(username, slug, archive.media);
 
     return { documentIds, worldbuildingIds };
+  }
+
+  private async importTemplateMedia(
+    username: string,
+    slug: string,
+    media: ProjectArchive['media']
+  ): Promise<void> {
+    if (media.length === 0) return;
+    const projectKey = `${username}/${slug}`;
+    for (const entry of media) {
+      if (!entry.blob) continue;
+      await this.localStorage.saveMedia(
+        projectKey,
+        entry.mediaId,
+        entry.blob,
+        entry.filename
+      );
+    }
   }
 
   async updateProject(
