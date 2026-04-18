@@ -356,6 +356,43 @@ test.describe('Template Worldbuilding Import', () => {
     await expect(completeTag).toBeVisible();
   });
 
+  test('should render the demo timeline with its committed time system', async ({
+    localPage: page,
+  }) => {
+    // Regression test: the worldbuilding-demo template ships a Moonveil
+    // Reckoning time system and a timeline that references it. If the
+    // template's time systems are not persisted on project creation, the
+    // timeline is stuck on the "pick a system" setup overlay instead of
+    // rendering the authored events/eras.
+    await createProjectWithTwoSteps(
+      page,
+      'Timeline Demo Project',
+      'timeline-demo',
+      'Testing demo timeline renders',
+      'worldbuilding-demo'
+    );
+
+    await page.waitForURL(/\/testuser\/timeline-demo/);
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+
+    // Open the Moonveil Chronicle timeline element from the tree.
+    const timelineElement = page.getByRole('treeitem', {
+      name: 'Moonveil Chronicle',
+    });
+    await expect(timelineElement).toBeVisible();
+    await timelineElement.click();
+
+    // The canvas must render — i.e. the time system was imported and the
+    // timeline is NOT blocked on the setup overlay.
+    await expect(page.getByTestId('timeline-canvas')).toBeVisible();
+    await expect(page.getByTestId('timeline-setup')).toHaveCount(0);
+
+    // Authored events from the template should be visible on the canvas.
+    await expect(
+      page.locator('[data-testid^="timeline-event-body-"]').first()
+    ).toBeVisible();
+  });
+
   test('should show document-to-character backlink after @ reference', async ({
     localPage: page,
   }) => {
