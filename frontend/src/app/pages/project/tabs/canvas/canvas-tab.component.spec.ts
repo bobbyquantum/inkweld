@@ -16,6 +16,7 @@ import { CanvasService } from '@services/canvas/canvas.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import Konva from 'konva';
@@ -50,6 +51,11 @@ describe('CanvasTabComponent', () => {
   let component: CanvasTabComponent;
   let fixture: ComponentFixture<CanvasTabComponent>;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+  const mockPresenceService = {
+    setActiveLocation: vi.fn(),
+    usersAtLocation: () => signal([]).asReadonly(),
+    users: signal([]).asReadonly(),
+  };
 
   function createStageStub(overrides: Record<string, unknown> = {}) {
     return {
@@ -188,6 +194,10 @@ describe('CanvasTabComponent', () => {
         { provide: LocalStorageService, useValue: mockLocalStorageService },
         { provide: LoggerService, useValue: mockLogger },
         { provide: RelationshipService, useValue: mockRelationshipService },
+        {
+          provide: PresenceService,
+          useValue: mockPresenceService,
+        },
       ],
     })
       // CanvasService is a component-level provider; override it
@@ -204,6 +214,7 @@ describe('CanvasTabComponent', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    mockPresenceService.setActiveLocation.mockReset();
   });
 
   it('should create', () => {
@@ -213,6 +224,12 @@ describe('CanvasTabComponent', () => {
   it('should load canvas config on init', () => {
     fixture.detectChanges();
     expect(mockCanvasService.loadConfig).toHaveBeenCalledWith('test-canvas');
+    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(
+      'canvas:test-canvas'
+    );
+
+    fixture.destroy();
+    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(null);
   });
 
   it('should set element name from project elements', () => {

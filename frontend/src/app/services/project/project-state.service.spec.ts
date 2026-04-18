@@ -161,6 +161,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     projectMeta$: projectMetaSubject.asObservable(),
     errors$: errorsSubject.asObservable(),
     lastConnectionError$: lastConnectionErrorSubject.asObservable(),
+    remotePresence$: new BehaviorSubject([]).asObservable(),
+    setLocalAwareness: vi.fn(),
   } as MockedObject<IElementSyncProvider> & {
     _elementsSubject: BehaviorSubject<Element[]>;
     _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
