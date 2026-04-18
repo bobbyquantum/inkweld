@@ -259,8 +259,8 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
     // Viewport boundaries with some padding
     const viewportTop = 60;
     const viewportLeft = 10;
-    const viewportRight = window.innerWidth - 10;
-    const viewportBottom = window.innerHeight - 10;
+    const viewportRight = globalThis.innerWidth - 10;
+    const viewportBottom = globalThis.innerHeight - 10;
 
     // On touch devices prefer below to avoid OS context menu conflict
     let top: number;

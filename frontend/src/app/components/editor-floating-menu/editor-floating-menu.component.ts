@@ -167,8 +167,8 @@ export class EditorFloatingMenuComponent implements OnDestroy {
     // Viewport boundaries with some padding
     const viewportTop = 60; // Account for app toolbar
     const viewportLeft = 10;
-    const viewportRight = window.innerWidth - 10;
-    const viewportBottom = window.innerHeight - 10;
+    const viewportRight = globalThis.innerWidth - 10;
+    const viewportBottom = globalThis.innerHeight - 10;
 
     // Determine vertical position.
     // On touch devices prefer below to avoid conflicting with the OS context menu
