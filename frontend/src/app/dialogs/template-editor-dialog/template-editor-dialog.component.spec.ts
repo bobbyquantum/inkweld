@@ -99,6 +99,12 @@ describe('TemplateEditorDialogComponent', () => {
     expect(component.tabs()[0].label).toBe('Basic Info');
   });
 
+  it('should expose time-system date field types', () => {
+    const types = component.fieldTypes.map(t => t.value);
+    expect(types).toContain('date');
+    expect(types).toContain('date-range');
+  });
+
   it('should assign IDs to fields without IDs during initialization', () => {
     // The mockSchema fields don't have IDs, so the constructor should assign them
     const fields = component.tabs()[0].fields;

@@ -358,17 +358,283 @@
           }
 
           @case ('date') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ field.label }}</mat-label>
-              <input
-                matInput
-                type="date"
-                [formControl]="getControl(field.key)"
-                [placeholder]="field.placeholder || ''" />
-              @if (field.description) {
-                <mat-hint>{{ field.description }}</mat-hint>
+            <div class="time-field">
+              <div class="time-system-row">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ field.label }} time system</mat-label>
+                  <mat-select
+                    [disabled]="!hasTimeSystems()"
+                    [value]="getDateFieldSystem(field.key)?.id || null"
+                    (selectionChange)="
+                      onDateFieldSystemChange(field.key, $event.value)
+                    ">
+                    @for (system of getTimeSystemOptions(); track system.id) {
+                      <mat-option [value]="system.id">{{
+                        system.name
+                      }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              @if (!hasTimeSystems()) {
+                <p class="field-description">
+                  Add a time system in Settings to use date fields.
+                </p>
+              } @else if (getDateFieldSystem(field.key); as system) {
+                @if (system.id === 'gregorian') {
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{ field.label }}</mat-label>
+                    <input
+                      matInput
+                      type="date"
+                      [value]="getGregorianDateValue(field.key)"
+                      (change)="
+                        onGregorianDateChange(
+                          field.key,
+                          $any($event.target).value
+                        )
+                      " />
+                  </mat-form-field>
+                }
+
+                <div class="time-units-row">
+                  @for (
+                    unitLabel of system.unitLabels;
+                    track $index;
+                    let i = $index
+                  ) {
+                    @if (isUnitDropdown(system, i)) {
+                      <mat-form-field appearance="outline" class="unit-field">
+                        <mat-label>{{ unitLabel }}</mat-label>
+                        <mat-select
+                          [value]="getDateFieldUnit(field.key, i)"
+                          (selectionChange)="
+                            onDateFieldUnitChange(field.key, i, $event.value)
+                          ">
+                          @for (
+                            opt of getUnitOptions(system, i);
+                            track opt.value
+                          ) {
+                            <mat-option [value]="opt.value">{{
+                              opt.label
+                            }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    } @else {
+                      <mat-form-field appearance="outline" class="unit-field">
+                        <mat-label>{{ unitLabel }}</mat-label>
+                        <input
+                          matInput
+                          type="number"
+                          step="1"
+                          [value]="getDateFieldUnit(field.key, i)"
+                          (input)="
+                            onDateFieldUnitChange(
+                              field.key,
+                              i,
+                              $any($event.target).value
+                            )
+                          " />
+                      </mat-form-field>
+                    }
+                  }
+                </div>
               }
-            </mat-form-field>
+
+              @if (field.description) {
+                <p class="field-description">{{ field.description }}</p>
+              }
+            </div>
+          }
+
+          @case ('date-range') {
+            <div class="time-field">
+              <div class="time-system-row">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ field.label }} time system</mat-label>
+                  <mat-select
+                    [disabled]="!hasTimeSystems()"
+                    [value]="getDateRangeFieldSystem(field.key)?.id || null"
+                    (selectionChange)="
+                      onDateRangeFieldSystemChange(field.key, $event.value)
+                    ">
+                    @for (system of getTimeSystemOptions(); track system.id) {
+                      <mat-option [value]="system.id">{{
+                        system.name
+                      }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              @if (!hasTimeSystems()) {
+                <p class="field-description">
+                  Add a time system in Settings to use date range fields.
+                </p>
+              } @else if (getDateRangeFieldSystem(field.key); as system) {
+                <div class="time-range-sections">
+                  <div class="time-range-section">
+                    <h4>Start</h4>
+                    @if (system.id === 'gregorian') {
+                      <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Start date</mat-label>
+                        <input
+                          matInput
+                          type="date"
+                          [value]="getGregorianDateValue(field.key, 'start')"
+                          (change)="
+                            onGregorianDateChange(
+                              field.key,
+                              $any($event.target).value,
+                              'start'
+                            )
+                          " />
+                      </mat-form-field>
+                    }
+                    <div class="time-units-row">
+                      @for (
+                        unitLabel of system.unitLabels;
+                        track $index;
+                        let i = $index
+                      ) {
+                        @if (isUnitDropdown(system, i)) {
+                          <mat-form-field
+                            appearance="outline"
+                            class="unit-field">
+                            <mat-label>{{ unitLabel }}</mat-label>
+                            <mat-select
+                              [value]="
+                                getDateRangeFieldUnit(field.key, 'start', i)
+                              "
+                              (selectionChange)="
+                                onDateRangeFieldUnitChange(
+                                  field.key,
+                                  'start',
+                                  i,
+                                  $event.value
+                                )
+                              ">
+                              @for (
+                                opt of getUnitOptions(system, i);
+                                track opt.value
+                              ) {
+                                <mat-option [value]="opt.value">{{
+                                  opt.label
+                                }}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        } @else {
+                          <mat-form-field
+                            appearance="outline"
+                            class="unit-field">
+                            <mat-label>{{ unitLabel }}</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              step="1"
+                              [value]="
+                                getDateRangeFieldUnit(field.key, 'start', i)
+                              "
+                              (input)="
+                                onDateRangeFieldUnitChange(
+                                  field.key,
+                                  'start',
+                                  i,
+                                  $any($event.target).value
+                                )
+                              " />
+                          </mat-form-field>
+                        }
+                      }
+                    </div>
+                  </div>
+
+                  <div class="time-range-section">
+                    <h4>End</h4>
+                    @if (system.id === 'gregorian') {
+                      <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>End date</mat-label>
+                        <input
+                          matInput
+                          type="date"
+                          [value]="getGregorianDateValue(field.key, 'end')"
+                          (change)="
+                            onGregorianDateChange(
+                              field.key,
+                              $any($event.target).value,
+                              'end'
+                            )
+                          " />
+                      </mat-form-field>
+                    }
+                    <div class="time-units-row">
+                      @for (
+                        unitLabel of system.unitLabels;
+                        track $index;
+                        let i = $index
+                      ) {
+                        @if (isUnitDropdown(system, i)) {
+                          <mat-form-field
+                            appearance="outline"
+                            class="unit-field">
+                            <mat-label>{{ unitLabel }}</mat-label>
+                            <mat-select
+                              [value]="
+                                getDateRangeFieldUnit(field.key, 'end', i)
+                              "
+                              (selectionChange)="
+                                onDateRangeFieldUnitChange(
+                                  field.key,
+                                  'end',
+                                  i,
+                                  $event.value
+                                )
+                              ">
+                              @for (
+                                opt of getUnitOptions(system, i);
+                                track opt.value
+                              ) {
+                                <mat-option [value]="opt.value">{{
+                                  opt.label
+                                }}</mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+                        } @else {
+                          <mat-form-field
+                            appearance="outline"
+                            class="unit-field">
+                            <mat-label>{{ unitLabel }}</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              step="1"
+                              [value]="
+                                getDateRangeFieldUnit(field.key, 'end', i)
+                              "
+                              (input)="
+                                onDateRangeFieldUnitChange(
+                                  field.key,
+                                  'end',
+                                  i,
+                                  $any($event.target).value
+                                )
+                              " />
+                          </mat-form-field>
+                        }
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (field.description) {
+                <p class="field-description">{{ field.description }}</p>
+              }
+            </div>
           }
 
           @case ('select') {

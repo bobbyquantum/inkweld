@@ -7,7 +7,10 @@ export enum FieldType {
   TEXT = 'text',
   TEXTAREA = 'textarea',
   NUMBER = 'number',
+  /** Time-system-aware single point in time. */
   DATE = 'date',
+  /** Time-system-aware start/end range. */
+  DATE_RANGE = 'date-range',
   SELECT = 'select',
   MULTISELECT = 'multiselect',
   ARRAY = 'array',

@@ -58,6 +58,11 @@ describe('WorldbuildingEditorComponent', () => {
           { key: 'bio', label: 'Biography', type: 'textarea' },
           { key: 'birthDate', label: 'Birth Date', type: 'date' },
           {
+            key: 'lifespan',
+            label: 'Lifespan',
+            type: 'date-range',
+          },
+          {
             key: 'gender',
             label: 'Gender',
             type: 'select',
@@ -273,8 +278,31 @@ describe('WorldbuildingEditorComponent', () => {
         isAlive: true,
       });
       component.addArrayItem('aliases');
-      // 5 of 7 fields filled (name, age, bio, isAlive, aliases)
+      // 5 fields filled (name, age, bio, isAlive, aliases)
       expect(component.getFilledFieldCountForTab('basic')).toBe(5);
+    });
+
+    it('should count date field as filled when it has time-system units', () => {
+      component.form().patchValue({
+        birthDate: {
+          systemId: 'moonveil-reckoning',
+          units: ['1198', '5', '12'],
+        },
+      });
+
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
+    });
+
+    it('should count date-range field as filled when both endpoints exist', () => {
+      component.form().patchValue({
+        lifespan: {
+          systemId: 'moonveil-reckoning',
+          startUnits: ['1198', '5', '12'],
+          endUnits: ['1260', '1', '1'],
+        },
+      });
+
+      expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count nested fields in appearance tab', () => {
@@ -325,6 +353,10 @@ describe('WorldbuildingEditorComponent', () => {
       expect(component.form().get('bio')).toBeDefined();
       // Check date field
       expect(component.form().get('birthDate')).toBeDefined();
+      expect(component.form().get('birthDate')?.value).toBeNull();
+      // Check date range field
+      expect(component.form().get('lifespan')).toBeDefined();
+      expect(component.form().get('lifespan')?.value).toBeNull();
       // Check select field
       expect(component.form().get('gender')).toBeDefined();
       // Check multiselect field

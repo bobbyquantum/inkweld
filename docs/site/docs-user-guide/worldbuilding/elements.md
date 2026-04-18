@@ -117,8 +117,13 @@ A template consists of:
 | **Selection**    | Pick from options                | "Faction Type: Guild"      |
 | **Multi-Select** | Pick multiple options            | "Abilities: Flight, Magic" |
 | **Number**       | Numeric values                   | "Level: 5"                 |
-| **Date**         | Timeline entries                 | "Founded: 1242"            |
+| **Date**         | Single time-system date          | "Founded: Cycle 1150"      |
+| **Date Range**   | Start/end time-system range      | "War: Cycle 1215-1219"     |
 | **Toggle**       | Yes/No values                    | "Active: ✓"                |
+
+:::note
+Date and Date Range fields use your project's installed **Time Systems** (Project Settings → Time Systems). If no time systems are installed, these fields remain unavailable until one is added.
+:::
 
 ### The Template Editor
 

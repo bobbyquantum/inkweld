@@ -659,6 +659,52 @@ describe('WorldbuildingService', () => {
       );
       expect(data2?.['createdDate']).toBe(createdDate);
     });
+
+    it('initializes date and date-range fields with null values', async () => {
+      const schemaWithTimeFields: ElementTypeSchema = {
+        id: 'event-v1',
+        name: 'Event',
+        icon: 'event',
+        description: 'Schema with time-based fields',
+        version: 1,
+        isBuiltIn: false,
+        tabs: [
+          {
+            key: 'core',
+            label: 'Core',
+            fields: [
+              { key: 'title', label: 'Title', type: 'text' },
+              { key: 'founded', label: 'Founded', type: 'date' },
+              {
+                key: 'activeWindow',
+                label: 'Active Window',
+                type: 'date-range',
+              },
+            ],
+          },
+        ],
+      };
+
+      service.saveSchemaToLibrary(schemaWithTimeFields);
+
+      const element = {
+        id: 'event-element',
+        type: ElementType.Worldbuilding,
+        schemaId: 'event-v1',
+        name: 'Moonveil Accord',
+      } as Element;
+
+      await service.initializeWorldbuildingElement(element, username, slug);
+
+      const data = await service.getWorldbuildingData(
+        'event-element',
+        username,
+        slug
+      );
+
+      expect(data?.['founded']).toBeNull();
+      expect(data?.['activeWindow']).toBeNull();
+    });
   });
 
   describe('getElementsOfType', () => {

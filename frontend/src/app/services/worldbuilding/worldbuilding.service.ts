@@ -613,6 +613,8 @@ export class WorldbuildingService {
               // Initialize the child field
               if (field.type === 'array') {
                 parentMap.set(childKey, new Y.Array());
+              } else if (field.type === 'date' || field.type === 'date-range') {
+                parentMap.set(childKey, null);
               } else if (!parentMap.has(childKey)) {
                 // Only set if not already present
                 parentMap.set(childKey, '');
@@ -623,6 +625,11 @@ export class WorldbuildingService {
             ) {
               // Handle top-level array fields without overriding schema defaults
               dataMap.set(fieldKey, new Y.Array());
+            } else if (
+              (field.type === 'date' || field.type === 'date-range') &&
+              (!dataMap.has(fieldKey) || dataMap.get(fieldKey) == null)
+            ) {
+              dataMap.set(fieldKey, null);
             } else if (!dataMap.has(fieldKey)) {
               // Handle top-level non-array fields (only set if not already present)
               dataMap.set(fieldKey, '');

@@ -98,6 +98,8 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
     { value: 'text', label: 'Text' },
     { value: 'textarea', label: 'Text Area' },
     { value: 'number', label: 'Number' },
+    { value: 'date', label: 'Date (Time System)' },
+    { value: 'date-range', label: 'Date Range (Time System)' },
     { value: 'select', label: 'Select' },
     { value: 'array', label: 'Array (Tags)' },
     { value: 'checkbox', label: 'Checkbox' },
@@ -146,7 +148,7 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
         // Use a longer timeout to ensure Angular has finished rendering
         setTimeout(() => {
           const panels = this.expansionPanels.toArray();
-          const lastPanel = panels[panels.length - 1];
+          const lastPanel = panels.at(-1);
           if (lastPanel && !lastPanel.expanded) {
             lastPanel.open();
           }

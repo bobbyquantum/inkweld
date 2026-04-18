@@ -49,6 +49,12 @@ import {
   type FieldSchema,
   type TabSchema,
 } from '../../models/schema-types';
+import {
+  type TimeSystem,
+  unitDropdownOptions,
+  unitInputModeFor,
+  unitMinValue,
+} from '../../models/time-system';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { ElementSyncProviderFactory } from '../../services/sync/element-sync-provider.factory';
@@ -58,6 +64,17 @@ import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 import { type ResolvedTag } from '../tags/tag.model';
 import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 import { MediaPanelComponent } from './media-panel/media-panel.component';
+
+interface DateFieldValue {
+  systemId: string;
+  units: string[];
+}
+
+interface DateRangeFieldValue {
+  systemId: string;
+  startUnits: string[];
+  endUnits: string[];
+}
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -114,6 +131,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   readonly syncState = toSignal(
     this.syncProviderFactory.getProvider().syncState$,
     { initialValue: this.syncProviderFactory.getProvider().getSyncState() }
+  );
+
+  readonly timeSystems = toSignal(
+    this.syncProviderFactory.getProvider().timeSystems$,
+    { initialValue: this.syncProviderFactory.getProvider().getTimeSystems() }
   );
 
   /** Resolved tags for this element (raw elementId used for worldbuilding) */
@@ -344,9 +366,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       case 'text':
       case 'textarea':
       case 'number':
-      case 'date':
       case 'select':
         return new FormControl('');
+      case 'date':
+        return new FormControl<DateFieldValue | null>(null);
+      case 'date-range':
+        return new FormControl<DateRangeFieldValue | null>(null);
       case 'multiselect':
         return new FormControl<string[]>([]);
       case 'array':
@@ -537,6 +562,15 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   private isFieldFilled(field: FieldSchema): boolean {
     const control = this.form().get(field.key);
     if (!control) return false;
+
+    if (field.type === 'date') {
+      return this.isDateFieldValue(control.value);
+    }
+
+    if (field.type === 'date-range') {
+      return this.isDateRangeFieldValue(control.value);
+    }
+
     if (control instanceof FormArray) {
       return control.length > 0;
     }
@@ -589,8 +623,243 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return this.form().get(fieldKey) as FormControl;
   }
 
+  getTimeSystemOptions(): TimeSystem[] {
+    return this.timeSystems();
+  }
+
+  hasTimeSystems(): boolean {
+    return this.timeSystems().length > 0;
+  }
+
+  getDateFieldSystem(fieldKey: string): TimeSystem | null {
+    const value = this.getDateFieldValue(fieldKey);
+    if (!value) return null;
+    return this.timeSystems().find(s => s.id === value.systemId) ?? null;
+  }
+
+  getDateRangeFieldSystem(fieldKey: string): TimeSystem | null {
+    const value = this.getDateRangeFieldValue(fieldKey);
+    if (!value) return null;
+    return this.timeSystems().find(s => s.id === value.systemId) ?? null;
+  }
+
+  onDateFieldSystemChange(fieldKey: string, systemId: string): void {
+    const system = this.timeSystems().find(s => s.id === systemId);
+    if (!system) {
+      this.getControl(fieldKey).setValue(null);
+      return;
+    }
+
+    const current = this.getDateFieldValue(fieldKey);
+    const next: DateFieldValue = {
+      systemId,
+      units: this.ensureUnitsForSystem(system, current?.units),
+    };
+    this.getControl(fieldKey).setValue(next);
+  }
+
+  onDateRangeFieldSystemChange(fieldKey: string, systemId: string): void {
+    const system = this.timeSystems().find(s => s.id === systemId);
+    if (!system) {
+      this.getControl(fieldKey).setValue(null);
+      return;
+    }
+
+    const current = this.getDateRangeFieldValue(fieldKey);
+    const next: DateRangeFieldValue = {
+      systemId,
+      startUnits: this.ensureUnitsForSystem(system, current?.startUnits),
+      endUnits: this.ensureUnitsForSystem(system, current?.endUnits),
+    };
+    this.getControl(fieldKey).setValue(next);
+  }
+
+  isUnitDropdown(system: TimeSystem, i: number): boolean {
+    return unitInputModeFor(system, i) === 'dropdown';
+  }
+
+  getUnitOptions(
+    system: TimeSystem,
+    i: number
+  ): readonly { readonly value: string; readonly label: string }[] {
+    return unitDropdownOptions(system, i);
+  }
+
+  getDateFieldUnit(fieldKey: string, index: number): string {
+    const value = this.getDateFieldValue(fieldKey);
+    return value?.units[index] ?? '';
+  }
+
+  onDateFieldUnitChange(fieldKey: string, index: number, value: string): void {
+    const current = this.getDateFieldValue(fieldKey);
+    if (!current) return;
+    const units = [...current.units];
+    units[index] = value;
+    this.getControl(fieldKey).setValue({ ...current, units });
+  }
+
+  getDateRangeFieldUnit(
+    fieldKey: string,
+    edge: 'start' | 'end',
+    index: number
+  ): string {
+    const value = this.getDateRangeFieldValue(fieldKey);
+    if (!value) return '';
+    const units = edge === 'start' ? value.startUnits : value.endUnits;
+    return units[index] ?? '';
+  }
+
+  onDateRangeFieldUnitChange(
+    fieldKey: string,
+    edge: 'start' | 'end',
+    index: number,
+    value: string
+  ): void {
+    const current = this.getDateRangeFieldValue(fieldKey);
+    if (!current) return;
+    const startUnits = [...current.startUnits];
+    const endUnits = [...current.endUnits];
+    if (edge === 'start') {
+      startUnits[index] = value;
+    } else {
+      endUnits[index] = value;
+    }
+    this.getControl(fieldKey).setValue({
+      ...current,
+      startUnits,
+      endUnits,
+    });
+  }
+
+  getGregorianDateValue(fieldKey: string, edge?: 'start' | 'end'): string {
+    if (edge) {
+      const value = this.getDateRangeFieldValue(fieldKey);
+      if (value?.systemId !== 'gregorian') return '';
+      const units = edge === 'start' ? value.startUnits : value.endUnits;
+      return this.unitsToIsoDate(units);
+    }
+
+    const value = this.getDateFieldValue(fieldKey);
+    if (value?.systemId !== 'gregorian') return '';
+    return this.unitsToIsoDate(value.units);
+  }
+
+  onGregorianDateChange(
+    fieldKey: string,
+    isoValue: string,
+    edge?: 'start' | 'end'
+  ): void {
+    const parsed = this.isoDateToUnits(isoValue);
+    if (!parsed) return;
+
+    if (edge) {
+      const current = this.getDateRangeFieldValue(fieldKey);
+      if (!current) return;
+      if (edge === 'start') {
+        this.getControl(fieldKey).setValue({ ...current, startUnits: parsed });
+      } else {
+        this.getControl(fieldKey).setValue({ ...current, endUnits: parsed });
+      }
+      return;
+    }
+
+    const current = this.getDateFieldValue(fieldKey);
+    if (!current) return;
+    this.getControl(fieldKey).setValue({ ...current, units: parsed });
+  }
+
   getFormArray(fieldKey: string): FormArray {
     return this.form().get(fieldKey) as FormArray;
+  }
+
+  private getDateFieldValue(fieldKey: string): DateFieldValue | null {
+    return this.normalizeDateFieldValue(this.getControl(fieldKey).value);
+  }
+
+  private getDateRangeFieldValue(fieldKey: string): DateRangeFieldValue | null {
+    return this.normalizeDateRangeFieldValue(this.getControl(fieldKey).value);
+  }
+
+  private normalizeDateFieldValue(value: unknown): DateFieldValue | null {
+    if (typeof value === 'string') {
+      const parsed = this.isoDateToUnits(value);
+      if (!parsed) return null;
+      return { systemId: 'gregorian', units: parsed };
+    }
+
+    if (!this.isDateFieldValue(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  private normalizeDateRangeFieldValue(
+    value: unknown
+  ): DateRangeFieldValue | null {
+    if (!this.isDateRangeFieldValue(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  private isDateFieldValue(value: unknown): value is DateFieldValue {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+
+    const candidate = value as Partial<DateFieldValue>;
+    return (
+      typeof candidate.systemId === 'string' &&
+      Array.isArray(candidate.units) &&
+      candidate.units.every(u => typeof u === 'string')
+    );
+  }
+
+  private isDateRangeFieldValue(value: unknown): value is DateRangeFieldValue {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+
+    const candidate = value as Partial<DateRangeFieldValue>;
+    return (
+      typeof candidate.systemId === 'string' &&
+      Array.isArray(candidate.startUnits) &&
+      Array.isArray(candidate.endUnits) &&
+      candidate.startUnits.every(u => typeof u === 'string') &&
+      candidate.endUnits.every(u => typeof u === 'string')
+    );
+  }
+
+  private ensureUnitsForSystem(system: TimeSystem, units?: string[]): string[] {
+    return system.unitLabels.map((_, i) => {
+      const raw = units?.[i];
+      if (typeof raw === 'string' && /^-?\d+$/.test(raw.trim())) {
+        return raw.trim();
+      }
+      return String(unitMinValue(system, i));
+    });
+  }
+
+  private unitsToIsoDate(units: string[]): string {
+    if (units.length !== 3) return '';
+    const [year, month, day] = units.map(Number);
+    if (
+      year < 0 ||
+      !Number.isFinite(year) ||
+      !Number.isFinite(month) ||
+      !Number.isFinite(day)
+    ) {
+      return '';
+    }
+    return `${String(year).padStart(4, '0')}-${String(Math.max(1, month)).padStart(2, '0')}-${String(Math.max(1, day)).padStart(2, '0')}`;
+  }
+
+  private isoDateToUnits(iso: string): string[] | null {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!match) return null;
+    return [match[1], String(Number(match[2])), String(Number(match[3]))];
   }
 
   addArrayItem(fieldKey: string): void {

@@ -29,6 +29,20 @@
             "layout": { "span": 6 }
           },
           {
+            "key": "birth",
+            "label": "Birth",
+            "type": "date",
+            "description": "Uses the project's selected time system.",
+            "layout": { "span": 6 }
+          },
+          {
+            "key": "death",
+            "label": "Death",
+            "type": "date",
+            "description": "Leave empty if the character is still alive.",
+            "layout": { "span": 6 }
+          },
+          {
             "key": "gender",
             "label": "Gender",
             "type": "text",
@@ -400,8 +414,15 @@
           {
             "key": "history.founded",
             "label": "Founded",
-            "type": "text",
-            "placeholder": "When was this location established?",
+            "type": "date",
+            "description": "Uses the project's selected time system.",
+            "layout": { "span": 12 }
+          },
+          {
+            "key": "history.goldenAge",
+            "label": "Golden Age",
+            "type": "date-range",
+            "description": "Optional era range in the active time system.",
             "layout": { "span": 12 }
           },
           {

@@ -7,6 +7,10 @@
       "description": "A brilliant half-elf scholar who studies ancient magical artifacts. She keeps her true age and origins carefully hidden.",
       "fullName": "Elara Nightwhisper",
       "age": "127 (appears mid-20s)",
+      "birth": {
+        "systemId": "moonveil-reckoning",
+        "units": ["1198", "5", "12"]
+      },
       "gender": "Female",
       "species": "Half-Elf",
       "occupation": "Scholar & Historian",
@@ -41,6 +45,10 @@
       "description": "A seasoned ranger who serves as guardian of Thornwood Forest. Gruff and solitary, he knows every path in the ancient wood.",
       "fullName": "Theron Blackwood",
       "age": "34",
+      "birth": {
+        "systemId": "moonveil-reckoning",
+        "units": ["1195", "9", "3"]
+      },
       "gender": "Male",
       "species": "Human",
       "occupation": "Forest Ranger",
@@ -75,6 +83,10 @@
       "description": "A talented dwarf blacksmith who runs the finest forge in Silverhollow. She crafts both mundane tools and magical weapons.",
       "fullName": "Mira Stonehart",
       "age": "28",
+      "birth": {
+        "systemId": "moonveil-reckoning",
+        "units": ["1201", "2", "18"]
+      },
       "gender": "Female",
       "species": "Dwarf",
       "occupation": "Blacksmith & Weaponsmith",
@@ -121,7 +133,15 @@
       "culture.economy": "Trade hub, craftsmanship (especially metalwork), forest products",
       "culture.customs": ["Festival of Silver Moon (autumn celebration)", "Founding Day market", "Apprentice trials at midsummer"],
       "culture.languages": ["Common", "Trade Cant", "Forest Tongue (some)"],
-      "history.founded": "Approximately 400 years ago",
+      "history.founded": {
+        "systemId": "moonveil-reckoning",
+        "units": ["820", "4", "1"]
+      },
+      "history.goldenAge": {
+        "systemId": "moonveil-reckoning",
+        "startUnits": ["910", "1", "1"],
+        "endUnits": ["980", "13", "28"]
+      },
       "history.events": ["The Silver Rush (founding era)", "The Great Fire of 312", "The Thornwood Accord (peace treaty with forest folk)"],
       "history.background": "Founded by miners seeking silver, the town outlasted its mines through adaptability. When the silver ran out, the people turned to trade and crafts. The Thornwood Accord, negotiated 200 years ago, established peaceful relations with the forest's denizens and opened profitable trade routes."
     }
@@ -146,7 +166,10 @@
       "culture.economy": "Gift economy among forest folk; controlled trade with outsiders for herbs and rare materials",
       "culture.customs": ["Offerings at the forest edge", "Speaking no ill of the trees", "The Midsummer Gathering"],
       "culture.languages": ["Forest Tongue", "Old Sylvan", "Animal speech"],
-      "history.founded": "Primordial - the forest has existed since before recorded history",
+      "history.founded": {
+        "systemId": "moonveil-reckoning",
+        "units": ["1", "1", "1"]
+      },
       "history.events": ["The Sundering (magical catastrophe, ancient)", "The Thornwood Accord (200 years ago)", "The Night of Walking Trees (70 years ago)"],
       "history.background": "The forest is a remnant of the great primordial woods that once covered the continent. It survived the Sundering through the sacrifice of its most powerful guardians. It's said the Library of Moonveil is hidden somewhere in its depths."
     }
@@ -171,7 +194,15 @@
       "culture.economy": "Funded by tuition, magical contracts, and ancient endowments",
       "culture.customs": ["The Entrance Trials", "Thesis Defense by magical demonstration", "The Starfall Ball (annual)"],
       "culture.languages": ["High Arcane", "Common", "Most major languages represented"],
-      "history.founded": "Approximately 800 years ago",
+      "history.founded": {
+        "systemId": "moonveil-reckoning",
+        "units": ["1150", "1", "1"]
+      },
+      "history.goldenAge": {
+        "systemId": "moonveil-reckoning",
+        "startUnits": ["1188", "1", "1"],
+        "endUnits": ["1220", "13", "28"]
+      },
       "history.events": ["The Lifting (when the academy ascended)", "The Demon Breach of 445", "The Great Reformation (100 years ago)"],
       "history.background": "Founded by the legendary Archmage Aldric the Grey, Cloudspire was originally a mountaintop fortress. When war threatened, Aldric raised the entire complex into the sky to ensure knowledge would survive. It has floated ever since, accessible only by magic or the rare visiting airship."
     }

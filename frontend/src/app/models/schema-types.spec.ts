@@ -25,6 +25,10 @@ describe('schema-types', () => {
       expect(FieldType.DATE).toBe('date');
     });
 
+    it('should have DATE_RANGE type', () => {
+      expect(FieldType.DATE_RANGE).toBe('date-range');
+    });
+
     it('should have SELECT type', () => {
       expect(FieldType.SELECT).toBe('select');
     });

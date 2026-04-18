@@ -106,6 +106,13 @@ test.describe('Template Worldbuilding Import', () => {
     // Look for the species field
     const speciesField = page.getByLabel('Species');
     await expect(speciesField).toHaveValue('Half-Elf');
+
+    // Verify a time-system date field imported correctly
+    const birthField = page.getByTestId('field-birth');
+    await expect(birthField).toBeVisible();
+    await expect(
+      birthField.locator('input[type="number"]').first()
+    ).toHaveValue('1198');
   });
 
   test('should import location worldbuilding data from demo template', async ({
@@ -153,6 +160,21 @@ test.describe('Template Worldbuilding Import', () => {
     // Verify population field
     const populationField = page.getByLabel('Population');
     await expect(populationField).toHaveValue('~3,000');
+
+    // Verify history date and date-range fields from the demo template
+    await page.getByTestId('nav-history').click();
+
+    const foundedField = page.getByTestId('field-history.founded');
+    await expect(foundedField).toBeVisible();
+    await expect(
+      foundedField.locator('input[type="number"]').first()
+    ).toHaveValue('820');
+
+    const goldenAgeField = page.getByTestId('field-history.goldenAge');
+    await expect(goldenAgeField).toBeVisible();
+    await expect(
+      goldenAgeField.locator('input[type="number"]').first()
+    ).toHaveValue('910');
   });
 
   test('should import multiple characters with unique data', async ({
