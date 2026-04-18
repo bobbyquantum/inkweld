@@ -575,73 +575,100 @@ export class ElementRefTooltipComponent {
     this.isLoadingPreview.set(true);
 
     try {
-      // Get element from service
       const element = this.elementRefService.getElementById(elementId);
-
-      if (element) {
-        // Check if this is a worldbuilding element
-        if (isWorldbuildingType(element.type)) {
-          // Load identity data (description) for worldbuilding elements
-          const project = this.projectState.project();
-          if (project) {
-            const identityData =
-              await this.worldbuildingService.getIdentityData(
-                elementId,
-                project.username,
-                project.slug
-              );
-
-            this.previewContent.set({
-              path: undefined,
-              excerpt: identityData.description,
-              wordCount: undefined,
-            });
-
-            if (identityData.image) {
-              void this.resolveImageUrl(
-                identityData.image,
-                project.username,
-                project.slug
-              );
-            }
-            return;
-          }
-        }
-
-        // For non-worldbuilding elements, load document excerpt for Item type
-        const project = this.projectState.project();
-        if (element.type === ElementType.Item && project) {
-          try {
-            const docId = `${project.username}:${project.slug}:${elementId}`;
-            const content =
-              await this.documentService.getDocumentContent(docId);
-            if (content && Array.isArray(content) && content.length > 0) {
-              const plainText = flattenToPlainText(content).trim();
-              const wordCount = plainText ? plainText.split(/\s+/).length : 0;
-              const excerpt =
-                plainText.length > 200
-                  ? plainText.substring(0, 200) + '…'
-                  : plainText || undefined;
-              this.previewContent.set({
-                path: undefined,
-                excerpt,
-                wordCount: wordCount > 0 ? wordCount : undefined,
-              });
-              return;
-            }
-          } catch {
-            // Fall through to default empty preview
-          }
-        }
-
-        this.previewContent.set({
-          path: undefined,
-          excerpt: undefined,
-          wordCount: undefined,
-        });
+      if (!element) {
+        return;
       }
+
+      const project = this.projectState.project();
+      if (project && isWorldbuildingType(element.type)) {
+        await this.loadWorldbuildingPreview(elementId, project);
+        return;
+      }
+
+      if (project && element.type === ElementType.Item) {
+        const loaded = await this.loadItemDocumentPreview(elementId, project);
+        if (loaded) {
+          return;
+        }
+      }
+
+      this.previewContent.set({
+        path: undefined,
+        excerpt: undefined,
+        wordCount: undefined,
+      });
     } finally {
       this.isLoadingPreview.set(false);
+    }
+  }
+
+  /** Load preview for worldbuilding elements (identity data + optional image). */
+  private async loadWorldbuildingPreview(
+    elementId: string,
+    project: { username: string; slug: string }
+  ): Promise<void> {
+    let identityData: Awaited<
+      ReturnType<typeof this.worldbuildingService.getIdentityData>
+    >;
+    try {
+      identityData = await this.worldbuildingService.getIdentityData(
+        elementId,
+        project.username,
+        project.slug
+      );
+    } catch (error) {
+      console.error('Failed to load worldbuilding preview', error);
+      this.previewContent.set({});
+      return;
+    }
+
+    this.previewContent.set({
+      path: undefined,
+      excerpt: identityData.description,
+      wordCount: undefined,
+    });
+
+    if (identityData.image) {
+      void this.resolveImageUrl(
+        identityData.image,
+        project.username,
+        project.slug
+      );
+    }
+  }
+
+  /**
+   * Load a document excerpt for an Item element.
+   * Returns true when a non-empty preview was set, false otherwise.
+   */
+  private async loadItemDocumentPreview(
+    elementId: string,
+    project: { username: string; slug: string }
+  ): Promise<boolean> {
+    try {
+      const docId = `${project.username}:${project.slug}:${elementId}`;
+      const content = await this.documentService.getDocumentContent(docId);
+      if (!content || !Array.isArray(content) || content.length === 0) {
+        return false;
+      }
+
+      const plainText = flattenToPlainText(content).trim();
+      const wordCount = plainText ? plainText.split(/\s+/).length : 0;
+      const excerpt =
+        plainText.length > 200
+          ? plainText.substring(0, 200) + '…'
+          : plainText || undefined;
+
+      this.previewContent.set({
+        path: undefined,
+        excerpt,
+        wordCount: wordCount > 0 ? wordCount : undefined,
+      });
+      return true;
+    } catch {
+      // Fall through to default empty preview
+      return false;
     }
   }
 
