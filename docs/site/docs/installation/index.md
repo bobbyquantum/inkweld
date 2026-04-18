@@ -83,7 +83,7 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
 After installation, you'll want to:
 
 1. **[Configure your instance](/docs/configuration)** - Set up authentication, storage, and optional features
-2. **[Create your first project](/docs/user-guide/projects)** - Start writing!
+2. **[Create your first project](/user-guide/getting-started/first-project)** - Start writing!
 3. **[Set up user management](/docs/admin-guide/overview)** - Manage access and permissions
 
 ---
