@@ -3,6 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/api/documents.service';
+import { generateUserColor } from '@services/presence/user-color';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
@@ -591,16 +592,11 @@ describe('DocumentService', () => {
 
     it('should generate a stable user color and derive the project key', () => {
       const privateService = service as unknown as {
-        generateUserColor: (username: string) => string;
         getProjectKey: () => string | null;
       };
 
-      expect(privateService.generateUserColor('testuser')).toMatch(
-        /^#[0-9a-f]{6}$/i
-      );
-      expect(privateService.generateUserColor('testuser')).toBe(
-        privateService.generateUserColor('testuser')
-      );
+      expect(generateUserColor('testuser')).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(generateUserColor('testuser')).toBe(generateUserColor('testuser'));
       expect(privateService.getProjectKey()).toBe('testuser/test-project');
     });
 

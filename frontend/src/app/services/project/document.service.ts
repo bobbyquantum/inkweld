@@ -9,6 +9,7 @@ import {
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { createCommentPlugin } from '@components/comment-mark/comment-plugin';
 import { DocumentsService } from '@inkweld/index';
+import { generateUserColor } from '@services/presence/user-color';
 import { Plugin } from 'prosemirror-state';
 import { Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
@@ -1088,7 +1089,7 @@ export class DocumentService {
       if (currentUser?.username && provider.awareness.setLocalStateField) {
         provider.awareness.setLocalStateField('user', {
           name: currentUser.username,
-          color: this.generateUserColor(currentUser.username),
+          color: generateUserColor(currentUser.username),
         });
         this.logger.debug(
           'DocumentService',
@@ -1455,57 +1456,6 @@ export class DocumentService {
       }
       this.projectStateService.updateSyncState(documentId, state);
     });
-  }
-
-  /**
-   * Generates a consistent color for a user based on their username
-   * @param username - The username to generate a color for
-   * @returns A hex color string
-   */
-  private generateUserColor(username: string): string {
-    // Simple hash function to generate a consistent color from username
-    let hash = 0;
-    for (const char of username) {
-      hash = char.codePointAt(0)! + ((hash << 5) - hash);
-    }
-
-    // Convert to a pleasant color (avoid too dark or too light)
-    const hue = Math.abs(hash % 360);
-    const saturation = 70; // Keep saturation consistent for vibrancy
-    const lightness = 60; // Keep lightness consistent for readability
-
-    // Convert HSL to RGB, then to hex
-    const h = hue / 360;
-    const s = saturation / 100;
-    const l = lightness / 100;
-
-    let r: number, g: number, b: number;
-
-    if (s === 0) {
-      r = g = b = l; // achromatic
-    } else {
-      const hue2rgb = (p: number, q: number, t: number) => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;
-        if (t < 1 / 2) return q;
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-        return p;
-      };
-
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1 / 3);
-      g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1 / 3);
-    }
-
-    const toHex = (x: number) => {
-      const hex = Math.round(x * 255).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    };
-
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
 
   /**

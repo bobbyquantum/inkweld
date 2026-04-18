@@ -17,6 +17,44 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 
 /**
+ * Snapshot of a single user's awareness state, as produced by the sync
+ * provider. Used to power presence indicators across collaborative tabs
+ * (timeline, canvas, etc.). The provider strips the local client from
+ * `remotePresence$` so consumers only see other users.
+ */
+export interface PresenceUser {
+  /** Yjs awareness clientID for the remote peer. */
+  clientId: number;
+  /** Display name for the user (typically the account username). */
+  username: string;
+  /** Stable hex color used for cursors / avatars. */
+  color: string;
+  /**
+   * Optional location identifier set by the peer (e.g. `timeline:<elementId>`
+   * or `canvas:<elementId>`) so consumers can show only users currently
+   * focused on a specific tab.
+   */
+  location?: string;
+}
+
+/**
+ * Local awareness fields that can be set on a sync provider. These are
+ * broadcast to other peers via the underlying real-time protocol (Yjs
+ * awareness). Providers without a real-time backend should treat
+ * `setLocalAwareness` as a no-op.
+ */
+export interface LocalAwarenessFields {
+  /** Identity of the local user. Set once per connection. */
+  user?: { name: string; color: string } | null;
+  /**
+   * Current location of the local user inside the project (e.g. which tab
+   * they have focused). Pass `null` to clear. Use a stable string key per
+   * tab/element so consumers can filter.
+   */
+  location?: string | null;
+}
+
+/**
  * Project metadata stored in Yjs for offline-first sync.
  * This includes fields that need CRDT conflict resolution.
  */
@@ -361,6 +399,28 @@ export interface IElementSyncProvider {
    * @param meta Partial metadata to update
    */
   updateProjectMeta(meta: Partial<ProjectMeta>): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Presence / awareness
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Set the local user's awareness fields. Broadcast to other peers via the
+   * underlying real-time protocol so they can render presence (cursors,
+   * avatars, "X is editing" indicators, etc.).
+   *
+   * Providers without a real-time backend MUST implement this as a no-op.
+   *
+   * @param fields Partial awareness fields to merge into the local state.
+   */
+  setLocalAwareness(fields: LocalAwarenessFields): void;
+
+  /**
+   * Observable stream of remote presence users, excluding the local client.
+   * Emits whenever any remote peer joins, leaves, or updates their awareness
+   * state. Providers without a real-time backend MUST emit an empty array.
+   */
+  remotePresence$: Observable<PresenceUser[]>;
 }
 
 /**

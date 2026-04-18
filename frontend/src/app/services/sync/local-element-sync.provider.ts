@@ -20,6 +20,8 @@ import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import {
   type IElementSyncProvider,
+  type LocalAwarenessFields,
+  type PresenceUser,
   type ProjectMeta,
   type SyncConnectionConfig,
   type SyncConnectionResult,
@@ -110,6 +112,20 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
   readonly lastConnectionError$: Observable<string | null> =
     this.lastConnectionErrorSubject.asObservable();
+
+  /**
+   * Local-only provider has no real-time peers, so presence is always empty.
+   */
+  readonly remotePresence$: Observable<PresenceUser[]> = new BehaviorSubject<
+    PresenceUser[]
+  >([]).asObservable();
+
+  /**
+   * No-op for local-only mode (no peers to broadcast to).
+   */
+  setLocalAwareness(_fields: LocalAwarenessFields): void {
+    // Intentionally empty: no remote peers in local-only mode.
+  }
 
   /**
    * Connect to offline storage for a project.

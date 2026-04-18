@@ -336,6 +336,10 @@
   flex-shrink: 0;
 }
 
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
 .zoom-label {
   font-size: 12px;
   color: var(--sys-on-surface-variant);
