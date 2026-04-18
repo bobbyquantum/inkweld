@@ -107,7 +107,7 @@ afterEach(() => {
   // Use destroyAfterEach instead of resetTestingModule for better cleanup
   try {
     getTestBed().resetTestingModule();
-  } catch (e) {
+  } catch {
     // Ignore errors if TestBed was already reset
   }
 });
@@ -133,8 +133,6 @@ vi.mock('y-indexeddb', () => {
         string,
         Set<(...args: any[]) => void>
       >();
-
-      constructor(_name: string, _doc: any) {}
 
       on(event: string, callback: (...args: any[]) => void): void {
         if (!this._listeners.has(event)) {
@@ -177,8 +175,6 @@ vi.mock('y-websocket', () => {
         string,
         Set<(...args: any[]) => void>
       >();
-
-      constructor(_url: string, _room: string, _doc: any, _options?: any) {}
 
       on(event: string, callback: (...args: any[]) => void): void {
         if (!this._listeners.has(event)) {
@@ -354,16 +350,12 @@ vi.mock('prosemirror-schema-list', () => ({
 // ---------------------------------------------------------------------------
 // (intentionally kept active — see comment above)
 
-// Mock File.arrayBuffer for jsdom (only if not already defined)
+// Mock File.arrayBuffer for jsdom (only if not already defined).
+// jsdom provides Blob#arrayBuffer; reuse it for File which extends Blob.
 if (!File.prototype.arrayBuffer) {
   Object.defineProperty(File.prototype, 'arrayBuffer', {
     value: function () {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(this);
-      });
+      return Blob.prototype.arrayBuffer.call(this);
     },
   });
 }
