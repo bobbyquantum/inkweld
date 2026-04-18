@@ -288,7 +288,7 @@ class UserService {
     }
 
     // Build query with optional search
-    let query = db.select().from(users);
+    let query = db.select().from(users).$dynamic();
 
     // Build where clause
     let whereClause: ReturnType<typeof and> | ReturnType<typeof or> | undefined;

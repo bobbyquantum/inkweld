@@ -292,6 +292,10 @@
             {{ zoomPercent() }}%
           </span>
         </div>
+
+        <div class="toolbar-spacer" aria-hidden="true"></div>
+
+        <app-tab-presence-indicator [location]="presenceLocation()" />
       </div>
 
       <!-- Konva canvas container -->

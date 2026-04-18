@@ -15,6 +15,7 @@ import {
 } from '@models/timeline.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
+import { PresenceService } from '@services/presence/presence.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimelineService } from '@services/timeline/timeline.service';
 import { of } from 'rxjs';
@@ -101,6 +102,14 @@ describe('TimelineTabComponent', () => {
         { provide: LoggerService, useValue: mockLogger },
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
+        {
+          provide: PresenceService,
+          useValue: {
+            setActiveLocation: vi.fn(),
+            usersAtLocation: () => signal([]).asReadonly(),
+            users: signal([]).asReadonly(),
+          },
+        },
       ],
     })
       .overrideComponent(TimelineTabComponent, {

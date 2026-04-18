@@ -47,6 +47,9 @@ describe('YjsElementSyncProvider', () => {
     awareness: {
       setLocalState: ReturnType<typeof vi.fn>;
       setLocalStateField: ReturnType<typeof vi.fn>;
+      getStates: ReturnType<typeof vi.fn>;
+      on: ReturnType<typeof vi.fn>;
+      off: ReturnType<typeof vi.fn>;
       clientID: number;
     };
   };
@@ -159,6 +162,9 @@ describe('YjsElementSyncProvider', () => {
       awareness: {
         setLocalState: vi.fn(),
         setLocalStateField: vi.fn(),
+        getStates: vi.fn().mockReturnValue(new Map()),
+        on: vi.fn(),
+        off: vi.fn(),
         clientID: 123,
       },
     };
@@ -457,6 +463,34 @@ describe('YjsElementSyncProvider', () => {
       expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
     });
 
+    it('preserves queued awareness across pre-connect cleanup', () => {
+      provider.setLocalAwareness({
+        user: { name: 'alice', color: '#abcdef' },
+        location: 'timeline:e1',
+      });
+
+      // Simulate connect() preserving pending awareness across disconnect().
+      const queued = (provider as unknown as { pendingAwareness: unknown })
+        .pendingAwareness;
+      provider.disconnect();
+      (provider as unknown as { pendingAwareness: unknown }).pendingAwareness =
+        queued;
+
+      (
+        provider as unknown as { wsProvider: typeof websocketProvider | null }
+      ).wsProvider = websocketProvider;
+      (
+        provider as unknown as { setupAwarenessHandlers: () => void }
+      ).setupAwarenessHandlers();
+
+      expect(
+        websocketProvider.awareness.setLocalStateField
+      ).toHaveBeenCalledWith('user', { name: 'alice', color: '#abcdef' });
+      expect(
+        websocketProvider.awareness.setLocalStateField
+      ).toHaveBeenCalledWith('location', 'timeline:e1');
+    });
+
     it.skip('falls back to local mode when websocket authentication fails', async () => {
       websocketModuleMocks.createAuthenticatedWebsocketProvider.mockRejectedValueOnce(
         new Error('auth failed')
@@ -626,6 +660,105 @@ describe('YjsElementSyncProvider', () => {
       provider.updateMediaTags(newTags);
       expect(provider.getMediaTags()).toEqual(newTags);
       expect(doc.getArray('mediaTags').toArray()).toEqual(newTags);
+    });
+  });
+
+  describe('awareness / presence', () => {
+    it('queues awareness fields and applies them to the websocket provider once connected', () => {
+      // Before wsProvider exists, queue should accumulate.
+      provider.setLocalAwareness({
+        user: { name: 'alice', color: '#abcdef' },
+      });
+      provider.setLocalAwareness({ location: 'timeline:e1' });
+
+      // Attach the mocked ws provider, then trigger applyPendingAwareness.
+      (
+        provider as unknown as { wsProvider: typeof websocketProvider | null }
+      ).wsProvider = websocketProvider;
+      (
+        provider as unknown as { applyPendingAwareness: () => void }
+      ).applyPendingAwareness();
+
+      expect(
+        websocketProvider.awareness.setLocalStateField
+      ).toHaveBeenCalledWith('user', { name: 'alice', color: '#abcdef' });
+      expect(
+        websocketProvider.awareness.setLocalStateField
+      ).toHaveBeenCalledWith('location', 'timeline:e1');
+    });
+
+    it('emits remote presence excluding the local clientID', () => {
+      (
+        provider as unknown as { wsProvider: typeof websocketProvider | null }
+      ).wsProvider = websocketProvider;
+      websocketProvider.awareness.getStates.mockReturnValue(
+        new Map<number, unknown>([
+          [123, { user: { name: 'self', color: '#000000' } }],
+          [
+            456,
+            {
+              user: { name: 'bob', color: '#112233' },
+              location: 'timeline:e1',
+            },
+          ],
+        ])
+      );
+
+      const received: unknown[] = [];
+      const sub = provider.remotePresence$.subscribe(users => {
+        received.push(users);
+      });
+
+      (
+        provider as unknown as { emitRemotePresence: () => void }
+      ).emitRemotePresence();
+
+      sub.unsubscribe();
+      const last = received[received.length - 1] as Array<{
+        clientId: number;
+        username: string;
+      }>;
+      expect(last.map(u => u.clientId)).toEqual([456]);
+      expect(last[0]).toMatchObject({
+        clientId: 456,
+        username: 'bob',
+        color: '#112233',
+        location: 'timeline:e1',
+      });
+    });
+
+    it('subscribes to awareness change/update events on setup', () => {
+      (
+        provider as unknown as { wsProvider: typeof websocketProvider | null }
+      ).wsProvider = websocketProvider;
+      (
+        provider as unknown as { setupAwarenessHandlers: () => void }
+      ).setupAwarenessHandlers();
+
+      expect(websocketProvider.awareness.on).toHaveBeenCalledWith(
+        'change',
+        expect.any(Function)
+      );
+      expect(websocketProvider.awareness.on).toHaveBeenCalledWith(
+        'update',
+        expect.any(Function)
+      );
+    });
+
+    it('clears local awareness state on disconnect', () => {
+      (
+        provider as unknown as { wsProvider: typeof websocketProvider | null }
+      ).wsProvider = websocketProvider;
+      (
+        provider as unknown as { setupAwarenessHandlers: () => void }
+      ).setupAwarenessHandlers();
+
+      provider.disconnect();
+
+      expect(websocketProvider.awareness.setLocalState).toHaveBeenCalledWith(
+        null
+      );
+      expect(websocketProvider.destroy).toHaveBeenCalledTimes(1);
     });
   });
 });
