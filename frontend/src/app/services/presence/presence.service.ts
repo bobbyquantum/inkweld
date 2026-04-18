@@ -53,6 +53,8 @@ export class PresenceService {
             color: generateUserColor(user.username),
           },
         });
+      } else {
+        provider.setLocalAwareness({ user: null });
       }
     });
   }

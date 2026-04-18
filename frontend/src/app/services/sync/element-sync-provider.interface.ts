@@ -45,7 +45,7 @@ export interface PresenceUser {
  */
 export interface LocalAwarenessFields {
   /** Identity of the local user. Set once per connection. */
-  user?: { name: string; color: string };
+  user?: { name: string; color: string } | null;
   /**
    * Current location of the local user inside the project (e.g. which tab
    * they have focused). Pass `null` to clear. Use a stable string key per

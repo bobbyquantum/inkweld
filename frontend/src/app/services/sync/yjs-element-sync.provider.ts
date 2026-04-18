@@ -1332,7 +1332,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
 /**
  * Merge two LocalAwarenessFields snapshots, with `incoming` overriding
- * `existing`. Exported for unit-testing the merge semantics.
+ * `existing`.
  */
 function mergeAwarenessFields(
   existing: LocalAwarenessFields,

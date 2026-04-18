@@ -51,6 +51,11 @@ describe('CanvasTabComponent', () => {
   let component: CanvasTabComponent;
   let fixture: ComponentFixture<CanvasTabComponent>;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
+  const mockPresenceService = {
+    setActiveLocation: vi.fn(),
+    usersAtLocation: () => signal([]).asReadonly(),
+    users: signal([]).asReadonly(),
+  };
 
   function createStageStub(overrides: Record<string, unknown> = {}) {
     return {
@@ -191,11 +196,7 @@ describe('CanvasTabComponent', () => {
         { provide: RelationshipService, useValue: mockRelationshipService },
         {
           provide: PresenceService,
-          useValue: {
-            setActiveLocation: vi.fn(),
-            usersAtLocation: () => signal([]).asReadonly(),
-            users: signal([]).asReadonly(),
-          },
+          useValue: mockPresenceService,
         },
       ],
     })
@@ -213,6 +214,7 @@ describe('CanvasTabComponent', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    mockPresenceService.setActiveLocation.mockReset();
   });
 
   it('should create', () => {
@@ -222,6 +224,12 @@ describe('CanvasTabComponent', () => {
   it('should load canvas config on init', () => {
     fixture.detectChanges();
     expect(mockCanvasService.loadConfig).toHaveBeenCalledWith('test-canvas');
+    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(
+      'canvas:test-canvas'
+    );
+
+    fixture.destroy();
+    expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(null);
   });
 
   it('should set element name from project elements', () => {

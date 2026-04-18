@@ -64,10 +64,10 @@ describe('PresenceService', () => {
     });
   });
 
-  it('does not throw when no user is signed in', () => {
+  it('clears local awareness identity when no user is signed in', () => {
     setupService({ provider, currentUser });
     expect(() => TestBed.flushEffects()).not.toThrow();
-    expect(provider.setLocalAwareness).not.toHaveBeenCalled();
+    expect(provider.setLocalAwareness).toHaveBeenCalledWith({ user: null });
   });
 
   it('forwards setActiveLocation to the provider', () => {
