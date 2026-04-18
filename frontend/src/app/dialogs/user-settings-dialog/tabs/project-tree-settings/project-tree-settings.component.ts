@@ -21,6 +21,10 @@ export class ProjectTreeSettingsComponent {
   }
 
   set confirmElementMoves(value: boolean) {
-    this.settingsService.setSetting<boolean>('confirmElementMoves', value);
+    if (typeof value === 'boolean') {
+      this.settingsService.setSetting<boolean>('confirmElementMoves', value);
+    } else {
+      this.settingsService.setSetting<boolean>('confirmElementMoves', false);
+    }
   }
 }
