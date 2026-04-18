@@ -147,31 +147,39 @@ interface UnitDraft {
                   </button>
                   <div class="unit-actions">
                     <button
+                      type="button"
                       mat-icon-button
                       matTooltip="Move up"
+                      aria-label="Move unit up"
                       [disabled]="i === 0"
                       (click)="onMoveUnit(i, -1)"
                       [attr.data-testid]="'time-system-edit-unit-up-' + i">
                       <mat-icon>arrow_upward</mat-icon>
                     </button>
                     <button
+                      type="button"
                       mat-icon-button
                       matTooltip="Move down"
+                      aria-label="Move unit down"
                       [disabled]="i === units().length - 1"
                       (click)="onMoveUnit(i, 1)"
                       [attr.data-testid]="'time-system-edit-unit-down-' + i">
                       <mat-icon>arrow_downward</mat-icon>
                     </button>
                     <button
+                      type="button"
                       mat-icon-button
                       matTooltip="Edit unit"
+                      aria-label="Edit unit"
                       (click)="onEditUnit(i)"
                       [attr.data-testid]="'time-system-edit-unit-edit-' + i">
                       <mat-icon>edit</mat-icon>
                     </button>
                     <button
+                      type="button"
                       mat-icon-button
                       matTooltip="Remove unit"
+                      aria-label="Remove unit"
                       [disabled]="units().length <= 1"
                       (click)="onRemoveUnit(i)"
                       [attr.data-testid]="'time-system-edit-unit-remove-' + i">
@@ -438,6 +446,7 @@ export class TimeSystemEditPageComponent {
   protected readonly canSave = computed(() => {
     this.formTickSignal();
     if (this.form.invalid) return false;
+    if (!this.form.controls.name.value.trim()) return false;
     const list = this.units();
     if (list.length === 0) return false;
     return list.every(u => {
@@ -470,6 +479,7 @@ export class TimeSystemEditPageComponent {
   // ─── State initialisation ─────────────────────────────────────────────
 
   private initialiseBlank(): void {
+    this.loadError.set(null);
     this.form.reset({
       name: '',
       format: '{u0}-{u1}-{u2}',

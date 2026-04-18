@@ -444,9 +444,11 @@ export function parseTimePoint(
   for (const p of parts) {
     if (!/^[+-]?\d+$/.test(p)) return null;
   }
+  // Normalize leading '+' so points pass isValidTimePointFor (which uses /^-?\d+$/).
+  const normalized = parts.map(p => (p.startsWith('+') ? p.slice(1) : p));
   return {
     systemId: system.id,
-    units: parts,
+    units: normalized,
     ...(circa ? { circa: true } : {}),
   };
 }

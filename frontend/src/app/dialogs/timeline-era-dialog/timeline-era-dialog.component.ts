@@ -2,9 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   type AbstractControl,
   FormArray,
@@ -274,6 +276,7 @@ export class TimelineEraDialogComponent {
   private readonly endDateSignal = signal('');
   protected readonly startDateValue = this.startDateSignal.asReadonly();
   protected readonly endDateValue = this.endDateSignal.asReadonly();
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     const n = this.data.system.unitLabels.length;
@@ -329,6 +332,14 @@ export class TimelineEraDialogComponent {
 
     this.startDateSignal.set(this.unitsToIsoDate('start'));
     this.endDateSignal.set(this.unitsToIsoDate('end'));
+
+    // Keep the Gregorian date picker in sync when numeric unit fields are edited.
+    this.form.controls.startUnits.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.startDateSignal.set(this.unitsToIsoDate('start')));
+    this.form.controls.endUnits.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.endDateSignal.set(this.unitsToIsoDate('end')));
   }
 
   protected startUnits(): FormArray<FormControl<string>> {
