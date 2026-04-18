@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { GREGORIAN_SYSTEM, RELATIVE_YEARS_SYSTEM } from '@models/time-system';
 import type { TimelineTrack } from '@models/timeline.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,7 +26,7 @@ const baseData: TimelineEventDialogData = {
 async function createComponent(data: TimelineEventDialogData = baseData) {
   const closeSpy = vi.fn();
   await TestBed.configureTestingModule({
-    imports: [TimelineEventDialogComponent, NoopAnimationsModule],
+    imports: [TimelineEventDialogComponent],
     providers: [
       { provide: MAT_DIALOG_DATA, useValue: data },
       { provide: MatDialogRef, useValue: { close: closeSpy } },
