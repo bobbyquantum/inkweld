@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Document Management**: Hierarchical organization of projects, documents, and elements (folders, files)
 - **Rich Text Editor**: ProseMirror-based editor with advanced formatting options
 - **Offline Support**: IndexedDB storage for offline editing with automatic sync when reconnected
-- **Worldbuilding Templates**: Character and location templates with real-time collaboration *(Note: Not yet ported to new Hono backend on feature/new-backend branch)*
+- **Worldbuilding Templates**: Character and location templates with real-time collaboration
 - **Version History**: Track changes and revert to previous versions.
 
 #### Content Export
@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Developer Experience
 
 - **Modern Tech Stack**: Angular 21 (frontend), Hono on Bun (backend)
-- **Comprehensive Testing**: Jest for unit tests, Playwright for e2e tests
+- **Comprehensive Testing**: Vitest for unit tests, Playwright for e2e tests
 - **API Documentation**: Auto-generated OpenAPI specification
 - **Type Safety**: Full TypeScript implementation with strict mode
 - **AI Agent Support**: Detailed documentation for AI coding assistants (AGENTS.md, copilot-instructions.md)
@@ -53,9 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known Limitations
 
 - **User Management**: Username changes and profile customization not yet implemented
-- **Import/Export**: Archive import/export functionality is partially implemented
 - **Project Renaming**: Changing project slugs not yet supported
-- **Export Options**: Markdown export not yet implemented
 - **Mobile UI**: Responsive design could be improved for mobile devices
 
 ### Technical Stack
@@ -69,11 +67,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - Comprehensive README with setup instructions and feature overview
-- Getting Started guide (docs/GETTING_STARTED.md)
-- CI/CD documentation (docs/CI_CD.md)
+- Docusaurus documentation site under `docs/site/`
 - E2E testing best practices (frontend/e2e/BEST_PRACTICES.md)
 - AI agent instructions (AGENTS.md, .github/copilot-instructions.md)
-- Admin CLI documentation (backend/ADMIN_CLI.md)
 
 ### Community
 
@@ -81,21 +77,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pull request template
 - Renovate bot configured for automated dependency updates
 
----
-
-## [Unreleased]
-
 ### Planned Features
 
-- Markdown export
 - Project renaming and slug changes
-- Complete archive import/export
 - Enhanced mobile UI
 - User profile customization
 - Additional OAuth providers (Google, etc.)
 - Two-factor authentication
 - Production logging framework
-- Self-hosting documentation
 - Monitoring and observability
 
 ---

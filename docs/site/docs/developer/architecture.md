@@ -306,22 +306,22 @@ sequenceDiagram
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 graph TB
-    subgraph Dev[\"Development\"]
-        DevBun[\"Bun Runtime<br/>Port 8333\"]
-        DevNG[\"Angular CLI<br/>Port 4200\"]
+    subgraph Dev["Development"]
+        DevBun["Bun Runtime<br/>Port 8333"]
+        DevNG["Angular CLI<br/>Port 4200"]
     end
 
-    subgraph Prod[\"Production Options\"]
-        BunProd[\"🚀 Bun Server<br/>(Primary)\"]
-        NodeProd[\"Node.js Server<br/>(Compatible)\"]
-        Docker[\"🐳 Docker Container<br/>(Recommended)\"]
-        CF[\"☁️ Cloudflare Workers<br/>(Experimental)\"]
+    subgraph Prod["Production Options"]
+        BunProd["🚀 Bun Server<br/>(Primary)"]
+        NodeProd["Node.js Server<br/>(Compatible)"]
+        Docker["🐳 Docker Container<br/>(Recommended)"]
+        CF["☁️ Cloudflare Workers<br/>(Experimental)"]
     end
 
-    subgraph Storage[\"Storage Backends\"]
-        SQLite[(\"SQLite\")]
-        D1[(\"D1 Database\")]
-        R2[(\"R2 Storage\")]
+    subgraph Storage["Storage Backends"]
+        SQLite[("SQLite")]
+        D1[("D1 Database")]
+        R2[("R2 Storage")]
     end
 
     BunProd --> SQLite
@@ -374,7 +374,7 @@ docker run -p 8333:8333 -v inkweld_data:/data inkweld
 
 Benefits:
 
-- Single ~200MB image with frontend embedded
+- Single self-contained image with frontend embedded (~340MB)
 - Automatic migrations on startup
 - Volume mounting for persistence
 - Health check endpoint
@@ -384,25 +384,25 @@ Benefits:
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 graph LR
-    subgraph Dev[\"Development\"]
-        DevStart[\"npm start\"]
-        Concurrent[\"Concurrently\"]
-        AngularDev[\"Angular CLI<br/>:4200\"]
-        BunDev[\"Bun<br/>:8333\"]
+    subgraph Dev["Development"]
+        DevStart["npm run dev"]
+        Concurrent["Concurrently"]
+        AngularDev["Angular CLI<br/>:4200"]
+        BunDev["Bun<br/>:8333"]
 
         DevStart --> Concurrent
         Concurrent --> AngularDev
         Concurrent --> BunDev
     end
 
-    subgraph Prod[\"Production Build\"]
-        ProdBuild[\"Build Process\"]
+    subgraph Prod["Production Build"]
+        ProdBuild["Build Process"]
 
-        FEBuild[\"Frontend Build<br/>(Angular + Vite)\"]
-        BEBuild[\"Backend Build<br/>(Bun optimize)\"]
+        FEBuild["Frontend Build<br/>(Angular + Vite)"]
+        BEBuild["Backend Build<br/>(Bun optimize)"]
 
-        FEDist[\"frontend/dist/\"]
-        BEDist[\"backend/dist/\"]
+        FEDist["frontend/dist/"]
+        BEDist["backend/dist/"]
 
         ProdBuild --> FEBuild
         ProdBuild --> BEBuild
@@ -410,10 +410,10 @@ graph LR
         BEBuild --> BEDist
     end
 
-    subgraph Docker[\"Docker Multi-Stage\"]
-        Stage1[\"Stage 1:<br/>Frontend Build\"]
-        Stage2[\"Stage 2:<br/>Backend Build\"]
-        Stage3[\"Stage 3:<br/>Runtime Image\"]
+    subgraph Docker["Docker Multi-Stage"]
+        Stage1["Stage 1:<br/>Frontend Build"]
+        Stage2["Stage 2:<br/>Backend Build"]
+        Stage3["Stage 3:<br/>Runtime Image"]
 
         Stage1 --> Stage2
         Stage2 --> Stage3
@@ -427,7 +427,7 @@ graph LR
 ### Development
 
 ```bash
-npm start  # Runs both frontend and backend
+npm run dev  # Runs both frontend and backend
 ```
 
 Powered by:
@@ -600,7 +600,7 @@ graph TD
 
 ```bash
 bun install          # Install all dependencies
-npm start            # Start dev servers
+npm run dev          # Start dev servers
 npm test             # Run all tests
 npm run lint         # Lint all code
 ```

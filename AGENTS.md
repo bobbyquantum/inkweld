@@ -206,7 +206,7 @@ src/
 bun install
 
 # Start development servers (both frontend & backend)
-npm start
+npm run dev
 
 # Run tests
 npm test
@@ -217,7 +217,7 @@ npm test
 ```bash
 # Frontend
 cd frontend
-npm start              # Dev server (localhost:4200)
+npm run dev            # Dev server (localhost:4200)
 npm test               # Run Vitest tests
 npm run e2e            # Run Playwright tests
 npm run lint           # Run linter
