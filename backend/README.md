@@ -153,7 +153,9 @@ backend/
 
 ## API Endpoints
 
-All API routes are mounted under `/api/v1/`. The canonical reference is the
+Most application API routes are mounted under `/api/v1/`, with some exceptions
+such as `/.well-known/*` (OAuth metadata), middleware paths like `/oauth/*`, and
+`/register` which remain root-mounted. The canonical reference is the
 auto-generated OpenAPI spec at [`backend/openapi.json`](./openapi.json) and the
 interactive API docs on the documentation site.
 
