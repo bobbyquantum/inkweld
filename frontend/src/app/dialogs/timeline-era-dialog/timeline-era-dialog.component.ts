@@ -278,7 +278,7 @@ export class TimelineEraDialogComponent {
   constructor() {
     const n = this.data.system.unitLabels.length;
     const seed = (point: TimePoint | undefined): string[] => {
-      if (point && point.systemId === this.data.system.id) {
+      if (point?.systemId === this.data.system.id) {
         return point.units.slice(0, n).map(String);
       }
       return Array.from({ length: n }, () => '0');
@@ -355,7 +355,7 @@ export class TimelineEraDialogComponent {
       which === 'start'
         ? (this.data.era?.start ?? this.data.defaultStart)
         : (this.data.era?.end ?? this.data.defaultEnd);
-    if (!source || source.units.length !== 3) return '';
+    if (source?.units.length !== 3) return '';
     const [y, m, d] = source.units.map(Number);
     if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
       return '';

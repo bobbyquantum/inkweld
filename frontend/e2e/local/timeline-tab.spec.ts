@@ -88,7 +88,7 @@ test.describe('Timeline Tab', () => {
 
     // Fill the form (Gregorian default → format "Y-M-D")
     await page.getByTestId('timeline-event-title').fill('First event');
-    await page.getByTestId('timeline-event-start').fill('2024-1-1');
+    await page.getByTestId('timeline-event-start-date').fill('2024-01-01');
 
     await page.getByTestId('timeline-event-save').click();
 
@@ -200,7 +200,7 @@ test.describe('Timeline Tab', () => {
     // Add an event.
     await page.getByTestId('timeline-add-event').click();
     await page.getByTestId('timeline-event-title').fill('Persisted event');
-    await page.getByTestId('timeline-event-start').fill('2024-6-15');
+    await page.getByTestId('timeline-event-start-date').fill('2024-06-15');
     await page.getByTestId('timeline-event-save').click();
 
     const pill = page.locator('[data-testid^="timeline-event-body-"]').first();
