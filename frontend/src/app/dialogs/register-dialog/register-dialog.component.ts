@@ -46,7 +46,7 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.isMobile = window.innerWidth < 768;
+    this.isMobile = globalThis.innerWidth < 768;
   }
 
   ngOnDestroy(): void {

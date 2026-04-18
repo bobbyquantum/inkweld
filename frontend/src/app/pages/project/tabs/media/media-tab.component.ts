@@ -170,8 +170,8 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     if (!prefix) return;
 
     try {
-      window.localStorage.setItem(`${prefix}:search`, query);
-      window.localStorage.setItem(
+      globalThis.localStorage.setItem(`${prefix}:search`, query);
+      globalThis.localStorage.setItem(
         `${prefix}:filters`,
         JSON.stringify({
           category: filters.category,
@@ -320,12 +320,12 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     if (!prefix) return;
 
     try {
-      const savedQuery = window.localStorage.getItem(`${prefix}:search`);
+      const savedQuery = globalThis.localStorage.getItem(`${prefix}:search`);
       if (savedQuery) {
         this.searchQuery.set(savedQuery);
       }
 
-      const savedFilters = window.localStorage.getItem(`${prefix}:filters`);
+      const savedFilters = globalThis.localStorage.getItem(`${prefix}:filters`);
       if (savedFilters) {
         const parsed = JSON.parse(savedFilters) as {
           category?: string;

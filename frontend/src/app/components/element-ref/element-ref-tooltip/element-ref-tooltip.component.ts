@@ -466,7 +466,7 @@ export class ElementRefTooltipComponent {
     const data = this._data();
     if (!data) return false;
     const tooltipHeight = 200; // Approximate max height
-    return data.position.y + tooltipHeight > window.innerHeight - 20;
+    return data.position.y + tooltipHeight > globalThis.innerHeight - 20;
   });
 
   /** Calculated tooltip position */
@@ -484,15 +484,15 @@ export class ElementRefTooltipComponent {
       : data.position.y + padding;
 
     // Keep within viewport horizontally
-    if (x + tooltipWidth > window.innerWidth - padding) {
-      x = window.innerWidth - tooltipWidth - padding;
+    if (x + tooltipWidth > globalThis.innerWidth - padding) {
+      x = globalThis.innerWidth - tooltipWidth - padding;
     }
     if (x < padding) x = padding;
 
     // Ensure y is within bounds
     if (y < padding) y = padding;
-    if (y + tooltipHeight > window.innerHeight - padding) {
-      y = window.innerHeight - tooltipHeight - padding;
+    if (y + tooltipHeight > globalThis.innerHeight - padding) {
+      y = globalThis.innerHeight - tooltipHeight - padding;
     }
 
     return { x, y };
