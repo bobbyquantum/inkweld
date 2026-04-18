@@ -362,6 +362,15 @@ export class UnifiedProjectService {
       );
     }
 
+    // Import time systems
+    if (archive.timeSystems.length > 0) {
+      await this.localElements.saveTimeSystems(
+        username,
+        slug,
+        archive.timeSystems
+      );
+    }
+
     // Import custom tags from template
     if (archive.tags.length > 0) {
       await this.localElements.saveCustomTags(username, slug, archive.tags);

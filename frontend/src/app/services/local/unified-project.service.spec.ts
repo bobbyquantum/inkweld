@@ -136,6 +136,7 @@ describe('UnifiedProjectService', () => {
         tags: [],
         elementTags: [],
         publishPlans: [],
+        timeSystems: [],
         snapshots: [],
         media: [],
       }),
@@ -152,6 +153,7 @@ describe('UnifiedProjectService', () => {
       saveRelationships: vi.fn().mockResolvedValue(undefined),
       saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
       savePublishPlans: vi.fn().mockResolvedValue(undefined),
+      saveTimeSystems: vi.fn().mockResolvedValue(undefined),
       saveCustomTags: vi.fn().mockResolvedValue(undefined),
       saveElementTags: vi.fn().mockResolvedValue(undefined),
     };
@@ -442,6 +444,7 @@ describe('UnifiedProjectService', () => {
         tags: [],
         elementTags: [],
         publishPlans: [],
+        timeSystems: [],
         snapshots: [],
         media: [
           {
@@ -493,6 +496,76 @@ describe('UnifiedProjectService', () => {
       );
 
       expect(mockLocalStorage.saveMedia).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('applyTemplate with time systems', () => {
+    it('should save time systems from the template archive', async () => {
+      setupService.getMode.mockReturnValue('local');
+
+      const mockTemplateService = TestBed.inject(
+        ProjectTemplateService
+      ) as unknown as MockedObject<ProjectTemplateService>;
+      const timeSystems = [
+        {
+          id: 'moonveil-reckoning',
+          name: 'Moonveil Reckoning',
+          isBuiltIn: true,
+          unitLabels: ['Cycle', 'Moon', 'Night'],
+          subdivisions: [13, 28],
+          format: 'C{u0} M{u1} N{u2}',
+          parseSeparator: '-',
+        },
+      ];
+      (
+        mockTemplateService.loadTemplate as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
+        manifest: {},
+        project: {},
+        elements: [],
+        documents: [],
+        worldbuilding: [],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        tags: [],
+        elementTags: [],
+        publishPlans: [],
+        timeSystems,
+        snapshots: [],
+        media: [],
+      });
+
+      const mockLocalElements = TestBed.inject(
+        LocalProjectElementsService
+      ) as unknown as MockedObject<LocalProjectElementsService>;
+
+      await service.createProject(
+        { title: 'New Project', slug: 'new-project' },
+        'worldbuilding-demo'
+      );
+
+      expect(mockLocalElements.saveTimeSystems).toHaveBeenCalledTimes(1);
+      expect(mockLocalElements.saveTimeSystems).toHaveBeenCalledWith(
+        'offlineuser',
+        'offline-project',
+        timeSystems
+      );
+    });
+
+    it('should not call saveTimeSystems when template has no time systems', async () => {
+      setupService.getMode.mockReturnValue('local');
+
+      const mockLocalElements = TestBed.inject(
+        LocalProjectElementsService
+      ) as unknown as MockedObject<LocalProjectElementsService>;
+
+      await service.createProject(
+        { title: 'New Project', slug: 'new-project' },
+        'worldbuilding-empty'
+      );
+
+      expect(mockLocalElements.saveTimeSystems).not.toHaveBeenCalled();
     });
   });
 });
