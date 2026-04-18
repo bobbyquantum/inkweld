@@ -64,7 +64,7 @@ export class ViewportService implements OnDestroy {
   }
 
   private initialize(): void {
-    const visualViewport = window.visualViewport;
+    const visualViewport = globalThis.visualViewport;
 
     if (visualViewport) {
       // Use Visual Viewport API (modern browsers)
@@ -79,31 +79,31 @@ export class ViewportService implements OnDestroy {
     } else {
       // Fallback for older browsers - just use window innerHeight
       this.resizeHandler = () => this.updateFromWindow();
-      window.addEventListener('resize', this.resizeHandler);
+      globalThis.addEventListener('resize', this.resizeHandler);
       this.updateFromWindow();
     }
 
     // Also listen to regular window resize for layout height updates
-    window.addEventListener('resize', () => {
-      this.layoutHeight.set(window.innerHeight);
+    globalThis.addEventListener('resize', () => {
+      this.layoutHeight.set(globalThis.innerHeight);
       this.updateCssVariables();
     });
 
     // Set initial layout height
-    this.layoutHeight.set(window.innerHeight);
+    this.layoutHeight.set(globalThis.innerHeight);
   }
 
   private updateFromVisualViewport(): void {
-    const visualViewport = window.visualViewport;
+    const visualViewport = globalThis.visualViewport;
     if (!visualViewport) return;
 
     this.visualHeight.set(visualViewport.height);
-    this.layoutHeight.set(window.innerHeight);
+    this.layoutHeight.set(globalThis.innerHeight);
     this.updateCssVariables();
   }
 
   private updateFromWindow(): void {
-    const height = window.innerHeight;
+    const height = globalThis.innerHeight;
     this.visualHeight.set(height);
     this.layoutHeight.set(height);
     this.updateCssVariables();
@@ -135,7 +135,7 @@ export class ViewportService implements OnDestroy {
   }
 
   private cleanup(): void {
-    const visualViewport = window.visualViewport;
+    const visualViewport = globalThis.visualViewport;
 
     if (visualViewport && this.resizeHandler) {
       visualViewport.removeEventListener('resize', this.resizeHandler);
@@ -144,7 +144,7 @@ export class ViewportService implements OnDestroy {
       visualViewport.removeEventListener('scroll', this.scrollHandler);
     }
     if (this.resizeHandler) {
-      window.removeEventListener('resize', this.resizeHandler);
+      globalThis.removeEventListener('resize', this.resizeHandler);
     }
   }
 }

@@ -106,10 +106,10 @@ export class AboutComponent {
   }
 
   openLicenses(): void {
-    window.open('/3rdpartylicenses.txt', '_blank');
+    globalThis.open('/3rdpartylicenses.txt', '_blank');
   }
 
   openExternalLink(url: string): void {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    globalThis.open(url, '_blank', 'noopener,noreferrer');
   }
 }

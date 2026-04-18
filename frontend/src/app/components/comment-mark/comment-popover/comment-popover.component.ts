@@ -384,13 +384,13 @@ export class CommentPopoverComponent {
     let top = pos.y + 24; // Below the click point
 
     // Keep within horizontal bounds
-    if (left + popoverWidth > window.innerWidth - margin) {
-      left = window.innerWidth - popoverWidth - margin;
+    if (left + popoverWidth > globalThis.innerWidth - margin) {
+      left = globalThis.innerWidth - popoverWidth - margin;
     }
     if (left < margin) left = margin;
 
     // If below would overflow, show above
-    if (top + popoverHeight > window.innerHeight - margin) {
+    if (top + popoverHeight > globalThis.innerHeight - margin) {
       top = pos.y - popoverHeight - 8;
     }
     if (top < margin) top = margin;

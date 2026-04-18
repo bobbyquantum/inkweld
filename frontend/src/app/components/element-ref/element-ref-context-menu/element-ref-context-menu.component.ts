@@ -349,11 +349,11 @@ export class ElementRefContextMenuComponent {
     let y = data.position.y;
 
     // Keep within viewport
-    if (x + menuWidth > window.innerWidth - padding) {
-      x = window.innerWidth - menuWidth - padding;
+    if (x + menuWidth > globalThis.innerWidth - padding) {
+      x = globalThis.innerWidth - menuWidth - padding;
     }
-    if (y + menuHeight > window.innerHeight - padding) {
-      y = window.innerHeight - menuHeight - padding;
+    if (y + menuHeight > globalThis.innerHeight - padding) {
+      y = globalThis.innerHeight - menuHeight - padding;
     }
     if (x < padding) x = padding;
     if (y < padding) y = padding;
