@@ -348,6 +348,8 @@ describe('EditorToolbarComponent', () => {
       component.insertLink();
 
       expect(promptSpy).toHaveBeenCalled();
+      expect(mockEditorView.state.tr.addMark).toHaveBeenCalled();
+      expect(mockEditorView.dispatch).toHaveBeenCalled();
       promptSpy.mockRestore();
     });
 

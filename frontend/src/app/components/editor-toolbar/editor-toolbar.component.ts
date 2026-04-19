@@ -288,7 +288,7 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
         // that would stop groups from being restored on resize).
         const fixedEls = Array.from(
           container.querySelectorAll<HTMLElement>(
-            '[data-toolbar-fixed]:not([data-toolbar-fixed="overflow"])'
+            '[data-toolbar-fixed]:not([data-toolbar-fixed="overflow"]):not([data-toolbar-fixed="spacer"])'
           )
         );
         // Reserve space for the overflow button (always, even when not shown)

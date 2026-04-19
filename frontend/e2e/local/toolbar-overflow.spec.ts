@@ -163,24 +163,18 @@ test.describe('Toolbar Overflow', () => {
       const editor = page.locator('ngx-editor .ProseMirror');
       await editor.type('Hello overflow');
 
-      // Constrain toolbar so the history group overflows
-      await constrainToolbarWidth(page, 250);
+      // Constrain toolbar aggressively so the highest-priority history group
+      // is also forced into the overflow menu.
+      await constrainToolbarWidth(page, 80);
 
       const overflowBtn = page.getByTestId('toolbar-overflow-btn');
       await expect(overflowBtn).toBeVisible({ timeout: 5000 });
       await overflowBtn.click();
 
       const overflowUndo = page.getByTestId('overflow-undo');
-      if (await overflowUndo.isVisible()) {
-        await overflowUndo.click();
-        const content = await editor.textContent();
-        expect(content).not.toBe('Hello overflow');
-      } else {
-        // undo button not overflowed at this constraint – verify other sections exist
-        const overflowSections = page.locator('[data-testid^="overflow-"]');
-        const count = await overflowSections.count();
-        expect(count).toBeGreaterThan(0);
-      }
+      await expect(overflowUndo).toBeVisible({ timeout: 5000 });
+      await overflowUndo.click();
+      await expect(editor).not.toContainText('Hello overflow');
     });
 
     test('toolbar height remains a single row when narrow', async ({
