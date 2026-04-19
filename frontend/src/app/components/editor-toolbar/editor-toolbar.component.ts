@@ -258,81 +258,96 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
 
     // Use double-rAF to guarantee the browser has fully committed layout changes
     requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        const containerWidth = container.offsetWidth;
-        if (containerWidth === 0) return;
-
-        // Update the width cache for groups that are currently visible (not hidden)
-        for (const name of this.groupPriority) {
-          const groupEl = container.querySelector<HTMLElement>(
-            `[data-toolbar-group="${name}"]`
-          );
-          const dividerEl = container.querySelector<HTMLElement>(
-            `[data-toolbar-divider="${name}"]`
-          );
-
-          // Only update cache for visible groups (non-zero width)
-          if (groupEl && !groupEl.classList.contains('toolbar-group--hidden')) {
-            const w =
-              (groupEl.offsetWidth ?? 0) + (dividerEl?.offsetWidth ?? 0);
-            if (w > 0) {
-              this.groupNaturalWidths.set(name, w);
-            }
-          }
-        }
-
-        // The comments toggle is absolutely positioned and the toolbar
-        // reserves space for it via `padding-right`, so clientWidth minus
-        // horizontal padding gives the width actually available to flex
-        // children. Reserve only the overflow button on top of that so the
-        // reservation stays stable whether or not it is currently in the DOM
-        // (prevents hysteresis that would stop groups from being restored
-        // on resize).
-        const style = getComputedStyle(container);
-        const paddingLeft = parseFloat(style.paddingLeft) || 0;
-        const paddingRight = parseFloat(style.paddingRight) || 0;
-        const paddingX = paddingLeft + paddingRight;
-        const overflowBtnWidth = 44;
-        const availableWidth = containerWidth - paddingX - overflowBtnWidth;
-
-        // Use cached widths for all groups (including currently-hidden ones)
-        let totalGroupWidth = 0;
-        for (const name of this.groupPriority) {
-          totalGroupWidth += this.groupNaturalWidths.get(name) ?? 0;
-        }
-
-        if (totalGroupWidth === 0) {
-          // Cache not yet populated — nothing to do
-          return;
-        }
-
-        if (totalGroupWidth <= availableWidth) {
-          // Everything fits — clear overflow
-          this.ngZone.run(() => this.overflowGroups.set(new Set()));
-          return;
-        }
-
-        // Remove groups from lowest priority until things fit
-        const reversed = [...this.groupPriority].reverse();
-        const newOverflow = new Set<ToolbarGroupName>();
-        let remaining = totalGroupWidth;
-        for (const name of reversed) {
-          if (remaining <= availableWidth) break;
-          newOverflow.add(name);
-          remaining -= this.groupNaturalWidths.get(name) ?? 0;
-        }
-
-        this.ngZone.run(() => {
-          const prev = this.overflowGroups();
-          const same =
-            prev.size === newOverflow.size &&
-            [...newOverflow].every(g => prev.has(g));
-          if (!same) {
-            this.overflowGroups.set(newOverflow);
-          }
-        });
-      })
+      requestAnimationFrame(() => this.performOverflowRecalc(container))
     );
+  }
+
+  /**
+   * Inner pass of `recalculateOverflow`, executed after a double
+   * `requestAnimationFrame` so browser layout is fully committed.
+   */
+  private performOverflowRecalc(container: HTMLElement): void {
+    const containerWidth = container.offsetWidth;
+    if (containerWidth === 0) return;
+
+    // Update the width cache for groups that are currently visible (not hidden)
+    for (const name of this.groupPriority) {
+      const groupEl = container.querySelector<HTMLElement>(
+        `[data-toolbar-group="${name}"]`
+      );
+      const dividerEl = container.querySelector<HTMLElement>(
+        `[data-toolbar-divider="${name}"]`
+      );
+
+      if (groupEl && !groupEl.classList.contains('toolbar-group--hidden')) {
+        const w = (groupEl.offsetWidth ?? 0) + (dividerEl?.offsetWidth ?? 0);
+        if (w > 0) {
+          this.groupNaturalWidths.set(name, w);
+        }
+      }
+    }
+
+    // The comments toggle is absolutely positioned and the toolbar reserves
+    // space for it via `padding-right`, so subtracting horizontal padding
+    // yields the width actually available to flex children. Reserve only
+    // the overflow button on top of that so the reservation stays stable
+    // whether or not it is currently in the DOM (prevents hysteresis that
+    // would stop groups from being restored on resize).
+    const style = getComputedStyle(container);
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    const overflowBtnWidth = 44;
+    const availableWidth =
+      containerWidth - paddingLeft - paddingRight - overflowBtnWidth;
+
+    let totalGroupWidth = 0;
+    for (const name of this.groupPriority) {
+      totalGroupWidth += this.groupNaturalWidths.get(name) ?? 0;
+    }
+
+    if (totalGroupWidth === 0) {
+      // Cache not yet populated — nothing to do
+      return;
+    }
+
+    if (totalGroupWidth <= availableWidth) {
+      this.ngZone.run(() => this.overflowGroups.set(new Set()));
+      return;
+    }
+
+    const newOverflow = this.computeOverflowSet(
+      totalGroupWidth,
+      availableWidth
+    );
+
+    this.ngZone.run(() => {
+      const prev = this.overflowGroups();
+      const same =
+        prev.size === newOverflow.size &&
+        [...newOverflow].every(g => prev.has(g));
+      if (!same) {
+        this.overflowGroups.set(newOverflow);
+      }
+    });
+  }
+
+  /**
+   * Given the total cached width and available width, pick the set of
+   * lowest-priority groups to move into the overflow menu so the rest fit.
+   */
+  private computeOverflowSet(
+    totalGroupWidth: number,
+    availableWidth: number
+  ): Set<ToolbarGroupName> {
+    const newOverflow = new Set<ToolbarGroupName>();
+    let remaining = totalGroupWidth;
+    for (let i = this.groupPriority.length - 1; i >= 0; i--) {
+      if (remaining <= availableWidth) break;
+      const name = this.groupPriority[i];
+      newOverflow.add(name);
+      remaining -= this.groupNaturalWidths.get(name) ?? 0;
+    }
+    return newOverflow;
   }
 
   /** Cached natural (full-width) pixel widths for each toolbar group+divider pair */
