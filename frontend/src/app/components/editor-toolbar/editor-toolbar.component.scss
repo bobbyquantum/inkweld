@@ -1,15 +1,27 @@
 @use '@angular/material' as mat;
 
 .editor-toolbar {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: nowrap; // overflow JS handles collapse; no multi-line wrapping
   padding: 4px 8px;
+  // Reserve space on the right for the absolutely-positioned comments
+  // toggle so it can never be pushed off-screen by flex siblings.
+  padding-right: 52px;
   gap: 4px;
   background-color: var(--sys-surface-container-lowest);
   border-bottom: 1px solid var(--sys-outline-variant);
   min-height: 49px;
   overflow: hidden; // prevent visual wrapping before JS recalculates
+}
+
+// Pin the comments toggle to the right edge of the toolbar, out of flex flow.
+.toolbar-comments-anchor {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .toolbar-group {

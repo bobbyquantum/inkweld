@@ -538,10 +538,13 @@
   }
 
   <!-- =====================================================================
-       FIXED: Spacer + Comments Toggle (always visible)
+       FIXED: Comments Toggle — anchored absolutely to the right edge so it
+       is never pushed out of view by flex siblings or layout transients.
+       The toolbar reserves padding-right to match its width.
        ===================================================================== -->
-  <div class="toolbar-spacer" data-toolbar-fixed="spacer"></div>
-  <div class="toolbar-group" data-toolbar-fixed="comments">
+  <div
+    class="toolbar-group toolbar-comments-anchor"
+    data-toolbar-fixed="comments">
     <button
       ngToolbarWidget
       value="comments"

@@ -515,9 +515,11 @@ describe('EditorToolbarComponent', () => {
         vi.useFakeTimers();
         const el = component.toolbarEl.nativeElement;
 
-        // Give the container a defined width
+        // Give the container a defined width. 300px leaves enough room
+        // (after padding + reserved overflow-button width) for history
+        // (highest priority) to stay while lower-priority groups overflow.
         Object.defineProperty(el, 'offsetWidth', {
-          value: 200,
+          value: 300,
           configurable: true,
         });
 
@@ -548,7 +550,9 @@ describe('EditorToolbarComponent', () => {
 
         // insert (lowest priority) should be overflowed first;
         // history is now highest priority and should stay visible.
-        // Total (6 groups * 50 * 2 = 600) >> available (200 - 40 - 44 = 116)
+        // Total = 6 groups * (50 + 50) = 600; available ≈ 300 - padding
+        // - 44 overflow reserve ≈ ~180, so lower-priority groups overflow
+        // but history stays.
         const overflow = component.overflowGroups();
         expect(overflow.has('insert')).toBe(true);
         expect(overflow.has('history')).toBe(false);

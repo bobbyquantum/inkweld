@@ -281,24 +281,19 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
           }
         }
 
-        // Fixed elements that are always present: spacer + comments button.
-        // Exclude the overflow button itself — it isn't always in the DOM,
-        // and we reserve a constant for it below so the reservation is stable
-        // whether or not overflow is currently active (prevents hysteresis
-        // that would stop groups from being restored on resize).
-        const fixedEls = Array.from(
-          container.querySelectorAll<HTMLElement>(
-            '[data-toolbar-fixed]:not([data-toolbar-fixed="overflow"]):not([data-toolbar-fixed="spacer"])'
-          )
-        );
-        // Reserve space for the overflow button (always, even when not shown)
+        // The comments toggle is absolutely positioned and the toolbar
+        // reserves space for it via `padding-right`, so clientWidth minus
+        // horizontal padding gives the width actually available to flex
+        // children. Reserve only the overflow button on top of that so the
+        // reservation stays stable whether or not it is currently in the DOM
+        // (prevents hysteresis that would stop groups from being restored
+        // on resize).
+        const style = getComputedStyle(container);
+        const paddingLeft = parseFloat(style.paddingLeft) || 0;
+        const paddingRight = parseFloat(style.paddingRight) || 0;
+        const paddingX = paddingLeft + paddingRight;
         const overflowBtnWidth = 44;
-        const fixedWidth = fixedEls.reduce(
-          (sum, el) => sum + el.offsetWidth,
-          overflowBtnWidth
-        );
-
-        const availableWidth = containerWidth - fixedWidth;
+        const availableWidth = containerWidth - paddingX - overflowBtnWidth;
 
         // Use cached widths for all groups (including currently-hidden ones)
         let totalGroupWidth = 0;
