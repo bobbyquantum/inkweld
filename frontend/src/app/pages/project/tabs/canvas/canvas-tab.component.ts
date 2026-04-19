@@ -259,13 +259,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly konvaLayers = new Map<string, Konva.Layer>();
   /** Map from CanvasObject.id → Konva.Node */
   private readonly konvaNodes = new Map<string, Konva.Node>();
+  /** Snapshot of render-affecting state keyed by CanvasObject.id */
+  private readonly objectRenderSignatures = new Map<string, string>();
   /** Konva Transformer for selection handles */
   private transformer: Konva.Transformer | null = null;
   /** Top-level layer for the transformer and selection */
   private selectionLayer: Konva.Layer | null = null;
-
-  /** Whether config has been loaded from element metadata */
-  private configLoadedFromMetadata = false;
 
   /** Points being drawn with the draw/line tool */
   private drawingPoints: number[] = [];
@@ -287,24 +286,16 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private keyboardShortcutsInitialized = false;
 
   constructor() {
-    // Re-load canvas config when elements become available (handles cold-start)
+    // Keep the tab title in sync with the underlying element's name.
     effect(() => {
       const elements = this.projectState.elements();
       const id = this.elementId();
-      if (!id || elements.length === 0 || this.configLoadedFromMetadata) return;
-
+      if (!id) return;
       const element = elements.find(e => e.id === id);
-      if (!element) return;
-
-      this.elementName.set(element.name);
-
-      if (element.metadata?.['canvasConfig']) {
-        this.canvasService.loadConfig(id);
-        this.configLoadedFromMetadata = true;
-      }
+      if (element) this.elementName.set(element.name);
     });
 
-    // Re-render Konva when config changes
+    // Re-render Konva when config changes (local edits OR remote sync).
     effect(() => {
       const config = this.canvasService.activeConfig();
       const container = this.canvasContainer();
@@ -324,7 +315,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       .subscribe(params => {
         const tabId = params.get('tabId') || '';
         this.elementId.set(tabId);
-        this.configLoadedFromMetadata = false;
 
         // Destroy previous Konva stage
         this.destroyStage();
@@ -335,16 +325,13 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           this.elementName.set(element.name);
         }
 
-        // Load canvas config
+        // Load canvas config — this binds the service to the element so
+        // remote metadata updates re-render the canvas live.
         const config = this.canvasService.loadConfig(tabId);
 
         // Set active layer to the first layer
         if (config.layers.length > 0) {
           this.activeLayerId.set(config.layers[0].id);
-        }
-
-        if (element?.metadata?.['canvasConfig']) {
-          this.configLoadedFromMetadata = true;
         }
 
         // Initialize Konva stage after a tick so the DOM is ready
@@ -566,7 +553,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       configObjectIds.size !== existingObjectIds.size ||
       [...configObjectIds].some(id => !existingObjectIds.has(id));
 
-    if (layersChanged || objectsChanged) {
+    const renderChanged = objects.some(obj => {
+      const prev = this.objectRenderSignatures.get(obj.id);
+      return prev !== this.getObjectRenderSignature(obj);
+    });
+
+    if (layersChanged || objectsChanged || renderChanged) {
       this.rebuildAllKonvaNodes(layers, objects);
     } else {
       // Just sync positions/transforms
@@ -577,8 +569,21 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           node.rotation(obj.rotation);
           node.scale({ x: obj.scaleX, y: obj.scaleY });
           node.visible(obj.visible);
+          node.draggable(!obj.locked);
         }
       }
+
+      for (const kLayer of this.konvaLayers.values()) {
+        kLayer.batchDraw();
+      }
+    }
+
+    this.objectRenderSignatures.clear();
+    for (const obj of objects) {
+      this.objectRenderSignatures.set(
+        obj.id,
+        this.getObjectRenderSignature(obj)
+      );
     }
 
     // Re-add selection layer as the topmost layer
@@ -598,10 +603,96 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     }
     this.konvaLayers.clear();
     this.konvaNodes.clear();
+    this.objectRenderSignatures.clear();
 
     // Recreate
     this.buildKonvaLayers(layers);
     this.buildKonvaObjects(objects);
+
+    for (const obj of objects) {
+      this.objectRenderSignatures.set(
+        obj.id,
+        this.getObjectRenderSignature(obj)
+      );
+    }
+
+    const selectedId = this.selectedObjectId();
+    if (selectedId) {
+      const selectedNode = this.konvaNodes.get(selectedId);
+      if (selectedNode) {
+        this.selectKonvaNode(selectedNode);
+      } else {
+        this.transformer?.nodes([]);
+        this.selectionLayer?.batchDraw();
+      }
+    }
+  }
+
+  /**
+   * Hash of fields that change how an object renders beyond basic transform.
+   * If this changes for any object, we rebuild Konva nodes to reflect remote edits.
+   */
+  private getObjectRenderSignature(obj: CanvasObject): string {
+    switch (obj.type) {
+      case 'image':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          src: obj.src,
+          width: obj.width,
+          height: obj.height,
+        });
+      case 'text':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          text: obj.text,
+          fontSize: obj.fontSize,
+          fontFamily: obj.fontFamily,
+          fontStyle: obj.fontStyle,
+          fill: obj.fill,
+          width: obj.width,
+          align: obj.align,
+        });
+      case 'path':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          points: obj.points,
+          stroke: obj.stroke,
+          strokeWidth: obj.strokeWidth,
+          closed: obj.closed,
+          fill: obj.fill,
+          tension: obj.tension,
+        });
+      case 'shape':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          shapeType: obj.shapeType,
+          width: obj.width,
+          height: obj.height,
+          points: obj.points,
+          fill: obj.fill,
+          stroke: obj.stroke,
+          strokeWidth: obj.strokeWidth,
+          cornerRadius: obj.cornerRadius,
+          dash: obj.dash,
+        });
+      case 'pin':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          label: obj.label,
+          icon: obj.icon,
+          color: obj.color,
+          linkedElementId: obj.linkedElementId,
+          relationshipId: obj.relationshipId,
+          note: obj.note,
+        });
+      default:
+        return JSON.stringify(obj);
+    }
   }
 
   /**

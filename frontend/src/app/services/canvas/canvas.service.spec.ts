@@ -254,6 +254,143 @@ describe('CanvasService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Remote sync (regression: canvas edits from other users must appear live)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('remote sync', () => {
+    it('updates activeConfig when the bound element metadata changes remotely', () => {
+      mockElements.set([
+        makeElement({
+          id: 'canvas-1',
+          metadata: {
+            canvasConfig: JSON.stringify({
+              layers: [
+                {
+                  id: 'l1',
+                  name: 'A',
+                  visible: true,
+                  locked: false,
+                  opacity: 1,
+                  order: 0,
+                },
+              ],
+              objects: [],
+            }),
+          },
+        }),
+      ]);
+      service.loadConfig('canvas-1');
+      expect(service.activeConfig()!.layers[0].name).toBe('A');
+
+      // Simulate a remote collaborator replacing the metadata payload.
+      mockElements.set([
+        makeElement({
+          id: 'canvas-1',
+          metadata: {
+            canvasConfig: JSON.stringify({
+              layers: [
+                {
+                  id: 'l1',
+                  name: 'A',
+                  visible: true,
+                  locked: false,
+                  opacity: 1,
+                  order: 0,
+                },
+                {
+                  id: 'l2',
+                  name: 'Remote Layer',
+                  visible: true,
+                  locked: false,
+                  opacity: 1,
+                  order: 1,
+                },
+              ],
+              objects: [makeTextObject({ layerId: 'l2', text: 'remote' })],
+            }),
+          },
+        }),
+      ]);
+
+      // Allow the effect to flush.
+      TestBed.flushEffects();
+
+      const active = service.activeConfig()!;
+      expect(active.layers).toHaveLength(2);
+      expect(active.layers[1].name).toBe('Remote Layer');
+      expect(active.objects).toHaveLength(1);
+      expect((active.objects[0] as CanvasText).text).toBe('remote');
+    });
+
+    it('does not re-parse on echoes of its own saveConfig writes', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+
+      const warnBefore = mockLogger.warn.mock.calls.length;
+      const before = service.activeConfig();
+
+      // Local save: stamps lastAppliedSerialized with the emitted JSON.
+      service.addLayer('Local');
+      const savedCall = mockProjectState.updateElementMetadata.mock.calls.at(
+        -1
+      ) as [string, Record<string, string>];
+      const serialized = savedCall[1]['canvasConfig'];
+
+      // The Yjs round-trip re-emits the same JSON into elements(). The
+      // service must short-circuit without re-parsing — the object identity
+      // of activeConfig stays stable.
+      const afterSave = service.activeConfig();
+      mockElements.set([
+        makeElement({ id: 'canvas-1', metadata: { canvasConfig: serialized } }),
+      ]);
+      TestBed.flushEffects();
+
+      expect(service.activeConfig()).toBe(afterSave);
+      expect(mockLogger.warn.mock.calls.length).toBe(warnBefore);
+      expect(before).not.toBe(afterSave);
+    });
+
+    it('rebinds when loadConfig is called with a different elementId', () => {
+      mockElements.set([
+        makeElement({ id: 'canvas-1', name: 'First' }),
+        makeElement({ id: 'canvas-2', name: 'Second' }),
+      ]);
+      service.loadConfig('canvas-1');
+      service.loadConfig('canvas-2');
+      expect(service.activeConfig()!.elementId).toBe('canvas-2');
+
+      // A remote update to the OLD element must no longer affect state.
+      mockElements.set([
+        makeElement({
+          id: 'canvas-1',
+          metadata: {
+            canvasConfig: JSON.stringify({
+              layers: [
+                {
+                  id: 'lx',
+                  name: 'Stale',
+                  visible: true,
+                  locked: false,
+                  opacity: 1,
+                  order: 0,
+                },
+              ],
+              objects: [],
+            }),
+          },
+        }),
+        makeElement({ id: 'canvas-2', name: 'Second' }),
+      ]);
+      TestBed.flushEffects();
+
+      expect(service.activeConfig()!.elementId).toBe('canvas-2');
+      expect(service.activeConfig()!.layers.some(l => l.name === 'Stale')).toBe(
+        false
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Layer Operations
   // ─────────────────────────────────────────────────────────────────────────
 

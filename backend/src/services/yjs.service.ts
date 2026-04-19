@@ -27,7 +27,19 @@ interface WSSharedDoc {
   name: string;
   doc: Y.Doc;
   awareness: awarenessProtocol.Awareness;
+  /**
+   * Map from each connected WebSocket to the set of awareness client IDs it
+   * "controls" (i.e. whose state it broadcast on this connection). Kept in
+   * sync via the awareness `update` listener so that on disconnect we can
+   * remove exactly the stale client IDs for that socket — otherwise remote
+   * peers keep seeing the ghost user until the doc is garbage-collected.
+   */
   conns: Map<WebSocket, Set<number>>;
+  /** Change listener registered on `doc.awareness` — kept here so cleanup can unregister it. */
+  awarenessChangeListener?: (
+    changes: { added: number[]; updated: number[]; removed: number[] },
+    origin: unknown
+  ) => void;
 }
 
 export class YjsService {
@@ -55,17 +67,57 @@ export class YjsService {
     if (!doc) {
       const ydoc = new Y.Doc();
       const awareness = new awarenessProtocol.Awareness(ydoc);
+      // The server itself is not an awareness participant — Yjs creates a
+      // default local state, so remove it to avoid broadcasting a phantom
+      // client to every peer.
+      awareness.setLocalState(null);
 
-      doc = {
+      const sharedDoc: WSSharedDoc = {
         name: documentId,
         doc: ydoc,
         awareness,
         conns: new Map(),
       };
 
+      // Track which client IDs each socket is responsible for so we can
+      // evict their awareness state on disconnect.
+      const onAwarenessChange = (
+        { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+        origin: unknown
+      ) => {
+        const controlledIds = sharedDoc.conns.get(origin as WebSocket);
+        if (controlledIds) {
+          for (const clientId of [...added, ...updated]) {
+            // Transfer ownership to the current socket so an older connection
+            // can't remove this live client's presence during disconnect cleanup.
+            for (const [conn, ids] of sharedDoc.conns) {
+              if (conn !== origin) {
+                ids.delete(clientId);
+              }
+            }
+            controlledIds.add(clientId);
+          }
+          for (const clientId of removed) controlledIds.delete(clientId);
+        }
+        // Broadcast the awareness change (including removals) to every other
+        // peer so they unmount the ghost user immediately.
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageAwareness);
+        const changedClients = [...added, ...updated, ...removed];
+        encoding.writeVarUint8Array(
+          encoder,
+          awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
+        );
+        const message = encoding.toUint8Array(encoder);
+        this.broadcastMessage(sharedDoc, message, origin);
+      };
+      awareness.on('update', onAwarenessChange);
+      sharedDoc.awarenessChangeListener = onAwarenessChange;
+
       // Set up persistence
       await this.setupPersistence(documentId, ydoc);
 
+      doc = sharedDoc;
       this.docs.set(documentId, doc);
     }
     return doc;
@@ -205,7 +257,7 @@ export class YjsService {
    * Handle WebSocket connection for a document - returns the doc for message handling
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
-  async handleConnection(ws: any, documentId: string, userId?: string): Promise<WSSharedDoc> {
+  async handleConnection(ws: any, documentId: string, _userId?: string): Promise<WSSharedDoc> {
     const doc = await this.getDocument(documentId);
 
     // Add connection
@@ -217,7 +269,9 @@ export class YjsService {
     syncProtocol.writeSyncStep1(encoder, doc.doc);
     ws.send(encoding.toUint8Array(encoder));
 
-    // Send awareness states
+    // Send awareness states (user identity is broadcast by the client, not the
+    // server — setting it server-side would overwrite clients' own state and
+    // leak whichever user connected most recently into everyone's awareness).
     const awarenessStates = doc.awareness.getStates();
     if (awarenessStates.size > 0) {
       const encoder2 = encoding.createEncoder();
@@ -227,11 +281,6 @@ export class YjsService {
         awarenessProtocol.encodeAwarenessUpdate(doc.awareness, Array.from(awarenessStates.keys()))
       );
       ws.send(encoding.toUint8Array(encoder2));
-    }
-
-    // Set user awareness
-    if (userId) {
-      doc.awareness.setLocalStateField('user', { id: userId });
     }
 
     return doc;
@@ -260,13 +309,15 @@ export class YjsService {
         }
 
         case messageAwareness:
+          // applyAwarenessUpdate triggers the `update` listener installed in
+          // getDocument(), which both tracks controlled client IDs for this
+          // socket and broadcasts to peers — so we must NOT double-broadcast
+          // here.
           awarenessProtocol.applyAwarenessUpdate(
             doc.awareness,
             decoding.readVarUint8Array(decoder),
             ws
           );
-          // Broadcast awareness to others
-          this.broadcastMessage(doc, message, ws);
           break;
       }
     } catch (error) {
@@ -279,6 +330,13 @@ export class YjsService {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
   handleDisconnect(ws: any, doc: WSSharedDoc) {
+    // Remove awareness states controlled by this socket so other peers stop
+    // seeing the disconnected user. Without this, refreshing a tab stacks up
+    // ghost presence indicators for each previous connection.
+    const controlledIds = doc.conns.get(ws);
+    if (controlledIds && controlledIds.size > 0) {
+      awarenessProtocol.removeAwarenessStates(doc.awareness, Array.from(controlledIds), null);
+    }
     doc.conns.delete(ws);
 
     // Clean up document if no more connections
@@ -286,6 +344,12 @@ export class YjsService {
       // Keep document in memory for 1 minute after last disconnect
       setTimeout(async () => {
         if (doc.conns.size === 0) {
+          if (doc.awarenessChangeListener) {
+            doc.awareness.off('update', doc.awarenessChangeListener);
+            doc.awarenessChangeListener = undefined;
+          }
+          doc.awareness.destroy();
+          doc.doc.destroy();
           this.docs.delete(doc.name);
           yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
 
@@ -342,6 +406,10 @@ export class YjsService {
           yjsLog.error('Error closing WebSocket', error);
         }
       });
+      if (doc.awarenessChangeListener) {
+        doc.awareness.off('update', doc.awarenessChangeListener);
+      }
+      doc.awareness.destroy();
       doc.doc.destroy();
     });
 
@@ -398,6 +466,10 @@ export class YjsService {
             yjsLog.error('Error closing WebSocket during rename', error);
           }
         });
+        if (doc.awarenessChangeListener) {
+          doc.awareness.off('update', doc.awarenessChangeListener);
+        }
+        doc.awareness.destroy();
         doc.doc.destroy();
         docsToRemove.push(docId);
       }

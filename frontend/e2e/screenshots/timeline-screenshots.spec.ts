@@ -40,7 +40,7 @@ test.describe('Timeline Tab Screenshots', () => {
     await createButton.waitFor({ timeout: 15_000 });
     await createButton.click();
 
-    const nextButton = page.getByTestId('next-step-button');
+    const nextButton = page.getByTestId('next-button');
     await nextButton.waitFor({ timeout: 10_000 });
     await nextButton.click();
 

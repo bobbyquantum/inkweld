@@ -7,7 +7,7 @@
  * instance so multiple open timelines never share state.
  */
 
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import type { TimeSystem } from '@models/time-system';
 import {
   createDefaultTimelineConfig,
@@ -39,20 +39,83 @@ export class TimelineService {
   private readonly activeConfigSignal = signal<TimelineConfig | null>(null);
   readonly activeConfig = this.activeConfigSignal.asReadonly();
 
+  /** ID of the element whose config is mirrored into `activeConfigSignal`. */
+  private readonly boundElementId = signal<string | null>(null);
+
+  /**
+   * Last serialized config we either wrote via `saveConfig` or applied from
+   * remote metadata. Used to short-circuit echoes of our own writes.
+   */
+  private lastAppliedSerialized: string | null = null;
+
+  constructor() {
+    // React to remote updates to the bound element's metadata. When another
+    // collaborator edits the timeline, the elements signal re-emits and we
+    // re-parse the new metadata into `activeConfigSignal`.
+    effect(() => {
+      const id = this.boundElementId();
+      if (!id) return;
+      const elements = this.projectState.elements();
+      const element = elements.find(e => e.id === id);
+      const serialized = element?.metadata?.[TIMELINE_CONFIG_META_KEY] ?? null;
+      if (serialized === this.lastAppliedSerialized) return;
+      untracked(() => {
+        this.applySerializedConfig(id, serialized);
+      });
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Config Management
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Load or create a timeline config for a given element. Reads from element
-   * metadata if it exists; otherwise creates defaults.
+   * Load or create a timeline config for a given element, and bind the
+   * service to that element so remote metadata edits re-render live. Reads
+   * from element metadata if it exists; otherwise creates defaults.
    */
   loadConfig(elementId: string): TimelineConfig {
     const element = this.projectState.elements().find(e => e.id === elementId);
-    const raw = element?.metadata?.[TIMELINE_CONFIG_META_KEY];
-    if (raw) {
+    const serialized = element?.metadata?.[TIMELINE_CONFIG_META_KEY] ?? null;
+    this.applySerializedConfig(elementId, serialized);
+    this.boundElementId.set(elementId);
+    return this.activeConfigSignal() ?? createDefaultTimelineConfig(elementId);
+  }
+
+  /** Persist config to element metadata (synced via Yjs). */
+  saveConfig(config: TimelineConfig): void {
+    this.activeConfigSignal.set(config);
+
+    const toSerialize: Omit<TimelineConfig, 'elementId'> = {
+      version: config.version,
+      timeSystemId: config.timeSystemId,
+      tracks: config.tracks,
+      events: config.events,
+      eras: config.eras,
+    };
+    const serialized = JSON.stringify(toSerialize);
+    this.lastAppliedSerialized = serialized;
+
+    this.projectState.updateElementMetadata(config.elementId, {
+      [TIMELINE_CONFIG_META_KEY]: serialized,
+    });
+  }
+
+  /**
+   * Parse a serialized config from element metadata and push it into
+   * `activeConfigSignal`. Falls back to defaults when `serialized` is null
+   * or unparseable. Also stamps `lastAppliedSerialized` so echoes are
+   * skipped.
+   */
+  private applySerializedConfig(
+    elementId: string,
+    serialized: string | null
+  ): void {
+    this.lastAppliedSerialized = serialized;
+
+    if (serialized) {
       try {
-        const parsed = JSON.parse(raw) as Partial<TimelineConfig>;
+        const parsed = JSON.parse(serialized) as Partial<TimelineConfig>;
         const defaults = createDefaultTimelineConfig(elementId);
         const config: TimelineConfig = {
           ...defaults,
@@ -68,7 +131,7 @@ export class TimelineService {
           timeSystemId: parsed.timeSystemId ?? defaults.timeSystemId,
         };
         this.activeConfigSignal.set(config);
-        return config;
+        return;
       } catch {
         this.logger.warn(
           'Timeline',
@@ -76,26 +139,8 @@ export class TimelineService {
         );
       }
     }
-    const config = createDefaultTimelineConfig(elementId);
-    this.activeConfigSignal.set(config);
-    return config;
-  }
 
-  /** Persist config to element metadata (synced via Yjs). */
-  saveConfig(config: TimelineConfig): void {
-    this.activeConfigSignal.set(config);
-
-    const toSerialize: Omit<TimelineConfig, 'elementId'> = {
-      version: config.version,
-      timeSystemId: config.timeSystemId,
-      tracks: config.tracks,
-      events: config.events,
-      eras: config.eras,
-    };
-
-    this.projectState.updateElementMetadata(config.elementId, {
-      [TIMELINE_CONFIG_META_KEY]: JSON.stringify(toSerialize),
-    });
+    this.activeConfigSignal.set(createDefaultTimelineConfig(elementId));
   }
 
   // ─────────────────────────────────────────────────────────────────────────
