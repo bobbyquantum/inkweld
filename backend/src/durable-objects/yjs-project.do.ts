@@ -23,7 +23,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { createEncoder, toUint8Array, writeVarUint, writeVarUint8Array } from 'lib0/encoding';
-import { encodeAwarenessUpdate } from 'y-protocols/awareness';
+import { encodeAwarenessUpdate, removeAwarenessStates } from 'y-protocols/awareness';
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
 import { logger } from '../services/logger.service';
@@ -41,6 +41,17 @@ interface ConnectionInfo {
   sharedDoc?: WSSharedDoc; // Document (only set after auth)
   pendingMessages: ArrayBuffer[]; // Binary messages queued before auth
   unsubscribe?: () => void; // Cleanup function for document subscription
+  /**
+   * Awareness client IDs this connection "controls" — tracked via the
+   * document's awareness `update` listener so we can evict them on
+   * disconnect. Without this, refreshing a tab stacks up ghost presence
+   * avatars on every other peer's screen.
+   */
+  awarenessClientIds: Set<number>;
+  awarenessListener?: (
+    changes: { added: number[]; updated: number[]; removed: number[] },
+    origin: unknown
+  ) => void;
 }
 
 interface SessionData {
@@ -272,7 +283,10 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     const elements: Record<string, unknown>[] = [];
     elementsArray.forEach((value) => {
       if (value && typeof value === 'object') {
-        elements.push(this.yValueToJson(value));
+        const jsonValue = this.yValueToJson(value);
+        if (jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)) {
+          elements.push(jsonValue as Record<string, unknown>);
+        }
       }
     });
 
@@ -445,7 +459,10 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       const elements: Record<string, unknown>[] = [];
       elementsArray.forEach((value) => {
         if (value && typeof value === 'object') {
-          elements.push(this.yValueToJson(value));
+          const jsonValue = this.yValueToJson(value);
+          if (jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)) {
+            elements.push(jsonValue as Record<string, unknown>);
+          }
         }
       });
       data.elements = elements;
@@ -467,7 +484,10 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       const relationships: Record<string, unknown>[] = [];
       relationshipsArray.forEach((value) => {
         if (value && typeof value === 'object') {
-          relationships.push(this.yValueToJson(value));
+          const jsonValue = this.yValueToJson(value);
+          if (jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)) {
+            relationships.push(jsonValue as Record<string, unknown>);
+          }
         }
       });
       data.relationships = relationships;
@@ -942,6 +962,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       documentId,
       authenticated: false,
       pendingMessages: [],
+      awarenessClientIds: new Set(),
     });
 
     // Accept WebSocket with hibernation and tag with documentId
@@ -1004,10 +1025,22 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
       }
     });
 
-    // Store unsubscribe function for cleanup
+    // Store unsubscribe function and register awareness tracker so we can
+    // evict this connection's awareness client IDs on disconnect.
     const connInfo = this.connections.get(ws);
     if (connInfo) {
-      (connInfo as any).unsubscribe = unsubscribe;
+      connInfo.unsubscribe = unsubscribe;
+      const awarenessListener = (
+        { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+        origin: unknown
+      ) => {
+        if (origin !== ws) return;
+        for (const id of added) connInfo.awarenessClientIds.add(id);
+        for (const id of updated) connInfo.awarenessClientIds.add(id);
+        for (const id of removed) connInfo.awarenessClientIds.delete(id);
+      };
+      sharedDoc.awareness.on('update', awarenessListener);
+      connInfo.awarenessListener = awarenessListener;
     }
 
     // Send initial sync state to the new client
@@ -1164,14 +1197,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    * Handle WebSocket close
    */
   async webSocketClose(ws: WebSocket) {
-    const connInfo = this.connections.get(ws);
-
-    // Unsubscribe from document updates
-    if (connInfo && (connInfo as any).unsubscribe) {
-      (connInfo as any).unsubscribe();
-    }
-
-    this.connections.delete(ws);
+    this.cleanupConnection(ws);
 
     // Close WebSocket from server side
     try {
@@ -1192,17 +1218,37 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
   async webSocketError(ws: WebSocket) {
     projDOLog.error(`WebSocket error for project ${this.projectId}`);
     const connInfo = this.connections.get(ws);
-
-    // Unsubscribe from document updates
-    if (connInfo && (connInfo as any).unsubscribe) {
-      (connInfo as any).unsubscribe();
-    }
-
-    this.connections.delete(ws);
-
     if (connInfo) {
       projDOLog.error(`Error was for document: ${connInfo.documentId}`);
     }
+    this.cleanupConnection(ws);
+  }
+
+  /**
+   * Shared teardown used by both close and error paths: unsubscribes from
+   * document updates, removes awareness states controlled by this socket so
+   * remote peers drop the ghost user, and purges our tracking map.
+   */
+  private cleanupConnection(ws: WebSocket): void {
+    const connInfo = this.connections.get(ws);
+    if (!connInfo) return;
+
+    connInfo.unsubscribe?.();
+
+    if (connInfo.sharedDoc) {
+      if (connInfo.awarenessListener) {
+        connInfo.sharedDoc.awareness.off('update', connInfo.awarenessListener);
+      }
+      if (connInfo.awarenessClientIds.size > 0) {
+        removeAwarenessStates(
+          connInfo.sharedDoc.awareness,
+          Array.from(connInfo.awarenessClientIds),
+          null
+        );
+      }
+    }
+
+    this.connections.delete(ws);
   }
 
   /**

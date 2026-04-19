@@ -261,21 +261,19 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
   /**
    * Whether config has been successfully loaded from element metadata.
-   * Used by the elements-watcher effect to know when to stop retrying.
-   * On page refresh, elements load asynchronously after the component inits,
-   * so the initial loadConfig may miss saved metadata. The effect below
-   * retries when elements arrive.
+   * The chart service now re-parses metadata reactively on every elements
+   * change (local OR remote), so this flag only guards the one-time
+   * focus/layout UI sync from persisted config on cold-start.
    */
   private configLoadedFromMetadata = false;
 
   constructor() {
-    // Re-load chart config when elements become available.
-    // Handles cold-start / page-refresh where loadProject() is async and the
-    // initial loadConfig() in ngOnInit fires before elements are populated.
+    // Keep the tab title in sync with the underlying element, and adopt the
+    // persisted focus/layout settings once cold-start sync finally arrives.
     effect(() => {
       const elements = this.projectState.elements();
       const id = this.elementId();
-      if (!id || elements.length === 0 || this.configLoadedFromMetadata) return;
+      if (!id) return;
 
       const element = elements.find(e => e.id === id);
       if (!element) return;
@@ -283,11 +281,10 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       // Update element name (may not have been available on first attempt)
       this.elementName.set(element.name);
 
-      // If the element has saved chart config metadata, re-load it
+      if (this.configLoadedFromMetadata) return;
       if (element.metadata?.['chartConfig']) {
         const config = this.chartService.loadConfig(id);
         this.layout.set(config.layout);
-        // Sync focus state from restored config
         if (config.filters.focusElementId) {
           this.focusElementId.set(config.filters.focusElementId);
           this.maxDepth.set(config.filters.maxDepth ?? 3);

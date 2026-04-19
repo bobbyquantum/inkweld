@@ -264,9 +264,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   /** Top-level layer for the transformer and selection */
   private selectionLayer: Konva.Layer | null = null;
 
-  /** Whether config has been loaded from element metadata */
-  private configLoadedFromMetadata = false;
-
   /** Points being drawn with the draw/line tool */
   private drawingPoints: number[] = [];
   /** Temporary Konva.Line used during freehand/line drawing */
@@ -287,24 +284,16 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private keyboardShortcutsInitialized = false;
 
   constructor() {
-    // Re-load canvas config when elements become available (handles cold-start)
+    // Keep the tab title in sync with the underlying element's name.
     effect(() => {
       const elements = this.projectState.elements();
       const id = this.elementId();
-      if (!id || elements.length === 0 || this.configLoadedFromMetadata) return;
-
+      if (!id) return;
       const element = elements.find(e => e.id === id);
-      if (!element) return;
-
-      this.elementName.set(element.name);
-
-      if (element.metadata?.['canvasConfig']) {
-        this.canvasService.loadConfig(id);
-        this.configLoadedFromMetadata = true;
-      }
+      if (element) this.elementName.set(element.name);
     });
 
-    // Re-render Konva when config changes
+    // Re-render Konva when config changes (local edits OR remote sync).
     effect(() => {
       const config = this.canvasService.activeConfig();
       const container = this.canvasContainer();
@@ -324,7 +313,6 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       .subscribe(params => {
         const tabId = params.get('tabId') || '';
         this.elementId.set(tabId);
-        this.configLoadedFromMetadata = false;
 
         // Destroy previous Konva stage
         this.destroyStage();
@@ -335,16 +323,13 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           this.elementName.set(element.name);
         }
 
-        // Load canvas config
+        // Load canvas config — this binds the service to the element so
+        // remote metadata updates re-render the canvas live.
         const config = this.canvasService.loadConfig(tabId);
 
         // Set active layer to the first layer
         if (config.layers.length > 0) {
           this.activeLayerId.set(config.layers[0].id);
-        }
-
-        if (element?.metadata?.['canvasConfig']) {
-          this.configLoadedFromMetadata = true;
         }
 
         // Initialize Konva stage after a tick so the DOM is ready
