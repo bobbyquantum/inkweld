@@ -533,6 +533,153 @@ describe('RelationshipChartService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Remote sync (regression: collaborator edits appear live)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('remote sync', () => {
+    it('updates activeConfig when bound element metadata changes remotely', () => {
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: {
+            chartConfig: JSON.stringify({
+              layout: 'force',
+              filters: {
+                mode: 'curated',
+                includedElementIds: ['el-1'],
+                relationshipTypeIds: [],
+                schemaIds: [],
+                elementTypes: [],
+                showOrphans: true,
+              },
+            }),
+          },
+        }),
+      ]);
+
+      service.loadConfig('chart-1');
+      expect(service.activeConfig()?.layout).toBe('force');
+      expect(service.activeConfig()?.filters.includedElementIds).toEqual([
+        'el-1',
+      ]);
+
+      // Simulate collaborator update arriving through Yjs -> elements signal.
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: {
+            chartConfig: JSON.stringify({
+              layout: 'circular',
+              filters: {
+                mode: 'all',
+                includedElementIds: ['el-2', 'el-3'],
+                relationshipTypeIds: ['friend'],
+                schemaIds: [],
+                elementTypes: [],
+                showOrphans: false,
+              },
+            }),
+          },
+        }),
+      ]);
+      TestBed.flushEffects();
+
+      const active = service.activeConfig();
+      expect(active?.layout).toBe('circular');
+      expect(active?.filters.mode).toBe('all');
+      expect(active?.filters.includedElementIds).toEqual(['el-2', 'el-3']);
+      expect(active?.filters.relationshipTypeIds).toEqual(['friend']);
+      expect(active?.filters.showOrphans).toBe(false);
+    });
+
+    it('does not re-parse on echoes of its own save writes', () => {
+      mockElements.set([
+        makeElement({ id: 'chart-1', type: ElementType.RelationshipChart }),
+      ]);
+      service.loadConfig('chart-1');
+
+      const warnBefore = mockLogger.warn.mock.calls.length;
+
+      service.setLayout('circular');
+      const call = mockProjectState.updateElementMetadata.mock.calls.at(-1) as [
+        string,
+        Record<string, string>,
+      ];
+      const serialized = call[1]['chartConfig'];
+      const afterSave = service.activeConfig();
+
+      // Simulate Yjs echoing exactly what we just wrote.
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: { chartConfig: serialized },
+        }),
+      ]);
+      TestBed.flushEffects();
+
+      expect(service.activeConfig()).toBe(afterSave);
+      expect(mockLogger.warn.mock.calls.length).toBe(warnBefore);
+    });
+
+    it('rebinds when loadConfig is called with a different elementId', () => {
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: {
+            chartConfig: JSON.stringify({
+              layout: 'force',
+              filters: {
+                mode: 'curated',
+                includedElementIds: ['old-id'],
+                relationshipTypeIds: [],
+                schemaIds: [],
+                elementTypes: [],
+                showOrphans: true,
+              },
+            }),
+          },
+        }),
+        makeElement({ id: 'chart-2', type: ElementType.RelationshipChart }),
+      ]);
+
+      service.loadConfig('chart-1');
+      service.loadConfig('chart-2');
+      expect(service.activeConfig()?.elementId).toBe('chart-2');
+
+      // Remote change to old element must not affect current active chart.
+      mockElements.set([
+        makeElement({
+          id: 'chart-1',
+          type: ElementType.RelationshipChart,
+          metadata: {
+            chartConfig: JSON.stringify({
+              layout: 'circular',
+              filters: {
+                mode: 'all',
+                includedElementIds: ['stale'],
+                relationshipTypeIds: ['friend'],
+                schemaIds: [],
+                elementTypes: [],
+                showOrphans: false,
+              },
+            }),
+          },
+        }),
+        makeElement({ id: 'chart-2', type: ElementType.RelationshipChart }),
+      ]);
+      TestBed.flushEffects();
+
+      expect(service.activeConfig()?.elementId).toBe('chart-2');
+      expect(service.activeConfig()?.layout).toBe('force');
+      expect(service.activeConfig()?.filters.includedElementIds).toEqual([]);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Config Persistence Round-Trip
   // ─────────────────────────────────────────────────────────────────────────
 

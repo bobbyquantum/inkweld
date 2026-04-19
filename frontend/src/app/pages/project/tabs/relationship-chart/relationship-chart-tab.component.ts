@@ -259,41 +259,29 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   /** Track if chart has been initialized at least once */
   private initialized = false;
 
-  /**
-   * Whether config has been successfully loaded from element metadata.
-   * Used by the elements-watcher effect to know when to stop retrying.
-   * On page refresh, elements load asynchronously after the component inits,
-   * so the initial loadConfig may miss saved metadata. The effect below
-   * retries when elements arrive.
-   */
-  private configLoadedFromMetadata = false;
-
   constructor() {
-    // Re-load chart config when elements become available.
-    // Handles cold-start / page-refresh where loadProject() is async and the
-    // initial loadConfig() in ngOnInit fires before elements are populated.
+    // Keep the tab title in sync with the underlying element.
     effect(() => {
       const elements = this.projectState.elements();
       const id = this.elementId();
-      if (!id || elements.length === 0 || this.configLoadedFromMetadata) return;
+      if (!id) return;
 
       const element = elements.find(e => e.id === id);
       if (!element) return;
 
       // Update element name (may not have been available on first attempt)
       this.elementName.set(element.name);
+    });
 
-      // If the element has saved chart config metadata, re-load it
-      if (element.metadata?.['chartConfig']) {
-        const config = this.chartService.loadConfig(id);
-        this.layout.set(config.layout);
-        // Sync focus state from restored config
-        if (config.filters.focusElementId) {
-          this.focusElementId.set(config.filters.focusElementId);
-          this.maxDepth.set(config.filters.maxDepth ?? 3);
-        }
-        this.configLoadedFromMetadata = true;
-      }
+    // Drive chart UI state from active config so remote updates apply live.
+    effect(() => {
+      const id = this.elementId();
+      const config = this.chartService.activeConfig();
+      if (!id || !config || config.elementId !== id) return;
+
+      this.layout.set(config.layout);
+      this.focusElementId.set(config.filters.focusElementId ?? null);
+      this.maxDepth.set(config.filters.maxDepth ?? 3);
     });
 
     // React to graph data changes and rebuild the Cytoscape graph.
@@ -370,7 +358,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         const tabId = params.get('tabId') || '';
         this.elementId.set(tabId);
         this.initialized = false;
-        this.configLoadedFromMetadata = false;
 
         // Reset per-chart UI state
         this.focusElementId.set(null);
@@ -413,11 +400,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         if (config.filters.focusElementId) {
           this.focusElementId.set(config.filters.focusElementId);
           this.maxDepth.set(config.filters.maxDepth ?? 3);
-        }
-
-        // Track whether we loaded from saved metadata (vs. getting defaults)
-        if (element?.metadata?.['chartConfig']) {
-          this.configLoadedFromMetadata = true;
         }
       });
   }

@@ -298,21 +298,21 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   /**
    * On page refresh, project elements sync asynchronously after the component
    * mounts. The initial synchronous `loadConfig()` in `ngOnInit` runs before
-   * elements arrive and falls back to defaults, so the timeline appears
-   * empty. This effect re-runs `loadConfig()` once the element is available
-   * and has persisted metadata. Mirrors the pattern in CanvasTabComponent.
+   * elements arrive and falls back to defaults. The TimelineService is
+   * element-bound and re-parses metadata reactively whenever the elements
+   * signal emits (local edits OR remote sync), so we only need to trigger an
+   * initial-fit once the active config actually populates from persisted
+   * metadata.
    */
-  private configLoadedFromMetadata = false;
+  private initialFitDone = false;
 
   private readonly reloadOnElementsEffect = effect(() => {
-    const elements = this.projectState.elements();
     const id = this.elementId();
-    if (!id || elements.length === 0 || this.configLoadedFromMetadata) return;
-    const element = elements.find(e => e.id === id);
+    if (!id) return;
+    const element = this.projectState.elements().find(e => e.id === id);
     if (!element) return;
-    if (element.metadata?.[TIMELINE_CONFIG_META_KEY]) {
-      this.timelineService.loadConfig(id);
-      this.configLoadedFromMetadata = true;
+    if (!this.initialFitDone && element.metadata?.[TIMELINE_CONFIG_META_KEY]) {
+      this.initialFitDone = true;
       this.pendingInitialFit.set(true);
     }
   });
@@ -440,13 +440,11 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
       return;
     }
     this.elementId.set(elementId);
-    this.configLoadedFromMetadata = false;
+    this.initialFitDone = false;
     this.timelineService.loadConfig(elementId);
-    // If initial synchronous load already found persisted metadata, mark it
-    // so the cold-start effect doesn't clobber user edits.
     const element = this.projectState.elements().find(e => e.id === elementId);
     if (element?.metadata?.[TIMELINE_CONFIG_META_KEY]) {
-      this.configLoadedFromMetadata = true;
+      this.initialFitDone = true;
     }
     this.pendingInitialFit.set(true);
 
@@ -457,11 +455,11 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         const id = params.get('tabId');
         if (id && id !== this.config()?.elementId) {
           this.elementId.set(id);
-          this.configLoadedFromMetadata = false;
+          this.initialFitDone = false;
           this.timelineService.loadConfig(id);
           const el = this.projectState.elements().find(e => e.id === id);
           if (el?.metadata?.[TIMELINE_CONFIG_META_KEY]) {
-            this.configLoadedFromMetadata = true;
+            this.initialFitDone = true;
           }
           this.pendingInitialFit.set(true);
           // Cancel any in-flight pointer interactions from the previous tab.

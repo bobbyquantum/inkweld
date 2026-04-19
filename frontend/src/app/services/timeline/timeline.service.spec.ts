@@ -178,6 +178,123 @@ describe('TimelineService', () => {
   });
 
   // ───────────────────────────────────────────────────────────────────────
+  // Remote sync (regression: timeline edits from other users appear live)
+  // ───────────────────────────────────────────────────────────────────────
+
+  describe('remote sync', () => {
+    it('updates activeConfig when the bound element metadata changes remotely', () => {
+      const baseline = createDefaultTimelineConfig('timeline-1');
+      baseline.timeSystemId = RELATIVE_YEARS_SYSTEM.id;
+      mockElements.set([
+        makeTimelineElement({
+          metadata: {
+            [TIMELINE_CONFIG_META_KEY]: JSON.stringify({
+              version: baseline.version,
+              timeSystemId: baseline.timeSystemId,
+              tracks: baseline.tracks,
+              events: [],
+              eras: [],
+            }),
+          },
+        }),
+      ]);
+      service.loadConfig('timeline-1');
+      expect(service.activeConfig()?.events).toHaveLength(0);
+
+      const remoteEvent: TimelineEvent = {
+        id: 'ev-remote',
+        trackId: baseline.tracks[0].id,
+        title: 'Remote Event',
+        start: { systemId: baseline.timeSystemId, units: ['5'] },
+      };
+      const remoteEra: TimelineEra = {
+        id: 'era-remote',
+        name: 'Remote Era',
+        color: '#abcdef',
+        start: { systemId: baseline.timeSystemId, units: ['0'] },
+        end: { systemId: baseline.timeSystemId, units: ['10'] },
+      };
+
+      mockElements.set([
+        makeTimelineElement({
+          metadata: {
+            [TIMELINE_CONFIG_META_KEY]: JSON.stringify({
+              version: baseline.version,
+              timeSystemId: baseline.timeSystemId,
+              tracks: baseline.tracks,
+              events: [remoteEvent],
+              eras: [remoteEra],
+            }),
+          },
+        }),
+      ]);
+      TestBed.flushEffects();
+
+      const active = service.activeConfig()!;
+      expect(active.events).toHaveLength(1);
+      expect(active.events[0].title).toBe('Remote Event');
+      expect(active.eras).toHaveLength(1);
+      expect(active.eras[0].name).toBe('Remote Era');
+    });
+
+    it('skips re-parsing on echoes of its own writes', () => {
+      mockElements.set([makeTimelineElement()]);
+      service.loadConfig('timeline-1');
+      const warnBefore = mockLogger.warn.mock.calls.length;
+
+      service.setTimeSystem(RELATIVE_YEARS_SYSTEM.id);
+      const call = mockProjectState.updateElementMetadata.mock.calls.at(-1) as [
+        string,
+        Record<string, string>,
+      ];
+      const serialized = call[1][TIMELINE_CONFIG_META_KEY];
+      const afterSave = service.activeConfig();
+
+      mockElements.set([
+        makeTimelineElement({
+          metadata: { [TIMELINE_CONFIG_META_KEY]: serialized },
+        }),
+      ]);
+      TestBed.flushEffects();
+
+      expect(service.activeConfig()).toBe(afterSave);
+      expect(mockLogger.warn.mock.calls.length).toBe(warnBefore);
+    });
+
+    it('rebinds when loadConfig is called with a different elementId', () => {
+      mockElements.set([
+        makeTimelineElement({ id: 'timeline-1', name: 'One' }),
+        makeTimelineElement({ id: 'timeline-2', name: 'Two' }),
+      ]);
+      service.loadConfig('timeline-1');
+      service.loadConfig('timeline-2');
+      expect(service.activeConfig()?.elementId).toBe('timeline-2');
+
+      // A remote edit to timeline-1 must not affect the now-bound timeline-2.
+      const firstConfig = createDefaultTimelineConfig('timeline-1');
+      mockElements.set([
+        makeTimelineElement({
+          id: 'timeline-1',
+          metadata: {
+            [TIMELINE_CONFIG_META_KEY]: JSON.stringify({
+              version: firstConfig.version,
+              timeSystemId: 'relative-years',
+              tracks: firstConfig.tracks,
+              events: [],
+              eras: [],
+            }),
+          },
+        }),
+        makeTimelineElement({ id: 'timeline-2', name: 'Two' }),
+      ]);
+      TestBed.flushEffects();
+
+      expect(service.activeConfig()?.elementId).toBe('timeline-2');
+      expect(service.activeConfig()?.timeSystemId).not.toBe('relative-years');
+    });
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
   // Time system
   // ───────────────────────────────────────────────────────────────────────
 
