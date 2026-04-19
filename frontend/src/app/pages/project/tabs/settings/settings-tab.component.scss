@@ -158,22 +158,6 @@
   @container settings-content (max-width: 600px) {
     padding: 0.75rem;
   }
-
-  &.embedded-section {
-    padding: 0;
-    max-width: 100%;
-
-    // Remove duplicate headers from embedded components
-    ::ng-deep {
-      .templates-tab,
-      .relationships-tab,
-      .tags-tab {
-        h2 {
-          display: none;
-        }
-      }
-    }
-  }
 }
 
 // ==========================================

@@ -68,7 +68,7 @@ test.describe('Worldbuilding Templates', () => {
     const customEventCard = page
       .getByTestId('template-card')
       .filter({ hasText: 'Custom Event' });
-    await expect(customEventCard.locator('.custom-chip')).toBeVisible();
+    await expect(customEventCard.locator('.badge.custom')).toBeVisible();
   });
 
   test('should create, clone and delete custom templates from Templates tab', async ({
@@ -106,13 +106,7 @@ test.describe('Worldbuilding Templates', () => {
     const templateCards = page
       .getByTestId('template-card')
       .filter({ hasText: 'Character' });
-    await templateCards
-      .locator('button[aria-label="Template actions"]')
-      .first()
-      .click();
-
-    // Click clone from the menu
-    await page.getByTestId('clone-template-button').click();
+    await templateCards.getByTestId('clone-template-button').first().click();
 
     // Fill in the rename dialog (clone uses a simple rename dialog)
     await page.getByLabel(/name/i).fill('Hero Template');
@@ -125,8 +119,7 @@ test.describe('Worldbuilding Templates', () => {
     const heroCard = page
       .getByTestId('template-card')
       .filter({ hasText: 'Hero Template' });
-    await heroCard.locator('button[aria-label="Template actions"]').click();
-    await page.getByTestId('delete-template-button').click();
+    await heroCard.getByTestId('delete-template-button').click();
     await page.getByRole('button', { name: 'Delete' }).click();
 
     // Wait for the dialog to disappear
@@ -256,11 +249,7 @@ test.describe('Worldbuilding Templates', () => {
     const templateCards = page
       .getByTestId('template-card')
       .filter({ hasText: 'Character' });
-    await templateCards
-      .locator('button[aria-label="Template actions"]')
-      .first()
-      .click();
-    await page.getByTestId('clone-template-button').click();
+    await templateCards.getByTestId('clone-template-button').first().click();
     await page.getByLabel(/name/i).fill('Test Template');
     await page.getByRole('button', { name: 'Rename' }).click();
     await expect(
@@ -271,9 +260,8 @@ test.describe('Worldbuilding Templates', () => {
     await page
       .getByTestId('template-card')
       .filter({ hasText: 'Test Template' })
-      .locator('button[aria-label="Template actions"]')
+      .getByTestId('edit-template-button')
       .click();
-    await page.getByRole('menuitem', { name: 'Edit' }).click();
     await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
 
     // Clear the required template name field by selecting all and deleting
@@ -328,8 +316,7 @@ test.describe('Worldbuilding Templates', () => {
     const templateCards = page
       .getByTestId('template-card')
       .filter({ hasText: 'Character' });
-    await templateCards.getByTestId('template-menu-button').first().click();
-    await page.getByTestId('clone-template-button').click();
+    await templateCards.getByTestId('clone-template-button').first().click();
 
     // Fill in the rename dialog
     await page.getByLabel(/name/i).fill('Custom Hero');

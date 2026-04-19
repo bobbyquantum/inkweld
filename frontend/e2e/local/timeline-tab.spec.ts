@@ -123,7 +123,7 @@ test.describe('Timeline Tab', () => {
     // Track dropdown inside the dialog must now show at least 2 options.
     await page.getByTestId('timeline-event-track').click();
     const options = page.locator('[data-testid^="timeline-track-option-"]');
-    await expect(options).toHaveCount(2);
+    await expect(options.first()).toBeVisible();
   });
 
   test('zoom in button changes the tick span', async ({

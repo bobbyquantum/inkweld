@@ -41,7 +41,6 @@ const SYSTEM_TAB_ICONS: Partial<
   Record<Exclude<AppTab['systemType'], undefined>, string>
 > = {
   home: 'home',
-  'documents-list': 'list',
   media: 'perm_media',
   'templates-list': 'description',
   settings: 'settings',
@@ -491,7 +490,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     if (tabIndex === -1) {
       this.projectState.openSystemTab(
         systemRoute as
-          | 'documents-list'
           | 'media'
           | 'templates-list'
           | 'relationships-list'
@@ -681,9 +679,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
    * Opens a system tab for documents-list, media, templates-list, or settings
    * @param type The type of system tab to open
    */
-  openSystemTab(
-    type: 'documents-list' | 'media' | 'templates-list' | 'settings'
-  ): void {
+  openSystemTab(type: 'media' | 'templates-list' | 'settings'): void {
     console.log(`[TabInterface] Opening system tab: ${type}`);
     this.projectState.openSystemTab(type);
   }

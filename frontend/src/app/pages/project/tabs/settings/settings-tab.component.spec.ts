@@ -30,7 +30,6 @@ import {
   type McpPublicKey,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { SettingsService } from '@services/core/settings.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
@@ -71,7 +70,6 @@ describe('SettingsTabComponent', () => {
   let dialogGateway: Partial<DialogGatewayService>;
   let projectService: Partial<UnifiedProjectService>;
   let exportService: Partial<ProjectExportService>;
-  let settingsService: Partial<SettingsService>;
   let mediaSyncStateSignal: ReturnType<typeof signal<any>>;
   let dialog: Partial<MatDialog>;
   let projectsService: Partial<ProjectsService>;
@@ -262,10 +260,6 @@ describe('SettingsTabComponent', () => {
       exportProject: vi.fn().mockResolvedValue(undefined),
     };
 
-    settingsService = {
-      getSetting: vi.fn().mockReturnValue(true),
-    };
-
     dialog = {
       open: vi.fn().mockReturnValue({
         afterClosed: () => of(null),
@@ -307,7 +301,6 @@ describe('SettingsTabComponent', () => {
         { provide: MediaSyncService, useValue: mediaSyncService },
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: ProjectExportService, useValue: exportService },
-        { provide: SettingsService, useValue: settingsService },
         { provide: MatDialog, useValue: dialog },
         { provide: ProjectsService, useValue: projectsService },
         { provide: Router, useValue: router },
@@ -1465,38 +1458,6 @@ describe('SettingsTabComponent', () => {
       ]);
     });
 
-    it('should show document list', () => {
-      (
-        projectStateService.openSystemTab as ReturnType<typeof vi.fn>
-      ).mockReturnValue({
-        index: 2,
-      });
-
-      component.showDocumentList();
-
-      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'documents-list'
-      );
-      expect(projectStateService.selectTab).toHaveBeenCalledWith(2);
-      expect(router.navigate).toHaveBeenCalledWith([
-        '/',
-        'testuser',
-        'test-project',
-        'documents-list',
-      ]);
-    });
-
-    it('should not navigate document list when no project is loaded', () => {
-      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
-
-      component.showDocumentList();
-
-      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'documents-list'
-      );
-      expect(router.navigate).not.toHaveBeenCalled();
-    });
-
     it('should delete a project after confirmation', async () => {
       (
         dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
@@ -1533,181 +1494,6 @@ describe('SettingsTabComponent', () => {
         { duration: 5000 }
       );
       expect(component['isDeleting']()).toBe(false);
-    });
-
-    it('should report zen mode cannot be enabled when no document tab is selected', () => {
-      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
-        0
-      );
-      (projectStateService.openTabs as ReturnType<typeof signal>).set([]);
-
-      expect(component.canEnableZenMode()).toBe(false);
-    });
-
-    it('should report zen mode can be enabled when a document tab is selected', () => {
-      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
-        1
-      );
-      (projectStateService.openTabs as ReturnType<typeof signal>).set([
-        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
-      ]);
-
-      expect(component.canEnableZenMode()).toBe(true);
-    });
-
-    it('should not toggle zen mode when it cannot be enabled', () => {
-      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
-        0
-      );
-      (projectStateService.openTabs as ReturnType<typeof signal>).set([]);
-
-      component.toggleZenMode();
-
-      expect(component['isZenMode']()).toBe(false);
-    });
-
-    it('should enable zen mode and request fullscreen when configured', async () => {
-      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
-        1
-      );
-      (projectStateService.openTabs as ReturnType<typeof signal>).set([
-        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
-      ]);
-
-      const requestFullscreen = vi.fn().mockResolvedValue(undefined);
-      const originalRequestFullscreen =
-        document.documentElement.requestFullscreen;
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: requestFullscreen,
-        configurable: true,
-      });
-
-      component.toggleZenMode();
-      await Promise.resolve();
-
-      expect(component['isZenMode']()).toBe(true);
-      expect(requestFullscreen).toHaveBeenCalled();
-
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: originalRequestFullscreen,
-        configurable: true,
-      });
-    });
-
-    it('should exit fullscreen when disabling zen mode', async () => {
-      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
-        1
-      );
-      (projectStateService.openTabs as ReturnType<typeof signal>).set([
-        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
-      ]);
-
-      const requestFullscreen = vi.fn().mockResolvedValue(undefined);
-      const exitFullscreen = vi.fn().mockResolvedValue(undefined);
-      const originalRequestFullscreen =
-        document.documentElement.requestFullscreen;
-      const originalExitFullscreen = document.exitFullscreen;
-      const fullscreenDescriptor = Object.getOwnPropertyDescriptor(
-        document,
-        'fullscreenElement'
-      );
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: requestFullscreen,
-        configurable: true,
-      });
-      Object.defineProperty(document, 'fullscreenElement', {
-        value: {},
-        configurable: true,
-      });
-      Object.defineProperty(document, 'exitFullscreen', {
-        value: exitFullscreen,
-        configurable: true,
-      });
-
-      component.toggleZenMode();
-      await Promise.resolve();
-      component.toggleZenMode();
-      await Promise.resolve();
-
-      expect(component['isZenMode']()).toBe(false);
-      expect(exitFullscreen).toHaveBeenCalled();
-
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: originalRequestFullscreen,
-        configurable: true,
-      });
-      Object.defineProperty(document, 'exitFullscreen', {
-        value: originalExitFullscreen,
-        configurable: true,
-      });
-      if (fullscreenDescriptor) {
-        Object.defineProperty(
-          document,
-          'fullscreenElement',
-          fullscreenDescriptor
-        );
-      } else {
-        delete (document as any).fullscreenElement;
-      }
-    });
-
-    it('should warn when fullscreen requests fail', async () => {
-      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
-        1
-      );
-      (projectStateService.openTabs as ReturnType<typeof signal>).set([
-        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
-      ]);
-
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const originalRequestFullscreen =
-        document.documentElement.requestFullscreen;
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: vi.fn().mockRejectedValue(new Error('fullscreen failed')),
-        configurable: true,
-      });
-
-      component.toggleZenMode();
-      await Promise.resolve();
-
-      expect(warnSpy).toHaveBeenCalledWith(
-        'Error attempting to enable fullscreen:',
-        expect.any(Error)
-      );
-
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: originalRequestFullscreen,
-        configurable: true,
-      });
-    });
-
-    it('should toggle zen mode without fullscreen when the setting is disabled', () => {
-      (projectStateService.selectedTabIndex as ReturnType<typeof signal>).set(
-        1
-      );
-      (projectStateService.openTabs as ReturnType<typeof signal>).set([
-        { type: 'document', element: { id: 'doc-1' }, id: 'doc-1' },
-      ]);
-      (settingsService.getSetting as ReturnType<typeof vi.fn>).mockReturnValue(
-        false
-      );
-      const requestFullscreen = vi.fn();
-      const originalRequestFullscreen =
-        document.documentElement.requestFullscreen;
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: requestFullscreen,
-        configurable: true,
-      });
-
-      component.toggleZenMode();
-
-      expect(component['isZenMode']()).toBe(true);
-      expect(requestFullscreen).not.toHaveBeenCalled();
-
-      Object.defineProperty(document.documentElement, 'requestFullscreen', {
-        value: originalRequestFullscreen,
-        configurable: true,
-      });
     });
   });
 });

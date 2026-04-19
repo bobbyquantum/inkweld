@@ -1065,7 +1065,6 @@ export class ProjectStateService implements OnDestroy {
 
   openSystemTab(
     type:
-      | 'documents-list'
       | 'media'
       | 'templates-list'
       | 'relationships-list'

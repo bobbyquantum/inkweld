@@ -1,84 +1,53 @@
 /**
- * Documents List Tab Tests - Local Mode
+ * Project Documents Tests - Local Mode
  *
- * Tests that verify the documents list tab renders correctly,
- * showing documents in a table format with proper filtering
- * in pure local mode without any server connection.
+ * The legacy `/documents-list` route has been removed. These tests validate
+ * the current document discovery flow through the project tree.
  */
 import { expect, test } from './fixtures';
 
-test.describe('Documents List Tab', () => {
-  test('should display documents table with default README document', async ({
+test.describe('Project Documents', () => {
+  test('should show default README document in project tree', async ({
     localPageWithProject: page,
   }) => {
-    // Navigate to the project (created by fixture)
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Navigate to documents list
-    await page.goto(page.url().replace(/\/$/, '') + '/documents-list');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Project always has a README, so table should be visible
-    await page.waitForSelector('.documents-table, table', {
-      state: 'visible',
-    });
-
-    // Table should have column headers
-    await expect(page.locator('th')).toContainText(['Name']);
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await expect(page.getByTestId('element-README')).toBeVisible();
   });
 
-  test('should show "New Document" button in header', async ({
+  test('should show create element button in project view', async ({
     localPageWithProject: page,
   }) => {
-    // Navigate to the project
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Navigate to documents list
-    await page.goto(page.url().replace(/\/$/, '') + '/documents-list');
-    await page.waitForLoadState('domcontentloaded');
-
-    // New Document button should be visible
-    await expect(
-      page.getByRole('button', { name: /new document/i })
-    ).toBeVisible();
+    await expect(page.getByTestId('create-new-element')).toBeVisible();
   });
 
-  test('should show document table when project has a README', async ({
+  test('should open README document from project tree', async ({
     localPageWithProject: page,
   }) => {
-    // Navigate to the project
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Navigate to documents list
-    await page.goto(page.url().replace(/\/$/, '') + '/documents-list');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Project has a README document by default, so the table should be visible
-    await page.waitForSelector('.documents-table, table', {
-      state: 'visible',
-    });
-
-    // Should show the README document in the table
-    await expect(page.locator('table')).toContainText('README');
+    await page.getByTestId('element-README').click();
+    await expect(page).toHaveURL(/\/document\/.+/);
+    await expect(page.getByTestId('document-editor')).toBeVisible();
   });
 
-  test('should display documents in table when project has content', async ({
+  test('should show seeded project content in project tree', async ({
     localPage: page,
   }) => {
-    // Create a project with the worldbuilding-demo template (includes documents)
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    // Create project button - click Create menu, then "New Project"
     const createButton = page.getByTestId('create-new-project-button');
     await createButton.waitFor();
     await createButton.click();
     await page.getByTestId('create-new-project-menu-item').click();
 
-    // Select worldbuilding-demo template
     const demoTemplate = page.locator(
       '[data-testid="template-worldbuilding-demo"]'
     );
@@ -86,39 +55,24 @@ test.describe('Documents List Tab', () => {
       await demoTemplate.click();
     }
 
-    // Step 1: Click Next
     await page.getByRole('button', { name: /next/i }).click();
-
-    // Step 2: Fill in project details
     await page.getByTestId('project-title-input').fill('Doc List Test');
     await page.getByTestId('project-slug-input').fill('doc-list-test');
     await page.getByTestId('create-project-button').click();
-
-    // Wait for project page
     await page.waitForURL(/.*doc-list-test.*/);
 
-    // Navigate to documents list
-    await page.goto(page.url().replace(/\/$/, '') + '/documents-list');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Wait for documents to load - either a table or empty state
-    await page.waitForSelector('.documents-table, .empty-card', {
-      state: 'visible',
-    });
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await expect(page.getByTestId('element-README')).toBeVisible();
   });
 
-  test('should display page header with "Project Documents" title', async ({
+  test('should keep project settings route available', async ({
     localPageWithProject: page,
   }) => {
-    // Navigate to the project
     await page.getByTestId('project-card').first().click();
     await page.waitForURL(/\/.+\/.+/);
 
-    // Navigate to documents list
-    await page.goto(page.url().replace(/\/$/, '') + '/documents-list');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Should show the header title
-    await expect(page.locator('h1')).toContainText('Project Documents');
+    await page.getByTestId('sidebar-settings-button').click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
   });
 });

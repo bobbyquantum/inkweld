@@ -24,7 +24,7 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
   await page.getByTestId('nav-relationships').click();
 
   // Wait for the relationships tab container to be visible and have content
-  await expect(page.locator('.relationships-tab-container')).toBeVisible();
+  await expect(page.locator('.relationships-tab')).toBeVisible();
 
   // Ensure the page is settled
   await page.waitForLoadState('networkidle');
@@ -141,25 +141,9 @@ test.describe('Relationships Tab', () => {
         .first();
       await expect(firstCard).toBeVisible();
 
-      // Should show forward label
-      await expect(
-        firstCard.locator('.detail-row:has-text("Forward:")')
-      ).toBeVisible();
-
-      // Should show inverse label
-      await expect(
-        firstCard.locator('.detail-row:has-text("Inverse:")')
-      ).toBeVisible();
-
-      // Should show source constraints
-      await expect(
-        firstCard.locator('.detail-row:has-text("Source:")')
-      ).toBeVisible();
-
-      // Should show target constraints
-      await expect(
-        firstCard.locator('.detail-row:has-text("Target:")')
-      ).toBeVisible();
+      // Should show category badge and inverse label in the compact row layout
+      await expect(firstCard.locator('.type-badge')).toBeVisible();
+      await expect(firstCard.locator('.type-meta')).toContainText('↔');
     });
   });
 
@@ -273,15 +257,12 @@ test.describe('Relationships Tab', () => {
       const updatedName = `Updated Name ${Date.now()}`;
       await createRelationshipType(page, originalName, 'Original Inverse');
 
-      // Find the type card and open its menu
+      // Find the type card and click edit
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: originalName })
         .first();
-      await typeCard.locator('[data-testid="type-menu-button"]').click();
-
-      // Click Edit from the menu
-      await page.getByTestId('edit-type-button').click();
+      await typeCard.getByTestId('edit-type-button').click();
 
       // Edit the name
       await expect(page.locator('app-rename-dialog')).toBeVisible();
@@ -339,23 +320,14 @@ test.describe('Relationships Tab', () => {
       const typeName = `Editable Type ${Date.now()}`;
       await createRelationshipType(page, typeName, 'Editable Inverse');
 
-      // Find the specific card and open its menu
+      // Find the specific card and verify direct row action buttons
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: typeName });
       await expect(typeCard).toBeVisible();
-      await typeCard.getByTestId('type-menu-button').click();
-
-      // Wait for the menu to be visible (in CDK overlay)
-      const menu = page.locator('.mat-mdc-menu-panel');
-      await expect(menu).toBeVisible();
-
-      // Should see Edit option (all types are now editable per-project)
-      await expect(menu.getByTestId('edit-type-button')).toBeVisible();
-
-      // Should also see Duplicate and Delete options
-      await expect(menu.locator('button:has-text("Duplicate")')).toBeVisible();
-      await expect(menu.locator('button:has-text("Delete")')).toBeVisible();
+      await expect(typeCard.getByTestId('edit-type-button')).toBeVisible();
+      await expect(typeCard.getByTestId('clone-type-button')).toBeVisible();
+      await expect(typeCard.getByTestId('delete-type-button')).toBeVisible();
     });
   });
 
@@ -384,13 +356,12 @@ test.describe('Relationships Tab', () => {
       const deleteName = `Type to Delete ${Date.now()}`;
       await createRelationshipType(page, deleteName, 'Delete Inverse');
 
-      // Open the menu and click Delete
+      // Click delete on the row
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: deleteName })
         .first();
-      await typeCard.locator('[data-testid="type-menu-button"]').click();
-      await page.locator('[data-testid="delete-type-button"]').click();
+      await typeCard.getByTestId('delete-type-button').click();
 
       // Confirm deletion in dialog
       await expect(page.locator('app-confirmation-dialog')).toBeVisible();
@@ -448,15 +419,8 @@ test.describe('Relationships Tab', () => {
         .filter({ hasText: originalName });
       await expect(typeCard).toBeVisible();
 
-      // Open its menu using the data-testid I added
-      await typeCard.getByTestId('type-menu-button').click();
-
-      // Wait for the menu to be visible (in CDK overlay)
-      const menu = page.locator('.mat-mdc-menu-panel');
-      await expect(menu).toBeVisible();
-
-      // Click "Duplicate" from the menu
-      await menu.locator('button:has-text("Duplicate")').click();
+      // Click duplicate directly from the row actions
+      await typeCard.getByTestId('clone-type-button').click();
 
       // Should see Rename dialog with title "Duplicate Relationship Type"
       await expect(
@@ -476,7 +440,7 @@ test.describe('Relationships Tab', () => {
 
       // Should see success snackbar for duplicating
       await expect(
-        page.locator('simple-snack-bar').filter({
+        page.locator('.mat-mdc-snack-bar-container').filter({
           hasText: `Duplicated relationship type: ${duplicateName}`,
         })
       ).toBeVisible();
