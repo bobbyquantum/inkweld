@@ -1,12 +1,54 @@
 <div
+  #toolbarEl
   ngToolbar
   class="editor-toolbar"
   [class.disabled]="disabled"
   [class.readonly]="disabled"
   data-testid="editor-toolbar">
-  <!-- Text Formatting Group - hidden for viewers -->
+  <!-- =====================================================================
+       MAIN ROW — groups use CSS to hide when overflowed so their widths
+       remain measurable by the ResizeObserver at all times.
+       ===================================================================== -->
+
+  <!-- History Group -->
   @if (!disabled) {
-    <div class="toolbar-group">
+    <div
+      class="toolbar-group"
+      data-toolbar-group="history"
+      [class.toolbar-group--hidden]="isOverflowed('history')"
+      [attr.aria-hidden]="isOverflowed('history') ? 'true' : null">
+      <button
+        ngToolbarWidget
+        value="undo"
+        matTooltip="Undo (Ctrl+Z)"
+        (click)="undo()"
+        data-testid="toolbar-undo">
+        <mat-icon>undo</mat-icon>
+      </button>
+      <button
+        ngToolbarWidget
+        value="redo"
+        matTooltip="Redo (Ctrl+Y)"
+        (click)="redo()"
+        data-testid="toolbar-redo">
+        <mat-icon>redo</mat-icon>
+      </button>
+    </div>
+    <mat-divider
+      [vertical]="true"
+      class="toolbar-divider"
+      data-toolbar-divider="history"
+      [class.toolbar-divider--hidden]="isOverflowed('history')">
+    </mat-divider>
+  }
+
+  <!-- Text Formatting Group -->
+  @if (!disabled) {
+    <div
+      class="toolbar-group"
+      data-toolbar-group="formatting"
+      [class.toolbar-group--hidden]="isOverflowed('formatting')"
+      [attr.aria-hidden]="isOverflowed('formatting') ? 'true' : null">
       <button
         ngToolbarWidget
         value="bold"
@@ -48,13 +90,21 @@
         <mat-icon>strikethrough_s</mat-icon>
       </button>
     </div>
-
-    <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+    <mat-divider
+      [vertical]="true"
+      class="toolbar-divider"
+      data-toolbar-divider="formatting"
+      [class.toolbar-divider--hidden]="isOverflowed('formatting')">
+    </mat-divider>
   }
 
-  <!-- Heading Dropdown - hidden for viewers -->
+  <!-- Heading Dropdown -->
   @if (!disabled) {
-    <div class="toolbar-group">
+    <div
+      class="toolbar-group"
+      data-toolbar-group="heading"
+      [class.toolbar-group--hidden]="isOverflowed('heading')"
+      [attr.aria-hidden]="isOverflowed('heading') ? 'true' : null">
       <button
         mat-button
         [matMenuTriggerFor]="headingMenu"
@@ -109,18 +159,25 @@
         </button>
       </mat-menu>
     </div>
-
-    <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+    <mat-divider
+      [vertical]="true"
+      class="toolbar-divider"
+      data-toolbar-divider="heading"
+      [class.toolbar-divider--hidden]="isOverflowed('heading')">
+    </mat-divider>
   }
 
-  <!-- Alignment Radio Group - hidden for viewers -->
+  <!-- Alignment Radio Group -->
   @if (!disabled) {
     <div
       ngToolbarWidgetGroup
       class="toolbar-group alignment-group"
       role="radiogroup"
       aria-label="Text alignment"
-      data-testid="toolbar-align">
+      data-testid="toolbar-align"
+      data-toolbar-group="alignment"
+      [class.toolbar-group--hidden]="isOverflowed('alignment')"
+      [attr.aria-hidden]="isOverflowed('alignment') ? 'true' : null">
       <button
         ngToolbarWidget
         value="left"
@@ -158,13 +215,21 @@
         <mat-icon>format_align_justify</mat-icon>
       </button>
     </div>
-
-    <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+    <mat-divider
+      [vertical]="true"
+      class="toolbar-divider"
+      data-toolbar-divider="alignment"
+      [class.toolbar-divider--hidden]="isOverflowed('alignment')">
+    </mat-divider>
   }
 
-  <!-- Lists & Blockquote Group - hidden for viewers -->
+  <!-- Lists & Blockquote Group -->
   @if (!disabled) {
-    <div class="toolbar-group">
+    <div
+      class="toolbar-group"
+      data-toolbar-group="lists"
+      [class.toolbar-group--hidden]="isOverflowed('lists')"
+      [attr.aria-hidden]="isOverflowed('lists') ? 'true' : null">
       <button
         ngToolbarWidget
         value="bullet-list"
@@ -196,13 +261,21 @@
         <mat-icon>format_quote</mat-icon>
       </button>
     </div>
-
-    <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+    <mat-divider
+      [vertical]="true"
+      class="toolbar-divider"
+      data-toolbar-divider="lists"
+      [class.toolbar-divider--hidden]="isOverflowed('lists')">
+    </mat-divider>
   }
 
-  <!-- Insert Group - hidden for viewers -->
+  <!-- Insert Group -->
   @if (!disabled) {
-    <div class="toolbar-group">
+    <div
+      class="toolbar-group"
+      data-toolbar-group="insert"
+      [class.toolbar-group--hidden]="isOverflowed('insert')"
+      [attr.aria-hidden]="isOverflowed('insert') ? 'true' : null">
       <button
         ngToolbarWidget
         value="link"
@@ -238,35 +311,237 @@
         <mat-icon>format_clear</mat-icon>
       </button>
     </div>
-
-    <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
-
-    <!-- History Group - hidden for viewers -->
-    <div class="toolbar-group">
-      <button
-        ngToolbarWidget
-        value="undo"
-        matTooltip="Undo (Ctrl+Z)"
-        (click)="undo()"
-        data-testid="toolbar-undo">
-        <mat-icon>undo</mat-icon>
-      </button>
-      <button
-        ngToolbarWidget
-        value="redo"
-        matTooltip="Redo (Ctrl+Y)"
-        (click)="redo()"
-        data-testid="toolbar-redo">
-        <mat-icon>redo</mat-icon>
-      </button>
-    </div>
-
-    <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+    <mat-divider
+      [vertical]="true"
+      class="toolbar-divider"
+      data-toolbar-divider="insert"
+      [class.toolbar-divider--hidden]="isOverflowed('insert')">
+    </mat-divider>
   }
 
-  <!-- Comments Toggle - always visible (readers can view comments too) -->
-  <div class="toolbar-spacer"></div>
-  <div class="toolbar-group">
+  <!-- =====================================================================
+       OVERFLOW BUTTON — only shown when at least one group has overflowed
+       ===================================================================== -->
+  @if (!disabled && hasOverflow()) {
+    <div
+      class="toolbar-group toolbar-overflow-btn-group"
+      data-toolbar-fixed="overflow">
+      <button
+        ngToolbarWidget
+        value="more"
+        [matMenuTriggerFor]="overflowMenu"
+        matTooltip="More formatting options"
+        aria-label="More formatting options"
+        data-testid="toolbar-overflow-btn">
+        <mat-icon>expand_more</mat-icon>
+      </button>
+
+      <mat-menu #overflowMenu="matMenu" class="toolbar-overflow-menu">
+        <!-- History in overflow -->
+        @if (isOverflowed('history')) {
+          <div class="overflow-group" data-testid="overflow-history">
+            <button mat-menu-item (click)="undo()" data-testid="overflow-undo">
+              <mat-icon>undo</mat-icon>
+              <span>Undo</span>
+            </button>
+            <button mat-menu-item (click)="redo()" data-testid="overflow-redo">
+              <mat-icon>redo</mat-icon>
+              <span>Redo</span>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+        }
+
+        <!-- Insert in overflow -->
+        @if (isOverflowed('insert')) {
+          <div class="overflow-group" data-testid="overflow-insert">
+            <button
+              mat-menu-item
+              (click)="insertLink()"
+              data-testid="overflow-link">
+              <mat-icon>link</mat-icon>
+              <span>Insert link</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="insertImage()"
+              data-testid="overflow-image">
+              <mat-icon>image</mat-icon>
+              <span>Insert image</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="insertHorizontalRule()"
+              data-testid="overflow-hr">
+              <mat-icon>horizontal_rule</mat-icon>
+              <span>Horizontal rule</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="clearFormatting()"
+              data-testid="overflow-clear">
+              <mat-icon>format_clear</mat-icon>
+              <span>Clear formatting</span>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+        }
+
+        <!-- Lists in overflow -->
+        @if (isOverflowed('lists')) {
+          <div class="overflow-group" data-testid="overflow-lists">
+            <button
+              mat-menu-item
+              (click)="toggleBulletList()"
+              data-testid="overflow-bullet-list">
+              <mat-icon>format_list_bulleted</mat-icon>
+              <span>Bullet list</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="toggleOrderedList()"
+              data-testid="overflow-ordered-list">
+              <mat-icon>format_list_numbered</mat-icon>
+              <span>Numbered list</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="toggleBlockquote()"
+              data-testid="overflow-blockquote">
+              <mat-icon>format_quote</mat-icon>
+              <span>Quote</span>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+        }
+
+        <!-- Alignment in overflow -->
+        @if (isOverflowed('alignment')) {
+          <div class="overflow-group" data-testid="overflow-alignment">
+            <button
+              mat-menu-item
+              (click)="setAlign('left')"
+              data-testid="overflow-align-left">
+              <mat-icon>format_align_left</mat-icon>
+              <span>Align left</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setAlign('center')"
+              data-testid="overflow-align-center">
+              <mat-icon>format_align_center</mat-icon>
+              <span>Center</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setAlign('right')"
+              data-testid="overflow-align-right">
+              <mat-icon>format_align_right</mat-icon>
+              <span>Align right</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setAlign('justify')"
+              data-testid="overflow-align-justify">
+              <mat-icon>format_align_justify</mat-icon>
+              <span>Justify</span>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+        }
+
+        <!-- Heading in overflow -->
+        @if (isOverflowed('heading')) {
+          <div class="overflow-group" data-testid="overflow-heading">
+            <button
+              mat-menu-item
+              (click)="setHeading(0)"
+              [class.active]="headingLevel() === 0"
+              data-testid="overflow-heading-p">
+              <span class="heading-option paragraph">Paragraph</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setHeading(1)"
+              [class.active]="headingLevel() === 1">
+              <span class="heading-option h1">Heading 1</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setHeading(2)"
+              [class.active]="headingLevel() === 2">
+              <span class="heading-option h2">Heading 2</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setHeading(3)"
+              [class.active]="headingLevel() === 3">
+              <span class="heading-option h3">Heading 3</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setHeading(4)"
+              [class.active]="headingLevel() === 4">
+              <span class="heading-option h4">Heading 4</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setHeading(5)"
+              [class.active]="headingLevel() === 5">
+              <span class="heading-option h5">Heading 5</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="setHeading(6)"
+              [class.active]="headingLevel() === 6">
+              <span class="heading-option h6">Heading 6</span>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+        }
+
+        <!-- Formatting in overflow -->
+        @if (isOverflowed('formatting')) {
+          <div class="overflow-group" data-testid="overflow-formatting">
+            <button
+              mat-menu-item
+              (click)="toggleBold()"
+              data-testid="overflow-bold">
+              <mat-icon>format_bold</mat-icon>
+              <span>Bold</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="toggleItalic()"
+              data-testid="overflow-italic">
+              <mat-icon>format_italic</mat-icon>
+              <span>Italic</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="toggleUnderline()"
+              data-testid="overflow-underline">
+              <mat-icon>format_underlined</mat-icon>
+              <span>Underline</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="toggleStrike()"
+              data-testid="overflow-strike">
+              <mat-icon>strikethrough_s</mat-icon>
+              <span>Strikethrough</span>
+            </button>
+          </div>
+        }
+      </mat-menu>
+    </div>
+  }
+
+  <!-- =====================================================================
+       FIXED: Spacer + Comments Toggle (always visible)
+       ===================================================================== -->
+  <div class="toolbar-spacer" data-toolbar-fixed="spacer"></div>
+  <div class="toolbar-group" data-toolbar-fixed="comments">
     <button
       ngToolbarWidget
       value="comments"

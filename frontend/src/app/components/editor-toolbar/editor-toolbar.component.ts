@@ -4,16 +4,21 @@ import {
   ToolbarWidgetGroup,
 } from '@angular/aria/toolbar';
 import {
+  type AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
+  type ElementRef,
   EventEmitter,
   Input,
+  NgZone,
   type OnDestroy,
   Output,
   signal,
+  ViewChild,
 } from '@angular/core';
+import { inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,8 +49,25 @@ type TextAlign = 'left' | 'center' | 'right' | 'justify';
 type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
+ * Identifies a toolbar group by name.
+ * Groups are hidden from the main toolbar row and moved to the overflow menu
+ * in reverse priority order (last groups overflow first).
+ */
+export type ToolbarGroupName =
+  | 'formatting'
+  | 'heading'
+  | 'alignment'
+  | 'lists'
+  | 'insert'
+  | 'history';
+
+/**
  * Custom Angular Material toolbar for ngx-editor / ProseMirror.
  * Replaces the default ngx-editor-menu with Material Design components.
+ *
+ * Overflow behaviour: when the toolbar is too narrow to show all groups on a
+ * single row, lower-priority groups are hidden and their controls are
+ * accessible via a "more" (▾) dropdown button.
  */
 @Component({
   selector: 'app-editor-toolbar',
@@ -63,7 +85,7 @@ type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
   styleUrl: './editor-toolbar.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EditorToolbarComponent implements OnDestroy {
+export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   /** The ngx-editor Editor instance */
   @Input({ required: true }) editor!: Editor;
 
@@ -78,6 +100,9 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Emitted when the comment toggle button is clicked */
   @Output() toggleComments = new EventEmitter<void>();
+
+  /** Reference to the toolbar host element */
+  @ViewChild('toolbarEl', { static: true }) toolbarEl!: ElementRef<HTMLElement>;
 
   /** Platform-aware tooltip for the comments button */
   commentTooltip = /Mac|iPhone|iPad/.test(navigator.userAgent)
@@ -99,11 +124,39 @@ export class EditorToolbarComponent implements OnDestroy {
     blockquote: false,
   });
 
+  /**
+   * Set of toolbar group names that have been pushed into the overflow menu
+   * because they didn't fit on the main row.
+   */
+  readonly overflowGroups = signal<Set<ToolbarGroupName>>(new Set());
+
+  /** True when at least one group has overflowed */
+  readonly hasOverflow = computed(() => this.overflowGroups().size > 0);
+
   /** Subscription to editor state changes */
   private stateSubscription?: Subscription;
 
   /** Debounce timer for state updates */
   private updateDebounceTimer?: ReturnType<typeof setTimeout>;
+
+  /** ResizeObserver watching the toolbar container width */
+  private resizeObserver?: ResizeObserver;
+
+  private readonly ngZone = inject(NgZone);
+
+  /**
+   * Priority order: groups listed last overflow first.
+   * Overflow order: insert → lists → alignment → heading → formatting → history.
+   * (history is highest-priority so Undo/Redo stay visible as long as possible.)
+   */
+  private readonly groupPriority: ToolbarGroupName[] = [
+    'history',
+    'formatting',
+    'heading',
+    'alignment',
+    'lists',
+    'insert',
+  ];
 
   constructor() {
     // Watch for editor changes and subscribe to updates
@@ -123,15 +176,174 @@ export class EditorToolbarComponent implements OnDestroy {
     });
   }
 
+  ngAfterViewInit(): void {
+    // Seed the natural-width cache while all groups are visible, then start
+    // listening for resize events.
+    this.seedGroupWidthCache();
+    this.initResizeObserver();
+  }
+
+  /**
+   * Performs an initial measurement of all group widths while they are
+   * guaranteed to be visible (no overflow yet).  These cached values are used
+   * by `recalculateOverflow()` when groups are hidden.
+   */
+  seedGroupWidthCache(): void {
+    const container = this.toolbarEl?.nativeElement;
+    if (!container) return;
+
+    // Use a rAF so the browser has rendered the initial layout
+    requestAnimationFrame(() => {
+      for (const name of this.groupPriority) {
+        const groupEl = container.querySelector<HTMLElement>(
+          `[data-toolbar-group="${name}"]`
+        );
+        const dividerEl = container.querySelector<HTMLElement>(
+          `[data-toolbar-divider="${name}"]`
+        );
+        const w = (groupEl?.offsetWidth ?? 0) + (dividerEl?.offsetWidth ?? 0);
+        if (w > 0) {
+          this.groupNaturalWidths.set(name, w);
+        }
+      }
+    });
+  }
+
   ngOnDestroy(): void {
     this.stateSubscription?.unsubscribe();
     if (this.updateDebounceTimer) {
       clearTimeout(this.updateDebounceTimer);
     }
+    this.resizeObserver?.disconnect();
   }
 
   /**
+   * Set up a ResizeObserver to recalculate overflow whenever the toolbar
+   * container changes width.
+   */
+  initResizeObserver(): void {
+    if (typeof ResizeObserver === 'undefined') return;
 
+    this.resizeObserver = new ResizeObserver(() => {
+      // Run inside NgZone so signals trigger change detection
+      this.ngZone.run(() => this.recalculateOverflow());
+    });
+
+    this.resizeObserver.observe(this.toolbarEl.nativeElement);
+    // Initial calculation
+    this.recalculateOverflow();
+  }
+
+  /**
+   * Recalculate which groups should be in the overflow menu.
+   *
+   * Strategy:
+   * 1. When groups are visible (not overflowed), measure and cache their widths.
+   * 2. Compare the total cached width against available container width.
+   * 3. Overflow lowest-priority groups until everything fits.
+   * 4. When the container expands, use cached widths to determine if overflow
+   *    can be cleared without needing to temporarily show hidden groups.
+   *
+   * Uses double-`requestAnimationFrame` to guarantee browser layout is complete
+   * before reading measurements.
+   */
+  recalculateOverflow(): void {
+    const container = this.toolbarEl?.nativeElement;
+    if (!container) return;
+
+    if (this.disabled) {
+      this.overflowGroups.set(new Set());
+      return;
+    }
+
+    // Use double-rAF to guarantee the browser has fully committed layout changes
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const containerWidth = container.offsetWidth;
+        if (containerWidth === 0) return;
+
+        // Update the width cache for groups that are currently visible (not hidden)
+        for (const name of this.groupPriority) {
+          const groupEl = container.querySelector<HTMLElement>(
+            `[data-toolbar-group="${name}"]`
+          );
+          const dividerEl = container.querySelector<HTMLElement>(
+            `[data-toolbar-divider="${name}"]`
+          );
+
+          // Only update cache for visible groups (non-zero width)
+          if (groupEl && !groupEl.classList.contains('toolbar-group--hidden')) {
+            const w =
+              (groupEl.offsetWidth ?? 0) + (dividerEl?.offsetWidth ?? 0);
+            if (w > 0) {
+              this.groupNaturalWidths.set(name, w);
+            }
+          }
+        }
+
+        // Fixed elements that are always present: spacer + comments button.
+        // Exclude the overflow button itself — it isn't always in the DOM,
+        // and we reserve a constant for it below so the reservation is stable
+        // whether or not overflow is currently active (prevents hysteresis
+        // that would stop groups from being restored on resize).
+        const fixedEls = Array.from(
+          container.querySelectorAll<HTMLElement>(
+            '[data-toolbar-fixed]:not([data-toolbar-fixed="overflow"])'
+          )
+        );
+        // Reserve space for the overflow button (always, even when not shown)
+        const overflowBtnWidth = 44;
+        const fixedWidth = fixedEls.reduce(
+          (sum, el) => sum + el.offsetWidth,
+          overflowBtnWidth
+        );
+
+        const availableWidth = containerWidth - fixedWidth;
+
+        // Use cached widths for all groups (including currently-hidden ones)
+        let totalGroupWidth = 0;
+        for (const name of this.groupPriority) {
+          totalGroupWidth += this.groupNaturalWidths.get(name) ?? 0;
+        }
+
+        if (totalGroupWidth === 0) {
+          // Cache not yet populated — nothing to do
+          return;
+        }
+
+        if (totalGroupWidth <= availableWidth) {
+          // Everything fits — clear overflow
+          this.ngZone.run(() => this.overflowGroups.set(new Set()));
+          return;
+        }
+
+        // Remove groups from lowest priority until things fit
+        const reversed = [...this.groupPriority].reverse();
+        const newOverflow = new Set<ToolbarGroupName>();
+        let remaining = totalGroupWidth;
+        for (const name of reversed) {
+          if (remaining <= availableWidth) break;
+          newOverflow.add(name);
+          remaining -= this.groupNaturalWidths.get(name) ?? 0;
+        }
+
+        this.ngZone.run(() => {
+          const prev = this.overflowGroups();
+          const same =
+            prev.size === newOverflow.size &&
+            [...newOverflow].every(g => prev.has(g));
+          if (!same) {
+            this.overflowGroups.set(newOverflow);
+          }
+        });
+      })
+    );
+  }
+
+  /** Cached natural (full-width) pixel widths for each toolbar group+divider pair */
+  private readonly groupNaturalWidths = new Map<ToolbarGroupName, number>();
+
+  /**
    * Called when the heading menu closes. Restores focus to the editor.
    */
   onMenuClosed(): void {
@@ -170,6 +382,13 @@ export class EditorToolbarComponent implements OnDestroy {
 
   /** Computed active state for blockquote */
   isBlockquote = computed(() => this.selectionState().blockquote);
+
+  /**
+   * Returns true if the given group name is currently in the overflow menu.
+   */
+  isOverflowed(group: ToolbarGroupName): boolean {
+    return this.overflowGroups().has(group);
+  }
 
   /**
    * Updates the selection state based on current editor state.

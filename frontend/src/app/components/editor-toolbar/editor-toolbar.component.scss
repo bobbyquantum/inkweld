@@ -3,28 +3,32 @@
 .editor-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; // overflow JS handles collapse; no multi-line wrapping
   padding: 4px 8px;
   gap: 4px;
   background-color: var(--sys-surface-container-lowest);
   border-bottom: 1px solid var(--sys-outline-variant);
   min-height: 49px;
+  overflow: hidden; // prevent visual wrapping before JS recalculates
 }
 
 .toolbar-group {
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0; // groups must not be squished by flexbox
 }
 
 .toolbar-divider {
   height: 24px !important;
   margin: 0 4px !important;
   border-right-color: var(--sys-outline-variant) !important;
+  flex-shrink: 0;
 }
 
 .toolbar-spacer {
   flex: 1;
+  min-width: 0; // allow spacer to collapse to zero so fixed elements stay
 }
 
 // Base ARIA toolbar button styling (Material-like)
@@ -155,26 +159,25 @@
   margin-left: auto;
 }
 
-// Responsive: Stack groups on very narrow screens
-@media (max-width: 600px) {
-  .editor-toolbar {
-    padding: 4px;
-    gap: 2px;
-  }
+// Overflow button group — no extra margin needed
+.toolbar-overflow-btn-group {
+  flex-shrink: 0;
+}
 
-  .toolbar-divider {
-    display: none;
-  }
+// Hidden (overflowed) groups: removed from visual flow and user interaction,
+// but kept in DOM so the ResizeObserver can measure their natural widths.
+.toolbar-group--hidden,
+.toolbar-divider--hidden {
+  // Remove from layout so the toolbar doesn't show them
+  display: none !important;
+}
 
-  .toolbar-group {
-    gap: 0;
-  }
+// Overflow menu: allow it to grow tall on small screens
+::ng-deep .toolbar-overflow-menu {
+  max-height: 80vh;
 
-  // Hide less essential buttons on mobile
-  [data-testid='toolbar-strike'],
-  [data-testid='toolbar-hr'],
-  [data-testid='toolbar-clear'] {
-    display: none;
+  .overflow-group {
+    padding: 4px 0;
   }
 }
 
