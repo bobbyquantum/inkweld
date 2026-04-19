@@ -51,7 +51,7 @@ async function constrainToolbarWidth(
   page: import('@playwright/test').Page,
   widthPx: number
 ): Promise<void> {
-  await page.evaluate((w) => {
+  await page.evaluate(w => {
     const style = document.createElement('style');
     style.setAttribute('data-toolbar-constraint', 'true');
     style.textContent = `[data-testid="editor-toolbar"] { max-width: ${w}px !important; width: ${w}px !important; }`;
@@ -230,7 +230,11 @@ test.describe('Toolbar Overflow', () => {
 
       // Check toolbar width before removing constraint
       const beforeWidth = await page.evaluate(() => {
-        return (document.querySelector('[data-testid="editor-toolbar"]') as HTMLElement)?.offsetWidth;
+        return (
+          document.querySelector(
+            '[data-testid="editor-toolbar"]'
+          ) as HTMLElement
+        )?.offsetWidth;
       });
       console.log('Toolbar width BEFORE removing constraint:', beforeWidth);
 
@@ -239,23 +243,40 @@ test.describe('Toolbar Overflow', () => {
 
       // Check toolbar width immediately after removing constraint
       const afterWidth = await page.evaluate(() => {
-        return (document.querySelector('[data-testid="editor-toolbar"]') as HTMLElement)?.offsetWidth;
+        return (
+          document.querySelector(
+            '[data-testid="editor-toolbar"]'
+          ) as HTMLElement
+        )?.offsetWidth;
       });
       console.log('Toolbar width AFTER removing constraint:', afterWidth);
 
       // Debug: inject a function to expose component state
       const debug = await page.evaluate(() => {
-        const toolbar = document.querySelector('[data-testid="editor-toolbar"]') as HTMLElement;
-        const groups: Record<string, { width: number, hidden: boolean }> = {};
-        ['formatting', 'heading', 'alignment', 'lists', 'insert', 'history'].forEach(name => {
-          const el = toolbar?.querySelector(`[data-toolbar-group="${name}"]`) as HTMLElement;
+        const toolbar = document.querySelector(
+          '[data-testid="editor-toolbar"]'
+        ) as HTMLElement;
+        const groups: Record<string, { width: number; hidden: boolean }> = {};
+        [
+          'formatting',
+          'heading',
+          'alignment',
+          'lists',
+          'insert',
+          'history',
+        ].forEach(name => {
+          const el = toolbar?.querySelector(
+            `[data-toolbar-group="${name}"]`
+          ) as HTMLElement;
           groups[name] = {
             width: el?.offsetWidth ?? -1,
             hidden: el?.classList.contains('toolbar-group--hidden') ?? true,
           };
         });
         // Check if overflow button is in the DOM
-        const overflowBtn = toolbar?.querySelector('[data-testid="toolbar-overflow-btn"]');
+        const overflowBtn = toolbar?.querySelector(
+          '[data-testid="toolbar-overflow-btn"]'
+        );
         return {
           containerWidth: toolbar?.offsetWidth ?? -1,
           groups,
