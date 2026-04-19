@@ -259,17 +259,8 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   /** Track if chart has been initialized at least once */
   private initialized = false;
 
-  /**
-   * Whether config has been successfully loaded from element metadata.
-   * The chart service now re-parses metadata reactively on every elements
-   * change (local OR remote), so this flag only guards the one-time
-   * focus/layout UI sync from persisted config on cold-start.
-   */
-  private configLoadedFromMetadata = false;
-
   constructor() {
-    // Keep the tab title in sync with the underlying element, and adopt the
-    // persisted focus/layout settings once cold-start sync finally arrives.
+    // Keep the tab title in sync with the underlying element.
     effect(() => {
       const elements = this.projectState.elements();
       const id = this.elementId();
@@ -280,17 +271,17 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
       // Update element name (may not have been available on first attempt)
       this.elementName.set(element.name);
+    });
 
-      if (this.configLoadedFromMetadata) return;
-      if (element.metadata?.['chartConfig']) {
-        const config = this.chartService.loadConfig(id);
-        this.layout.set(config.layout);
-        if (config.filters.focusElementId) {
-          this.focusElementId.set(config.filters.focusElementId);
-          this.maxDepth.set(config.filters.maxDepth ?? 3);
-        }
-        this.configLoadedFromMetadata = true;
-      }
+    // Drive chart UI state from active config so remote updates apply live.
+    effect(() => {
+      const id = this.elementId();
+      const config = this.chartService.activeConfig();
+      if (!id || !config || config.elementId !== id) return;
+
+      this.layout.set(config.layout);
+      this.focusElementId.set(config.filters.focusElementId ?? null);
+      this.maxDepth.set(config.filters.maxDepth ?? 3);
     });
 
     // React to graph data changes and rebuild the Cytoscape graph.
@@ -367,7 +358,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         const tabId = params.get('tabId') || '';
         this.elementId.set(tabId);
         this.initialized = false;
-        this.configLoadedFromMetadata = false;
 
         // Reset per-chart UI state
         this.focusElementId.set(null);
@@ -410,11 +400,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         if (config.filters.focusElementId) {
           this.focusElementId.set(config.filters.focusElementId);
           this.maxDepth.set(config.filters.maxDepth ?? 3);
-        }
-
-        // Track whether we loaded from saved metadata (vs. getting defaults)
-        if (element?.metadata?.['chartConfig']) {
-          this.configLoadedFromMetadata = true;
         }
       });
   }

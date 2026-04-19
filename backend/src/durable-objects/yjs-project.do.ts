@@ -23,7 +23,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { createEncoder, toUint8Array, writeVarUint, writeVarUint8Array } from 'lib0/encoding';
-import { encodeAwarenessUpdate, removeAwarenessStates } from 'y-protocols/awareness';
+import { createDecoder, readVarUint, readVarUint8Array } from 'lib0/decoding';
+import {
+  applyAwarenessUpdate,
+  encodeAwarenessUpdate,
+  removeAwarenessStates,
+} from 'y-protocols/awareness';
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { YDurableObjects, WSSharedDoc } from 'y-durableobjects';
 import { logger } from '../services/logger.service';
@@ -70,6 +75,9 @@ type YjsEnv = {
     SESSION_SECRET?: string;
   };
 };
+
+const Y_MESSAGE_SYNC = 0;
+const Y_MESSAGE_AWARENESS = 1;
 
 /**
  * Multi-document Yjs Durable Object
@@ -1055,15 +1063,11 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
    */
   private sendInitialSyncState(ws: WebSocket, sharedDoc: WSSharedDoc, documentId: string): void {
     try {
-      // Message type constants (matching y-durableobjects)
-      const MESSAGE_SYNC = 0;
-      const MESSAGE_AWARENESS = 1;
-
       // Send sync step 1 - this tells the client what state we have
       // and triggers the client to send us any updates we're missing
       {
         const encoder = createEncoder();
-        writeVarUint(encoder, MESSAGE_SYNC);
+        writeVarUint(encoder, Y_MESSAGE_SYNC);
         writeSyncStep1(encoder, sharedDoc);
         const syncMessage = toUint8Array(encoder);
         ws.send(syncMessage);
@@ -1075,7 +1079,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
         const awarenessStates = sharedDoc.awareness.getStates();
         if (awarenessStates.size > 0) {
           const encoder = createEncoder();
-          writeVarUint(encoder, MESSAGE_AWARENESS);
+          writeVarUint(encoder, Y_MESSAGE_AWARENESS);
           const awarenessUpdate = encodeAwarenessUpdate(
             sharedDoc.awareness,
             Array.from(awarenessStates.keys())
@@ -1156,7 +1160,7 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
 
         // Process any binary messages that arrived during auth
         for (const data of connInfo.pendingMessages) {
-          sharedDoc.update(new Uint8Array(data));
+          this.applyDocumentMessage(sharedDoc, ws, data);
         }
         connInfo.pendingMessages = [];
 
@@ -1186,11 +1190,31 @@ export class YjsProject extends YDurableObjects<YjsEnv> {
     }
 
     try {
-      // Let the shared doc handle the message
-      sharedDoc.update(new Uint8Array(message));
+      this.applyDocumentMessage(sharedDoc, ws, message);
     } catch (error) {
       projDOLog.error('Error handling WebSocket message:', error);
     }
+  }
+
+  /**
+   * Dispatch a client frame to the shared document.
+   *
+   * y-durableobjects applies awareness messages with `origin = null`, which
+   * prevents our per-socket awareness bookkeeping from tracking client IDs.
+   * We decode awareness messages here and apply them with `origin = ws` so
+   * disconnect cleanup can correctly evict that socket's awareness states.
+   */
+  private applyDocumentMessage(sharedDoc: WSSharedDoc, ws: WebSocket, data: ArrayBuffer): void {
+    const message = new Uint8Array(data);
+    const decoder = createDecoder(message);
+    const messageType = readVarUint(decoder);
+
+    if (messageType === Y_MESSAGE_AWARENESS) {
+      applyAwarenessUpdate(sharedDoc.awareness, readVarUint8Array(decoder), ws);
+      return;
+    }
+
+    sharedDoc.update(message);
   }
 
   /**

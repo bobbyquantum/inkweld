@@ -259,6 +259,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly konvaLayers = new Map<string, Konva.Layer>();
   /** Map from CanvasObject.id → Konva.Node */
   private readonly konvaNodes = new Map<string, Konva.Node>();
+  /** Snapshot of render-affecting state keyed by CanvasObject.id */
+  private readonly objectRenderSignatures = new Map<string, string>();
   /** Konva Transformer for selection handles */
   private transformer: Konva.Transformer | null = null;
   /** Top-level layer for the transformer and selection */
@@ -551,7 +553,12 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       configObjectIds.size !== existingObjectIds.size ||
       [...configObjectIds].some(id => !existingObjectIds.has(id));
 
-    if (layersChanged || objectsChanged) {
+    const renderChanged = objects.some(obj => {
+      const prev = this.objectRenderSignatures.get(obj.id);
+      return prev !== this.getObjectRenderSignature(obj);
+    });
+
+    if (layersChanged || objectsChanged || renderChanged) {
       this.rebuildAllKonvaNodes(layers, objects);
     } else {
       // Just sync positions/transforms
@@ -562,8 +569,21 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           node.rotation(obj.rotation);
           node.scale({ x: obj.scaleX, y: obj.scaleY });
           node.visible(obj.visible);
+          node.draggable(!obj.locked);
         }
       }
+
+      for (const kLayer of this.konvaLayers.values()) {
+        kLayer.batchDraw();
+      }
+    }
+
+    this.objectRenderSignatures.clear();
+    for (const obj of objects) {
+      this.objectRenderSignatures.set(
+        obj.id,
+        this.getObjectRenderSignature(obj)
+      );
     }
 
     // Re-add selection layer as the topmost layer
@@ -583,10 +603,96 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
     }
     this.konvaLayers.clear();
     this.konvaNodes.clear();
+    this.objectRenderSignatures.clear();
 
     // Recreate
     this.buildKonvaLayers(layers);
     this.buildKonvaObjects(objects);
+
+    for (const obj of objects) {
+      this.objectRenderSignatures.set(
+        obj.id,
+        this.getObjectRenderSignature(obj)
+      );
+    }
+
+    const selectedId = this.selectedObjectId();
+    if (selectedId) {
+      const selectedNode = this.konvaNodes.get(selectedId);
+      if (selectedNode) {
+        this.selectKonvaNode(selectedNode);
+      } else {
+        this.transformer?.nodes([]);
+        this.selectionLayer?.batchDraw();
+      }
+    }
+  }
+
+  /**
+   * Hash of fields that change how an object renders beyond basic transform.
+   * If this changes for any object, we rebuild Konva nodes to reflect remote edits.
+   */
+  private getObjectRenderSignature(obj: CanvasObject): string {
+    switch (obj.type) {
+      case 'image':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          src: obj.src,
+          width: obj.width,
+          height: obj.height,
+        });
+      case 'text':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          text: obj.text,
+          fontSize: obj.fontSize,
+          fontFamily: obj.fontFamily,
+          fontStyle: obj.fontStyle,
+          fill: obj.fill,
+          width: obj.width,
+          align: obj.align,
+        });
+      case 'path':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          points: obj.points,
+          stroke: obj.stroke,
+          strokeWidth: obj.strokeWidth,
+          closed: obj.closed,
+          fill: obj.fill,
+          tension: obj.tension,
+        });
+      case 'shape':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          shapeType: obj.shapeType,
+          width: obj.width,
+          height: obj.height,
+          points: obj.points,
+          fill: obj.fill,
+          stroke: obj.stroke,
+          strokeWidth: obj.strokeWidth,
+          cornerRadius: obj.cornerRadius,
+          dash: obj.dash,
+        });
+      case 'pin':
+        return JSON.stringify({
+          type: obj.type,
+          layerId: obj.layerId,
+          label: obj.label,
+          icon: obj.icon,
+          color: obj.color,
+          linkedElementId: obj.linkedElementId,
+          relationshipId: obj.relationshipId,
+          note: obj.note,
+        });
+      default:
+        return JSON.stringify(obj);
+    }
   }
 
   /**

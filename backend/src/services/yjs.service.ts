@@ -87,8 +87,16 @@ export class YjsService {
       ) => {
         const controlledIds = sharedDoc.conns.get(origin as WebSocket);
         if (controlledIds) {
-          for (const clientId of added) controlledIds.add(clientId);
-          for (const clientId of updated) controlledIds.add(clientId);
+          for (const clientId of [...added, ...updated]) {
+            // Transfer ownership to the current socket so an older connection
+            // can't remove this live client's presence during disconnect cleanup.
+            for (const [conn, ids] of sharedDoc.conns) {
+              if (conn !== origin) {
+                ids.delete(clientId);
+              }
+            }
+            controlledIds.add(clientId);
+          }
           for (const clientId of removed) controlledIds.delete(clientId);
         }
         // Broadcast the awareness change (including removals) to every other

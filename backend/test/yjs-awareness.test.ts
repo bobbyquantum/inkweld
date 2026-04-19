@@ -64,6 +64,24 @@ function makeAwarenessFrame(state: Record<string, unknown>): {
   return { frame: Buffer.from(encoding.toUint8Array(encoder)), clientId };
 }
 
+/** Build an awareness frame for a specific client id (used for reconnect race tests). */
+function makeAwarenessFrameForClient(
+  clientId: number,
+  state: Record<string, unknown>,
+  clock = 0
+): Buffer {
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, 1); // one client state entry
+  encoding.writeVarUint(encoder, clientId);
+  encoding.writeVarUint(encoder, clock);
+  encoding.writeVarString(encoder, JSON.stringify(state));
+
+  const message = encoding.createEncoder();
+  encoding.writeVarUint(message, 1); // messageAwareness
+  encoding.writeVarUint8Array(message, encoding.toUint8Array(encoder));
+  return Buffer.from(encoding.toUint8Array(message));
+}
+
 const documentId = 'alice:demo:elements/';
 
 describe('YjsService awareness lifecycle', () => {
@@ -101,9 +119,11 @@ describe('YjsService awareness lifecycle', () => {
     const ws = makeSocket();
     await service.handleConnection(ws, documentId, 'user-123');
 
-    for (const [clientId, state] of doc.awareness.getStates()) {
+    const states = doc.awareness.getStates();
+    expect(states.size).toBe(0);
+    expect(states.has(doc.doc.clientID)).toBe(false);
+    for (const [, state] of states) {
       expect((state as { user?: unknown }).user).toBeUndefined();
-      expect(clientId).not.toBe(doc.doc.clientID);
     }
   });
 
@@ -154,5 +174,52 @@ describe('YjsService awareness lifecycle', () => {
     expect(wsB.sent.length).toBeGreaterThan(framesBeforeDisconnect);
     const awarenessFrames = wsB.sent.slice(framesBeforeDisconnect).filter((buf) => buf[0] === 1);
     expect(awarenessFrames.length).toBeGreaterThan(0);
+  });
+
+  it('keeps awareness when same client id reconnects on a new socket', async () => {
+    const doc = await service.getDocument(documentId);
+
+    const wsA = makeSocket();
+    const wsB = makeSocket();
+    await service.handleConnection(wsA, documentId);
+    await service.handleConnection(wsB, documentId);
+
+    const sharedClientId = 777;
+
+    // First connection owns the client id.
+    service.handleMessage(
+      wsA,
+      doc,
+      makeAwarenessFrameForClient(
+        sharedClientId,
+        {
+          user: { name: 'Alice', color: '#f00' },
+        },
+        1
+      )
+    );
+    expect(doc.awareness.getStates().has(sharedClientId)).toBe(true);
+
+    // Reconnect on a new socket with the same client id before wsA closes.
+    service.handleMessage(
+      wsB,
+      doc,
+      makeAwarenessFrameForClient(
+        sharedClientId,
+        {
+          user: { name: 'Alice (reconnected)', color: '#0f0' },
+        },
+        2
+      )
+    );
+
+    // Closing the old socket must not remove the live client's awareness.
+    service.handleDisconnect(wsA, doc);
+
+    const state = doc.awareness.getStates().get(sharedClientId) as
+      | { user?: { name?: string } }
+      | undefined;
+    expect(state).toBeDefined();
+    expect(state?.user?.name).toBe('Alice (reconnected)');
   });
 });
