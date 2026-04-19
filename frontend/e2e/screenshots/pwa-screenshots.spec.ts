@@ -1690,7 +1690,7 @@ test.describe('PWA Screenshots', () => {
 
     // Select a template and click Next
     await page.click('[data-testid="template-worldbuilding-demo"]');
-    await page.click('[data-testid="next-step-button"]');
+    await page.click('[data-testid="next-button"]');
 
     // Wait for step 2 form to appear
     await page.waitForSelector('[data-testid="project-title-input"]', {
@@ -1729,7 +1729,7 @@ test.describe('PWA Screenshots', () => {
 
     // Select a template and click Next
     await page.click('[data-testid="template-worldbuilding-demo"]');
-    await page.click('[data-testid="next-step-button"]');
+    await page.click('[data-testid="next-button"]');
 
     // Wait for step 2 form to appear
     await page.waitForSelector('[data-testid="project-title-input"]', {

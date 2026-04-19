@@ -8,7 +8,7 @@
  * instance so multiple canvas tabs never share config state.
  */
 
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import {
   type CanvasConfig,
   type CanvasLayer,
@@ -52,62 +52,50 @@ export class CanvasService {
   private readonly activeConfigSignal = signal<CanvasConfig | null>(null);
   readonly activeConfig = this.activeConfigSignal.asReadonly();
 
+  /** ID of the element whose config is mirrored into `activeConfigSignal`. */
+  private readonly boundElementId = signal<string | null>(null);
+
+  /**
+   * Last serialized config we either wrote via `saveConfig` or applied from
+   * remote metadata. Used to short-circuit echoes of our own writes so we
+   * don't re-parse identical JSON every time the elements signal emits.
+   */
+  private lastAppliedSerialized: string | null = null;
+
+  constructor() {
+    // React to remote updates to the bound element's metadata. When another
+    // user edits the canvas, ProjectStateService re-emits `elements()` with
+    // the new metadata JSON; we re-parse and update `activeConfigSignal` so
+    // the canvas view reflects the change in real time.
+    effect(() => {
+      const id = this.boundElementId();
+      if (!id) return;
+      const elements = this.projectState.elements();
+      const element = elements.find(e => e.id === id);
+      const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY] ?? null;
+      if (serialized === this.lastAppliedSerialized) return;
+      untracked(() => {
+        this.applySerializedConfig(id, serialized);
+      });
+    });
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Config Management
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Load or create a canvas config for a given element.
+   * Load or create a canvas config for a given element, and bind the service
+   * to that element so remote metadata changes are reflected live.
    * Reads from element metadata if it exists, otherwise creates defaults.
    */
   loadConfig(elementId: string): CanvasConfig {
-    const elements = this.projectState.elements();
-    const element = elements.find(e => e.id === elementId);
-
-    if (element?.metadata?.[CANVAS_CONFIG_META_KEY]) {
-      try {
-        const parsed = JSON.parse(
-          element.metadata[CANVAS_CONFIG_META_KEY]
-        ) as Partial<CanvasConfig>;
-        const defaults = createDefaultCanvasConfig(elementId);
-        const config: CanvasConfig = {
-          ...defaults,
-          ...parsed,
-          elementId, // Ensure elementId is always correct
-        };
-
-        // Ensure layers array is valid
-        if (!Array.isArray(config.layers) || config.layers.length === 0) {
-          config.layers = defaults.layers;
-        }
-        // Ensure objects array is valid
-        if (!Array.isArray(config.objects)) {
-          config.objects = [];
-        }
-
-        this.logger.debug(
-          'Canvas',
-          `loadConfig: restored config for ${elementId} ` +
-            `(${config.layers.length} layers, ${config.objects.length} objects)`
-        );
-        this.activeConfigSignal.set(config);
-        return config;
-      } catch {
-        this.logger.warn(
-          'Canvas',
-          'Failed to parse canvas config from metadata'
-        );
-      }
-    }
-
-    this.logger.debug(
-      'Canvas',
-      `loadConfig: using defaults for ${elementId} ` +
-        `(element ${element ? 'found' : 'not found'}, ${elements.length} elements loaded)`
-    );
-    const config = createDefaultCanvasConfig(elementId);
-    this.activeConfigSignal.set(config);
-    return config;
+    const element = this.projectState.elements().find(e => e.id === elementId);
+    const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY] ?? null;
+    this.applySerializedConfig(elementId, serialized);
+    this.boundElementId.set(elementId);
+    const config = this.activeConfigSignal();
+    return config ?? createDefaultCanvasConfig(elementId);
   }
 
   /**
@@ -121,10 +109,52 @@ export class CanvasService {
       layers: config.layers,
       objects: config.objects,
     };
+    const serialized = JSON.stringify(toSerialize);
+    this.lastAppliedSerialized = serialized;
 
     this.projectState.updateElementMetadata(config.elementId, {
-      [CANVAS_CONFIG_META_KEY]: JSON.stringify(toSerialize),
+      [CANVAS_CONFIG_META_KEY]: serialized,
     });
+  }
+
+  /**
+   * Parse a serialized config from element metadata and push it into
+   * `activeConfigSignal`. Falls back to defaults when `serialized` is null
+   * or unparseable. Also stamps `lastAppliedSerialized` so subsequent echoes
+   * of the same payload are skipped.
+   */
+  private applySerializedConfig(
+    elementId: string,
+    serialized: string | null
+  ): void {
+    this.lastAppliedSerialized = serialized;
+
+    if (serialized) {
+      try {
+        const parsed = JSON.parse(serialized) as Partial<CanvasConfig>;
+        const defaults = createDefaultCanvasConfig(elementId);
+        const config: CanvasConfig = {
+          ...defaults,
+          ...parsed,
+          elementId,
+        };
+        if (!Array.isArray(config.layers) || config.layers.length === 0) {
+          config.layers = defaults.layers;
+        }
+        if (!Array.isArray(config.objects)) {
+          config.objects = [];
+        }
+        this.activeConfigSignal.set(config);
+        return;
+      } catch {
+        this.logger.warn(
+          'Canvas',
+          'Failed to parse canvas config from metadata'
+        );
+      }
+    }
+
+    this.activeConfigSignal.set(createDefaultCanvasConfig(elementId));
   }
 
   // ─────────────────────────────────────────────────────────────────────────

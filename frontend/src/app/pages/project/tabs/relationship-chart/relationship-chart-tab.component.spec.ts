@@ -877,4 +877,82 @@ describe('RelationshipChartTabComponent', () => {
 
     expect(result).toEqual({ 'el-1': null });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // activeConfig → layout / focusElementId / maxDepth reactive effect
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('activeConfig drives layout, focusElementId and maxDepth', () => {
+    it('should update layout when activeConfig changes', () => {
+      fixture.detectChanges();
+      expect(component['layout']()).toBe('force');
+
+      const config = createDefaultChartConfig('test-chart');
+      config.layout = 'circular';
+      mockChartService.activeConfig.set(config);
+      TestBed.flushEffects();
+
+      expect(component['layout']()).toBe('circular');
+    });
+
+    it('should update focusElementId from activeConfig filters', () => {
+      fixture.detectChanges();
+      expect(component['focusElementId']()).toBeNull();
+
+      const config = createDefaultChartConfig('test-chart');
+      config.filters.focusElementId = 'el-2';
+      mockChartService.activeConfig.set(config);
+      TestBed.flushEffects();
+
+      expect(component['focusElementId']()).toBe('el-2');
+    });
+
+    it('should update maxDepth from activeConfig filters', () => {
+      fixture.detectChanges();
+      expect(component['maxDepth']()).toBe(3);
+
+      const config = createDefaultChartConfig('test-chart');
+      config.filters.maxDepth = 5;
+      mockChartService.activeConfig.set(config);
+      TestBed.flushEffects();
+
+      expect(component['maxDepth']()).toBe(5);
+    });
+
+    it('should not apply config when elementId does not match the current tab', () => {
+      fixture.detectChanges();
+      // Set a config for a different element
+      const config = createDefaultChartConfig('other-chart');
+      config.layout = 'hierarchical';
+      mockChartService.activeConfig.set(config);
+      TestBed.flushEffects();
+
+      // layout should remain unchanged because elementId mismatch
+      expect(component['layout']()).toBe('force');
+    });
+
+    it('should use default maxDepth of 3 when filters.maxDepth is undefined', () => {
+      fixture.detectChanges();
+
+      const config = createDefaultChartConfig('test-chart');
+      delete (config.filters as { maxDepth?: number }).maxDepth;
+      mockChartService.activeConfig.set(config);
+      TestBed.flushEffects();
+
+      expect(component['maxDepth']()).toBe(3);
+    });
+
+    it('should set focusElementId to null when filters.focusElementId is undefined', () => {
+      fixture.detectChanges();
+      // First set a non-null focus so we can confirm the effect resets it
+      component['focusElementId'].set('el-1');
+
+      const config = createDefaultChartConfig('test-chart');
+      // focusElementId is already absent in default config
+      mockChartService.activeConfig.set(config);
+      TestBed.flushEffects();
+
+      expect(component['focusElementId']()).toBeNull();
+    });
+  });
 });

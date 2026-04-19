@@ -3059,4 +3059,522 @@ describe('CanvasTabComponent', () => {
       ).not.toHaveBeenCalled();
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // getObjectRenderSignature
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('getObjectRenderSignature', () => {
+    const base = {
+      id: 'obj-sig',
+      layerId: 'layer-1',
+      x: 0,
+      y: 0,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      visible: true,
+      locked: false,
+    };
+
+    it('should include src, width and height for image objects', () => {
+      const img: CanvasImage = {
+        ...base,
+        type: 'image',
+        src: 'media:abc',
+        width: 200,
+        height: 150,
+      };
+      const sig = component['getObjectRenderSignature'](img);
+      const parsed = JSON.parse(sig);
+      expect(parsed.type).toBe('image');
+      expect(parsed.src).toBe('media:abc');
+      expect(parsed.width).toBe(200);
+      expect(parsed.height).toBe(150);
+      expect(parsed.layerId).toBe('layer-1');
+    });
+
+    it('should include text content and style for text objects', () => {
+      const txt: CanvasText = {
+        ...base,
+        type: 'text',
+        text: 'Hello',
+        fontSize: 18,
+        fontFamily: 'Georgia',
+        fontStyle: 'italic',
+        fill: '#333',
+        width: 100,
+        align: 'center',
+      };
+      const sig = component['getObjectRenderSignature'](txt);
+      const parsed = JSON.parse(sig);
+      expect(parsed.type).toBe('text');
+      expect(parsed.text).toBe('Hello');
+      expect(parsed.fontSize).toBe(18);
+      expect(parsed.fontStyle).toBe('italic');
+      expect(parsed.align).toBe('center');
+    });
+
+    it('should include points, stroke and fill for path objects', () => {
+      const path: CanvasPath = {
+        ...base,
+        type: 'path',
+        points: [0, 0, 10, 20],
+        stroke: '#f00',
+        strokeWidth: 3,
+        closed: true,
+        fill: '#0f0',
+        tension: 0.5,
+      };
+      const sig = component['getObjectRenderSignature'](path);
+      const parsed = JSON.parse(sig);
+      expect(parsed.type).toBe('path');
+      expect(parsed.points).toEqual([0, 0, 10, 20]);
+      expect(parsed.closed).toBe(true);
+      expect(parsed.tension).toBe(0.5);
+    });
+
+    it('should include shapeType and dimensions for shape objects', () => {
+      const shape: CanvasShape = {
+        ...base,
+        type: 'shape',
+        shapeType: 'ellipse',
+        width: 80,
+        height: 40,
+        fill: '#ff0',
+        stroke: '#00f',
+        strokeWidth: 2,
+      };
+      const sig = component['getObjectRenderSignature'](shape);
+      const parsed = JSON.parse(sig);
+      expect(parsed.type).toBe('shape');
+      expect(parsed.shapeType).toBe('ellipse');
+      expect(parsed.width).toBe(80);
+      expect(parsed.height).toBe(40);
+    });
+
+    it('should include label, icon, color and linkedElementId for pin objects', () => {
+      const pin: CanvasPin = {
+        ...base,
+        type: 'pin',
+        label: 'Castle',
+        icon: 'castle',
+        color: '#9c27b0',
+        linkedElementId: 'el-castle',
+        relationshipId: 'rel-1',
+        note: 'A dark fortress',
+      };
+      const sig = component['getObjectRenderSignature'](pin);
+      const parsed = JSON.parse(sig);
+      expect(parsed.type).toBe('pin');
+      expect(parsed.label).toBe('Castle');
+      expect(parsed.icon).toBe('castle');
+      expect(parsed.color).toBe('#9c27b0');
+      expect(parsed.linkedElementId).toBe('el-castle');
+      expect(parsed.note).toBe('A dark fortress');
+    });
+
+    it('should produce different signatures when render-affecting fields change', () => {
+      const before: CanvasText = {
+        ...base,
+        type: 'text',
+        text: 'Old',
+        fontSize: 14,
+        fontFamily: 'Arial',
+        fontStyle: 'normal',
+        fill: '#000',
+        width: 100,
+        align: 'left',
+      };
+      const after: CanvasText = {
+        ...before,
+        text: 'New',
+      };
+      expect(component['getObjectRenderSignature'](before)).not.toBe(
+        component['getObjectRenderSignature'](after)
+      );
+    });
+
+    it('should produce identical signatures when only position changes', () => {
+      const obj1: CanvasImage = {
+        ...base,
+        type: 'image',
+        src: 'media:img',
+        width: 100,
+        height: 100,
+        x: 10,
+        y: 20,
+      };
+      const obj2: CanvasImage = {
+        ...obj1,
+        x: 999,
+        y: 999,
+      };
+      // position (x, y) is not part of the signature
+      expect(component['getObjectRenderSignature'](obj1)).toBe(
+        component['getObjectRenderSignature'](obj2)
+      );
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // syncKonvaFromConfig + rebuildAllKonvaNodes
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('syncKonvaFromConfig', () => {
+    const layerId = defaultConfig.layers[0].id;
+
+    function makeMockLayer() {
+      return {
+        visible: vi.fn(),
+        opacity: vi.fn(),
+        listening: vi.fn(),
+        batchDraw: vi.fn(),
+        destroy: vi.fn(),
+        moveToTop: vi.fn(),
+      } as unknown as Konva.Layer;
+    }
+
+    function makeMockNode() {
+      return {
+        position: vi.fn(),
+        rotation: vi.fn(),
+        scale: vi.fn(),
+        visible: vi.fn(),
+        draggable: vi.fn(),
+      } as unknown as Konva.Node;
+    }
+
+    function stubStageAndHelpers() {
+      component['stage'] = { destroy: vi.fn() } as unknown as Konva.Stage;
+      vi.spyOn(component as any, 'buildKonvaLayers').mockImplementation(
+        () => {}
+      );
+      vi.spyOn(component as any, 'buildKonvaObjects').mockImplementation(
+        () => {}
+      );
+      vi.spyOn(component as any, 'selectKonvaNode').mockImplementation(
+        () => {}
+      );
+      component['selectionLayer'] = {
+        moveToTop: vi.fn(),
+        batchDraw: vi.fn(),
+      } as unknown as Konva.Layer;
+      component['transformer'] = {
+        nodes: vi.fn(),
+      } as unknown as Konva.Transformer;
+    }
+
+    it('should return early when stage is null', () => {
+      component['stage'] = undefined as unknown as Konva.Stage;
+      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
+      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+      expect(rebuildSpy).not.toHaveBeenCalled();
+    });
+
+    it('should update layer visibility/opacity when layer exists', () => {
+      stubStageAndHelpers();
+      const mockLayer = makeMockLayer();
+      component['konvaLayers'].set(layerId, mockLayer);
+
+      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+
+      expect(mockLayer.visible).toHaveBeenCalledWith(
+        defaultConfig.layers[0].visible
+      );
+      expect(mockLayer.opacity).toHaveBeenCalledWith(
+        defaultConfig.layers[0].opacity
+      );
+      expect(mockLayer.listening).toHaveBeenCalledWith(
+        !defaultConfig.layers[0].locked
+      );
+    });
+
+    it('should do incremental position sync when layers and objects are unchanged', () => {
+      stubStageAndHelpers();
+      const obj: CanvasShape = {
+        id: 'shape-1',
+        layerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 15,
+        y: 25,
+        rotation: 45,
+        scaleX: 2,
+        scaleY: 2,
+        visible: true,
+        locked: false,
+        width: 100,
+        height: 50,
+        stroke: '#000',
+        strokeWidth: 1,
+      };
+      const mockLayer = makeMockLayer();
+      const mockNode = makeMockNode();
+      component['konvaLayers'].set(layerId, mockLayer);
+      component['konvaNodes'].set('shape-1', mockNode);
+      // Pre-seed signature so renderChanged is false
+      component['objectRenderSignatures'].set(
+        'shape-1',
+        component['getObjectRenderSignature'](obj)
+      );
+
+      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+
+      expect(mockNode.position).toHaveBeenCalledWith({ x: 15, y: 25 });
+      expect(mockNode.rotation).toHaveBeenCalledWith(45);
+      expect(mockNode.scale).toHaveBeenCalledWith({ x: 2, y: 2 });
+      expect(mockNode.visible).toHaveBeenCalledWith(true);
+      expect(mockNode.draggable).toHaveBeenCalledWith(true);
+      expect(mockLayer.batchDraw).toHaveBeenCalled();
+    });
+
+    it('should trigger full rebuild when object count changes (new object added)', () => {
+      stubStageAndHelpers();
+      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
+      const obj: CanvasShape = {
+        id: 'new-shape',
+        layerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        width: 50,
+        height: 50,
+        stroke: '#000',
+        strokeWidth: 1,
+      };
+      component['konvaLayers'].set(layerId, makeMockLayer());
+      // No entry in konvaNodes → size mismatch → rebuild
+
+      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+
+      expect(rebuildSpy).toHaveBeenCalledWith(defaultConfig.layers, [obj]);
+    });
+
+    it('should trigger full rebuild when render-affecting field changes', () => {
+      stubStageAndHelpers();
+      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
+      const obj: CanvasText = {
+        id: 'text-1',
+        layerId,
+        type: 'text',
+        text: 'New Text',
+        fontSize: 16,
+        fontFamily: 'Arial',
+        fontStyle: 'normal',
+        fill: '#000',
+        width: 200,
+        align: 'left',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+      };
+      component['konvaLayers'].set(layerId, makeMockLayer());
+      component['konvaNodes'].set('text-1', makeMockNode());
+      // Set old signature with different text
+      const oldSig = component['getObjectRenderSignature']({
+        ...obj,
+        text: 'Old Text',
+      } as CanvasText);
+      component['objectRenderSignatures'].set('text-1', oldSig);
+
+      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+
+      expect(rebuildSpy).toHaveBeenCalled();
+    });
+
+    it('should update objectRenderSignatures after incremental sync', () => {
+      stubStageAndHelpers();
+      const obj: CanvasShape = {
+        id: 'shape-sig',
+        layerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        width: 50,
+        height: 50,
+        stroke: '#000',
+        strokeWidth: 1,
+      };
+      component['konvaLayers'].set(layerId, makeMockLayer());
+      component['konvaNodes'].set('shape-sig', makeMockNode());
+      component['objectRenderSignatures'].set(
+        'shape-sig',
+        component['getObjectRenderSignature'](obj)
+      );
+
+      component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);
+
+      expect(component['objectRenderSignatures'].get('shape-sig')).toBe(
+        component['getObjectRenderSignature'](obj)
+      );
+    });
+
+    it('should move selection layer to top after sync', () => {
+      stubStageAndHelpers();
+      component['konvaLayers'].set(layerId, makeMockLayer());
+
+      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+
+      expect(
+        (
+          component['selectionLayer'] as unknown as {
+            moveToTop: ReturnType<typeof vi.fn>;
+          }
+        ).moveToTop
+      ).toHaveBeenCalled();
+    });
+
+    it('should trigger full rebuild when a layer is added', () => {
+      stubStageAndHelpers();
+      const rebuildSpy = vi.spyOn(component as any, 'rebuildAllKonvaNodes');
+      // No layers in konvaLayers but config has one layer → mismatch
+      // (konvaLayers is empty by default)
+
+      component['syncKonvaFromConfig'](defaultConfig.layers, []);
+
+      expect(rebuildSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('rebuildAllKonvaNodes', () => {
+    const layerId = defaultConfig.layers[0].id;
+
+    function stubForRebuild() {
+      component['stage'] = { destroy: vi.fn() } as unknown as Konva.Stage;
+      vi.spyOn(component as any, 'buildKonvaLayers').mockImplementation(
+        () => {}
+      );
+      vi.spyOn(component as any, 'buildKonvaObjects').mockImplementation(
+        () => {}
+      );
+      vi.spyOn(component as any, 'selectKonvaNode').mockImplementation(
+        () => {}
+      );
+      component['selectionLayer'] = {
+        moveToTop: vi.fn(),
+        batchDraw: vi.fn(),
+      } as unknown as Konva.Layer;
+      component['transformer'] = {
+        nodes: vi.fn(),
+      } as unknown as Konva.Transformer;
+    }
+
+    it('should destroy existing layers and clear all maps', () => {
+      stubForRebuild();
+      const mockLayer = {
+        destroy: vi.fn(),
+        batchDraw: vi.fn(),
+      } as unknown as Konva.Layer;
+      component['konvaLayers'].set(layerId, mockLayer);
+      component['konvaNodes'].set('node-1', {} as Konva.Node);
+      component['objectRenderSignatures'].set('node-1', '{}');
+
+      component['rebuildAllKonvaNodes'](defaultConfig.layers, []);
+
+      expect(mockLayer.destroy).toHaveBeenCalled();
+      expect(component['konvaLayers'].size).toBe(0);
+      expect(component['konvaNodes'].size).toBe(0);
+      expect(component['objectRenderSignatures'].size).toBe(0);
+    });
+
+    it('should populate render signatures for each object after rebuild', () => {
+      stubForRebuild();
+      const obj: CanvasShape = {
+        id: 'shape-rb',
+        layerId,
+        type: 'shape',
+        shapeType: 'ellipse',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        width: 80,
+        height: 40,
+        fill: '#ff0',
+        stroke: '#00f',
+        strokeWidth: 2,
+      };
+
+      component['rebuildAllKonvaNodes'](defaultConfig.layers, [obj]);
+
+      expect(component['objectRenderSignatures'].get('shape-rb')).toBe(
+        component['getObjectRenderSignature'](obj)
+      );
+    });
+
+    it('should restore transformer selection when selected node is found', () => {
+      stubForRebuild();
+      const selectedId = 'shape-sel';
+      const mockNode = {} as Konva.Node;
+      component['selectedObjectId'].set(selectedId);
+      // Simulate buildKonvaObjects populating konvaNodes
+      vi.spyOn(component as any, 'buildKonvaObjects').mockImplementation(() => {
+        component['konvaNodes'].set(selectedId, mockNode);
+      });
+
+      const obj: CanvasShape = {
+        id: selectedId,
+        layerId,
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        width: 50,
+        height: 50,
+        stroke: '#000',
+        strokeWidth: 1,
+      };
+
+      component['rebuildAllKonvaNodes'](defaultConfig.layers, [obj]);
+
+      expect(component['selectKonvaNode']).toHaveBeenCalledWith(mockNode);
+    });
+
+    it('should clear transformer when selected node is no longer present', () => {
+      stubForRebuild();
+      component['selectedObjectId'].set('missing-node');
+
+      component['rebuildAllKonvaNodes'](defaultConfig.layers, []);
+
+      expect(
+        (
+          component['transformer'] as unknown as {
+            nodes: ReturnType<typeof vi.fn>;
+          }
+        ).nodes
+      ).toHaveBeenCalledWith([]);
+      expect(
+        (
+          component['selectionLayer'] as unknown as {
+            batchDraw: ReturnType<typeof vi.fn>;
+          }
+        ).batchDraw
+      ).toHaveBeenCalled();
+    });
+  });
 });

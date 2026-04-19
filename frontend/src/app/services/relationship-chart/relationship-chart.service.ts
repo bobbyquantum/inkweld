@@ -6,7 +6,14 @@
  * persistence via element metadata.
  */
 
-import { computed, inject, Injectable, signal } from '@angular/core';
+import {
+  computed,
+  effect,
+  inject,
+  Injectable,
+  signal,
+  untracked,
+} from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 
 import { type RelationshipTypeDefinition } from '../../components/element-ref/element-ref.model';
@@ -55,6 +62,37 @@ export class RelationshipChartService {
   private readonly activeConfigSignal = signal<ChartConfig | null>(null);
   readonly activeConfig = this.activeConfigSignal.asReadonly();
 
+  /** ID of the element whose config is mirrored into `activeConfigSignal`. */
+  private readonly boundElementId = signal<string | null>(null);
+
+  /** Skip re-parse when the elements signal re-emits our own serialized write. */
+  private lastAppliedSerialized: string | null = null;
+
+  constructor() {
+    // React to remote updates to the bound element's chartConfig. Without
+    // this, a collaborator's filter/layout change silently lands in the
+    // project elements but never re-renders our chart.
+    effect(() => {
+      const id = this.boundElementId();
+      if (!id) return;
+      const elements = this.projectState.elements();
+      const element = elements.find(e => e.id === id);
+      const serialized = element?.metadata?.[CHART_CONFIG_META_KEY] ?? null;
+      if (serialized === this.lastAppliedSerialized) return;
+      untracked(() => {
+        this.lastAppliedSerialized = serialized;
+        if (serialized) {
+          const parsed = this.tryParseConfig(serialized, id);
+          if (parsed) {
+            this.activeConfigSignal.set(parsed);
+            return;
+          }
+        }
+        this.activeConfigSignal.set(createDefaultChartConfig(id));
+      });
+    });
+  }
+
   /** Computed graph data derived from active config + project state */
   readonly graphData = computed<ChartGraphData | null>(() => {
     const config = this.activeConfigSignal();
@@ -78,12 +116,14 @@ export class RelationshipChartService {
   loadConfig(elementId: string): ChartConfig {
     const elements = this.projectState.elements();
     const element = elements.find(e => e.id === elementId);
-    const rawConfig = element?.metadata?.[CHART_CONFIG_META_KEY];
+    const rawConfig = element?.metadata?.[CHART_CONFIG_META_KEY] ?? null;
+    this.lastAppliedSerialized = rawConfig;
 
     if (rawConfig) {
       const parsed = this.tryParseConfig(rawConfig, elementId);
       if (parsed) {
         this.activeConfigSignal.set(parsed);
+        this.boundElementId.set(elementId);
         return parsed;
       }
     }
@@ -95,6 +135,7 @@ export class RelationshipChartService {
     );
     const config = createDefaultChartConfig(elementId);
     this.activeConfigSignal.set(config);
+    this.boundElementId.set(elementId);
     return config;
   }
 
@@ -162,9 +203,11 @@ export class RelationshipChartService {
       layout: config.layout,
       filters: config.filters,
     };
+    const serialized = JSON.stringify(toSerialize);
+    this.lastAppliedSerialized = serialized;
 
     this.projectState.updateElementMetadata(config.elementId, {
-      [CHART_CONFIG_META_KEY]: JSON.stringify(toSerialize),
+      [CHART_CONFIG_META_KEY]: serialized,
     });
   }
 
@@ -271,6 +314,8 @@ export class RelationshipChartService {
    */
   clearActiveConfig(): void {
     this.activeConfigSignal.set(null);
+    this.boundElementId.set(null);
+    this.lastAppliedSerialized = null;
   }
 
   // ─────────────────────────────────────────────────────────────────────────

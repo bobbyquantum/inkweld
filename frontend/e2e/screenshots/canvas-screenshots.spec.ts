@@ -44,7 +44,7 @@ test.describe('Canvas Tab Screenshots', () => {
     await createButton.click();
 
     // Step 1: Template selection — accept default (empty)
-    const nextButton = page.getByTestId('next-step-button');
+    const nextButton = page.getByTestId('next-button');
     await nextButton.waitFor({ timeout: 10_000 });
     await nextButton.click();
 
