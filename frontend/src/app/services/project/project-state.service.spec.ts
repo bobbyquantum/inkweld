@@ -1152,10 +1152,10 @@ describe('ProjectStateService', () => {
         { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
         { id: 'media-tab', name: 'Media', type: 'system', systemType: 'media' },
         {
-          id: 'docs-tab',
-          name: 'Documents',
+          id: 'settings-tab',
+          name: 'Settings',
           type: 'system',
-          systemType: 'documents-list',
+          systemType: 'settings',
         },
       ];
 

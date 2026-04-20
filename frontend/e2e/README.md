@@ -86,7 +86,7 @@ e2e/
 ├── local/                 # Local/offline mode tests
 │   ├── fixtures.ts        # Local test fixtures
 │   ├── about.spec.ts
-│   ├── documents-list.spec.ts
+│   ├── project-documents.spec.ts
 │   ├── element-ref.spec.ts
 │   ├── find-in-document.spec.ts
 │   ├── folder-operations.spec.ts

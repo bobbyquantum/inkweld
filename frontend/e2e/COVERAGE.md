@@ -17,7 +17,7 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | `/:user/:slug` | Project Home | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | Covered |
 | `/:user/:slug/document/:id` | Document Editor | `element-ref.spec.ts`, `find-in-document.spec.ts`, `image-insert.spec.ts` | - | `pwa-screenshots`, `element-ref-screenshots` | Covered |
 | `/:user/:slug/folder/:id` | Folder View | `folder-operations.spec.ts` | - | `pwa-screenshots` | Partial |
-| `/:user/:slug/documents-list` | Documents List | `documents-list.spec.ts` | - | `documents-list-screenshots` | Covered |
+| `/:user/:slug` | Project Documents (tree flow) | `project-documents.spec.ts` | - | - | Covered |
 | `/:user/:slug/media` | Media Library | `media-tab.spec.ts`, `media-storage.spec.ts` | `media-storage.spec.ts` | `pwa-screenshots` | Covered |
 | `/:user/:slug/settings` | Project Settings | - | `relationships-tab.spec.ts` | `tags-screenshots`, `templates-tab-screenshots`, `relationships-tab-screenshots`, `project-rename-screenshots` | Covered |
 | `/:user/:slug/worldbuilding/:id` | Worldbuilding | `worldbuilding.spec.ts` | - | - | Partial |
@@ -46,7 +46,7 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | Rename | - | - | `project-rename-screenshots` | Screenshot only |
 | Switching | - | `project-switching.spec.ts` | - | Online only |
 | **Documents** | | | | |
-| List View | `documents-list.spec.ts` | - | `documents-list-screenshots` | |
+| Project document flow | `project-documents.spec.ts` | - | - | |
 | Editor | `element-ref.spec.ts`, `find-in-document.spec.ts` | - | `pwa-screenshots` | |
 | Image Insert | `image-insert.spec.ts` | - | - | |
 | Snapshots | `snapshot.spec.ts` | - | - | |

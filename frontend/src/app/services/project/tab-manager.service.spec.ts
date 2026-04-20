@@ -142,14 +142,14 @@ describe('TabManagerService', () => {
   });
 
   describe('openSystemTab', () => {
-    it('should create documents-list system tab', () => {
-      const result = service.openSystemTab('documents-list');
+    it('should create settings system tab', () => {
+      const result = service.openSystemTab('settings');
 
       expect(result.wasCreated).toBe(true);
-      expect(result.tab.id).toBe('system-documents-list');
-      expect(result.tab.name).toBe('Documents');
+      expect(result.tab.id).toBe('system-settings');
+      expect(result.tab.name).toBe('Settings');
       expect(result.tab.type).toBe('system');
-      expect(result.tab.systemType).toBe('documents-list');
+      expect(result.tab.systemType).toBe('settings');
     });
 
     it('should create media system tab', () => {
@@ -167,8 +167,8 @@ describe('TabManagerService', () => {
     });
 
     it('should select existing system tab instead of creating duplicate', () => {
-      const result1 = service.openSystemTab('documents-list');
-      const result2 = service.openSystemTab('documents-list');
+      const result1 = service.openSystemTab('media');
+      const result2 = service.openSystemTab('media');
 
       expect(result1.wasCreated).toBe(true);
       expect(result2.wasCreated).toBe(false);
@@ -185,7 +185,7 @@ describe('TabManagerService', () => {
       service.openDocument(
         createElement('doc-2', 'Chapter 2', ElementType.Item)
       );
-      service.openSystemTab('documents-list');
+      service.openSystemTab('media');
     });
 
     it('should close tab at specified index', () => {
@@ -300,9 +300,9 @@ describe('TabManagerService', () => {
 
   describe('closeTabById', () => {
     it('should close tab by tab ID', () => {
-      service.openSystemTab('documents-list');
+      service.openSystemTab('media');
 
-      const result = service.closeTabById('system-documents-list');
+      const result = service.closeTabById('system-media');
 
       expect(result).toBe(true);
       expect(service.openTabs().length).toBe(0);
@@ -320,7 +320,7 @@ describe('TabManagerService', () => {
       service.openDocument(
         createElement('doc-1', 'Chapter 1', ElementType.Item)
       );
-      service.openSystemTab('documents-list');
+      service.openSystemTab('media');
       service.selectTab(2);
 
       service.clearAllTabs();
@@ -363,7 +363,7 @@ describe('TabManagerService', () => {
 
   describe('validateAndFilterTabs', () => {
     it('should keep system tabs regardless of elements', () => {
-      service.openSystemTab('documents-list');
+      service.openSystemTab('media');
 
       const validTabs = service.validateAndFilterTabs([]);
 
@@ -433,16 +433,16 @@ describe('TabManagerService', () => {
       service.openDocument(
         createElement('doc-1', 'Chapter 1', ElementType.Item)
       );
-      service.openSystemTab('documents-list');
+      service.openSystemTab('templates-list');
 
-      const index = service.findSystemTabIndex('documents-list');
+      const index = service.findSystemTabIndex('templates-list');
 
       // Should be 1 (second tab in array after doc-1)
       expect(index).toBe(1);
     });
 
     it('should return -1 for non-existing system tab', () => {
-      const index = service.findSystemTabIndex('documents-list');
+      const index = service.findSystemTabIndex('templates-list');
 
       expect(index).toBe(-1);
     });

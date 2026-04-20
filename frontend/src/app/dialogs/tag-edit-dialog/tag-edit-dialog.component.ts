@@ -100,7 +100,7 @@ const COLOR_OPTIONS = [
   template: `
     <h2 mat-dialog-title>{{ data.isNew ? 'Create Tag' : 'Edit Tag' }}</h2>
 
-    <mat-dialog-content class="dialog-content">
+    <mat-dialog-content class="dialog-content" data-testid="tag-dialog-content">
       <!-- Tag Preview + Color Selection Row -->
       <div class="preview-row">
         <div class="tag-preview">
@@ -122,6 +122,7 @@ const COLOR_OPTIONS = [
               class="color-button"
               [class.selected]="colorOption === color()"
               [style.background-color]="colorOption"
+              [attr.data-testid]="'tag-color-option-' + $index"
               (click)="color.set(colorOption)"
               [attr.aria-checked]="colorOption === color()"
               [attr.aria-label]="'Color ' + colorOption"
@@ -143,6 +144,7 @@ const COLOR_OPTIONS = [
           matInput
           [ngModel]="name()"
           (ngModelChange)="name.set($event)"
+          data-testid="tag-name-input"
           placeholder="Enter tag name"
           required />
       </mat-form-field>
@@ -167,6 +169,7 @@ const COLOR_OPTIONS = [
             [class.selected]="iconOption === icon()"
             (click)="icon.set(iconOption)"
             [matTooltip]="iconOption"
+            [attr.data-testid]="'tag-icon-option-' + $index"
             [attr.aria-checked]="iconOption === icon()"
             [attr.aria-label]="'Icon ' + iconOption"
             role="radio">

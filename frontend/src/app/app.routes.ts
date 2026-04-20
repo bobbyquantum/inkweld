@@ -252,16 +252,6 @@ export const routes: Routes = [
         },
       },
       {
-        path: 'documents-list',
-        loadComponent: () =>
-          import('./pages/project/tabs/documents-list/documents-list-tab.component').then(
-            m => m.DocumentsListTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
         path: 'media',
         loadComponent: () =>
           import('./pages/project/tabs/media/media-tab.component').then(

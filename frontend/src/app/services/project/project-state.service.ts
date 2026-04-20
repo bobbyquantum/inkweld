@@ -1065,7 +1065,6 @@ export class ProjectStateService implements OnDestroy {
 
   openSystemTab(
     type:
-      | 'documents-list'
       | 'media'
       | 'templates-list'
       | 'relationships-list'
@@ -1356,7 +1355,6 @@ export class ProjectStateService implements OnDestroy {
   }
 
   private static readonly URL_TO_SYSTEM_TAB: Record<string, string> = {
-    documents: 'documents-list',
     media: 'media',
     templates: 'templates-list',
   };

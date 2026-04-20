@@ -458,20 +458,6 @@ describe('ProjectComponent', () => {
   });
 
   describe('system tabs', () => {
-    it('should show document list', () => {
-      component.onShowDocumentList();
-      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'documents-list'
-      );
-      expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
-      expect(router.navigate).toHaveBeenCalledWith([
-        '/',
-        'testuser',
-        'test-project',
-        'documents-list',
-      ]);
-    });
-
     it('should show media library', () => {
       component.onShowMediaLibrary();
       expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
@@ -997,7 +983,7 @@ describe('ProjectComponent', () => {
 
     it('should detect the selected system tab', () => {
       openTabsSignal.set([
-        { type: 'system', systemType: 'documents-list' },
+        { type: 'system', systemType: 'media' },
         { type: 'system', systemType: 'settings' },
       ]);
       selectedTabIndexSignal.set(1);

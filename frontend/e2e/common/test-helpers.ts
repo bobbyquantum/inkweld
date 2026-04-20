@@ -469,6 +469,50 @@ export async function createProjectWithTwoSteps(
 }
 
 /**
+ * Navigate from a project route to Settings > Tags and wait for the tab root.
+ */
+export async function openTagsTab(
+  page: Page,
+  projectSlug: string
+): Promise<void> {
+  await page.goto(`/demouser/${projectSlug}/settings`);
+  await page.getByTestId('settings-tab-content').waitFor({ state: 'visible' });
+
+  await page.getByTestId('nav-tags').click();
+  await page.getByTestId('tags-tab').waitFor({ state: 'visible' });
+}
+
+/**
+ * Open the tag edit/create dialog and wait for its content root.
+ */
+export async function openTagDialog(page: Page): Promise<void> {
+  await page.getByTestId('new-tag-button').click();
+  await page.getByTestId('tag-dialog-content').waitFor({ state: 'visible' });
+}
+
+/**
+ * Fill tag dialog fields and optionally choose icon/color options by index.
+ */
+export async function fillTagDialog(
+  page: Page,
+  name: string,
+  iconIndex: number = 0,
+  colorIndex: number = 0
+): Promise<void> {
+  await page.getByTestId('tag-name-input').fill(name);
+
+  const iconOption = page.getByTestId(`tag-icon-option-${iconIndex}`);
+  if (await iconOption.isVisible().catch(() => false)) {
+    await iconOption.click();
+  }
+
+  const colorOption = page.getByTestId(`tag-color-option-${colorIndex}`);
+  if (await colorOption.isVisible().catch(() => false)) {
+    await colorOption.click();
+  }
+}
+
+/**
  * Dismiss the Material snackbar toast if one is present.
  * Silently no-ops if no toast is visible.
  */

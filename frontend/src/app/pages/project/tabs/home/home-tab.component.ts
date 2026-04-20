@@ -165,23 +165,6 @@ export class HomeTabComponent {
   }
 
   /**
-   * Opens the documents tab
-   */
-  openDocumentsTab(): void {
-    const result = this.projectState.openSystemTab('documents-list');
-    this.projectState.selectTab(result.index);
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'documents-list',
-      ]);
-    }
-  }
-
-  /**
    * Opens the media tab
    */
   openMediaTab(): void {
