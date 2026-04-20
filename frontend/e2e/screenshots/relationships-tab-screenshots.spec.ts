@@ -480,6 +480,148 @@ test.describe('Relationships Tab Screenshots', () => {
       return false;
     }
 
+    async function setupCharacterScenario(
+      page: Page,
+      options: {
+        darkMode: boolean;
+        projectSlug: string;
+        projectTitle: string;
+        characters: string[];
+        activeCharacter: string;
+      }
+    ): Promise<void> {
+      if (options.darkMode) {
+        await page.emulateMedia({ colorScheme: 'dark' });
+      }
+
+      await setupProjectWithCharacters(
+        page,
+        options.projectSlug,
+        options.projectTitle,
+        options.characters
+      );
+
+      await openCharacterAndShowRelationships(page, options.activeCharacter);
+      await page.waitForTimeout(500);
+    }
+
+    async function captureRelationshipOverview(
+      page: Page,
+      panelFile: string,
+      overviewFile: string
+    ): Promise<void> {
+      const relationshipsPanel = page.locator('.relationships-panel');
+      if (await relationshipsPanel.isVisible().catch(() => false)) {
+        await captureElementScreenshot(
+          page,
+          [relationshipsPanel],
+          join(screenshotsDir, panelFile),
+          16
+        );
+      }
+
+      await page.screenshot({
+        path: join(screenshotsDir, overviewFile),
+        fullPage: false,
+      });
+    }
+
+    async function openAddRelationshipDialogAndCapture(
+      page: Page,
+      outputFile: string
+    ): Promise<void> {
+      const addButton = page.getByTestId('add-relationship-button');
+      if (!(await addButton.isVisible().catch(() => false))) {
+        return;
+      }
+
+      await addButton.click();
+      await page.waitForTimeout(500);
+
+      const dialog = page.locator('mat-dialog-container');
+      if (await dialog.isVisible().catch(() => false)) {
+        await captureElementScreenshot(
+          page,
+          [dialog],
+          join(screenshotsDir, outputFile),
+          32
+        );
+      }
+
+      await page
+        .locator('button:has-text("Cancel")')
+        .click()
+        .catch(() => page.keyboard.press('Escape'));
+    }
+
+    async function addParentRelationshipThroughDialog(
+      page: Page,
+      options: {
+        typeName: string;
+        searchTerm: string;
+        targetOptionText: string;
+        debugScreenshot?: string;
+      }
+    ): Promise<void> {
+      const addButton = page
+        .locator('.meta-panel')
+        .getByTestId('add-relationship-button');
+      await addButton.click();
+      await page.waitForTimeout(500);
+
+      const dialog = page.locator('mat-dialog-container');
+      await dialog.waitFor({ state: 'visible' }).catch(() => {});
+
+      if (!(await dialog.isVisible().catch(() => false))) {
+        return;
+      }
+
+      const typeSelect = dialog.getByTestId('relationship-type-select');
+      if (await typeSelect.isVisible().catch(() => false)) {
+        await typeSelect.click();
+        await page.waitForTimeout(200);
+        await page.click(`mat-option:has-text("${options.typeName}")`);
+        await page.waitForTimeout(300);
+      }
+
+      const searchInput = dialog.getByTestId('element-search-input');
+      if (await searchInput.isVisible().catch(() => false)) {
+        await searchInput.click();
+        await searchInput.fill(options.searchTerm);
+        await page.waitForTimeout(500);
+
+        const option = page.locator(
+          `mat-option:has-text("${options.targetOptionText}")`
+        );
+        if (await option.isVisible().catch(() => false)) {
+          await option.click();
+          await page.waitForTimeout(300);
+        }
+      }
+
+      const submitButton = dialog.locator(
+        'button:has-text("Add Relationship")'
+      );
+      await page.waitForTimeout(200);
+
+      if (await submitButton.isEnabled().catch(() => false)) {
+        await submitButton.click();
+        await page.waitForTimeout(500);
+        return;
+      }
+
+      if (options.debugScreenshot) {
+        await page.screenshot({
+          path: join(screenshotsDir, options.debugScreenshot),
+          fullPage: false,
+        });
+      }
+
+      const cancelButton = dialog.getByTestId('cancel-button');
+      await cancelButton.click().catch(() => page.keyboard.press('Escape'));
+      await page.waitForTimeout(300);
+    }
+
     test('character with relationships panel - light mode', async ({
       offlinePage: page,
     }) => {
@@ -552,85 +694,37 @@ test.describe('Relationships Tab Screenshots', () => {
       });
     });
 
-    test('add relationship dialog', async ({ offlinePage: page }) => {
-      // Create project with characters
-      await setupProjectWithCharacters(page, 'add-rel-dialog', 'Dialog Demo', [
-        'Hero',
-        'Mentor',
-        'Villain',
-      ]);
+    for (const dialogScenario of [
+      {
+        testName: 'add relationship dialog',
+        darkMode: false,
+        projectSlug: 'add-rel-dialog',
+        projectTitle: 'Dialog Demo',
+        outputFile: 'add-relationship-dialog-light.png',
+      },
+      {
+        testName: 'add relationship dialog - dark mode',
+        darkMode: true,
+        projectSlug: 'add-rel-dialog-dark',
+        projectTitle: 'Dialog Demo Dark',
+        outputFile: 'add-relationship-dialog-dark.png',
+      },
+    ]) {
+      test(dialogScenario.testName, async ({ offlinePage: page }) => {
+        await setupCharacterScenario(page, {
+          darkMode: dialogScenario.darkMode,
+          projectSlug: dialogScenario.projectSlug,
+          projectTitle: dialogScenario.projectTitle,
+          characters: ['Hero', 'Mentor', 'Villain'],
+          activeCharacter: 'Hero',
+        });
 
-      // Open character
-      await openCharacterAndShowRelationships(page, 'Hero');
-      await page.waitForTimeout(500);
-
-      // Open the add relationship dialog
-      const addButton = page.getByTestId('add-relationship-button');
-      if (await addButton.isVisible().catch(() => false)) {
-        await addButton.click();
-        await page.waitForTimeout(500);
-
-        // Screenshot of the dialog
-        const dialog = page.locator('mat-dialog-container');
-        if (await dialog.isVisible().catch(() => false)) {
-          await captureElementScreenshot(
-            page,
-            [dialog],
-            join(screenshotsDir, 'add-relationship-dialog-light.png'),
-            32
-          );
-        }
-
-        // Close the dialog
-        await page
-          .locator('button:has-text("Cancel")')
-          .click()
-          .catch(() => page.keyboard.press('Escape'));
-      }
-    });
-
-    test('add relationship dialog - dark mode', async ({
-      offlinePage: page,
-    }) => {
-      // Set dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-
-      // Create project with characters
-      await setupProjectWithCharacters(
-        page,
-        'add-rel-dialog-dark',
-        'Dialog Demo Dark',
-        ['Hero', 'Mentor', 'Villain']
-      );
-
-      // Open character
-      await openCharacterAndShowRelationships(page, 'Hero');
-      await page.waitForTimeout(500);
-
-      // Open the add relationship dialog
-      const addButton = page.getByTestId('add-relationship-button');
-      if (await addButton.isVisible().catch(() => false)) {
-        await addButton.click();
-        await page.waitForTimeout(500);
-
-        // Screenshot of the dialog in dark mode
-        const dialog = page.locator('mat-dialog-container');
-        if (await dialog.isVisible().catch(() => false)) {
-          await captureElementScreenshot(
-            page,
-            [dialog],
-            join(screenshotsDir, 'add-relationship-dialog-dark.png'),
-            32
-          );
-        }
-
-        // Close dialog
-        await page
-          .locator('button:has-text("Cancel")')
-          .click()
-          .catch(() => page.keyboard.press('Escape'));
-      }
-    });
+        await openAddRelationshipDialogAndCapture(
+          page,
+          dialogScenario.outputFile
+        );
+      });
+    }
 
     test('empty relationships state', async ({ offlinePage: page }) => {
       // Create project with just one character (no relationships yet)
@@ -657,377 +751,126 @@ test.describe('Relationships Tab Screenshots', () => {
       }
     });
 
-    test('parent-child relationship between characters', async ({
-      offlinePage: page,
-    }) => {
-      // Create project with two characters - a parent and child
-      await setupProjectWithCharacters(
-        page,
-        'parent-child-demo',
-        'Family Story',
-        ['Lord Aldric Stormwind', 'Elena Stormwind']
-      );
+    for (const parentChildScenario of [
+      {
+        testName: 'parent-child relationship between characters',
+        darkMode: false,
+        projectSlug: 'parent-child-demo',
+        projectTitle: 'Family Story',
+        characters: ['Lord Aldric Stormwind', 'Elena Stormwind'],
+        parentCharacter: 'Lord Aldric Stormwind',
+        childCharacter: 'Elena Stormwind',
+        childSearchTerm: 'Elena',
+        parentPanelFile: 'character-parent-relationship-light.png',
+        parentOverviewFile: 'character-parent-overview-light.png',
+        childPanelFile: 'character-child-relationship-light.png',
+        childOverviewFile: 'character-child-overview-light.png',
+        debugScreenshot: 'debug-dialog-state.png',
+      },
+      {
+        testName: 'parent-child relationship - dark mode',
+        darkMode: true,
+        projectSlug: 'parent-child-dark',
+        projectTitle: 'Family Story Dark',
+        characters: ['King Aldric', 'Prince Marcus'],
+        parentCharacter: 'King Aldric',
+        childCharacter: 'Prince Marcus',
+        childSearchTerm: 'Prince',
+        parentPanelFile: 'character-parent-relationship-dark.png',
+        parentOverviewFile: 'character-parent-overview-dark.png',
+        childPanelFile: 'character-child-relationship-dark.png',
+        childOverviewFile: 'character-child-overview-dark.png',
+      },
+    ]) {
+      test(parentChildScenario.testName, async ({ offlinePage: page }) => {
+        await setupCharacterScenario(page, {
+          darkMode: parentChildScenario.darkMode,
+          projectSlug: parentChildScenario.projectSlug,
+          projectTitle: parentChildScenario.projectTitle,
+          characters: parentChildScenario.characters,
+          activeCharacter: parentChildScenario.parentCharacter,
+        });
 
-      // Open the parent character first
-      await page.click('text="Lord Aldric Stormwind"');
-      await page.waitForTimeout(500);
+        await addParentRelationshipThroughDialog(page, {
+          typeName: 'Parent',
+          searchTerm: parentChildScenario.childSearchTerm,
+          targetOptionText: parentChildScenario.childCharacter,
+          debugScreenshot: parentChildScenario.debugScreenshot,
+        });
 
-      // In sidenav mode, click Relationships nav to show the meta panel
-      await page.getByTestId('nav-relationships').click();
-      await page.waitForTimeout(300);
-
-      // Expand the meta panel (panel is always visible but starts collapsed)
-      const expandButton = page.getByTestId('expand-panel-button');
-      if (await expandButton.isVisible().catch(() => false)) {
-        await expandButton.click();
         await page.waitForTimeout(300);
-      }
+        await captureRelationshipOverview(
+          page,
+          parentChildScenario.parentPanelFile,
+          parentChildScenario.parentOverviewFile
+        );
 
-      // Click "Add Relationship" button (in the meta panel, not in dialog)
-      const addButton = page
-        .locator('.meta-panel')
-        .getByTestId('add-relationship-button');
-      await addButton.click();
-      await page.waitForTimeout(500);
+        await openCharacterAndShowRelationships(
+          page,
+          parentChildScenario.childCharacter
+        );
 
-      // Wait for dialog to appear
-      const dialog = page.locator('mat-dialog-container');
-      await dialog.waitFor({ state: 'visible' }).catch(() => {});
+        await captureRelationshipOverview(
+          page,
+          parentChildScenario.childPanelFile,
+          parentChildScenario.childOverviewFile
+        );
+      });
+    }
 
-      if (await dialog.isVisible().catch(() => false)) {
-        // Select "Parent" as the relationship type
-        const typeSelect = dialog.getByTestId('relationship-type-select');
-        if (await typeSelect.isVisible().catch(() => false)) {
-          await typeSelect.click();
-          await page.waitForTimeout(200);
-          await page.click('mat-option:has-text("Parent")');
-          await page.waitForTimeout(300);
+    for (const multipleScenario of [
+      {
+        testName: 'multiple relationship types on one character',
+        darkMode: false,
+        projectSlug: 'multi-rel-demo',
+        projectTitle: 'Complex Relationships',
+        outputFile: 'character-multiple-relationships-light.png',
+        overviewFile: 'character-multiple-relationships-overview-light.png',
+      },
+      {
+        testName: 'multiple relationship types on one character - dark mode',
+        darkMode: true,
+        projectSlug: 'multi-rel-dark',
+        projectTitle: 'Complex Relationships Dark',
+        outputFile: 'character-multiple-relationships-dark.png',
+        overviewFile: 'character-multiple-relationships-overview-dark.png',
+      },
+    ]) {
+      test(multipleScenario.testName, async ({ offlinePage: page }) => {
+        await setupCharacterScenario(page, {
+          darkMode: multipleScenario.darkMode,
+          projectSlug: multipleScenario.projectSlug,
+          projectTitle: multipleScenario.projectTitle,
+          characters: [
+            'Hero Knight',
+            'Wise Mentor',
+            'Dark Villain',
+            'Loyal Friend',
+          ],
+          activeCharacter: 'Hero Knight',
+        });
+
+        await addRelationship(page, 'Mentor', 'Wise Mentor');
+        await addRelationship(page, 'Rival', 'Dark Villain');
+        await addRelationship(page, 'Friend', 'Loyal Friend');
+
+        await page.waitForTimeout(300);
+
+        const metaPanel = page.locator('.meta-panel');
+        if (await metaPanel.isVisible().catch(() => false)) {
+          await captureElementScreenshot(
+            page,
+            [metaPanel],
+            join(screenshotsDir, multipleScenario.outputFile),
+            16
+          );
         }
 
-        // Search for the child character using the autocomplete
-        const searchInput = dialog.getByTestId('element-search-input');
-        if (await searchInput.isVisible().catch(() => false)) {
-          await searchInput.click();
-          await searchInput.fill('Elena');
-          await page.waitForTimeout(500);
-
-          // Click on the matching option from autocomplete
-          const option = page.locator('mat-option:has-text("Elena Stormwind")');
-          if (await option.isVisible().catch(() => false)) {
-            await option.click();
-            await page.waitForTimeout(300);
-          }
-        }
-
-        // Try to submit - the button inside dialog has same testid but is in the dialog
-        const dialogSubmitButton = dialog.locator(
-          'button:has-text("Add Relationship")'
-        );
-        await page.waitForTimeout(200);
-
-        if (await dialogSubmitButton.isEnabled().catch(() => false)) {
-          await dialogSubmitButton.click();
-          await page.waitForTimeout(500);
-        } else {
-          // If we couldn't submit, take a screenshot of the dialog state for debugging
-          await page.screenshot({
-            path: join(screenshotsDir, 'debug-dialog-state.png'),
-            fullPage: false,
-          });
-          // Close dialog
-          const cancelButton = dialog.getByTestId('cancel-button');
-          await cancelButton.click().catch(() => page.keyboard.press('Escape'));
-          await page.waitForTimeout(300);
-        }
-      }
-
-      // Now take screenshot of the parent's relationships panel
-      await page.waitForTimeout(300);
-
-      // Capture the relationships panel showing the relationship (if any was created)
-      const relationshipsPanel = page.locator('.relationships-panel');
-      if (await relationshipsPanel.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [relationshipsPanel],
-          join(screenshotsDir, 'character-parent-relationship-light.png'),
-          16
-        );
-      }
-
-      // Full page screenshot showing parent with relationship
-      await page.screenshot({
-        path: join(screenshotsDir, 'character-parent-overview-light.png'),
-        fullPage: false,
+        await page.screenshot({
+          path: join(screenshotsDir, multipleScenario.overviewFile),
+          fullPage: false,
+        });
       });
-
-      // Now switch to the child character to see the incoming relationship (if created)
-      await page.click('text="Elena Stormwind"');
-      await page.waitForTimeout(500);
-
-      // In sidenav mode, click Relationships nav to show the meta panel
-      await page.getByTestId('nav-relationships').click();
-      await page.waitForTimeout(300);
-
-      // Expand the meta panel on the child character
-      const childExpandButton = page.getByTestId('expand-panel-button');
-      if (await childExpandButton.isVisible().catch(() => false)) {
-        await childExpandButton.click();
-        await page.waitForTimeout(300);
-      }
-
-      // The child should show "Child of" relationship (backlink) if relationship was created
-      const childRelationshipsPanel = page.locator('.relationships-panel');
-      if (await childRelationshipsPanel.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [childRelationshipsPanel],
-          join(screenshotsDir, 'character-child-relationship-light.png'),
-          16
-        );
-      }
-
-      // Full page screenshot of child showing backlink
-      await page.screenshot({
-        path: join(screenshotsDir, 'character-child-overview-light.png'),
-        fullPage: false,
-      });
-    });
-
-    test('multiple relationship types on one character', async ({
-      offlinePage: page,
-    }) => {
-      // Create a project with several characters for complex relationships
-      await setupProjectWithCharacters(
-        page,
-        'multi-rel-demo',
-        'Complex Relationships',
-        ['Hero Knight', 'Wise Mentor', 'Dark Villain', 'Loyal Friend']
-      );
-
-      // Open the Hero character
-      await page.click('text="Hero Knight"');
-      await page.waitForTimeout(500);
-
-      // In sidenav mode, click Relationships nav to show the meta panel
-      await page.getByTestId('nav-relationships').click();
-      await page.waitForTimeout(300);
-
-      // Expand the meta panel (panel is always visible but starts collapsed)
-      const expandButton = page.getByTestId('expand-panel-button');
-      if (await expandButton.isVisible().catch(() => false)) {
-        await expandButton.click();
-        await page.waitForTimeout(300);
-      }
-
-      // Add multiple relationships of different types
-      await addRelationship(page, 'Mentor', 'Wise Mentor');
-      await addRelationship(page, 'Rival', 'Dark Villain');
-      await addRelationship(page, 'Friend', 'Loyal Friend');
-
-      // Screenshot of character with multiple relationship types
-      await page.waitForTimeout(300);
-
-      const metaPanel = page.locator('.meta-panel');
-      if (await metaPanel.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [metaPanel],
-          join(screenshotsDir, 'character-multiple-relationships-light.png'),
-          16
-        );
-      }
-
-      // Full page screenshot
-      await page.screenshot({
-        path: join(
-          screenshotsDir,
-          'character-multiple-relationships-overview-light.png'
-        ),
-        fullPage: false,
-      });
-    });
-
-    test('parent-child relationship - dark mode', async ({
-      offlinePage: page,
-    }) => {
-      // Set dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-
-      // Create project with two characters
-      await setupProjectWithCharacters(
-        page,
-        'parent-child-dark',
-        'Family Story Dark',
-        ['King Aldric', 'Prince Marcus']
-      );
-
-      // Open the parent character
-      await page.click('text="King Aldric"');
-      await page.waitForTimeout(500);
-
-      // In sidenav mode, click Relationships nav to show the meta panel
-      await page.getByTestId('nav-relationships').click();
-      await page.waitForTimeout(300);
-
-      // Expand the meta panel (panel is always visible but starts collapsed)
-      const expandButton = page.getByTestId('expand-panel-button');
-      if (await expandButton.isVisible().catch(() => false)) {
-        await expandButton.click();
-        await page.waitForTimeout(300);
-      }
-
-      // Add parent relationship
-      const addButton = page
-        .locator('.meta-panel')
-        .getByTestId('add-relationship-button');
-      await addButton.click();
-      await page.waitForTimeout(500);
-
-      const dialog = page.locator('mat-dialog-container');
-      await dialog.waitFor({ state: 'visible' }).catch(() => {});
-
-      if (await dialog.isVisible().catch(() => false)) {
-        // Select "Parent" type
-        const typeSelect = dialog.getByTestId('relationship-type-select');
-        if (await typeSelect.isVisible().catch(() => false)) {
-          await typeSelect.click();
-          await page.waitForTimeout(200);
-          await page.click('mat-option:has-text("Parent")');
-          await page.waitForTimeout(300);
-        }
-
-        // Search for target
-        const searchInput = dialog.getByTestId('element-search-input');
-        if (await searchInput.isVisible().catch(() => false)) {
-          await searchInput.click();
-          await searchInput.fill('Prince');
-          await page.waitForTimeout(400);
-          const option = page.locator('mat-option:has-text("Prince Marcus")');
-          if (await option.isVisible().catch(() => false)) {
-            await option.click();
-            await page.waitForTimeout(300);
-          }
-        }
-
-        // Submit
-        const submitButton = dialog.locator(
-          'button:has-text("Add Relationship")'
-        );
-        await page.waitForTimeout(200);
-        if (await submitButton.isEnabled().catch(() => false)) {
-          await submitButton.click();
-          await page.waitForTimeout(500);
-        } else {
-          const cancelButton = dialog.getByTestId('cancel-button');
-          await cancelButton.click().catch(() => page.keyboard.press('Escape'));
-          await page.waitForTimeout(300);
-        }
-      }
-
-      // Screenshot of parent's panel in dark mode
-      const relationshipsPanel = page.locator('.relationships-panel');
-      if (await relationshipsPanel.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [relationshipsPanel],
-          join(screenshotsDir, 'character-parent-relationship-dark.png'),
-          16
-        );
-      }
-
-      // Full page
-      await page.screenshot({
-        path: join(screenshotsDir, 'character-parent-overview-dark.png'),
-        fullPage: false,
-      });
-
-      // Switch to child to see backlink
-      await page.click('text="Prince Marcus"');
-      await page.waitForTimeout(500);
-
-      // In sidenav mode, click Relationships nav to show the meta panel
-      await page.getByTestId('nav-relationships').click();
-      await page.waitForTimeout(300);
-
-      // Expand the meta panel on the child character
-      const childExpandButton = page.getByTestId('expand-panel-button');
-      if (await childExpandButton.isVisible().catch(() => false)) {
-        await childExpandButton.click();
-        await page.waitForTimeout(300);
-      }
-
-      const childRelationshipsPanel = page.locator('.relationships-panel');
-      if (await childRelationshipsPanel.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [childRelationshipsPanel],
-          join(screenshotsDir, 'character-child-relationship-dark.png'),
-          16
-        );
-      }
-
-      await page.screenshot({
-        path: join(screenshotsDir, 'character-child-overview-dark.png'),
-        fullPage: false,
-      });
-    });
-
-    test('multiple relationship types on one character - dark mode', async ({
-      offlinePage: page,
-    }) => {
-      // Set dark mode
-      await page.emulateMedia({ colorScheme: 'dark' });
-
-      // Create a project with several characters for complex relationships
-      await setupProjectWithCharacters(
-        page,
-        'multi-rel-dark',
-        'Complex Relationships Dark',
-        ['Hero Knight', 'Wise Mentor', 'Dark Villain', 'Loyal Friend']
-      );
-
-      // Open the Hero character
-      await page.click('text="Hero Knight"');
-      await page.waitForTimeout(500);
-
-      // In sidenav mode, click Relationships nav to show the meta panel
-      await page.getByTestId('nav-relationships').click();
-      await page.waitForTimeout(300);
-
-      // Expand the meta panel (panel is always visible but starts collapsed)
-      const expandButton = page.getByTestId('expand-panel-button');
-      if (await expandButton.isVisible().catch(() => false)) {
-        await expandButton.click();
-        await page.waitForTimeout(300);
-      }
-
-      // Add multiple relationships of different types
-      await addRelationship(page, 'Mentor', 'Wise Mentor');
-      await addRelationship(page, 'Rival', 'Dark Villain');
-      await addRelationship(page, 'Friend', 'Loyal Friend');
-
-      // Screenshot of character with multiple relationship types
-      await page.waitForTimeout(300);
-
-      const metaPanel = page.locator('.meta-panel');
-      if (await metaPanel.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [metaPanel],
-          join(screenshotsDir, 'character-multiple-relationships-dark.png'),
-          16
-        );
-      }
-
-      // Full page screenshot
-      await page.screenshot({
-        path: join(
-          screenshotsDir,
-          'character-multiple-relationships-overview-dark.png'
-        ),
-        fullPage: false,
-      });
-    });
+    }
   });
 });
