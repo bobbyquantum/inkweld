@@ -115,15 +115,20 @@ test.describe('Timeline Tab', () => {
     await page.getByTestId('timeline-add-track').click();
     // The in-app rename dialog opens with a suggested track name; accept it.
     await expect(page.getByTestId('rename-input')).toBeVisible();
+    const createdTrackName = await page
+      .getByTestId('rename-input')
+      .inputValue();
     await page.getByTestId('rename-confirm-button').click();
     // No visual assertion needed for the track itself — it's in the SVG.
     // Confirm the UI is still responsive by clicking add-event.
     await page.getByTestId('timeline-add-event').click();
 
-    // Track dropdown inside the dialog must now show at least 2 options.
+    // Track dropdown inside the dialog should include the newly added track.
     await page.getByTestId('timeline-event-track').click();
-    const options = page.locator('[data-testid^="timeline-track-option-"]');
-    await expect(options.first()).toBeVisible();
+    const addedTrackOption = page
+      .locator('[data-testid^="timeline-track-option-"]')
+      .filter({ hasText: createdTrackName });
+    await expect(addedTrackOption).toBeVisible();
   });
 
   test('zoom in button changes the tick span', async ({

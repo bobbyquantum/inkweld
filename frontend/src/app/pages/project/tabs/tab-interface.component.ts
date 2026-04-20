@@ -675,8 +675,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * Opens a system tab for media, templates-list, or settings
-   * @param type The type of system tab to open
+   * Opens a supported system tab.
+   * @param type System tab to open: media, templates-list, or settings.
    */
   openSystemTab(type: 'media' | 'templates-list' | 'settings'): void {
     console.log(`[TabInterface] Opening system tab: ${type}`);

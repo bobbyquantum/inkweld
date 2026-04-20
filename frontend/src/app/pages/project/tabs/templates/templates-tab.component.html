@@ -79,7 +79,7 @@
 
   <!-- Templates List -->
   @if (!isLoading() && !error() && filteredTemplates().length > 0) {
-    <div class="templates-list">
+    <div class="templates-list" data-testid="templates-list">
       @for (template of filteredTemplates(); track template.id) {
         <div class="template-row" data-testid="template-card">
           <div class="template-info">
@@ -89,7 +89,9 @@
               @if (template.isBuiltIn) {
                 <span class="badge built-in">Built-in</span>
               } @else {
-                <span class="badge custom">Custom</span>
+                <span class="badge custom" data-testid="badge-custom"
+                  >Custom</span
+                >
               }
             </div>
             <div class="template-meta">

@@ -24,7 +24,7 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
   await page.getByTestId('nav-relationships').click();
 
   // Wait for the relationships tab container to be visible and have content
-  await expect(page.locator('.relationships-tab')).toBeVisible();
+  await expect(page.getByTestId('relationships-tab')).toBeVisible();
 
   // Ensure the page is settled
   await page.waitForLoadState('networkidle');
@@ -142,8 +142,10 @@ test.describe('Relationships Tab', () => {
       await expect(firstCard).toBeVisible();
 
       // Should show category badge and inverse label in the compact row layout
-      await expect(firstCard.locator('.type-badge')).toBeVisible();
-      await expect(firstCard.locator('.type-meta')).toContainText('↔');
+      await expect(firstCard.getByTestId('type-category-badge')).toBeVisible();
+      await expect(firstCard.getByTestId('type-inverse-meta')).toContainText(
+        '↔'
+      );
     });
   });
 

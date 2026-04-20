@@ -68,7 +68,7 @@ test.describe('Worldbuilding Templates', () => {
     const customEventCard = page
       .getByTestId('template-card')
       .filter({ hasText: 'Custom Event' });
-    await expect(customEventCard.locator('.badge.custom')).toBeVisible();
+    await expect(customEventCard.getByTestId('badge-custom')).toBeVisible();
   });
 
   test('should create, clone and delete custom templates from Templates tab', async ({

@@ -1,59 +1,6 @@
-:host {
-  display: block;
-  padding: 8px 4px;
-}
+@use '../_settings-tab-layout' as settingsTabLayout;
 
-.header h2 {
-  margin: 0 0 4px;
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.hint {
-  color: var(--sys-on-surface-variant);
-  margin: 0 0 16px;
-  font-size: 0.9rem;
-}
-
-.controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.search-bar {
-  margin-left: auto;
-
-  .search-field {
-    --mat-form-field-outlined-container-shape: 28px !important;
-    width: 100%;
-    max-width: 400px;
-  }
-}
-
-@media (max-width: 760px) {
-  .controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-bar {
-    margin-left: 0;
-
-    .search-field {
-      max-width: none;
-    }
-  }
-}
+@include settingsTabLayout.apply();
 
 .types-list {
   border: 1px solid var(--sys-outline-variant);
@@ -124,26 +71,4 @@
   display: flex;
   gap: 4px;
   flex-shrink: 0;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 32px;
-  border: 1px dashed var(--sys-outline-variant);
-  border-radius: 8px;
-  text-align: center;
-  color: var(--sys-on-surface-variant);
-
-  mat-icon {
-    font-size: 40px;
-    height: 40px;
-    width: 40px;
-  }
-
-  p {
-    margin: 0;
-  }
 }

@@ -88,7 +88,7 @@ export class RelationshipsTabComponent {
   readonly searchQuery = signal('');
 
   readonly filteredTypes = computed(() => {
-    const query = this.searchQuery().toLowerCase();
+    const query = this.searchQuery().trim().toLowerCase();
     const types = this.relationshipTypes();
     if (!query) return types;
     return types.filter(

@@ -11,8 +11,9 @@
  * for cleaner documentation images.
  */
 
+import { join } from 'node:path';
+
 import { type Page } from '@playwright/test';
-import { join } from 'path';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { test } from './fixtures';
@@ -57,9 +58,7 @@ test.describe('Relationships Tab Screenshots', () => {
     await page.getByTestId('nav-relationships').click();
 
     // Wait for relationships container
-    await page.waitForSelector('.relationships-tab', {
-      state: 'visible',
-    });
+    await page.getByTestId('relationships-tab').waitFor({ state: 'visible' });
     await page.waitForTimeout(500);
 
     // Create a sample relationship type so screenshots have content
@@ -209,17 +208,15 @@ test.describe('Relationships Tab Screenshots', () => {
       });
       await page.waitForTimeout(300);
 
-      // Open the menu on a type card
+      // Capture a type card with inline action controls visible
       const typeCard = page
         .locator('[data-testid="relationship-type-card"]')
         .first();
-      await typeCard.locator('button[mat-icon-button]').click();
-      await page.waitForTimeout(200);
 
-      // Screenshot with menu open
+      // Screenshot focused on card actions
       await captureElementScreenshot(
         page,
-        [typeCard, page.locator('.mat-mdc-menu-panel')],
+        [typeCard],
         join(screenshotsDir, 'relationships-action-menu-light.png'),
         24
       );
@@ -326,7 +323,7 @@ test.describe('Relationships Tab Screenshots', () => {
       });
 
       // Cropped version focusing on the types grid
-      const typesContainer = page.locator('.relationships-tab-container');
+      const typesContainer = page.getByTestId('relationships-tab');
       await captureElementScreenshot(
         page,
         [typesContainer],
@@ -415,6 +412,72 @@ test.describe('Relationships Tab Screenshots', () => {
           await page.waitForTimeout(300);
         }
       }
+    }
+
+    /**
+     * Helper to add a relationship in the character meta panel.
+     */
+    async function addRelationship(
+      page: Page,
+      typeName: string,
+      targetName: string
+    ): Promise<boolean> {
+      const addButton = page
+        .locator('.meta-panel')
+        .getByTestId('add-relationship-button');
+      await addButton.click();
+      await page.waitForTimeout(400);
+
+      const dialog = page.locator('mat-dialog-container');
+      await dialog.waitFor({ state: 'visible' }).catch(() => {});
+
+      if (!(await dialog.isVisible().catch(() => false))) {
+        return false;
+      }
+
+      const typeSelect = dialog.getByTestId('relationship-type-select');
+      if (await typeSelect.isVisible().catch(() => false)) {
+        await typeSelect.click();
+        await page.waitForTimeout(200);
+        const typeOption = page.locator(`mat-option:has-text("${typeName}")`);
+        if (await typeOption.isVisible().catch(() => false)) {
+          await typeOption.click();
+          await page.waitForTimeout(300);
+        } else {
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(200);
+          return false;
+        }
+      }
+
+      const searchInput = dialog.getByTestId('element-search-input');
+      if (await searchInput.isVisible().catch(() => false)) {
+        await searchInput.click();
+        await searchInput.fill(targetName.split(' ')[0]);
+        await page.waitForTimeout(400);
+        const targetOption = page.locator(
+          `mat-option:has-text("${targetName}")`
+        );
+        if (await targetOption.isVisible().catch(() => false)) {
+          await targetOption.click();
+          await page.waitForTimeout(300);
+        }
+      }
+
+      const submitButton = dialog.locator(
+        'button:has-text("Add Relationship")'
+      );
+      await page.waitForTimeout(200);
+      if (await submitButton.isEnabled().catch(() => false)) {
+        await submitButton.click();
+        await page.waitForTimeout(400);
+        return true;
+      }
+
+      const cancelButton = dialog.getByTestId('cancel-button');
+      await cancelButton.click().catch(() => page.keyboard.press('Escape'));
+      await page.waitForTimeout(200);
+      return false;
     }
 
     test('character with relationships panel - light mode', async ({
@@ -757,77 +820,10 @@ test.describe('Relationships Tab Screenshots', () => {
         await page.waitForTimeout(300);
       }
 
-      // Helper to add a relationship
-      async function addRelationship(
-        typeName: string,
-        targetName: string
-      ): Promise<boolean> {
-        // Click "Add Relationship" button
-        const addButton = page
-          .locator('.meta-panel')
-          .getByTestId('add-relationship-button');
-        await addButton.click();
-        await page.waitForTimeout(400);
-
-        const dialog = page.locator('mat-dialog-container');
-        await dialog.waitFor({ state: 'visible' }).catch(() => {});
-
-        if (!(await dialog.isVisible().catch(() => false))) {
-          return false;
-        }
-
-        // Select relationship type
-        const typeSelect = dialog.getByTestId('relationship-type-select');
-        if (await typeSelect.isVisible().catch(() => false)) {
-          await typeSelect.click();
-          await page.waitForTimeout(200);
-          const typeOption = page.locator(`mat-option:has-text("${typeName}")`);
-          if (await typeOption.isVisible().catch(() => false)) {
-            await typeOption.click();
-            await page.waitForTimeout(300);
-          } else {
-            await page.keyboard.press('Escape');
-            await page.waitForTimeout(200);
-            return false;
-          }
-        }
-
-        // Search for target element
-        const searchInput = dialog.getByTestId('element-search-input');
-        if (await searchInput.isVisible().catch(() => false)) {
-          await searchInput.click();
-          await searchInput.fill(targetName.split(' ')[0]);
-          await page.waitForTimeout(400);
-          const targetOption = page.locator(
-            `mat-option:has-text("${targetName}")`
-          );
-          if (await targetOption.isVisible().catch(() => false)) {
-            await targetOption.click();
-            await page.waitForTimeout(300);
-          }
-        }
-
-        // Submit
-        const submitButton = dialog.locator(
-          'button:has-text("Add Relationship")'
-        );
-        await page.waitForTimeout(200);
-        if (await submitButton.isEnabled().catch(() => false)) {
-          await submitButton.click();
-          await page.waitForTimeout(400);
-          return true;
-        } else {
-          const cancelButton = dialog.getByTestId('cancel-button');
-          await cancelButton.click().catch(() => page.keyboard.press('Escape'));
-          await page.waitForTimeout(200);
-          return false;
-        }
-      }
-
       // Add multiple relationships of different types
-      await addRelationship('Mentor', 'Wise Mentor');
-      await addRelationship('Rival', 'Dark Villain');
-      await addRelationship('Friend', 'Loyal Friend');
+      await addRelationship(page, 'Mentor', 'Wise Mentor');
+      await addRelationship(page, 'Rival', 'Dark Villain');
+      await addRelationship(page, 'Friend', 'Loyal Friend');
 
       // Screenshot of character with multiple relationship types
       await page.waitForTimeout(300);
@@ -1006,77 +1002,10 @@ test.describe('Relationships Tab Screenshots', () => {
         await page.waitForTimeout(300);
       }
 
-      // Helper to add a relationship
-      async function addRelationship(
-        typeName: string,
-        targetName: string
-      ): Promise<boolean> {
-        // Click "Add Relationship" button
-        const addButton = page
-          .locator('.meta-panel')
-          .getByTestId('add-relationship-button');
-        await addButton.click();
-        await page.waitForTimeout(400);
-
-        const dialog = page.locator('mat-dialog-container');
-        await dialog.waitFor({ state: 'visible' }).catch(() => {});
-
-        if (!(await dialog.isVisible().catch(() => false))) {
-          return false;
-        }
-
-        // Select relationship type
-        const typeSelect = dialog.getByTestId('relationship-type-select');
-        if (await typeSelect.isVisible().catch(() => false)) {
-          await typeSelect.click();
-          await page.waitForTimeout(200);
-          const typeOption = page.locator(`mat-option:has-text("${typeName}")`);
-          if (await typeOption.isVisible().catch(() => false)) {
-            await typeOption.click();
-            await page.waitForTimeout(300);
-          } else {
-            await page.keyboard.press('Escape');
-            await page.waitForTimeout(200);
-            return false;
-          }
-        }
-
-        // Search for target element
-        const searchInput = dialog.getByTestId('element-search-input');
-        if (await searchInput.isVisible().catch(() => false)) {
-          await searchInput.click();
-          await searchInput.fill(targetName.split(' ')[0]);
-          await page.waitForTimeout(400);
-          const targetOption = page.locator(
-            `mat-option:has-text("${targetName}")`
-          );
-          if (await targetOption.isVisible().catch(() => false)) {
-            await targetOption.click();
-            await page.waitForTimeout(300);
-          }
-        }
-
-        // Submit
-        const submitButton = dialog.locator(
-          'button:has-text("Add Relationship")'
-        );
-        await page.waitForTimeout(200);
-        if (await submitButton.isEnabled().catch(() => false)) {
-          await submitButton.click();
-          await page.waitForTimeout(400);
-          return true;
-        } else {
-          const cancelButton = dialog.getByTestId('cancel-button');
-          await cancelButton.click().catch(() => page.keyboard.press('Escape'));
-          await page.waitForTimeout(200);
-          return false;
-        }
-      }
-
       // Add multiple relationships of different types
-      await addRelationship('Mentor', 'Wise Mentor');
-      await addRelationship('Rival', 'Dark Villain');
-      await addRelationship('Friend', 'Loyal Friend');
+      await addRelationship(page, 'Mentor', 'Wise Mentor');
+      await addRelationship(page, 'Rival', 'Dark Villain');
+      await addRelationship(page, 'Friend', 'Loyal Friend');
 
       // Screenshot of character with multiple relationship types
       await page.waitForTimeout(300);

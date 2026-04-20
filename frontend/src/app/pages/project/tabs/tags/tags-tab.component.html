@@ -1,4 +1,4 @@
-<div class="tags-tab">
+<div class="tags-tab" data-testid="tags-tab">
   <div class="header">
     <h2>Tags</h2>
     <p class="hint">Manage tags used across your project.</p>
@@ -99,6 +99,7 @@
             <button
               mat-icon-button
               matTooltip="Edit"
+              [attr.aria-label]="'Edit tag ' + tag.name"
               data-testid="edit-tag-button"
               (click)="editTag(tag)">
               <mat-icon>edit</mat-icon>
@@ -106,6 +107,8 @@
             <button
               mat-icon-button
               matTooltip="Delete"
+              [attr.aria-label]="'Delete tag ' + tag.name"
+              data-testid="delete-tag-button"
               (click)="deleteTag(tag)">
               <mat-icon>delete_outline</mat-icon>
             </button>

@@ -777,7 +777,7 @@ describe('TabInterfaceComponent', () => {
           systemType: 'media',
         },
       ]);
-      expect(component.hasOtherTabs()).toBe(true); // mockTabs has 3
+      expect(component.hasOtherTabs()).toBe(true); // 2 mock tabs + 1 system tab
     });
 
     it('closeTabsToRight does nothing when contextTabIndex is null', () => {

@@ -1,4 +1,4 @@
-<div class="relationships-tab">
+<div class="relationships-tab" data-testid="relationships-tab">
   <div class="header">
     <h2>Relationship Types</h2>
     <p class="hint">Define how elements connect in your project.</p>
@@ -79,9 +79,11 @@
             <div class="type-name">
               <mat-icon [style.color]="type.color">{{ type.icon }}</mat-icon>
               <span data-testid="relationship-type-title">{{ type.name }}</span>
-              <span class="type-badge">{{ type.categoryLabel }}</span>
+              <span class="type-badge" data-testid="type-category-badge">{{
+                type.categoryLabel
+              }}</span>
             </div>
-            <div class="type-meta">
+            <div class="type-meta" data-testid="type-inverse-meta">
               <span>↔ {{ type.inverseLabel }}</span>
               @if (!type.showInverse) {
                 <mat-icon

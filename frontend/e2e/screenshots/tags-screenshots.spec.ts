@@ -15,7 +15,12 @@ import { join } from 'node:path';
 
 import { type Page } from '@playwright/test';
 
-import { createProjectWithTwoSteps } from '../common/test-helpers';
+import {
+  createProjectWithTwoSteps,
+  fillTagDialog,
+  openTagDialog,
+  openTagsTab,
+} from '../common/test-helpers';
 import { test } from './fixtures';
 import {
   captureElementScreenshot,
@@ -30,26 +35,13 @@ async function setupProjectAndTagsTab(
 ) {
   await page.goto('/');
 
-  await page.waitForSelector('.empty-state', {
-    state: 'visible',
-  });
+  await page.getByTestId('empty-state').waitFor({ state: 'visible' });
 
   await createProjectWithTwoSteps(page, projectTitle, projectSlug);
   await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
 
-  // Navigate to Settings tab first
-  await page.goto(`/demouser/${projectSlug}/settings`);
-  await page.waitForSelector('[data-testid="settings-tab-content"]', {
-    state: 'visible',
-  });
-
-  // Click on the Tags section in sidenav
-  await page.getByTestId('nav-tags').click();
-
-  // Wait for tags container
-  await page.waitForSelector('.tags-tab', {
-    state: 'visible',
-  });
+  // Navigate to Settings > Tags via shared helper
+  await openTagsTab(page, projectSlug);
   await page.waitForTimeout(500);
 }
 
@@ -59,29 +51,10 @@ async function createTag(
   iconIndex: number = 0,
   colorIndex: number = 0
 ) {
-  // Click new tag button
-  await page.click('[data-testid="new-tag-button"]');
-
-  // Wait for dialog
-  await page.waitForSelector('mat-dialog-container', {
-    state: 'visible',
-  });
+  await openTagDialog(page);
   await page.waitForTimeout(300);
 
-  // Enter name
-  await page.fill('input[placeholder="Enter tag name"]', name);
-
-  // Select icon (click the nth icon button)
-  const iconButtons = page.locator('.icon-button');
-  if ((await iconButtons.count()) > iconIndex) {
-    await iconButtons.nth(iconIndex).click();
-  }
-
-  // Select color (click the nth color button)
-  const colorButtons = page.locator('.color-button');
-  if ((await colorButtons.count()) > colorIndex) {
-    await colorButtons.nth(colorIndex).click();
-  }
+  await fillTagDialog(page, name, iconIndex, colorIndex);
 
   await page.waitForTimeout(200);
 }
@@ -125,7 +98,7 @@ test.describe('Tags Feature Screenshots', () => {
       await page.waitForTimeout(500);
 
       // Capture the tags list
-      const tagsTab = page.locator('.tags-tab');
+      const tagsTab = page.getByTestId('tags-tab');
       await captureElementScreenshot(
         page,
         [tagsTab],
@@ -141,7 +114,7 @@ test.describe('Tags Feature Screenshots', () => {
       await createTag(page, 'My Custom Tag', 3, 8);
 
       // Capture the dialog
-      const dialog = page.locator('mat-dialog-container');
+      const dialog = page.getByTestId('tag-dialog-content');
       await captureElementScreenshot(
         page,
         [dialog],
@@ -164,13 +137,13 @@ test.describe('Tags Feature Screenshots', () => {
       // Click edit on the tag directly
       await page.click('[data-testid="edit-tag-button"]');
 
-      await page.waitForSelector('mat-dialog-container', {
+      await page.getByTestId('tag-dialog-content').waitFor({
         state: 'visible',
       });
       await page.waitForTimeout(300);
 
       // Capture the edit dialog
-      const dialog = page.locator('mat-dialog-container');
+      const dialog = page.getByTestId('tag-dialog-content');
       await captureElementScreenshot(
         page,
         [dialog],
@@ -218,7 +191,7 @@ test.describe('Tags Feature Screenshots', () => {
       await page.waitForTimeout(500);
 
       // Capture the tags list in dark mode
-      const tagsTab = page.locator('.tags-tab');
+      const tagsTab = page.getByTestId('tags-tab');
       await captureElementScreenshot(
         page,
         [tagsTab],
@@ -235,7 +208,7 @@ test.describe('Tags Feature Screenshots', () => {
       await createTag(page, 'Dark Mode Tag', 5, 10);
 
       // Capture the dialog
-      const dialog = page.locator('mat-dialog-container');
+      const dialog = page.getByTestId('tag-dialog-content');
       await captureElementScreenshot(
         page,
         [dialog],
@@ -259,13 +232,13 @@ test.describe('Tags Feature Screenshots', () => {
       // Click edit on the tag directly
       await page.click('[data-testid="edit-tag-button"]');
 
-      await page.waitForSelector('mat-dialog-container', {
+      await page.getByTestId('tag-dialog-content').waitFor({
         state: 'visible',
       });
       await page.waitForTimeout(300);
 
       // Capture the edit dialog in dark mode
-      const dialog = page.locator('mat-dialog-container');
+      const dialog = page.getByTestId('tag-dialog-content');
       await captureElementScreenshot(
         page,
         [dialog],
