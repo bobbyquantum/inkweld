@@ -25,7 +25,6 @@ export interface AppTab {
     | 'publishPlan';
   /** For system tabs, specifies the system view type */
   systemType?:
-    | 'documents-list'
     | 'media'
     | 'templates-list'
     | 'relationships-list'
@@ -190,7 +189,6 @@ export class TabManagerService {
    */
   openSystemTab(
     type:
-      | 'documents-list'
       | 'media'
       | 'templates-list'
       | 'relationships-list'
@@ -203,7 +201,6 @@ export class TabManagerService {
     const tabId = `system-${type}`;
     const TAB_NAMES: Record<string, string> = {
       home: 'Home',
-      'documents-list': 'Documents',
       media: 'Media',
       'templates-list': 'Templates',
       'tags-list': 'Tags',
@@ -580,7 +577,6 @@ export class TabManagerService {
    */
   findSystemTabIndex(
     systemType:
-      | 'documents-list'
       | 'project-files'
       | 'templates-list'
       | 'relationships-list'

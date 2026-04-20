@@ -57,7 +57,7 @@ test.describe('Relationships Tab Screenshots', () => {
     await page.getByTestId('nav-relationships').click();
 
     // Wait for relationships container
-    await page.waitForSelector('.relationships-tab-container', {
+    await page.waitForSelector('.relationships-tab', {
       state: 'visible',
     });
     await page.waitForTimeout(500);

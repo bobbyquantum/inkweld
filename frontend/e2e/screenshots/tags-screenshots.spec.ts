@@ -11,8 +11,9 @@
  * for cleaner documentation images.
  */
 
+import { join } from 'node:path';
+
 import { type Page } from '@playwright/test';
-import { join } from 'path';
 
 import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { test } from './fixtures';
@@ -22,82 +23,75 @@ import {
   getScreenshotsDir,
 } from './screenshot-helpers';
 
+async function setupProjectAndTagsTab(
+  page: Page,
+  projectSlug: string,
+  projectTitle: string
+) {
+  await page.goto('/');
+
+  await page.waitForSelector('.empty-state', {
+    state: 'visible',
+  });
+
+  await createProjectWithTwoSteps(page, projectTitle, projectSlug);
+  await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
+
+  // Navigate to Settings tab first
+  await page.goto(`/demouser/${projectSlug}/settings`);
+  await page.waitForSelector('[data-testid="settings-tab-content"]', {
+    state: 'visible',
+  });
+
+  // Click on the Tags section in sidenav
+  await page.getByTestId('nav-tags').click();
+
+  // Wait for tags container
+  await page.waitForSelector('.tags-tab', {
+    state: 'visible',
+  });
+  await page.waitForTimeout(500);
+}
+
+async function createTag(
+  page: Page,
+  name: string,
+  iconIndex: number = 0,
+  colorIndex: number = 0
+) {
+  // Click new tag button
+  await page.click('[data-testid="new-tag-button"]');
+
+  // Wait for dialog
+  await page.waitForSelector('mat-dialog-container', {
+    state: 'visible',
+  });
+  await page.waitForTimeout(300);
+
+  // Enter name
+  await page.fill('input[placeholder="Enter tag name"]', name);
+
+  // Select icon (click the nth icon button)
+  const iconButtons = page.locator('.icon-button');
+  if ((await iconButtons.count()) > iconIndex) {
+    await iconButtons.nth(iconIndex).click();
+  }
+
+  // Select color (click the nth color button)
+  const colorButtons = page.locator('.color-button');
+  if ((await colorButtons.count()) > colorIndex) {
+    await colorButtons.nth(colorIndex).click();
+  }
+
+  await page.waitForTimeout(200);
+}
+
 test.describe('Tags Feature Screenshots', () => {
   const screenshotsDir = getScreenshotsDir();
 
   test.beforeAll(async () => {
     await ensureDirectory(screenshotsDir);
   });
-
-  /**
-   * Helper to create a project and navigate to tags tab
-   * (Tags is now a sub-tab within Project Settings)
-   */
-  async function setupProjectAndTagsTab(
-    page: Page,
-    projectSlug: string,
-    projectTitle: string
-  ) {
-    await page.goto('/');
-
-    await page.waitForSelector('.empty-state', {
-      state: 'visible',
-    });
-
-    await createProjectWithTwoSteps(page, projectTitle, projectSlug);
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`));
-
-    // Navigate to Settings tab first
-    await page.goto(`/demouser/${projectSlug}/settings`);
-    await page.waitForSelector('[data-testid="settings-tab-content"]', {
-      state: 'visible',
-    });
-
-    // Click on the Tags section in sidenav
-    await page.getByTestId('nav-tags').click();
-
-    // Wait for tags container
-    await page.waitForSelector('.tags-tab', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(500);
-  }
-
-  /**
-   * Helper to create a sample tag
-   */
-  async function createTag(
-    page: Page,
-    name: string,
-    iconIndex: number = 0,
-    colorIndex: number = 0
-  ) {
-    // Click new tag button
-    await page.click('[data-testid="new-tag-button"]');
-
-    // Wait for dialog
-    await page.waitForSelector('mat-dialog-container', {
-      state: 'visible',
-    });
-    await page.waitForTimeout(300);
-
-    // Enter name
-    await page.fill('input[placeholder="Enter tag name"]', name);
-
-    // Select icon (click the nth icon button)
-    const iconButtons = page.locator('.icon-button');
-    if ((await iconButtons.count()) > iconIndex) {
-      await iconButtons.nth(iconIndex).click();
-    }
-
-    // Select color (click the nth color button)
-    const colorButtons = page.locator('.color-button');
-    if ((await colorButtons.count()) > colorIndex) {
-      await colorButtons.nth(colorIndex).click();
-    }
-
-    await page.waitForTimeout(200);
-  }
 
   test.describe('Light Mode Screenshots', () => {
     test('tags tab empty state', async ({ offlinePage: page }) => {
@@ -167,9 +161,7 @@ test.describe('Tags Feature Screenshots', () => {
       await page.click('[data-testid="tag-dialog-save"]');
       await page.waitForTimeout(500);
 
-      // Click edit on the tag - first open the menu, then click edit
-      await page.click('[data-testid="tag-menu-trigger"]');
-      await page.waitForTimeout(200);
+      // Click edit on the tag directly
       await page.click('[data-testid="edit-tag-button"]');
 
       await page.waitForSelector('mat-dialog-container', {
@@ -264,9 +256,7 @@ test.describe('Tags Feature Screenshots', () => {
       await page.click('[data-testid="tag-dialog-save"]');
       await page.waitForTimeout(500);
 
-      // Click edit on the tag - first open the menu, then click edit
-      await page.click('[data-testid="tag-menu-trigger"]');
-      await page.waitForTimeout(200);
+      // Click edit on the tag directly
       await page.click('[data-testid="edit-tag-button"]');
 
       await page.waitForSelector('mat-dialog-container', {
