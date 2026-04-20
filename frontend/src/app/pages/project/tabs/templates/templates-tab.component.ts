@@ -12,7 +12,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -28,6 +27,7 @@ import {
   type ElementTypeSchema,
   type TabSchema,
 } from '../../../../models/schema-types';
+import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
  * Injection token for reload delay after mutations.
@@ -65,8 +65,8 @@ interface TemplateSchema {
     MatIconModule,
     MatInputModule,
     MatMenuModule,
-    MatProgressSpinnerModule,
     MatTooltipModule,
+    SettingsTabStatusComponent,
   ],
 })
 export class TemplatesTabComponent {

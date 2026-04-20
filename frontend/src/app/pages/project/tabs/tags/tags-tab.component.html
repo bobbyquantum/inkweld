@@ -30,21 +30,10 @@
     </div>
   </div>
 
-  <!-- Loading state -->
-  @if (isLoading()) {
-    <div class="empty">
-      <mat-spinner diameter="32"></mat-spinner>
-    </div>
-  }
-
-  <!-- Error state -->
-  @if (error()) {
-    <div class="empty">
-      <mat-icon>error</mat-icon>
-      <p>{{ error() }}</p>
-      <button mat-button (click)="loadTags()">Retry</button>
-    </div>
-  }
+  <app-settings-tab-status
+    [isLoading]="isLoading()"
+    [error]="error()"
+    (retry)="loadTags()" />
 
   <!-- Empty state - no tags at all -->
   @if (!isLoading() && !error() && tags().length === 0) {

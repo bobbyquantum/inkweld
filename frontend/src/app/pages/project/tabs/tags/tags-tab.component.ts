@@ -1,12 +1,10 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element } from '@inkweld/index';
@@ -20,6 +18,7 @@ import {
   TagEditDialogComponent,
   type TagEditDialogResult,
 } from '../../../../dialogs/tag-edit-dialog/tag-edit-dialog.component';
+import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
  * View model for tags displayed in the list
@@ -42,14 +41,13 @@ interface TagView {
   templateUrl: './tags-tab.component.html',
   styleUrls: ['./tags-tab.component.scss'],
   imports: [
-    FormsModule,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
     MatMenuModule,
-    MatProgressSpinnerModule,
     MatTooltipModule,
+    SettingsTabStatusComponent,
   ],
 })
 export class TagsTabComponent {

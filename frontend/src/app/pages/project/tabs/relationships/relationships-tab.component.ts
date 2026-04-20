@@ -5,7 +5,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -17,6 +16,7 @@ import {
   type RelationshipTypeDefinition,
 } from '../../../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../../../models/document-sync-state';
+import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
  * View model for relationship types displayed in the list
@@ -47,8 +47,8 @@ interface RelationshipTypeView {
     MatIconModule,
     MatInputModule,
     MatMenuModule,
-    MatProgressSpinnerModule,
     MatTooltipModule,
+    SettingsTabStatusComponent,
   ],
 })
 export class RelationshipsTabComponent {

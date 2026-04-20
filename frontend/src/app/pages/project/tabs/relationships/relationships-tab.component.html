@@ -30,24 +30,10 @@
     </div>
   </div>
 
-  <!-- Loading State -->
-  @if (isLoading()) {
-    <div class="empty">
-      <mat-spinner diameter="32"></mat-spinner>
-    </div>
-  }
-
-  <!-- Error State -->
-  @if (error()) {
-    <div class="empty">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ error() }}</p>
-      <button mat-raised-button color="primary" (click)="refresh()">
-        <mat-icon>refresh</mat-icon>
-        Retry
-      </button>
-    </div>
-  }
+  <app-settings-tab-status
+    [isLoading]="isLoading()"
+    [error]="error()"
+    (retry)="refresh()" />
 
   <!-- Empty state - no types at all -->
   @if (!isLoading() && !error() && !hasTypes()) {
