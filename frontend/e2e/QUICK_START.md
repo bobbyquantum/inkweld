@@ -56,7 +56,7 @@ npm run e2e:screenshots     # Generate all screenshots
 # Local tests
 npx playwright test --config=playwright.local.config.ts e2e/local/about.spec.ts
 npx playwright test --config=playwright.local.config.ts e2e/local/projects.spec.ts
-npx playwright test --config=playwright.local.config.ts e2e/local/documents-list.spec.ts
+npx playwright test --config=playwright.local.config.ts e2e/local/project-documents.spec.ts
 
 # Online tests
 npx playwright test --config=playwright.online.config.ts e2e/online/auth/registration.spec.ts
@@ -105,7 +105,7 @@ npx playwright show-report
 | File | Feature |
 |------|---------|
 | `about.spec.ts` | About page navigation and content |
-| `documents-list.spec.ts` | Documents list tab |
+| `project-documents.spec.ts` | Project document flow via tree |
 | `element-ref.spec.ts` | Element references (@mentions) |
 | `find-in-document.spec.ts` | Find and replace |
 | `folder-operations.spec.ts` | Folder creation and navigation |

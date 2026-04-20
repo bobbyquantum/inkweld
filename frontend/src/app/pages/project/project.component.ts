@@ -494,20 +494,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     ]);
   }
 
-  public onShowDocumentList(): void {
-    const result = this.projectState.openSystemTab('documents-list');
-    this.projectState.selectTab(result.index);
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'documents-list',
-      ]);
-    }
-  }
-
   public onShowMediaLibrary(): void {
     const result = this.projectState.openSystemTab('media');
     // Ensure the tab is selected

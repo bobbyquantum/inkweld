@@ -480,14 +480,6 @@ describe('HomeTabComponent', () => {
     expect(imagesApi.uploadProjectCover).not.toHaveBeenCalled();
   });
 
-  it('should open documents tab', () => {
-    component.openDocumentsTab();
-    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-      'documents-list'
-    );
-    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
-  });
-
   it('should open media tab', () => {
     component.openMediaTab();
     expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');

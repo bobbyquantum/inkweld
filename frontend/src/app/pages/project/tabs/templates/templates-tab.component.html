@@ -1,153 +1,124 @@
-<div class="templates-tab-container">
-  <!-- Loading State -->
-  @if (isLoading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
-      <p>Loading templates...</p>
-    </div>
-  }
+<div class="templates-tab">
+  <div class="header">
+    <h2>Templates</h2>
+    <p class="hint">
+      Define element structures for your worldbuilding project.
+    </p>
+  </div>
 
-  <!-- Error State -->
-  @if (error()) {
-    <div class="error-container">
-      <mat-icon>error_outline</mat-icon>
-      <p class="error-message">{{ error() }}</p>
-      <button mat-raised-button color="primary" (click)="refresh()">
-        <mat-icon>refresh</mat-icon>
-        Retry
+  <div class="controls">
+    <div class="actions">
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="createTemplate()"
+        data-testid="create-template-button">
+        <mat-icon>add</mat-icon>
+        New Template
       </button>
     </div>
-  }
 
-  <!-- Empty State -->
-  @if (!isLoading() && !error() && !hasTemplates()) {
-    <div class="empty-container">
-      <mat-icon class="empty-icon">description</mat-icon>
-      <h3>No Templates Found</h3>
-      <p>
-        This project doesn't have any worldbuilding templates configured yet.
-      </p>
-      <p class="help-text">
+    <div class="search-bar">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search templates</mat-label>
+        <input
+          matInput
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search by name..." />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <app-settings-tab-status
+    [isLoading]="isLoading()"
+    [error]="error()"
+    (retry)="refresh()" />
+
+  <!-- Empty state - no templates at all -->
+  @if (!isLoading() && !error() && templates().length === 0) {
+    <div class="empty">
+      <mat-icon>description</mat-icon>
+      <p>No templates defined yet.</p>
+      <p class="hint">
         Templates define the structure for worldbuilding elements like
         characters, locations, and more.
       </p>
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="createTemplate()"
-        data-testid="create-template-empty-button">
-        <mat-icon>add</mat-icon>
-        Create Template
-      </button>
+    </div>
+  }
+
+  <!-- Empty state - search no results -->
+  @if (
+    !isLoading() &&
+    !error() &&
+    templates().length > 0 &&
+    filteredTemplates().length === 0
+  ) {
+    <div class="empty">
+      <mat-icon>search_off</mat-icon>
+      <p>No templates match your search</p>
+      <button mat-button (click)="searchQuery.set('')">Clear filter</button>
     </div>
   }
 
   <!-- Templates List -->
-  @if (!isLoading() && !error() && hasTemplates()) {
-    <div class="templates-header">
-      <div class="header-content">
-        <h2>
-          <mat-icon>description</mat-icon>
-          Worldbuilding Templates
-        </h2>
-        <p class="subtitle">
-          {{ templates().length }} template{{
-            templates().length === 1 ? '' : 's'
-          }}
-          available
-        </p>
-      </div>
-      <div class="header-actions">
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="createTemplate()"
-          matTooltip="Create a new template"
-          data-testid="create-template-button">
-          <mat-icon>add</mat-icon>
-          Create Template
-        </button>
-        <button
-          mat-icon-button
-          (click)="refresh()"
-          matTooltip="Refresh templates">
-          <mat-icon>refresh</mat-icon>
-        </button>
-      </div>
-    </div>
-
-    <div class="templates-grid">
-      @for (template of templates(); track template.id) {
-        <mat-card
-          class="template-card"
-          [class.built-in]="template.isBuiltIn"
-          data-testid="template-card">
-          <mat-card-header>
-            <mat-icon mat-card-avatar>{{ template.icon }}</mat-icon>
-            <mat-card-title>{{ template.label }}</mat-card-title>
-            <mat-card-subtitle>
+  @if (!isLoading() && !error() && filteredTemplates().length > 0) {
+    <div class="templates-list" data-testid="templates-list">
+      @for (template of filteredTemplates(); track template.id) {
+        <div class="template-row" data-testid="template-card">
+          <div class="template-info">
+            <div class="template-name">
+              <mat-icon>{{ template.icon }}</mat-icon>
+              <span>{{ template.label }}</span>
               @if (template.isBuiltIn) {
-                <mat-chip class="built-in-chip">Built-in</mat-chip>
+                <span class="badge built-in">Built-in</span>
               } @else {
-                <mat-chip class="custom-chip">Custom</mat-chip>
+                <span class="badge custom" data-testid="badge-custom"
+                  >Custom</span
+                >
               }
-            </mat-card-subtitle>
-
-            <!-- Actions menu -->
+            </div>
+            <div class="template-meta">
+              <span
+                >{{ template.tabCount }}
+                {{ template.tabCount === 1 ? 'tab' : 'tabs' }}</span
+              >
+              <span>·</span>
+              <span
+                >{{ template.fieldCount }}
+                {{ template.fieldCount === 1 ? 'field' : 'fields' }}</span
+              >
+              @if (template.description) {
+                <span>· {{ template.description }}</span>
+              }
+            </div>
+          </div>
+          <div class="template-actions">
             <button
               mat-icon-button
-              [matMenuTriggerFor]="templateMenu"
-              class="template-menu-button"
-              data-testid="template-menu-button"
-              aria-label="Template actions">
-              <mat-icon>more_vert</mat-icon>
+              matTooltip="Edit"
+              data-testid="edit-template-button"
+              (click)="editTemplate(template)">
+              <mat-icon>edit</mat-icon>
             </button>
-
-            <mat-menu #templateMenu="matMenu">
-              <button mat-menu-item (click)="editTemplate(template)">
-                <mat-icon>edit</mat-icon>
-                <span>Edit</span>
-              </button>
-              <button
-                mat-menu-item
-                (click)="cloneTemplate(template)"
-                data-testid="clone-template-button">
-                <mat-icon>content_copy</mat-icon>
-                <span>Clone</span>
-              </button>
-              <button
-                mat-menu-item
-                (click)="deleteTemplate(template)"
-                data-testid="delete-template-button">
-                <mat-icon>delete</mat-icon>
-                <span>Delete</span>
-              </button>
-            </mat-menu>
-          </mat-card-header>
-
-          <mat-card-content>
-            @if (template.description) {
-              <p class="description">{{ template.description }}</p>
-            }
-
-            <div class="template-stats">
-              <div class="stat">
-                <mat-icon>tab</mat-icon>
-                <span
-                  >{{ template.tabCount }}
-                  {{ template.tabCount === 1 ? 'tab' : 'tabs' }}</span
-                >
-              </div>
-              <div class="stat">
-                <mat-icon>input</mat-icon>
-                <span
-                  >{{ template.fieldCount }}
-                  {{ template.fieldCount === 1 ? 'field' : 'fields' }}</span
-                >
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
+            <button
+              mat-icon-button
+              matTooltip="Clone"
+              (click)="cloneTemplate(template)"
+              data-testid="clone-template-button">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Delete"
+              (click)="deleteTemplate(template)"
+              data-testid="delete-template-button">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
       }
     </div>
   }

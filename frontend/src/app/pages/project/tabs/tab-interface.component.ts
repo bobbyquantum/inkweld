@@ -41,7 +41,6 @@ const SYSTEM_TAB_ICONS: Partial<
   Record<Exclude<AppTab['systemType'], undefined>, string>
 > = {
   home: 'home',
-  'documents-list': 'list',
   media: 'perm_media',
   'templates-list': 'description',
   settings: 'settings',
@@ -158,12 +157,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
           // Home tab - navigate to project root
           void this.router.navigate(['/', project.username, project.slug]);
         } else {
-          // Other system tabs (documents list, media, etc.)
+          // Other system tabs (media, settings, etc.)
           void this.router.navigate([
             '/',
             project.username,
             project.slug,
-            tab.systemType, // 'documents-list' or 'media'
+            tab.systemType,
           ]);
         }
       } else if (tab.type === 'publishPlan') {
@@ -413,7 +412,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     if (project) {
       const projectBaseUrl = `/${project.username}/${project.slug}`;
       const systemRoutes = [
-        'documents-list',
         'media',
         'templates-list',
         'relationships-list',
@@ -491,7 +489,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     if (tabIndex === -1) {
       this.projectState.openSystemTab(
         systemRoute as
-          | 'documents-list'
           | 'media'
           | 'templates-list'
           | 'relationships-list'
@@ -678,12 +675,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
-   * Opens a system tab for documents-list, media, templates-list, or settings
-   * @param type The type of system tab to open
+   * Opens a supported system tab.
+   * @param type System tab to open: media, templates-list, or settings.
    */
-  openSystemTab(
-    type: 'documents-list' | 'media' | 'templates-list' | 'settings'
-  ): void {
+  openSystemTab(type: 'media' | 'templates-list' | 'settings'): void {
     console.log(`[TabInterface] Opening system tab: ${type}`);
     this.projectState.openSystemTab(type);
   }
