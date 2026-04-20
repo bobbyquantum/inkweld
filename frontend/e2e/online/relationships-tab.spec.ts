@@ -7,6 +7,7 @@
  * Note: Relationship Types is now a sub-tab within Project Settings.
  * All relationship types are per-project, stored in Yjs (no backend API needed).
  */
+import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, type Page, test } from './fixtures';
 
 /**
@@ -24,10 +25,30 @@ async function navigateToRelationshipsTab(page: Page, projectBaseUrl: string) {
   await page.getByTestId('nav-relationships').click();
 
   // Wait for the relationships tab container to be visible and have content
-  await expect(page.locator('.relationships-tab-container')).toBeVisible();
+  await expect(page.getByTestId('relationships-tab')).toBeVisible();
 
   // Ensure the page is settled
   await page.waitForLoadState('networkidle');
+}
+
+function getProjectBaseUrl(page: Page): string {
+  const pathParts = new URL(page.url()).pathname.split('/').filter(Boolean);
+  return `/${pathParts.slice(0, 2).join('/')}`;
+}
+
+async function createProjectAndOpenRelationships(
+  page: Page,
+  slugPrefix: string,
+  title: string
+): Promise<string> {
+  await page.goto('/');
+
+  const uniqueSlug = `${slugPrefix}-${Date.now()}`;
+  await createProjectWithTwoSteps(page, title, uniqueSlug);
+
+  const projectBaseUrl = getProjectBaseUrl(page);
+  await navigateToRelationshipsTab(page, projectBaseUrl);
+  return projectBaseUrl;
 }
 
 /**
@@ -81,24 +102,11 @@ test.describe('Relationships Tab', () => {
     test('should navigate to relationships tab and show default types for new project', async ({
       authenticatedPage: page,
     }) => {
-      // First create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-test-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Relationships Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-
-      // Wait for project to load
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-test',
+        'Relationships Test'
+      );
 
       // New projects now start with default relationship types seeded from templates
       // Should see at least one relationship type card
@@ -115,22 +123,11 @@ test.describe('Relationships Tab', () => {
     test('should show type details on cards after creating a type', async ({
       authenticatedPage: page,
     }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-details-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Type Details Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-details',
+        'Type Details Test'
+      );
 
       // Create a new relationship type (new projects have default types)
       await createRelationshipType(page, 'Test Parent', 'Test Child');
@@ -141,25 +138,11 @@ test.describe('Relationships Tab', () => {
         .first();
       await expect(firstCard).toBeVisible();
 
-      // Should show forward label
-      await expect(
-        firstCard.locator('.detail-row:has-text("Forward:")')
-      ).toBeVisible();
-
-      // Should show inverse label
-      await expect(
-        firstCard.locator('.detail-row:has-text("Inverse:")')
-      ).toBeVisible();
-
-      // Should show source constraints
-      await expect(
-        firstCard.locator('.detail-row:has-text("Source:")')
-      ).toBeVisible();
-
-      // Should show target constraints
-      await expect(
-        firstCard.locator('.detail-row:has-text("Target:")')
-      ).toBeVisible();
+      // Should show category badge and inverse label in the compact row layout
+      await expect(firstCard.getByTestId('type-category-badge')).toBeVisible();
+      await expect(firstCard.getByTestId('type-inverse-meta')).toContainText(
+        '↔'
+      );
     });
   });
 
@@ -167,22 +150,11 @@ test.describe('Relationships Tab', () => {
     test('should create a new relationship type', async ({
       authenticatedPage: page,
     }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-create-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Create Type Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-create',
+        'Create Type Test'
+      );
 
       // Use helper for robust type creation
       await createRelationshipType(page, 'Nemesis of', 'Hunted by');
@@ -204,22 +176,11 @@ test.describe('Relationships Tab', () => {
     test('should cancel creating a type when clicking cancel', async ({
       authenticatedPage: page,
     }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-cancel-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2 (use default template)
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Cancel Type Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-cancel',
+        'Cancel Type Test'
+      );
 
       // Create a relationship type first (new projects start empty)
       await createRelationshipType(page, 'Test Type', 'Test Inverse');
@@ -251,37 +212,23 @@ test.describe('Relationships Tab', () => {
     test('should edit a relationship type name', async ({
       authenticatedPage: page,
     }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-edit-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Edit Type Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-edit',
+        'Edit Type Test'
+      );
 
       // First create a type
       const originalName = `Original Name ${Date.now()}`;
       const updatedName = `Updated Name ${Date.now()}`;
       await createRelationshipType(page, originalName, 'Original Inverse');
 
-      // Find the type card and open its menu
+      // Find the type card and click edit
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: originalName })
         .first();
-      await typeCard.locator('[data-testid="type-menu-button"]').click();
-
-      // Click Edit from the menu
-      await page.getByTestId('edit-type-button').click();
+      await typeCard.getByTestId('edit-type-button').click();
 
       // Edit the name
       await expect(page.locator('app-rename-dialog')).toBeVisible();
@@ -318,44 +265,24 @@ test.describe('Relationships Tab', () => {
     test('should allow editing types (all types are per-project)', async ({
       authenticatedPage: page,
     }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-builtin-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Built-in Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-builtin',
+        'Built-in Test'
+      );
 
       // Create a relationship type first (new projects start empty)
       const typeName = `Editable Type ${Date.now()}`;
       await createRelationshipType(page, typeName, 'Editable Inverse');
 
-      // Find the specific card and open its menu
+      // Find the specific card and verify direct row action buttons
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: typeName });
       await expect(typeCard).toBeVisible();
-      await typeCard.getByTestId('type-menu-button').click();
-
-      // Wait for the menu to be visible (in CDK overlay)
-      const menu = page.locator('.mat-mdc-menu-panel');
-      await expect(menu).toBeVisible();
-
-      // Should see Edit option (all types are now editable per-project)
-      await expect(menu.getByTestId('edit-type-button')).toBeVisible();
-
-      // Should also see Duplicate and Delete options
-      await expect(menu.locator('button:has-text("Duplicate")')).toBeVisible();
-      await expect(menu.locator('button:has-text("Delete")')).toBeVisible();
+      await expect(typeCard.getByTestId('edit-type-button')).toBeVisible();
+      await expect(typeCard.getByTestId('clone-type-button')).toBeVisible();
+      await expect(typeCard.getByTestId('delete-type-button')).toBeVisible();
     });
   });
 
@@ -363,34 +290,22 @@ test.describe('Relationships Tab', () => {
     test('should delete a relationship type', async ({
       authenticatedPage: page,
     }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-delete-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Delete Type Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-delete',
+        'Delete Type Test'
+      );
 
       // First create a type
       const deleteName = `Type to Delete ${Date.now()}`;
       await createRelationshipType(page, deleteName, 'Delete Inverse');
 
-      // Open the menu and click Delete
+      // Click delete on the row
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: deleteName })
         .first();
-      await typeCard.locator('[data-testid="type-menu-button"]').click();
-      await page.locator('[data-testid="delete-type-button"]').click();
+      await typeCard.getByTestId('delete-type-button').click();
 
       // Confirm deletion in dialog
       await expect(page.locator('app-confirmation-dialog')).toBeVisible();
@@ -419,22 +334,11 @@ test.describe('Relationships Tab', () => {
 
   test.describe('Duplicate Type', () => {
     test('should duplicate a type', async ({ authenticatedPage: page }) => {
-      // Create a project
-      await page.goto('/create-project');
-      const uniqueSlug = `rel-clone-${Date.now()}`;
-
-      // Step 1: Click Next to proceed to step 2
-      await page.getByRole('button', { name: /next/i }).click();
-
-      // Step 2: Fill in project details
-      await page.getByTestId('project-title-input').fill('Clone Type Test');
-      await page.getByTestId('project-slug-input').fill(uniqueSlug);
-      await page.getByTestId('create-project-button').click();
-      await page.waitForURL(new RegExp(uniqueSlug));
-
-      // Navigate to relationships tab (now within settings)
-      const projectBaseUrl = `/${page.url().split('/').slice(3, 5).join('/')}`;
-      await navigateToRelationshipsTab(page, projectBaseUrl);
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-clone',
+        'Clone Type Test'
+      );
 
       // Create a relationship type first (new projects start empty)
       const originalName = `Original Type ${Date.now()}`;
@@ -448,15 +352,8 @@ test.describe('Relationships Tab', () => {
         .filter({ hasText: originalName });
       await expect(typeCard).toBeVisible();
 
-      // Open its menu using the data-testid I added
-      await typeCard.getByTestId('type-menu-button').click();
-
-      // Wait for the menu to be visible (in CDK overlay)
-      const menu = page.locator('.mat-mdc-menu-panel');
-      await expect(menu).toBeVisible();
-
-      // Click "Duplicate" from the menu
-      await menu.locator('button:has-text("Duplicate")').click();
+      // Click duplicate directly from the row actions
+      await typeCard.getByTestId('clone-type-button').click();
 
       // Should see Rename dialog with title "Duplicate Relationship Type"
       await expect(
@@ -476,7 +373,7 @@ test.describe('Relationships Tab', () => {
 
       // Should see success snackbar for duplicating
       await expect(
-        page.locator('simple-snack-bar').filter({
+        page.locator('.mat-mdc-snack-bar-container').filter({
           hasText: `Duplicated relationship type: ${duplicateName}`,
         })
       ).toBeVisible();

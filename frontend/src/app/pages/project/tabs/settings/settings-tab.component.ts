@@ -38,7 +38,6 @@ import {
   type McpPublicKey,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { SettingsService } from '@services/core/settings.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
@@ -145,7 +144,6 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly exportService = inject(ProjectExportService);
-  private readonly settingsService = inject(SettingsService);
 
   // MCP Keys should only be visible when AI kill switch is OFF
   protected readonly isAiKillSwitchEnabled =
@@ -1016,72 +1014,4 @@ export class SettingsTabComponent implements OnDestroy {
         }
       });
   }
-
-  /**
-   * Navigate to the document list view.
-   */
-  showDocumentList(): void {
-    const result = this.projectState.openSystemTab('documents-list');
-    this.projectState.selectTab(result.index);
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'documents-list',
-      ]);
-    }
-  }
-
-  /**
-   * Toggle zen mode. Requires a document tab to be selected.
-   */
-  toggleZenMode(): void {
-    if (!this.canEnableZenMode() && !this.isZenMode()) {
-      return;
-    }
-
-    this.isZenMode.update(current => {
-      const newValue = !current;
-
-      const fullscreenEnabled = this.settingsService.getSetting<boolean>(
-        'zenModeFullscreen',
-        true
-      );
-
-      if (newValue && fullscreenEnabled) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.warn('Error attempting to enable fullscreen:', err);
-        });
-      } else if (!newValue && document.fullscreenElement) {
-        document.exitFullscreen().catch(err => {
-          console.warn('Error attempting to exit fullscreen:', err);
-        });
-      }
-
-      return newValue;
-    });
-  }
-
-  /**
-   * Check if zen mode can be enabled (requires a document tab to be selected).
-   */
-  canEnableZenMode(): boolean {
-    const currentTabIndex = this.projectState.selectedTabIndex();
-    const tabs = this.projectState.openTabs();
-
-    if (currentTabIndex === 0 || tabs.length === 0) {
-      return false;
-    }
-
-    const currentTab = tabs[currentTabIndex - 1];
-
-    return currentTab?.type === 'document' && currentTab.element != null;
-  }
-
-  /**
-   * Whether zen mode is currently active.
-   */
-  protected readonly isZenMode = signal(false);
 }

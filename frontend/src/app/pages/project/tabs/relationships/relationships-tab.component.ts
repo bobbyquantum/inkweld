@@ -1,12 +1,10 @@
 import { Component, computed, inject, NgZone, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
+import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -18,6 +16,7 @@ import {
   type RelationshipTypeDefinition,
 } from '../../../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../../../models/document-sync-state';
+import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
  * View model for relationship types displayed in the list
@@ -44,13 +43,12 @@ interface RelationshipTypeView {
   styleUrls: ['./relationships-tab.component.scss'],
   imports: [
     MatButtonModule,
-    MatCardModule,
-    MatChipsModule,
+    MatFormFieldModule,
     MatIconModule,
-    MatListModule,
+    MatInputModule,
     MatMenuModule,
-    MatProgressSpinnerModule,
     MatTooltipModule,
+    SettingsTabStatusComponent,
   ],
 })
 export class RelationshipsTabComponent {
@@ -86,6 +84,20 @@ export class RelationshipsTabComponent {
   });
 
   readonly hasTypes = computed(() => this.relationshipTypes().length > 0);
+
+  readonly searchQuery = signal('');
+
+  readonly filteredTypes = computed(() => {
+    const query = this.searchQuery().trim().toLowerCase();
+    const types = this.relationshipTypes();
+    if (!query) return types;
+    return types.filter(
+      t =>
+        t.name.toLowerCase().includes(query) ||
+        t.inverseLabel.toLowerCase().includes(query) ||
+        t.categoryLabel.toLowerCase().includes(query)
+    );
+  });
 
   constructor() {
     // We no longer need the effect to manually load types
@@ -196,7 +208,7 @@ export class RelationshipsTabComponent {
    * Refresh the relationship types list
    */
   refresh(): void {
-    void this.loadRelationshipTypes();
+    this.loadRelationshipTypes();
   }
 
   /**

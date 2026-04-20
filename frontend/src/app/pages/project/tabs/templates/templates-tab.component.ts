@@ -7,14 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
+import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -29,6 +27,7 @@ import {
   type ElementTypeSchema,
   type TabSchema,
 } from '../../../../models/schema-types';
+import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
  * Injection token for reload delay after mutations.
@@ -62,14 +61,12 @@ interface TemplateSchema {
   styleUrls: ['./templates-tab.component.scss'],
   imports: [
     MatButtonModule,
-    MatCardModule,
-    MatChipsModule,
+    MatFormFieldModule,
     MatIconModule,
-    MatListModule,
+    MatInputModule,
     MatMenuModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
     MatTooltipModule,
+    SettingsTabStatusComponent,
   ],
 })
 export class TemplatesTabComponent {
@@ -86,6 +83,19 @@ export class TemplatesTabComponent {
   readonly error = signal<string | null>(null);
 
   readonly hasTemplates = computed(() => this.templates().length > 0);
+
+  readonly searchQuery = signal('');
+
+  readonly filteredTemplates = computed(() => {
+    const query = this.searchQuery().toLowerCase();
+    const templates = this.templates();
+    if (!query) return templates;
+    return templates.filter(
+      t =>
+        t.label.toLowerCase().includes(query) ||
+        t.description?.toLowerCase().includes(query)
+    );
+  });
 
   constructor() {
     // Load templates when project changes

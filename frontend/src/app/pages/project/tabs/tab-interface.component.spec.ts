@@ -86,12 +86,6 @@ describe('TabInterfaceComponent', () => {
       type: 'folder',
       element: mockDocuments[1],
     },
-    {
-      id: 'system-documents-list',
-      name: 'Documents',
-      type: 'system',
-      systemType: 'documents-list',
-    },
   ];
 
   const setupMockServices = () => {
@@ -318,10 +312,8 @@ describe('TabInterfaceComponent', () => {
   });
 
   it('should open a system tab', () => {
-    component.openSystemTab('documents-list');
-    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-      'documents-list'
-    );
+    component.openSystemTab('media');
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
   });
 
   it('should update selected tab from URL', () => {
@@ -606,16 +598,6 @@ describe('TabInterfaceComponent', () => {
       expect(component.getTabIcon(tab)).toBe('home');
     });
 
-    it('should return list icon for documents-list system tab', () => {
-      const tab: AppTab = {
-        id: 's',
-        name: 'Docs',
-        type: 'system',
-        systemType: 'documents-list',
-      };
-      expect(component.getTabIcon(tab)).toBe('list');
-    });
-
     it('should return perm_media icon for media system tab', () => {
       const tab: AppTab = {
         id: 's',
@@ -785,7 +767,17 @@ describe('TabInterfaceComponent', () => {
     });
 
     it('hasOtherTabs returns true when more than 2 tabs exist', () => {
-      expect(component.hasOtherTabs()).toBe(true); // mockTabs has 3
+      (projectStateService.openTabs as any).set([
+        mockTabs[0],
+        mockTabs[1],
+        {
+          id: 'system-media',
+          name: 'Media',
+          type: 'system',
+          systemType: 'media',
+        },
+      ]);
+      expect(component.hasOtherTabs()).toBe(true); // 2 mock tabs + 1 system tab
     });
 
     it('closeTabsToRight does nothing when contextTabIndex is null', () => {
@@ -845,15 +837,6 @@ describe('TabInterfaceComponent', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('route parsing and tab creation', () => {
-    it('should detect documents-list system route', () => {
-      (router as any).url = '/testuser/test-project/documents-list';
-
-      component.updateSelectedTabFromUrl();
-
-      // mockTabs[2] has systemType: 'documents-list'
-      expect(projectStateService.selectTab).toHaveBeenCalledWith(2);
-    });
-
     it('should detect media system route and open tab', () => {
       (router as any).url = '/testuser/test-project/media';
       // No media tab currently open
@@ -920,7 +903,7 @@ describe('TabInterfaceComponent', () => {
 
       component.updateSelectedTabFromUrl();
 
-      expect(projectStateService.selectTab).toHaveBeenCalledWith(3);
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(2);
       expect(projectStateService.openSystemTab).not.toHaveBeenCalled();
     });
 
@@ -990,7 +973,7 @@ describe('TabInterfaceComponent', () => {
       } as any;
 
       // Remove doc1 from open tabs
-      (projectStateService.openTabs as any).set([mockTabs[2]]);
+      (projectStateService.openTabs as any).set([mockTabs[1]]);
 
       component.updateSelectedTabFromUrl();
 
@@ -1016,7 +999,7 @@ describe('TabInterfaceComponent', () => {
         },
       } as any;
 
-      (projectStateService.openTabs as any).set([mockTabs[2]]);
+      (projectStateService.openTabs as any).set([mockTabs[1]]);
       const selectSpy = vi.spyOn(projectStateService as any, 'selectTab');
       selectSpy.mockClear();
 

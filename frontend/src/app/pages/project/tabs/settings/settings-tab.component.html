@@ -46,7 +46,7 @@
         <div
           class="section-content"
           [class.section-hidden]="selectedSection() !== 'templates'">
-          <div class="section-inner embedded-section">
+          <div class="section-inner">
             <ng-container *ngTemplateOutlet="templatesTemplate" />
           </div>
         </div>
@@ -55,7 +55,7 @@
         <div
           class="section-content"
           [class.section-hidden]="selectedSection() !== 'relationships'">
-          <div class="section-inner embedded-section">
+          <div class="section-inner">
             <ng-container *ngTemplateOutlet="relationshipsTemplate" />
           </div>
         </div>
@@ -64,7 +64,7 @@
         <div
           class="section-content"
           [class.section-hidden]="selectedSection() !== 'tags'">
-          <div class="section-inner embedded-section">
+          <div class="section-inner">
             <ng-container *ngTemplateOutlet="tagsTemplate" />
           </div>
         </div>
@@ -283,52 +283,6 @@
         </div>
       </mat-card-content>
     </mat-card>
-
-    <!-- Document List -->
-    <mat-card class="action-card" data-testid="document-list-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>list</mat-icon>
-          Document List
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p>Open a flat list of all documents in this project.</p>
-        <div class="action-buttons">
-          <button
-            mat-stroked-button
-            (click)="showDocumentList()"
-            data-testid="show-document-list-button">
-            <mat-icon>list</mat-icon>
-            Show Document List
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Zen Mode -->
-    @if (canEnableZenMode() || isZenMode()) {
-      <mat-card class="action-card" data-testid="zen-mode-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>self_improvement</mat-icon>
-            Zen Mode
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Enter a distraction-free editing mode for the current document.</p>
-          <div class="action-buttons">
-            <button
-              mat-stroked-button
-              (click)="toggleZenMode()"
-              data-testid="zen-mode-button">
-              <mat-icon>self_improvement</mat-icon>
-              {{ isZenMode() ? 'Exit Zen Mode' : 'Enter Zen Mode' }}
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    }
   </section>
 </ng-template>
 

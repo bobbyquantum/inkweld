@@ -5,4 +5,13 @@ if git diff --cached --name-only | grep -q '^backend/package-lock.json$'; then
   exit 1
 fi
 
+# Git hooks run in a minimal non-interactive shell; recover Node from fnm if needed.
+if ! command -v node >/dev/null 2>&1; then
+  if [ -x "$HOME/.local/share/fnm/aliases/default/bin/node" ]; then
+    PATH="$HOME/.local/share/fnm/aliases/default/bin:$PATH"
+  elif [ -x "$HOME/.local/share/fnm/current/bin/node" ]; then
+    PATH="$HOME/.local/share/fnm/current/bin:$PATH"
+  fi
+fi
+
 npx lint-staged

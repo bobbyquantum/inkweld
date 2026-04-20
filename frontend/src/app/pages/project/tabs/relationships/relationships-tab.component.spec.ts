@@ -146,6 +146,45 @@ describe('RelationshipsTabComponent', () => {
     expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
   });
 
+  it('should not create type when there is no active project', async () => {
+    (projectStateMock.project as ReturnType<typeof signal>).set(undefined);
+
+    await component.createType();
+
+    expect(dialogGatewayMock.openRenameDialog).not.toHaveBeenCalled();
+    expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
+  });
+
+  it('should not create type if user cancels inverse label dialog', async () => {
+    vi.mocked(dialogGatewayMock.openRenameDialog!)
+      .mockResolvedValueOnce('Forward Name')
+      .mockResolvedValueOnce(null);
+
+    await component.createType();
+
+    expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalledTimes(2);
+    expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
+  });
+
+  it('should show error if create type fails', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    vi.mocked(relationshipServiceMock.addCustomType!).mockImplementation(() => {
+      throw new Error('boom');
+    });
+
+    await component.createType();
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to create relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
   it('should edit a type', async () => {
     component.loadRelationshipTypes();
     const type = component.relationshipTypes()[0];
@@ -156,6 +195,55 @@ describe('RelationshipsTabComponent', () => {
       type.id,
       { name: 'New Name' }
     );
+  });
+
+  it('should not edit a type when user cancels rename', async () => {
+    vi.mocked(dialogGatewayMock.openRenameDialog!).mockResolvedValueOnce(null);
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.editType(type);
+
+    expect(relationshipServiceMock.updateCustomType).not.toHaveBeenCalled();
+  });
+
+  it('should show failure snackbar when edit returns false', async () => {
+    vi.mocked(relationshipServiceMock.updateCustomType!).mockReturnValueOnce(
+      false
+    );
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.editType(type);
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to update relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+  });
+
+  it('should show error snackbar when edit throws', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    vi.mocked(relationshipServiceMock.updateCustomType!).mockImplementation(
+      () => {
+        throw new Error('boom');
+      }
+    );
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.editType(type);
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to update relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it('should delete a type after confirmation', async () => {
@@ -181,6 +269,45 @@ describe('RelationshipsTabComponent', () => {
     expect(relationshipServiceMock.removeCustomType).not.toHaveBeenCalled();
   });
 
+  it('should show failure snackbar when delete returns false', async () => {
+    vi.mocked(relationshipServiceMock.removeCustomType!).mockReturnValueOnce(
+      false
+    );
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.deleteType(type);
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to delete relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+  });
+
+  it('should show error snackbar when delete throws', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    vi.mocked(relationshipServiceMock.removeCustomType!).mockImplementation(
+      () => {
+        throw new Error('boom');
+      }
+    );
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.deleteType(type);
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to delete relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
   it('should duplicate a type preserving its category', async () => {
     component.loadRelationshipTypes();
     const familialType = component
@@ -195,6 +322,27 @@ describe('RelationshipsTabComponent', () => {
         category: RelationshipCategory.Familial,
       })
     );
+  });
+
+  it('should not duplicate when there is no active project', async () => {
+    (projectStateMock.project as ReturnType<typeof signal>).set(undefined);
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.cloneType(type);
+
+    expect(dialogGatewayMock.openRenameDialog).not.toHaveBeenCalled();
+    expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
+  });
+
+  it('should not duplicate if user cancels rename dialog', async () => {
+    vi.mocked(dialogGatewayMock.openRenameDialog!).mockResolvedValueOnce(null);
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.cloneType(type);
+
+    expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
   });
 
   it('should format constraints correctly', () => {
@@ -226,6 +374,21 @@ describe('RelationshipsTabComponent', () => {
     fixture.detectChanges();
 
     expect(component.isLoading()).toBe(true);
+  });
+
+  it('should filter types by search query across name, inverse and category', () => {
+    component.loadRelationshipTypes();
+
+    component.searchQuery.set('nemesis');
+    expect(component.filteredTypes().map(t => t.id)).toEqual([
+      'custom-nemesis',
+    ]);
+
+    component.searchQuery.set('child of');
+    expect(component.filteredTypes().map(t => t.id)).toEqual(['parent']);
+
+    component.searchQuery.set('family');
+    expect(component.filteredTypes().map(t => t.id)).toEqual(['parent']);
   });
 
   it('should show error state', () => {
