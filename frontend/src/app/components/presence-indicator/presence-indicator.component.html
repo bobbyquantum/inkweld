@@ -1,0 +1,24 @@
+@if (activeUsers().length > 0) {
+  <div class="presence-container" data-testid="presence-indicator">
+    <div class="presence-avatars">
+      @for (user of displayedUsers(); track user.clientId) {
+        <div
+          class="presence-avatar"
+          [matTooltip]="user.username"
+          matTooltipPosition="below">
+          <app-user-avatar [username]="user.username" size="small">
+          </app-user-avatar>
+        </div>
+      }
+      @if (overflowCount() > 0) {
+        <div class="presence-avatar overflow" [matTooltip]="overflowTooltip()">
+          +{{ overflowCount() }}
+        </div>
+      }
+    </div>
+    <span class="presence-label">
+      {{ activeUsers().length }}
+      {{ activeUsers().length === 1 ? 'user' : 'users' }} online
+    </span>
+  </div>
+}

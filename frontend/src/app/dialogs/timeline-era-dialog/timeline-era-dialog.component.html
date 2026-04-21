@@ -1,0 +1,133 @@
+<h2 mat-dialog-title>
+  {{ data.era ? 'Edit era' : 'Add era' }}
+</h2>
+<mat-dialog-content class="content">
+  <form [formGroup]="form" class="form">
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input
+        matInput
+        formControlName="name"
+        data-testid="timeline-era-name"
+        cdkFocusInitial />
+    </mat-form-field>
+
+    <div class="section-label">Start</div>
+    @if (isGregorian()) {
+      <mat-form-field appearance="outline">
+        <mat-label>Date</mat-label>
+        <input
+          matInput
+          type="date"
+          [value]="startDateValue()"
+          (change)="onStartDateChange($event)"
+          data-testid="timeline-era-start-date" />
+      </mat-form-field>
+    }
+    <div class="units-row">
+      <ng-container formArrayName="startUnits">
+        @for (_ of startUnits().controls; let i = $index; track i) {
+          @if (inputModeFor(i) === 'dropdown') {
+            <mat-form-field appearance="outline" class="unit-field">
+              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+              <mat-select
+                [formControlName]="i"
+                [attr.data-testid]="'timeline-era-start-unit-' + i">
+                @for (opt of optionsFor(i); track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          } @else {
+            <mat-form-field appearance="outline" class="unit-field">
+              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+              <input
+                matInput
+                type="number"
+                step="1"
+                [formControlName]="i"
+                [attr.data-testid]="'timeline-era-start-unit-' + i" />
+            </mat-form-field>
+          }
+        }
+      </ng-container>
+    </div>
+
+    <div class="section-label">End</div>
+    @if (isGregorian()) {
+      <mat-form-field appearance="outline">
+        <mat-label>Date</mat-label>
+        <input
+          matInput
+          type="date"
+          [value]="endDateValue()"
+          (change)="onEndDateChange($event)"
+          data-testid="timeline-era-end-date" />
+      </mat-form-field>
+    }
+    <div class="units-row">
+      <ng-container formArrayName="endUnits">
+        @for (_ of endUnits().controls; let i = $index; track i) {
+          @if (inputModeFor(i) === 'dropdown') {
+            <mat-form-field appearance="outline" class="unit-field">
+              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+              <mat-select
+                [formControlName]="i"
+                [attr.data-testid]="'timeline-era-end-unit-' + i">
+                @for (opt of optionsFor(i); track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          } @else {
+            <mat-form-field appearance="outline" class="unit-field">
+              <mat-label>{{ data.system.unitLabels[i] }}</mat-label>
+              <input
+                matInput
+                type="number"
+                step="1"
+                [formControlName]="i"
+                [attr.data-testid]="'timeline-era-end-unit-' + i" />
+            </mat-form-field>
+          }
+        }
+      </ng-container>
+    </div>
+
+    @if (form.hasError('endBeforeStart')) {
+      <div class="field-error" data-testid="timeline-era-range-error">
+        End must be at or after start
+      </div>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Color</mat-label>
+      <input
+        matInput
+        formControlName="color"
+        placeholder="e.g. var(--sys-tertiary-container) or #8b5cf6"
+        data-testid="timeline-era-color" />
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  @if (data.era) {
+    <button
+      mat-button
+      color="warn"
+      data-testid="timeline-era-delete"
+      (click)="onDelete()">
+      Delete
+    </button>
+  }
+  <span class="spacer"></span>
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button
+    mat-button
+    color="primary"
+    data-testid="timeline-era-save"
+    [disabled]="form.invalid"
+    (click)="onSave()">
+    Save
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,49 @@
+.options {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.option-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 12px;
+  background: var(--sys-surface-container-low);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--sys-surface-container);
+    border-color: var(--sys-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: var(--sys-primary);
+  }
+
+  .option-label {
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .option-desc {
+    font-size: 13px;
+    color: var(--sys-on-surface-variant);
+    text-align: center;
+  }
+}

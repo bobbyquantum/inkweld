@@ -1,0 +1,12 @@
+<div class="callback-container">
+  @if (errorMessage) {
+    <div class="error">
+      <h2>Sign-in failed</h2>
+      <p>{{ errorMessage }}</p>
+      <a href="/">Return to home</a>
+    </div>
+  } @else {
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Completing sign-in...</p>
+  }
+</div>

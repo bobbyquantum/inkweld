@@ -1,0 +1,81 @@
+@if (isOpen()) {
+  <div
+    class="context-menu-backdrop"
+    role="presentation"
+    tabindex="-1"
+    (click)="close()"
+    (keydown.escape)="close()"
+    (contextmenu)="$event.preventDefault(); close()"></div>
+  <div
+    class="context-menu"
+    [style.left.px]="menuPosition().x"
+    [style.top.px]="menuPosition().y"
+    role="menu"
+    aria-label="Element reference actions"
+    data-testid="element-ref-context-menu">
+    @if (!isEditing()) {
+      <!-- Normal menu mode -->
+      <button
+        class="menu-item"
+        (click)="navigateToElement()"
+        data-testid="context-menu-navigate">
+        <mat-icon>open_in_new</mat-icon>
+        <span>Go to element</span>
+      </button>
+
+      <button
+        class="menu-item"
+        (click)="startEditing()"
+        data-testid="context-menu-edit">
+        <mat-icon>edit</mat-icon>
+        <span>Edit display text</span>
+      </button>
+
+      <mat-divider></mat-divider>
+
+      <button
+        class="menu-item danger"
+        (click)="deleteReference()"
+        data-testid="context-menu-delete">
+        <mat-icon>delete</mat-icon>
+        <span>Delete reference</span>
+      </button>
+    } @else {
+      <!-- Editing mode -->
+      <div class="edit-mode">
+        <div class="edit-header">
+          <span>Edit display text</span>
+          <button mat-icon-button (click)="cancelEditing()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <input
+          #editInput
+          type="text"
+          class="edit-input"
+          [value]="editText()"
+          (input)="editText.set($any($event.target).value)"
+          (keydown.enter)="saveEdit()"
+          (keydown.escape)="cancelEditing()"
+          data-testid="context-menu-edit-input" />
+        <div class="edit-actions">
+          <button
+            class="menu-item small"
+            (click)="resetToOriginal()"
+            [disabled]="editText() === data()?.originalName">
+            <mat-icon>refresh</mat-icon>
+            <span>Reset to original</span>
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="saveEdit()"
+            [disabled]="!editText().trim()"
+            data-testid="context-menu-save">
+            Save
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,122 @@
+<div class="find-replace-container" data-testid="find-bar">
+  <!-- Find row -->
+  <div class="find-bar">
+    <button
+      mat-icon-button
+      (click)="findService.toggleReplaceMode()"
+      [class.active]="findService.isReplaceMode()"
+      matTooltip="Toggle Replace"
+      data-testid="find-toggle-replace"
+      type="button"
+      class="toggle-replace-btn">
+      <mat-icon>{{
+        findService.isReplaceMode() ? 'expand_less' : 'expand_more'
+      }}</mat-icon>
+    </button>
+
+    <div class="find-input-container">
+      <input
+        #searchInput
+        type="text"
+        class="find-input"
+        placeholder="Find in document..."
+        [ngModel]="findService.query()"
+        (ngModelChange)="onQueryChange($event)"
+        (keydown)="onKeydown($event)"
+        data-testid="find-input"
+        autocomplete="off"
+        spellcheck="false" />
+      <span class="match-counter" data-testid="find-match-counter">
+        @if (findService.matchCount() > 0) {
+          {{ findService.currentMatchNumber() }} of
+          {{ findService.matchCount() }}
+        } @else if (findService.query().length > 0) {
+          No results
+        }
+      </span>
+    </div>
+
+    <div class="find-actions">
+      <button
+        mat-icon-button
+        (click)="findService.toggleCaseSensitive()"
+        [class.active]="findService.caseSensitive()"
+        matTooltip="Match Case"
+        data-testid="find-case-sensitive"
+        type="button">
+        <mat-icon>text_format</mat-icon>
+      </button>
+
+      <button
+        mat-icon-button
+        (click)="findService.previousMatch()"
+        [disabled]="findService.matchCount() === 0"
+        matTooltip="Previous Match (Shift+Enter)"
+        data-testid="find-previous"
+        type="button">
+        <mat-icon>keyboard_arrow_up</mat-icon>
+      </button>
+
+      <button
+        mat-icon-button
+        (click)="findService.nextMatch()"
+        [disabled]="findService.matchCount() === 0"
+        matTooltip="Next Match (Enter)"
+        data-testid="find-next"
+        type="button">
+        <mat-icon>keyboard_arrow_down</mat-icon>
+      </button>
+
+      <button
+        mat-icon-button
+        (click)="close()"
+        matTooltip="Close (Escape)"
+        data-testid="find-close"
+        type="button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Replace row (shown when replace mode is active) -->
+  @if (findService.isReplaceMode()) {
+    <div class="replace-bar" data-testid="replace-bar">
+      <div class="replace-spacer"></div>
+      <div class="replace-input-container">
+        <input
+          #replaceInput
+          type="text"
+          class="replace-input"
+          placeholder="Replace with..."
+          [ngModel]="findService.replacementText()"
+          (ngModelChange)="findService.setReplacementText($event)"
+          (keydown)="onReplaceKeydown($event)"
+          data-testid="replace-input"
+          autocomplete="off"
+          spellcheck="false" />
+      </div>
+
+      <div class="replace-actions">
+        <button
+          mat-icon-button
+          (click)="onReplace()"
+          [disabled]="findService.matchCount() === 0"
+          matTooltip="Replace (Enter)"
+          data-testid="replace-single"
+          type="button">
+          <mat-icon>find_replace</mat-icon>
+        </button>
+
+        <button
+          mat-icon-button
+          (click)="onReplaceAll()"
+          [disabled]="findService.matchCount() === 0"
+          matTooltip="Replace All"
+          data-testid="replace-all"
+          type="button">
+          <mat-icon>swap_horiz</mat-icon>
+        </button>
+      </div>
+    </div>
+  }
+</div>
