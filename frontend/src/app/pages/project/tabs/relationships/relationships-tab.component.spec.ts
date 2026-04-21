@@ -1,19 +1,26 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
 } from '../../../../components/element-ref/element-ref.model';
+import {
+  type EditRelationshipTypeDialogData,
+  type EditRelationshipTypeDialogResult,
+} from '../../../../dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
 import { DocumentSyncState } from '../../../../models/document-sync-state';
+import { type ElementTypeSchema } from '../../../../models/schema-types';
 import { RelationshipsTabComponent } from './relationships-tab.component';
 
 describe('RelationshipsTabComponent', () => {
@@ -23,6 +30,8 @@ describe('RelationshipsTabComponent', () => {
   let projectStateMock: Partial<ProjectStateService>;
   let dialogGatewayMock: Partial<DialogGatewayService>;
   let snackBarMock: Partial<MatSnackBar>;
+  let dialogMock: Partial<MatDialog>;
+  let worldbuildingServiceMock: Partial<WorldbuildingService>;
   let allTypesSignal: ReturnType<typeof signal<RelationshipTypeDefinition[]>>;
   let syncStateSignal: ReturnType<typeof signal<DocumentSyncState>>;
 
@@ -50,12 +59,38 @@ describe('RelationshipsTabComponent', () => {
       inverseLabel: 'Hunted by',
       showInverse: true,
       category: RelationshipCategory.Custom,
-      icon: 'skull',
+      icon: 'bolt',
       isBuiltIn: false,
       sourceEndpoint: { allowedSchemas: [] },
       targetEndpoint: { allowedSchemas: [] },
     },
   ];
+
+  /** A valid dialog result that passes form validation */
+  const validDialogResult: EditRelationshipTypeDialogResult = {
+    name: 'New Name',
+    inverseLabel: 'New Inverse',
+    showInverse: true,
+    category: RelationshipCategory.Social,
+    icon: 'people',
+    color: '#4682B4',
+    sourceEndpoint: { allowedSchemas: [] },
+    targetEndpoint: { allowedSchemas: [] },
+  };
+
+  /** Helper: make the MatDialog mock return a given result. */
+  function mockDialogResult(result: EditRelationshipTypeDialogResult): void {
+    vi.mocked(dialogMock.open!).mockReturnValue({
+      afterClosed: () => of(result),
+    } as unknown as MatDialogRef<unknown>);
+  }
+
+  /** Helper: make the MatDialog mock return null (cancel). */
+  function mockDialogCancelled(): void {
+    vi.mocked(dialogMock.open!).mockReturnValue({
+      afterClosed: () => of(null),
+    } as unknown as MatDialogRef<unknown>);
+  }
 
   beforeEach(async () => {
     allTypesSignal = signal(mockTypes);
@@ -84,13 +119,23 @@ describe('RelationshipsTabComponent', () => {
     };
 
     dialogGatewayMock = {
-      openRenameDialog: vi.fn().mockResolvedValue('New Name'),
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
+    };
+
+    worldbuildingServiceMock = {
+      getSchemas: vi.fn().mockReturnValue([]),
     };
 
     snackBarMock = {
       open: vi.fn(),
     };
+
+    dialogMock = {
+      open: vi.fn(),
+    };
+
+    // Default: dialog returns a valid result
+    mockDialogResult(validDialogResult);
 
     await TestBed.configureTestingModule({
       imports: [RelationshipsTabComponent, NoopAnimationsModule],
@@ -101,7 +146,8 @@ describe('RelationshipsTabComponent', () => {
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
         { provide: MatSnackBar, useValue: snackBarMock },
-        { provide: MatDialog, useValue: {} },
+        { provide: MatDialog, useValue: dialogMock },
+        { provide: WorldbuildingService, useValue: worldbuildingServiceMock },
       ],
     }).compileComponents();
 
@@ -124,49 +170,46 @@ describe('RelationshipsTabComponent', () => {
     component.loadRelationshipTypes();
 
     const types = component.relationshipTypes();
-    // Custom category comes before Family alphabetically
-    expect(types[0].id).toBe('custom-nemesis');
-    expect(types[1].id).toBe('parent');
+    // Family comes before Other alphabetically
+    expect(types[0].id).toBe('parent');
+    expect(types[1].id).toBe('custom-nemesis');
   });
 
-  it('should create a new type', async () => {
-    component.loadRelationshipTypes();
+  // ── createType ─────────────────────────────────────────────────────────────
+
+  it('should open the editor dialog when creating a type', async () => {
     await component.createType();
 
-    expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalledTimes(2);
-    expect(relationshipServiceMock.addCustomType).toHaveBeenCalled();
+    expect(dialogMock.open).toHaveBeenCalled();
+  });
+
+  it('should call addCustomType with dialog result on create', async () => {
+    await component.createType();
+
+    expect(relationshipServiceMock.addCustomType).toHaveBeenCalledWith(
+      validDialogResult
+    );
     expect(snackBarMock.open).toHaveBeenCalled();
   });
 
-  it('should not create type if user cancels name dialog', async () => {
-    vi.mocked(dialogGatewayMock.openRenameDialog!).mockResolvedValueOnce(null);
+  it('should not create type if dialog is cancelled', async () => {
+    mockDialogCancelled();
 
     await component.createType();
 
     expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
   });
 
-  it('should not create type when there is no active project', async () => {
+  it('should not open dialog when there is no active project', async () => {
     (projectStateMock.project as ReturnType<typeof signal>).set(undefined);
 
     await component.createType();
 
-    expect(dialogGatewayMock.openRenameDialog).not.toHaveBeenCalled();
+    expect(dialogMock.open).not.toHaveBeenCalled();
     expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
   });
 
-  it('should not create type if user cancels inverse label dialog', async () => {
-    vi.mocked(dialogGatewayMock.openRenameDialog!)
-      .mockResolvedValueOnce('Forward Name')
-      .mockResolvedValueOnce(null);
-
-    await component.createType();
-
-    expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalledTimes(2);
-    expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
-  });
-
-  it('should show error if create type fails', async () => {
+  it('should show error if create type throws', async () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
@@ -185,20 +228,38 @@ describe('RelationshipsTabComponent', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should edit a type', async () => {
+  // ── editType ───────────────────────────────────────────────────────────────
+
+  it('should open the editor dialog pre-filled when editing a type', async () => {
     component.loadRelationshipTypes();
     const type = component.relationshipTypes()[0];
     await component.editType(type);
 
-    expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalled();
+    expect(dialogMock.open).toHaveBeenCalled();
+    const callArg = vi.mocked(dialogMock.open!).mock.calls[0][1]
+      ?.data as EditRelationshipTypeDialogData;
+    expect(callArg?.type?.id).toBe(type.id);
+    expect(callArg?.isNew).toBe(false);
+  });
+
+  it('should call updateCustomType with dialog result on edit', async () => {
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+    await component.editType(type);
+
     expect(relationshipServiceMock.updateCustomType).toHaveBeenCalledWith(
       type.id,
-      { name: 'New Name' }
+      validDialogResult
+    );
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      '✓ Updated relationship type',
+      'Close',
+      { duration: 3000 }
     );
   });
 
-  it('should not edit a type when user cancels rename', async () => {
-    vi.mocked(dialogGatewayMock.openRenameDialog!).mockResolvedValueOnce(null);
+  it('should not edit type if dialog is cancelled', async () => {
+    mockDialogCancelled();
     component.loadRelationshipTypes();
     const type = component.relationshipTypes()[0];
 
@@ -207,7 +268,18 @@ describe('RelationshipsTabComponent', () => {
     expect(relationshipServiceMock.updateCustomType).not.toHaveBeenCalled();
   });
 
-  it('should show failure snackbar when edit returns false', async () => {
+  it('should return early from editType if type is not found in service', async () => {
+    vi.mocked(relationshipServiceMock.getTypeById!).mockReturnValue(undefined);
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes()[0];
+
+    await component.editType(type);
+
+    expect(dialogMock.open).not.toHaveBeenCalled();
+    expect(relationshipServiceMock.updateCustomType).not.toHaveBeenCalled();
+  });
+
+  it('should show failure snackbar when updateCustomType returns false', async () => {
     vi.mocked(relationshipServiceMock.updateCustomType!).mockReturnValueOnce(
       false
     );
@@ -223,7 +295,7 @@ describe('RelationshipsTabComponent', () => {
     );
   });
 
-  it('should show error snackbar when edit throws', async () => {
+  it('should show error snackbar when editType throws', async () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
@@ -245,6 +317,8 @@ describe('RelationshipsTabComponent', () => {
     expect(consoleErrorSpy).toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
+
+  // ── deleteType ─────────────────────────────────────────────────────────────
 
   it('should delete a type after confirmation', async () => {
     component.loadRelationshipTypes();
@@ -308,19 +382,34 @@ describe('RelationshipsTabComponent', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should duplicate a type preserving its category', async () => {
+  // ── cloneType ──────────────────────────────────────────────────────────────
+
+  it('should open the editor in create mode with cloned data when duplicating', async () => {
     component.loadRelationshipTypes();
     const familialType = component
       .relationshipTypes()
       .find(t => t.id === 'parent')!;
     await component.cloneType(familialType);
 
-    expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalled();
+    expect(dialogMock.open).toHaveBeenCalled();
+    const callArg = vi.mocked(dialogMock.open!).mock.calls[0][1]
+      ?.data as EditRelationshipTypeDialogData;
+    expect(callArg?.isNew).toBe(true);
+    expect(callArg?.type?.name).toBe('Parent (Copy)');
+  });
+
+  it('should call addCustomType with dialog result on clone', async () => {
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes().find(t => t.id === 'parent')!;
+    await component.cloneType(type);
+
     expect(relationshipServiceMock.addCustomType).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'New Name',
-        category: RelationshipCategory.Familial,
-      })
+      validDialogResult
+    );
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      expect.stringContaining('Duplicated relationship type'),
+      'Close',
+      { duration: 3000 }
     );
   });
 
@@ -331,12 +420,12 @@ describe('RelationshipsTabComponent', () => {
 
     await component.cloneType(type);
 
-    expect(dialogGatewayMock.openRenameDialog).not.toHaveBeenCalled();
+    expect(dialogMock.open).not.toHaveBeenCalled();
     expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
   });
 
-  it('should not duplicate if user cancels rename dialog', async () => {
-    vi.mocked(dialogGatewayMock.openRenameDialog!).mockResolvedValueOnce(null);
+  it('should not duplicate if dialog is cancelled', async () => {
+    mockDialogCancelled();
     component.loadRelationshipTypes();
     const type = component.relationshipTypes()[0];
 
@@ -344,6 +433,22 @@ describe('RelationshipsTabComponent', () => {
 
     expect(relationshipServiceMock.addCustomType).not.toHaveBeenCalled();
   });
+
+  it('should show error snackbar when clone original type not found', async () => {
+    vi.mocked(relationshipServiceMock.getTypeById!).mockReturnValue(undefined);
+    component.loadRelationshipTypes();
+    const type = component.relationshipTypes().find(t => t.id === 'parent')!;
+
+    await component.cloneType(type);
+
+    expect(snackBarMock.open).toHaveBeenCalledWith(
+      'Failed to duplicate relationship type',
+      'Close',
+      { duration: 5000 }
+    );
+  });
+
+  // ── View model ─────────────────────────────────────────────────────────────
 
   it('should format constraints correctly', () => {
     component.loadRelationshipTypes();
@@ -359,6 +464,15 @@ describe('RelationshipsTabComponent', () => {
       .find(t => t.id === 'custom-nemesis');
     expect(customType?.sourceConstraints).toBe('Any element');
     expect(customType?.targetConstraints).toBe('Any element');
+  });
+
+  it('should display "Other" as category label for Custom category', () => {
+    component.loadRelationshipTypes();
+
+    const customType = component
+      .relationshipTypes()
+      .find(t => t.id === 'custom-nemesis');
+    expect(customType?.categoryLabel).toBe('Other');
   });
 
   it('should show loading state', () => {
@@ -406,24 +520,26 @@ describe('RelationshipsTabComponent', () => {
     expect(loadSpy).toHaveBeenCalled();
   });
 
-  it('should show an error when duplicating a type whose source is missing', async () => {
-    vi.mocked(relationshipServiceMock.getTypeById!).mockReturnValue(undefined);
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => undefined);
-
-    component.loadRelationshipTypes();
-    const type = component.relationshipTypes().find(t => t.id === 'parent')!;
-
-    await component.cloneType(type);
-
-    expect(snackBarMock.open).toHaveBeenCalledWith(
-      'Failed to duplicate relationship type',
-      'Close',
-      { duration: 5000 }
+  it('should pass available schemas from worldbuilding service to the dialog', async () => {
+    const mockSchemas: ElementTypeSchema[] = [
+      {
+        id: 'character-v1',
+        name: 'Character',
+        icon: 'person',
+        description: '',
+        version: 1,
+        isBuiltIn: true,
+        tabs: [],
+      },
+    ];
+    vi.mocked(worldbuildingServiceMock.getSchemas!).mockReturnValue(
+      mockSchemas
     );
-    expect(consoleErrorSpy).toHaveBeenCalled();
 
-    consoleErrorSpy.mockRestore();
+    await component.createType();
+
+    const callArg = vi.mocked(dialogMock.open!).mock.calls[0][1]
+      ?.data as EditRelationshipTypeDialogData;
+    expect(callArg?.availableSchemas).toEqual(mockSchemas);
   });
 });

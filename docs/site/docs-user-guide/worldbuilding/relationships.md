@@ -86,28 +86,61 @@ On Elena's page, you see the incoming backlink:
 
 ## Relationship Types
 
-All relationship types are custom—you define them in Project Settings. Demo templates may include pre-configured types to help you get started.
+All relationship types are defined per-project in Project Settings. Demo templates may include pre-configured types to help you get started.
 
 <ThemedImage
   src="/img/features/relationships-tab-overview"
   alt="Relationship types in Project Settings"
 />
 
-### Creating Relationship Types
+### Creating a Relationship Type
 
 1. Go to **Project Settings** → **Relationship Types**
 2. Click **"New Type"**
-3. Enter the primary label (e.g., "Parent")
-4. Enter the inverse label (e.g., "Child of")
-5. The new type is saved automatically
+3. Use the full editor to configure the type (see below)
+4. Click **Create** — the type is saved automatically
 
-Common relationship patterns include:
+### Editing a Relationship Type
+
+Click the **Edit** (pencil) button on any type card to open the full editor with all existing values pre-filled.
+
+<ThemedImage
+  src="/img/features/relationships-edit-dialog"
+  alt="Full relationship type editor dialog"
+/>
+
+### Relationship Type Editor
+
+The editor lets you configure every aspect of a relationship type:
+
+| Field                              | Description                                                                                                                            |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                           | Primary (outgoing) label, e.g. "Parent", "Mentor", "Located In"                                                                        |
+| **Inverse label**                  | Backlink label shown on the target element, e.g. "Child of", "Student of"                                                              |
+| **Show inverse**                   | Toggle whether backlinks appear on the target element                                                                                  |
+| **Category**                       | Organises types for sorting — Family, Social, Professional, Location, Timeline, Ownership, Reference, or Other                         |
+| **Icon**                           | Choose from a grid of Material icons (same picker as Tags)                                                                             |
+| **Color**                          | Choose from 16 preset colors (same palette as Tags)                                                                                    |
+| **Source — allowed element types** | Which element schemas can use this relationship as the source. Toggle "Any element type" for no restriction, or select specific types. |
+| **Source — max relationships**     | Optional cap on how many of this type a source element can have                                                                        |
+| **Target — allowed element types** | Which element schemas can be the target. Same options as source.                                                                       |
+| **Target — max relationships**     | Optional cap on the target side                                                                                                        |
+
+### Duplicating a Relationship Type
+
+Click the **Duplicate** button on any type card. The full editor opens pre-filled with the original type's data (name gets a "(Copy)" suffix). Modify anything you need, then click **Create** to save the copy.
+
+### Deleting a Relationship Type
+
+Click the **Delete** button and confirm. Deleting a type does not remove existing relationships that use it — those remain but will no longer be grouped under a named type.
+
+### Common Patterns
 
 | Category  | Primary → Inverse                                                |
 | --------- | ---------------------------------------------------------------- |
 | Family    | Parent ↔ Child of, Sibling ↔ Sibling of, Spouse ↔ Spouse of      |
 | Social    | Friend ↔ Friend of, Mentor ↔ Student of, Employer ↔ Employee of  |
-| Spatial   | Located In ↔ Contains, Adjacent To ↔ Adjacent To                 |
+| Location  | Located In ↔ Contains, Adjacent To ↔ Adjacent To                 |
 | Ownership | Owns ↔ Owned By, Member Of ↔ Has Member, Created By ↔ Creator of |
 
 ## Multiple Relationships
@@ -131,12 +164,12 @@ To remove a relationship:
 
 The relationship is removed from both elements.
 
-### Editing Relationships
+### Changing a Relationship
 
-To change a relationship:
+To change a relationship's type or target:
 
 1. Delete the existing relationship
-2. Create a new one with the correct type/target
+2. Create a new one with the correct type and target
 
 ---
 
