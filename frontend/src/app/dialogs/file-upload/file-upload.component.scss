@@ -1,0 +1,17 @@
+.upload-area {
+  border: 2px dashed var(--sys-outline-variant);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  margin: 1rem 0;
+}
+.upload-area:hover {
+  border-color: var(--sys-primary);
+}
+.upload-prompt {
+  color: var(--sys-on-surface-variant);
+}
+.file-info {
+  color: var(--sys-on-surface);
+}

@@ -1,0 +1,163 @@
+<div class="comment-panel" data-testid="comment-panel">
+  <div class="comment-panel__header">
+    <mat-icon class="comment-panel__icon">comment</mat-icon>
+    <span class="comment-panel__title">
+      Comments
+      @if (threads().length > 0) {
+        <span class="comment-panel__count">({{ threads().length }})</span>
+      }
+    </span>
+    <span class="comment-panel__spacer"></span>
+    <button
+      mat-icon-button
+      matTooltip="Close panel"
+      (click)="closed.emit()"
+      data-testid="comment-panel-close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="comment-panel__loading">
+      <mat-spinner diameter="24"></mat-spinner>
+    </div>
+  } @else if (threads().length === 0) {
+    <div class="comment-panel__empty" data-testid="comment-panel-empty">
+      <mat-icon>chat_bubble_outline</mat-icon>
+      <p>No comments yet</p>
+      <p class="comment-panel__hint">
+        Select text and press Ctrl+Alt+M to add a comment
+      </p>
+    </div>
+  } @else {
+    <div class="comment-panel__gutter">
+      <div
+        class="comment-panel__gutter-inner"
+        [style.transform]="'translateY(-' + editorScrollTop() + 'px)'"
+        [style.height.px]="editorContentHeight()">
+        @for (thread of positionedThreads(); track thread.id) {
+          <div
+            class="comment-panel__thread"
+            [class.comment-panel__thread--resolved]="thread.resolved"
+            [class.comment-panel__thread--expanded]="
+              expandedThreadId() === thread.id
+            "
+            [style.top.px]="thread.displayTop"
+            (click)="onThreadClick(thread)"
+            (keydown.enter)="onThreadClick(thread)"
+            (mouseenter)="threadHovered.emit(thread.id)"
+            (mouseleave)="threadHovered.emit(null)"
+            tabindex="0"
+            role="button"
+            data-testid="comment-panel-thread">
+            <div class="comment-panel__thread-header">
+              <app-user-avatar
+                [username]="thread.authorName"
+                size="small"
+                class="comment-panel__thread-avatar"></app-user-avatar>
+              <span class="comment-panel__thread-author">{{
+                thread.authorName
+              }}</span>
+              <span class="comment-panel__thread-date">{{
+                formatDate(thread.createdAt)
+              }}</span>
+              @if (thread.resolved) {
+                <mat-icon
+                  class="comment-panel__resolved-icon"
+                  matTooltip="Resolved"
+                  >check_circle</mat-icon
+                >
+              }
+            </div>
+
+            @if (expandedThreadId() === thread.id) {
+              <div class="comment-panel__thread-actions">
+                @if (!thread.resolved) {
+                  <button
+                    mat-icon-button
+                    matTooltip="Resolve"
+                    (click)="onResolve(thread, $event)"
+                    data-testid="panel-resolve-btn">
+                    <mat-icon>check_circle_outline</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    matTooltip="Unresolve"
+                    (click)="onUnresolve(thread, $event)"
+                    data-testid="panel-unresolve-btn">
+                    <mat-icon>undo</mat-icon>
+                  </button>
+                }
+                <button
+                  mat-icon-button
+                  matTooltip="Delete thread"
+                  (click)="onDelete(thread, $event)"
+                  data-testid="panel-delete-btn">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+
+              <div class="comment-panel__messages">
+                @for (msg of thread.messages; track msg.id) {
+                  <div class="comment-panel__message">
+                    <div class="comment-panel__msg-header">
+                      <app-user-avatar
+                        [username]="msg.authorName"
+                        size="small"
+                        class="comment-panel__msg-avatar"></app-user-avatar>
+                      <span class="comment-panel__msg-author">{{
+                        msg.authorName
+                      }}</span>
+                      <span class="comment-panel__msg-date">{{
+                        formatDate(msg.createdAt)
+                      }}</span>
+                    </div>
+                    <div class="comment-panel__msg-text">
+                      {{ msg.text }}
+                    </div>
+                  </div>
+                }
+              </div>
+
+              @if (canWrite() && !isLocalMode()) {
+                <div class="comment-panel__reply-row">
+                  <input
+                    #replyInput
+                    class="comment-panel__reply-input"
+                    type="text"
+                    placeholder="Reply..."
+                    (keydown.enter)="
+                      onReply(thread, replyInput); $event.stopPropagation()
+                    "
+                    (click)="$event.stopPropagation()"
+                    data-testid="panel-reply-input" />
+                  <button
+                    mat-icon-button
+                    [disabled]="!replyInput.value.trim()"
+                    (click)="
+                      onReply(thread, replyInput); $event.stopPropagation()
+                    "
+                    matTooltip="Send reply"
+                    data-testid="panel-reply-btn">
+                    <mat-icon>send</mat-icon>
+                  </button>
+                </div>
+              }
+            } @else {
+              <div class="comment-panel__thread-preview">
+                {{ getPreview(thread) }}
+              </div>
+              @if (thread.messages.length > 1) {
+                <span class="comment-panel__reply-count">
+                  {{ thread.messages.length - 1 }}
+                  {{ thread.messages.length === 2 ? 'reply' : 'replies' }}</span
+                >
+              }
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

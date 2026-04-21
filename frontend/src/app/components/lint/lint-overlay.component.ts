@@ -18,40 +18,8 @@ import { type ExtendedCorrectionDto } from './correction-dto.extension';
   selector: 'app-lint-overlay',
   imports: [MatTooltipModule],
   encapsulation: ViewEncapsulation.None,
-  template: `
-    <span
-      class="lint-tip-host"
-      [matTooltip]="tipContent"
-      [matTooltipPosition]="position"
-      matTooltipClass="lint-tip">
-      <ng-content></ng-content>
-    </span>
-  `,
-  styles: [
-    `
-      .lint-tip-host {
-        display: inline-block;
-      }
-      .lint-tip {
-        max-width: 300px;
-        white-space: pre-line;
-        padding: 10px;
-        font-size: 14px;
-        line-height: 1.4;
-        background-color: rgba(33, 33, 33, 0.95);
-        border-radius: 4px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      }
-      .lint-tip-title {
-        font-weight: bold;
-        margin-bottom: 4px;
-      }
-      .lint-tip-reason {
-        font-style: italic;
-        color: #e0e0e0;
-      }
-    `,
-  ],
+  templateUrl: './lint-overlay.component.html',
+  styleUrls: ['./lint-overlay.component.scss'],
 })
 export class LintOverlayComponent implements OnInit, OnChanges {
   private readonly elementRef = inject(ElementRef);

@@ -1,0 +1,38 @@
+:host {
+  display: block;
+}
+
+button {
+  width: 100%;
+  margin-bottom: 8px;
+
+  mat-icon {
+    margin-right: 8px;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-progress-spinner {
+    margin-bottom: 4px;
+  }
+
+  span {
+    font-size: 0.9em;
+  }
+}
+
+.oauth-container {
+  margin-top: 16px;
+}
+
+h3 {
+  text-align: center;
+  margin-bottom: 16px;
+}

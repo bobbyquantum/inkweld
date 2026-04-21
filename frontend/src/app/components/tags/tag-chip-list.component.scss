@@ -1,0 +1,31 @@
+.tag-chip-list {
+  width: 100%;
+}
+
+.tag-field {
+  width: 100%;
+}
+
+.tag-field.compact {
+  --mat-form-field-container-height: 40px;
+}
+
+.tag-chip {
+  --mat-chip-selected-trailing-icon-color: var(--chip-color, #666);
+  --mat-chip-label-text-color: #fff;
+  background-color: var(--chip-color, #666) !important;
+}
+
+.tag-chip mat-icon {
+  color: #fff !important;
+}
+
+.tag-description {
+  font-size: 0.85em;
+  color: var(--sys-outline);
+  margin-left: 8px;
+}
+
+.readonly mat-chip-row {
+  cursor: default;
+}

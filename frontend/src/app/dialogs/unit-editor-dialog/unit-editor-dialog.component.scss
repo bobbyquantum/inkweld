@@ -1,0 +1,75 @@
+.content {
+  min-width: 480px;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.flags-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.input-mode {
+  width: 160px;
+}
+.aliases-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.section-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
+}
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  line-height: 1.4;
+}
+.hint code {
+  font-family: monospace;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--sys-surface-container-high);
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.value {
+  flex: 0 0 110px;
+}
+.alias {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+.sub {
+  flex: 0 0 140px;
+}
+.empty {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  padding: 8px 0;
+}
+.warn {
+  font-size: 12px;
+  color: var(--sys-error);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--sys-error) 10%, transparent);
+}
+.actions-row {
+  display: flex;
+  gap: 8px;
+}

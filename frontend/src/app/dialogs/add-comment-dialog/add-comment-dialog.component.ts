@@ -16,46 +16,8 @@ import { MatInputModule } from '@angular/material/input';
     MatFormFieldModule,
     MatInputModule,
   ],
-  template: `
-    <h2 mat-dialog-title>Add Comment</h2>
-
-    <mat-dialog-content>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Comment</mat-label>
-        <textarea
-          matInput
-          [(ngModel)]="commentText"
-          placeholder="Write your comment..."
-          rows="3"
-          maxlength="2000"
-          cdkTextareaAutosize
-          data-testid="comment-text-input"
-          (keydown.meta.enter)="onSubmit()"
-          (keydown.control.enter)="onSubmit()"></textarea>
-      </mat-form-field>
-    </mat-dialog-content>
-
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()" data-testid="cancel-comment-btn">
-        Cancel
-      </button>
-      <button
-        mat-raised-button
-        color="primary"
-        [disabled]="!commentText.trim()"
-        (click)="onSubmit()"
-        data-testid="submit-comment-btn">
-        Comment
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      .full-width {
-        width: 100%;
-      }
-    `,
-  ],
+  templateUrl: './add-comment-dialog.component.html',
+  styleUrls: ['./add-comment-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AddCommentDialogComponent {

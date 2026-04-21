@@ -1,0 +1,22 @@
+@if (activeSuggestion) {
+  <div class="lint-floating-menu">
+    <div class="lint-tooltip-title">
+      {{ activeSuggestion.correctedText }}
+    </div>
+    <div class="lint-tooltip-reason">{{ activeSuggestion.reason }}</div>
+    <div class="lint-action-buttons">
+      <button
+        class="lint-action-button lint-accept-button"
+        (mousedown)="preventFocusLoss($event)"
+        (click)="acceptSuggestion()">
+        <span class="lint-action-button-icon">✓</span> Accept
+      </button>
+      <button
+        class="lint-action-button lint-reject-button"
+        (mousedown)="preventFocusLoss($event)"
+        (click)="rejectSuggestion()">
+        <span class="lint-action-button-icon">✕</span> Reject
+      </button>
+    </div>
+  </div>
+}

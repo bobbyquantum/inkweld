@@ -1,0 +1,74 @@
+@if (isVisible()) {
+  <div
+    class="element-ref-tooltip tooltip-container"
+    [class.tooltip-above]="showAbove()"
+    [style.left.px]="tooltipPosition().x"
+    [style.top.px]="tooltipPosition().y"
+    role="tooltip"
+    data-testid="element-ref-tooltip">
+    <div class="tooltip-body">
+      <!-- Image thumbnail -->
+      @if (resolvedImageUrl()) {
+        <div class="tooltip-image">
+          <img [src]="resolvedImageUrl()" [alt]="data()?.originalName ?? ''" />
+        </div>
+      }
+
+      <div class="tooltip-content">
+        <!-- Header with icon and name -->
+        <div class="tooltip-header">
+          <mat-icon class="type-icon" [class]="'type-' + data()?.elementType">
+            {{ getTypeIcon() }}
+          </mat-icon>
+          <div class="tooltip-title">
+            <span class="element-name">{{ data()?.originalName }}</span>
+            @if (data()?.displayText !== data()?.originalName) {
+              <span class="display-alias"
+                >(shown as "{{ data()?.displayText }}")</span
+              >
+            }
+          </div>
+        </div>
+
+        <!-- Type badge -->
+        <div
+          class="tooltip-type-badge"
+          [class]="'badge-' + data()?.elementType">
+          {{ formatElementType() }}
+        </div>
+
+        <!-- Preview content (async loaded) -->
+        @if (isLoadingPreview()) {
+          <div class="tooltip-preview loading">
+            <mat-spinner diameter="16"></mat-spinner>
+            <span>Loading preview...</span>
+          </div>
+        } @else if (previewContent()) {
+          <div class="tooltip-preview">
+            @if (previewContent()?.path) {
+              <div class="preview-path">
+                <mat-icon>folder</mat-icon>
+                <span>{{ previewContent()?.path }}</span>
+              </div>
+            }
+            @if (previewContent()?.excerpt) {
+              <div class="preview-excerpt">
+                {{ previewContent()?.excerpt }}
+              </div>
+            }
+            @if (previewContent()?.wordCount) {
+              <div class="preview-meta">
+                {{ previewContent()?.wordCount }} words
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Hint -->
+    <div class="tooltip-hint">
+      <span>Click to edit • Right-click for options</span>
+    </div>
+  </div>
+}

@@ -1,0 +1,87 @@
+@if (editingState().mode === 'edit') {
+  <app-time-system-edit-page
+    [systemId]="editingSystemId()"
+    (done)="onEditorDone()" />
+} @else {
+  <div class="header">
+    <h2>Time Systems</h2>
+    <p class="hint">
+      Calendars used by this project's timelines. Add a template or design your
+      own.
+    </p>
+  </div>
+
+  <div class="actions">
+    <button
+      mat-stroked-button
+      [matMenuTriggerFor]="templateMenu"
+      data-testid="time-systems-install-template">
+      <mat-icon>library_add</mat-icon>
+      Install template
+    </button>
+    <mat-menu #templateMenu>
+      @for (tpl of availableTemplates(); track tpl.id) {
+        <button
+          mat-menu-item
+          (click)="onInstallTemplate(tpl.id)"
+          [attr.data-testid]="'time-systems-template-' + tpl.id">
+          {{ tpl.name }}
+        </button>
+      }
+      @if (availableTemplates().length === 0) {
+        <div class="empty-menu">All templates installed</div>
+      }
+    </mat-menu>
+
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onDesignNew()"
+      data-testid="time-systems-design-new">
+      <mat-icon>tune</mat-icon>
+      Design custom system
+    </button>
+  </div>
+
+  @if (systems().length === 0) {
+    <div class="empty" data-testid="time-systems-empty">
+      <mat-icon>schedule</mat-icon>
+      <p>No time systems installed.</p>
+      <p class="hint">
+        Install a template above or design a custom calendar to start building
+        timelines.
+      </p>
+    </div>
+  } @else {
+    <div class="systems-list" data-testid="time-systems-list">
+      @for (system of systems(); track system.id) {
+        <div
+          class="system-row"
+          [attr.data-testid]="'time-systems-row-' + system.id">
+          <div class="system-info">
+            <div class="system-name">{{ system.name }}</div>
+            <div class="system-meta">
+              {{ describeSystem(system) }}
+            </div>
+          </div>
+          <div class="system-actions">
+            <button
+              mat-icon-button
+              matTooltip="Edit"
+              (click)="onEdit(system)"
+              [attr.data-testid]="'time-systems-edit-' + system.id">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Remove"
+              (click)="onRemove(system)"
+              [attr.data-testid]="'time-systems-remove-' + system.id">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+}

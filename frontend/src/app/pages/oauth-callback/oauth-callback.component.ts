@@ -10,44 +10,8 @@ import { firstValueFrom } from 'rxjs';
 @Component({
   selector: 'app-oauth-callback',
   imports: [MatProgressSpinnerModule],
-  template: `
-    <div class="callback-container">
-      @if (errorMessage) {
-        <div class="error">
-          <h2>Sign-in failed</h2>
-          <p>{{ errorMessage }}</p>
-          <a href="/">Return to home</a>
-        </div>
-      } @else {
-        <mat-spinner diameter="40"></mat-spinner>
-        <p>Completing sign-in...</p>
-      }
-    </div>
-  `,
-  styles: [
-    `
-      .callback-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        gap: 16px;
-      }
-
-      .error {
-        text-align: center;
-
-        h2 {
-          color: var(--mat-theme-error);
-        }
-
-        a {
-          color: var(--mat-theme-primary);
-        }
-      }
-    `,
-  ],
+  templateUrl: './oauth-callback.component.html',
+  styleUrls: ['./oauth-callback.component.scss'],
 })
 export class OAuthCallbackComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

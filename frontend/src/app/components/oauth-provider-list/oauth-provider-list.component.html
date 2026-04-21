@@ -1,0 +1,59 @@
+@if (isLoadingProviders() || hasAnyProviderEnabled()) {
+  <div class="oauth-container">
+    @if (shouldShowText()) {
+      <h3 class="mat-subtitle-1">
+        {{ isRegisterContext ? 'Or register with:' : 'Or sign in with:' }}
+      </h3>
+    }
+
+    @if (isLoadingProviders()) {
+      <div class="loading-spinner">
+        <mat-progress-spinner
+          mode="indeterminate"
+          diameter="24"></mat-progress-spinner>
+        <span>Loading sign-in options...</span>
+      </div>
+    } @else {
+      @if (googleEnabled()) {
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('google')">
+          <mat-icon svgIcon="google"></mat-icon> Google
+        </button>
+      }
+      @if (facebookEnabled()) {
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('facebook')">
+          <mat-icon svgIcon="facebook"></mat-icon> Facebook
+        </button>
+      }
+      @if (githubEnabled()) {
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('github')">
+          <mat-icon svgIcon="github"></mat-icon> GitHub
+        </button>
+      }
+      @if (appleEnabled()) {
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('apple')">
+          <mat-icon svgIcon="apple"></mat-icon> Apple
+        </button>
+      }
+      @if (discordEnabled()) {
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('discord')">
+          <mat-icon svgIcon="discord"></mat-icon> Discord
+        </button>
+      }
+    }
+  </div>
+}
