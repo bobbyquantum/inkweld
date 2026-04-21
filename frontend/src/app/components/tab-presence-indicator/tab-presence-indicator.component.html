@@ -1,0 +1,25 @@
+@if (visibleUsers().length > 0) {
+  <div
+    class="tab-presence"
+    data-testid="tab-presence-indicator"
+    [attr.data-location]="location()">
+    @for (user of displayed(); track user.clientId) {
+      <div
+        class="tab-presence__avatar"
+        [matTooltip]="user.username"
+        matTooltipPosition="below"
+        data-testid="tab-presence-user"
+        [attr.data-username]="user.username"
+        [style.outlineColor]="user.color">
+        <app-user-avatar [username]="user.username" size="small" />
+      </div>
+    }
+    @if (overflowCount() > 0) {
+      <div
+        class="tab-presence__avatar tab-presence__avatar--overflow"
+        [matTooltip]="overflowTooltip()">
+        +{{ overflowCount() }}
+      </div>
+    }
+  </div>
+}

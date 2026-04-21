@@ -28,67 +28,8 @@ export interface CanvasColorDialogResult {
 
 @Component({
   selector: 'app-canvas-color-dialog',
-  template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
-    <mat-dialog-content>
-      @if (data.showFill) {
-        <div class="color-section">
-          <span class="color-label">
-            <mat-icon class="label-icon">format_color_fill</mat-icon>
-            Fill Color
-          </span>
-          <app-color-swatches
-            [selectedColor]="selectedFill"
-            (colorChange)="onFillChange($event)" />
-        </div>
-      }
-      @if (data.showStroke) {
-        <div class="color-section">
-          <span class="color-label">
-            <mat-icon class="label-icon">border_color</mat-icon>
-            Stroke Color
-          </span>
-          <app-color-swatches
-            [selectedColor]="selectedStroke"
-            (colorChange)="onStrokeChange($event)" />
-        </div>
-      }
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button
-        mat-button
-        color="primary"
-        data-testid="canvas-color-confirm"
-        (click)="onConfirm()">
-        Apply
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      .color-section {
-        margin-bottom: 16px;
-      }
-      .color-section:last-of-type {
-        margin-bottom: 0;
-      }
-      .color-label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--sys-on-surface-variant);
-        margin-bottom: 8px;
-      }
-      .label-icon {
-        font-size: 16px;
-        width: 16px;
-        height: 16px;
-      }
-    `,
-  ],
+  templateUrl: './canvas-color-dialog.component.html',
+  styleUrls: ['./canvas-color-dialog.component.scss'],
   imports: [
     MatDialogModule,
     MatButtonModule,

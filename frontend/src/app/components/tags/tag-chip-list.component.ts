@@ -8,6 +8,7 @@ import {
   inject,
   input,
   Output,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -52,103 +53,8 @@ type TagAutocompleteValue = TagDefinition | { name: string; isNew: true };
     MatAutocompleteModule,
     MatTooltipModule,
   ],
-  template: `
-    <div class="tag-chip-list" [class.readonly]="readonly()">
-      <mat-form-field
-        appearance="outline"
-        class="tag-field"
-        [class.compact]="compact()">
-        <mat-label>{{ label() }}</mat-label>
-        <mat-chip-grid #chipGrid aria-label="Tag selection">
-          @for (tag of resolvedTags(); track tag.assignment.id) {
-            <mat-chip-row
-              [removable]="!readonly()"
-              (removed)="removeTag(tag)"
-              [style.--chip-color]="tag.definition.color"
-              class="tag-chip"
-              [matTooltip]="tag.definition.description || ''">
-              <mat-icon matChipAvatar>{{ tag.definition.icon }}</mat-icon>
-              {{ tag.definition.name }}
-              @if (!readonly()) {
-                <button matChipRemove aria-label="Remove tag">
-                  <mat-icon>cancel</mat-icon>
-                </button>
-              }
-            </mat-chip-row>
-          }
-          @if (!readonly()) {
-            <input
-              placeholder="Add tag..."
-              #tagInput
-              [matAutocomplete]="auto"
-              [matChipInputFor]="chipGrid"
-              [matChipInputSeparatorKeyCodes]="separatorKeyCodes"
-              (matChipInputTokenEnd)="addTagFromInput($event)"
-              [(ngModel)]="tagInputValue" />
-          }
-        </mat-chip-grid>
-        <mat-autocomplete
-          #auto="matAutocomplete"
-          (optionSelected)="selectTag($event)">
-          @for (tag of filteredTags(); track tag.id) {
-            <mat-option [value]="tag">
-              <mat-icon [style.color]="tag.color">{{ tag.icon }}</mat-icon>
-              {{ tag.name }}
-              @if (tag.description) {
-                <span class="tag-description">{{ tag.description }}</span>
-              }
-            </mat-option>
-          }
-          @if (
-            tagInputValue && filteredTags().length === 0 && allowCustomTags()
-          ) {
-            <mat-option [value]="{ name: tagInputValue, isNew: true }">
-              <mat-icon>add</mat-icon>
-              Create "{{ tagInputValue }}"
-            </mat-option>
-          }
-        </mat-autocomplete>
-        @if (hint()) {
-          <mat-hint>{{ hint() }}</mat-hint>
-        }
-      </mat-form-field>
-    </div>
-  `,
-  styles: [
-    `
-      .tag-chip-list {
-        width: 100%;
-      }
-
-      .tag-field {
-        width: 100%;
-      }
-
-      .tag-field.compact {
-        --mat-form-field-container-height: 40px;
-      }
-
-      .tag-chip {
-        --mat-chip-selected-trailing-icon-color: var(--chip-color, #666);
-        --mat-chip-label-text-color: #fff;
-        background-color: var(--chip-color, #666) !important;
-      }
-
-      .tag-chip mat-icon {
-        color: #fff !important;
-      }
-
-      .tag-description {
-        font-size: 0.85em;
-        color: var(--sys-outline);
-        margin-left: 8px;
-      }
-
-      .readonly mat-chip-row {
-        cursor: default;
-      }
-    `,
-  ],
+  templateUrl: './tag-chip-list.component.html',
+  styleUrls: ['./tag-chip-list.component.scss'],
 })
 export class TagChipListComponent {
   private readonly tagService = inject(TagService);
@@ -175,7 +81,7 @@ export class TagChipListComponent {
   @Output() tagsChanged = new EventEmitter<ResolvedTag[]>();
 
   /** Current input value for autocomplete */
-  tagInputValue = '';
+  tagInputValue = signal('');
 
   /** Separator key codes for chip input */
   readonly separatorKeyCodes = [ENTER, COMMA] as const;
@@ -197,7 +103,7 @@ export class TagChipListComponent {
   /** Filtered tags based on input */
   readonly filteredTags = computed(() => {
     const available = this.availableTags();
-    const query = this.tagInputValue.toLowerCase();
+    const query = this.tagInputValue().toLowerCase();
     if (!query) return available;
     return available.filter(t => t.name.toLowerCase().includes(query));
   });
@@ -217,7 +123,7 @@ export class TagChipListComponent {
       this.tagService.addTag(this.elementId(), tag.id);
     }
 
-    this.tagInputValue = '';
+    this.tagInputValue.set('');
     this.emitChange();
   }
 
@@ -241,7 +147,7 @@ export class TagChipListComponent {
 
     // Clear input
     event.chipInput.clear();
-    this.tagInputValue = '';
+    this.tagInputValue.set('');
     this.emitChange();
   }
 

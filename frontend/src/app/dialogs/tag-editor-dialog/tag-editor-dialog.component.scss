@@ -1,0 +1,15 @@
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    color: var(--sys-primary);
+  }
+}
+
+mat-dialog-content {
+  min-width: 300px;
+  max-width: 500px;
+  padding-top: 16px;
+}

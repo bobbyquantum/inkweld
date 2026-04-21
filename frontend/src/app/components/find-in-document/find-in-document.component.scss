@@ -1,0 +1,146 @@
+.find-replace-container {
+  background: var(--sys-surface-container, #f5f5f5);
+  border-bottom: 1px solid var(--sys-outline-variant, #e0e0e0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+:host-context(.dark-theme) .find-replace-container {
+  background: var(--sys-surface-container, #2d2d2d);
+  border-bottom-color: var(--sys-outline-variant, #444);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.find-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+
+.replace-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-top: 1px solid var(--sys-outline-variant, #e0e0e0);
+}
+
+:host-context(.dark-theme) .replace-bar {
+  border-top-color: var(--sys-outline-variant, #444);
+}
+
+.toggle-replace-btn {
+  flex-shrink: 0;
+}
+
+.replace-spacer {
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.find-input-container,
+.replace-input-container {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  background: var(--sys-surface-container-high, #e8e8e8);
+  border: 1px solid var(--sys-outline-variant, #ccc);
+  border-radius: 4px;
+  padding: 4px 8px;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.find-input-container:focus-within,
+.replace-input-container:focus-within {
+  border-color: var(--sys-primary);
+  box-shadow: 0 0 0 1px var(--sys-primary);
+}
+
+:host-context(.dark-theme) .find-input-container,
+:host-context(.dark-theme) .replace-input-container {
+  background: var(--sys-surface-container-high, #3d3d3d);
+  border-color: var(--sys-outline-variant, #555);
+}
+
+.find-input,
+.replace-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  outline: none;
+  min-width: 100px;
+  color: var(--sys-on-surface, #000);
+}
+
+:host-context(.dark-theme) .find-input,
+:host-context(.dark-theme) .replace-input {
+  color: var(--sys-on-surface, #e0e0e0);
+}
+
+.find-input::placeholder,
+.replace-input::placeholder {
+  color: var(--sys-on-surface-variant, #666);
+}
+
+:host-context(.dark-theme) .find-input::placeholder,
+:host-context(.dark-theme) .replace-input::placeholder {
+  color: var(--sys-on-surface-variant, #999);
+}
+
+.match-counter {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant, #666);
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: right;
+}
+
+:host-context(.dark-theme) .match-counter {
+  color: var(--sys-on-surface-variant, #aaa);
+}
+
+.find-actions,
+.replace-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.find-actions button,
+.replace-actions button {
+  color: var(--sys-on-surface-variant, #666);
+}
+
+:host-context(.dark-theme) .find-actions button,
+:host-context(.dark-theme) .replace-actions button {
+  color: var(--sys-on-surface-variant, #bbb);
+}
+
+.find-actions button.active,
+.replace-actions button.active,
+.toggle-replace-btn.active {
+  color: var(--sys-primary, #006874);
+  background: var(--sys-primary-container, #97f0ff);
+}
+
+:host-context(.dark-theme) .find-actions button.active,
+:host-context(.dark-theme) .replace-actions button.active,
+:host-context(.dark-theme) .toggle-replace-btn.active {
+  color: var(--sys-primary, #4fd8eb);
+  background: var(--sys-primary-container, #004f58);
+}
+
+button[mat-icon-button] {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+button[mat-icon-button] mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}

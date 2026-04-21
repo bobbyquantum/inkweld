@@ -1,0 +1,73 @@
+<div
+  class="element-ref-popup"
+  data-testid="element-ref-popup"
+  [style.left.px]="position().x"
+  [style.top.px]="position().y"
+  tabindex="-1"
+  role="dialog"
+  aria-label="Element reference popup"
+  (keydown)="onKeyDown($event)">
+  <!-- Search Input -->
+  <div class="popup-search">
+    <mat-icon class="search-icon">search</mat-icon>
+    <input
+      #searchInput
+      type="text"
+      class="search-input"
+      data-testid="element-ref-search-input"
+      [value]="query()"
+      (input)="onSearchInput($event)"
+      placeholder="Search elements..."
+      autocomplete="off"
+      role="combobox"
+      aria-label="Search elements"
+      aria-controls="element-ref-results"
+      [attr.aria-expanded]="results().length > 0" />
+  </div>
+
+  <!-- Results List -->
+  <div
+    class="popup-results"
+    id="element-ref-results"
+    role="listbox"
+    data-testid="element-ref-results">
+    @if (results().length === 0) {
+      <div class="no-results" data-testid="element-ref-no-results">
+        @if (query()) {
+          <span>No elements match "{{ query() }}"</span>
+        } @else {
+          <span>Type to search elements...</span>
+        }
+      </div>
+    } @else {
+      @for (result of results(); track result.element.id; let i = $index) {
+        <div
+          class="result-item"
+          data-testid="element-ref-result-item"
+          [class.selected]="i === selectedIndex()"
+          tabindex="0"
+          role="option"
+          [attr.aria-selected]="i === selectedIndex()"
+          (click)="selectResult(result)"
+          (keydown.enter)="selectResult(result)"
+          (mouseenter)="selectedIndex.set(i)">
+          <mat-icon class="result-icon">{{ result.icon }}</mat-icon>
+          <div class="result-content">
+            <span class="result-name">{{ result.element.name }}</span>
+            @if (result.path) {
+              <span class="result-path">{{ result.path }}</span>
+            }
+          </div>
+          <span class="result-type">{{ formatType(result.element.type) }}</span>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Keyboard Hints -->
+  <div class="popup-hints">
+    <span><kbd>↑↓</kbd> Navigate</span>
+    <span><kbd>Enter</kbd> Select</span>
+    <span><kbd>Esc</kbd> Cancel</span>
+  </div>
+</div>

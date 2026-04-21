@@ -20,72 +20,8 @@ import { PresenceService } from '@services/presence/presence.service';
   selector: 'app-tab-presence-indicator',
   imports: [MatTooltipModule, UserAvatarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (visibleUsers().length > 0) {
-      <div
-        class="tab-presence"
-        data-testid="tab-presence-indicator"
-        [attr.data-location]="location()">
-        @for (user of displayed(); track user.clientId) {
-          <div
-            class="tab-presence__avatar"
-            [matTooltip]="user.username"
-            matTooltipPosition="below"
-            data-testid="tab-presence-user"
-            [attr.data-username]="user.username"
-            [style.outlineColor]="user.color">
-            <app-user-avatar [username]="user.username" size="small" />
-          </div>
-        }
-        @if (overflowCount() > 0) {
-          <div
-            class="tab-presence__avatar tab-presence__avatar--overflow"
-            [matTooltip]="overflowTooltip()">
-            +{{ overflowCount() }}
-          </div>
-        }
-      </div>
-    }
-  `,
-  styles: [
-    `
-      .tab-presence {
-        display: inline-flex;
-        align-items: center;
-        gap: 0;
-      }
-
-      .tab-presence__avatar {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        margin-left: -6px;
-        outline: 2px solid var(--sys-surface, #fff);
-        overflow: hidden;
-        background: var(--sys-surface-container, #eee);
-
-        &:first-child {
-          margin-left: 0;
-        }
-
-        app-user-avatar,
-        ::ng-deep .avatar.small {
-          width: 100%;
-          height: 100%;
-        }
-
-        &--overflow {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--sys-on-secondary-container, #333);
-          background: var(--sys-secondary-container, #ddd);
-        }
-      }
-    `,
-  ],
+  templateUrl: './tab-presence-indicator.component.html',
+  styleUrls: ['./tab-presence-indicator.component.scss'],
 })
 export class TabPresenceIndicatorComponent {
   private readonly presence = inject(PresenceService);
