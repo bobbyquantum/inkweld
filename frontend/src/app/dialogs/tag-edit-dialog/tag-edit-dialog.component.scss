@@ -1,0 +1,119 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: var(--sys-surface-container);
+  border-radius: 8px;
+}
+
+.tag-preview {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-weight: 500;
+}
+
+.chip-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.section-label {
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
+  margin-top: 8px;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--sys-surface-container);
+  color: var(--sys-on-surface);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--sys-surface-container-high);
+  }
+
+  &.selected {
+    border-color: var(--sys-primary);
+    background: var(--sys-primary-container);
+    color: var(--sys-on-primary-container);
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: inherit;
+  }
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+
+.color-button {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+
+  &.selected {
+    border-color: var(--sys-on-surface);
+    box-shadow: 0 0 0 2px var(--sys-surface);
+  }
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}

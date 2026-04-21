@@ -1,0 +1,105 @@
+<div
+  class="comment-popover"
+  [style.position]="'fixed'"
+  [style.z-index]="'1100'"
+  [style.top.px]="adjustedPosition().top"
+  [style.left.px]="adjustedPosition().left"
+  data-testid="comment-popover">
+  @if (loading()) {
+    <div class="comment-popover__loading">
+      <mat-spinner diameter="24"></mat-spinner>
+    </div>
+  } @else {
+    <div class="comment-popover__header">
+      <app-user-avatar
+        [username]="threadAuthor()"
+        size="small"
+        class="comment-popover__avatar"></app-user-avatar>
+      <span class="comment-popover__author">{{ threadAuthor() }}</span>
+      <span class="comment-popover__date">{{ threadDate() }}</span>
+      <span class="comment-popover__spacer"></span>
+      @if (!attrs().resolved) {
+        <button
+          mat-icon-button
+          class="comment-popover__action"
+          aria-label="Resolve comment thread"
+          matTooltip="Resolve"
+          (click)="onResolve()"
+          data-testid="comment-resolve-btn">
+          <mat-icon>check_circle_outline</mat-icon>
+        </button>
+      } @else {
+        <button
+          mat-icon-button
+          class="comment-popover__action"
+          aria-label="Unresolve comment thread"
+          matTooltip="Unresolve"
+          (click)="onUnresolve()"
+          data-testid="comment-unresolve-btn">
+          <mat-icon>undo</mat-icon>
+        </button>
+      }
+      <button
+        mat-icon-button
+        class="comment-popover__action"
+        aria-label="Delete comment thread"
+        matTooltip="Delete thread"
+        (click)="onDelete()"
+        data-testid="comment-delete-btn">
+        <mat-icon>delete_outline</mat-icon>
+      </button>
+      <button
+        mat-icon-button
+        class="comment-popover__action"
+        aria-label="Close comment popover"
+        matTooltip="Close"
+        (click)="closed.emit()"
+        data-testid="comment-close-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="comment-popover__messages" #messagesContainer>
+      @for (msg of messages(); track msg.id) {
+        <div class="comment-popover__message">
+          <div class="comment-popover__msg-header">
+            <app-user-avatar
+              [username]="msg.authorName"
+              size="small"
+              class="comment-popover__msg-avatar"></app-user-avatar>
+            <span class="comment-popover__msg-author">{{
+              msg.authorName
+            }}</span>
+            <span class="comment-popover__msg-date">{{
+              formatDate(msg.createdAt)
+            }}</span>
+          </div>
+          <div class="comment-popover__msg-text">{{ msg.text }}</div>
+        </div>
+      } @empty {
+        <div class="comment-popover__empty">No messages</div>
+      }
+    </div>
+
+    <div class="comment-popover__reply">
+      <input
+        #replyInput
+        class="comment-popover__reply-input"
+        type="text"
+        placeholder="Reply..."
+        [(ngModel)]="replyText"
+        (keydown.enter)="onReply()"
+        data-testid="comment-reply-input" />
+      <button
+        mat-icon-button
+        class="comment-popover__reply-btn"
+        aria-label="Send reply"
+        [disabled]="!replyText.trim()"
+        (click)="onReply()"
+        matTooltip="Send reply"
+        data-testid="comment-reply-btn">
+        <mat-icon>send</mat-icon>
+      </button>
+    </div>
+  }
+</div>

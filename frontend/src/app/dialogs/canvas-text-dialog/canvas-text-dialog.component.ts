@@ -29,60 +29,8 @@ export interface CanvasTextDialogResult {
 
 @Component({
   selector: 'app-canvas-text-dialog',
-  template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
-    <mat-dialog-content>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Text</mat-label>
-        <textarea
-          matInput
-          [formControl]="textControl"
-          cdkFocusInitial
-          rows="3"
-          data-testid="canvas-text-input"
-          placeholder="Enter text"></textarea>
-        @if (textControl.hasError('required') && textControl.touched) {
-          <mat-error>Text is required</mat-error>
-        }
-      </mat-form-field>
-
-      <div class="color-section">
-        <span class="color-label">Text Color</span>
-        <app-color-swatches
-          [selectedColor]="selectedColor"
-          (colorChange)="onColorChange($event)" />
-      </div>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button
-        mat-button
-        color="primary"
-        [disabled]="!textControl.valid"
-        data-testid="canvas-text-confirm"
-        (click)="onConfirm()">
-        {{ data.confirmLabel || 'Add' }}
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      .full-width {
-        width: 100%;
-        min-width: 300px;
-      }
-      .color-section {
-        margin-top: 8px;
-      }
-      .color-label {
-        display: block;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--sys-on-surface-variant);
-        margin-bottom: 8px;
-      }
-    `,
-  ],
+  templateUrl: './canvas-text-dialog.component.html',
+  styleUrls: ['./canvas-text-dialog.component.scss'],
   imports: [
     MatDialogModule,
     MatButtonModule,

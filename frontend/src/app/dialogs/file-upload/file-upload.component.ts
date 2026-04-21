@@ -13,69 +13,8 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
     MatProgressBarModule,
     FileSizePipe,
   ],
-  template: `
-    <h2 mat-dialog-title>Upload File</h2>
-    <mat-dialog-content>
-      <div
-        class="upload-area"
-        (dragover)="onDragOver($event)"
-        (drop)="onDrop($event)"
-        (click)="fileInput.click()"
-        (keydown.enter)="fileInput.click()"
-        (keydown.space)="$event.preventDefault(); fileInput.click()"
-        tabindex="0"
-        role="button"
-        aria-label="Select a file to upload">
-        <input
-          #fileInput
-          type="file"
-          (change)="onFileSelected($event)"
-          style="display: none" />
-        @if (!selectedFile) {
-          <div class="upload-prompt">
-            <p>Drop a file here or click to select</p>
-          </div>
-        }
-        @if (selectedFile) {
-          <div class="file-info">
-            <p>Selected file: {{ selectedFile.name }}</p>
-            <p>Size: {{ selectedFile.size | fileSize }}</p>
-          </div>
-        }
-      </div>
-    </mat-dialog-content>
-    <mat-dialog-actions>
-      <button mat-button mat-dialog-close>Cancel</button>
-      <button
-        mat-button
-        color="primary"
-        [disabled]="!selectedFile"
-        (click)="onUpload()">
-        Upload
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      .upload-area {
-        border: 2px dashed var(--sys-outline-variant);
-        border-radius: 12px;
-        padding: 2rem;
-        text-align: center;
-        cursor: pointer;
-        margin: 1rem 0;
-      }
-      .upload-area:hover {
-        border-color: var(--sys-primary);
-      }
-      .upload-prompt {
-        color: var(--sys-on-surface-variant);
-      }
-      .file-info {
-        color: var(--sys-on-surface);
-      }
-    `,
-  ],
+  templateUrl: './file-upload.component.html',
+  styleUrls: ['./file-upload.component.scss'],
 })
 export class FileUploadComponent {
   dialogRef = inject(MatDialogRef<FileUploadComponent>);

@@ -1,0 +1,157 @@
+<h2 mat-dialog-title>
+  {{ seed.name ? 'Edit unit: ' + seed.name : 'New unit' }}
+</h2>
+<mat-dialog-content class="content">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Name</mat-label>
+    <input
+      matInput
+      [ngModel]="name()"
+      (ngModelChange)="name.set($event)"
+      data-testid="unit-editor-name"
+      cdkFocusInitial />
+  </mat-form-field>
+
+  @if (!isTopUnit) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>{{ subdivisionLabel() }}</mat-label>
+      <input
+        matInput
+        type="number"
+        min="1"
+        step="1"
+        [ngModel]="subdivision()"
+        (ngModelChange)="subdivision.set($event)"
+        data-testid="unit-editor-subdivision" />
+    </mat-form-field>
+  }
+
+  <div class="flags-row">
+    <mat-checkbox [(ngModel)]="allowZero" data-testid="unit-editor-allow-zero">
+      Allow zero
+    </mat-checkbox>
+    <mat-form-field
+      appearance="outline"
+      class="input-mode"
+      subscriptSizing="dynamic">
+      <mat-label>Input</mat-label>
+      <mat-select [(ngModel)]="inputMode" data-testid="unit-editor-input-mode">
+        <mat-option value="numeric">Numeric</mat-option>
+        <mat-option value="dropdown">Dropdown</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="aliases-header">
+    <div class="section-label">Overrides</div>
+    <p class="hint">
+      Override how a specific value of this unit is named or how many sub-units
+      it contains. Example: month <code>2</code> &rarr; name "February",
+      sub-units <code>28</code>. Use <code>&#123;a&lt;i&gt;&#125;</code> in the
+      system's display format to render the override name;
+      <code>&#123;u&lt;i&gt;&#125;</code> still shows the raw number.
+    </p>
+  </div>
+
+  <div class="rows">
+    @for (row of rows(); track row.id; let idx = $index) {
+      <div class="row">
+        <mat-form-field
+          appearance="outline"
+          class="value"
+          subscriptSizing="dynamic">
+          <mat-label>Value</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="row.value"
+            (ngModelChange)="onValueChange(row.id, $event)"
+            [attr.data-testid]="'unit-editor-override-value-' + idx" />
+        </mat-form-field>
+        <mat-form-field
+          appearance="outline"
+          class="alias"
+          subscriptSizing="dynamic">
+          <mat-label>Name</mat-label>
+          <input
+            matInput
+            [(ngModel)]="row.alias"
+            (ngModelChange)="onAliasChange(row.id, $event)"
+            [attr.data-testid]="'unit-editor-override-name-' + idx" />
+        </mat-form-field>
+        @if (hasChildUnit) {
+          <mat-form-field
+            appearance="outline"
+            class="sub"
+            subscriptSizing="dynamic">
+            <mat-label>{{ subdivisionOverrideLabel() }}</mat-label>
+            <input
+              matInput
+              type="number"
+              min="1"
+              step="1"
+              [placeholder]="defaultSubdivisionPlaceholder"
+              [(ngModel)]="row.subdivision"
+              (ngModelChange)="onSubdivisionChange(row.id, $event)"
+              [attr.data-testid]="'unit-editor-override-subdivision-' + idx" />
+          </mat-form-field>
+        }
+        <button
+          mat-icon-button
+          type="button"
+          matTooltip="Remove override"
+          (click)="removeRow(row.id)"
+          [attr.data-testid]="'unit-editor-override-remove-' + idx">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    } @empty {
+      <div class="empty">No overrides yet.</div>
+    }
+  </div>
+
+  @if (duplicateKeys().length > 0) {
+    <div class="warn" data-testid="unit-editor-duplicate-warning">
+      Duplicate values: {{ duplicateKeys().join(', ') }}. Only the last entry
+      for each value will be saved.
+    </div>
+  }
+
+  <div class="actions-row">
+    <button
+      mat-stroked-button
+      type="button"
+      (click)="addRow()"
+      data-testid="unit-editor-override-add">
+      <mat-icon>add</mat-icon>
+      Add override
+    </button>
+    @if (effectiveSuggestedCount() > 0) {
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="fillRange()"
+        [disabled]="fillDisabled()"
+        matTooltip="Add a row for every value in this unit's range"
+        data-testid="unit-editor-override-fill-range">
+        <mat-icon>format_list_numbered</mat-icon>
+        Fill 1–{{ effectiveSuggestedCount() }}
+      </button>
+    }
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" data-testid="unit-editor-cancel">
+    Cancel
+  </button>
+  <button
+    mat-button
+    color="primary"
+    [disabled]="!canSave()"
+    (click)="onSave()"
+    data-testid="unit-editor-save">
+    Save unit
+  </button>
+</mat-dialog-actions>

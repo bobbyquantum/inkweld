@@ -1,0 +1,29 @@
+.content {
+  min-width: 420px;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.section-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
+  margin-top: 4px;
+}
+.units-row {
+  display: flex;
+  gap: 8px;
+}
+.unit-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.field-error {
+  color: var(--sys-error);
+  font-size: 12px;
+}
+.spacer {
+  flex: 1;
+}

@@ -1,0 +1,181 @@
+<div class="page">
+  <header class="header">
+    <button
+      mat-icon-button
+      matTooltip="Back to settings"
+      (click)="onCancel()"
+      data-testid="time-system-edit-back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="title-block">
+      <h1>
+        {{ isEditMode() ? 'Edit time system' : 'Design a time system' }}
+      </h1>
+      <p class="hint">
+        Define the calendar's units, display format, and per-value overrides.
+        Click a unit to edit it.
+      </p>
+    </div>
+  </header>
+
+  @if (loadError()) {
+    <div class="error" data-testid="time-system-edit-error">
+      {{ loadError() }}
+    </div>
+  } @else {
+    @if (!isEditMode()) {
+      <div class="templates" data-testid="time-system-edit-templates">
+        <div class="section-label">Start from a template</div>
+        <div class="template-chips">
+          @for (tpl of templates; track tpl.id) {
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="loadTemplate(tpl)"
+              [attr.data-testid]="'time-system-edit-template-' + tpl.id">
+              {{ tpl.name }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <form [formGroup]="form" class="form" autocomplete="off">
+      <mat-form-field appearance="outline">
+        <mat-label>System name</mat-label>
+        <input
+          matInput
+          formControlName="name"
+          data-testid="time-system-edit-name" />
+      </mat-form-field>
+
+      <div class="section-label">
+        Units (most significant → least significant)
+      </div>
+
+      @if (units().length === 0) {
+        <div class="empty" data-testid="time-system-edit-units-empty">
+          <mat-icon>schedule</mat-icon>
+          <p>No units defined yet.</p>
+          <p class="hint">Add at least one unit to describe the calendar.</p>
+        </div>
+      } @else {
+        <div class="units-list" data-testid="time-system-edit-units-list">
+          @for (unit of units(); track $index; let i = $index) {
+            <div
+              class="unit-row"
+              [attr.data-testid]="'time-system-edit-unit-row-' + i">
+              <button
+                type="button"
+                class="unit-info"
+                (click)="onEditUnit(i)"
+                [attr.data-testid]="'time-system-edit-unit-info-' + i">
+                <div class="unit-name">
+                  {{ i + 1 }}. {{ unit.name || '(unnamed)' }}
+                </div>
+                <div class="unit-meta">
+                  {{ describeUnit(i, unit) }}
+                </div>
+              </button>
+              <div class="unit-actions">
+                <button
+                  type="button"
+                  mat-icon-button
+                  matTooltip="Move up"
+                  aria-label="Move unit up"
+                  [disabled]="i === 0"
+                  (click)="onMoveUnit(i, -1)"
+                  [attr.data-testid]="'time-system-edit-unit-up-' + i">
+                  <mat-icon>arrow_upward</mat-icon>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  matTooltip="Move down"
+                  aria-label="Move unit down"
+                  [disabled]="i === units().length - 1"
+                  (click)="onMoveUnit(i, 1)"
+                  [attr.data-testid]="'time-system-edit-unit-down-' + i">
+                  <mat-icon>arrow_downward</mat-icon>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  matTooltip="Edit unit"
+                  aria-label="Edit unit"
+                  (click)="onEditUnit(i)"
+                  [attr.data-testid]="'time-system-edit-unit-edit-' + i">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  type="button"
+                  mat-icon-button
+                  matTooltip="Remove unit"
+                  aria-label="Remove unit"
+                  [disabled]="units().length <= 1"
+                  (click)="onRemoveUnit(i)"
+                  [attr.data-testid]="'time-system-edit-unit-remove-' + i">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="add-unit"
+        (click)="onAddUnit()"
+        data-testid="time-system-edit-add-unit">
+        <mat-icon>add</mat-icon>
+        Add unit
+      </button>
+
+      <mat-form-field appearance="outline">
+        <mat-label>
+          Display format (use {{ '{u0}' }}, {{ '{u1}' }}, … or {{ '{a0}' }} for
+          override names)
+        </mat-label>
+        <input
+          matInput
+          formControlName="format"
+          data-testid="time-system-edit-format" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Parse separator</mat-label>
+        <input
+          matInput
+          maxlength="3"
+          formControlName="parseSeparator"
+          data-testid="time-system-edit-separator" />
+      </mat-form-field>
+
+      <div class="preview" data-testid="time-system-edit-preview">
+        <span class="section-label">Preview:</span>
+        <code>{{ previewText() }}</code>
+      </div>
+    </form>
+
+    <footer class="footer">
+      <button
+        mat-button
+        type="button"
+        (click)="onCancel()"
+        data-testid="time-system-edit-cancel">
+        Cancel
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        [disabled]="!canSave()"
+        (click)="onSave()"
+        data-testid="time-system-edit-save">
+        {{ isEditMode() ? 'Save changes' : 'Create system' }}
+      </button>
+    </footer>
+  }
+</div>

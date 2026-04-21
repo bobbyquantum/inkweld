@@ -1,0 +1,64 @@
+.presence-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--sys-surface-container);
+  border-radius: 20px;
+}
+
+.presence-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.presence-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--sys-surface);
+  margin-left: -8px;
+  cursor: default;
+  transition: transform 0.2s ease;
+  overflow: hidden;
+
+  app-user-avatar {
+    width: 100%;
+    height: 100%;
+
+    ::ng-deep .avatar.small {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:hover {
+    transform: scale(1.1);
+    z-index: 1;
+  }
+
+  &.overflow {
+    background: var(--sys-secondary-container);
+    color: var(--sys-on-secondary-container);
+    font-size: 10px;
+  }
+}
+
+.presence-label {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .presence-label {
+    display: none;
+  }
+}

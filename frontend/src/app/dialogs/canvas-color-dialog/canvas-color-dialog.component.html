@@ -1,0 +1,35 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+<mat-dialog-content>
+  @if (data.showFill) {
+    <div class="color-section">
+      <span class="color-label">
+        <mat-icon class="label-icon">format_color_fill</mat-icon>
+        Fill Color
+      </span>
+      <app-color-swatches
+        [selectedColor]="selectedFill"
+        (colorChange)="onFillChange($event)" />
+    </div>
+  }
+  @if (data.showStroke) {
+    <div class="color-section">
+      <span class="color-label">
+        <mat-icon class="label-icon">border_color</mat-icon>
+        Stroke Color
+      </span>
+      <app-color-swatches
+        [selectedColor]="selectedStroke"
+        (colorChange)="onStrokeChange($event)" />
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button
+    mat-button
+    color="primary"
+    data-testid="canvas-color-confirm"
+    (click)="onConfirm()">
+    Apply
+  </button>
+</mat-dialog-actions>

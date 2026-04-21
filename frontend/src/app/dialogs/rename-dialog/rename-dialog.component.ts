@@ -16,43 +16,8 @@ export interface RenameDialogData {
 
 @Component({
   selector: 'app-rename-dialog',
-  template: `
-    <h2 mat-dialog-title>{{ data.title || 'Rename Item' }}</h2>
-    <mat-dialog-content>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Name</mat-label>
-        <input
-          matInput
-          [formControl]="nameControl"
-          cdkFocusInitial
-          (keyup.enter)="onConfirm()"
-          data-testid="rename-input"
-          placeholder="Enter name" />
-        @if (nameControl.hasError('required') && nameControl.touched) {
-          <mat-error>Name is required</mat-error>
-        }
-      </mat-form-field>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button
-        mat-button
-        color="primary"
-        [disabled]="!nameControl.valid"
-        data-testid="rename-confirm-button"
-        (click)="onConfirm()">
-        Rename
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      .full-width {
-        width: 100%;
-        min-width: 250px;
-      }
-    `,
-  ],
+  templateUrl: './rename-dialog.component.html',
+  styleUrls: ['./rename-dialog.component.scss'],
   imports: [
     MatDialogModule,
     MatButtonModule,

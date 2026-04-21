@@ -34,43 +34,8 @@ export interface TagEditorDialogData {
     MatIconModule,
     TagChipListComponent,
   ],
-  template: `
-    <h2 mat-dialog-title>
-      <mat-icon>label</mat-icon>
-      Tags for {{ data.elementName }}
-    </h2>
-
-    <mat-dialog-content>
-      <app-tag-chip-list
-        [elementId]="data.elementId"
-        label="Tags"
-        hint="Add tags to organize your content">
-      </app-tag-chip-list>
-    </mat-dialog-content>
-
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="close()">Done</button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      h2 {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        mat-icon {
-          color: var(--sys-primary);
-        }
-      }
-
-      mat-dialog-content {
-        min-width: 300px;
-        max-width: 500px;
-        padding-top: 16px;
-      }
-    `,
-  ],
+  templateUrl: './tag-editor-dialog.component.html',
+  styleUrls: ['./tag-editor-dialog.component.scss'],
 })
 export class TagEditorDialogComponent {
   readonly dialogRef = inject(MatDialogRef<TagEditorDialogComponent>);

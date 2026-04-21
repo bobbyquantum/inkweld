@@ -1,0 +1,47 @@
+<div class="swatches-grid">
+  @for (color of colors; track color) {
+    <button
+      type="button"
+      class="swatch"
+      [attr.aria-label]="
+        'Select color ' + color + (selectedColor === color ? ', selected' : '')
+      "
+      [attr.aria-pressed]="selectedColor === color"
+      [class.selected]="selectedColor === color"
+      [style.background]="color"
+      [matTooltip]="color"
+      (click)="selectColor(color)">
+      @if (selectedColor === color) {
+        <mat-icon class="check-icon" aria-hidden="true">check</mat-icon>
+      }
+      <span class="sr-only">
+        {{ color }}
+        @if (selectedColor === color) {
+          (selected)
+        }
+      </span>
+    </button>
+  }
+</div>
+<div class="custom-color">
+  <label class="hex-label" for="hexInput">Custom</label>
+  <div class="hex-input-group">
+    <span class="hash">#</span>
+    <input
+      #hexInputEl
+      id="hexInput"
+      type="text"
+      class="hex-input"
+      maxlength="6"
+      [value]="hexValue"
+      (input)="onHexInput($event)"
+      (blur)="onHexBlur()"
+      placeholder="333333" />
+    <button
+      type="button"
+      class="preview-swatch"
+      [style.background]="selectedColor"
+      aria-label="Apply custom color"
+      (click)="onHexBlur()"></button>
+  </div>
+</div>

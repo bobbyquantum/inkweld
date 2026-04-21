@@ -18,11 +18,7 @@ import { Component, Input, type TemplateRef, ViewChild } from '@angular/core';
  */
 @Component({
   selector: 'app-aria-tab-panel',
-  template: `
-    <ng-template #content>
-      <ng-content></ng-content>
-    </ng-template>
-  `,
+  templateUrl: './aria-tab-panel.component.html',
 })
 export class AriaTabPanelComponent {
   /** Key that matches the tab's key in AriaTabConfig */

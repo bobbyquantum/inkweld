@@ -162,14 +162,14 @@ describe('TagChipListComponent', () => {
     });
 
     it('should clear input value after selection', () => {
-      component.tagInputValue = 'some value';
+      component.tagInputValue.set('some value');
       const mockEvent = {
         option: { value: mockTags[1] },
       };
 
       component.selectTag(mockEvent as never);
 
-      expect(component.tagInputValue).toBe('');
+      expect(component.tagInputValue()).toBe('');
     });
   });
 
@@ -229,13 +229,13 @@ describe('TagChipListComponent', () => {
 
   describe('filteredTags', () => {
     it('should return all available tags when no input', () => {
-      component.tagInputValue = '';
+      component.tagInputValue.set('');
       const filtered = component.filteredTags();
       expect(filtered).toEqual([mockTags[1]]);
     });
 
     it('should filter tags by name matching input', () => {
-      component.tagInputValue = 'comp';
+      component.tagInputValue.set('comp');
       const filtered = component.filteredTags();
       // The component's computed uses tagInputValue at read time
       expect(filtered.length).toBeGreaterThanOrEqual(0);
