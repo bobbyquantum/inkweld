@@ -1,11 +1,9 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Project } from '../../../../../api-client';
@@ -25,7 +23,6 @@ describe('TemplatesTabComponent', () => {
   let mockWorldbuildingService: any;
   let mockSnackBar: any;
   let mockDialogGateway: any;
-  let mockDialog: any;
 
   const mockProject: Project = {
     id: 'test-project-id',
@@ -78,12 +75,6 @@ describe('TemplatesTabComponent', () => {
       openConfirmationDialog: vi.fn(),
     };
 
-    mockDialog = {
-      open: vi.fn().mockReturnValue({
-        afterClosed: () => of(null),
-      }),
-    };
-
     await TestBed.configureTestingModule({
       imports: [TemplatesTabComponent],
       providers: [
@@ -92,7 +83,6 @@ describe('TemplatesTabComponent', () => {
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
-        { provide: MatDialog, useValue: mockDialog },
         // Override timeout to 0 for faster tests
         { provide: TEMPLATE_RELOAD_DELAY, useValue: 0 },
       ],
@@ -155,8 +145,6 @@ describe('TemplatesTabComponent', () => {
       mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
       component.loadTemplates();
-
-      // Templates load synchronously from cache
 
       expect(component.templates().length).toBe(0);
       expect(component.isLoading()).toBe(false);
@@ -222,14 +210,11 @@ describe('TemplatesTabComponent', () => {
 
       await component.cloneTemplate(template);
 
-      // With timeouts set to 0, no wait needed
-
       expect(mockWorldbuildingService.cloneTemplate).toHaveBeenCalledWith(
         'char-1',
         'New Character',
         'Clone of Character'
       );
-      // SnackBar may not be called in test environment due to async timing
     });
 
     it('should handle cancelled clone dialog', async () => {
@@ -273,7 +258,6 @@ describe('TemplatesTabComponent', () => {
 
       await component.cloneTemplate(template);
 
-      // Verify the error was logged
       expect(consoleErrorSpy).toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
@@ -300,12 +284,9 @@ describe('TemplatesTabComponent', () => {
 
       await component.deleteTemplate(template);
 
-      // With timeouts set to 0, no wait needed
-
       expect(mockWorldbuildingService.deleteTemplate).toHaveBeenCalledWith(
         'custom-1'
       );
-      // SnackBar may not be called in test environment due to async timing
     });
 
     it('should handle cancelled delete dialog', async () => {
@@ -349,7 +330,6 @@ describe('TemplatesTabComponent', () => {
 
       await component.deleteTemplate(template);
 
-      // Verify the error was logged
       expect(consoleErrorSpy).toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
@@ -357,7 +337,7 @@ describe('TemplatesTabComponent', () => {
   });
 
   describe('editTemplate', () => {
-    it('should edit a template successfully', async () => {
+    it('should switch to edit mode with the loaded schema', () => {
       mockProjectState.project.set(mockProject);
 
       const template = {
@@ -381,26 +361,13 @@ describe('TemplatesTabComponent', () => {
 
       mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
 
-      const updatedSchema = { ...mockSchema, name: 'Updated Template' };
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(updatedSchema),
-      });
+      component.editTemplate(template);
 
-      mockWorldbuildingService.updateTemplate.mockReturnValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-
-      await component.editTemplate(template);
-
-      // With timeouts set to 0, no wait needed
-
-      expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
-        'custom-1',
-        updatedSchema
-      );
-      // SnackBar may not be called in test environment due to async timing
+      expect(component.editingState().mode).toBe('edit');
+      expect(component.editingSchema()).toEqual(mockSchema);
     });
 
-    it('should handle template not found', async () => {
+    it('should handle template not found', () => {
       mockProjectState.project.set(mockProject);
 
       const template = {
@@ -414,24 +381,39 @@ describe('TemplatesTabComponent', () => {
 
       mockWorldbuildingService.getSchema.mockReturnValue(null);
 
-      await component.editTemplate(template);
+      component.editTemplate(template);
 
-      // Verify the template was not found and no update was attempted
+      // Should stay in list mode when template not found
+      expect(component.editingState().mode).toBe('list');
       expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
     });
+  });
 
-    it('should handle cancelled edit dialog', async () => {
+  describe('createTemplate', () => {
+    it('should switch to edit mode with a blank schema', () => {
       mockProjectState.project.set(mockProject);
 
-      const template = {
-        id: 'custom-1',
-        label: 'Custom Template',
-        icon: 'edit',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: false,
-      };
+      component.createTemplate();
 
+      expect(component.editingState().mode).toBe('edit');
+      const schema = component.editingSchema();
+      expect(schema).not.toBeNull();
+      expect(schema!.name).toBe('New Template');
+      expect(schema!.isBuiltIn).toBe(false);
+    });
+
+    it('should not switch to edit mode without project', () => {
+      mockProjectState.project.set(null);
+
+      component.createTemplate();
+
+      expect(component.editingState().mode).toBe('list');
+    });
+  });
+
+  describe('onEditorDone', () => {
+    it('should return to list mode when cancelled (null result)', async () => {
+      mockProjectState.project.set(mockProject);
       const mockSchema = {
         id: 'custom-1',
         name: 'Custom Template',
@@ -441,44 +423,69 @@ describe('TemplatesTabComponent', () => {
         isBuiltIn: false,
         tabs: [],
       };
-
       mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
-
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(null),
-      });
-
-      await component.editTemplate(template);
-
-      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
-    });
-
-    it('should handle edit errors', async () => {
-      mockProjectState.project.set(mockProject);
-
-      const template = {
+      component.editTemplate({
         id: 'custom-1',
         label: 'Custom Template',
         icon: 'edit',
         tabCount: 1,
         fieldCount: 2,
         isBuiltIn: false,
-      };
-
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-      // getSchema is synchronous, so use mockImplementation to throw
-      mockWorldbuildingService.getSchema.mockImplementation(() => {
-        throw new Error('Load failed');
       });
 
-      await component.editTemplate(template);
+      await component.onEditorDone(null);
 
-      // Verify the error was logged
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(component.editingState().mode).toBe('list');
+      expect(mockWorldbuildingService.updateTemplate).not.toHaveBeenCalled();
+    });
 
-      consoleErrorSpy.mockRestore();
+    it('should save an existing template when editor emits a schema', async () => {
+      mockProjectState.project.set(mockProject);
+      const mockSchema = {
+        id: 'custom-1',
+        name: 'Custom Template',
+        icon: 'edit',
+        description: 'Custom',
+        version: 1,
+        isBuiltIn: false,
+        tabs: [],
+      };
+      mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+      component.editTemplate({
+        id: 'custom-1',
+        label: 'Custom Template',
+        icon: 'edit',
+        tabCount: 1,
+        fieldCount: 2,
+        isBuiltIn: false,
+      });
+
+      const updatedSchema = { ...mockSchema, name: 'Updated Template' };
+      await component.onEditorDone(updatedSchema as ElementTypeSchema);
+
+      expect(component.editingState().mode).toBe('list');
+      expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
+        'custom-1',
+        updatedSchema
+      );
+    });
+
+    it('should save a new template when creating', async () => {
+      mockProjectState.project.set(mockProject);
+      mockWorldbuildingService.saveSchemaToLibrary.mockReturnValue(undefined);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
+
+      component.createTemplate();
+
+      const newSchema = component.editingSchema()!;
+      const savedSchema = { ...newSchema, name: 'My Template' };
+      await component.onEditorDone(savedSchema as ElementTypeSchema);
+
+      expect(component.editingState().mode).toBe('list');
+      expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
+        savedSchema
+      );
     });
   });
 
@@ -498,88 +505,6 @@ describe('TemplatesTabComponent', () => {
       ]);
 
       expect(component.hasTemplates()).toBe(true);
-    });
-  });
-
-  describe('createTemplate', () => {
-    it('should create a new template successfully', async () => {
-      mockProjectState.project.set(mockProject);
-
-      const createdSchema = {
-        id: 'custom-123',
-        name: 'My New Template',
-        icon: 'star',
-        description: 'A custom template',
-        version: 1,
-        isBuiltIn: false,
-        tabs: [],
-      };
-
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(createdSchema),
-      });
-
-      mockWorldbuildingService.saveSchemaToLibrary.mockReturnValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-
-      await component.createTemplate();
-
-      expect(mockDialog.open).toHaveBeenCalled();
-      expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(
-        createdSchema
-      );
-    });
-
-    it('should not create template without project', async () => {
-      mockProjectState.project.set(null);
-
-      await component.createTemplate();
-
-      expect(mockDialog.open).not.toHaveBeenCalled();
-    });
-
-    it('should handle cancelled dialog', async () => {
-      mockProjectState.project.set(mockProject);
-
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(null),
-      });
-
-      await component.createTemplate();
-
-      expect(
-        mockWorldbuildingService.saveSchemaToLibrary
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should handle create errors', async () => {
-      mockProjectState.project.set(mockProject);
-
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-
-      const createdSchema = {
-        id: 'custom-123',
-        name: 'My New Template',
-        icon: 'star',
-        tabs: [],
-      };
-
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(createdSchema),
-      });
-
-      mockWorldbuildingService.saveSchemaToLibrary.mockImplementation(() => {
-        throw new Error('Save failed');
-      });
-
-      await component.createTemplate();
-
-      // The component catches the error and logs it
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
     });
   });
 });

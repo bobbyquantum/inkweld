@@ -7,7 +7,6 @@ import {
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -17,17 +16,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { firstValueFrom } from 'rxjs';
 
-import {
-  TemplateEditorDialogComponent,
-  type TemplateEditorDialogData,
-} from '../../../../dialogs/template-editor-dialog/template-editor-dialog.component';
 import {
   type ElementTypeSchema,
   type TabSchema,
 } from '../../../../models/schema-types';
 import { SettingsTabStatusComponent } from '../settings-tab-status.component';
+import { TemplateEditorPageComponent } from './template-editor-page/template-editor-page.component';
 
 /**
  * Injection token for reload delay after mutations.
@@ -40,6 +35,15 @@ export const TEMPLATE_RELOAD_DELAY = new InjectionToken<number>(
     factory: () => 500, // Default 500ms in production
   }
 );
+
+/**
+ * Editing state: either showing the list, or the inline editor.
+ * `schema` is the schema being created/edited.
+ * `templateId` is null when creating a new template.
+ */
+type EditingState =
+  | { mode: 'list' }
+  | { mode: 'edit'; schema: ElementTypeSchema; templateId: string | null };
 
 interface TemplateSchema {
   /** Schema ID (nanoid) - used for all lookups */
@@ -67,6 +71,7 @@ interface TemplateSchema {
     MatMenuModule,
     MatTooltipModule,
     SettingsTabStatusComponent,
+    TemplateEditorPageComponent,
   ],
 })
 export class TemplatesTabComponent {
@@ -74,7 +79,6 @@ export class TemplatesTabComponent {
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly dialog = inject(MatDialog);
   private readonly reloadDelay = inject(TEMPLATE_RELOAD_DELAY);
 
   readonly project = this.projectState.project;
@@ -95,6 +99,15 @@ export class TemplatesTabComponent {
         t.label.toLowerCase().includes(query) ||
         t.description?.toLowerCase().includes(query)
     );
+  });
+
+  /** Controls whether to show the list or the inline editor. */
+  readonly editingState = signal<EditingState>({ mode: 'list' });
+
+  /** Convenience computed for the schema currently being edited. */
+  readonly editingSchema = computed(() => {
+    const state = this.editingState();
+    return state.mode === 'edit' ? state.schema : null;
   });
 
   constructor() {
@@ -168,77 +181,47 @@ export class TemplatesTabComponent {
   /**
    * Create a new template from scratch
    */
-  async createTemplate(): Promise<void> {
+  createTemplate(): void {
     const project = this.project();
     if (!project) {
       return;
     }
 
-    try {
-      // Create a blank starter schema
-      const timestamp = Date.now();
-      const newSchema: ElementTypeSchema = {
-        id: `custom-${timestamp}`,
-        name: 'New Template',
-        icon: 'article',
-        description: '',
-        version: 1,
-        isBuiltIn: false,
-        tabs: [
-          {
-            key: 'general',
-            label: 'General',
-            fields: [
-              {
-                key: 'name',
-                label: 'Name',
-                type: 'text',
-              },
-              {
-                key: 'description',
-                label: 'Description',
-                type: 'textarea',
-              },
-            ],
-          },
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+    const timestamp = Date.now();
+    const newSchema: ElementTypeSchema = {
+      id: `custom-${timestamp}`,
+      name: 'New Template',
+      icon: 'article',
+      description: '',
+      version: 1,
+      isBuiltIn: false,
+      tabs: [
+        {
+          key: 'general',
+          label: 'General',
+          fields: [
+            {
+              key: 'name',
+              label: 'Name',
+              type: 'text',
+            },
+            {
+              key: 'description',
+              label: 'Description',
+              type: 'textarea',
+            },
+          ],
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
-      // Open editor dialog with the starter schema
-      const dialogData: TemplateEditorDialogData = { schema: newSchema };
-      const dialogRef = this.dialog.open(TemplateEditorDialogComponent, {
-        width: '900px',
-        maxWidth: '95vw',
-        maxHeight: '90vh',
-        data: dialogData,
-        disableClose: true,
-      });
-
-      const result = (await firstValueFrom(dialogRef.afterClosed())) as
-        | ElementTypeSchema
-        | null
-        | undefined;
-
-      if (result) {
-        // Save the new template
-        this.worldbuildingService.saveSchemaToLibrary(result);
-
-        this.snackBar.open(`✓ Template "${result.name}" created`, 'Close', {
-          duration: 3000,
-        });
-
-        // Wait for sync then reload
-        await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
-        this.loadTemplates();
-      }
-    } catch (err) {
-      console.error('[TemplatesTab] Error creating template:', err);
-      this.snackBar.open('Failed to create template', 'Close', {
-        duration: 5000,
-      });
-    }
+    this.editingState.set({
+      mode: 'edit',
+      schema: newSchema,
+      templateId: null,
+    });
   }
 
   /**
@@ -326,51 +309,58 @@ export class TemplatesTabComponent {
   /**
    * Edit a template
    */
-  async editTemplate(template: TemplateSchema): Promise<void> {
+  editTemplate(template: TemplateSchema): void {
     const project = this.project();
     if (!project) {
       return;
     }
 
+    const fullSchema = this.worldbuildingService.getSchema(template.id);
+
+    if (!fullSchema) {
+      this.snackBar.open('Template not found', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.editingState.set({
+      mode: 'edit',
+      schema: fullSchema,
+      templateId: template.id,
+    });
+  }
+
+  /**
+   * Handle the editor's done event (save or cancel)
+   */
+  async onEditorDone(result: ElementTypeSchema | null): Promise<void> {
+    const state = this.editingState();
+    if (state.mode !== 'edit') return;
+
+    this.editingState.set({ mode: 'list' });
+
+    if (!result) return;
+
     try {
-      // Load the full schema using the abstraction layer
-      const fullSchema = this.worldbuildingService.getSchema(template.id);
-
-      if (!fullSchema) {
-        this.snackBar.open('Template not found', 'Close', { duration: 3000 });
-        return;
-      }
-
-      // Open editor dialog
-      const dialogData: TemplateEditorDialogData = { schema: fullSchema };
-      const dialogRef = this.dialog.open(TemplateEditorDialogComponent, {
-        width: '900px',
-        maxWidth: '95vw',
-        maxHeight: '90vh',
-        data: dialogData,
-        disableClose: true,
-      });
-
-      const result = (await firstValueFrom(dialogRef.afterClosed())) as
-        | ElementTypeSchema
-        | null
-        | undefined;
-
-      if (result) {
-        // Update the template
-        this.worldbuildingService.updateTemplate(template.id, result);
-
+      if (state.templateId === null) {
+        // New template
+        this.worldbuildingService.saveSchemaToLibrary(result);
+        this.snackBar.open(`✓ Template "${result.name}" created`, 'Close', {
+          duration: 3000,
+        });
+      } else {
+        // Existing template
+        this.worldbuildingService.updateTemplate(state.templateId, result);
         this.snackBar.open(`✓ Template "${result.name}" updated`, 'Close', {
           duration: 3000,
         });
-
-        // Wait for sync then reload
-        await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
-        this.loadTemplates();
       }
+
+      // Wait for sync then reload
+      await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
+      this.loadTemplates();
     } catch (err) {
-      console.error('[TemplatesTab] Error editing template:', err);
-      this.snackBar.open('Failed to update template', 'Close', {
+      console.error('[TemplatesTab] Error saving template:', err);
+      this.snackBar.open('Failed to save template', 'Close', {
         duration: 5000,
       });
     }
