@@ -52,6 +52,12 @@
   max-width: 400px;
 }
 
+.find-input-container:focus-within,
+.replace-input-container:focus-within {
+  border-color: var(--sys-primary);
+  box-shadow: 0 0 0 1px var(--sys-primary);
+}
+
 :host-context(.dark-theme) .find-input-container,
 :host-context(.dark-theme) .replace-input-container {
   background: var(--sys-surface-container-high, #3d3d3d);

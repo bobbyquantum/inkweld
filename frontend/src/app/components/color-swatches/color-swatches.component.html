@@ -3,13 +3,23 @@
     <button
       type="button"
       class="swatch"
+      [attr.aria-label]="
+        'Select color ' + color + (selectedColor === color ? ', selected' : '')
+      "
+      [attr.aria-pressed]="selectedColor === color"
       [class.selected]="selectedColor === color"
       [style.background]="color"
       [matTooltip]="color"
       (click)="selectColor(color)">
       @if (selectedColor === color) {
-        <mat-icon class="check-icon">check</mat-icon>
+        <mat-icon class="check-icon" aria-hidden="true">check</mat-icon>
       }
+      <span class="sr-only">
+        {{ color }}
+        @if (selectedColor === color) {
+          (selected)
+        }
+      </span>
     </button>
   }
 </div>

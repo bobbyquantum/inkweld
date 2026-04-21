@@ -29,7 +29,8 @@
           [matChipInputFor]="chipGrid"
           [matChipInputSeparatorKeyCodes]="separatorKeyCodes"
           (matChipInputTokenEnd)="addTagFromInput($event)"
-          [(ngModel)]="tagInputValue" />
+          [ngModel]="tagInputValue()"
+          (ngModelChange)="tagInputValue.set($event)" />
       }
     </mat-chip-grid>
     <mat-autocomplete
@@ -44,10 +45,12 @@
           }
         </mat-option>
       }
-      @if (tagInputValue && filteredTags().length === 0 && allowCustomTags()) {
-        <mat-option [value]="{ name: tagInputValue, isNew: true }">
+      @if (
+        tagInputValue() && filteredTags().length === 0 && allowCustomTags()
+      ) {
+        <mat-option [value]="{ name: tagInputValue(), isNew: true }">
           <mat-icon>add</mat-icon>
-          Create "{{ tagInputValue }}"
+          Create "{{ tagInputValue() }}"
         </mat-option>
       }
     </mat-autocomplete>

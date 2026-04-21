@@ -127,7 +127,9 @@
                     class="comment-panel__reply-input"
                     type="text"
                     placeholder="Reply..."
-                    (keydown.enter)="onReply(thread, replyInput)"
+                    (keydown.enter)="
+                      onReply(thread, replyInput); $event.stopPropagation()
+                    "
                     (click)="$event.stopPropagation()"
                     data-testid="panel-reply-input" />
                   <button

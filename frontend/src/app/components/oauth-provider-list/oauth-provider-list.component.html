@@ -15,27 +15,42 @@
       </div>
     } @else {
       @if (googleEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('google')">
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('google')">
           <mat-icon svgIcon="google"></mat-icon> Google
         </button>
       }
       @if (facebookEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('facebook')">
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('facebook')">
           <mat-icon svgIcon="facebook"></mat-icon> Facebook
         </button>
       }
       @if (githubEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('github')">
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('github')">
           <mat-icon svgIcon="github"></mat-icon> GitHub
         </button>
       }
       @if (appleEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('apple')">
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('apple')">
           <mat-icon svgIcon="apple"></mat-icon> Apple
         </button>
       }
       @if (discordEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('discord')">
+        <button
+          type="button"
+          mat-raised-button
+          (click)="signInWithProvider('discord')">
           <mat-icon svgIcon="discord"></mat-icon> Discord
         </button>
       }

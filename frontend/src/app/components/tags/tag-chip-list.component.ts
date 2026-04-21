@@ -8,6 +8,7 @@ import {
   inject,
   input,
   Output,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -80,7 +81,7 @@ export class TagChipListComponent {
   @Output() tagsChanged = new EventEmitter<ResolvedTag[]>();
 
   /** Current input value for autocomplete */
-  tagInputValue = '';
+  tagInputValue = signal('');
 
   /** Separator key codes for chip input */
   readonly separatorKeyCodes = [ENTER, COMMA] as const;
@@ -102,7 +103,7 @@ export class TagChipListComponent {
   /** Filtered tags based on input */
   readonly filteredTags = computed(() => {
     const available = this.availableTags();
-    const query = this.tagInputValue.toLowerCase();
+    const query = this.tagInputValue().toLowerCase();
     if (!query) return available;
     return available.filter(t => t.name.toLowerCase().includes(query));
   });
@@ -122,7 +123,7 @@ export class TagChipListComponent {
       this.tagService.addTag(this.elementId(), tag.id);
     }
 
-    this.tagInputValue = '';
+    this.tagInputValue.set('');
     this.emitChange();
   }
 
@@ -146,7 +147,7 @@ export class TagChipListComponent {
 
     // Clear input
     event.chipInput.clear();
-    this.tagInputValue = '';
+    this.tagInputValue.set('');
     this.emitChange();
   }
 

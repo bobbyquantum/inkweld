@@ -21,6 +21,13 @@
   padding: 0;
   outline: none;
 }
+
+.swatch:focus-visible,
+.preview-swatch:focus-visible {
+  border-color: var(--sys-primary);
+  box-shadow: 0 0 0 2px var(--sys-primary);
+}
+
 .swatch:hover {
   transform: scale(1.1);
 }
@@ -78,4 +85,16 @@
   flex-shrink: 0;
   cursor: pointer;
   padding: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

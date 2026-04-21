@@ -22,6 +22,7 @@
         <button
           mat-icon-button
           class="comment-popover__action"
+          aria-label="Resolve comment thread"
           matTooltip="Resolve"
           (click)="onResolve()"
           data-testid="comment-resolve-btn">
@@ -31,6 +32,7 @@
         <button
           mat-icon-button
           class="comment-popover__action"
+          aria-label="Unresolve comment thread"
           matTooltip="Unresolve"
           (click)="onUnresolve()"
           data-testid="comment-unresolve-btn">
@@ -40,6 +42,7 @@
       <button
         mat-icon-button
         class="comment-popover__action"
+        aria-label="Delete comment thread"
         matTooltip="Delete thread"
         (click)="onDelete()"
         data-testid="comment-delete-btn">
@@ -48,6 +51,7 @@
       <button
         mat-icon-button
         class="comment-popover__action"
+        aria-label="Close comment popover"
         matTooltip="Close"
         (click)="closed.emit()"
         data-testid="comment-close-btn">
@@ -89,6 +93,7 @@
       <button
         mat-icon-button
         class="comment-popover__reply-btn"
+        aria-label="Send reply"
         [disabled]="!replyText.trim()"
         (click)="onReply()"
         matTooltip="Send reply"

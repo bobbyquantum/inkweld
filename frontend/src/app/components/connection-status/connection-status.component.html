@@ -3,6 +3,7 @@
   <button
     mat-icon-button
     class="collapsed-sync-button"
+    [attr.aria-label]="syncTooltip()"
     [class.synced]="syncState() === DocumentSyncState.Synced"
     [class.offline]="displayAsOffline()"
     [class.unavailable]="syncState() === DocumentSyncState.Unavailable"
@@ -29,6 +30,7 @@
         <button
           mat-icon-button
           class="sync-button"
+          [attr.aria-label]="retryButtonTooltip()"
           [class.spinning]="isConnecting()"
           [disabled]="isConnecting()"
           (click)="onSyncClick()"
