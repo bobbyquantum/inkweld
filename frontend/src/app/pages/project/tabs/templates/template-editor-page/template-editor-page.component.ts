@@ -18,7 +18,7 @@ import {
 import {
   FormBuilder,
   type FormControl,
-  FormGroup,
+  type FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
