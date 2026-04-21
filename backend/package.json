@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.8.1",
-    "@hono/node-server": "^1.19.7",
+    "@hono/node-server": "^2.0.0",
     "@hono/node-ws": "^1.2.0",
     "@hono/oauth-providers": "^0.8.5",
     "@hono/standard-validator": "^0.2.1",
