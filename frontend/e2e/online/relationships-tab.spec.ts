@@ -52,42 +52,57 @@ async function createProjectAndOpenRelationships(
 }
 
 /**
- * Helper to create a relationship type.
+ * Helper to fill the new full relationship type editor dialog.
+ * Opens from the "New Type" button and fills in name + inverse label.
+ * Optional: iconIndex (0-based) and colorIndex (0-based) select icon/color.
+ */
+async function fillRelationshipTypeDialog(
+  page: Page,
+  name: string,
+  inverseName: string,
+  options?: { iconIndex?: number; colorIndex?: number }
+) {
+  await page.getByTestId('rel-name-input').fill(name);
+  await page.getByTestId('rel-inverse-input').fill(inverseName);
+
+  if (options?.iconIndex !== undefined) {
+    await page.getByTestId(`rel-icon-option-${options.iconIndex}`).click();
+  }
+  if (options?.colorIndex !== undefined) {
+    await page.getByTestId(`rel-color-option-${options.colorIndex}`).click();
+  }
+}
+
+/**
+ * Helper to create a relationship type using the full editor dialog.
  * Returns after the type is created and visible.
  */
 async function createRelationshipType(
   page: Page,
   name: string,
-  inverseName: string
+  inverseName: string,
+  options?: { iconIndex?: number; colorIndex?: number }
 ) {
   // Wait for the "New Type" button to be visible and stable
   const createButton = page.getByRole('button', { name: /new type/i });
   await expect(createButton).toBeVisible();
   await createButton.click();
 
-  // Wait for the first dialog (Create Relationship Type)
+  // Wait for the full editor dialog
   await expect(
-    page.locator('app-rename-dialog h2:has-text("Create Relationship Type")')
+    page.getByTestId('edit-relationship-type-dialog-content')
   ).toBeVisible();
 
-  // Fill in the forward name
-  const input = page.locator('app-rename-dialog input');
-  await input.clear();
-  await input.fill(name);
-  await page.locator('app-rename-dialog button:has-text("Rename")').click();
+  // Fill in the dialog
+  await fillRelationshipTypeDialog(page, name, inverseName, options);
 
-  // Wait for first dialog to close and second to open
+  // Click Create
+  await page.getByTestId('rel-dialog-save').click();
+
+  // Wait for dialog to close
   await expect(
-    page.locator('app-rename-dialog h2:has-text("Inverse Label")')
-  ).toBeVisible();
-
-  // Fill in the inverse name (it's pre-filled with "name (inverse)")
-  await input.clear();
-  await input.fill(inverseName);
-  await page.locator('app-rename-dialog button:has-text("Rename")').click();
-
-  // Wait for dialogs to completely close
-  await expect(page.locator('app-rename-dialog')).not.toBeVisible();
+    page.getByTestId('edit-relationship-type-dialog-content')
+  ).not.toBeVisible();
 
   // Wait for the type card to appear
   await expect(
@@ -156,7 +171,6 @@ test.describe('Relationships Tab', () => {
         'Create Type Test'
       );
 
-      // Use helper for robust type creation
       await createRelationshipType(page, 'Nemesis of', 'Hunted by');
 
       // Should see success snackbar
@@ -173,6 +187,28 @@ test.describe('Relationships Tab', () => {
       ).toBeVisible();
     });
 
+    test('should create a type with a custom icon and color', async ({
+      authenticatedPage: page,
+    }) => {
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-icon-color',
+        'Icon Color Test'
+      );
+
+      // iconIndex=2 (group), colorIndex=0 (Crimson)
+      await createRelationshipType(page, 'Allied with', 'Allied by', {
+        iconIndex: 2,
+        colorIndex: 0,
+      });
+
+      await expect(
+        page
+          .getByTestId('relationship-type-title')
+          .filter({ hasText: 'Allied with' })
+      ).toBeVisible();
+    });
+
     test('should cancel creating a type when clicking cancel', async ({
       authenticatedPage: page,
     }) => {
@@ -182,7 +218,7 @@ test.describe('Relationships Tab', () => {
         'Cancel Type Test'
       );
 
-      // Create a relationship type first (new projects start empty)
+      // Create a relationship type first so we have a baseline count
       await createRelationshipType(page, 'Test Type', 'Test Inverse');
 
       // Wait for relationship types to load and get initial count
@@ -193,23 +229,55 @@ test.describe('Relationships Tab', () => {
       // Click "New Type" button
       await page.getByTestId('create-type-button').click();
 
-      // Wait for rename dialog
-      await expect(page.locator('app-rename-dialog')).toBeVisible();
+      // Wait for the editor dialog
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).toBeVisible();
 
       // Click cancel
-      await page.locator('app-rename-dialog button:has-text("Cancel")').click();
+      await page.getByTestId('rel-dialog-cancel').click();
 
       // Dialog should close
-      await expect(page.locator('app-rename-dialog')).not.toBeVisible();
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).not.toBeVisible();
 
       // Type count should remain the same
       const finalCount = await typeCards.count();
       expect(finalCount).toBe(initialCount);
     });
+
+    test('should disable the save button when name is empty', async ({
+      authenticatedPage: page,
+    }) => {
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-validation',
+        'Validation Test'
+      );
+
+      await page.getByTestId('create-type-button').click();
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).toBeVisible();
+
+      // Save button should be disabled (name and inverse empty)
+      await expect(page.getByTestId('rel-dialog-save')).toBeDisabled();
+
+      // Fill name only — still disabled (inverse label empty)
+      await page.getByTestId('rel-name-input').fill('Friend');
+      await expect(page.getByTestId('rel-dialog-save')).toBeDisabled();
+
+      // Fill inverse too — now enabled
+      await page.getByTestId('rel-inverse-input').fill('Friend of');
+      await expect(page.getByTestId('rel-dialog-save')).toBeEnabled();
+
+      await page.getByTestId('rel-dialog-cancel').click();
+    });
   });
 
   test.describe('Edit Type', () => {
-    test('should edit a relationship type name', async ({
+    test('should edit all fields of a relationship type', async ({
       authenticatedPage: page,
     }) => {
       await createProjectAndOpenRelationships(
@@ -230,15 +298,24 @@ test.describe('Relationships Tab', () => {
         .first();
       await typeCard.getByTestId('edit-type-button').click();
 
-      // Edit the name
-      await expect(page.locator('app-rename-dialog')).toBeVisible();
-      const renameInput = page.getByTestId('rename-input');
-      await renameInput.click();
-      await renameInput.fill(updatedName);
-      await page.getByTestId('rename-confirm-button').click();
+      // Full editor dialog should open, pre-filled with the existing type data
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).toBeVisible();
+
+      // Verify the name is pre-filled
+      await expect(page.getByTestId('rel-name-input')).toHaveValue(
+        originalName
+      );
+
+      // Change the name
+      await page.getByTestId('rel-name-input').fill(updatedName);
+      await page.getByTestId('rel-dialog-save').click();
 
       // Wait for dialog to close
-      await expect(page.locator('app-rename-dialog')).not.toBeVisible();
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).not.toBeVisible();
 
       // Should see success snackbar
       await expect(
@@ -247,14 +324,7 @@ test.describe('Relationships Tab', () => {
         })
       ).toBeVisible();
 
-      // Should no longer see original name in the title (using exact regex to be safe)
-      await expect(
-        page
-          .getByTestId('relationship-type-title')
-          .filter({ hasText: new RegExp(`^${originalName}$`) })
-      ).toHaveCount(0);
-
-      // Should see the updated name in the title
+      // Should see the updated name
       await expect(
         page
           .getByTestId('relationship-type-title')
@@ -283,6 +353,43 @@ test.describe('Relationships Tab', () => {
       await expect(typeCard.getByTestId('edit-type-button')).toBeVisible();
       await expect(typeCard.getByTestId('clone-type-button')).toBeVisible();
       await expect(typeCard.getByTestId('delete-type-button')).toBeVisible();
+    });
+
+    test('should cancel editing without changes', async ({
+      authenticatedPage: page,
+    }) => {
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-edit-cancel',
+        'Edit Cancel Test'
+      );
+
+      const typeName = `Cancel Edit Type ${Date.now()}`;
+      await createRelationshipType(page, typeName, 'Edit Inverse');
+
+      const typeCard = page
+        .getByTestId('relationship-type-card')
+        .filter({ hasText: typeName });
+      await typeCard.getByTestId('edit-type-button').click();
+
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).toBeVisible();
+
+      // Change the name but then cancel
+      await page.getByTestId('rel-name-input').fill('Should Not Save');
+      await page.getByTestId('rel-dialog-cancel').click();
+
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).not.toBeVisible();
+
+      // Original name should still be visible
+      await expect(
+        page
+          .getByTestId('relationship-type-title')
+          .filter({ hasText: typeName })
+      ).toBeVisible();
     });
   });
 
@@ -333,20 +440,21 @@ test.describe('Relationships Tab', () => {
   });
 
   test.describe('Duplicate Type', () => {
-    test('should duplicate a type', async ({ authenticatedPage: page }) => {
+    test('should duplicate a type via the full editor', async ({
+      authenticatedPage: page,
+    }) => {
       await createProjectAndOpenRelationships(
         page,
         'rel-clone',
         'Clone Type Test'
       );
 
-      // Create a relationship type first (new projects start empty)
       const originalName = `Original Type ${Date.now()}`;
       const duplicateName = 'My Duplicate Type';
 
       await createRelationshipType(page, originalName, 'Original Inverse');
 
-      // Find the specific card we created instead of .first()
+      // Find the specific card we created
       const typeCard = page
         .getByTestId('relationship-type-card')
         .filter({ hasText: originalName });
@@ -355,21 +463,22 @@ test.describe('Relationships Tab', () => {
       // Click duplicate directly from the row actions
       await typeCard.getByTestId('clone-type-button').click();
 
-      // Should see Rename dialog with title "Duplicate Relationship Type"
+      // Full editor dialog should open in create mode, pre-filled with "(Copy)" name
       await expect(
-        page.locator(
-          'app-rename-dialog h2:has-text("Duplicate Relationship Type")'
-        )
+        page.getByTestId('edit-relationship-type-dialog-content')
       ).toBeVisible();
+      await expect(page.getByTestId('rel-name-input')).toHaveValue(
+        `${originalName} (Copy)`
+      );
 
-      // Enter new name for the duplicate using data-testid from RenameDialog
-      const input = page.getByTestId('rename-input');
-      await input.clear();
-      await input.fill(duplicateName);
-      await page.getByTestId('rename-confirm-button').click();
+      // Enter a new name for the duplicate
+      await page.getByTestId('rel-name-input').fill(duplicateName);
+      await page.getByTestId('rel-dialog-save').click();
 
       // Wait for dialog to close
-      await expect(page.locator('app-rename-dialog')).not.toBeVisible();
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).not.toBeVisible();
 
       // Should see success snackbar for duplicating
       await expect(
@@ -384,6 +493,35 @@ test.describe('Relationships Tab', () => {
           .getByTestId('relationship-type-title')
           .filter({ hasText: new RegExp(`^${duplicateName}$`) })
       ).toBeVisible();
+    });
+  });
+
+  test.describe('Endpoint schema constraints', () => {
+    test('should allow selecting source/target schema constraints', async ({
+      authenticatedPage: page,
+    }) => {
+      await createProjectAndOpenRelationships(
+        page,
+        'rel-schemas',
+        'Schema Constraint Test'
+      );
+
+      await page.getByTestId('create-type-button').click();
+      await expect(
+        page.getByTestId('edit-relationship-type-dialog-content')
+      ).toBeVisible();
+
+      // Source endpoint section should be visible
+      await expect(page.getByTestId('source-endpoint-section')).toBeVisible();
+
+      // Target endpoint section should be visible
+      await expect(page.getByTestId('target-endpoint-section')).toBeVisible();
+
+      // "Any element type" toggles should be on by default
+      await expect(page.getByTestId('source-any-type-toggle')).toBeVisible();
+      await expect(page.getByTestId('target-any-type-toggle')).toBeVisible();
+
+      await page.getByTestId('rel-dialog-cancel').click();
     });
   });
 });

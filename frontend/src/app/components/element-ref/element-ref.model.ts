@@ -438,7 +438,7 @@ export function getCategoryLabel(category: RelationshipCategory): string {
     case RelationshipCategory.Ownership:
       return 'Ownership';
     case RelationshipCategory.Custom:
-      return 'Custom';
+      return 'Other';
     default:
       return 'Other';
   }

@@ -66,29 +66,36 @@ test.describe('Relationships Tab Screenshots', () => {
   }
 
   /**
-   * Helper to create a sample relationship type for screenshots
+   * Helper to create a sample relationship type for screenshots using the
+   * new full editor dialog.
    */
   async function createSampleRelationshipType(page: Page) {
     // Click the "New Type" button (handles both empty state and populated state)
     const createButton = page.getByRole('button', { name: /new type/i });
     await createButton.click();
 
-    // First dialog: Enter the type name
-    await page.waitForSelector('app-rename-dialog', { state: 'visible' });
-    await page.locator('app-rename-dialog input').clear();
-    await page.locator('app-rename-dialog input').fill('Parent');
-    await page.locator('app-rename-dialog button:has-text("Rename")').click();
-
-    // Second dialog: Enter the inverse label
+    // Wait for the full editor dialog
     await page
-      .locator('app-rename-dialog h2:has-text("Inverse Label")')
+      .getByTestId('edit-relationship-type-dialog-content')
       .waitFor({ state: 'visible' });
-    await page.locator('app-rename-dialog input').clear();
-    await page.locator('app-rename-dialog input').fill('Child');
-    await page.locator('app-rename-dialog button:has-text("Rename")').click();
+
+    // Fill in name and inverse label
+    await page.getByTestId('rel-name-input').fill('Parent');
+    await page.getByTestId('rel-inverse-input').fill('Child');
+
+    // Pick an icon (index 8 = family_restroom)
+    await page.getByTestId('rel-icon-option-8').click();
+
+    // Pick a color (index 3 = Dark orange)
+    await page.getByTestId('rel-color-option-3').click();
+
+    // Submit
+    await page.getByTestId('rel-dialog-save').click();
 
     // Wait for dialog to close and type to appear
-    await page.locator('app-rename-dialog').waitFor({ state: 'hidden' });
+    await page
+      .getByTestId('edit-relationship-type-dialog-content')
+      .waitFor({ state: 'hidden' });
     await page
       .locator('[data-testid="relationship-type-card"]')
       .first()
@@ -156,24 +163,25 @@ test.describe('Relationships Tab Screenshots', () => {
 
       // Click create button
       await page.click('[data-testid="create-type-button"]');
-      await page.waitForSelector('app-rename-dialog', {
-        state: 'visible',
-      });
+      await page
+        .getByTestId('edit-relationship-type-dialog-content')
+        .waitFor({ state: 'visible' });
       await page.waitForTimeout(200);
 
       // Type a name
-      await page.fill('[data-testid="rename-input"]', 'Nemesis of');
+      await page.fill('[data-testid="rel-name-input"]', 'Nemesis of');
+      await page.fill('[data-testid="rel-inverse-input"]', 'Hunted by');
 
       // Screenshot of the dialog
       await captureElementScreenshot(
         page,
-        [page.locator('app-rename-dialog')],
+        [page.locator('mat-dialog-container')],
         join(screenshotsDir, 'relationships-create-dialog-light.png'),
         32
       );
 
-      // Cancel the dialog (since offline mode doesn't persist custom types)
-      await page.click('app-rename-dialog button:has-text("Cancel")');
+      // Cancel the dialog
+      await page.click('[data-testid="rel-dialog-cancel"]');
     });
 
     test('type card details', async ({ offlinePage: page }) => {
@@ -330,6 +338,106 @@ test.describe('Relationships Tab Screenshots', () => {
         join(screenshotsDir, 'relationships-types-grid.png'),
         8
       );
+    });
+
+    test('edit relationship type dialog - light mode', async ({
+      offlinePage: page,
+    }) => {
+      await setupProjectAndRelationshipsTab(
+        page,
+        'rel-edit-dialog-light',
+        'Edit Dialog Demo'
+      );
+
+      await page.waitForSelector('[data-testid="relationship-type-card"]', {
+        state: 'visible',
+      });
+
+      // Open the edit dialog for the first type card
+      await page
+        .locator('[data-testid="relationship-type-card"]')
+        .first()
+        .getByTestId('edit-type-button')
+        .click();
+
+      await page
+        .getByTestId('edit-relationship-type-dialog-content')
+        .waitFor({ state: 'visible' });
+      await page.waitForTimeout(300);
+
+      await captureElementScreenshot(
+        page,
+        [page.locator('mat-dialog-container')],
+        join(screenshotsDir, 'relationships-edit-dialog-light.png'),
+        32
+      );
+
+      await page.getByTestId('rel-dialog-cancel').click();
+    });
+
+    test('edit relationship type dialog - dark mode', async ({
+      offlinePage: page,
+    }) => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+
+      await setupProjectAndRelationshipsTab(
+        page,
+        'rel-edit-dialog-dark',
+        'Edit Dialog Demo Dark'
+      );
+
+      await page.waitForSelector('[data-testid="relationship-type-card"]', {
+        state: 'visible',
+      });
+
+      await page
+        .locator('[data-testid="relationship-type-card"]')
+        .first()
+        .getByTestId('edit-type-button')
+        .click();
+
+      await page
+        .getByTestId('edit-relationship-type-dialog-content')
+        .waitFor({ state: 'visible' });
+      await page.waitForTimeout(300);
+
+      await captureElementScreenshot(
+        page,
+        [page.locator('mat-dialog-container')],
+        join(screenshotsDir, 'relationships-edit-dialog-dark.png'),
+        32
+      );
+
+      await page.getByTestId('rel-dialog-cancel').click();
+    });
+
+    test('new relationship type dialog - light mode', async ({
+      offlinePage: page,
+    }) => {
+      await setupProjectAndRelationshipsTab(
+        page,
+        'rel-new-dialog-light',
+        'New Dialog Demo'
+      );
+
+      await page.getByTestId('create-type-button').click();
+      await page
+        .getByTestId('edit-relationship-type-dialog-content')
+        .waitFor({ state: 'visible' });
+      await page.waitForTimeout(300);
+
+      // Fill in some values so the screenshot looks like real usage
+      await page.getByTestId('rel-name-input').fill('Rival of');
+      await page.getByTestId('rel-inverse-input').fill('Rivalled by');
+
+      await captureElementScreenshot(
+        page,
+        [page.locator('mat-dialog-container')],
+        join(screenshotsDir, 'relationships-new-dialog-light.png'),
+        32
+      );
+
+      await page.getByTestId('rel-dialog-cancel').click();
     });
   });
 
