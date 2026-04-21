@@ -275,7 +275,7 @@ export class EditRelationshipTypeDialogComponent {
   }
 
   maxCountDisplay(val: number | null | undefined): string {
-    return val != null ? String(val) : '';
+    return val == null ? '' : String(val);
   }
 
   // ── Dialog actions ────────────────────────────────────────────────────────────
