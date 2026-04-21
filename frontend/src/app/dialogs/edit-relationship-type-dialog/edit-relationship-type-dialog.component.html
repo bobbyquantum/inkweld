@@ -1,0 +1,216 @@
+<h2 mat-dialog-title data-testid="dialog-title">
+  {{ data.isNew ? 'New Relationship Type' : 'Edit Relationship Type' }}
+</h2>
+
+<mat-dialog-content
+  class="dialog-content"
+  data-testid="edit-relationship-type-dialog-content">
+  <!-- ── Preview Row + Color Grid ─────────────────────────────────────────── -->
+  <div class="preview-row">
+    <div class="rel-preview">
+      <span
+        class="preview-chip"
+        [style.background-color]="color()"
+        [style.color]="getTextColor(color())">
+        <mat-icon class="chip-icon">{{ icon() }}</mat-icon>
+        <span>{{ name() || 'Relationship Name' }}</span>
+      </span>
+      @if (showInverse()) {
+        <span class="preview-inverse"
+          >↔ {{ inverseLabel() || 'Inverse Label' }}</span
+        >
+      }
+    </div>
+    <div
+      class="color-grid"
+      role="radiogroup"
+      aria-label="Relationship color selection">
+      @for (colorOption of colorOptions; track colorOption) {
+        <button
+          type="button"
+          class="color-button"
+          [class.selected]="colorOption === color()"
+          [style.background-color]="colorOption"
+          [attr.data-testid]="'rel-color-option-' + $index"
+          (click)="color.set(colorOption)"
+          [attr.aria-checked]="colorOption === color()"
+          [attr.aria-label]="'Color ' + colorOption"
+          role="radio">
+          @if (colorOption === color()) {
+            <mat-icon [style.color]="getTextColor(colorOption)">check</mat-icon>
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ── Labels ───────────────────────────────────────────────────────────── -->
+  <div class="two-col">
+    <mat-form-field appearance="outline">
+      <mat-label>Name (forward label)</mat-label>
+      <input
+        matInput
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+        data-testid="rel-name-input"
+        placeholder="e.g. Parent, Friend, Owns"
+        required />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Inverse label</mat-label>
+      <input
+        matInput
+        [ngModel]="inverseLabel()"
+        (ngModelChange)="inverseLabel.set($event)"
+        data-testid="rel-inverse-input"
+        placeholder="e.g. Child of, Friend of, Owned by"
+        required />
+    </mat-form-field>
+  </div>
+
+  <!-- ── Category + Show Inverse ──────────────────────────────────────────── -->
+  <div class="two-col">
+    <mat-form-field appearance="outline">
+      <mat-label>Category</mat-label>
+      <mat-select
+        [ngModel]="category()"
+        (ngModelChange)="category.set($event)"
+        data-testid="rel-category-select">
+        @for (cat of categoryOptions; track cat.value) {
+          <mat-option [value]="cat.value">{{ cat.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="toggle-row">
+      <mat-slide-toggle
+        [ngModel]="showInverse()"
+        (ngModelChange)="showInverse.set($event)"
+        data-testid="rel-show-inverse-toggle">
+        Show inverse label
+      </mat-slide-toggle>
+      <span class="hint-text"
+        >When off, backlinks are hidden from the target element.</span
+      >
+    </div>
+  </div>
+
+  <!-- ── Icon Grid ────────────────────────────────────────────────────────── -->
+  <div class="section-label">Icon</div>
+  <div
+    class="icon-grid"
+    role="radiogroup"
+    aria-label="Relationship icon selection">
+    @for (iconOption of iconOptions; track iconOption) {
+      <button
+        type="button"
+        class="icon-button"
+        [class.selected]="iconOption === icon()"
+        (click)="icon.set(iconOption)"
+        [matTooltip]="iconOption"
+        [attr.data-testid]="'rel-icon-option-' + $index"
+        [attr.aria-checked]="iconOption === icon()"
+        [attr.aria-label]="'Icon ' + iconOption"
+        role="radio">
+        <mat-icon>{{ iconOption }}</mat-icon>
+      </button>
+    }
+  </div>
+
+  <!-- ── Source Endpoint ──────────────────────────────────────────────────── -->
+  <div class="section-label">Source — allowed element types</div>
+  <div class="endpoint-section" data-testid="source-endpoint-section">
+    <mat-slide-toggle
+      [ngModel]="sourceAnyType()"
+      (ngModelChange)="sourceAnyType.set($event)"
+      data-testid="source-any-type-toggle">
+      Any element type
+    </mat-slide-toggle>
+
+    @if (!sourceAnyType() && data.availableSchemas.length > 0) {
+      <div class="schema-list" data-testid="source-schema-list">
+        @for (schema of data.availableSchemas; track schema.id) {
+          <div class="schema-item">
+            <mat-checkbox
+              [checked]="isSourceSchemaSelected(schema.id)"
+              (change)="toggleSourceSchema(schema.id, $event.checked)"
+              [attr.data-testid]="'source-schema-' + schema.id">
+              <span class="schema-label">
+                <mat-icon class="schema-icon">{{ schema.icon }}</mat-icon>
+                {{ schema.name }}
+              </span>
+            </mat-checkbox>
+          </div>
+        }
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="max-count-field">
+      <mat-label>Max relationships (blank = unlimited)</mat-label>
+      <input
+        matInput
+        type="number"
+        min="1"
+        [value]="maxCountDisplay(sourceMaxCount())"
+        (change)="onSourceMaxCountChange($any($event.target).value)"
+        data-testid="source-max-count-input"
+        placeholder="Unlimited" />
+    </mat-form-field>
+  </div>
+
+  <!-- ── Target Endpoint ──────────────────────────────────────────────────── -->
+  <div class="section-label">Target — allowed element types</div>
+  <div class="endpoint-section" data-testid="target-endpoint-section">
+    <mat-slide-toggle
+      [ngModel]="targetAnyType()"
+      (ngModelChange)="targetAnyType.set($event)"
+      data-testid="target-any-type-toggle">
+      Any element type
+    </mat-slide-toggle>
+
+    @if (!targetAnyType() && data.availableSchemas.length > 0) {
+      <div class="schema-list" data-testid="target-schema-list">
+        @for (schema of data.availableSchemas; track schema.id) {
+          <div class="schema-item">
+            <mat-checkbox
+              [checked]="isTargetSchemaSelected(schema.id)"
+              (change)="toggleTargetSchema(schema.id, $event.checked)"
+              [attr.data-testid]="'target-schema-' + schema.id">
+              <span class="schema-label">
+                <mat-icon class="schema-icon">{{ schema.icon }}</mat-icon>
+                {{ schema.name }}
+              </span>
+            </mat-checkbox>
+          </div>
+        }
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="max-count-field">
+      <mat-label>Max relationships (blank = unlimited)</mat-label>
+      <input
+        matInput
+        type="number"
+        min="1"
+        [value]="maxCountDisplay(targetMaxCount())"
+        (change)="onTargetMaxCountChange($any($event.target).value)"
+        data-testid="target-max-count-input"
+        placeholder="Unlimited" />
+    </mat-form-field>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button data-testid="rel-dialog-cancel" (click)="onCancel()">
+    Cancel
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    data-testid="rel-dialog-save"
+    [disabled]="!isFormValid()"
+    (click)="onSave()">
+    {{ data.isNew ? 'Create' : 'Save' }}
+  </button>
+</mat-dialog-actions>

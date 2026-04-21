@@ -1,0 +1,199 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 480px;
+  max-width: 600px;
+  padding-top: 8px;
+}
+
+// ── Preview row ───────────────────────────────────────────────────────────────
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: var(--sys-surface-container);
+  border-radius: 8px;
+}
+
+.rel-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chip-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.preview-inverse {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  padding-left: 4px;
+}
+
+// ── Color grid (identical to tag editor) ─────────────────────────────────────
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+
+.color-button {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+
+  &.selected {
+    border-color: var(--sys-on-surface);
+    box-shadow: 0 0 0 2px var(--sys-surface);
+  }
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// ── Two-column layout ─────────────────────────────────────────────────────────
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+// ── Toggle rows ───────────────────────────────────────────────────────────────
+
+.toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: var(--sys-on-surface-variant);
+  line-height: 1.4;
+}
+
+// ── Section labels ────────────────────────────────────────────────────────────
+
+.section-label {
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
+  margin-top: 4px;
+}
+
+// ── Icon grid (identical to tag editor) ──────────────────────────────────────
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: var(--sys-surface-container);
+  color: var(--sys-on-surface);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--sys-surface-container-high);
+  }
+
+  &.selected {
+    border-color: var(--sys-primary);
+    background: var(--sys-primary-container);
+    color: var(--sys-on-primary-container);
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: inherit;
+  }
+}
+
+// ── Endpoint sections ─────────────────────────────────────────────────────────
+
+.endpoint-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--sys-surface-container);
+  border-radius: 8px;
+}
+
+.schema-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.schema-item {
+  cursor: pointer;
+}
+
+.schema-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schema-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.max-count-field {
+  width: 220px;
+}

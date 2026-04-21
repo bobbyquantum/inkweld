@@ -7,15 +7,24 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import {
+  getCategoryIcon,
+  getCategoryLabel,
+  type RelationshipCategory,
+  type RelationshipTypeDefinition,
+} from '@components/element-ref/element-ref.model';
+import {
+  EditRelationshipTypeDialogComponent,
+  type EditRelationshipTypeDialogData,
+  type EditRelationshipTypeDialogResult,
+} from '@dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
+import { DocumentSyncState } from '@models/document-sync-state';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { firstValueFrom } from 'rxjs';
 
-import {
-  RelationshipCategory,
-  type RelationshipTypeDefinition,
-} from '../../../../components/element-ref/element-ref.model';
-import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { SettingsTabStatusComponent } from '../settings-tab-status.component';
 
 /**
@@ -54,6 +63,7 @@ interface RelationshipTypeView {
 export class RelationshipsTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly relationshipService = inject(RelationshipService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
@@ -100,13 +110,11 @@ export class RelationshipsTabComponent {
   });
 
   constructor() {
-    // We no longer need the effect to manually load types
-    // as it's now a computed signal based on the service's signal.
+    // Types are reactive via the service's computed signal.
   }
 
   /**
-   * Load all relationship types - keep for backwards compatibility if needed,
-   * but now it's mostly a no-op that just clears errors.
+   * Load all relationship types — mostly a no-op; clears errors.
    */
   loadRelationshipTypes(): void {
     this.error.set(null);
@@ -121,9 +129,9 @@ export class RelationshipsTabComponent {
       name: type.name,
       inverseLabel: type.inverseLabel,
       showInverse: type.showInverse,
-      icon: type.icon || this.getCategoryIcon(type.category),
+      icon: type.icon ?? getCategoryIcon(type.category),
       category: type.category,
-      categoryLabel: this.getCategoryLabel(type.category),
+      categoryLabel: getCategoryLabel(type.category),
       color: type.color,
       sourceConstraints: this.formatConstraints(type.sourceEndpoint),
       targetConstraints: this.formatConstraints(type.targetEndpoint),
@@ -153,58 +161,6 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Get category label for display
-   */
-  private getCategoryLabel(category: RelationshipCategory): string {
-    switch (category) {
-      case RelationshipCategory.Reference:
-        return 'Reference';
-      case RelationshipCategory.Familial:
-        return 'Family';
-      case RelationshipCategory.Social:
-        return 'Social';
-      case RelationshipCategory.Professional:
-        return 'Professional';
-      case RelationshipCategory.Spatial:
-        return 'Location';
-      case RelationshipCategory.Temporal:
-        return 'Timeline';
-      case RelationshipCategory.Ownership:
-        return 'Ownership';
-      case RelationshipCategory.Custom:
-        return 'Custom';
-      default:
-        return 'Other';
-    }
-  }
-
-  /**
-   * Get default icon for a category
-   */
-  private getCategoryIcon(category: RelationshipCategory): string {
-    switch (category) {
-      case RelationshipCategory.Reference:
-        return 'link';
-      case RelationshipCategory.Familial:
-        return 'family_restroom';
-      case RelationshipCategory.Social:
-        return 'people';
-      case RelationshipCategory.Professional:
-        return 'work';
-      case RelationshipCategory.Spatial:
-        return 'location_on';
-      case RelationshipCategory.Temporal:
-        return 'schedule';
-      case RelationshipCategory.Ownership:
-        return 'inventory_2';
-      case RelationshipCategory.Custom:
-        return 'tune';
-      default:
-        return 'link';
-    }
-  }
-
-  /**
    * Refresh the relationship types list
    */
   refresh(): void {
@@ -212,51 +168,49 @@ export class RelationshipsTabComponent {
   }
 
   /**
+   * Open the full editor dialog, return the result or null if cancelled.
+   */
+  private openEditorDialog(
+    data: EditRelationshipTypeDialogData
+  ): Promise<EditRelationshipTypeDialogResult | null> {
+    return firstValueFrom(
+      this.dialog
+        .open<
+          EditRelationshipTypeDialogComponent,
+          EditRelationshipTypeDialogData,
+          EditRelationshipTypeDialogResult
+        >(EditRelationshipTypeDialogComponent, {
+          data,
+          width: '640px',
+          maxHeight: '90vh',
+        })
+        .afterClosed()
+    ).then(result => result ?? null);
+  }
+
+  /**
    * Create a new relationship type
    */
   async createType(): Promise<void> {
     const project = this.project();
-    if (!project) {
-      return;
-    }
+    if (!project) return;
 
-    // Ask for the relationship name
-    const name = await this.dialogGateway.openRenameDialog({
-      title: 'Create Relationship Type',
-      currentName: '',
+    const availableSchemas = this.worldbuildingService.getSchemas();
+
+    const result = await this.openEditorDialog({
+      isNew: true,
+      availableSchemas,
     });
 
-    if (!name) {
-      return; // User cancelled
-    }
-
-    // Ask for the inverse label
-    const inverseLabel = await this.dialogGateway.openRenameDialog({
-      title: 'Inverse Label',
-      currentName: `${name} (inverse)`,
-    });
-
-    if (!inverseLabel) {
-      return; // User cancelled
-    }
+    if (!result) return; // User cancelled
 
     try {
       this.ngZone.run(() => {
-        const newType = this.relationshipService.addCustomType({
-          name,
-          inverseLabel,
-          showInverse: true,
-          category: RelationshipCategory.Custom,
-          sourceEndpoint: { allowedSchemas: [] },
-          targetEndpoint: { allowedSchemas: [] },
-        });
-
+        const newType = this.relationshipService.addCustomType(result);
         this.snackBar.open(
           `✓ Created relationship type: ${newType.name}`,
           'Close',
-          {
-            duration: 3000,
-          }
+          { duration: 3000 }
         );
       });
     } catch (err: unknown) {
@@ -271,24 +225,28 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Edit a relationship type
+   * Edit a relationship type (full editor)
    */
   async editType(type: RelationshipTypeView): Promise<void> {
-    // Ask for the new name
-    const newName = await this.dialogGateway.openRenameDialog({
-      title: 'Edit Relationship Type',
-      currentName: type.name,
+    const original = this.relationshipService.getTypeById(type.id);
+    if (!original) return;
+
+    const availableSchemas = this.worldbuildingService.getSchemas();
+
+    const result = await this.openEditorDialog({
+      type: original,
+      isNew: false,
+      availableSchemas,
     });
 
-    if (!newName) {
-      return; // User cancelled
-    }
+    if (!result) return; // User cancelled
 
     try {
       this.ngZone.run(() => {
-        const updated = this.relationshipService.updateCustomType(type.id, {
-          name: newName,
-        });
+        const updated = this.relationshipService.updateCustomType(
+          type.id,
+          result
+        );
 
         if (updated) {
           this.snackBar.open(`✓ Updated relationship type`, 'Close', {
@@ -322,9 +280,7 @@ export class RelationshipsTabComponent {
       cancelText: 'Cancel',
     });
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       this.ngZone.run(() => {
@@ -334,9 +290,7 @@ export class RelationshipsTabComponent {
           this.snackBar.open(
             `✓ Deleted relationship type: ${type.name}`,
             'Close',
-            {
-              duration: 3000,
-            }
+            { duration: 3000 }
           );
         } else {
           this.snackBar.open('Failed to delete relationship type', 'Close', {
@@ -356,49 +310,41 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Duplicate a relationship type
+   * Duplicate a relationship type — opens full editor pre-filled with clone data
    */
   async cloneType(type: RelationshipTypeView): Promise<void> {
     const project = this.project();
-    if (!project) {
+    if (!project) return;
+
+    const original = this.relationshipService.getTypeById(type.id);
+    if (!original) {
+      this.snackBar.open('Failed to duplicate relationship type', 'Close', {
+        duration: 5000,
+      });
       return;
     }
 
-    // Ask for the new name
-    const newName = await this.dialogGateway.openRenameDialog({
-      title: 'Duplicate Relationship Type',
-      currentName: `${type.name} (Copy)`,
+    const availableSchemas = this.worldbuildingService.getSchemas();
+
+    // Open the editor pre-filled with the clone's data (in create mode)
+    const result = await this.openEditorDialog({
+      type: {
+        ...original,
+        name: `${original.name} (Copy)`,
+      },
+      isNew: true,
+      availableSchemas,
     });
 
-    if (!newName) {
-      return; // User cancelled
-    }
+    if (!result) return; // User cancelled
 
     try {
       this.ngZone.run(() => {
-        // Get the original type to copy all properties
-        const original = this.relationshipService.getTypeById(type.id);
-        if (!original) {
-          throw new Error('Original type not found');
-        }
-
-        const newType = this.relationshipService.addCustomType({
-          name: newName,
-          inverseLabel: original.inverseLabel,
-          showInverse: original.showInverse,
-          icon: original.icon,
-          category: original.category,
-          color: original.color,
-          sourceEndpoint: { ...original.sourceEndpoint },
-          targetEndpoint: { ...original.targetEndpoint },
-        });
-
+        const newType = this.relationshipService.addCustomType(result);
         this.snackBar.open(
           `✓ Duplicated relationship type: ${newType.name}`,
           'Close',
-          {
-            duration: 3000,
-          }
+          { duration: 3000 }
         );
       });
     } catch (err: unknown) {
