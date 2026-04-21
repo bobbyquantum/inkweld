@@ -85,6 +85,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   readonly isSaving = signal(false);
   readonly selectedTabIndex = signal(0);
+  readonly validationError = signal<string | null>(null);
   private lastFieldId: string | null = null;
 
   // Available field types
@@ -144,7 +145,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     tabs.forEach(tab => {
       tab.fields.forEach(field => {
         if (!field.id) {
-          field.id = `field_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+          field.id = this.createUniqueKey('field');
         }
       });
     });
@@ -178,7 +179,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     }
 
     const newTab: TabSchema = {
-      key: `tab_${Date.now()}`,
+      key: this.createUniqueKey('tab'),
       label,
       icon: 'article',
       order: this.tabs().length,
@@ -216,10 +217,10 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   /** Add a field to a tab */
   addField(tabIndex: number): void {
-    const fieldId = `field_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const fieldId = this.createUniqueKey('field');
     const newField: FieldSchema = {
       id: fieldId,
-      key: `field_${Date.now()}`,
+      key: fieldId,
       label: 'New Field',
       type: 'text',
       placeholder: '',
@@ -270,6 +271,14 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       return;
     }
 
+    const validationError = this.validateSchema();
+    if (validationError) {
+      this.validationError.set(validationError);
+      return;
+    }
+
+    this.validationError.set(null);
+
     const formValue = this.basicForm.value as {
       name: string;
       icon: string;
@@ -285,11 +294,54 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       version: this.schema().version + 1,
     };
 
-    this.done.emit(updatedSchema);
+    this.isSaving.set(true);
+    try {
+      this.done.emit(updatedSchema);
+    } finally {
+      this.isSaving.set(false);
+    }
   }
 
   /** Cancel editing */
   cancel(): void {
     this.done.emit(null);
+  }
+
+  private createUniqueKey(prefix: string): string {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+
+  private validateSchema(): string | null {
+    const tabKeys = new Set<string>();
+    const fieldKeys = new Set<string>();
+
+    for (const tab of this.tabs()) {
+      const tabLabel = tab.label.trim();
+      if (!tabLabel) {
+        return 'Each tab needs a label.';
+      }
+
+      const normalizedTabKey = tab.key.trim();
+      if (!normalizedTabKey) {
+        return 'Each tab needs a key.';
+      }
+      if (tabKeys.has(normalizedTabKey)) {
+        return 'Tab keys must be unique.';
+      }
+      tabKeys.add(normalizedTabKey);
+
+      for (const field of tab.fields) {
+        const normalizedFieldKey = field.key.trim();
+        if (!normalizedFieldKey) {
+          return 'Each field needs a key.';
+        }
+        if (fieldKeys.has(normalizedFieldKey)) {
+          return 'Field keys must be unique across the template.';
+        }
+        fieldKeys.add(normalizedFieldKey);
+      }
+    }
+
+    return null;
   }
 }

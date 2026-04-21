@@ -88,7 +88,7 @@ describe('TemplateEditorPageComponent', () => {
     const fields = component.tabs()[0].fields;
     fields.forEach(field => {
       expect(field.id).toBeDefined();
-      expect(field.id).toMatch(/^field_\d+_/);
+      expect(field.id).toMatch(/^field_[0-9a-f-]{36}$/);
     });
   });
 
@@ -157,7 +157,7 @@ describe('TemplateEditorPageComponent', () => {
 
       expect(component.tabs()).toHaveLength(initialTabCount + 1);
       const newTab = component.tabs()[initialTabCount];
-      expect(newTab.key).toContain('tab_');
+      expect(newTab.key).toMatch(/^tab_[0-9a-f-]{36}$/);
       expect(newTab.label).toBe('New Tab');
     });
 
@@ -237,7 +237,7 @@ describe('TemplateEditorPageComponent', () => {
       const updatedTab = component.tabs()[tabIndex];
       expect(updatedTab.fields).toHaveLength(initialFieldCount + 1);
       const newField = updatedTab.fields[initialFieldCount];
-      expect(newField.key).toMatch(/^field_\d+$/);
+      expect(newField.key).toMatch(/^field_[0-9a-f-]{36}$/);
       expect(newField.label).toBe('New Field');
       expect(newField.type).toBe('text');
     });
@@ -354,6 +354,20 @@ describe('TemplateEditorPageComponent', () => {
       component.save();
 
       expect(emitted).toHaveLength(0);
+    });
+
+    it('should not emit when field keys are duplicated', () => {
+      const emitted: (ElementTypeSchema | null)[] = [];
+      component.done.subscribe(v => emitted.push(v));
+
+      component.updateField(0, 1, { key: 'name' });
+
+      component.save();
+
+      expect(emitted).toHaveLength(0);
+      expect(component.validationError()).toBe(
+        'Field keys must be unique across the template.'
+      );
     });
   });
 });

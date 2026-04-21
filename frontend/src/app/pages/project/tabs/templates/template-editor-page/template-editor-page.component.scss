@@ -211,7 +211,7 @@
 .field-panel {
   background: var(--sys-surface-container);
 
-  ::ng-deep .mat-expansion-panel-header {
+  mat-expansion-panel-header {
     padding: 12px 16px;
   }
 
@@ -269,6 +269,13 @@
   background: var(--sys-surface);
   border-top: 1px solid var(--sys-outline-variant);
   z-index: 2;
+}
+
+.error {
+  padding: 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--sys-error) 10%, transparent);
+  color: var(--sys-error);
 }
 
 /* CDK Drag Preview */

@@ -336,30 +336,38 @@ export class TemplatesTabComponent {
     const state = this.editingState();
     if (state.mode !== 'edit') return;
 
-    this.editingState.set({ mode: 'list' });
-
-    if (!result) return;
+    if (!result) {
+      this.editingState.set({ mode: 'list' });
+      return;
+    }
 
     try {
       if (state.templateId === null) {
         // New template
         this.worldbuildingService.saveSchemaToLibrary(result);
-        this.snackBar.open(`✓ Template "${result.name}" created`, 'Close', {
-          duration: 3000,
-        });
       } else {
         // Existing template
         this.worldbuildingService.updateTemplate(state.templateId, result);
-        this.snackBar.open(`✓ Template "${result.name}" updated`, 'Close', {
-          duration: 3000,
-        });
       }
 
       // Wait for sync then reload
       await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
       this.loadTemplates();
+
+      this.editingState.set({ mode: 'list' });
+
+      this.snackBar.open(
+        `✓ Template "${result.name}" ${state.templateId === null ? 'created' : 'updated'}`,
+        'Close',
+        { duration: 3000 }
+      );
     } catch (err) {
       console.error('[TemplatesTab] Error saving template:', err);
+      this.editingState.set({
+        mode: 'edit',
+        schema: result,
+        templateId: state.templateId,
+      });
       this.snackBar.open('Failed to save template', 'Close', {
         duration: 5000,
       });
