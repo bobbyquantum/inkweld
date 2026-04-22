@@ -748,4 +748,46 @@ describe('LocalElementSyncProvider', () => {
       });
     });
   });
+
+  describe('pinnedElementIds in projectMeta', () => {
+    const localConfig = { username: 'testuser', slug: 'test-project' };
+
+    it('should merge pinnedElementIds when updating project meta', async () => {
+      const metaWithPins: ProjectMeta = {
+        ...mockProjectMeta,
+        pinnedElementIds: ['elem-1'],
+      };
+      mockOfflineElementsService._projectMetaSubject.next(metaWithPins);
+      mockOfflineElementsService.projectMeta.mockReturnValue(metaWithPins);
+
+      await provider.connect(localConfig);
+      provider.updateProjectMeta({ pinnedElementIds: ['elem-1', 'elem-2'] });
+      await Promise.resolve();
+
+      expect(provider.getProjectMeta()?.pinnedElementIds).toEqual([
+        'elem-1',
+        'elem-2',
+      ]);
+      expect(mockOfflineElementsService.saveProjectMeta).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        expect.objectContaining({ pinnedElementIds: ['elem-1', 'elem-2'] })
+      );
+    });
+
+    it('should preserve existing pinnedElementIds when meta update omits the field', async () => {
+      const metaWithPins: ProjectMeta = {
+        ...mockProjectMeta,
+        pinnedElementIds: ['elem-1'],
+      };
+      mockOfflineElementsService._projectMetaSubject.next(metaWithPins);
+      mockOfflineElementsService.projectMeta.mockReturnValue(metaWithPins);
+
+      await provider.connect(localConfig);
+      provider.updateProjectMeta({ description: 'New Description' });
+      await Promise.resolve();
+
+      expect(provider.getProjectMeta()?.pinnedElementIds).toEqual(['elem-1']);
+    });
+  });
 });

@@ -5,11 +5,14 @@
  * both the sidebar pinned-section and the Home tab Pinned column, and that
  * pins survive a full page reload (persisted via IndexedDB in local mode).
  */
-import { createProjectWithTwoSteps, dismissToastIfPresent } from '../common/test-helpers';
+import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 /** Navigate to the project and wait for the tree to be ready. */
-async function openProject(page: Parameters<typeof test>[1]['page'], slug: string) {
+async function openProject(
+  page: Parameters<typeof test>[1]['page'],
+  slug: string
+) {
   await page.waitForURL(new RegExp(`testuser/${slug}`));
   await page.waitForSelector('app-project-tree', { state: 'visible' });
   // Give IndexedDB a moment to hydrate
@@ -19,7 +22,7 @@ async function openProject(page: Parameters<typeof test>[1]['page'], slug: strin
 /** Right-click the named tree node and click Pin/Unpin. */
 async function togglePinViaContextMenu(
   page: Parameters<typeof test>[1]['page'],
-  elementName: string,
+  elementName: string
 ) {
   const node = page.locator(`[data-testid="element-${elementName}"]`);
   await node.waitFor({ state: 'visible' });
@@ -61,9 +64,13 @@ test.describe('Pinning', () => {
     await page.waitForTimeout(300);
 
     // Home tab Pinned column should list README
-    await expect(page.locator('[data-testid="home-pinned-README"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="home-pinned-README"]')
+    ).toBeVisible();
     // Empty-state hint should be gone
-    await expect(page.locator('[data-testid="home-pinned-empty"]')).not.toBeVisible();
+    await expect(
+      page.locator('[data-testid="home-pinned-empty"]')
+    ).not.toBeVisible();
   });
 
   test('pins survive a page reload', async ({ localPage: page }) => {
@@ -85,7 +92,9 @@ test.describe('Pinning', () => {
     // Home tab should also show the pin after reload
     await page.locator('[data-testid="toolbar-home-button"]').click();
     await page.waitForTimeout(300);
-    await expect(page.locator('[data-testid="home-pinned-README"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="home-pinned-README"]')
+    ).toBeVisible();
   });
 
   test('unpinning removes element from both surfaces', async ({
@@ -107,13 +116,19 @@ test.describe('Pinning', () => {
     // Home tab empty state should be shown
     await page.locator('[data-testid="toolbar-home-button"]').click();
     await page.waitForTimeout(300);
-    await expect(page.locator('[data-testid="home-pinned-empty"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="home-pinned-empty"]')
+    ).toBeVisible();
   });
 
   test('project title is not blanked after pinning in local mode', async ({
     localPage: page,
   }) => {
-    await createProjectWithTwoSteps(page, 'Title Preserve Test', 'title-preserve-test');
+    await createProjectWithTwoSteps(
+      page,
+      'Title Preserve Test',
+      'title-preserve-test'
+    );
     await openProject(page, 'title-preserve-test');
 
     // Navigate to home tab to see the project title
@@ -121,10 +136,16 @@ test.describe('Pinning', () => {
     await page.waitForTimeout(300);
 
     // Record the title shown before pinning
-    const titleBefore = await page.locator('h1, h2, .project-title, [data-testid="project-title"]').first().textContent();
+    const titleBefore = await page
+      .locator('h1, h2, .project-title, [data-testid="project-title"]')
+      .first()
+      .textContent();
 
     // Go back, pin an element
-    await page.locator('[data-testid="toolbar-home-button"]').click().catch(() => {});
+    await page
+      .locator('[data-testid="toolbar-home-button"]')
+      .click()
+      .catch(() => {});
     // Navigate to tree by going back to project URL
     await page.goto(`/testuser/title-preserve-test`);
     await openProject(page, 'title-preserve-test');
@@ -135,7 +156,10 @@ test.describe('Pinning', () => {
     await page.waitForTimeout(300);
 
     // Title must still be present and non-empty
-    const titleAfter = await page.locator('h1, h2, .project-title, [data-testid="project-title"]').first().textContent();
+    const titleAfter = await page
+      .locator('h1, h2, .project-title, [data-testid="project-title"]')
+      .first()
+      .textContent();
     expect(titleAfter?.trim()).toBeTruthy();
     expect(titleAfter?.trim()).toBe(titleBefore?.trim());
   });

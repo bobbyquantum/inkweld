@@ -631,4 +631,91 @@ describe('HomeTabComponent', () => {
       expect((component as any).showCoverPlaceholder()).toBe(false);
     });
   });
+
+  describe('Pinning', () => {
+    const mockElement: Element = {
+      id: 'elem-1',
+      name: 'README',
+      type: ElementType.Item,
+      parentId: null,
+      order: 0,
+      level: 0,
+      expandable: false,
+      version: 0,
+      metadata: {},
+    };
+
+    it('pinnedElements should return empty array when no pins', () => {
+      expect((component as any).pinnedElements()).toEqual([]);
+    });
+
+    it('pinnedElements should resolve elements from pinnedElementIds', () => {
+      (
+        projectStateService.elements as ReturnType<typeof signal<Element[]>>
+      ).set([mockElement]);
+      (
+        projectStateService.pinnedElementIds as ReturnType<
+          typeof signal<string[]>
+        >
+      ).set(['elem-1']);
+      fixture.detectChanges();
+
+      expect((component as any).pinnedElements()).toEqual([mockElement]);
+    });
+
+    it('pinnedElements should skip ids that have no matching element', () => {
+      (
+        projectStateService.elements as ReturnType<typeof signal<Element[]>>
+      ).set([mockElement]);
+      (
+        projectStateService.pinnedElementIds as ReturnType<
+          typeof signal<string[]>
+        >
+      ).set(['missing-id', 'elem-1']);
+      fixture.detectChanges();
+
+      expect((component as any).pinnedElements()).toEqual([mockElement]);
+    });
+
+    it('onPinnedElementClick should call openDocument and navigate', () => {
+      component.onPinnedElementClick(mockElement);
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/',
+        mockProject.username,
+        mockProject.slug,
+        'document',
+        mockElement.id,
+      ]);
+    });
+
+    it('onPinnedElementClick should navigate to folder route for folder elements', () => {
+      const folderElement: Element = {
+        ...mockElement,
+        type: ElementType.Folder,
+      };
+      component.onPinnedElementClick(folderElement);
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/',
+        mockProject.username,
+        mockProject.slug,
+        'folder',
+        folderElement.id,
+      ]);
+    });
+
+    it('onPinnedElementClick should not navigate when no project loaded', () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(null);
+      component.onPinnedElementClick(mockElement);
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+  });
 });

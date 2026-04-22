@@ -1335,7 +1335,7 @@ describe('ProjectStateService', () => {
       ).toBe(1);
     });
 
-    it('should clear pins when project state is cleared', async () => {
+    it('should clear pins when project state is cleared', () => {
       service.pinElement('elem-1');
       expect(service.pinnedElementIds().length).toBeGreaterThan(0);
 
