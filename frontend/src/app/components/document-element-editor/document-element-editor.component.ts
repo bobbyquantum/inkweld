@@ -969,7 +969,7 @@ export class DocumentElementEditorComponent
       selectedText: selectedText || undefined,
     });
 
-    if (!result) return;
+    if (!result || this.destroyed || this.editor?.view !== view) return;
 
     const target = result.openInNewTab ? '_blank' : undefined;
     const rel = result.openInNewTab ? 'noopener noreferrer' : undefined;

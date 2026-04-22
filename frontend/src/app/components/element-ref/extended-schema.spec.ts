@@ -79,6 +79,57 @@ describe('extended-schema', () => {
         expect(dom[1]['target']).toBeNull();
         expect(dom[1]['rel']).toBeNull();
       });
+
+      it('should enforce noopener noreferrer for target="_blank" even when rel is absent', () => {
+        const mark = linkMarkType.create({
+          href: 'https://example.com',
+          target: '_blank',
+          rel: null,
+          title: null,
+        });
+        const dom = linkMarkType.spec.toDOM!(mark, false) as [
+          string,
+          Record<string, unknown>,
+          number,
+        ];
+        expect(dom[1]['rel']).toContain('noopener');
+        expect(dom[1]['rel']).toContain('noreferrer');
+      });
+
+      it('should merge noopener noreferrer with an existing partial rel on target="_blank"', () => {
+        const mark = linkMarkType.create({
+          href: 'https://example.com',
+          target: '_blank',
+          rel: 'nofollow',
+          title: null,
+        });
+        const dom = linkMarkType.spec.toDOM!(mark, false) as [
+          string,
+          Record<string, unknown>,
+          number,
+        ];
+        const rel = dom[1]['rel'] as string;
+        expect(rel).toContain('nofollow');
+        expect(rel).toContain('noopener');
+        expect(rel).toContain('noreferrer');
+      });
+
+      it('should not duplicate noopener noreferrer when already present', () => {
+        const mark = linkMarkType.create({
+          href: 'https://example.com',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          title: null,
+        });
+        const dom = linkMarkType.spec.toDOM!(mark, false) as [
+          string,
+          Record<string, unknown>,
+          number,
+        ];
+        const rel = dom[1]['rel'] as string;
+        expect(rel.split(' ').filter(t => t === 'noopener').length).toBe(1);
+        expect(rel.split(' ').filter(t => t === 'noreferrer').length).toBe(1);
+      });
     });
 
     describe('parseDOM / getAttrs', () => {

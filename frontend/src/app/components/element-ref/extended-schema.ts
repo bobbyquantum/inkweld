@@ -43,7 +43,19 @@ const linkMarkSpec: MarkSpec = {
       target: string | null;
       rel: string | null;
     };
-    return ['a', { href, title, target, rel }, 0];
+    // Always enforce opener protection for new-tab links, even if rel was
+    // omitted or came from parsed HTML without it.
+    const safeRel =
+      target === '_blank'
+        ? Array.from(
+            new Set([
+              ...(rel?.split(/\s+/).filter(Boolean) ?? []),
+              'noopener',
+              'noreferrer',
+            ])
+          ).join(' ')
+        : rel;
+    return ['a', { href, title, target, rel: safeRel }, 0];
   },
 };
 
