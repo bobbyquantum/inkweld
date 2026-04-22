@@ -213,3 +213,58 @@
     height: 40px;
   }
 }
+
+// Pinned elements section above the project tree
+.pinned-section {
+  background-color: var(--sys-surface-container);
+  padding: 4px 0 0;
+
+  .pinned-section-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    opacity: 0.6;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    user-select: none;
+  }
+
+  .pinned-section-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .pinned-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 2px 8px;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 150ms ease;
+
+    &:hover,
+    &:focus {
+      background-color: var(--sys-surface-container-highest);
+    }
+  }
+
+  .pinned-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .pinned-section-divider {
+    height: 1px;
+    margin: 4px 8px;
+    background-color: var(--sys-outline-variant);
+    opacity: 0.4;
+  }
+}

@@ -836,6 +836,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       name: meta.name ?? current?.name ?? '',
       description: meta.description ?? current?.description ?? '',
       coverMediaId: meta.coverMediaId ?? current?.coverMediaId,
+      pinnedElementIds:
+        meta.pinnedElementIds !== undefined
+          ? meta.pinnedElementIds
+          : current?.pinnedElementIds,
       updatedAt: new Date().toISOString(),
     };
 
@@ -850,6 +854,17 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           metaMap.delete('coverMediaId');
         } else {
           metaMap.set('coverMediaId', updated.coverMediaId);
+        }
+        if (
+          updated.pinnedElementIds === undefined ||
+          updated.pinnedElementIds.length === 0
+        ) {
+          metaMap.delete('pinnedElementIds');
+        } else {
+          metaMap.set(
+            'pinnedElementIds',
+            JSON.stringify(updated.pinnedElementIds)
+          );
         }
         metaMap.set('updatedAt', updated.updatedAt);
       });
@@ -1201,6 +1216,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       name: name ?? '',
       description: metaMap.get('description') ?? '',
       coverMediaId: metaMap.get('coverMediaId'),
+      pinnedElementIds: (() => {
+        const raw = metaMap.get('pinnedElementIds');
+        if (!raw) return undefined;
+        try {
+          return JSON.parse(raw) as string[];
+        } catch {
+          return undefined;
+        }
+      })(),
       updatedAt: metaMap.get('updatedAt') ?? new Date().toISOString(),
     };
   }

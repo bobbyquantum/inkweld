@@ -11,7 +11,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
-import { ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
@@ -52,9 +52,38 @@ export class HomeTabComponent {
     return !!(project?.coverImage || coverMediaId);
   });
 
+  /** Ordered list of pinned elements, resolved against the current element list. */
+  protected readonly pinnedElements = computed(() => {
+    const ids = this.projectState.pinnedElementIds();
+    const elements = this.projectState.elements();
+    return ids
+      .map(id => elements.find(e => e.id === id))
+      .filter((e): e is NonNullable<typeof e> => e !== undefined);
+  });
+
   constructor() {}
 
   onRecentDocumentClick(documentId: string): void {
+    this.openElementById(documentId);
+  }
+
+  onPinnedElementClick(element: Element): void {
+    this.projectState.openDocument(element);
+    const project = this.projectState.project();
+    if (project) {
+      const typeRoute =
+        element.type === ElementType.Folder ? 'folder' : 'document';
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        typeRoute,
+        element.id,
+      ]);
+    }
+  }
+
+  private openElementById(documentId: string): void {
     const elements = this.projectState.elements();
     const element = elements.find(e => e.id === documentId);
     if (element) {

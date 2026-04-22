@@ -76,6 +76,7 @@ describe('HomeTabComponent', () => {
     const projectSignal = signal(mockProject);
     const elementsSignal = signal<Element[]>([]);
     const coverMediaIdSignal = signal<string | undefined>(undefined);
+    const pinnedElementIdsSignal = signal<string[]>([]);
     const canWriteSignal = signal<boolean>(true);
 
     // Mock Router
@@ -88,6 +89,7 @@ describe('HomeTabComponent', () => {
       project: projectSignal,
       elements: elementsSignal,
       coverMediaId: coverMediaIdSignal,
+      pinnedElementIds: pinnedElementIdsSignal,
       canWrite: canWriteSignal,
       openDocument: vi.fn(),
       showEditProjectDialog: vi.fn(),

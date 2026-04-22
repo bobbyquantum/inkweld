@@ -65,6 +65,8 @@ export interface ProjectMeta {
   description: string;
   /** Media ID of the cover image (stored in local IndexedDB media library) */
   coverMediaId?: string;
+  /** Ordered list of pinned element IDs (project-wide, owner-controlled) */
+  pinnedElementIds?: string[];
   /** Last update timestamp (ISO string) for debugging */
   updatedAt: string;
 }
