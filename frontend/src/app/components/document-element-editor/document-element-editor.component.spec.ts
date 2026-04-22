@@ -275,7 +275,11 @@ describe('DocumentElementEditorComponent', () => {
         });
 
         const view = component.editor.view;
-        const dispatchSpy = vi.spyOn(view, 'dispatch');
+        // Use mockImplementation to prevent call-through to real ProseMirror
+        // dispatch, which would call state.apply(tr) on our fake tr object.
+        const dispatchSpy = vi
+          .spyOn(view, 'dispatch')
+          .mockImplementation(() => {});
 
         // Replace state with a plain object so we can control all fields.
         // The real ProseMirror Transaction.insert rejects non-Node objects, so
