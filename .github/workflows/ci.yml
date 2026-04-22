@@ -164,15 +164,29 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ===========================================
-  # E2E Tests - Split across parallel runners
+  # E2E Tests - Sharded across parallel runners
   # ===========================================
+  # Each e2e job is split with Playwright's --shard=N/T flag so that test files
+  # are evenly distributed across runners. Wall-clock time drops roughly 1/N at
+  # the cost of N runners' worth of compute (each shard re-runs setup).
+  #
+  # Shard counts were tuned against historical job durations (last successful
+  # main run): Docker ~15m, Wrangler ~13m, Online ~11m, Local ~8m, Screenshots
+  # ~9m. Screenshots is left unsharded because it is driven by the docs build
+  # rather than `playwright test` directly and must run sequentially for visual
+  # consistency.
 
-  # Local E2E Tests
+  # Local E2E Tests (24 spec files - 2 shards)
   e2e-local:
-    name: E2E Tests (Local)
+    name: E2E Tests (Local) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup Node.js
@@ -192,28 +206,47 @@ jobs:
             ${{ runner.os }}-bun-
       - name: Install dependencies
         run: bun install
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+        working-directory: frontend
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && bunx playwright install --with-deps chromium
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd frontend && bunx playwright install-deps chromium
       - name: Build frontend
         run: cd frontend && npm run build
-      - name: Run local e2e tests
-        run: cd frontend && npm run e2e:local:ci
+      - name: Run local e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: cd frontend && npm run e2e:local:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           E2E_MODE: prod
       - name: Upload Playwright reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
-          name: playwright-report-local
+          name: playwright-report-local-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
           retention-days: 7
 
-  # Online E2E Tests
+  # Online E2E Tests (22 spec files - 3 shards)
   e2e-online:
-    name: E2E Tests (Online)
+    name: E2E Tests (Online) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup Node.js
@@ -233,28 +266,47 @@ jobs:
             ${{ runner.os }}-bun-
       - name: Install dependencies
         run: bun install
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+        working-directory: frontend
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && bunx playwright install --with-deps chromium
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd frontend && bunx playwright install-deps chromium
       - name: Build frontend
         run: cd frontend && npm run build
-      - name: Run online e2e tests
-        run: cd frontend && npm run e2e:online:ci
+      - name: Run online e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: cd frontend && npm run e2e:online:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           E2E_MODE: prod
       - name: Upload Playwright reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
-          name: playwright-report-online
+          name: playwright-report-online-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
           retention-days: 7
 
-  # Wrangler E2E Tests
+  # Wrangler E2E Tests (22 spec files - 3 shards)
   e2e-wrangler:
-    name: E2E Tests (Wrangler)
+    name: E2E Tests (Wrangler) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -279,8 +331,25 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+        working-directory: frontend
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && bunx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd frontend && bunx playwright install-deps chromium
 
       - name: Copy wrangler.toml for CI
         run: cp backend/wrangler.toml.example backend/wrangler.toml
@@ -291,8 +360,8 @@ jobs:
       - name: Build frontend
         run: cd frontend && npm run build
 
-      - name: Run wrangler e2e tests
-        run: cd frontend && npm run e2e:wrangler:ci
+      - name: Run wrangler e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: cd frontend && npm run e2e:wrangler:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           E2E_MODE: prod
 
@@ -300,16 +369,24 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
-          name: playwright-report-wrangler
+          name: playwright-report-wrangler-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
           retention-days: 7
 
-  # Docker E2E Tests
+  # Docker E2E Tests (22 spec files - 2 shards)
+  # Note: each shard rebuilds the Docker image in globalSetup, so the per-job
+  # cost is high. We deliberately keep this at 2 shards to avoid blowing up
+  # compute usage.
   e2e-docker:
-    name: E2E Tests (Docker)
+    name: E2E Tests (Docker) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -337,23 +414,43 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+        working-directory: frontend
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && bunx playwright install --with-deps chromium
 
-      - name: Run Docker e2e tests
-        run: cd frontend && npm run e2e:docker:ci
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd frontend && bunx playwright install-deps chromium
+
+      - name: Run Docker e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: cd frontend && npm run e2e:docker:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Upload Playwright reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
-          name: playwright-report-docker
+          name: playwright-report-docker-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
           retention-days: 7
 
   # ===========================================
   # E2E Tests - Screenshots (via docs build)
   # ===========================================
+  # Not sharded: this job builds the docs site, which runs the screenshot
+  # tests as a side effect. The tests must run sequentially to produce
+  # consistent visual output.
   e2e-screenshots:
     name: E2E Tests (Screenshots)
     runs-on: ubuntu-latest
@@ -383,8 +480,25 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+        working-directory: frontend
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd frontend && bunx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd frontend && bunx playwright install-deps chromium
 
       - name: Build docs (runs screenshot e2e tests)
         run: cd docs/site && bun run build
