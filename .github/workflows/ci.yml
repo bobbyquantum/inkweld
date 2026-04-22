@@ -166,27 +166,24 @@ jobs:
   # ===========================================
   # E2E Tests - Sharded across parallel runners
   # ===========================================
-  # Each e2e job is split with Playwright's --shard=N/T flag so that test files
-  # are evenly distributed across runners. Wall-clock time drops roughly 1/N at
-  # the cost of N runners' worth of compute (each shard re-runs setup).
+  # The heavier e2e jobs are split with Playwright's --shard=N/T flag using a
+  # GitHub Actions matrix so test files are evenly distributed across runners.
+  # Wall-clock time drops roughly 1/N at the cost of N runners' worth of
+  # compute (each shard re-runs setup).
   #
-  # Shard counts were tuned against historical job durations (last successful
-  # main run): Docker ~15m, Wrangler ~13m, Online ~11m, Local ~8m, Screenshots
-  # ~9m. Screenshots is left unsharded because it is driven by the docs build
-  # rather than `playwright test` directly and must run sequentially for visual
+  # Shard counts were tuned against historical job durations: Docker ~15m,
+  # Wrangler ~13m, Online ~11m. Local (~8m) and Screenshots (~9m) are left
+  # unsharded - Local because the savings don't justify the extra runner, and
+  # Screenshots because it is driven by the docs build rather than
+  # `playwright test` directly and must run sequentially for visual
   # consistency.
 
-  # Local E2E Tests (24 spec files - 2 shards)
+  # Local E2E Tests (24 spec files - unsharded; ~8m on the runner)
   e2e-local:
-    name: E2E Tests (Local) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+    name: E2E Tests (Local)
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup Node.js
@@ -224,19 +221,19 @@ jobs:
         run: cd frontend && bunx playwright install-deps chromium
       - name: Build frontend
         run: cd frontend && npm run build
-      - name: Run local e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-        run: cd frontend && npm run e2e:local:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+      - name: Run local e2e tests
+        run: cd frontend && npm run e2e:local:ci
         env:
           E2E_MODE: prod
       - name: Upload Playwright reports
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
-          name: playwright-report-local-shard-${{ matrix.shardIndex }}
+          name: playwright-report-local
           path: frontend/playwright-report/
           retention-days: 7
 
-  # Online E2E Tests (22 spec files - 3 shards)
+  # Online E2E Tests (22 spec files - 2 shards)
   e2e-online:
     name: E2E Tests (Online) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
@@ -245,8 +242,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3]
-        shardTotal: [3]
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup Node.js
@@ -296,7 +293,7 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 7
 
-  # Wrangler E2E Tests (22 spec files - 3 shards)
+  # Wrangler E2E Tests (22 spec files - 2 shards)
   e2e-wrangler:
     name: E2E Tests (Wrangler) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
@@ -305,8 +302,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3]
-        shardTotal: [3]
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
