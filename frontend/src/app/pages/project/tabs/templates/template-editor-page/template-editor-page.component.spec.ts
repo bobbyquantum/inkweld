@@ -1,3 +1,4 @@
+import { type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection, type QueryList } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -6,7 +7,11 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type ElementTypeSchema } from '../../../../../models/schema-types';
+import {
+  type ElementTypeSchema,
+  type FieldSchema,
+  type TabSchema,
+} from '../../../../../models/schema-types';
 import { TemplateEditorPageComponent } from './template-editor-page.component';
 
 describe('TemplateEditorPageComponent', () => {
@@ -93,58 +98,45 @@ describe('TemplateEditorPageComponent', () => {
   });
 
   describe('ngAfterViewInit', () => {
-    it('should set up expansion panel subscription', () => {
-      vi.useFakeTimers();
-
-      const mockPanel = {
-        expanded: false,
-        open: vi.fn(),
-      };
-
+    function makeExpansionPanelSetup(expanded: boolean): {
+      mockPanel: { expanded: boolean; open: ReturnType<typeof vi.fn> };
+      changesSubject: Subject<void>;
+    } {
+      const mockPanel = { expanded, open: vi.fn() };
       const changesSubject = new Subject<void>();
       const mockQueryList = {
         changes: changesSubject.asObservable(),
         toArray: () => [mockPanel],
       } as unknown as QueryList<MatExpansionPanel>;
 
-      (component as any).lastFieldId = 'test-field-id';
+      component._lastFieldId = 'test-field-id';
       component.expansionPanels = mockQueryList;
-
       component.ngAfterViewInit();
+
+      return { mockPanel, changesSubject };
+    }
+
+    it('should set up expansion panel subscription', () => {
+      vi.useFakeTimers();
+      const { mockPanel, changesSubject } = makeExpansionPanelSetup(false);
 
       changesSubject.next();
       vi.advanceTimersByTime(150);
 
       expect(mockPanel.open).toHaveBeenCalled();
-      expect((component as any).lastFieldId).toBeNull();
-
+      expect(component._lastFieldId).toBeNull();
       vi.useRealTimers();
     });
 
     it('should not open panel if already expanded', () => {
       vi.useFakeTimers();
+      const { mockPanel, changesSubject } = makeExpansionPanelSetup(true);
 
-      const mockPanel = {
-        expanded: true,
-        open: vi.fn(),
-      };
-
-      const changesSubject = new Subject<void>();
-      const mockQueryList = {
-        changes: changesSubject.asObservable(),
-        toArray: () => [mockPanel],
-      } as unknown as QueryList<MatExpansionPanel>;
-
-      (component as any).lastFieldId = 'test-field-id';
-      component.expansionPanels = mockQueryList;
-
-      component.ngAfterViewInit();
       changesSubject.next();
       vi.advanceTimersByTime(150);
 
       expect(mockPanel.open).not.toHaveBeenCalled();
-      expect((component as any).lastFieldId).toBeNull();
-
+      expect(component._lastFieldId).toBeNull();
       vi.useRealTimers();
     });
   });
@@ -202,23 +194,22 @@ describe('TemplateEditorPageComponent', () => {
       component.addTab();
       expect(component.tabs().length).toBe(2);
 
-      const dragEvent = {
+      const dragEvent: Partial<CdkDragDrop<TabSchema[]>> = {
         previousIndex: 0,
         currentIndex: 1,
-        container: {},
-        previousContainer: {},
-        item: {},
+        container: {} as CdkDragDrop<TabSchema[]>['container'],
+        previousContainer: {} as CdkDragDrop<TabSchema[]>['previousContainer'],
+        item: {} as CdkDragDrop<TabSchema[]>['item'],
         isPointerOverContainer: true,
         distance: { x: 0, y: 0 },
         dropPoint: { x: 0, y: 0 },
-        event: new Event('drop'),
+        event: new MouseEvent('drop'),
       };
 
       const originalFirstLabel = component.tabs()[0].label;
       const originalSecondLabel = component.tabs()[1].label;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      component.onTabsDrop(dragEvent as any);
+      component.onTabsDrop(dragEvent as CdkDragDrop<TabSchema[]>);
 
       expect(component.tabs()[0].label).toBe(originalSecondLabel);
       expect(component.tabs()[1].label).toBe(originalFirstLabel);
@@ -275,22 +266,22 @@ describe('TemplateEditorPageComponent', () => {
       const tab = component.tabs()[tabIndex];
       expect(tab.fields.length).toBe(3);
 
-      const dragEvent = {
+      type FieldList = FieldSchema[];
+      const dragEvent: Partial<CdkDragDrop<FieldList>> = {
         previousIndex: 0,
         currentIndex: 2,
-        container: {},
-        previousContainer: {},
-        item: {},
+        container: {} as CdkDragDrop<FieldList>['container'],
+        previousContainer: {} as CdkDragDrop<FieldList>['previousContainer'],
+        item: {} as CdkDragDrop<FieldList>['item'],
         isPointerOverContainer: true,
         distance: { x: 0, y: 0 },
         dropPoint: { x: 0, y: 0 },
-        event: new Event('drop'),
+        event: new MouseEvent('drop'),
       };
 
       const originalFirstKey = component.tabs()[tabIndex].fields[0].key;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      component.onFieldsDrop(dragEvent as any, tabIndex);
+      component.onFieldsDrop(dragEvent as CdkDragDrop<FieldList>, tabIndex);
 
       expect(component.tabs()[tabIndex].fields[2].key).toBe(originalFirstKey);
     });

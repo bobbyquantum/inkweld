@@ -86,7 +86,8 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   readonly isSaving = signal(false);
   readonly selectedTabIndex = signal(0);
   readonly validationError = signal<string | null>(null);
-  private lastFieldId: string | null = null;
+  /** @internal Exposed for unit testing only. */
+  _lastFieldId: string | null = null;
 
   // Available field types
   readonly fieldTypes = [
@@ -155,14 +156,14 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.expansionPanels.changes.subscribe(() => {
-      if (this.lastFieldId) {
+      if (this._lastFieldId) {
         setTimeout(() => {
           const panels = this.expansionPanels.toArray();
           const lastPanel = panels[panels.length - 1];
           if (lastPanel && !lastPanel.expanded) {
             lastPanel.open();
           }
-          this.lastFieldId = null;
+          this._lastFieldId = null;
         }, 100);
       }
     });
@@ -229,7 +230,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     const updatedTabs = [...this.tabs()];
     updatedTabs[tabIndex].fields.push(newField);
     this.tabs.set(updatedTabs);
-    this.lastFieldId = fieldId;
+    this._lastFieldId = fieldId;
   }
 
   /** Remove a field from a tab */

@@ -190,25 +190,44 @@ describe('TemplatesTabComponent', () => {
     });
   });
 
+  const mockCustomTemplate = {
+    id: 'custom-1',
+    label: 'Custom Template',
+    icon: 'edit',
+    tabCount: 1,
+    fieldCount: 2,
+    isBuiltIn: false,
+  };
+
+  const mockCustomSchema = {
+    id: 'custom-1',
+    name: 'Custom Template',
+    icon: 'edit',
+    description: 'Custom',
+    version: 1,
+    isBuiltIn: false,
+    tabs: [],
+  };
+
   describe('cloneTemplate', () => {
+    const charTemplate = {
+      id: 'char-1',
+      label: 'Character',
+      icon: 'person',
+      tabCount: 1,
+      fieldCount: 2,
+      isBuiltIn: true,
+    };
+
     it('should clone a template successfully', async () => {
       mockProjectState.project.set(mockProject);
-
-      const template = {
-        id: 'char-1',
-        label: 'Character',
-        icon: 'person',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: true,
-      };
 
       mockDialogGateway.openRenameDialog.mockResolvedValue('New Character');
       mockWorldbuildingService.cloneTemplate.mockReturnValue(undefined);
 
       mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
-      await component.cloneTemplate(template);
+      await component.cloneTemplate(charTemplate);
 
       expect(mockWorldbuildingService.cloneTemplate).toHaveBeenCalledWith(
         'char-1',
@@ -220,33 +239,15 @@ describe('TemplatesTabComponent', () => {
     it('should handle cancelled clone dialog', async () => {
       mockProjectState.project.set(mockProject);
 
-      const template = {
-        id: 'char-1',
-        label: 'Character',
-        icon: 'person',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: true,
-      };
-
       mockDialogGateway.openRenameDialog.mockResolvedValue(null);
 
-      await component.cloneTemplate(template);
+      await component.cloneTemplate(charTemplate);
 
       expect(mockWorldbuildingService.cloneTemplate).not.toHaveBeenCalled();
     });
 
     it('should handle clone errors', async () => {
       mockProjectState.project.set(mockProject);
-
-      const template = {
-        id: 'char-1',
-        label: 'Character',
-        icon: 'person',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: true,
-      };
 
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
@@ -256,7 +257,7 @@ describe('TemplatesTabComponent', () => {
         new Error('Clone failed')
       );
 
-      await component.cloneTemplate(template);
+      await component.cloneTemplate(charTemplate);
 
       expect(consoleErrorSpy).toHaveBeenCalled();
 
@@ -268,21 +269,12 @@ describe('TemplatesTabComponent', () => {
     it('should delete a template successfully', async () => {
       mockProjectState.project.set(mockProject);
 
-      const template = {
-        id: 'custom-1',
-        label: 'Custom Template',
-        icon: 'edit',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: false,
-      };
-
       mockDialogGateway.openConfirmationDialog.mockResolvedValue(true);
       mockWorldbuildingService.deleteTemplate.mockReturnValue(undefined);
 
       mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
-      await component.deleteTemplate(template);
+      await component.deleteTemplate(mockCustomTemplate);
 
       expect(mockWorldbuildingService.deleteTemplate).toHaveBeenCalledWith(
         'custom-1'
@@ -292,33 +284,15 @@ describe('TemplatesTabComponent', () => {
     it('should handle cancelled delete dialog', async () => {
       mockProjectState.project.set(mockProject);
 
-      const template = {
-        id: 'custom-1',
-        label: 'Custom Template',
-        icon: 'edit',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: false,
-      };
-
       mockDialogGateway.openConfirmationDialog.mockResolvedValue(false);
 
-      await component.deleteTemplate(template);
+      await component.deleteTemplate(mockCustomTemplate);
 
       expect(mockWorldbuildingService.deleteTemplate).not.toHaveBeenCalled();
     });
 
     it('should handle delete errors', async () => {
       mockProjectState.project.set(mockProject);
-
-      const template = {
-        id: 'custom-1',
-        label: 'Custom Template',
-        icon: 'edit',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: false,
-      };
 
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
@@ -328,7 +302,7 @@ describe('TemplatesTabComponent', () => {
         throw new Error('Delete failed');
       });
 
-      await component.deleteTemplate(template);
+      await component.deleteTemplate(mockCustomTemplate);
 
       expect(consoleErrorSpy).toHaveBeenCalled();
 
@@ -340,31 +314,12 @@ describe('TemplatesTabComponent', () => {
     it('should switch to edit mode with the loaded schema', () => {
       mockProjectState.project.set(mockProject);
 
-      const template = {
-        id: 'custom-1',
-        label: 'Custom Template',
-        icon: 'edit',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: false,
-      };
+      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
 
-      const mockSchema = {
-        id: 'custom-1',
-        name: 'Custom Template',
-        icon: 'edit',
-        description: 'Custom',
-        version: 1,
-        isBuiltIn: false,
-        tabs: [],
-      };
-
-      mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
-
-      component.editTemplate(template);
+      component.editTemplate(mockCustomTemplate);
 
       expect(component.editingState().mode).toBe('edit');
-      expect(component.editingSchema()).toEqual(mockSchema);
+      expect(component.editingSchema()).toEqual(mockCustomSchema);
     });
 
     it('should handle template not found', () => {
@@ -414,24 +369,8 @@ describe('TemplatesTabComponent', () => {
   describe('onEditorDone', () => {
     it('should return to list mode when cancelled (null result)', async () => {
       mockProjectState.project.set(mockProject);
-      const mockSchema = {
-        id: 'custom-1',
-        name: 'Custom Template',
-        icon: 'edit',
-        description: 'Custom',
-        version: 1,
-        isBuiltIn: false,
-        tabs: [],
-      };
-      mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
-      component.editTemplate({
-        id: 'custom-1',
-        label: 'Custom Template',
-        icon: 'edit',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: false,
-      });
+      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
+      component.editTemplate(mockCustomTemplate);
 
       await component.onEditorDone(null);
 
@@ -441,27 +380,11 @@ describe('TemplatesTabComponent', () => {
 
     it('should save an existing template when editor emits a schema', async () => {
       mockProjectState.project.set(mockProject);
-      const mockSchema = {
-        id: 'custom-1',
-        name: 'Custom Template',
-        icon: 'edit',
-        description: 'Custom',
-        version: 1,
-        isBuiltIn: false,
-        tabs: [],
-      };
-      mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
+      mockWorldbuildingService.getSchema.mockReturnValue(mockCustomSchema);
       mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
-      component.editTemplate({
-        id: 'custom-1',
-        label: 'Custom Template',
-        icon: 'edit',
-        tabCount: 1,
-        fieldCount: 2,
-        isBuiltIn: false,
-      });
+      component.editTemplate(mockCustomTemplate);
 
-      const updatedSchema = { ...mockSchema, name: 'Updated Template' };
+      const updatedSchema = { ...mockCustomSchema, name: 'Updated Template' };
       await component.onEditorDone(updatedSchema as ElementTypeSchema);
 
       expect(component.editingState().mode).toBe('list');
