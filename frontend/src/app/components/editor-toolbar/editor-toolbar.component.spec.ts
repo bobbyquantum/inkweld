@@ -1,8 +1,9 @@
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import {
   afterEach,
   beforeEach,
@@ -45,7 +46,7 @@ describe('EditorToolbarComponent', () => {
         setStoredMarks: Mock;
         docChanged: boolean;
       };
-      doc: { nodesBetween: Mock };
+      doc: { nodesBetween: Mock; slice: Mock };
       storedMarks: null;
     };
     dispatch: Mock;
@@ -116,6 +117,7 @@ describe('EditorToolbarComponent', () => {
         },
         doc: {
           nodesBetween: vi.fn(),
+          slice: vi.fn().mockReturnValue({ content: { forEach: vi.fn() } }),
         },
         storedMarks: null,
       },
@@ -123,10 +125,21 @@ describe('EditorToolbarComponent', () => {
       focus: vi.fn(),
     };
 
+    const mockDialogRef = {
+      afterClosed: () => of(undefined),
+    } as unknown as MatDialogRef<unknown>;
+
+    const mockDialog = {
+      open: vi.fn().mockReturnValue(mockDialogRef),
+    };
+
     await TestBed.configureTestingModule({
       imports: [EditorToolbarComponent, NoopAnimationsModule],
       schemas: [NO_ERRORS_SCHEMA],
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: MatDialog, useValue: mockDialog },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(EditorToolbarComponent);
@@ -318,57 +331,19 @@ describe('EditorToolbarComponent', () => {
   // ============================================================
 
   describe('Link Operations', () => {
-    it('should not throw when insertLink is called with a disabled toolbar', () => {
+    it('should emit insertLinkClick when insertLink is called', () => {
+      const spy = vi.fn();
+      component.insertLinkClick.subscribe(spy);
+      component.insertLink();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should not emit insertLinkClick when toolbar is disabled', () => {
+      const spy = vi.fn();
+      component.insertLinkClick.subscribe(spy);
       component.disabled = true;
-      expect(() => component.insertLink()).not.toThrow();
-    });
-
-    it('should not throw when insertLink is called and editor view is null', () => {
-      component.editor = { view: null } as unknown as typeof component.editor;
-      expect(() => component.insertLink()).not.toThrow();
-    });
-
-    it('should not throw when insertLink is called and link mark is missing', () => {
-      mockEditorView.state.schema.marks = {};
-      expect(() => component.insertLink()).not.toThrow();
-    });
-
-    it('should call prompt and dispatch when inserting a new link', () => {
-      const promptSpy = vi
-        .spyOn(globalThis, 'prompt')
-        .mockReturnValue('https://example.com');
-
-      mockEditorView.state.selection = {
-        ...mockEditorView.state.selection,
-        from: 0,
-        to: 5,
-        empty: false,
-      };
-
       component.insertLink();
-
-      expect(promptSpy).toHaveBeenCalled();
-      expect(mockEditorView.state.tr.addMark).toHaveBeenCalled();
-      expect(mockEditorView.dispatch).toHaveBeenCalled();
-      promptSpy.mockRestore();
-    });
-
-    it('should do nothing when prompt returns null (cancelled)', () => {
-      const promptSpy = vi.spyOn(globalThis, 'prompt').mockReturnValue(null);
-
-      component.insertLink();
-
-      expect(mockEditorView.dispatch).not.toHaveBeenCalled();
-      promptSpy.mockRestore();
-    });
-
-    it('should remove link when prompt returns empty string', () => {
-      const promptSpy = vi.spyOn(globalThis, 'prompt').mockReturnValue('');
-
-      component.insertLink();
-
-      expect(mockEditorView.dispatch).toHaveBeenCalled();
-      promptSpy.mockRestore();
+      expect(spy).not.toHaveBeenCalled();
     });
 
     it('should not throw when removeLink is called with disabled toolbar', () => {

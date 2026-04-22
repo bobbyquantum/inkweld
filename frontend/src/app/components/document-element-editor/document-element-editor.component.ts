@@ -42,6 +42,7 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
 import { InsertImageService } from '@services/core/insert-image.service';
+import { InsertLinkService } from '@services/core/insert-link.service';
 import { SettingsService } from '@services/core/settings.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
@@ -110,6 +111,7 @@ export class DocumentElementEditorComponent
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly insertImageService = inject(InsertImageService);
+  private readonly insertLinkService = inject(InsertLinkService);
   protected elementRefService = inject(ElementRefService);
   protected findService = inject(FindInDocumentService);
   private readonly tagService = inject(TagService);
@@ -294,6 +296,14 @@ export class DocumentElementEditorComponent
       // Only trigger if count > 0 (skip initial value)
       if (triggerCount > 0 && this.editor?.view && this.collaborationSetup) {
         void this.openInsertImageDialog();
+      }
+    });
+
+    // Watch for insert link trigger from keyboard shortcut (Mod-K)
+    effect(() => {
+      const triggerCount = this.insertLinkService.triggerCount();
+      if (triggerCount > 0 && this.editor?.view && this.collaborationSetup) {
+        void this.openInsertLinkDialog();
       }
     });
 
@@ -874,6 +884,80 @@ export class DocumentElementEditorComponent
       this.editor.view.dispatch(tr);
       this.editor.view.focus();
     }
+  }
+
+  /**
+   * Open the insert/edit link dialog and apply or remove the link mark.
+   * Triggered by the toolbar button, floating menu, or Mod-K keyboard shortcut.
+   *
+   * Two modes:
+   *  - Text selected: wraps selection with the link mark (URL-only dialog).
+   *  - No selection: shows text+URL fields, inserts a new linked text node at cursor.
+   */
+  async openInsertLinkDialog(): Promise<void> {
+    const view = this.editor?.view;
+    if (!view) return;
+
+    const { state } = view;
+    const { schema, selection } = state;
+    const linkMark = schema.marks['link'];
+    if (!linkMark) return;
+
+    // Save positions NOW, before the dialog steals focus and collapses the selection
+    const { from, to, empty } = selection;
+
+    // Gather existing link href (when editing)
+    let existingHref = '';
+    if (!empty) {
+      state.doc.nodesBetween(from, to, node => {
+        const link = linkMark.isInSet(node.marks);
+        if (link && !existingHref) {
+          existingHref = link.attrs['href'] as string;
+        }
+      });
+    }
+
+    // Build plain-text preview of the selection
+    let selectedText = '';
+    if (!empty) {
+      const slice = state.doc.slice(from, to);
+      slice.content.forEach(node => {
+        selectedText += node.textContent;
+      });
+    }
+
+    const result = await this.dialogGateway.openInsertLinkDialog({
+      existingHref: existingHref || undefined,
+      // Only pass selectedText when there actually is a selection — this
+      // controls whether the dialog shows the text field or not.
+      selectedText: selectedText || undefined,
+    });
+
+    if (!result) return;
+
+    const target = result.openInNewTab ? '_blank' : undefined;
+    // Use the state at the time of confirmation (may have changed, but positions are saved)
+    const currentState = view.state;
+
+    if (result.href === '') {
+      // Remove link mark over the saved range
+      view.dispatch(currentState.tr.removeMark(from, to, linkMark));
+    } else if (empty && result.linkText) {
+      // No selection: insert a new text node with the link mark at the cursor
+      const mark = linkMark.create({ href: result.href, target });
+      const textNode = schema.text(result.linkText, [mark]);
+      view.dispatch(currentState.tr.insert(from, textNode));
+    } else {
+      // Selection exists: apply the link mark over the saved range
+      view.dispatch(
+        currentState.tr.addMark(
+          from,
+          to,
+          linkMark.create({ href: result.href, target })
+        )
+      );
+    }
+    view.focus();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
