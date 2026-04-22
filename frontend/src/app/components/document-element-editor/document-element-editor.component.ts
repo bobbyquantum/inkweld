@@ -904,11 +904,47 @@ export class DocumentElementEditorComponent
     if (!linkMark) return;
 
     // Save positions NOW, before the dialog steals focus and collapses the selection
-    const { from, to, empty } = selection;
+    let { from, to } = selection;
+    const { empty } = selection;
 
     // Gather existing link href (when editing)
     let existingHref = '';
-    if (!empty) {
+    if (empty) {
+      // Cursor inside a link — detect the mark at the cursor and expand range
+      const activeLink = linkMark.isInSet(
+        state.storedMarks ?? selection.$from.marks()
+      );
+      if (activeLink) {
+        existingHref = activeLink.attrs['href'] as string;
+        // Expand from/to to span the full contiguous link mark range
+        const parentStart = selection.$from.start();
+        const parent = selection.$from.parent;
+        let startOffset = selection.$from.parentOffset;
+        let endOffset = selection.$from.parentOffset;
+        const isSameLink = (
+          marks: readonly ReturnType<typeof linkMark.isInSet>[]
+        ): boolean => {
+          const m = linkMark.isInSet(
+            marks as Parameters<typeof linkMark.isInSet>[0]
+          );
+          return !!(m && (m.attrs['href'] as string) === existingHref);
+        };
+        // Walk left
+        while (startOffset > 0) {
+          const child = parent.childBefore(startOffset);
+          if (!child.node || !isSameLink(child.node.marks)) break;
+          startOffset = child.offset;
+        }
+        // Walk right
+        while (endOffset < parent.content.size) {
+          const child = parent.childAfter(endOffset);
+          if (!child.node || !isSameLink(child.node.marks)) break;
+          endOffset = child.offset + child.node.nodeSize;
+        }
+        from = parentStart + startOffset;
+        to = parentStart + endOffset;
+      }
+    } else {
       state.doc.nodesBetween(from, to, node => {
         const link = linkMark.isInSet(node.marks);
         if (link && !existingHref) {

@@ -313,6 +313,7 @@ export class EditorFloatingMenuComponent implements OnDestroy {
   /** Delegates link insertion/editing to the document editor */
   toggleLink(): void {
     this.insertLink.emit();
+    this.hide();
   }
 
   onAddComment(): void {

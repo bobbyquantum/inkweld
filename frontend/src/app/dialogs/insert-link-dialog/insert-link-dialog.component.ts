@@ -41,19 +41,25 @@ export interface InsertLinkDialogResult {
   linkText?: string;
 }
 
-/** Validates that the value looks like a URL */
+/** Safe protocol allow-list for link URLs */
+const ALLOWED_PROTOCOLS = ['http', 'https', 'mailto', 'tel'];
+
+/** Validates that the value looks like a safe URL (blocks javascript: etc.) */
 function urlValidator(control: AbstractControl): ValidationErrors | null {
-  const value: string = (control.value as string) ?? '';
+  const value = String(control.value ?? '').trim();
   if (!value) return null; // required handles empty
 
-  // Allow relative paths, anchors, mailto:, tel:, and absolute URLs
-  const isRelative = value.startsWith('/') || value.startsWith('#');
-  const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value);
+  // Allow root-relative paths (/foo) and same-page anchors (#section)
+  const isRelative = /^\/(?!\/)/.test(value) || value.startsWith('#');
+  if (isRelative) return null;
 
-  if (!isRelative && !hasProtocol) {
-    return { invalidUrl: true };
-  }
-  return null;
+  // Require an explicit protocol from the allow-list
+  const protocolMatch = /^([a-zA-Z][a-zA-Z\d+\-.]*):/u.exec(value);
+  const isAllowedProtocol =
+    !!protocolMatch &&
+    ALLOWED_PROTOCOLS.includes(protocolMatch[1].toLowerCase());
+
+  return isAllowedProtocol ? null : { invalidUrl: true };
 }
 
 @Component({
@@ -112,12 +118,13 @@ export class InsertLinkDialogComponent {
 
   onConfirm(): void {
     if (this.form.valid) {
+      const href = String(this.hrefControl.value ?? '').trim();
       const linkText = this.hasSelection
         ? undefined
-        : (this.linkTextControl.value as string);
+        : String(this.linkTextControl.value ?? '').trim();
 
       this.dialogRef.close({
-        href: this.hrefControl.value as string,
+        href,
         openInNewTab: this.form.controls.openInNewTab.value ?? true,
         linkText,
       });
