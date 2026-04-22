@@ -35,8 +35,8 @@ test.describe('Worldbuilding Templates', () => {
     // Click the Create Template button
     await page.getByTestId('create-template-button').click();
 
-    // Wait for template editor dialog to appear
-    await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
+    // Wait for inline template editor to appear
+    await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
     // Fill in template details using data-testid attributes
     const nameInput = page.getByTestId('template-name-input');
@@ -54,10 +54,10 @@ test.describe('Worldbuilding Templates', () => {
     await descriptionInput.fill('Template for story events');
 
     // Save the template
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByTestId('save-template-button').click();
 
-    // Wait for dialog to close
-    await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
+    // Wait for inline editor to close (returns to list view)
+    await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
 
     // Verify the new template appears in the list
     await expect(
@@ -262,7 +262,7 @@ test.describe('Worldbuilding Templates', () => {
       .filter({ hasText: 'Test Template' })
       .getByTestId('edit-template-button')
       .click();
-    await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
+    await expect(page.getByTestId('template-editor-page')).toBeVisible();
 
     // Clear the required template name field by selecting all and deleting
     // This is more reliable than .clear() for Angular reactive forms
@@ -282,7 +282,7 @@ test.describe('Worldbuilding Templates', () => {
     // Now button should be enabled and save should work
     await expect(page.getByTestId('save-template-button')).toBeEnabled();
     await page.getByTestId('save-template-button').click();
-    await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
+    await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
   });
 
   test('should handle icon display for custom templates', async ({
