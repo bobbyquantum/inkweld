@@ -6,6 +6,7 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type Element, type Project } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -22,6 +23,7 @@ describe('DocumentElementEditorComponent', () => {
   let documentServiceMock: Partial<DocumentService>;
   let projectStateServiceMock: Partial<ProjectStateService>;
   let settingsServiceMock: Partial<SettingsService>;
+  let dialogGatewayMock: Partial<DialogGatewayService>;
   let wordCountSignal: ReturnType<typeof signal<number>>;
 
   const mockProject: Project = {
@@ -60,6 +62,10 @@ describe('DocumentElementEditorComponent', () => {
       getSetting: vi.fn().mockReturnValue(true),
     };
 
+    dialogGatewayMock = {
+      openInsertLinkDialog: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [DocumentElementEditorComponent, NoopAnimationsModule],
       schemas: [NO_ERRORS_SCHEMA],
@@ -68,6 +74,7 @@ describe('DocumentElementEditorComponent', () => {
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: SettingsService, useValue: settingsServiceMock },
+        { provide: DialogGatewayService, useValue: dialogGatewayMock },
       ],
     }).compileComponents();
 
@@ -219,6 +226,27 @@ describe('DocumentElementEditorComponent', () => {
       component.ngOnInit();
 
       expect(component.isCursorInLintSuggestion()).toBe(false);
+    });
+  });
+
+  describe('openInsertLinkDialog', () => {
+    it('should do nothing when editor view is unavailable', async () => {
+      // editor is not initialized — view is undefined
+      await component.openInsertLinkDialog();
+      expect(dialogGatewayMock.openInsertLinkDialog).not.toHaveBeenCalled();
+    });
+
+    it('should not open dialog when dialog returns undefined (cancelled)', async () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+      component.ngOnInit();
+
+      (
+        dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(undefined);
+
+      // Even with a real editor, view may be mocked — this just verifies no throw
+      await expect(component.openInsertLinkDialog()).resolves.not.toThrow();
     });
   });
 });

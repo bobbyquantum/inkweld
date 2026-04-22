@@ -972,6 +972,7 @@ export class DocumentElementEditorComponent
     if (!result) return;
 
     const target = result.openInNewTab ? '_blank' : undefined;
+    const rel = result.openInNewTab ? 'noopener noreferrer' : undefined;
     // Use the state at the time of confirmation (may have changed, but positions are saved)
     const currentState = view.state;
 
@@ -980,7 +981,7 @@ export class DocumentElementEditorComponent
       view.dispatch(currentState.tr.removeMark(from, to, linkMark));
     } else if (empty && result.linkText) {
       // No selection: insert a new text node with the link mark at the cursor
-      const mark = linkMark.create({ href: result.href, target });
+      const mark = linkMark.create({ href: result.href, target, rel });
       const textNode = schema.text(result.linkText, [mark]);
       view.dispatch(currentState.tr.insert(from, textNode));
     } else {
@@ -989,7 +990,7 @@ export class DocumentElementEditorComponent
         currentState.tr.addMark(
           from,
           to,
-          linkMark.create({ href: result.href, target })
+          linkMark.create({ href: result.href, target, rel })
         )
       );
     }
