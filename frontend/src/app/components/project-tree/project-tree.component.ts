@@ -83,6 +83,15 @@ export class ProjectTreeComponent implements OnDestroy {
     return this.projectStateService.visibleElements();
   });
 
+  /** Pinned elements resolved from the current element list, in pin order. */
+  readonly pinnedElements = computed(() => {
+    const ids = this.projectStateService.pinnedElementIds();
+    const elements = this.projectStateService.elements();
+    return ids
+      .map(id => elements.find(e => e.id === id))
+      .filter((e): e is NonNullable<typeof e> => e !== undefined);
+  });
+
   // Computed signal for home tab selection state
   readonly isHomeSelected = computed(() => {
     const tabs = this.projectStateService.openTabs();
@@ -155,6 +164,12 @@ export class ProjectTreeComponent implements OnDestroy {
   contextItem: ProjectElement | null = null;
   private recentTouchNodeId: string | null = null;
   private touchTimeout: ReturnType<typeof setTimeout> | null = null;
+  /**
+   * When a long-press fires the context menu on a touch device, the subsequent
+   * `touchend` must not also open the document or close the mobile sidenav.
+   * This flag stores the node ID whose next touch-open should be suppressed.
+   */
+  private suppressTouchOpenNodeId: string | null = null;
 
   @Output() documentOpened = new EventEmitter<Element>();
 
@@ -539,10 +554,20 @@ export class ProjectTreeComponent implements OnDestroy {
 
   /**
    * Opens the context menu for a node.
+   * When triggered from a touch event (long-press), suppress the subsequent
+   * `touchend` so the document doesn't open and the mobile sidenav stays open.
    * @param data The node for which the context menu is opened.
+   * @param event Optional originating event (used to detect touch origin).
    */
-  public onContextMenuOpen(data: ProjectElement) {
+  public onContextMenuOpen(data: ProjectElement, event?: Event) {
     this.contextItem = data;
+    // Detect touch origin: TouchEvent or a PointerEvent with pointerType === 'touch'
+    const isTouch =
+      (typeof TouchEvent !== 'undefined' && event instanceof TouchEvent) ||
+      (event instanceof PointerEvent && event.pointerType === 'touch');
+    if (isTouch) {
+      this.suppressTouchOpenNodeId = data.id;
+    }
   }
 
   /**
@@ -550,6 +575,7 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   public onContextMenuClose() {
     this.contextItem = null;
+    this.suppressTouchOpenNodeId = null;
   }
 
   public editProject() {
@@ -561,6 +587,11 @@ export class ProjectTreeComponent implements OnDestroy {
    * @param node The node to open.
    */
   public onOpenDocument(node: ProjectElement) {
+    // Suppress opening if a long-press context menu was just triggered for this node
+    if (this.suppressTouchOpenNodeId === node.id) {
+      this.suppressTouchOpenNodeId = null;
+      return;
+    }
     // Convert ProjectElement back to Element
     const dto: Element = {
       id: node.id ?? '',
@@ -686,6 +717,24 @@ export class ProjectTreeComponent implements OnDestroy {
       this.projectStateService.openSystemTab('home');
       void this.router.navigate(['/', project.username, project.slug]);
     }
+  }
+
+  /**
+   * Opens a pinned element (converts Element → ProjectElement for onOpenDocument).
+   */
+  public onOpenPinnedElement(element: Element): void {
+    this.onOpenDocument({
+      ...element,
+      expanded: false,
+      metadata: element.metadata ?? {},
+    } as ProjectElement);
+  }
+
+  /**
+   * Toggles pin state for a tree node (owner-only).
+   */
+  public onTogglePin(node: ProjectElement): void {
+    this.projectStateService.togglePin(node.id);
   }
 
   /**

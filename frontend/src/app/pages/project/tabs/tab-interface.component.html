@@ -84,6 +84,23 @@
         <span class="context-menu-item-title">Rename</span>
       </button>
     }
+    @if (
+      contextTab &&
+      contextTab.type !== 'system' &&
+      contextTab.element &&
+      projectState.isOwner()
+    ) {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        (click)="onTogglePinContextTab()">
+        <mat-icon>push_pin</mat-icon>
+        <span class="context-menu-item-title">{{
+          projectState.isPinned(contextTab.element.id) ? 'Unpin' : 'Pin'
+        }}</span>
+      </button>
+    }
     @if (contextTab) {
       <button
         type="button"

@@ -48,6 +48,35 @@
     }
   </div>
 
+  <!-- Pinned elements section (shown above tree when there are pins) -->
+  @if (pinnedElements().length > 0) {
+    <div class="pinned-section">
+      <div class="pinned-section-header">
+        <mat-icon class="pinned-section-icon">push_pin</mat-icon>
+        <span class="pinned-section-label">Pinned</span>
+      </div>
+      @for (element of pinnedElements(); track element.id) {
+        <div
+          class="pinned-item"
+          role="button"
+          tabindex="0"
+          [attr.data-testid]="'pinned-' + element.name"
+          (click)="onOpenPinnedElement(element)"
+          (keyup.enter)="onOpenPinnedElement(element)">
+          <app-tree-node-icon
+            [isExpandable]="element.expandable"
+            [isExpanded]="false"
+            [type]="element.type"
+            [schemaId]="element.schemaId"
+            [metadata]="element.metadata">
+          </app-tree-node-icon>
+          <span class="pinned-item-name">{{ element.name }}</span>
+        </div>
+      }
+      <div class="pinned-section-divider"></div>
+    </div>
+  }
+
   <!-- Project Tree with ARIA attributes for accessibility -->
   <div
     role="tree"
@@ -83,7 +112,7 @@
         (mousedown)="onNodeDown(node)"
         (touchstart)="onNodeDown(node)"
         [cdkContextMenuTriggerFor]="contextMenu"
-        (contextmenu)="onContextMenuOpen(node)"
+        (contextmenu)="onContextMenuOpen(node, $event)"
         (cdkContextMenuClosed)="onContextMenuClose()"
         [cdkContextMenuTriggerData]="{ node: node }"
         (click)="
@@ -229,6 +258,21 @@
         (click)="onDelete(node)">
         <mat-icon>delete</mat-icon>
         <span class="context-menu-item-title">Delete</span>
+      </button>
+    }
+    @if (projectStateService.isOwner()) {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        data-testid="context-menu-pin"
+        (click)="onTogglePin(node)">
+        <mat-icon>{{
+          projectStateService.isPinned(node.id) ? 'push_pin' : 'push_pin'
+        }}</mat-icon>
+        <span class="context-menu-item-title">{{
+          projectStateService.isPinned(node.id) ? 'Unpin' : 'Pin'
+        }}</span>
       </button>
     }
   </div>

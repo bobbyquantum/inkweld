@@ -199,6 +199,13 @@ export class ProjectStateService implements OnDestroy {
    */
   readonly coverMediaId = signal<string | undefined>(undefined);
 
+  /**
+   * Ordered list of pinned element IDs for this project.
+   * Stored in Yjs projectMeta and synced in real-time to all clients.
+   * Only the project owner may add or remove pins.
+   */
+  readonly pinnedElementIds = signal<string[]>([]);
+
   // Flag to prevent feedback loop when we're the source of metadata changes
   private isUpdatingMeta = false;
 
@@ -586,16 +593,25 @@ export class ProjectStateService implements OnDestroy {
           }
           this.ngZone.run(() => {
             if (meta) {
-              // Merge Yjs metadata with current project
+              // coverMediaId and pinnedElementIds are stored independently of the
+              // API Project model — update them regardless of whether the project
+              // has loaded yet (they live only in Yjs / IndexedDB).
+              this.coverMediaId.set(meta.coverMediaId);
+              this.pinnedElementIds.set(meta.pinnedElementIds ?? []);
+
+              // Merge Yjs metadata (name/description) into the project model only
+              // when the API project is already loaded, and only when the values
+              // are non-empty (avoids blanking the title in local mode where the
+              // Y.Map may not have a name yet).
               const current = this.project();
               if (current) {
                 this.project.set({
                   ...current,
-                  title: meta.name,
-                  description: meta.description,
+                  ...(meta.name ? { title: meta.name } : {}),
+                  ...(meta.description
+                    ? { description: meta.description }
+                    : {}),
                 });
-                // Store coverMediaId separately - it's not part of the API Project model
-                this.coverMediaId.set(meta.coverMediaId);
               }
             }
           });
@@ -676,6 +692,7 @@ export class ProjectStateService implements OnDestroy {
     this.elements.set([]);
     this.publishPlans.set([]);
     this.expandedNodeIds.set(new Set());
+    this.pinnedElementIds.set([]);
 
     // Clear locally-created element tracking
     this.locallyCreatedElementIds.clear();
@@ -1166,6 +1183,40 @@ export class ProjectStateService implements OnDestroy {
           this.isUpdatingMeta = false;
         });
       }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Pinning
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Returns true when the given element ID is in the pinned list. */
+  isPinned(elementId: string): boolean {
+    return this.pinnedElementIds().includes(elementId);
+  }
+
+  /** Pin an element (no-op if already pinned or if no sync provider). */
+  pinElement(elementId: string): void {
+    if (this.isPinned(elementId)) return;
+    const updated = [...this.pinnedElementIds(), elementId];
+    this.pinnedElementIds.set(updated);
+    this.syncProvider?.updateProjectMeta({ pinnedElementIds: updated });
+  }
+
+  /** Unpin an element (no-op if not pinned or if no sync provider). */
+  unpinElement(elementId: string): void {
+    if (!this.isPinned(elementId)) return;
+    const updated = this.pinnedElementIds().filter(id => id !== elementId);
+    this.pinnedElementIds.set(updated);
+    this.syncProvider?.updateProjectMeta({ pinnedElementIds: updated });
+  }
+
+  /** Toggle pin state for an element. */
+  togglePin(elementId: string): void {
+    if (this.isPinned(elementId)) {
+      this.unpinElement(elementId);
+    } else {
+      this.pinElement(elementId);
     }
   }
 

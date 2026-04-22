@@ -113,6 +113,7 @@ describe('TabInterfaceComponent', () => {
       openHomeTab: vi.fn(),
       reorderTabs: vi.fn(),
       selectTab: vi.fn((index: number) => selectedTabIndexSignal.set(index)),
+      togglePin: vi.fn(),
     };
 
     // Mock document service
@@ -790,6 +791,31 @@ describe('TabInterfaceComponent', () => {
       component.contextTabIndex = null;
       component.closeOtherTabs();
       expect(projectStateService.closeTab).not.toHaveBeenCalled();
+    });
+
+    it('onTogglePinContextTab does nothing when contextTab is null', () => {
+      component.contextTab = null;
+      component.onTogglePinContextTab();
+      expect(projectStateService.togglePin).not.toHaveBeenCalled();
+    });
+
+    it('onTogglePinContextTab does nothing when contextTab is a system tab', () => {
+      component.contextTab = {
+        id: 'home',
+        name: 'Home',
+        type: 'system',
+        systemType: 'home',
+      };
+      component.onTogglePinContextTab();
+      expect(projectStateService.togglePin).not.toHaveBeenCalled();
+    });
+
+    it('onTogglePinContextTab calls togglePin for element tabs', () => {
+      component.contextTab = mockTabs[0]; // has element with id from mockDocuments[0]
+      component.onTogglePinContextTab();
+      expect(projectStateService.togglePin).toHaveBeenCalledWith(
+        mockDocuments[0].id
+      );
     });
   });
 

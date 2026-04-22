@@ -702,6 +702,16 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Toggles pin state for the element-backed tab currently in the context menu.
+   * Only available for non-system tabs and owners.
+   */
+  onTogglePinContextTab(): void {
+    const tab = this.contextTab;
+    if (!tab || tab.type === 'system' || !tab.element) return;
+    this.projectState.togglePin(tab.element.id);
+  }
+
+  /**
    * Get the Material icon name for a tab based on its type
    */
   getTabIcon(tab: AppTab): string {
