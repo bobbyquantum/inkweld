@@ -236,17 +236,93 @@ describe('DocumentElementEditorComponent', () => {
       expect(dialogGatewayMock.openInsertLinkDialog).not.toHaveBeenCalled();
     });
 
-    it('should not open dialog when dialog returns undefined (cancelled)', async () => {
-      component.documentId = 'testuser:test-project:doc-1';
-      fixture.detectChanges();
-      component.ngOnInit();
+    describe('with initialized editor', () => {
+      beforeEach(() => {
+        component.documentId = 'testuser:test-project:doc-1';
+        fixture.detectChanges();
+        component.ngOnInit();
+      });
 
-      (
-        dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValue(undefined);
+      it('should call openInsertLinkDialog on the gateway when editor view exists', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(undefined);
 
-      // Even with a real editor, view may be mocked — this just verifies no throw
-      await expect(component.openInsertLinkDialog()).resolves.not.toThrow();
+        await component.openInsertLinkDialog();
+
+        expect(dialogGatewayMock.openInsertLinkDialog).toHaveBeenCalledOnce();
+      });
+
+      it('should dispatch removeMark when result href is empty (remove link)', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({ href: '', openInNewTab: false });
+
+        const dispatchSpy = vi.spyOn(component.editor.view, 'dispatch');
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).toHaveBeenCalled();
+      });
+
+      it('should dispatch insert when result has linkText and selection is empty', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({
+          href: 'https://example.com',
+          openInNewTab: true,
+          linkText: 'click me',
+        });
+
+        // The mock editor selection.empty is true by default
+        const view = component.editor.view;
+        const dispatchSpy = vi.spyOn(view, 'dispatch');
+        // Ensure tr.insert exists in the mock
+        (view.state.tr as unknown as Record<string, unknown>)['insert'] = vi
+          .fn()
+          .mockReturnValue({});
+        // Mock schema.text to avoid ProseMirror internals
+        const schemaMock = view.state.schema;
+        (schemaMock as unknown as Record<string, unknown>)['text'] = vi
+          .fn()
+          .mockReturnValue({ marks: [] });
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).toHaveBeenCalled();
+      });
+
+      it('should dispatch addMark when selection is non-empty', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({
+          href: 'https://example.com',
+          openInNewTab: false,
+        });
+
+        // Override selection to be non-empty
+        const view = component.editor.view;
+        (view.state.selection as unknown as Record<string, unknown>)['empty'] =
+          false;
+        (view.state.selection as unknown as Record<string, unknown>)['from'] =
+          1;
+        (view.state.selection as unknown as Record<string, unknown>)['to'] = 5;
+        // Mock doc.slice for selectedText extraction
+        (view.state.doc as unknown as Record<string, unknown>)['slice'] = vi
+          .fn()
+          .mockReturnValue({
+            content: { forEach: vi.fn() },
+          });
+        // Mock doc.nodesBetween for link detection
+        (view.state.doc as unknown as Record<string, unknown>)['nodesBetween'] =
+          vi.fn();
+
+        const dispatchSpy = vi.spyOn(view, 'dispatch');
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).toHaveBeenCalled();
+      });
     });
   });
 });

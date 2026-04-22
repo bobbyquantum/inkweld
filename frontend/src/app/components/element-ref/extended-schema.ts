@@ -26,13 +26,12 @@ const linkMarkSpec: MarkSpec = {
   parseDOM: [
     {
       tag: 'a[href]',
-      getAttrs(dom) {
-        const el = dom as HTMLElement;
+      getAttrs(dom: HTMLElement) {
         return {
-          href: el.getAttribute('href'),
-          title: el.getAttribute('title'),
-          target: el.getAttribute('target'),
-          rel: el.getAttribute('rel'),
+          href: dom.getAttribute('href'),
+          title: dom.getAttribute('title'),
+          target: dom.getAttribute('target'),
+          rel: dom.getAttribute('rel'),
         };
       },
     },

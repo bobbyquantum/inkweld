@@ -165,6 +165,22 @@ describe('EditorFloatingMenuComponent', () => {
       component.toggleLink();
       expect(spy).toHaveBeenCalled();
     });
+
+    it('should hide the menu when toggleLink is called', () => {
+      type PositionState = { visible: boolean };
+      const comp = component as unknown as {
+        positionState: ReturnType<
+          typeof import('@angular/core').signal<PositionState>
+        >;
+      };
+      // Make menu visible first
+      comp.positionState.update((s: PositionState) => ({
+        ...s,
+        visible: true,
+      }));
+      component.toggleLink();
+      expect(comp.positionState().visible).toBe(false);
+    });
   });
 
   describe('state updates', () => {

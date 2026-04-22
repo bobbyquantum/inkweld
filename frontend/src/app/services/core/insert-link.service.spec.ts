@@ -1,6 +1,6 @@
-import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { InsertLinkService } from './insert-link.service';
 
