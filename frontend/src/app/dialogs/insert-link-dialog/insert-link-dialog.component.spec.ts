@@ -240,5 +240,69 @@ describe('InsertLinkDialogComponent', () => {
       component.hrefControl.setValue('');
       expect(component.hrefControl.errors).toMatchObject({ required: true });
     });
+
+    it('urlValidator should return null for empty/whitespace-only value (no protocol check needed)', () => {
+      // urlValidator trims the value; whitespace-only is treated as empty and
+      // returns null (no invalidUrl error) — the required validator handles emptiness
+      component.hrefControl.setValue('   ');
+      expect(component.hrefControl.errors).toBeNull();
+    });
+  });
+
+  describe('onConfirm null-coalescing branches', () => {
+    it('should fall back to empty string when href control value is null', () => {
+      const closeSpy = vi.fn();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [InsertLinkDialogComponent, NoopAnimationsModule],
+        providers: [
+          provideZonelessChangeDetection(),
+          { provide: MAT_DIALOG_DATA, useValue: { selectedText: 'hi' } },
+          { provide: MatDialogRef, useValue: { close: closeSpy } },
+        ],
+      });
+      const fixture = TestBed.createComponent(InsertLinkDialogComponent);
+      const comp = fixture.componentInstance;
+      fixture.detectChanges();
+
+      // Force href to null to exercise the `?? ''` branch
+      comp.hrefControl.setValue(null);
+      // Override required validator so the form is valid
+      comp.hrefControl.clearValidators();
+      comp.hrefControl.updateValueAndValidity();
+      comp['form'].controls.openInNewTab.setValue(null);
+      comp.onConfirm();
+
+      expect(closeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ href: '', openInNewTab: true })
+      );
+    });
+
+    it('should fall back to empty string when linkText control value is null', () => {
+      const closeSpy = vi.fn();
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [InsertLinkDialogComponent, NoopAnimationsModule],
+        providers: [
+          provideZonelessChangeDetection(),
+          { provide: MAT_DIALOG_DATA, useValue: {} },
+          { provide: MatDialogRef, useValue: { close: closeSpy } },
+        ],
+      });
+      const fixture = TestBed.createComponent(InsertLinkDialogComponent);
+      const comp = fixture.componentInstance;
+      fixture.detectChanges();
+
+      comp.hrefControl.setValue('https://example.com');
+      // Force linkText to null to exercise the `?? ''` branch
+      comp.linkTextControl.setValue(null);
+      comp.linkTextControl.clearValidators();
+      comp.linkTextControl.updateValueAndValidity();
+      comp.onConfirm();
+
+      expect(closeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ linkText: '' })
+      );
+    });
   });
 });

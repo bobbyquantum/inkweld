@@ -397,6 +397,149 @@ describe('DocumentElementEditorComponent', () => {
         expect(dispatchSpy).toHaveBeenCalled();
         expect(fakeTr.addMark).toHaveBeenCalledWith(1, 5, expect.anything());
       });
+
+      it('should return early without dispatching when destroyed after dialog resolves', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockImplementation(async () => {
+          // Simulate component destroyed while dialog was open
+          component.ngOnDestroy();
+          return { href: 'https://example.com', openInNewTab: false };
+        });
+
+        const dispatchSpy = vi.spyOn(component.editor.view, 'dispatch');
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).not.toHaveBeenCalled();
+      });
+
+      it('should expand range and pre-fill href when cursor is inside an existing link', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(undefined);
+
+        const view = component.editor.view;
+        const existingMark = { attrs: { href: 'https://existing.com' } };
+        const linkMarkType = {
+          name: 'link',
+          isInSet: vi
+            .fn()
+            .mockReturnValueOnce(existingMark) // storedMarks check → found
+            .mockReturnValue(existingMark), // isSameLink walks
+          create: vi.fn(),
+        };
+        const fakeNode = { marks: [], textContent: 'link text', nodeSize: 9 };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 5,
+            to: 5,
+            empty: true,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 5,
+              parent: {
+                // Walk left: one node before cursor
+                childBefore: vi
+                  .fn()
+                  .mockReturnValueOnce({ node: fakeNode, offset: 0 })
+                  .mockReturnValue({ node: null, offset: 0 }),
+                // Walk right: no node after cursor
+                childAfter: vi
+                  .fn()
+                  .mockReturnValue({ node: null, offset: 0, nodeSize: 0 }),
+                content: { size: 10 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: [{}],
+          schema: { marks: { link: linkMarkType } },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+          },
+          tr: {},
+          reconfigure: () => ({}),
+          plugins: [],
+        };
+
+        await component.openInsertLinkDialog();
+
+        expect(dialogGatewayMock.openInsertLinkDialog).toHaveBeenCalledWith(
+          expect.objectContaining({ existingHref: 'https://existing.com' })
+        );
+      });
+
+      it('should detect existing link href from non-empty selection', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(undefined);
+
+        const view = component.editor.view;
+        const existingMark = { attrs: { href: 'https://selection-link.com' } };
+        const linkMarkType = {
+          name: 'link',
+          isInSet: vi.fn().mockReturnValue(existingMark),
+          create: vi.fn(),
+        };
+        const fakeTr = { addMark: vi.fn().mockReturnThis() };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 1,
+            to: 5,
+            empty: false,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 1,
+              parent: {
+                childBefore: () => ({ node: null }),
+                childAfter: () => ({ node: null }),
+                content: { size: 0 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: null,
+          schema: { marks: { link: linkMarkType } },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+            // nodesBetween calls callback with each node
+            nodesBetween: vi
+              .fn()
+              .mockImplementation(
+                (
+                  _from: number,
+                  _to: number,
+                  cb: (node: { marks: unknown[] }) => void
+                ) => {
+                  cb({ marks: [{}] }); // triggers linkMark.isInSet
+                }
+              ),
+            slice: vi.fn().mockReturnValue({
+              content: { forEach: vi.fn() },
+            }),
+          },
+          tr: fakeTr,
+          reconfigure: () => ({}),
+          plugins: [],
+        };
+
+        await component.openInsertLinkDialog();
+
+        expect(dialogGatewayMock.openInsertLinkDialog).toHaveBeenCalledWith(
+          expect.objectContaining({
+            existingHref: 'https://selection-link.com',
+          })
+        );
+      });
     });
   });
 });
