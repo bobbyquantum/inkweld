@@ -1,10 +1,10 @@
 import { Component, inject } from '@angular/core';
 import {
-  AbstractControl,
+  type AbstractControl,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
-  ValidationErrors,
+  type ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -43,7 +43,7 @@ export interface InsertLinkDialogResult {
 
 /** Validates that the value looks like a URL */
 function urlValidator(control: AbstractControl): ValidationErrors | null {
-  const value: string = control.value ?? '';
+  const value: string = (control.value as string) ?? '';
   if (!value) return null; // required handles empty
 
   // Allow relative paths, anchors, mailto:, tel:, and absolute URLs
