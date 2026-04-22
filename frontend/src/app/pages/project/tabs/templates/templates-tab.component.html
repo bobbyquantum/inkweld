@@ -1,125 +1,129 @@
-<div class="templates-tab">
-  <div class="header">
-    <h2>Templates</h2>
-    <p class="hint">
-      Define element structures for your worldbuilding project.
-    </p>
-  </div>
-
-  <div class="controls">
-    <div class="actions">
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="createTemplate()"
-        data-testid="create-template-button">
-        <mat-icon>add</mat-icon>
-        New Template
-      </button>
-    </div>
-
-    <div class="search-bar">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search templates</mat-label>
-        <input
-          matInput
-          type="text"
-          [value]="searchQuery()"
-          (input)="searchQuery.set($any($event.target).value)"
-          placeholder="Search by name..." />
-        <mat-icon matPrefix>search</mat-icon>
-      </mat-form-field>
-    </div>
-  </div>
-
-  <app-settings-tab-status
-    [isLoading]="isLoading()"
-    [error]="error()"
-    (retry)="refresh()" />
-
-  <!-- Empty state - no templates at all -->
-  @if (!isLoading() && !error() && templates().length === 0) {
-    <div class="empty">
-      <mat-icon>description</mat-icon>
-      <p>No templates defined yet.</p>
+@if (editingState().mode === 'edit' && editingSchema(); as schema) {
+  <app-template-editor-page [schema]="schema" (done)="onEditorDone($event)" />
+} @else {
+  <div class="templates-tab">
+    <div class="header">
+      <h2>Templates</h2>
       <p class="hint">
-        Templates define the structure for worldbuilding elements like
-        characters, locations, and more.
+        Define element structures for your worldbuilding project.
       </p>
     </div>
-  }
 
-  <!-- Empty state - search no results -->
-  @if (
-    !isLoading() &&
-    !error() &&
-    templates().length > 0 &&
-    filteredTemplates().length === 0
-  ) {
-    <div class="empty">
-      <mat-icon>search_off</mat-icon>
-      <p>No templates match your search</p>
-      <button mat-button (click)="searchQuery.set('')">Clear filter</button>
+    <div class="controls">
+      <div class="actions">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="createTemplate()"
+          data-testid="create-template-button">
+          <mat-icon>add</mat-icon>
+          New Template
+        </button>
+      </div>
+
+      <div class="search-bar">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search templates</mat-label>
+          <input
+            matInput
+            type="text"
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)"
+            placeholder="Search by name..." />
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+      </div>
     </div>
-  }
 
-  <!-- Templates List -->
-  @if (!isLoading() && !error() && filteredTemplates().length > 0) {
-    <div class="templates-list" data-testid="templates-list">
-      @for (template of filteredTemplates(); track template.id) {
-        <div class="template-row" data-testid="template-card">
-          <div class="template-info">
-            <div class="template-name">
-              <mat-icon>{{ template.icon }}</mat-icon>
-              <span>{{ template.label }}</span>
-              @if (template.isBuiltIn) {
-                <span class="badge built-in">Built-in</span>
-              } @else {
-                <span class="badge custom" data-testid="badge-custom"
-                  >Custom</span
+    <app-settings-tab-status
+      [isLoading]="isLoading()"
+      [error]="error()"
+      (retry)="refresh()" />
+
+    <!-- Empty state - no templates at all -->
+    @if (!isLoading() && !error() && templates().length === 0) {
+      <div class="empty">
+        <mat-icon>description</mat-icon>
+        <p>No templates defined yet.</p>
+        <p class="hint">
+          Templates define the structure for worldbuilding elements like
+          characters, locations, and more.
+        </p>
+      </div>
+    }
+
+    <!-- Empty state - search no results -->
+    @if (
+      !isLoading() &&
+      !error() &&
+      templates().length > 0 &&
+      filteredTemplates().length === 0
+    ) {
+      <div class="empty">
+        <mat-icon>search_off</mat-icon>
+        <p>No templates match your search</p>
+        <button mat-button (click)="searchQuery.set('')">Clear filter</button>
+      </div>
+    }
+
+    <!-- Templates List -->
+    @if (!isLoading() && !error() && filteredTemplates().length > 0) {
+      <div class="templates-list" data-testid="templates-list">
+        @for (template of filteredTemplates(); track template.id) {
+          <div class="template-row" data-testid="template-card">
+            <div class="template-info">
+              <div class="template-name">
+                <mat-icon>{{ template.icon }}</mat-icon>
+                <span>{{ template.label }}</span>
+                @if (template.isBuiltIn) {
+                  <span class="badge built-in">Built-in</span>
+                } @else {
+                  <span class="badge custom" data-testid="badge-custom"
+                    >Custom</span
+                  >
+                }
+              </div>
+              <div class="template-meta">
+                <span
+                  >{{ template.tabCount }}
+                  {{ template.tabCount === 1 ? 'tab' : 'tabs' }}</span
                 >
-              }
+                <span>·</span>
+                <span
+                  >{{ template.fieldCount }}
+                  {{ template.fieldCount === 1 ? 'field' : 'fields' }}</span
+                >
+                @if (template.description) {
+                  <span>· {{ template.description }}</span>
+                }
+              </div>
             </div>
-            <div class="template-meta">
-              <span
-                >{{ template.tabCount }}
-                {{ template.tabCount === 1 ? 'tab' : 'tabs' }}</span
-              >
-              <span>·</span>
-              <span
-                >{{ template.fieldCount }}
-                {{ template.fieldCount === 1 ? 'field' : 'fields' }}</span
-              >
-              @if (template.description) {
-                <span>· {{ template.description }}</span>
-              }
+            <div class="template-actions">
+              <button
+                mat-icon-button
+                matTooltip="Edit"
+                data-testid="edit-template-button"
+                (click)="editTemplate(template)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                matTooltip="Clone"
+                (click)="cloneTemplate(template)"
+                data-testid="clone-template-button">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                matTooltip="Delete"
+                (click)="deleteTemplate(template)"
+                data-testid="delete-template-button">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
             </div>
           </div>
-          <div class="template-actions">
-            <button
-              mat-icon-button
-              matTooltip="Edit"
-              data-testid="edit-template-button"
-              (click)="editTemplate(template)">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              matTooltip="Clone"
-              (click)="cloneTemplate(template)"
-              data-testid="clone-template-button">
-              <mat-icon>content_copy</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              matTooltip="Delete"
-              (click)="deleteTemplate(template)"
-              data-testid="delete-template-button">
-              <mat-icon>delete_outline</mat-icon>
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-  }
-</div>
+        }
+      </div>
+    }
+  </div>
+}
