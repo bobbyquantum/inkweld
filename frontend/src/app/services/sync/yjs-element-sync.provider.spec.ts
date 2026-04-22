@@ -761,4 +761,59 @@ describe('YjsElementSyncProvider', () => {
       expect(websocketProvider.destroy).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('pinnedElementIds in projectMeta', () => {
+    it('stores and retrieves pinnedElementIds via updateProjectMeta', () => {
+      attachDoc();
+
+      provider.updateProjectMeta({
+        name: 'Test Project',
+        description: '',
+        pinnedElementIds: ['elem-1', 'elem-2'],
+      });
+
+      const meta = provider.getProjectMeta();
+      expect(meta?.pinnedElementIds).toEqual(['elem-1', 'elem-2']);
+    });
+
+    it('deletes pinnedElementIds key when array is empty', () => {
+      const doc = attachDoc();
+
+      provider.updateProjectMeta({
+        name: 'Test Project',
+        description: '',
+        pinnedElementIds: ['elem-1'],
+      });
+      provider.updateProjectMeta({
+        pinnedElementIds: [],
+      });
+
+      // The yjs map key should be deleted
+      expect(doc.getMap('projectMeta').get('pinnedElementIds')).toBeUndefined();
+      // In-memory state reflects empty array
+      expect(provider.getProjectMeta()?.pinnedElementIds).toEqual([]);
+    });
+
+    it('returns undefined pinnedElementIds when key is absent', () => {
+      attachDoc();
+
+      provider.updateProjectMeta({ name: 'No Pins', description: '' });
+
+      expect(provider.getProjectMeta()?.pinnedElementIds).toBeUndefined();
+    });
+
+    it('handles invalid JSON in pinnedElementIds gracefully', () => {
+      const doc = attachDoc();
+
+      doc.transact(() => {
+        doc.getMap<string>('projectMeta').set('name', 'Test');
+        doc.getMap<string>('projectMeta').set('pinnedElementIds', 'not-json');
+      });
+      (
+        provider as unknown as { loadElementsFromDoc: () => void }
+      ).loadElementsFromDoc();
+
+      expect(provider.getProjectMeta()?.pinnedElementIds).toBeUndefined();
+    });
+  });
 });

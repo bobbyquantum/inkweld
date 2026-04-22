@@ -88,7 +88,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟡 | Tag filtering in search | Filter search results by tags, element types, relationships, and worldbuilding schemas |
 | ⬜ | 🟡 | Tag filtering in project tree | Show/hide elements by tag |
 | ⬜ | 🟡 | Breadcrumbs | Show path to current document |
-| ⬜ | 🟡 | Favorites/Bookmarks | Quick access to key elements |
+| ✅ | 🟡 | Pinning | Pin elements to Home tab and sidebar for quick access |
 | ✅ | 🟢 | Recent files list | Tracks last 10 files per project |
 
 ### Writing Tools

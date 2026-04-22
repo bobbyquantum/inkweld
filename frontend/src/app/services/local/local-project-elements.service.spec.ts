@@ -626,4 +626,47 @@ describe('LocalProjectElementsService', () => {
       expect(service.mediaProjectTags()).toEqual(second);
     });
   });
+
+  describe('pinnedElementIds in saveProjectMeta / extractProjectMeta', () => {
+    it('should store and retrieve pinnedElementIds', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        name: 'My Project',
+        pinnedElementIds: ['elem-1', 'elem-2'],
+      });
+
+      expect(service.projectMeta()?.pinnedElementIds).toEqual([
+        'elem-1',
+        'elem-2',
+      ]);
+    });
+
+    it('should delete pinnedElementIds key when array is empty', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        name: 'My Project',
+        pinnedElementIds: ['elem-1'],
+      });
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        pinnedElementIds: [],
+      });
+
+      expect(service.projectMeta()?.pinnedElementIds).toBeUndefined();
+    });
+
+    it('should not write name if empty', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, { name: 'Set' });
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, { name: '' });
+
+      // Empty name should not overwrite existing name
+      expect(service.projectMeta()?.name).toBe('Set');
+    });
+
+    it('extractProjectMeta returns undefined for empty map', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      // No meta written yet – projectMeta signal should be undefined
+      expect(service.projectMeta()).toBeUndefined();
+    });
+  });
 });

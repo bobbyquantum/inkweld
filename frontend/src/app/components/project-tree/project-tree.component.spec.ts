@@ -99,6 +99,10 @@ describe('ProjectTreeComponent', () => {
         slug: 'testproject',
       }),
       canWrite: signal(true),
+      isOwner: signal(true),
+      pinnedElementIds: signal<string[]>([]),
+      isPinned: vi.fn().mockReturnValue(false),
+      togglePin: vi.fn(),
       saveProjectElements: vi.fn().mockResolvedValue(undefined),
       showEditProjectDialog: vi.fn(),
       openDocument: vi.fn(),
@@ -857,6 +861,95 @@ describe('ProjectTreeComponent', () => {
       fixture.detectChanges();
 
       expect(component.connectedDropLists()).toEqual([]);
+    });
+  });
+
+  describe('Pinning', () => {
+    it('onTogglePin should delegate to projectStateService.togglePin', () => {
+      component.onTogglePin(mockDto);
+      expect(projectStateService.togglePin).toHaveBeenCalledWith(mockDto.id);
+    });
+
+    it('onOpenPinnedElement should call onOpenDocument for a pinned element', () => {
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+
+      component.onOpenPinnedElement({
+        id: '1',
+        name: 'Test Element',
+        type: ElementType.Folder,
+        parentId: null,
+        order: 0,
+        level: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      });
+
+      expect(emitted.length).toBe(1);
+    });
+
+    it('pinnedElements should resolve elements from pinnedElementIds signal', () => {
+      (
+        projectStateService.pinnedElementIds as ReturnType<
+          typeof signal<string[]>
+        >
+      ).set(['1']);
+      fixture.detectChanges();
+
+      expect(component.pinnedElements()).toEqual([mockDto]);
+    });
+
+    it('pinnedElements should return empty array when no matching elements', () => {
+      (
+        projectStateService.pinnedElementIds as ReturnType<
+          typeof signal<string[]>
+        >
+      ).set(['nonexistent']);
+      fixture.detectChanges();
+
+      expect(component.pinnedElements()).toEqual([]);
+    });
+  });
+
+  describe('Touch context menu suppression', () => {
+    it('onContextMenuOpen with PointerEvent touch should suppress next touchend open', () => {
+      const touchPointerEvent = new PointerEvent('pointerdown', {
+        pointerType: 'touch',
+      });
+      component.onContextMenuOpen(mockDto, touchPointerEvent);
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto);
+
+      // Should be suppressed
+      expect(emitted.length).toBe(0);
+    });
+
+    it('onContextMenuOpen without event should not suppress open', () => {
+      component.onContextMenuOpen(mockDto);
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto);
+
+      expect(emitted.length).toBe(1);
+    });
+
+    it('onContextMenuClose should clear suppress flag', () => {
+      const touchPointerEvent = new PointerEvent('pointerdown', {
+        pointerType: 'touch',
+      });
+      component.onContextMenuOpen(mockDto, touchPointerEvent);
+      component.onContextMenuClose();
+
+      const emitted: unknown[] = [];
+      component.documentOpened.subscribe(e => emitted.push(e));
+      component.onOpenDocument(mockDto);
+
+      // Suppress was cleared, so open should proceed
+      expect(emitted.length).toBe(1);
     });
   });
 });

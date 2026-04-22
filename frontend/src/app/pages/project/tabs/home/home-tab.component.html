@@ -103,6 +103,30 @@
     </div>
     <div class="home-column">
       <div class="home-column-header">
+        <h3>Pinned</h3>
+      </div>
+      @if (pinnedElements().length > 0) {
+        <div class="recent-files-list" data-testid="home-pinned-list">
+          @for (element of pinnedElements(); track element.id) {
+            <button
+              type="button"
+              class="recent-file-item"
+              [attr.data-testid]="'home-pinned-' + element.name"
+              (click)="onPinnedElementClick(element)">
+              <mat-icon>push_pin</mat-icon>
+              <span class="recent-file-name">{{ element.name }}</span>
+            </button>
+          }
+        </div>
+      } @else {
+        <p class="no-recent-files" data-testid="home-pinned-empty">
+          <mat-icon>info</mat-icon>
+          No pinned elements yet. Right-click an element to pin it.
+        </p>
+      }
+    </div>
+    <div class="home-column">
+      <div class="home-column-header">
         <h3>Recent Elements</h3>
       </div>
       @if (
