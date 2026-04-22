@@ -274,22 +274,58 @@ describe('DocumentElementEditorComponent', () => {
           linkText: 'click me',
         });
 
-        // The mock editor selection.empty is true by default
         const view = component.editor.view;
         const dispatchSpy = vi.spyOn(view, 'dispatch');
-        // Ensure tr.insert exists in the mock
-        (view.state.tr as unknown as Record<string, unknown>)['insert'] = vi
-          .fn()
-          .mockReturnValue({});
-        // Mock schema.text to avoid ProseMirror internals
-        const schemaMock = view.state.schema;
-        (schemaMock as unknown as Record<string, unknown>)['text'] = vi
-          .fn()
-          .mockReturnValue({ marks: [] });
+
+        // Replace state with a plain object so we can control all fields.
+        // The real ProseMirror Transaction.insert rejects non-Node objects, so
+        // we must stub the entire tr chain rather than patching individual methods.
+        const fakeTr = { insert: vi.fn().mockReturnThis() };
+        const fakeTextNode = {};
+        const fakeMark = { type: { name: 'link' } };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 0,
+            to: 0,
+            empty: true,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 0,
+              parent: {
+                childBefore: () => ({ node: null }),
+                childAfter: () => ({ node: null }),
+                content: { size: 0 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: null,
+          schema: {
+            marks: {
+              link: {
+                name: 'link',
+                isInSet: () => null,
+                create: () => fakeMark,
+              },
+            },
+            text: vi.fn().mockReturnValue(fakeTextNode),
+          },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+          },
+          tr: fakeTr,
+          reconfigure: () => ({}),
+          plugins: [],
+        };
 
         await component.openInsertLinkDialog();
 
         expect(dispatchSpy).toHaveBeenCalled();
+        expect(fakeTr.insert).toHaveBeenCalledWith(0, fakeTextNode);
       });
 
       it('should dispatch addMark when selection is non-empty', async () => {
@@ -300,28 +336,58 @@ describe('DocumentElementEditorComponent', () => {
           openInNewTab: false,
         });
 
-        // Override selection to be non-empty
         const view = component.editor.view;
-        (view.state.selection as unknown as Record<string, unknown>)['empty'] =
-          false;
-        (view.state.selection as unknown as Record<string, unknown>)['from'] =
-          1;
-        (view.state.selection as unknown as Record<string, unknown>)['to'] = 5;
-        // Mock doc.slice for selectedText extraction
-        (view.state.doc as unknown as Record<string, unknown>)['slice'] = vi
-          .fn()
-          .mockReturnValue({
-            content: { forEach: vi.fn() },
-          });
-        // Mock doc.nodesBetween for link detection
-        (view.state.doc as unknown as Record<string, unknown>)['nodesBetween'] =
-          vi.fn();
-
         const dispatchSpy = vi.spyOn(view, 'dispatch');
+
+        // Replace state with a plain object so selection.empty can be set to
+        // false (the real ProseMirror Selection has a getter-only property).
+        const fakeTr = { addMark: vi.fn().mockReturnThis() };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 1,
+            to: 5,
+            empty: false,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 0,
+              parent: {
+                childBefore: () => ({ node: null }),
+                childAfter: () => ({ node: null }),
+                content: { size: 0 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: null,
+          schema: {
+            marks: {
+              link: {
+                name: 'link',
+                isInSet: () => null,
+                create: vi.fn().mockReturnValue({ type: { name: 'link' } }),
+              },
+            },
+          },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+            nodesBetween: vi.fn(),
+            slice: vi.fn().mockReturnValue({
+              content: { forEach: vi.fn() },
+            }),
+          },
+          tr: fakeTr,
+          reconfigure: () => ({}),
+          plugins: [],
+        };
 
         await component.openInsertLinkDialog();
 
         expect(dispatchSpy).toHaveBeenCalled();
+        expect(fakeTr.addMark).toHaveBeenCalledWith(1, 5, expect.anything());
       });
     });
   });

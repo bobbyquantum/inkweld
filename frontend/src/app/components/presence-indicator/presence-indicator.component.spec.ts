@@ -71,7 +71,11 @@ describe('PresenceIndicatorComponent', () => {
         { provide: UserService, useValue: { getUserAvatar: vi.fn() } },
         {
           provide: LocalStorageService,
-          useValue: { getItem: vi.fn(), setItem: vi.fn() },
+          useValue: {
+            getItem: vi.fn(),
+            setItem: vi.fn(),
+            getUserAvatarUrl: vi.fn().mockResolvedValue(null),
+          },
         },
       ],
     }).compileComponents();

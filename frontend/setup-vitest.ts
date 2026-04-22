@@ -93,6 +93,29 @@ if (!getTestBed().platform) {
 }
 
 // Clean up after each test to prevent state leakage
+// ---------------------------------------------------------------------------
+// Filter known benign test-environment warnings from console output
+// ---------------------------------------------------------------------------
+// Some root-level services (e.g. SystemConfigService) fire HTTP requests on
+// construction and log a console.warn when those requests fail in the test
+// environment (no backend running).  These warnings are expected and carry no
+// signal — they only clutter the test output.  We suppress the specific
+// patterns here rather than silencing console.warn entirely, so genuine
+// unexpected warnings remain visible.
+// ---------------------------------------------------------------------------
+const SUPPRESSED_WARN_PATTERNS: RegExp[] = [
+  // SystemConfigService: HTTP call to /api/v1/config/features always fails in
+  // tests because no backend is running.
+  /\[SystemConfig\] Failed to load system features/,
+];
+
+const _originalWarn = console.warn.bind(console);
+console.warn = (...args: unknown[]) => {
+  const message = String(args[0] ?? '');
+  if (SUPPRESSED_WARN_PATTERNS.some(re => re.test(message))) return;
+  _originalWarn(...args);
+};
+
 // Note: Individual test files should handle their own cleanup in afterEach
 // This global cleanup runs last and ensures TestBed is reset
 
