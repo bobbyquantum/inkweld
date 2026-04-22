@@ -201,19 +201,19 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
 
   /** Update a tab's properties */
   updateTab(index: number, updates: Partial<TabSchema>): void {
-    const updatedTabs = [...this.tabs()];
-    updatedTabs[index] = { ...updatedTabs[index], ...updates };
-    this.tabs.set(updatedTabs);
+    this.mutateTabs(tabs => {
+      tabs[index] = { ...tabs[index], ...updates };
+    });
   }
 
   /** Handle tab reordering via drag-drop */
   onTabsDrop(event: CdkDragDrop<TabSchema[]>): void {
-    const updatedTabs = [...this.tabs()];
-    moveItemInArray(updatedTabs, event.previousIndex, event.currentIndex);
-    updatedTabs.forEach((tab, idx) => {
-      tab.order = idx;
+    this.mutateTabs(tabs => {
+      moveItemInArray(tabs, event.previousIndex, event.currentIndex);
+      tabs.forEach((tab, idx) => {
+        tab.order = idx;
+      });
     });
-    this.tabs.set(updatedTabs);
   }
 
   /** Add a field to a tab */
@@ -227,17 +227,17 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
       placeholder: '',
       layout: { span: 12 },
     };
-    const updatedTabs = [...this.tabs()];
-    updatedTabs[tabIndex].fields.push(newField);
-    this.tabs.set(updatedTabs);
+    this.mutateTabs(tabs => {
+      tabs[tabIndex].fields.push(newField);
+    });
     this._lastFieldId = fieldId;
   }
 
   /** Remove a field from a tab */
   removeField(tabIndex: number, fieldIndex: number): void {
-    const updatedTabs = [...this.tabs()];
-    updatedTabs[tabIndex].fields.splice(fieldIndex, 1);
-    this.tabs.set(updatedTabs);
+    this.mutateTabs(tabs => {
+      tabs[tabIndex].fields.splice(fieldIndex, 1);
+    });
   }
 
   /** Update a field's properties */
@@ -246,23 +246,23 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     fieldIndex: number,
     updates: Partial<FieldSchema>
   ): void {
-    const updatedTabs = [...this.tabs()];
-    updatedTabs[tabIndex].fields[fieldIndex] = {
-      ...updatedTabs[tabIndex].fields[fieldIndex],
-      ...updates,
-    };
-    this.tabs.set(updatedTabs);
+    this.mutateTabs(tabs => {
+      tabs[tabIndex].fields[fieldIndex] = {
+        ...tabs[tabIndex].fields[fieldIndex],
+        ...updates,
+      };
+    });
   }
 
   /** Handle field reordering within a tab */
   onFieldsDrop(event: CdkDragDrop<FieldSchema[]>, tabIndex: number): void {
-    const updatedTabs = [...this.tabs()];
-    moveItemInArray(
-      updatedTabs[tabIndex].fields,
-      event.previousIndex,
-      event.currentIndex
-    );
-    this.tabs.set(updatedTabs);
+    this.mutateTabs(tabs => {
+      moveItemInArray(
+        tabs[tabIndex].fields,
+        event.previousIndex,
+        event.currentIndex
+      );
+    });
   }
 
   /** Save the updated schema */
@@ -306,6 +306,12 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
   /** Cancel editing */
   cancel(): void {
     this.done.emit(null);
+  }
+
+  private mutateTabs(fn: (tabs: TabSchema[]) => void): void {
+    const updatedTabs = [...this.tabs()];
+    fn(updatedTabs);
+    this.tabs.set(updatedTabs);
   }
 
   private createUniqueKey(prefix: string): string {
