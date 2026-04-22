@@ -526,14 +526,26 @@ export class LocalProjectElementsService {
       const connection = await this.getOrCreateConnection(username, slug);
 
       connection.doc.transact(() => {
-        if (meta.name !== undefined) {
+        // Only write name/description if they're non-empty; avoid overwriting
+        // an existing value (or the absence of one) with an empty placeholder.
+        if (meta.name) {
           connection.projectMetaMap.set('name', meta.name);
         }
-        if (meta.description !== undefined) {
+        if (meta.description !== undefined && meta.description !== '') {
           connection.projectMetaMap.set('description', meta.description);
         }
         if (meta.coverMediaId !== undefined) {
           connection.projectMetaMap.set('coverMediaId', meta.coverMediaId);
+        }
+        if (meta.pinnedElementIds !== undefined) {
+          if (meta.pinnedElementIds.length === 0) {
+            connection.projectMetaMap.delete('pinnedElementIds');
+          } else {
+            connection.projectMetaMap.set(
+              'pinnedElementIds',
+              JSON.stringify(meta.pinnedElementIds)
+            );
+          }
         }
         connection.projectMetaMap.set('updatedAt', new Date().toISOString());
       });
@@ -559,13 +571,22 @@ export class LocalProjectElementsService {
    * Extract ProjectMeta from Y.Map
    */
   private extractProjectMeta(map: Y.Map<string>): ProjectMeta | undefined {
-    const name = map.get('name');
-    if (!name) return undefined;
+    // Return undefined only if the map has no meaningful content at all
+    if (map.size === 0) return undefined;
 
     return {
-      name,
+      name: map.get('name') ?? '',
       description: map.get('description') || '',
       coverMediaId: map.get('coverMediaId'),
+      pinnedElementIds: (() => {
+        const raw = map.get('pinnedElementIds');
+        if (!raw) return undefined;
+        try {
+          return JSON.parse(raw) as string[];
+        } catch {
+          return undefined;
+        }
+      })(),
       updatedAt: map.get('updatedAt') || new Date().toISOString(),
     };
   }
