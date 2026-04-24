@@ -261,9 +261,8 @@ export class UserService {
         const activeConfig = this.storageContext.getActiveConfig();
         if (activeConfig) {
           this.storageContext.updateConfigUserProfile(activeConfig.id, {
-            name: response.user.name,
+            name: response.user.name ?? response.user.username,
             username: response.user.username,
-            avatarUrl: response.user.avatarUrl ?? undefined,
           });
         }
       }
