@@ -1206,4 +1206,58 @@ describe('TimelineTabComponent', () => {
     await component['onAddEra']();
     expect(mockTimelineService.addEra).not.toHaveBeenCalled();
   });
+
+  // ─── Corrupt data resilience ───────────────────────────────────────────────
+
+  it('eventPills omits events with corrupt start (matching systemId but wrong unit count)', () => {
+    fixture.detectChanges();
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const corruptEvent: TimelineEvent = {
+      id: 'corrupt-start',
+      trackId: defaultConfig.tracks[0].id,
+      title: 'Corrupt',
+      start: { systemId: system.id, units: ['1'] }, // wrong unit count
+    };
+    timelineSignal.set({ ...defaultConfig, events: [corruptEvent] });
+    fixture.detectChanges();
+    expect(component['eventPills']().length).toBe(0);
+  });
+
+  it('eventPills treats corrupt end point as a point event (falls back to startTick)', () => {
+    fixture.detectChanges();
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const event: TimelineEvent = {
+      id: 'corrupt-end',
+      trackId: defaultConfig.tracks[0].id,
+      title: 'Corrupt end',
+      start: { systemId: system.id, units: ['2024', '1', '1'] },
+      end: { systemId: system.id, units: ['1'] }, // corrupt end — wrong unit count
+    };
+    timelineSignal.set({ ...defaultConfig, events: [event] });
+    fixture.detectChanges();
+    const pills = component['eventPills']();
+    // Event still renders — corrupt end is just ignored (treated as point event)
+    expect(pills.length).toBe(1);
+  });
+
+  it('eraBands omits eras with corrupt start (matching systemId but wrong unit count)', () => {
+    fixture.detectChanges();
+    const system = TIME_SYSTEM_TEMPLATES[0];
+    const corruptEra: TimelineEra = {
+      id: 'corrupt-era',
+      name: 'Bad Era',
+      start: { systemId: system.id, units: ['1'] }, // corrupt
+      end: { systemId: system.id, units: ['2024', '6', '1'] },
+      color: '#ff0000',
+    };
+    timelineSignal.set({ ...defaultConfig, eras: [corruptEra] });
+    fixture.detectChanges();
+    expect(component['eraBands']().length).toBe(0);
+  });
+
+  it('fitContents (onFit) does not throw or warn with valid data', () => {
+    fixture.detectChanges();
+    component['onFit']();
+    expect(mockLogger.warn).not.toHaveBeenCalled();
+  });
 });

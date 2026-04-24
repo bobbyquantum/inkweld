@@ -33,6 +33,7 @@ import {
 } from '@dialogs/timeline-event-dialog/timeline-event-dialog.component';
 import {
   formatTimePoint,
+  isValidTimePointFor,
   type TimePoint,
   timePointToAbsolute,
   type TimeSystem,
@@ -366,17 +367,18 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const preview = this.eventDragPreview();
 
     return this.events().flatMap((event): EventPill[] => {
-      if (event.start.systemId !== system.id) return [];
+      if (!isValidTimePointFor(event.start, system)) return [];
       const row = rowByTrack.get(event.trackId);
       if (!row) return [];
       const effectiveStart =
         preview?.eventId === event.id ? preview.start : event.start;
       const effectiveEnd =
         preview?.eventId === event.id ? preview.end : event.end;
+      if (!isValidTimePointFor(effectiveStart, system)) return [];
       const startTick = timePointToAbsolute(effectiveStart, system);
       const startX = this.labelGutter + tickToX(startTick, bounds, available);
       const endTick =
-        effectiveEnd?.systemId === system.id
+        effectiveEnd && isValidTimePointFor(effectiveEnd, system)
           ? timePointToAbsolute(effectiveEnd, system)
           : startTick;
       const endX = this.labelGutter + tickToX(endTick, bounds, available);
@@ -407,8 +409,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const bandHeight = this.tracksCanvasHeight();
     const labelY = Math.max(0, this.eraHeaderHeight / 2);
     return this.eras().flatMap((era): EraBand[] => {
-      if (era.start.systemId !== system.id) return [];
-      if (era.end.systemId !== system.id) return [];
+      if (!isValidTimePointFor(era.start, system)) return [];
+      if (!isValidTimePointFor(era.end, system)) return [];
       // During an active drag, override this era's start/end with the preview.
       const effectiveStart =
         preview?.eraId === era.id ? preview.start : era.start;
@@ -669,7 +671,10 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     if (event.button !== 0) return;
     const system = this.activeSystem();
     if (!system) return;
-    if (era.start.systemId !== system.id || era.end.systemId !== system.id) {
+    if (
+      !isValidTimePointFor(era.start, system) ||
+      !isValidTimePointFor(era.end, system)
+    ) {
       return;
     }
     event.stopPropagation();
@@ -753,8 +758,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     if (event.button !== 0) return;
     const system = this.activeSystem();
     if (!system) return;
-    if (ev.start.systemId !== system.id) return;
-    if (ev.end && ev.end.systemId !== system.id) return;
+    if (!isValidTimePointFor(ev.start, system)) return;
+    if (ev.end && !isValidTimePointFor(ev.end, system)) return;
     // Resize handles only make sense for ranged events.
     if (kind !== 'move' && !ev.end) return;
     event.stopPropagation();
@@ -841,7 +846,16 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     if (!config) return;
     const system = this.activeSystem();
     if (!system) return;
-    this.bounds.set(computeDefaultBounds(system, config.events, config.eras));
+    try {
+      this.bounds.set(computeDefaultBounds(system, config.events, config.eras));
+    } catch (err) {
+      this.logger.warn(
+        'Timeline',
+        'fitContents failed – timeline data may be corrupt; using default bounds',
+        err
+      );
+      this.bounds.set({ minTick: 0n, maxTick: 100n });
+    }
   }
 
   protected onOpenTimeSystemSettings(): void {
