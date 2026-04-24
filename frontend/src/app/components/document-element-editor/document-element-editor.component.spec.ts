@@ -399,12 +399,13 @@ describe('DocumentElementEditorComponent', () => {
       });
 
       it('should return early without dispatching when destroyed after dialog resolves', async () => {
+        // Destroy the component before the dialog result is consumed
+        component.ngOnDestroy();
         (
           dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
-        ).mockImplementation(async () => {
-          // Simulate component destroyed while dialog was open
-          component.ngOnDestroy();
-          return { href: 'https://example.com', openInNewTab: false };
+        ).mockResolvedValue({
+          href: 'https://example.com',
+          openInNewTab: false,
         });
 
         const dispatchSpy = vi.spyOn(component.editor.view, 'dispatch');
