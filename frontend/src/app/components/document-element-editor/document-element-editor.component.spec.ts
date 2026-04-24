@@ -6,6 +6,7 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { type Element, type Project } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -22,6 +23,7 @@ describe('DocumentElementEditorComponent', () => {
   let documentServiceMock: Partial<DocumentService>;
   let projectStateServiceMock: Partial<ProjectStateService>;
   let settingsServiceMock: Partial<SettingsService>;
+  let dialogGatewayMock: Partial<DialogGatewayService>;
   let wordCountSignal: ReturnType<typeof signal<number>>;
 
   const mockProject: Project = {
@@ -60,6 +62,10 @@ describe('DocumentElementEditorComponent', () => {
       getSetting: vi.fn().mockReturnValue(true),
     };
 
+    dialogGatewayMock = {
+      openInsertLinkDialog: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [DocumentElementEditorComponent, NoopAnimationsModule],
       schemas: [NO_ERRORS_SCHEMA],
@@ -68,6 +74,7 @@ describe('DocumentElementEditorComponent', () => {
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: SettingsService, useValue: settingsServiceMock },
+        { provide: DialogGatewayService, useValue: dialogGatewayMock },
       ],
     }).compileComponents();
 
@@ -219,6 +226,321 @@ describe('DocumentElementEditorComponent', () => {
       component.ngOnInit();
 
       expect(component.isCursorInLintSuggestion()).toBe(false);
+    });
+  });
+
+  describe('openInsertLinkDialog', () => {
+    it('should do nothing when editor view is unavailable', async () => {
+      // editor is not initialized — view is undefined
+      await component.openInsertLinkDialog();
+      expect(dialogGatewayMock.openInsertLinkDialog).not.toHaveBeenCalled();
+    });
+
+    describe('with initialized editor', () => {
+      beforeEach(() => {
+        component.documentId = 'testuser:test-project:doc-1';
+        fixture.detectChanges();
+        component.ngOnInit();
+      });
+
+      it('should call openInsertLinkDialog on the gateway when editor view exists', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(undefined);
+
+        await component.openInsertLinkDialog();
+
+        expect(dialogGatewayMock.openInsertLinkDialog).toHaveBeenCalledOnce();
+      });
+
+      it('should dispatch removeMark when result href is empty (remove link)', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({ href: '', openInNewTab: false });
+
+        const dispatchSpy = vi.spyOn(component.editor.view, 'dispatch');
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).toHaveBeenCalled();
+      });
+
+      it('should dispatch insert when result has linkText and selection is empty', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({
+          href: 'https://example.com',
+          openInNewTab: true,
+          linkText: 'click me',
+        });
+
+        const view = component.editor.view;
+        // Use mockImplementation to prevent call-through to real ProseMirror
+        // dispatch, which would call state.apply(tr) on our fake tr object.
+        const dispatchSpy = vi
+          .spyOn(view, 'dispatch')
+          .mockImplementation(() => {});
+
+        // Replace state with a plain object so we can control all fields.
+        // The real ProseMirror Transaction.insert rejects non-Node objects, so
+        // we must stub the entire tr chain rather than patching individual methods.
+        const fakeTr = { insert: vi.fn().mockReturnThis() };
+        const fakeTextNode = {};
+        const fakeMark = { type: { name: 'link' } };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 0,
+            to: 0,
+            empty: true,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 0,
+              parent: {
+                childBefore: () => ({ node: null }),
+                childAfter: () => ({ node: null }),
+                content: { size: 0 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: null,
+          schema: {
+            marks: {
+              link: {
+                name: 'link',
+                isInSet: () => null,
+                create: () => fakeMark,
+              },
+            },
+            text: vi.fn().mockReturnValue(fakeTextNode),
+          },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+          },
+          tr: fakeTr,
+          reconfigure: () => ({}),
+          plugins: [],
+        };
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).toHaveBeenCalled();
+        expect(fakeTr.insert).toHaveBeenCalledWith(0, fakeTextNode);
+      });
+
+      it('should dispatch addMark when selection is non-empty', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({
+          href: 'https://example.com',
+          openInNewTab: false,
+        });
+
+        const view = component.editor.view;
+        // Use mockImplementation to prevent call-through to real ProseMirror
+        // dispatch, which would call state.apply(tr) on our fake tr object.
+        const dispatchSpy = vi
+          .spyOn(view, 'dispatch')
+          .mockImplementation(() => {});
+
+        // Replace state with a plain object so selection.empty can be set to
+        // false (the real ProseMirror Selection has a getter-only property).
+        const fakeTr = { addMark: vi.fn().mockReturnThis() };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 1,
+            to: 5,
+            empty: false,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 0,
+              parent: {
+                childBefore: () => ({ node: null }),
+                childAfter: () => ({ node: null }),
+                content: { size: 0 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: null,
+          schema: {
+            marks: {
+              link: {
+                name: 'link',
+                isInSet: () => null,
+                create: vi.fn().mockReturnValue({ type: { name: 'link' } }),
+              },
+            },
+          },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+            nodesBetween: vi.fn(),
+            slice: vi.fn().mockReturnValue({
+              content: { forEach: vi.fn() },
+            }),
+          },
+          tr: fakeTr,
+          reconfigure: () => ({}),
+          plugins: [],
+        };
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).toHaveBeenCalled();
+        expect(fakeTr.addMark).toHaveBeenCalledWith(1, 5, expect.anything());
+      });
+
+      it('should return early without dispatching when destroyed after dialog resolves', async () => {
+        // Destroy the component before the dialog result is consumed
+        component.ngOnDestroy();
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({
+          href: 'https://example.com',
+          openInNewTab: false,
+        });
+
+        const dispatchSpy = vi.spyOn(component.editor.view, 'dispatch');
+
+        await component.openInsertLinkDialog();
+
+        expect(dispatchSpy).not.toHaveBeenCalled();
+      });
+
+      it('should expand range and pre-fill href when cursor is inside an existing link', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(undefined);
+
+        const view = component.editor.view;
+        const existingMark = { attrs: { href: 'https://existing.com' } };
+        const linkMarkType = {
+          name: 'link',
+          isInSet: vi
+            .fn()
+            .mockReturnValueOnce(existingMark) // storedMarks check → found
+            .mockReturnValue(existingMark), // isSameLink walks
+          create: vi.fn(),
+        };
+        const fakeNode = { marks: [], textContent: 'link text', nodeSize: 9 };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 5,
+            to: 5,
+            empty: true,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 5,
+              parent: {
+                // Walk left: one node before cursor
+                childBefore: vi
+                  .fn()
+                  .mockReturnValueOnce({ node: fakeNode, offset: 0 })
+                  .mockReturnValue({ node: null, offset: 0 }),
+                // Walk right: no node after cursor
+                childAfter: vi
+                  .fn()
+                  .mockReturnValue({ node: null, offset: 0, nodeSize: 0 }),
+                content: { size: 10 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: [{}],
+          schema: { marks: { link: linkMarkType } },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+          },
+          tr: {},
+          reconfigure: () => ({}),
+          plugins: [],
+        };
+
+        await component.openInsertLinkDialog();
+
+        expect(dialogGatewayMock.openInsertLinkDialog).toHaveBeenCalledWith(
+          expect.objectContaining({ existingHref: 'https://existing.com' })
+        );
+      });
+
+      it('should detect existing link href from non-empty selection', async () => {
+        (
+          dialogGatewayMock.openInsertLinkDialog as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(undefined);
+
+        const view = component.editor.view;
+        const existingMark = { attrs: { href: 'https://selection-link.com' } };
+        const linkMarkType = {
+          name: 'link',
+          isInSet: vi.fn().mockReturnValue(existingMark),
+          create: vi.fn(),
+        };
+        const fakeTr = { addMark: vi.fn().mockReturnThis() };
+        (view as unknown as Record<string, unknown>)['state'] = {
+          selection: {
+            from: 1,
+            to: 5,
+            empty: false,
+            $from: {
+              marks: () => [],
+              start: () => 0,
+              parentOffset: 1,
+              parent: {
+                childBefore: () => ({ node: null }),
+                childAfter: () => ({ node: null }),
+                content: { size: 0 },
+              },
+            },
+            ranges: [],
+          },
+          storedMarks: null,
+          schema: { marks: { link: linkMarkType } },
+          doc: {
+            textBetween: () => '',
+            content: { size: 0 },
+            nodeSize: 0,
+            rangeHasMark: () => false,
+            // nodesBetween calls callback with each node
+            nodesBetween: vi
+              .fn()
+              .mockImplementation(
+                (
+                  _from: number,
+                  _to: number,
+                  cb: (node: { marks: unknown[] }) => void
+                ) => {
+                  cb({ marks: [{}] }); // triggers linkMark.isInSet
+                }
+              ),
+            slice: vi.fn().mockReturnValue({
+              content: { forEach: vi.fn() },
+            }),
+          },
+          tr: fakeTr,
+          reconfigure: () => ({}),
+          plugins: [],
+        };
+
+        await component.openInsertLinkDialog();
+
+        expect(dialogGatewayMock.openInsertLinkDialog).toHaveBeenCalledWith(
+          expect.objectContaining({
+            existingHref: 'https://selection-link.com',
+          })
+        );
+      });
     });
   });
 });

@@ -52,6 +52,9 @@ export class EditorFloatingMenuComponent implements OnDestroy {
   /** Emitted when the user clicks the comment button */
   addComment = output<void>();
 
+  /** Emitted when the user clicks the link button — delegates to document editor */
+  insertLink = output<void>();
+
   /** Signal for tracking the current selection state */
   private readonly selectionState = signal({
     bold: false,
@@ -307,34 +310,10 @@ export class EditorFloatingMenuComponent implements OnDestroy {
     }
   }
 
-  /** Opens link dialog or toggles link */
+  /** Delegates link insertion/editing to the document editor */
   toggleLink(): void {
-    const view = this.editor?.view;
-    if (!view) return;
-
-    const { state } = view;
-    const { schema, selection } = state;
-    const linkMark = schema.marks['link'];
-
-    if (!linkMark) return;
-
-    // Check if we're already in a link
-    const { from, to } = selection;
-    const hasLink = state.doc.rangeHasMark(from, to, linkMark);
-
-    if (hasLink) {
-      // Remove the link
-      const tr = state.tr.removeMark(from, to, linkMark);
-      view.dispatch(tr);
-    } else {
-      // Prompt for URL and add link
-      const url = prompt('Enter URL:');
-      if (url) {
-        const tr = state.tr.addMark(from, to, linkMark.create({ href: url }));
-        view.dispatch(tr);
-      }
-    }
-    view.focus();
+    this.insertLink.emit();
+    this.hide();
   }
 
   onAddComment(): void {

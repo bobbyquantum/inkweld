@@ -98,6 +98,9 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
   /** Emitted when the insert image button is clicked */
   @Output() insertImageClick = new EventEmitter<void>();
 
+  /** Emitted when the insert/edit link button is clicked */
+  @Output() insertLinkClick = new EventEmitter<void>();
+
   /** Emitted when the comment toggle button is clicked */
   @Output() toggleComments = new EventEmitter<void>();
 
@@ -808,45 +811,10 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
 
   // ========== Link Commands ==========
 
-  /** Insert or edit a link */
+  /** Insert or edit a link — delegates to the document editor via event */
   insertLink(): void {
     if (this.disabled) return;
-
-    const view = this.editor?.view;
-    if (!view) return;
-
-    const { state, dispatch } = view;
-    const { schema, selection } = state;
-    const linkMark = schema.marks['link'];
-    if (!linkMark) return;
-
-    const { from, to, empty } = selection;
-
-    // Check if there's an existing link
-    let existingHref = '';
-    if (!empty) {
-      state.doc.nodesBetween(from, to, node => {
-        const link = linkMark.isInSet(node.marks);
-        if (link) {
-          existingHref = link.attrs['href'] as string;
-        }
-      });
-    }
-
-    // Prompt for URL (in a real implementation, use a Material dialog)
-    const href = globalThis.prompt('Enter URL:', existingHref || 'https://');
-    if (href === null) return; // Cancelled
-
-    if (href === '') {
-      // Remove link
-      dispatch(state.tr.removeMark(from, to, linkMark));
-    } else {
-      // Add/update link
-      dispatch(
-        state.tr.addMark(from, to, linkMark.create({ href, target: '_blank' }))
-      );
-    }
-    this.refocusEditor();
+    this.insertLinkClick.emit();
   }
 
   /** Remove link from selection */

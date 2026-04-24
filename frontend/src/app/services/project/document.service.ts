@@ -40,6 +40,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { FindInDocumentService } from '../core/find-in-document.service';
 import { InsertImageService } from '../core/insert-image.service';
+import { InsertLinkService } from '../core/insert-link.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -106,6 +107,7 @@ export class DocumentService {
   private readonly elementRefService = inject(ElementRefService);
   private readonly findInDocumentService = inject(FindInDocumentService);
   private readonly insertImageService = inject(InsertImageService);
+  private readonly insertLinkService = inject(InsertLinkService);
   private readonly logger = inject(LoggerService);
   private readonly userService = inject(UnifiedUserService);
   private readonly localStorage = inject(LocalStorageService);
@@ -830,8 +832,10 @@ export class DocumentService {
     const keyboardShortcutsPlugin = createKeyboardShortcutsPlugin(
       view.state.schema,
       {
-        // Link insertion could be wired up to a dialog in the future
-        onInsertLink: undefined,
+        // Trigger the insert link dialog (Ctrl/Cmd + K)
+        onInsertLink: () => {
+          this.insertLinkService.trigger();
+        },
         // Find in document shortcut (Ctrl/Cmd + F)
         onOpenFind: () => {
           this.findInDocumentService.open();

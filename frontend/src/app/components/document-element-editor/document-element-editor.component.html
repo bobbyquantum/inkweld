@@ -14,6 +14,7 @@
           [disabled]="!projectState.canWrite()"
           [commentPanelOpen]="commentPanelOpen()"
           (insertImageClick)="openInsertImageDialog()"
+          (insertLinkClick)="openInsertLinkDialog()"
           (toggleComments)="toggleCommentPanel()">
         </app-editor-toolbar>
       }
@@ -35,7 +36,10 @@
               } @else {
                 <app-editor-floating-menu
                   [editor]="editor"
-                  (addComment)="addComment()"></app-editor-floating-menu>
+                  (addComment)="addComment()"
+                  (insertLink)="
+                    openInsertLinkDialog()
+                  "></app-editor-floating-menu>
               }
             }
           </div>
