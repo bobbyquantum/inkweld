@@ -51,6 +51,8 @@ describe('UserService', () => {
     getActiveConfig: Mock;
     updateConfigUserProfile: Mock;
     clearConfigUserProfile: Mock;
+    prefixKey: Mock;
+    getPrefixForConfig: Mock;
   };
 
   beforeEach(async () => {
@@ -68,6 +70,8 @@ describe('UserService', () => {
       getActiveConfig: vi.fn().mockReturnValue({ id: 'test-config-id' }),
       updateConfigUserProfile: vi.fn(),
       clearConfigUserProfile: vi.fn(),
+      prefixKey: vi.fn((key: string) => `local:${key}`),
+      getPrefixForConfig: vi.fn().mockReturnValue('local:'),
     };
 
     dialogMock.open.mockReturnValue({
