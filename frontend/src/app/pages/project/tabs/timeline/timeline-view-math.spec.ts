@@ -90,6 +90,44 @@ describe('timeline-view-math', () => {
       const b = computeDefaultBounds(SYS, [otherEvent], []);
       expect(b).toEqual({ minTick: 0n, maxTick: 100n });
     });
+
+    it('ignores corrupt events whose systemId matches but unit count is wrong', () => {
+      // systemId matches but wrong number of units — would throw without the guard
+      const corruptEvent: TimelineEvent = {
+        id: 'corrupt',
+        trackId: 't',
+        start: { systemId: SYS.id, units: ['1'] }, // should be 3 units for Gregorian
+        title: 'corrupt',
+      };
+      const b = computeDefaultBounds(SYS, [corruptEvent], []);
+      expect(b).toEqual({ minTick: 0n, maxTick: 100n });
+    });
+
+    it('ignores corrupt event end points that match systemId but have wrong unit count', () => {
+      const event: TimelineEvent = {
+        id: 'partial',
+        trackId: 't',
+        start: { systemId: SYS.id, units: ['2024', '1', '1'] },
+        end: { systemId: SYS.id, units: ['1'] }, // corrupt end
+        title: 'partial',
+      };
+      // start is valid so bounds are derived from it only
+      const b = computeDefaultBounds(SYS, [event], []);
+      expect(b.minTick).toBeDefined();
+      expect(b.maxTick).toBeGreaterThan(b.minTick);
+    });
+
+    it('ignores corrupt era start/end that match systemId but have wrong unit count', () => {
+      const corruptEra: TimelineEra = {
+        id: 'era-corrupt',
+        name: 'bad',
+        start: { systemId: SYS.id, units: ['1'] }, // corrupt
+        end: { systemId: SYS.id, units: ['1'] }, // corrupt
+        color: '#fff',
+      };
+      const b = computeDefaultBounds(SYS, [], [corruptEra]);
+      expect(b).toEqual({ minTick: 0n, maxTick: 100n });
+    });
   });
 
   // ─── tickToX / xToTick ─────────────────────────────────────────────
@@ -266,6 +304,21 @@ describe('timeline-view-math', () => {
       };
       const events = [evt('a', ['1', '1', '1']), otherEvent];
       const sorted = sortEventsByStart(events, SYS);
+      expect(sorted).toHaveLength(1);
+      expect(sorted[0].id).toBe('a');
+    });
+
+    it('filters out corrupt events whose systemId matches but unit count is wrong', () => {
+      const corrupt: TimelineEvent = {
+        id: 'corrupt',
+        trackId: 't',
+        start: { systemId: SYS.id, units: ['1'] }, // wrong unit count for Gregorian
+        title: 'corrupt',
+      };
+      const sorted = sortEventsByStart(
+        [evt('a', ['1', '1', '1']), corrupt],
+        SYS
+      );
       expect(sorted).toHaveLength(1);
       expect(sorted[0].id).toBe('a');
     });
