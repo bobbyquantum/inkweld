@@ -36,6 +36,11 @@ import {
   type InsertImageDialogResult,
 } from '../../dialogs/insert-image-dialog/insert-image-dialog.component';
 import {
+  InsertLinkDialogComponent,
+  type InsertLinkDialogData,
+  type InsertLinkDialogResult,
+} from '../../dialogs/insert-link-dialog/insert-link-dialog.component';
+import {
   MediaSelectorDialogComponent,
   type MediaSelectorDialogData,
   type MediaSelectorDialogResult,
@@ -245,6 +250,18 @@ export class DialogGatewayService {
       maxWidth: '95vw',
       maxHeight: '90vh',
       disableClose: false,
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openInsertLinkDialog(
+    data: InsertLinkDialogData
+  ): Promise<InsertLinkDialogResult | undefined> {
+    const dialogRef = this.dialog.open(InsertLinkDialogComponent, {
+      data,
+      disableClose: false,
+      width: '420px',
+      maxWidth: '95vw',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }
