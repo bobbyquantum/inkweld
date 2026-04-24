@@ -20,6 +20,7 @@ import { of, throwError } from 'rxjs';
 import { type Mock, vi } from 'vitest';
 
 import { userServiceMock } from '../../../testing/user-api.mock';
+import { StorageContextService } from '../core/storage-context.service';
 import { StorageService } from '../local/storage.service';
 import { UserService, UserServiceError } from './user.service';
 function createStructuredClone<T>(value: T): T {
@@ -46,6 +47,11 @@ describe('UserService', () => {
   };
   let dialogMock: { open: Mock };
   let routerMock: { navigate: Mock };
+  let storageContextMock: {
+    getActiveConfig: Mock;
+    updateConfigUserProfile: Mock;
+    clearConfigUserProfile: Mock;
+  };
 
   beforeEach(async () => {
     // Reset IndexedDB before each test to ensure clean state
@@ -58,6 +64,11 @@ describe('UserService', () => {
     };
     dialogMock = { open: vi.fn() };
     routerMock = { navigate: vi.fn() };
+    storageContextMock = {
+      getActiveConfig: vi.fn().mockReturnValue({ id: 'test-config-id' }),
+      updateConfigUserProfile: vi.fn(),
+      clearConfigUserProfile: vi.fn(),
+    };
 
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(true),
@@ -85,6 +96,10 @@ describe('UserService', () => {
         {
           provide: Router,
           useValue: routerMock,
+        },
+        {
+          provide: StorageContextService,
+          useValue: storageContextMock,
         },
       ],
     });
@@ -215,6 +230,22 @@ describe('UserService', () => {
       expect(service.isAuthenticated()).toBe(false);
     });
 
+    it('should clear user profile from active config on clearCurrentUser', async () => {
+      await service.clearCurrentUser();
+
+      expect(storageContextMock.clearConfigUserProfile).toHaveBeenCalledWith(
+        'test-config-id'
+      );
+    });
+
+    it('should not call clearConfigUserProfile when no active config', async () => {
+      storageContextMock.getActiveConfig.mockReturnValue(null);
+
+      await service.clearCurrentUser();
+
+      expect(storageContextMock.clearConfigUserProfile).not.toHaveBeenCalled();
+    });
+
     it('should persist user to storage when available', async () => {
       const spy = vi.spyOn(storageService, 'put');
       await service.setCurrentUser(TEST_USER);
@@ -268,33 +299,51 @@ describe('UserService', () => {
   });
 
   describe('login', () => {
-    // Skip: flaky due to IndexedDB timing issues
-    it.skip('should login successfully', async () => {
-      const username = 'testuser';
-      const password = 'password123';
-
-      // The authServiceMock.login is provided via TestBed useValue
-      // Set up the return value before calling login
+    it('should persist user profile to active server config on successful login', async () => {
       authServiceMock.login.mockReturnValue(
         of({ user: TEST_USER, token: 'test-token' })
       );
+      routerMock.navigate.mockResolvedValue(true);
 
-      // Spy on router navigate to track it
-      const navigateSpy = routerMock.navigate;
+      await service.login('testuser', 'password123');
 
-      await service.login(username, password);
+      expect(storageContextMock.updateConfigUserProfile).toHaveBeenCalledWith(
+        'test-config-id',
+        {
+          name: TEST_USER.name ?? TEST_USER.username,
+          username: TEST_USER.username,
+        }
+      );
+    });
 
-      // Verify the auth service was called with credentials
-      expect(authServiceMock.login).toHaveBeenCalledWith({
-        username,
-        password,
-      });
+    it('should not call updateConfigUserProfile when no active config', async () => {
+      storageContextMock.getActiveConfig.mockReturnValue(null);
+      authServiceMock.login.mockReturnValue(
+        of({ user: TEST_USER, token: 'test-token' })
+      );
+      routerMock.navigate.mockResolvedValue(true);
 
-      // Verify user was set
-      expect(service.currentUser()).toEqual(TEST_USER);
+      await service.login('testuser', 'password123');
 
-      // Verify navigation occurred
-      expect(navigateSpy).toHaveBeenCalledWith(['/']);
+      expect(storageContextMock.updateConfigUserProfile).not.toHaveBeenCalled();
+    });
+
+    it('should use username as name fallback when User.name is null', async () => {
+      const userWithNullName: User = { ...TEST_USER, name: null };
+      authServiceMock.login.mockReturnValue(
+        of({ user: userWithNullName, token: 'test-token' })
+      );
+      routerMock.navigate.mockResolvedValue(true);
+
+      await service.login('testuser', 'password123');
+
+      expect(storageContextMock.updateConfigUserProfile).toHaveBeenCalledWith(
+        'test-config-id',
+        {
+          name: userWithNullName.username,
+          username: userWithNullName.username,
+        }
+      );
     });
 
     it('should handle login failure with invalid credentials', async () => {
