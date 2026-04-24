@@ -23,6 +23,7 @@ import {
 } from '../../dialogs/image-viewer-dialog/image-viewer-dialog.component';
 import { ImportProjectDialogComponent } from '../../dialogs/import-project-dialog/import-project-dialog.component';
 import { InsertImageDialogComponent } from '../../dialogs/insert-image-dialog/insert-image-dialog.component';
+import { InsertLinkDialogComponent } from '../../dialogs/insert-link-dialog/insert-link-dialog.component';
 import { MediaSelectorDialogComponent } from '../../dialogs/media-selector-dialog/media-selector-dialog.component';
 import {
   NewElementDialogComponent,
@@ -459,6 +460,25 @@ describe('DialogGatewayService', () => {
       width: '500px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+    });
+    expect(result).toEqual(dialogResult);
+  });
+
+  it('should open insert link dialog', async () => {
+    const data = { existingHref: 'https://example.com', selectedText: 'hello' };
+    const dialogResult = {
+      href: 'https://example.com',
+      openInNewTab: true,
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(dialogResult));
+
+    const result = await service.openInsertLinkDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(InsertLinkDialogComponent, {
+      data,
+      disableClose: false,
+      width: '420px',
+      maxWidth: '95vw',
     });
     expect(result).toEqual(dialogResult);
   });

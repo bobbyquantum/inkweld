@@ -6,9 +6,58 @@
  */
 import { marks, nodes } from '@bobbyquantum/ngx-editor/schema';
 import { commentMarkSpec } from '@components/comment-mark/comment-mark-schema';
-import { Schema } from 'prosemirror-model';
+import { type MarkSpec, Schema } from 'prosemirror-model';
 
 import { elementRefNodeSpec } from './element-ref-schema';
+
+/**
+ * Override of ngx-editor's link mark that adds `rel` attribute support.
+ * When a link opens in a new tab (target="_blank"), rel="noopener noreferrer"
+ * is written into the DOM to prevent opener attacks.
+ */
+const linkMarkSpec: MarkSpec = {
+  attrs: {
+    href: {},
+    title: { default: null },
+    target: { default: null },
+    rel: { default: null },
+  },
+  inclusive: false,
+  parseDOM: [
+    {
+      tag: 'a[href]',
+      getAttrs(dom: HTMLElement) {
+        return {
+          href: dom.getAttribute('href'),
+          title: dom.getAttribute('title'),
+          target: dom.getAttribute('target'),
+          rel: dom.getAttribute('rel'),
+        };
+      },
+    },
+  ],
+  toDOM(node) {
+    const { href, title, target, rel } = node.attrs as {
+      href: string;
+      title: string | null;
+      target: string | null;
+      rel: string | null;
+    };
+    // Always enforce opener protection for new-tab links, even if rel was
+    // omitted or came from parsed HTML without it.
+    const safeRel =
+      target === '_blank'
+        ? Array.from(
+            new Set([
+              ...(rel?.split(/\s+/).filter(Boolean) ?? []),
+              'noopener',
+              'noreferrer',
+            ])
+          ).join(' ')
+        : rel;
+    return ['a', { href, title, target, rel: safeRel }, 0];
+  },
+};
 
 /**
  * Creates an extended schema that includes ngx-editor's nodes and marks
@@ -23,9 +72,11 @@ export function createExtendedSchema(): Schema {
     elementRef: elementRefNodeSpec,
   };
 
-  // Use the same marks as ngx-editor plus custom ones
+  // Use the same marks as ngx-editor plus custom ones.
+  // Override the link mark to add rel attribute support for opener protection.
   const extendedMarks = {
     ...marks,
+    link: linkMarkSpec,
     comment: commentMarkSpec,
   };
 

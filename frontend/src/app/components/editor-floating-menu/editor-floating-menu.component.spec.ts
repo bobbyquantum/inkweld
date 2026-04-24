@@ -32,7 +32,7 @@ describe('EditorFloatingMenuComponent', () => {
         ranges: unknown[];
       };
       tr: { addMark: Mock; removeMark: Mock };
-      doc: { rangeHasMark: Mock };
+      doc: { rangeHasMark: Mock; nodesBetween: Mock; slice: Mock };
       storedMarks: null;
     };
     dispatch: Mock;
@@ -75,6 +75,8 @@ describe('EditorFloatingMenuComponent', () => {
         },
         doc: {
           rangeHasMark: vi.fn().mockReturnValue(false),
+          nodesBetween: vi.fn(),
+          slice: vi.fn().mockReturnValue({ content: { forEach: vi.fn() } }),
         },
         storedMarks: null,
       },
@@ -157,42 +159,27 @@ describe('EditorFloatingMenuComponent', () => {
   });
 
   describe('link toggle', () => {
-    it('should remove link if already has link', () => {
-      mockEditorView.state.doc.rangeHasMark.mockReturnValue(true);
-
+    it('should emit insertLink when toggleLink is called', () => {
+      const spy = vi.fn();
+      component.insertLink.subscribe(spy);
       component.toggleLink();
-
-      expect(mockEditorView.state.tr.removeMark).toHaveBeenCalled();
-      expect(mockEditorView.dispatch).toHaveBeenCalled();
-      expect(mockEditorView.focus).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalled();
     });
 
-    it('should prompt for URL if no link exists', () => {
-      mockEditorView.state.doc.rangeHasMark.mockReturnValue(false);
-      const promptSpy = vi
-        .spyOn(globalThis, 'prompt')
-        .mockReturnValue('https://example.com');
-
+    it('should hide the menu when toggleLink is called', () => {
+      type PositionState = { visible: boolean };
+      const comp = component as unknown as {
+        positionState: ReturnType<
+          typeof import('@angular/core').signal<PositionState>
+        >;
+      };
+      // Make menu visible first
+      comp.positionState.update((s: PositionState) => ({
+        ...s,
+        visible: true,
+      }));
       component.toggleLink();
-
-      expect(promptSpy).toHaveBeenCalledWith('Enter URL:');
-      expect(mockEditorView.state.tr.addMark).toHaveBeenCalled();
-      expect(mockEditorView.dispatch).toHaveBeenCalled();
-      expect(mockEditorView.focus).toHaveBeenCalled();
-
-      promptSpy.mockRestore();
-    });
-
-    it('should not add link if prompt is cancelled', () => {
-      mockEditorView.state.doc.rangeHasMark.mockReturnValue(false);
-      const promptSpy = vi.spyOn(globalThis, 'prompt').mockReturnValue(null);
-
-      component.toggleLink();
-
-      expect(promptSpy).toHaveBeenCalled();
-      expect(mockEditorView.state.tr.addMark).not.toHaveBeenCalled();
-
-      promptSpy.mockRestore();
+      expect(comp.positionState().visible).toBe(false);
     });
   });
 

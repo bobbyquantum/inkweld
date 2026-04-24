@@ -31,6 +31,7 @@ import {
   CommentPanelComponent,
   CommentPopoverComponent,
 } from '@components/comment-mark';
+import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-link-dialog.component';
 import {
   SnapshotsDialogComponent,
   type SnapshotsDialogData,
@@ -42,6 +43,7 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
 import { InsertImageService } from '@services/core/insert-image.service';
+import { InsertLinkService } from '@services/core/insert-link.service';
 import { SettingsService } from '@services/core/settings.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
@@ -49,6 +51,9 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 import { TagService } from '@services/tag/tag.service';
+import type { MarkType, ResolvedPos } from 'prosemirror-model';
+import type { EditorState } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
 
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
@@ -110,6 +115,7 @@ export class DocumentElementEditorComponent
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly insertImageService = inject(InsertImageService);
+  private readonly insertLinkService = inject(InsertLinkService);
   protected elementRefService = inject(ElementRefService);
   protected findService = inject(FindInDocumentService);
   private readonly tagService = inject(TagService);
@@ -294,6 +300,14 @@ export class DocumentElementEditorComponent
       // Only trigger if count > 0 (skip initial value)
       if (triggerCount > 0 && this.editor?.view && this.collaborationSetup) {
         void this.openInsertImageDialog();
+      }
+    });
+
+    // Watch for insert link trigger from keyboard shortcut (Mod-K)
+    effect(() => {
+      const triggerCount = this.insertLinkService.triggerCount();
+      if (triggerCount > 0 && this.editor?.view && this.collaborationSetup) {
+        void this.openInsertLinkDialog();
       }
     });
 
@@ -874,6 +888,135 @@ export class DocumentElementEditorComponent
       this.editor.view.dispatch(tr);
       this.editor.view.focus();
     }
+  }
+
+  /**
+   * Open the insert/edit link dialog and apply or remove the link mark.
+   * Triggered by the toolbar button, floating menu, or Mod-K keyboard shortcut.
+   *
+   * Two modes:
+   *  - Text selected: wraps selection with the link mark (URL-only dialog).
+   *  - No selection: shows text+URL fields, inserts a new linked text node at cursor.
+   */
+  async openInsertLinkDialog(): Promise<void> {
+    const view = this.editor?.view;
+    if (!view) return;
+    const { state } = view;
+    const { schema, selection } = state;
+    const linkMark = schema.marks['link'];
+    if (!linkMark) return;
+    let { from, to } = selection;
+    const { empty } = selection;
+    let existingHref = '';
+    if (empty) {
+      const activeLink = linkMark.isInSet(
+        state.storedMarks ?? selection.$from.marks()
+      );
+      if (activeLink) {
+        existingHref = activeLink.attrs['href'] as string;
+        ({ from, to } = this.expandCursorLinkRange(
+          linkMark,
+          selection.$from,
+          existingHref
+        ));
+      }
+    } else {
+      existingHref = this.findHrefInSelection(state, linkMark, from, to);
+    }
+    const selectedText = empty ? '' : this.buildSelectedText(state, from, to);
+    const result = await this.dialogGateway.openInsertLinkDialog({
+      existingHref: existingHref || undefined,
+      selectedText: selectedText || undefined,
+    });
+    if (!result || this.destroyed || this.editor?.view !== view) return;
+    this.applyLinkResult(view, result, from, to, empty, linkMark);
+  }
+
+  private expandCursorLinkRange(
+    linkMark: MarkType,
+    $from: ResolvedPos,
+    existingHref: string
+  ): { from: number; to: number } {
+    const parentStart = $from.start();
+    const parent = $from.parent;
+    let startOffset = $from.parentOffset;
+    let endOffset = $from.parentOffset;
+    const isSameLink = (
+      marks: readonly ReturnType<typeof linkMark.isInSet>[]
+    ): boolean => {
+      const m = linkMark.isInSet(
+        marks as Parameters<typeof linkMark.isInSet>[0]
+      );
+      return !!(m && (m.attrs['href'] as string) === existingHref);
+    };
+    while (startOffset > 0) {
+      const child = parent.childBefore(startOffset);
+      if (!child.node || !isSameLink(child.node.marks)) break;
+      startOffset = child.offset;
+    }
+    while (endOffset < parent.content.size) {
+      const child = parent.childAfter(endOffset);
+      if (!child.node || !isSameLink(child.node.marks)) break;
+      endOffset = child.offset + child.node.nodeSize;
+    }
+    return { from: parentStart + startOffset, to: parentStart + endOffset };
+  }
+
+  private findHrefInSelection(
+    state: EditorState,
+    linkMark: MarkType,
+    from: number,
+    to: number
+  ): string {
+    let href = '';
+    state.doc.nodesBetween(from, to, node => {
+      const link = linkMark.isInSet(node.marks);
+      if (link && !href) {
+        href = link.attrs['href'] as string;
+      }
+    });
+    return href;
+  }
+
+  private buildSelectedText(
+    state: EditorState,
+    from: number,
+    to: number
+  ): string {
+    let text = '';
+    state.doc.slice(from, to).content.forEach(node => {
+      text += node.textContent;
+    });
+    return text;
+  }
+
+  private applyLinkResult(
+    view: EditorView,
+    result: InsertLinkDialogResult,
+    from: number,
+    to: number,
+    empty: boolean,
+    linkMark: MarkType
+  ): void {
+    const target = result.openInNewTab ? '_blank' : undefined;
+    const rel = result.openInNewTab ? 'noopener noreferrer' : undefined;
+    const currentState = view.state;
+    if (result.href === '') {
+      view.dispatch(currentState.tr.removeMark(from, to, linkMark));
+    } else if (empty && result.linkText) {
+      const mark = linkMark.create({ href: result.href, target, rel });
+      const textNode = currentState.schema.text(result.linkText, [mark]);
+      view.dispatch(currentState.tr.insert(from, textNode));
+    } else {
+      view.dispatch(
+        currentState.tr.addMark(
+          from,
+          to,
+          linkMark.create({ href: result.href, target, rel })
+        )
+      );
+    }
+    view.focus();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
