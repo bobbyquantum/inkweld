@@ -31,6 +31,7 @@ import {
   CommentPanelComponent,
   CommentPopoverComponent,
 } from '@components/comment-mark';
+import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-link-dialog.component';
 import {
   SnapshotsDialogComponent,
   type SnapshotsDialogData,
@@ -50,6 +51,9 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 import { TagService } from '@services/tag/tag.service';
+import type { MarkType, ResolvedPos } from 'prosemirror-model';
+import type { EditorState } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom } from 'rxjs';
 
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
@@ -897,95 +901,113 @@ export class DocumentElementEditorComponent
   async openInsertLinkDialog(): Promise<void> {
     const view = this.editor?.view;
     if (!view) return;
-
     const { state } = view;
     const { schema, selection } = state;
     const linkMark = schema.marks['link'];
     if (!linkMark) return;
-
-    // Save positions NOW, before the dialog steals focus and collapses the selection
     let { from, to } = selection;
     const { empty } = selection;
-
-    // Gather existing link href (when editing)
     let existingHref = '';
     if (empty) {
-      // Cursor inside a link — detect the mark at the cursor and expand range
       const activeLink = linkMark.isInSet(
         state.storedMarks ?? selection.$from.marks()
       );
       if (activeLink) {
         existingHref = activeLink.attrs['href'] as string;
-        // Expand from/to to span the full contiguous link mark range
-        const parentStart = selection.$from.start();
-        const parent = selection.$from.parent;
-        let startOffset = selection.$from.parentOffset;
-        let endOffset = selection.$from.parentOffset;
-        const isSameLink = (
-          marks: readonly ReturnType<typeof linkMark.isInSet>[]
-        ): boolean => {
-          const m = linkMark.isInSet(
-            marks as Parameters<typeof linkMark.isInSet>[0]
-          );
-          return !!(m && (m.attrs['href'] as string) === existingHref);
-        };
-        // Walk left
-        while (startOffset > 0) {
-          const child = parent.childBefore(startOffset);
-          if (!child.node || !isSameLink(child.node.marks)) break;
-          startOffset = child.offset;
-        }
-        // Walk right
-        while (endOffset < parent.content.size) {
-          const child = parent.childAfter(endOffset);
-          if (!child.node || !isSameLink(child.node.marks)) break;
-          endOffset = child.offset + child.node.nodeSize;
-        }
-        from = parentStart + startOffset;
-        to = parentStart + endOffset;
+        ({ from, to } = this.expandCursorLinkRange(
+          linkMark,
+          selection.$from,
+          existingHref
+        ));
       }
     } else {
-      state.doc.nodesBetween(from, to, node => {
-        const link = linkMark.isInSet(node.marks);
-        if (link && !existingHref) {
-          existingHref = link.attrs['href'] as string;
-        }
-      });
+      existingHref = this.findHrefInSelection(state, linkMark, from, to);
     }
-
-    // Build plain-text preview of the selection
-    let selectedText = '';
-    if (!empty) {
-      const slice = state.doc.slice(from, to);
-      slice.content.forEach(node => {
-        selectedText += node.textContent;
-      });
-    }
-
+    const selectedText = empty ? '' : this.buildSelectedText(state, from, to);
     const result = await this.dialogGateway.openInsertLinkDialog({
       existingHref: existingHref || undefined,
-      // Only pass selectedText when there actually is a selection — this
-      // controls whether the dialog shows the text field or not.
       selectedText: selectedText || undefined,
     });
-
     if (!result || this.destroyed || this.editor?.view !== view) return;
+    this.applyLinkResult(view, result, from, to, empty, linkMark);
+  }
 
+  private expandCursorLinkRange(
+    linkMark: MarkType,
+    $from: ResolvedPos,
+    existingHref: string
+  ): { from: number; to: number } {
+    const parentStart = $from.start();
+    const parent = $from.parent;
+    let startOffset = $from.parentOffset;
+    let endOffset = $from.parentOffset;
+    const isSameLink = (
+      marks: readonly ReturnType<typeof linkMark.isInSet>[]
+    ): boolean => {
+      const m = linkMark.isInSet(
+        marks as Parameters<typeof linkMark.isInSet>[0]
+      );
+      return !!(m && (m.attrs['href'] as string) === existingHref);
+    };
+    while (startOffset > 0) {
+      const child = parent.childBefore(startOffset);
+      if (!child.node || !isSameLink(child.node.marks)) break;
+      startOffset = child.offset;
+    }
+    while (endOffset < parent.content.size) {
+      const child = parent.childAfter(endOffset);
+      if (!child.node || !isSameLink(child.node.marks)) break;
+      endOffset = child.offset + child.node.nodeSize;
+    }
+    return { from: parentStart + startOffset, to: parentStart + endOffset };
+  }
+
+  private findHrefInSelection(
+    state: EditorState,
+    linkMark: MarkType,
+    from: number,
+    to: number
+  ): string {
+    let href = '';
+    state.doc.nodesBetween(from, to, node => {
+      const link = linkMark.isInSet(node.marks);
+      if (link && !href) {
+        href = link.attrs['href'] as string;
+      }
+    });
+    return href;
+  }
+
+  private buildSelectedText(
+    state: EditorState,
+    from: number,
+    to: number
+  ): string {
+    let text = '';
+    state.doc.slice(from, to).content.forEach(node => {
+      text += node.textContent;
+    });
+    return text;
+  }
+
+  private applyLinkResult(
+    view: EditorView,
+    result: InsertLinkDialogResult,
+    from: number,
+    to: number,
+    empty: boolean,
+    linkMark: MarkType
+  ): void {
     const target = result.openInNewTab ? '_blank' : undefined;
     const rel = result.openInNewTab ? 'noopener noreferrer' : undefined;
-    // Use the state at the time of confirmation (may have changed, but positions are saved)
     const currentState = view.state;
-
     if (result.href === '') {
-      // Remove link mark over the saved range
       view.dispatch(currentState.tr.removeMark(from, to, linkMark));
     } else if (empty && result.linkText) {
-      // No selection: insert a new text node with the link mark at the cursor
       const mark = linkMark.create({ href: result.href, target, rel });
-      const textNode = schema.text(result.linkText, [mark]);
+      const textNode = currentState.schema.text(result.linkText, [mark]);
       view.dispatch(currentState.tr.insert(from, textNode));
     } else {
-      // Selection exists: apply the link mark over the saved range
       view.dispatch(
         currentState.tr.addMark(
           from,

@@ -42,7 +42,7 @@ export interface InsertLinkDialogResult {
 }
 
 /** Safe protocol allow-list for link URLs */
-const ALLOWED_PROTOCOLS = ['http', 'https', 'mailto', 'tel'];
+const ALLOWED_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel']);
 
 /** Validates that the value looks like a safe URL (blocks javascript: etc.) */
 function urlValidator(control: AbstractControl): ValidationErrors | null {
@@ -56,8 +56,7 @@ function urlValidator(control: AbstractControl): ValidationErrors | null {
   // Require an explicit protocol from the allow-list
   const protocolMatch = /^([a-zA-Z][a-zA-Z\d+\-.]*):/u.exec(value);
   const isAllowedProtocol =
-    !!protocolMatch &&
-    ALLOWED_PROTOCOLS.includes(protocolMatch[1].toLowerCase());
+    !!protocolMatch && ALLOWED_PROTOCOLS.has(protocolMatch[1].toLowerCase());
 
   return isAllowedProtocol ? null : { invalidUrl: true };
 }

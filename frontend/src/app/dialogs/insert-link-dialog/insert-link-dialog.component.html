@@ -17,6 +17,7 @@
           formControlName="linkText"
           cdkFocusInitial
           placeholder="e.g. Click here"
+          autocomplete="off"
           spellcheck="true"
           data-testid="link-text-input" />
         @if (linkTextControl.hasError('required') && linkTextControl.touched) {
@@ -32,7 +33,7 @@
         formControlName="href"
         [attr.cdkFocusInitial]="hasSelection ? '' : null"
         placeholder="https://example.com"
-        autocomplete="url"
+        autocomplete="off"
         spellcheck="false"
         data-testid="link-url-input" />
       <mat-icon matSuffix>link</mat-icon>

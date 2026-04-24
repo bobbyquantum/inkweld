@@ -111,7 +111,7 @@ const SUPPRESSED_WARN_PATTERNS: RegExp[] = [
 
 const _originalWarn = console.warn.bind(console);
 console.warn = (...args: unknown[]) => {
-  const message = String(args[0] ?? '');
+  const message = typeof args[0] === 'string' ? args[0] : '';
   if (SUPPRESSED_WARN_PATTERNS.some(re => re.test(message))) return;
   _originalWarn(...args);
 };
