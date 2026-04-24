@@ -8,6 +8,7 @@
 
 import {
   compareTimePoints,
+  isValidTimePointFor,
   type TimePoint,
   timePointToAbsolute,
   type TimeSystem,
@@ -27,12 +28,12 @@ function collectPoints(
 ): TimePoint[] {
   const points: TimePoint[] = [];
   for (const e of events) {
-    if (e.start.systemId === system.id) points.push(e.start);
-    if (e.end?.systemId === system.id) points.push(e.end);
+    if (isValidTimePointFor(e.start, system)) points.push(e.start);
+    if (e.end && isValidTimePointFor(e.end, system)) points.push(e.end);
   }
   for (const era of eras) {
-    if (era.start.systemId === system.id) points.push(era.start);
-    if (era.end.systemId === system.id) points.push(era.end);
+    if (isValidTimePointFor(era.start, system)) points.push(era.start);
+    if (isValidTimePointFor(era.end, system)) points.push(era.end);
   }
   return points;
 }
@@ -151,7 +152,7 @@ export function sortEventsByStart(
   system: TimeSystem
 ): TimelineEvent[] {
   return [...events]
-    .filter(e => e.start.systemId === system.id)
+    .filter(e => isValidTimePointFor(e.start, system))
     .sort((a, b) => {
       const byStart = compareTimePoints(a.start, b.start, system);
       if (byStart !== 0) return byStart;
