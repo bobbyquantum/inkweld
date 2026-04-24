@@ -65,8 +65,6 @@ export interface ElementTypeSchema {
   description: string;
   /** Schema version for migrations */
   version: number;
-  /** Whether this is a built-in schema (cannot be deleted) */
-  isBuiltIn: boolean;
   /** Tab definitions containing field schemas */
   tabs: TabSchema[];
   /** Default values for new elements */
