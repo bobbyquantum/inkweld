@@ -345,6 +345,28 @@ describe('StorageContextService', () => {
       });
     });
 
+    describe('clearConfigUserProfile', () => {
+      it('should clear user profile from config', () => {
+        service.addLocalConfig({ name: 'Test', username: 'testuser' });
+        service.updateConfigUserProfile(LOCAL_CONFIG_ID, {
+          name: 'Test User',
+          username: 'testuser',
+        });
+        expect(service.getActiveConfig()?.userProfile).toBeDefined();
+
+        service.clearConfigUserProfile(LOCAL_CONFIG_ID);
+
+        expect(service.getActiveConfig()?.userProfile).toBeUndefined();
+      });
+
+      it('should do nothing when no config is loaded', () => {
+        const freshService = _createFreshService();
+        expect(() =>
+          freshService.clearConfigUserProfile('non-existent-id')
+        ).not.toThrow();
+      });
+    });
+
     describe('hasServerConfig', () => {
       it('should return true if server is configured', () => {
         service.addServerConfig('https://example.com');

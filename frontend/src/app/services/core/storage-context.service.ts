@@ -519,6 +519,24 @@ export class StorageContextService {
   }
 
   /**
+   * Clear the cached user profile for a configuration (e.g. on logout)
+   */
+  clearConfigUserProfile(configId: string): void {
+    const currentConfig = this.configSignal();
+    if (!currentConfig) return;
+
+    const updated: AppConfigV2 = {
+      ...currentConfig,
+      configurations: currentConfig.configurations.map(c =>
+        c.id === configId ? { ...c, userProfile: undefined } : c
+      ),
+    };
+
+    this.saveConfig(updated);
+    this.configSignal.set(updated);
+  }
+
+  /**
    * Update the server version info for a configuration
    */
   updateConfigVersionInfo(
