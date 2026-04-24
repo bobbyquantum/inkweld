@@ -19,6 +19,7 @@ import {
 
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { StorageService } from '../local/storage.service';
 
 export class UserServiceError extends Error {
@@ -59,6 +60,7 @@ export class UserService {
   private readonly storage = inject(StorageService);
   private readonly logger = inject(LoggerService);
   private readonly authTokenService = inject(AuthTokenService);
+  private readonly storageContext = inject(StorageContextService);
 
   readonly currentUser = signal<User>({
     id: '',
@@ -254,6 +256,15 @@ export class UserService {
 
       if ('user' in response && response.user) {
         await this.setCurrentUser(response.user);
+        // Persist the user profile into the active server config so the
+        // "Switch Server" panel shows the username instead of "Not logged in".
+        const activeConfig = this.storageContext.getActiveConfig();
+        if (activeConfig) {
+          this.storageContext.updateConfigUserProfile(activeConfig.id, {
+            name: response.user.name ?? response.user.username,
+            username: response.user.username,
+          });
+        }
       }
       await this.router.navigate(['/']);
     } catch (err) {
@@ -270,6 +281,13 @@ export class UserService {
     this.authTokenService.clearToken();
     // Also clear legacy unprefixed key for backwards compatibility
     localStorage.removeItem('auth_token');
+
+    // Clear the cached user profile from the active server config so the
+    // "Switch Server" panel reverts to "Not logged in".
+    const activeConfig = this.storageContext.getActiveConfig();
+    if (activeConfig) {
+      this.storageContext.clearConfigUserProfile(activeConfig.id);
+    }
 
     if (this.storage.isAvailable()) {
       try {
