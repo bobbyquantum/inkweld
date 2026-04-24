@@ -35,7 +35,7 @@
         "lodash-es": "4.18.1",
         "marked": "^18.0.0",
         "material-icons": "1.13.14",
-        "material-symbols": "0.44.3",
+        "material-symbols": "0.44.4",
         "nanoid": "5.1.9",
         "ngx-echarts": "^21.0.0",
         "ngx-image-cropper": "9.1.6",
@@ -1516,7 +1516,7 @@
 
     "material-icons": ["material-icons@1.13.14", "", {}, "sha512-kZOfc7xCC0rAT8Q3DQixYAeT+tBqZnxkseQtp2bxBxz7q5pMAC+wmit7vJn1g/l7wRU+HEPq23gER4iPjGs5Cg=="],
 
-    "material-symbols": ["material-symbols@0.44.3", "", {}, "sha512-SA0C6g70BzGPf2w2PKHjkdJfQInU0Wm/S2KTfF3/oytGCqGxXoeD9pOX8lixSV6Z9toxU4zwrKXAokxa9eZrMA=="],
+    "material-symbols": ["material-symbols@0.44.4", "", {}, "sha512-ccUeNNV+zdpO/ZB/IYgLFBk8HLBdT6O/89SYtMZFLizAwVokbCzhpWkJq67im781OOB3PYpe2Cm2sVy+Nbs36A=="],
 
     "math-intrinsics": ["math-intrinsics@1.1.0", "", {}, "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="],
 
