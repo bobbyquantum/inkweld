@@ -353,12 +353,18 @@ class PasskeyService {
 
 /**
  * Returns the number of rows affected by a Drizzle mutation (delete/update).
- * Drizzle returns `changes` on Bun/better-sqlite3 and `rowsAffected` on D1,
- * so we check both to work across all runtimes.
+ * Different runtimes expose this on different properties:
+ *   - Bun / better-sqlite3: result.changes
+ *   - D1 (workerd):         result.meta.changes (D1Result shape)
+ *   - Some drivers also use: result.rowsAffected
  */
 function affectedRows(result: unknown): number {
-  const r = result as Record<string, unknown>;
-  return (r?.['rowsAffected'] as number) ?? (r?.['changes'] as number) ?? 0;
+  const r = result as Record<string, unknown> | undefined;
+  if (!r) return 0;
+  const direct = (r['changes'] as number) ?? (r['rowsAffected'] as number);
+  if (typeof direct === 'number') return direct;
+  const meta = r['meta'] as Record<string, unknown> | undefined;
+  return (meta?.['changes'] as number) ?? 0;
 }
 
 function parseTransports(json: string | null): AuthenticatorTransportFuture[] | undefined {
