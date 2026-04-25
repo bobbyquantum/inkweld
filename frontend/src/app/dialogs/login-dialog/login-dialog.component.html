@@ -70,7 +70,7 @@
 
     <mat-divider></mat-divider>
 
-    @if (isPasskeySupported) {
+    @if (isPasskeySupported && systemConfig.isPasskeysEnabled()) {
       <button
         mat-stroked-button
         type="button"

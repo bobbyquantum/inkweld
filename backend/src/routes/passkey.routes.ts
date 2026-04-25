@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 import { passkeyService, type PasskeyRpConfig } from '../services/passkey.service';
+import { configService } from '../services/config.service';
 import { config } from '../config/env';
 import {
   PasskeyOptionsSchema,
@@ -20,12 +21,26 @@ import type { UserPasskey } from '../db/schema';
 
 const passkeyRoutes = new OpenAPIHono<AppContext>();
 
+// Guard: reject all requests when passkeys are disabled system-wide.
+passkeyRoutes.use('*', async (c, next) => {
+  const db = c.get('db');
+  const enabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
+  if (!enabled) {
+    return c.json({ error: 'Passkey authentication is disabled' }, 403);
+  }
+  return next();
+});
+
 // Auth-protected paths: registration + management. Login paths are anonymous.
-// Note: we rely on inline auth checks in each handler rather than middleware
-// for parameterised routes, as Hono's use('/:id') can interfere with
-// OpenAPIHono route matching in the Cloudflare Workers (workerd) runtime.
 passkeyRoutes.use('/register/*', requireAuth);
 passkeyRoutes.use('/', requireAuth);
+// Note: Hono's use('/:id') with a single-segment wildcard can interfere with
+// OpenAPIHono route matching for named parameters in the Cloudflare Workers
+// (workerd) runtime.  We therefore register auth middleware separately for
+// the two HTTP methods that operate on /{id} instead of using a shared
+// use('/:id', requireAuth) wildcard.
+passkeyRoutes.delete('/:id', requireAuth);
+passkeyRoutes.patch('/:id', requireAuth);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RP config — derived per-request so it works across runtimes (Workers vs Bun).

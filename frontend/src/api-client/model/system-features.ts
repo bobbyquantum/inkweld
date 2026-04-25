@@ -48,6 +48,10 @@ export interface SystemFeatures {
      */
     requireEmail: boolean;
     passwordPolicy: SystemFeaturesPasswordPolicy;
+    /**
+     * Whether passkey (WebAuthn) authentication is enabled. When false, all passkey endpoints return 403.
+     */
+    passkeysEnabled: boolean;
 }
 export enum SystemFeaturesAppMode {
     Online = 'ONLINE',

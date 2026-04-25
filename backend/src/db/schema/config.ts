@@ -115,6 +115,16 @@ export const CONFIG_KEYS = {
     type: 'boolean' as const,
   },
 
+  // Passkey (WebAuthn) settings
+  PASSKEYS_ENABLED: {
+    category: 'auth' as ConfigCategory,
+    description:
+      'Enable passkey (WebAuthn) authentication. When disabled, all passkey endpoints return 403.',
+    encrypted: false,
+    envVar: 'PASSKEYS_ENABLED',
+    type: 'boolean' as const,
+  },
+
   // GitHub OAuth settings
   GITHUB_ENABLED: {
     category: 'github' as ConfigCategory,

@@ -85,6 +85,28 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- Passkeys Card -->
+    <mat-card class="setting-card" data-testid="passkeys-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Passkey Authentication</span>
+            <span class="setting-description">
+              Allow users to register and sign in with passkeys (biometrics,
+              hardware keys). When disabled, all passkey endpoints return an
+              error and the passkey UI is hidden.
+            </span>
+          </div>
+          <mat-slide-toggle
+            [checked]="passkeysEnabled()"
+            (change)="togglePasskeys($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-passkeys"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <!-- Require Email Card -->
     <mat-card class="setting-card" data-testid="require-email-card">
       <mat-card-content>

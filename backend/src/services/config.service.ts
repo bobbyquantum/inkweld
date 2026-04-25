@@ -131,6 +131,8 @@ class ConfigService {
         return 'true';
       case 'GITHUB_ENABLED':
         return 'false';
+      case 'PASSKEYS_ENABLED':
+        return 'true'; // Passkeys enabled by default
       case 'AI_LINT_ENABLED':
         return envConfig.openai.enabled ? 'true' : 'false';
       case 'AI_IMAGE_ENABLED':

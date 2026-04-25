@@ -33,7 +33,7 @@ import { UserService } from '@services/user/user.service';
 })
 export class AccountSettingsComponent implements OnInit {
   private readonly userService = inject(UserService);
-  private readonly systemConfig = inject(SystemConfigService);
+  readonly systemConfig = inject(SystemConfigService);
   private readonly snackBar = inject(MatSnackBar);
 
   readonly isLocalMode = this.systemConfig.isLocalMode;

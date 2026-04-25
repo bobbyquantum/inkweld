@@ -42,6 +42,7 @@ const LOCAL_DEFAULTS: SystemFeatures = {
   emailEnabled: false,
   requireEmail: false,
   passwordPolicy: DEFAULT_PASSWORD_POLICY,
+  passkeysEnabled: true,
 };
 
 /** Default system features when server is unavailable (degraded mode) */
@@ -55,6 +56,7 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   emailEnabled: false,
   requireEmail: false,
   passwordPolicy: DEFAULT_PASSWORD_POLICY,
+  passkeysEnabled: true,
 };
 
 @Injectable({
@@ -74,6 +76,7 @@ export class SystemConfigService {
     emailEnabled: false,
     requireEmail: false,
     passwordPolicy: DEFAULT_PASSWORD_POLICY,
+    passkeysEnabled: true,
   });
 
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
@@ -109,6 +112,9 @@ export class SystemConfigService {
   );
   public readonly passwordPolicy = computed(
     () => this.systemFeaturesSignal().passwordPolicy ?? DEFAULT_PASSWORD_POLICY
+  );
+  public readonly isPasskeysEnabled = computed(
+    () => this.systemFeaturesSignal().passkeysEnabled ?? true
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 

@@ -60,6 +60,9 @@ export class AdminSettingsComponent implements OnInit {
   // Site URL state
   readonly siteUrl = signal('');
 
+  // Passkeys state
+  readonly passkeysEnabled = signal(true);
+
   ngOnInit(): void {
     void this.loadConfig();
   }
@@ -79,6 +82,7 @@ export class AdminSettingsComponent implements OnInit {
         passwordRequireNumber,
         passwordRequireSymbol,
         siteUrl,
+        passkeysEnabled,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -89,6 +93,7 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('PASSWORD_REQUIRE_NUMBER'),
         this.configService.getConfig('PASSWORD_REQUIRE_SYMBOL'),
         this.configService.getConfig('SITE_URL'),
+        this.configService.getConfig('PASSKEYS_ENABLED'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -109,6 +114,9 @@ export class AdminSettingsComponent implements OnInit {
 
       // Site URL
       this.siteUrl.set(siteUrl?.value || '');
+
+      // Passkeys — default is true (enabled) when no value stored
+      this.passkeysEnabled.set(passkeysEnabled?.value !== 'false');
 
       // For AI kill switch, also check the system config for lockedByEnv status
       const aiKillSwitchValue = aiKillSwitch?.value !== 'false'; // Default to true
@@ -274,6 +282,32 @@ export class AdminSettingsComponent implements OnInit {
     } catch (err) {
       console.error('Failed to save AI kill switch setting:', err);
       this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async togglePasskeys(enabled: boolean): Promise<void> {
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig(
+        'PASSKEYS_ENABLED',
+        enabled ? 'true' : 'false'
+      );
+      this.passkeysEnabled.set(enabled);
+      this.systemConfigService.refreshSystemFeatures();
+      this.snackBar.open(
+        enabled
+          ? 'Passkey authentication enabled'
+          : 'Passkey authentication disabled',
+        'Close',
+        { duration: 2000 }
+      );
+    } catch (err) {
+      console.error('Failed to save passkeys setting:', err);
+      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+      this.passkeysEnabled.set(!enabled);
     } finally {
       this.isSaving.set(false);
     }

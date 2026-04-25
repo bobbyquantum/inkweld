@@ -16,6 +16,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   };
   let mockSystemConfig: {
     isLocalMode: ReturnType<typeof vi.fn>;
+    isPasskeysEnabled: ReturnType<typeof vi.fn>;
   };
   let mockSnackBar: {
     open: ReturnType<typeof vi.fn>;
@@ -41,6 +42,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     mockSystemConfig = {
       isLocalMode: vi.fn().mockReturnValue(false),
+      isPasskeysEnabled: vi.fn().mockReturnValue(true),
     };
 
     mockSnackBar = {

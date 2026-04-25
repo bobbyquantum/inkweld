@@ -30,6 +30,7 @@ import {
   UpdateOAuthGrantRequestRole,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 
 /**
  * Account Settings Component
@@ -64,6 +65,7 @@ export class AccountSettingsComponent implements OnInit {
   private readonly oauthApiService = inject(OAuthApiService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
+  readonly systemConfig = inject(SystemConfigService);
 
   /** Connected OAuth sessions */
   sessions = signal<PublicOAuthSession[]>([]);

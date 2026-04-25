@@ -33,7 +33,7 @@ export class LoginDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
-  private readonly systemConfig = inject(SystemConfigService);
+  readonly systemConfig = inject(SystemConfigService);
   private readonly passkeyService = inject(PasskeyService);
 
   readonly isEmailEnabled = this.systemConfig.isEmailEnabled;

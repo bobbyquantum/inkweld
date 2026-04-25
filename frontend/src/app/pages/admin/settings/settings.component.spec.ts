@@ -34,6 +34,7 @@ function flushAllConfigRequests(
     PASSWORD_REQUIRE_NUMBER: 'true',
     PASSWORD_REQUIRE_SYMBOL: 'true',
     SITE_URL: '',
+    PASSKEYS_ENABLED: 'true',
   };
   const values = { ...defaults, ...overrides };
 

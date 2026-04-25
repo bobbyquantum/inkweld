@@ -1106,6 +1106,11 @@
               "requireSymbol"
             ],
             "description": "Password policy configuration for registration and password reset"
+          },
+          "passkeysEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether passkey (WebAuthn) authentication is enabled. When false, all passkey endpoints return 403."
           }
         },
         "required": [
@@ -1117,7 +1122,8 @@
           "userApprovalRequired",
           "emailEnabled",
           "requireEmail",
-          "passwordPolicy"
+          "passwordPolicy",
+          "passkeysEnabled"
         ]
       },
       "LintStatus": {

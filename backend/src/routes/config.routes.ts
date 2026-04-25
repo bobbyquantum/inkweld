@@ -82,6 +82,11 @@ const SystemFeaturesSchema = z
       .openapi({
         description: 'Password policy configuration for registration and password reset',
       }),
+    passkeysEnabled: z.boolean().openapi({
+      example: true,
+      description:
+        'Whether passkey (WebAuthn) authentication is enabled. When false, all passkey endpoints return 403.',
+    }),
   })
   .openapi('SystemFeatures');
 
@@ -181,6 +186,9 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // Load password policy
   const passwordPolicy = await getPasswordPolicy(db);
 
+  // Check if passkeys (WebAuthn) are enabled
+  const passkeysEnabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
+
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -192,6 +200,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     emailEnabled,
     requireEmail,
     passwordPolicy,
+    passkeysEnabled,
   });
 });
 

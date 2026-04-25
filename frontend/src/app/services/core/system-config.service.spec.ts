@@ -34,6 +34,7 @@ describe('SystemConfigService', () => {
       requireNumber: true,
       requireSymbol: true,
     },
+    passkeysEnabled: true,
   };
 
   beforeEach(() => {
@@ -138,6 +139,7 @@ describe('SystemConfigService', () => {
           requireNumber: true,
           requireSymbol: true,
         },
+        passkeysEnabled: true,
       });
 
       expect(offlineService.isConfigLoaded()).toBe(true);
@@ -186,6 +188,7 @@ describe('SystemConfigService', () => {
               requireNumber: true,
               requireSymbol: true,
             },
+            passkeysEnabled: true,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -229,6 +232,7 @@ describe('SystemConfigService', () => {
           requireNumber: true,
           requireSymbol: true,
         },
+        passkeysEnabled: true,
       };
 
       // Wait for initial load
@@ -595,6 +599,7 @@ describe('SystemConfigService', () => {
               requireNumber: true,
               requireSymbol: true,
             },
+            passkeysEnabled: true,
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -638,6 +643,7 @@ describe('SystemConfigService', () => {
                 requireNumber: true,
                 requireSymbol: true,
               },
+              passkeysEnabled: true,
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(
