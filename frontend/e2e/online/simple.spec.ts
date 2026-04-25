@@ -8,9 +8,7 @@ const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
  */
 test.describe('Online Infrastructure', () => {
   test('should access backend health endpoint', async ({ page }) => {
-    const response = await page.request.get(
-      `${API_BASE}/api/v1/health`
-    );
+    const response = await page.request.get(`${API_BASE}/api/v1/health`);
     expect(response.ok()).toBeTruthy();
   });
 
@@ -23,9 +21,7 @@ test.describe('Online Infrastructure', () => {
     const testPassword = TEST_PASSWORDS.USER;
 
     // First, verify the backend config has USER_APPROVAL_REQUIRED=false
-    const configResponse = await page.request.get(
-      `${API_BASE}/api/v1/config`
-    );
+    const configResponse = await page.request.get(`${API_BASE}/api/v1/config`);
     expect(configResponse.ok()).toBeTruthy();
 
     // Register via API first (more reliable than UI flow)

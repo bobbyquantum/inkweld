@@ -21,105 +21,108 @@ import { getPort } from './e2e/common/free-port';
  * Data persists in D1 between runs.
  */
 
-const frontendPort = await getPort('PLAYWRIGHT_FRONTEND_PORT');
-const backendPort = await getPort('PLAYWRIGHT_BACKEND_PORT');
-const frontendUrl = `http://localhost:${frontendPort}`;
-const backendUrl = `http://localhost:${backendPort}`;
+export default (async () => {
+  const frontendPort = await getPort('PLAYWRIGHT_FRONTEND_PORT');
+  const backendPort = await getPort('PLAYWRIGHT_BACKEND_PORT');
+  const frontendUrl = `http://localhost:${frontendPort}`;
+  const backendUrl = `http://localhost:${backendPort}`;
 
-// Expose ports to globalSetup and test workers via environment variables
-process.env['API_BASE_URL'] = backendUrl;
-process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(frontendPort);
-process.env['PLAYWRIGHT_BACKEND_PORT'] = String(backendPort);
+  // Expose ports to globalSetup and test workers via environment variables
+  process.env['API_BASE_URL'] = backendUrl;
+  process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(frontendPort);
+  process.env['PLAYWRIGHT_BACKEND_PORT'] = String(backendPort);
 
-export default defineConfig({
-  testDir: './e2e/online',
+  return defineConfig({
+    testDir: './e2e/online',
 
-  /* Global setup to initialize D1 database */
-  globalSetup: require.resolve('./e2e/wrangler-setup.ts'),
+    /* Global setup to initialize D1 database */
+    globalSetup: require.resolve('./e2e/wrangler-setup.ts'),
 
-  /* Run tests sequentially for database state management */
+    /* Run tests sequentially for database state management */
 
-  /* Fail the build on CI if you accidentally left test.only in the source code */
-  forbidOnly: !!process.env['CI'],
+    /* Fail the build on CI if you accidentally left test.only in the source code */
+    forbidOnly: !!process.env['CI'],
 
-  /* Retry failed tests in CI for stability */
-  retries: process.env['CI'] ? 1 : 0,
+    /* Retry failed tests in CI for stability */
+    retries: process.env['CI'] ? 1 : 0,
 
-  /* Reporter to use */
-  reporter: [['list'], ['html', { open: 'never' }]],
+    /* Reporter to use */
+    reporter: [['list'], ['html', { open: 'never' }]],
 
-  /* Expect timeout */
-  expect: {
-    timeout: 30000,
-  },
-
-  /* Shared settings for all the projects below */
-  use: {
-    /* Base URL - frontend served separately (dedicated e2e port to avoid clashing with dev server) */
-    baseURL: frontendUrl,
-
-    /* Action timeout for slow CI environments */
-    actionTimeout: 15000,
-    navigationTimeout: 30000,
-
-    /* Collect trace when retrying the failed test */
-    trace: 'on-first-retry',
-
-    /* Screenshot on failure */
-    screenshot: 'only-on-failure',
-
-    /* Video on failure */
-    video: 'retain-on-failure',
-
-    /* Ensure each test gets a fresh browser context */
-    contextOptions: {
-      storageState: undefined,
+    /* Expect timeout */
+    expect: {
+      timeout: 30000,
     },
-  },
 
-  /* Configure web servers */
-  webServer: [
-    {
-      // Wrangler dev server (Workers runtime locally)
-      // Uses --local for local persistence, --port to avoid clashing with dev server
-      // D1 init runs first to seed database before server starts
-      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${backendPort}`,
-      cwd: '../backend',
-      url: `${backendUrl}/api/v1/health`,
-      reuseExistingServer: !process.env['CI'],
-      timeout: 120000, // Extra time for D1 init + wrangler startup
-      env: {
-        // Inherit existing environment (includes PATH, etc. needed for wrangler/npx)
-        ...process.env,
-        NODE_ENV: 'test',
+    /* Shared settings for all the projects below */
+    use: {
+      /* Base URL - frontend served separately (dedicated e2e port to avoid clashing with dev server) */
+      baseURL: frontendUrl,
+
+      /* Action timeout for slow CI environments */
+      actionTimeout: 15000,
+      navigationTimeout: 30000,
+
+      /* Collect trace when retrying the failed test */
+      trace: 'on-first-retry',
+
+      /* Screenshot on failure */
+      screenshot: 'only-on-failure',
+
+      /* Video on failure */
+      video: 'retain-on-failure',
+
+      /* Ensure each test gets a fresh browser context */
+      contextOptions: {
+        storageState: undefined,
       },
     },
-    {
-      // Frontend server (dedicated e2e port to avoid clashing with dev server)
-      command: process.env['E2E_MODE'] === 'prod'
-        ? `npx http-server dist/browser -p ${frontendPort} -c-1 --proxy ${frontendUrl}?`
-        : `npm start -- --port ${frontendPort}`,
-      url: frontendUrl,
-      reuseExistingServer: !process.env['CI'],
-      timeout: 120000,
-    },
-  ],
 
-  /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
+    /* Configure web servers */
+    webServer: [
+      {
+        // Wrangler dev server (Workers runtime locally)
+        // Uses --local for local persistence, --port to avoid clashing with dev server
+        // D1 init runs first to seed database before server starts
+        command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${backendPort}`,
+        cwd: '../backend',
+        url: `${backendUrl}/api/v1/health`,
+        reuseExistingServer: !process.env['CI'],
+        timeout: 120000, // Extra time for D1 init + wrangler startup
+        env: {
+          // Inherit existing environment (includes PATH, etc. needed for wrangler/npx)
+          ...process.env,
+          NODE_ENV: 'test',
+        },
+      },
+      {
+        // Frontend server (dedicated e2e port to avoid clashing with dev server)
+        command:
+          process.env['E2E_MODE'] === 'prod'
+            ? `npx http-server dist/browser -p ${frontendPort} -c-1 --proxy ${frontendUrl}?`
+            : `npm start -- --port ${frontendPort}`,
+        url: frontendUrl,
+        reuseExistingServer: !process.env['CI'],
+        timeout: 120000,
+      },
+    ],
 
-    // Uncomment for additional browser coverage
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-  ],
-});
+    /* Configure projects for major browsers */
+    projects: [
+      {
+        name: 'chromium',
+        use: { ...devices['Desktop Chrome'] },
+      },
+
+      // Uncomment for additional browser coverage
+      // {
+      //   name: 'firefox',
+      //   use: { ...devices['Desktop Firefox'] },
+      // },
+      // {
+      //   name: 'webkit',
+      //   use: { ...devices['Desktop Safari'] },
+      // },
+    ],
+  });
+})();
