@@ -406,4 +406,75 @@ describe('AdminSettingsComponent', () => {
       expect(component.passwordMinLength()).toBe(12);
     });
   });
+
+  describe('Passkeys', () => {
+    it('should load passkeysEnabled value on init', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSKEYS_ENABLED: 'false' });
+      await flushMicrotasks();
+      expect(component.passkeysEnabled()).toBe(false);
+    });
+
+    it('should enable passkeys via togglePasskeys(true)', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSKEYS_ENABLED: 'false' });
+      await flushMicrotasks();
+
+      const togglePromise = component.togglePasskeys(true);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSKEYS_ENABLED'
+      );
+      expect(putReq.request.method).toBe('PUT');
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(component.passkeysEnabled()).toBe(true);
+      expect(component.isSaving()).toBe(false);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('should disable passkeys via togglePasskeys(false)', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const togglePromise = component.togglePasskeys(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSKEYS_ENABLED'
+      );
+      expect(putReq.request.body).toEqual({ value: 'false' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(component.passkeysEnabled()).toBe(false);
+    });
+
+    it('should revert state and not call refresh when save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      mockSystemConfigService.refreshSystemFeatures.mockClear();
+
+      const togglePromise = component.togglePasskeys(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSKEYS_ENABLED'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      // State reverted to opposite of attempted value
+      expect(component.passkeysEnabled()).toBe(true);
+      expect(component.isSaving()).toBe(false);
+      expect(
+        mockSystemConfigService.refreshSystemFeatures
+      ).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
 });
