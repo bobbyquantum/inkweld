@@ -7,6 +7,13 @@
  *
  * If the corresponding env var is already set (e.g. PLAYWRIGHT_FRONTEND_PORT),
  * that value is reused so callers can still pin ports when needed.
+ *
+ * @note TOCTOU race: getFreePort() releases the socket before the consumer
+ * binds to it, so another process could claim the port in between. In practice
+ * the window is tiny (~ms between config load and webServer spawn) and no
+ * collisions have been observed. If this becomes an issue, either:
+ *   (A) Keep the server socket reserved until just before consumer bind.
+ *   (B) Use a retry-on-EADDRINUSE approach like the `get-port` package.
  */
 
 import * as net from 'net';
@@ -38,8 +45,19 @@ export function getFreePort(): Promise<number> {
 export async function getPort(envVar: string): Promise<number> {
   const fromEnv = process.env[envVar];
   if (fromEnv) {
-    const parsed = parseInt(fromEnv, 10);
-    if (!isNaN(parsed)) return parsed;
+    const trimmed = fromEnv.trim();
+    if (!/^\d+$/.test(trimmed)) {
+      throw new Error(
+        `Invalid port in ${envVar}: ${JSON.stringify(fromEnv)}. Expected a positive integer.`
+      );
+    }
+    const parsed = parseInt(trimmed, 10);
+    if (parsed < 1 || parsed > 65535) {
+      throw new Error(
+        `Port out of range in ${envVar}: ${parsed}. Expected 1-65535.`
+      );
+    }
+    return parsed;
   }
   return getFreePort();
 }

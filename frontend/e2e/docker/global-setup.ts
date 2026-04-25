@@ -9,9 +9,13 @@ import {
 } from '../common/test-credentials';
 
 const CONTAINER_NAME = 'inkweld-e2e-test';
-const DOCKER_PORT = process.env['PLAYWRIGHT_DOCKER_PORT']
-  ? parseInt(process.env['PLAYWRIGHT_DOCKER_PORT'], 10)
-  : 9333;
+const DOCKER_PORT_ENV = process.env['PLAYWRIGHT_DOCKER_PORT'];
+const DOCKER_PORT = DOCKER_PORT_ENV ? Number(DOCKER_PORT_ENV) : 9333;
+if (!Number.isInteger(DOCKER_PORT) || DOCKER_PORT < 1 || DOCKER_PORT > 65535) {
+  throw new Error(
+    `Invalid PLAYWRIGHT_DOCKER_PORT: ${JSON.stringify(DOCKER_PORT_ENV)}. Expected a positive integer 1-65535.`
+  );
+}
 const HEALTH_CHECK_URL = `http://localhost:${DOCKER_PORT}/api/v1/health`;
 const API_BASE_URL = `http://localhost:${DOCKER_PORT}`;
 const HEALTH_CHECK_TIMEOUT = 180000; // 3 minutes for image build + startup

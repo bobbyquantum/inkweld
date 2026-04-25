@@ -16,6 +16,19 @@ import { getPort } from './e2e/common/free-port';
  */
 
 export default (async () => {
+  // If PLAYWRIGHT_TEST_BASE_URL is pinned by the user, derive the port from it
+  // so the webServer listens on the expected port instead of a random one.
+  const pinnedBaseUrl = process.env['PLAYWRIGHT_TEST_BASE_URL'];
+  if (pinnedBaseUrl && !process.env['PLAYWRIGHT_FRONTEND_PORT']) {
+    try {
+      const port = Number(new URL(pinnedBaseUrl).port);
+      if (port > 0) {
+        process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(port);
+      }
+    } catch {
+      // Invalid URL — ignore and let getPort pick a free port
+    }
+  }
   const frontendPort = await getPort('PLAYWRIGHT_FRONTEND_PORT');
   const frontendUrl = `http://localhost:${frontendPort}`;
 

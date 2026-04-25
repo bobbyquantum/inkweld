@@ -1,7 +1,7 @@
 import { TEST_PASSWORDS } from '../../common/test-credentials';
-import { expect, test } from '../fixtures';
+import { expect, getApiBaseUrl, test } from '../fixtures';
 
-const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+const API_BASE = getApiBaseUrl();
 
 test.describe('User Login', () => {
   test('should login successfully with valid credentials', async ({

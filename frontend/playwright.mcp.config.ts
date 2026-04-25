@@ -24,11 +24,11 @@ import { getPort } from './e2e/common/free-port';
  */
 
 export default (async () => {
-  const backendPort = await getPort('PLAYWRIGHT_BACKEND_PORT');
-  const inspectorUiPort = await getPort('PLAYWRIGHT_MCP_INSPECTOR_UI_PORT');
-  const inspectorProxyPort = await getPort(
-    'PLAYWRIGHT_MCP_INSPECTOR_PROXY_PORT'
-  );
+  const [backendPort, inspectorUiPort, inspectorProxyPort] = await Promise.all([
+    getPort('PLAYWRIGHT_BACKEND_PORT'),
+    getPort('PLAYWRIGHT_MCP_INSPECTOR_UI_PORT'),
+    getPort('PLAYWRIGHT_MCP_INSPECTOR_PROXY_PORT'),
+  ]);
   const backendUrl = `http://localhost:${backendPort}`;
   const inspectorUiUrl = `http://localhost:${inspectorUiPort}`;
 
@@ -95,7 +95,7 @@ export default (async () => {
           DB_TYPE: 'sqlite',
           DB_DATABASE: ':memory:',
           SESSION_SECRET: TEST_SESSION_SECRETS.MCP,
-          ALLOWED_ORIGINS: `${inspectorUiUrl},http://localhost:${inspectorProxyPort},http://localhost:4200`,
+          ALLOWED_ORIGINS: `${inspectorUiUrl},http://localhost:${inspectorProxyPort},http://localhost:${process.env['PLAYWRIGHT_FRONTEND_PORT'] ?? 4200}`,
           USER_APPROVAL_REQUIRED: 'false',
           GITHUB_ENABLED: 'false',
           DATA_PATH: './test-data/e2e-mcp',
