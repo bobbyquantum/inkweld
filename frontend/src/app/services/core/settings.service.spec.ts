@@ -1,6 +1,9 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { SettingsService } from './settings.service';
+import { StorageContextService } from './storage-context.service';
 
 describe('SettingsService', () => {
   let service: SettingsService;
@@ -27,7 +30,25 @@ describe('SettingsService', () => {
       writable: true,
     });
 
-    service = new SettingsService();
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        SettingsService,
+        {
+          provide: StorageContextService,
+          useValue: {
+            prefixKey: (key: string) => key,
+            prefixDbName: (key: string) => key,
+            prefixDocumentId: (key: string) => key,
+            getPrefix: () => 'local:',
+            getPrefixForConfig: () => 'local:',
+            getActiveConfig: () => null,
+          },
+        },
+      ],
+    });
+
+    service = TestBed.inject(SettingsService);
   });
 
   afterEach(() => {

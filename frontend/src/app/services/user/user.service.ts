@@ -38,13 +38,7 @@ export class UserServiceError extends Error {
   }
 }
 
-const USER_CACHE_CONFIG = {
-  dbName: 'userCache',
-  version: 1,
-  stores: {
-    users: null,
-  },
-} as const;
+const USER_CACHE_DB_BASE_NAME = 'userCache';
 
 const CACHE_KEY = 'currentUser';
 const MAX_RETRIES = 3;
@@ -62,6 +56,16 @@ export class UserService {
   private readonly authTokenService = inject(AuthTokenService);
   private readonly storageContext = inject(StorageContextService);
 
+  private get userCacheConfig() {
+    return {
+      dbName: this.storageContext.prefixDbName(USER_CACHE_DB_BASE_NAME),
+      version: 1,
+      stores: {
+        users: null,
+      },
+    } as const;
+  }
+
   readonly currentUser = signal<User>({
     id: '',
     name: 'anonymous',
@@ -76,7 +80,7 @@ export class UserService {
   readonly initialized = signal(false);
 
   private readonly db: Promise<IDBDatabase | null> = this.storage
-    .initializeDatabase(USER_CACHE_CONFIG)
+    .initializeDatabase(this.userCacheConfig)
     .catch(error => {
       this.logger.error(
         'UserService',
