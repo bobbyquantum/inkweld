@@ -230,6 +230,38 @@ COOKIE_DOMAIN=.yoursite.com
 
 ---
 
+## Passkeys (WebAuthn)
+
+Enable passwordless sign-in via device biometrics or security keys.
+
+### WEBAUTHN_RP_ID
+
+**Required for production** | String | Default: `localhost`
+
+The WebAuthn Relying Party ID — the effective domain of your deployment (no protocol or port). Must match the domain users access Inkweld from.
+
+```bash
+WEBAUTHN_RP_ID=inkweld.yourcompany.com
+```
+
+:::danger Cannot change after users register passkeys
+Changing this value invalidates all existing passkeys.
+:::
+
+### WEBAUTHN_RP_NAME
+
+**Optional** | String | Default: `Inkweld`
+
+Human-readable name shown in the browser passkey registration prompt.
+
+```bash
+WEBAUTHN_RP_NAME="Acme Writing Platform"
+```
+
+See the [Passkeys admin guide](./admin-guide/passkeys) for full setup instructions.
+
+---
+
 ## GitHub OAuth
 
 Enable users to sign in with their GitHub accounts.
@@ -431,6 +463,8 @@ PORT=8333
 NODE_ENV=production
 SESSION_SECRET=<generated-32-char-secret>
 ALLOWED_ORIGINS=https://inkweld.yourcompany.com
+WEBAUTHN_RP_ID=inkweld.yourcompany.com
+WEBAUTHN_RP_NAME="My Inkweld"
 DB_TYPE=sqlite
 DB_PATH=/data/inkweld.db
 DATA_PATH=/data
@@ -475,6 +509,8 @@ wrangler secret put SESSION_SECRET --env production
 | `DB_PATH`                | `./sqlite.db`  | SQLite file path                                         |
 | `DATA_PATH`              | `./data`       | Data storage directory                                   |
 | `USER_APPROVAL_REQUIRED` | `false`        | Require admin approval for new users                     |
+| `WEBAUTHN_RP_ID`         | `localhost`    | WebAuthn Relying Party ID (domain only, no port)         |
+| `WEBAUTHN_RP_NAME`       | `Inkweld`      | Human-readable name shown in passkey prompts             |
 | `GITHUB_ENABLED`         | `false`        | Enable GitHub OAuth                                      |
 | `GITHUB_CLIENT_ID`       | -              | GitHub OAuth client ID                                   |
 | `GITHUB_CLIENT_SECRET`   | -              | GitHub OAuth client secret                               |
@@ -496,5 +532,6 @@ wrangler secret put SESSION_SECRET --env production
 ## Next Steps
 
 - **[Admin Panel](./admin-guide/overview)** - Manage users, settings, and system health from the web UI
+- **[Passkeys](./admin-guide/passkeys)** - Configure passwordless WebAuthn authentication
 - **[AI Image Generation](./admin-guide/ai-image-generation)** - Set up AI-powered features
 - **[Troubleshooting](./troubleshooting/logging)** - Common issues and solutions

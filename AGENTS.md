@@ -308,6 +308,47 @@ The frontend uses `username:slug:elements` while the backend/MCP uses `username:
 - CSRF protection on all state-changing requests
 - GitHub OAuth support (optional)
 - User approval system (configurable)
+- **Passkeys (WebAuthn)** — passwordless sign-in via device biometrics/security keys
+
+### Passkeys (WebAuthn)
+
+Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (usernameless) login.
+
+**Architecture:**
+- Library: `@simplewebauthn/server` (backend) + `@simplewebauthn/browser` (frontend), both v13.3.0
+- Registration and authentication are **POST** endpoints (not GET)
+- Challenges are single-use, 5-minute expiry, stored in `webauthnChallenges` table
+- Credentials stored in `userPasskeys` table; timestamps in **seconds** (not milliseconds)
+- Login returns a JWT token identical to the password login flow
+
+**Key files:**
+- `backend/src/db/schema/user-passkeys.ts` — credential storage schema
+- `backend/src/db/schema/webauthn-challenges.ts` — challenge storage schema
+- `backend/drizzle/0023_add-passkeys.sql` — migration
+- `backend/src/services/passkey.service.ts` — WebAuthn ceremony logic
+- `backend/src/routes/passkey.routes.ts` — Hono routes (all start/finish endpoints are POST)
+- `frontend/src/app/services/auth/passkey.service.ts` — Angular service wrapping the API
+- `frontend/src/app/components/passkeys-settings/` — account settings UI (list/add/rename/delete)
+- `frontend/src/app/dialogs/login-dialog/` — passkey login button in login dialog
+- `frontend/e2e/online/passkey.spec.ts` — E2E tests using CDP virtual authenticator
+
+**Environment variables (production required):**
+- `WEBAUTHN_RP_ID` — domain only, no protocol/port (e.g. `inkweld.yourcompany.com`). Defaults to `localhost` in dev. **Cannot be changed after users register passkeys.**
+- `WEBAUTHN_RP_NAME` — display name shown in browser prompts. Defaults to `Inkweld`.
+- `ALLOWED_ORIGINS` — also used as `expectedOrigin` in WebAuthn verification; must include every origin users access the app from.
+
+**Important gotchas:**
+- Backend timestamps (`createdAt`, `lastUsedAt`) are stored in **seconds**. The frontend `formatDate()` multiplies by 1000 before constructing a `Date`. Do not "fix" this.
+- `RP ID` in dev: both the frontend (`:4200`) and backend (`:8333`) share the `localhost` hostname — the WebAuthn origin check passes because ports are ignored for the RP ID check.
+- `rpFromContext(c)` in the backend reads `WEBAUTHN_RP_ID` / `WEBAUTHN_RP_NAME` from config and falls back to `config.allowedOrigins` for the origins list.
+- The Angular API client returns `Observable<HttpEvent<T>>` — in unit tests, use an `obs()` helper returning `Observable<any>` to avoid TypeScript errors with mock return values.
+- E2E tests use Chromium's CDP `WebAuthn.enable` + `WebAuthn.addVirtualAuthenticator` with `ctap2/internal/resident-key/UV/auto-presence`.
+- The login dialog's `onPasskeyLogin()` calls `userService.setCurrentUser(user)` after a successful passkey login to sync the user cache.
+
+**Data flow:**
+1. Register: `POST /register/start` → browser prompt → `POST /register/finish` → row in `userPasskeys`
+2. Login: `POST /login/start` → browser prompt → `POST /login/finish` → JWT in response body + cookie session
+3. Management: `GET /` (list), `PATCH /:id` (rename), `DELETE /:id`
 
 ### File Structure
 

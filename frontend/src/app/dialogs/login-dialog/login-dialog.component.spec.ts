@@ -5,7 +5,8 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
-import { AuthenticationService } from '@inkweld/index';
+import { AuthenticationService, type User } from '@inkweld/index';
+import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { UserService, UserServiceError } from '@services/user/user.service';
 import { of } from 'rxjs';
 import {
@@ -26,7 +27,19 @@ describe('LoginDialogComponent', () => {
   let userService: MockedObject<UserService>;
   let snackBar: MockedObject<MatSnackBar>;
   let authService: MockedObject<AuthenticationService>;
+  let passkeyService: MockedObject<PasskeyService>;
   let router: Router;
+
+  const fakeUser: User = {
+    id: 'user-1',
+    username: 'testuser',
+    name: 'Test User',
+    email: 'test@example.com',
+    approved: true,
+    enabled: true,
+    isAdmin: false,
+    hasAvatar: false,
+  };
 
   beforeEach(async () => {
     dialogRef = {
@@ -35,6 +48,7 @@ describe('LoginDialogComponent', () => {
 
     userService = {
       login: vi.fn(),
+      setCurrentUser: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<UserService>;
 
     snackBar = {
@@ -44,6 +58,11 @@ describe('LoginDialogComponent', () => {
     authService = {
       listOAuthProviders: vi.fn().mockReturnValue(of({ providers: [] })),
     } as unknown as MockedObject<AuthenticationService>;
+
+    passkeyService = {
+      isSupported: vi.fn().mockReturnValue(true),
+      login: vi.fn().mockResolvedValue(fakeUser),
+    } as unknown as MockedObject<PasskeyService>;
 
     await TestBed.configureTestingModule({
       imports: [LoginDialogComponent],
@@ -56,6 +75,7 @@ describe('LoginDialogComponent', () => {
         { provide: UserService, useValue: userService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: AuthenticationService, useValue: authService },
+        { provide: PasskeyService, useValue: passkeyService },
       ],
     }).compileComponents();
 
@@ -278,6 +298,102 @@ describe('LoginDialogComponent', () => {
     it('should close dialog with "register" result', () => {
       component.onRegisterClick();
       expect(dialogRef.close).toHaveBeenCalledWith('register');
+    });
+  });
+
+  describe('onPasskeyLogin', () => {
+    it('logs in, syncs user, shows snackbar and closes dialog on success', async () => {
+      await component.onPasskeyLogin();
+
+      expect(passkeyService.login).toHaveBeenCalledOnce();
+      expect(userService.setCurrentUser).toHaveBeenCalledWith(fakeUser);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        `Welcome back, ${fakeUser.username}!`,
+        'Close',
+        { duration: 3000 }
+      );
+      expect(dialogRef.close).toHaveBeenCalledWith(true);
+      expect(router.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('redirects to OAuth return URL when present', async () => {
+      const oauthUrl = '/oauth/authorize?client_id=test';
+      sessionStorage.setItem('oauth_return_url', oauthUrl);
+      vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+
+      await component.onPasskeyLogin();
+
+      expect(router.navigateByUrl).toHaveBeenCalledWith(oauthUrl);
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem('oauth_return_url')).toBeNull();
+    });
+
+    it('is silent (no snackbar, no close) when CANCELLED', async () => {
+      passkeyService.login.mockRejectedValue(
+        new PasskeyError('CANCELLED', 'Cancelled by user')
+      );
+
+      await component.onPasskeyLogin();
+
+      expect(snackBar.open).not.toHaveBeenCalled();
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('shows passkeyError when PasskeyError with non-CANCELLED code', async () => {
+      passkeyService.login.mockRejectedValue(
+        new PasskeyError('NETWORK_ERROR', 'Server unreachable')
+      );
+
+      await component.onPasskeyLogin();
+
+      expect(component.passkeyError()).toBe('Server unreachable');
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('shows generic error message for unknown errors', async () => {
+      passkeyService.login.mockRejectedValue(new Error('Unexpected'));
+
+      await component.onPasskeyLogin();
+
+      expect(component.passkeyError()).toBe(
+        'Passkey login failed. Please try again.'
+      );
+    });
+
+    it('sets isPasskeyLoggingIn to true during login and clears it after', async () => {
+      let resolveLogin!: (u: User) => void;
+      passkeyService.login.mockReturnValue(
+        new Promise<User>(res => {
+          resolveLogin = res;
+        })
+      );
+
+      const loginPromise = component.onPasskeyLogin();
+      expect(component.isPasskeyLoggingIn()).toBe(true);
+
+      resolveLogin(fakeUser);
+      await loginPromise;
+      expect(component.isPasskeyLoggingIn()).toBe(false);
+    });
+
+    it('clears isPasskeyLoggingIn even when login throws', async () => {
+      passkeyService.login.mockRejectedValue(new Error('fail'));
+
+      await component.onPasskeyLogin();
+
+      expect(component.isPasskeyLoggingIn()).toBe(false);
+    });
+
+    it('isPasskeySupported reflects PasskeyService.isSupported()', () => {
+      expect(component.isPasskeySupported).toBe(true);
+    });
+
+    it('isPasskeySupported is false when browser does not support passkeys', () => {
+      passkeyService.isSupported.mockReturnValue(false);
+      // Re-create so the field is captured at construction time
+      fixture = TestBed.createComponent(LoginDialogComponent);
+      component = fixture.componentInstance;
+      expect(component.isPasskeySupported).toBe(false);
     });
   });
 });

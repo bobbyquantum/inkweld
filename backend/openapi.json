@@ -3820,6 +3820,134 @@
           "newPassword"
         ]
       },
+      "PasskeyOptions": {
+        "type": "object",
+        "additionalProperties": {
+          "nullable": true
+        },
+        "description": "Opaque WebAuthn options JSON"
+      },
+      "PasskeyRegisterFinishResponse": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "boolean"
+          },
+          "passkey": {
+            "$ref": "#/components/schemas/Passkey"
+          }
+        },
+        "required": [
+          "verified"
+        ]
+      },
+      "Passkey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceType": {
+            "type": "string",
+            "nullable": true
+          },
+          "backedUp": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "number"
+          },
+          "lastUsedAt": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "backedUp",
+          "createdAt"
+        ]
+      },
+      "PasskeyRegisterFinishRequest": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "$ref": "#/components/schemas/PasskeyResponse"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Optional user-supplied passkey label"
+          }
+        },
+        "required": [
+          "response"
+        ]
+      },
+      "PasskeyResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "nullable": true
+        },
+        "description": "Opaque WebAuthn credential JSON"
+      },
+      "PasskeyLoginFinishResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "token"
+        ]
+      },
+      "PasskeyLoginFinishRequest": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "$ref": "#/components/schemas/PasskeyResponse"
+          }
+        },
+        "required": [
+          "response"
+        ]
+      },
+      "PasskeyListResponse": {
+        "type": "object",
+        "properties": {
+          "passkeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Passkey"
+            }
+          }
+        },
+        "required": [
+          "passkeys"
+        ]
+      },
+      "PasskeyRenameRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "TestEmailResponse": {
         "type": "object",
         "properties": {
@@ -13623,6 +13751,291 @@
           },
           "400": {
             "description": "Invalid or expired reset token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/register/start": {
+      "post": {
+        "tags": [
+          "Passkeys"
+        ],
+        "operationId": "startPasskeyRegistration",
+        "responses": {
+          "200": {
+            "description": "WebAuthn registration options",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/register/finish": {
+      "post": {
+        "tags": [
+          "Passkeys"
+        ],
+        "operationId": "finishPasskeyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRegisterFinishRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyRegisterFinishResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/login/start": {
+      "post": {
+        "tags": [
+          "Passkeys"
+        ],
+        "operationId": "startPasskeyLogin",
+        "responses": {
+          "200": {
+            "description": "WebAuthn authentication options",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/login/finish": {
+      "post": {
+        "tags": [
+          "Passkeys"
+        ],
+        "operationId": "finishPasskeyLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyLoginFinishRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyLoginFinishResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Account disabled or pending approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys": {
+      "get": {
+        "tags": [
+          "Passkeys"
+        ],
+        "operationId": "listPasskeys",
+        "responses": {
+          "200": {
+            "description": "List of passkeys for the current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkeys/{id}": {
+      "delete": {
+        "tags": [
+          "Passkeys"
+        ],
+        "operationId": "deletePasskey",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Passkey deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Passkey not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Passkeys"
+        ],
+        "operationId": "renamePasskey",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRenameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey renamed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Passkey not found",
             "content": {
               "application/json": {
                 "schema": {

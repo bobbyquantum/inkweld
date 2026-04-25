@@ -70,6 +70,32 @@
 
     <mat-divider></mat-divider>
 
+    @if (isPasskeySupported) {
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="onPasskeyLogin()"
+        [disabled]="isPasskeyLoggingIn()"
+        data-testid="passkey-login-button"
+        class="passkey-button">
+        <mat-icon>fingerprint</mat-icon>
+        @if (!isPasskeyLoggingIn()) {
+          <span>Sign in with passkey</span>
+        } @else {
+          <span>Waiting for passkey...</span>
+        }
+      </button>
+      @if (passkeyError()) {
+        <div
+          class="password-error-message"
+          role="alert"
+          data-testid="passkey-error">
+          <mat-icon class="error-icon">error_outline</mat-icon>
+          <span>{{ passkeyError() }}</span>
+        </div>
+      }
+    }
+
     <div class="oauth-container">
       <app-oauth-provider-list
         [isRegisterContext]="false"

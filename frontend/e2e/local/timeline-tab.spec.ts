@@ -119,6 +119,8 @@ test.describe('Timeline Tab', () => {
       .getByTestId('rename-input')
       .inputValue();
     await page.getByTestId('rename-confirm-button').click();
+    // Wait for the rename dialog to close before proceeding.
+    await expect(page.getByTestId('rename-input')).toHaveCount(0);
     // No visual assertion needed for the track itself — it's in the SVG.
     // Confirm the UI is still responsive by clicking add-event.
     await page.getByTestId('timeline-add-event').click();

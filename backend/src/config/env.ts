@@ -188,6 +188,15 @@ export const config = {
     certPath: process.env.TLS_CERT_PATH || './certs/cert.pem',
     keyPath: process.env.TLS_KEY_PATH || './certs/key.pem',
   },
+
+  // WebAuthn / passkeys
+  // RP ID must match the effective domain users see in their browser (no scheme/port).
+  // For local development this defaults to 'localhost'.
+  // RP name is shown to users in the browser passkey UI.
+  webauthn: {
+    rpId: process.env.WEBAUTHN_RP_ID || 'localhost',
+    rpName: process.env.WEBAUTHN_RP_NAME || 'Inkweld',
+  },
 } as const;
 
 export type Config = typeof config;

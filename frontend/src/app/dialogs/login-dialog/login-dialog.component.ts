@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService, UserServiceError } from '@services/user/user.service';
 
@@ -33,12 +34,16 @@ export class LoginDialogComponent {
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
   private readonly systemConfig = inject(SystemConfigService);
+  private readonly passkeyService = inject(PasskeyService);
 
   readonly isEmailEnabled = this.systemConfig.isEmailEnabled;
+  readonly isPasskeySupported = this.passkeyService.isSupported();
+  readonly isPasskeyLoggingIn = signal(false);
 
   username = '';
   password = '';
   readonly passwordError = signal<string | null>(null);
+  readonly passkeyError = signal<string | null>(null);
   readonly isLoggingIn = signal(false);
   lastAttemptedUsername = '';
   lastAttemptedPassword = '';
@@ -146,6 +151,41 @@ export class LoginDialogComponent {
 
   onProvidersLoaded(): void {
     this.providersLoaded.set(true);
+  }
+
+  async onPasskeyLogin(): Promise<void> {
+    this.passkeyError.set(null);
+    this.isPasskeyLoggingIn.set(true);
+    try {
+      const user = await this.passkeyService.login();
+      // Sync the UserService cache so the rest of the app picks up the
+      // freshly-authenticated user without an extra round trip.
+      await this.userService.setCurrentUser(user);
+      this.snackBar.open(`Welcome back, ${user.username}!`, 'Close', {
+        duration: 3000,
+      });
+      this.dialogRef.close(true);
+
+      const oauthReturnUrl = sessionStorage.getItem('oauth_return_url');
+      if (oauthReturnUrl) {
+        sessionStorage.removeItem('oauth_return_url');
+        void this.router.navigateByUrl(oauthReturnUrl);
+      } else {
+        void this.router.navigate(['/']);
+      }
+    } catch (error: unknown) {
+      if (error instanceof PasskeyError) {
+        if (error.code === 'CANCELLED') {
+          // User cancelled the prompt - silent.
+          return;
+        }
+        this.passkeyError.set(error.message);
+      } else {
+        this.passkeyError.set('Passkey login failed. Please try again.');
+      }
+    } finally {
+      this.isPasskeyLoggingIn.set(false);
+    }
   }
 
   onRegisterClick(): void {

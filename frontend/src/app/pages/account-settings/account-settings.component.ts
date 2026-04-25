@@ -20,6 +20,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
+import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
 import {
   OAuthService as OAuthApiService,
   type OAuthSessionDetails,
@@ -56,6 +57,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
     MatSelectModule,
     MatToolbarModule,
     MatTooltipModule,
+    PasskeysSettingsComponent,
   ],
 })
 export class AccountSettingsComponent implements OnInit {

@@ -40,6 +40,7 @@ import oauthRoutes from '../routes/oauth.routes';
 import githubAuthRoutes from '../routes/github-auth.routes';
 import robotsRoutes from '../routes/robots.routes';
 import passwordResetRoutes from '../routes/password-reset.routes';
+import passkeyRoutes from '../routes/passkey.routes';
 import { adminEmailRoutes } from '../routes/admin-email.routes';
 
 /**
@@ -112,6 +113,9 @@ export function registerCommonRoutes(app: any): void {
 
   // Password reset (forgot password / reset password, no auth required)
   app.route('/api/v1/auth', passwordResetRoutes);
+
+  // Passkeys (WebAuthn) — login routes are anonymous, others require auth
+  app.route('/api/v1/auth/passkeys', passkeyRoutes);
 
   // GitHub OAuth (login via GitHub, no auth required)
   app.route('/api/v1/auth', githubAuthRoutes);
