@@ -21,9 +21,11 @@ import type { UserPasskey } from '../db/schema';
 const passkeyRoutes = new OpenAPIHono<AppContext>();
 
 // Auth-protected paths: registration + management. Login paths are anonymous.
+// Note: we rely on inline auth checks in each handler rather than middleware
+// for parameterised routes, as Hono's use('/:id') can interfere with
+// OpenAPIHono route matching in the Cloudflare Workers (workerd) runtime.
 passkeyRoutes.use('/register/*', requireAuth);
 passkeyRoutes.use('/', requireAuth);
-passkeyRoutes.use('/:id', requireAuth);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RP config — derived per-request so it works across runtimes (Workers vs Bun).
