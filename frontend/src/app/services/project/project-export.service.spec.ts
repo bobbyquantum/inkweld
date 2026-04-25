@@ -572,7 +572,6 @@ describe('ProjectExportService', () => {
           icon: 'person',
           description: 'A character',
           version: 1,
-          isBuiltIn: false,
           tabs: [],
         },
       ] as ElementTypeSchema[];

@@ -46,7 +46,6 @@ describe('NewElementDialogComponent', () => {
       icon: schema.icon || 'help',
       description: schema.description || '',
       version: schema.version || 1,
-      isBuiltIn: schema.isBuiltIn ?? true,
       tabs: schema.tabs || [],
       ...schema,
     })) as ElementTypeSchema[];

@@ -43,7 +43,7 @@ describe('TemplatesTabComponent', () => {
       icon: schema.icon || 'help',
       description: schema.description || '',
       version: schema.version || 1,
-      isBuiltIn: schema.isBuiltIn ?? true,
+
       tabs: schema.tabs || [],
       defaultValues: schema.defaultValues,
       ...schema,
@@ -110,7 +110,6 @@ describe('TemplatesTabComponent', () => {
         icon: 'person',
         description: 'A character template',
         version: 1,
-        isBuiltIn: true,
         tabs: [
           {
             key: 'basics',
@@ -196,7 +195,6 @@ describe('TemplatesTabComponent', () => {
     icon: 'edit',
     tabCount: 1,
     fieldCount: 2,
-    isBuiltIn: false,
   };
 
   const mockCustomSchema = {
@@ -205,7 +203,6 @@ describe('TemplatesTabComponent', () => {
     icon: 'edit',
     description: 'Custom',
     version: 1,
-    isBuiltIn: false,
     tabs: [],
   };
 
@@ -216,7 +213,6 @@ describe('TemplatesTabComponent', () => {
       icon: 'person',
       tabCount: 1,
       fieldCount: 2,
-      isBuiltIn: true,
     };
 
     it('should clone a template successfully', async () => {
@@ -331,7 +327,6 @@ describe('TemplatesTabComponent', () => {
         icon: 'error',
         tabCount: 0,
         fieldCount: 0,
-        isBuiltIn: false,
       };
 
       mockWorldbuildingService.getSchema.mockReturnValue(null);
@@ -354,7 +349,6 @@ describe('TemplatesTabComponent', () => {
       const schema = component.editingSchema();
       expect(schema).not.toBeNull();
       expect(schema!.name).toBe('New Template');
-      expect(schema!.isBuiltIn).toBe(false);
     });
 
     it('should not switch to edit mode without project', () => {
@@ -423,7 +417,6 @@ describe('TemplatesTabComponent', () => {
           icon: 'person',
           tabCount: 1,
           fieldCount: 2,
-          isBuiltIn: true,
         },
       ]);
 

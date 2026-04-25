@@ -121,7 +121,6 @@ describe('WorldbuildingService', () => {
     icon: 'person',
     description: 'Character schema',
     version: 1,
-    isBuiltIn: true,
     tabs: [
       {
         key: 'basic',
@@ -514,7 +513,6 @@ describe('WorldbuildingService', () => {
       expect(clonedSchema).toBeDefined();
       expect(clonedSchema.name).toBe('Hero');
       expect(clonedSchema.description).toBe('Custom hero template');
-      expect(clonedSchema.isBuiltIn).toBe(false);
       expect(clonedSchema.version).toBe(1);
       expect(clonedSchema.id.startsWith('custom-')).toBe(true);
       expect(clonedSchema.tabs).toEqual(mockCharacterSchema.tabs);
@@ -711,7 +709,6 @@ describe('WorldbuildingService', () => {
         icon: 'person',
         description: 'desc',
         version: 1,
-        isBuiltIn: true,
         tabs: [],
       },
     ];
@@ -728,7 +725,6 @@ describe('WorldbuildingService', () => {
         icon: 'place',
         description: 'desc',
         version: 1,
-        isBuiltIn: true,
         tabs: [],
       },
     ];
@@ -749,7 +745,6 @@ describe('WorldbuildingService', () => {
       icon: 'person',
       description: 'desc',
       version: 1,
-      isBuiltIn: true,
       tabs: [],
     };
     service.saveSchemaToLibrary(schema);
@@ -762,7 +757,6 @@ describe('WorldbuildingService', () => {
       icon: 'place',
       description: 'desc',
       version: 1,
-      isBuiltIn: true,
       tabs: [],
     };
     service.saveSchemasToLibrary([schema2]);
