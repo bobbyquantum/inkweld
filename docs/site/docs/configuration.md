@@ -498,34 +498,34 @@ wrangler secret put SESSION_SECRET --env production
 
 ## Environment Variable Reference
 
-| Variable                 | Default        | Description                                              |
-| ------------------------ | -------------- | -------------------------------------------------------- |
-| `SESSION_SECRET`         | Required       | Session encryption key (32+ chars)                       |
-| `ALLOWED_ORIGINS`        | Required       | Comma-separated CORS origins                             |
-| `PORT`                   | `8333`         | HTTP server port                                         |
-| `HOST`                   | `0.0.0.0`      | Network interface to bind                                |
-| `NODE_ENV`               | `development`  | Environment mode                                         |
-| `DB_TYPE`                | `sqlite`       | Database type (`sqlite` or `d1`)                         |
-| `DB_PATH`                | `./sqlite.db`  | SQLite file path                                         |
-| `DATA_PATH`              | `./data`       | Data storage directory                                   |
-| `USER_APPROVAL_REQUIRED` | `false`        | Require admin approval for new users                     |
-| `WEBAUTHN_RP_ID`         | `localhost`    | WebAuthn Relying Party ID (domain only, no port)         |
-| `WEBAUTHN_RP_NAME`       | `Inkweld`      | Human-readable name shown in passkey prompts             |
-| `GITHUB_ENABLED`         | `false`        | Enable GitHub OAuth                                      |
-| `GITHUB_CLIENT_ID`       | -              | GitHub OAuth client ID                                   |
-| `GITHUB_CLIENT_SECRET`   | -              | GitHub OAuth client secret                               |
-| `GITHUB_CALLBACK_URL`    | Auto           | GitHub OAuth callback URL                                |
-| `DEFAULT_ADMIN_USERNAME` | -              | Initial admin username                                   |
-| `DEFAULT_ADMIN_PASSWORD` | -              | Initial admin password                                   |
-| `SERVE_FRONTEND`         | `true`         | Serve embedded frontend                                  |
-| `FRONTEND_DIST`          | -              | External frontend path                                   |
-| `OPENAI_API_KEY`         | -              | OpenAI API key for AI features                           |
-| `AI_KILL_SWITCH`         | `true`         | Disable all AI features when `true`                      |
-| `WORKERSAI_ACCOUNT_ID`   | -              | Cloudflare Account ID for Workers AI                     |
-| `WORKERSAI_API_TOKEN`    | -              | Cloudflare Workers AI API token                          |
-| `COOKIE_DOMAIN`          | Auto           | Cookie domain                                            |
-| `GC`                     | `true`         | Yjs garbage collection                                   |
-| `LOG_LEVEL`              | `debug`/`info` | Log verbosity (`debug`, `info`, `warn`, `error`, `none`) |
+| Variable                 | Default                                             | Description                                                                                                                                                                               |
+| ------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SESSION_SECRET`         | Required                                            | Session encryption key (32+ chars)                                                                                                                                                        |
+| `ALLOWED_ORIGINS`        | Required                                            | Comma-separated CORS origins                                                                                                                                                              |
+| `PORT`                   | `8333`                                              | HTTP server port                                                                                                                                                                          |
+| `HOST`                   | `0.0.0.0`                                           | Network interface to bind                                                                                                                                                                 |
+| `NODE_ENV`               | `development`                                       | Environment mode                                                                                                                                                                          |
+| `DB_TYPE`                | `sqlite`                                            | Database type (`sqlite` or `d1`)                                                                                                                                                          |
+| `DB_PATH`                | `./sqlite.db`                                       | SQLite file path                                                                                                                                                                          |
+| `DATA_PATH`              | `./data`                                            | Data storage directory                                                                                                                                                                    |
+| `USER_APPROVAL_REQUIRED` | `false`                                             | Require admin approval for new users                                                                                                                                                      |
+| `WEBAUTHN_RP_ID`         | `localhost` (dev only — **required in production**) | WebAuthn Relying Party ID (domain only, no port). Once users register passkeys against an RP ID, it cannot be changed without invalidating every credential — set this before going live. |
+| `WEBAUTHN_RP_NAME`       | `Inkweld`                                           | Human-readable name shown in passkey prompts                                                                                                                                              |
+| `GITHUB_ENABLED`         | `false`                                             | Enable GitHub OAuth                                                                                                                                                                       |
+| `GITHUB_CLIENT_ID`       | -                                                   | GitHub OAuth client ID                                                                                                                                                                    |
+| `GITHUB_CLIENT_SECRET`   | -                                                   | GitHub OAuth client secret                                                                                                                                                                |
+| `GITHUB_CALLBACK_URL`    | Auto                                                | GitHub OAuth callback URL                                                                                                                                                                 |
+| `DEFAULT_ADMIN_USERNAME` | -                                                   | Initial admin username                                                                                                                                                                    |
+| `DEFAULT_ADMIN_PASSWORD` | -                                                   | Initial admin password                                                                                                                                                                    |
+| `SERVE_FRONTEND`         | `true`                                              | Serve embedded frontend                                                                                                                                                                   |
+| `FRONTEND_DIST`          | -                                                   | External frontend path                                                                                                                                                                    |
+| `OPENAI_API_KEY`         | -                                                   | OpenAI API key for AI features                                                                                                                                                            |
+| `AI_KILL_SWITCH`         | `true`                                              | Disable all AI features when `true`                                                                                                                                                       |
+| `WORKERSAI_ACCOUNT_ID`   | -                                                   | Cloudflare Account ID for Workers AI                                                                                                                                                      |
+| `WORKERSAI_API_TOKEN`    | -                                                   | Cloudflare Workers AI API token                                                                                                                                                           |
+| `COOKIE_DOMAIN`          | Auto                                                | Cookie domain                                                                                                                                                                             |
+| `GC`                     | `true`                                              | Yjs garbage collection                                                                                                                                                                    |
+| `LOG_LEVEL`              | `debug`/`info`                                      | Log verbosity (`debug`, `info`, `warn`, `error`, `none`)                                                                                                                                  |
 
 ---
 

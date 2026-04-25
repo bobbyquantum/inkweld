@@ -761,65 +761,56 @@ describe('POST /api/v1/auth/passkeys/login/finish – disabled/unapproved user',
   });
 
   /**
-   * Simulate a login/finish request where the credential resolves to a given
-   * user. We can't forge a real WebAuthn assertion, so instead we insert a
-   * passkey row for the target user and then hit the route with a fake
-   * clientDataJSON that references a *known* challenge — this will fail
-   * cryptographic verification and return 401, which is fine because we only
-   * want to exercise the *post-verification* disabled/unapproved checks.
-   *
-   * To actually reach the user-status checks we need the credential lookup to
-   * succeed AND the challenge to exist. We therefore insert both and supply a
-   * minimally-valid-looking (but still crypto-invalid) credential response so
-   * the route gets past the DB lookups.
-   *
-   * The route returns 401 for failed crypto verification regardless; the
-   * disabled/unapproved paths return 403. If the test gets a 403 we know the
-   * route found the user and evaluated their status.
+   * Drive the post-verification user-status branch of `/login/finish` by
+   * stubbing `passkeyService.finishAuthentication` to return a successful
+   * verification for the target user. We can't forge a real WebAuthn assertion,
+   * so this stub is the only way to actually reach the disabled/unapproved
+   * checks (otherwise crypto verification fails first and the route returns
+   * 401 before evaluating user status).
    */
   async function loginFinishFor(userId: string) {
-    const { credentialId } = await insertPasskey(userId);
-    const challenge = `status-check-${crypto.randomUUID()}`;
-    await insertChallenge(challenge, 'authentication', null, 300);
-
-    const fakeClientData = btoa(
-      JSON.stringify({ challenge, type: 'webauthn.get', origin: 'http://localhost' })
-    )
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
-    const anon = new TestClient(testServer.baseUrl);
-    return anon.request('/api/v1/auth/passkeys/login/finish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        response: {
-          id: credentialId,
-          rawId: credentialId,
-          type: 'public-key',
-          response: {
-            clientDataJSON: fakeClientData,
-            authenticatorData: '',
-            signature: '',
-          },
-          clientExtensionResults: {},
-        },
-      }),
+    const original = passkeyService.finishAuthentication.bind(passkeyService);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (passkeyService as any).finishAuthentication = async () => ({
+      verified: true,
+      userId,
+      passkeyId: crypto.randomUUID(),
     });
+
+    try {
+      const anon = new TestClient(testServer.baseUrl);
+      return await anon.request('/api/v1/auth/passkeys/login/finish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          response: {
+            id: 'stub',
+            rawId: 'stub',
+            type: 'public-key',
+            response: {
+              clientDataJSON: '',
+              authenticatorData: '',
+              signature: '',
+            },
+            clientExtensionResults: {},
+          },
+        }),
+      });
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (passkeyService as any).finishAuthentication = original;
+    }
   }
 
   it('returns 403 when the passkey owner account is disabled', async () => {
-    const { response } = await loginFinishFor(DISABLED_USER_ID);
-    // Either the crypto verification fails first (401) or the status check
-    // fires (403). Both prove the route is working; 403 means we reached the
-    // user-status branch. Accept both but prefer to assert 403 when the
-    // simplewebauthn library surfaces the right error path.
-    expect([401, 403]).toContain(response.status);
+    const { response, json } = await loginFinishFor(DISABLED_USER_ID);
+    expect(response.status).toBe(403);
+    expect(await json()).toMatchObject({ error: expect.stringMatching(/disabled/i) });
   });
 
   it('returns 403 when the passkey owner account is unapproved', async () => {
-    const { response } = await loginFinishFor(UNAPPROVED_USER_ID);
-    expect([401, 403]).toContain(response.status);
+    const { response, json } = await loginFinishFor(UNAPPROVED_USER_ID);
+    expect(response.status).toBe(403);
+    expect(await json()).toMatchObject({ error: expect.stringMatching(/approval/i) });
   });
 });

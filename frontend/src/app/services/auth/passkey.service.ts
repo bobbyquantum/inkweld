@@ -4,6 +4,8 @@ import {
   PasskeysService,
   type User,
 } from '@inkweld/index';
+import { AuthTokenService } from '@services/auth/auth-token.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
@@ -40,9 +42,6 @@ export const START_AUTHENTICATION = new InjectionToken<
 >('START_AUTHENTICATION', {
   factory: () => startAuthentication,
 });
-
-import { StorageContextService } from '../core/storage-context.service';
-import { AuthTokenService } from './auth-token.service';
 
 export class PasskeyError extends Error {
   constructor(

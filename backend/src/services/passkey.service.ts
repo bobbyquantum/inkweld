@@ -316,8 +316,10 @@ class PasskeyService {
   }
 
   /**
-   * Look up a challenge by its raw value, validate type/user, then delete it.
-   * Returns the record (with the canonical challenge value) if valid.
+   * Atomically claim a challenge by its raw value, then validate type/user/expiry.
+   *
+   * Uses `DELETE … RETURNING` so concurrent callers cannot consume the same row,
+   * which would open a narrow replay window for WebAuthn challenges.
    */
   private async takeChallengeByValue(
     db: DatabaseInstance,
@@ -327,28 +329,21 @@ class PasskeyService {
   ): Promise<{ challenge: string } | null> {
     if (!challenge) return null;
 
-    const records = await db
-      .select()
-      .from(webauthnChallenges)
+    const claimed = await db
+      .delete(webauthnChallenges)
       .where(eq(webauthnChallenges.challenge, challenge))
-      .limit(1);
+      .returning();
 
-    const record = records[0];
+    const record = claimed[0];
     if (!record) return null;
     if (record.type !== type) return null;
 
     const now = Math.floor(Date.now() / 1000);
-    if (record.expiresAt < now) {
-      await db.delete(webauthnChallenges).where(eq(webauthnChallenges.id, record.id));
-      return null;
-    }
+    if (record.expiresAt < now) return null;
 
     if (type === 'registration') {
       if (!userId || record.userId !== userId) return null;
     }
-
-    // Single-use: delete now
-    await db.delete(webauthnChallenges).where(eq(webauthnChallenges.id, record.id));
 
     return { challenge: record.challenge };
   }
@@ -373,7 +368,12 @@ function uint8ToBase64Url(bytes: Uint8Array): string {
   let binary = '';
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   const b64 = typeof btoa !== 'undefined' ? btoa(binary) : Buffer.from(bytes).toString('base64');
-  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  // Strip trailing '=' padding without a regex (avoids potential super-linear
+  // backtracking on pathological inputs and addresses Sonar rule S5852).
+  let end = b64.length;
+  while (end > 0 && b64.charCodeAt(end - 1) === 61 /* '=' */) end--;
+  // Replace '+' -> '-' and '/' -> '_' using char-class regexes (no quantifiers).
+  return b64.slice(0, end).replace(/\+/g, '-').replace(/\//g, '_');
 }
 
 function base64UrlToUint8(b64url: string): Uint8Array {

@@ -47,12 +47,18 @@ function rpFromContext(c: Context): PasskeyRpConfig {
   const rpId = env?.WEBAUTHN_RP_ID || config.webauthn.rpId;
   const rpName = env?.WEBAUTHN_RP_NAME || config.webauthn.rpName;
 
-  // Origins — prefer ALLOWED_ORIGINS env (Workers), fall back to config.
+  // Origins — prefer ALLOWED_ORIGINS env (Workers / Bun process.env), fall
+  // back to the parsed config. A non-empty but blank value (",", "  ") would
+  // otherwise produce an empty origins array and fail every WebAuthn check,
+  // so we explicitly fall back when the parsed list is empty too.
   const rawAllowedOrigins = env?.ALLOWED_ORIGINS ?? process.env['ALLOWED_ORIGINS'];
-  const configOrigins = rawAllowedOrigins
-    ?.split(',')
-    .map((s) => s.trim())
-    .filter(Boolean) || [...config.allowedOrigins];
+  const parsedOrigins = rawAllowedOrigins
+    ? rawAllowedOrigins
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const configOrigins = parsedOrigins.length > 0 ? parsedOrigins : [...config.allowedOrigins];
 
   // If ALLOWED_ORIGINS is the wildcard '*', use the request's Origin header so
   // WebAuthn verification can match it exactly (the library does not support '*').
@@ -160,6 +166,9 @@ const loginStartRoute = createRoute({
   path: '/login/start',
   tags: ['Passkeys'],
   operationId: 'startPasskeyLogin',
+  // Anonymous endpoint — opt out of the global bearerAuth requirement so the
+  // generated SDK doesn't add an Authorization header on this call.
+  security: [],
   responses: {
     200: {
       content: { 'application/json': { schema: PasskeyOptionsSchema } },
@@ -179,6 +188,8 @@ const loginFinishRoute = createRoute({
   path: '/login/finish',
   tags: ['Passkeys'],
   operationId: 'finishPasskeyLogin',
+  // Anonymous endpoint — opt out of the global bearerAuth requirement.
+  security: [],
   request: {
     body: {
       content: {
