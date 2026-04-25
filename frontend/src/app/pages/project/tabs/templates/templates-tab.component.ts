@@ -110,9 +110,14 @@ export class TemplatesTabComponent {
   });
 
   constructor() {
-    // Load templates when project changes
+    // Load templates when project or schemas change
+    // The schemas dependency is critical to handle the race condition where
+    // the project signal is set before the sync provider has finished loading
+    // schemas from IndexedDB/Yjs. Reading schemas() ensures the effect re-fires
+    // once schemas actually arrive.
     effect(() => {
       const project = this.project();
+      const _schemas = this.worldbuildingService.schemas();
       if (project) {
         this.loadTemplates();
       }
