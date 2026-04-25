@@ -107,8 +107,10 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByLabel(/name/i).fill('Hero Template');
     await page.getByRole('button', { name: 'Rename' }).click();
 
-    // Verify new template was cloned
-    await expect(page.getByText('Hero Template')).toBeVisible();
+    // Verify new template was cloned (scope to templates-list to avoid snackbar text collision)
+    await expect(
+      page.getByTestId('templates-list').getByText('Hero Template')
+    ).toBeVisible();
 
     // Test deleting the custom template
     const heroCard = page
