@@ -716,6 +716,7 @@ describe('WorldbuildingService', () => {
 
     service.setSyncProvider(mockProvider);
     expect(service.getAllSchemas()).toEqual(schemas);
+    expect(service.schemas()).toEqual(schemas);
 
     const newSchemas: ElementTypeSchema[] = [
       ...schemas,
@@ -730,9 +731,11 @@ describe('WorldbuildingService', () => {
     ];
     mockProvider._schemasSubject.next(newSchemas);
     expect(service.getAllSchemas()).toEqual(newSchemas);
+    expect(service.schemas()).toEqual(newSchemas);
 
     service.setSyncProvider(null);
     expect(service.getAllSchemas()).toEqual([]);
+    expect(service.schemas()).toEqual([]);
   });
 
   it('should save schemas to library', () => {

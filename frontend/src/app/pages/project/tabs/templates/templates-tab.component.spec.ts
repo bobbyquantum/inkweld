@@ -56,7 +56,9 @@ describe('TemplatesTabComponent', () => {
       elements: signal([]),
     };
 
+    const initialSchemasSignal = signal<ElementTypeSchema[]>([]);
     mockWorldbuildingService = {
+      schemas: initialSchemasSignal.asReadonly(),
       getAllSchemas: vi.fn(),
       getSchema: vi.fn(),
       saveSchemasToLibrary: vi.fn(),
