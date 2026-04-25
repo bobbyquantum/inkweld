@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { Subject, type Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -67,6 +67,11 @@ export class WorldbuildingService {
   private schemasCache: ElementTypeSchema[] = [];
   private schemasSubscription: Subscription | null = null;
 
+  /** Reactive schema signal, updated whenever the sync provider emits */
+  private readonly schemasCacheSignal = signal<ElementTypeSchema[]>([]);
+  /** Exposed as readonly for reactive consumers */
+  readonly schemas = this.schemasCacheSignal.asReadonly();
+
   /**
    * Set the sync provider for schema library access.
    * Called by ProjectStateService when a project is loaded.
@@ -81,12 +86,15 @@ export class WorldbuildingService {
     this.syncProvider = provider;
     if (provider) {
       this.schemasCache = provider.getSchemas();
+      this.schemasCacheSignal.set(provider.getSchemas());
       // Subscribe to schema changes
       this.schemasSubscription = provider.schemas$.subscribe(schemas => {
         this.schemasCache = schemas;
+        this.schemasCacheSignal.set(schemas);
       });
     } else {
       this.schemasCache = [];
+      this.schemasCacheSignal.set([]);
     }
   }
 
@@ -773,6 +781,7 @@ export class WorldbuildingService {
       this.syncProvider.updateSchemas(allSchemas);
       // Update local cache immediately
       this.schemasCache = allSchemas;
+      this.schemasCacheSignal.set(allSchemas);
     } else {
       throw new Error('No sync provider available');
     }
@@ -796,6 +805,7 @@ export class WorldbuildingService {
       this.syncProvider.updateSchemas(filteredSchemas);
       // Update local cache immediately
       this.schemasCache = filteredSchemas;
+      this.schemasCacheSignal.set(filteredSchemas);
     } else {
       throw new Error('No sync provider available');
     }
@@ -835,6 +845,7 @@ export class WorldbuildingService {
       this.syncProvider.updateSchemas(allSchemas);
       // Update local cache immediately
       this.schemasCache = allSchemas;
+      this.schemasCacheSignal.set(allSchemas);
     } else {
       throw new Error('No sync provider available');
     }
@@ -993,6 +1004,7 @@ export class WorldbuildingService {
     this.syncProvider.updateSchemas(allSchemas);
     // Update local cache immediately
     this.schemasCache = allSchemas;
+    this.schemasCacheSignal.set(allSchemas);
   }
 
   /**
@@ -1015,6 +1027,7 @@ export class WorldbuildingService {
     this.syncProvider.updateSchemas(updatedSchemas);
     // Update local cache immediately
     this.schemasCache = updatedSchemas;
+    this.schemasCacheSignal.set(updatedSchemas);
   }
 
   /**
