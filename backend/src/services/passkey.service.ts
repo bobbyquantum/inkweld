@@ -265,10 +265,15 @@ class PasskeyService {
   }
 
   async deleteForUser(db: DatabaseInstance, userId: string, passkeyId: string): Promise<boolean> {
-    const result = await db
+    // Use .returning() so we determine success by the number of rows actually
+    // deleted, which works identically across all SQLite-flavour drivers
+    // (better-sqlite3, bun:sqlite, D1) without inspecting driver-specific
+    // result shapes.
+    const deleted = await db
       .delete(userPasskeys)
-      .where(and(eq(userPasskeys.id, passkeyId), eq(userPasskeys.userId, userId)));
-    return affectedRows(result) > 0;
+      .where(and(eq(userPasskeys.id, passkeyId), eq(userPasskeys.userId, userId)))
+      .returning();
+    return deleted.length > 0;
   }
 
   async renameForUser(
@@ -277,11 +282,12 @@ class PasskeyService {
     passkeyId: string,
     name: string
   ): Promise<boolean> {
-    const result = await db
+    const updated = await db
       .update(userPasskeys)
       .set({ name })
-      .where(and(eq(userPasskeys.id, passkeyId), eq(userPasskeys.userId, userId)));
-    return affectedRows(result) > 0;
+      .where(and(eq(userPasskeys.id, passkeyId), eq(userPasskeys.userId, userId)))
+      .returning();
+    return updated.length > 0;
   }
 
   /**
@@ -289,8 +295,11 @@ class PasskeyService {
    */
   async cleanupChallenges(db: DatabaseInstance): Promise<number> {
     const now = Math.floor(Date.now() / 1000);
-    const result = await db.delete(webauthnChallenges).where(lt(webauthnChallenges.expiresAt, now));
-    return affectedRows(result);
+    const deleted = await db
+      .delete(webauthnChallenges)
+      .where(lt(webauthnChallenges.expiresAt, now))
+      .returning();
+    return deleted.length;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -350,22 +359,6 @@ class PasskeyService {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Returns the number of rows affected by a Drizzle mutation (delete/update).
- * Different runtimes expose this on different properties:
- *   - Bun / better-sqlite3: result.changes
- *   - D1 (workerd):         result.meta.changes (D1Result shape)
- *   - Some drivers also use: result.rowsAffected
- */
-function affectedRows(result: unknown): number {
-  const r = result as Record<string, unknown> | undefined;
-  if (!r) return 0;
-  const direct = (r['changes'] as number) ?? (r['rowsAffected'] as number);
-  if (typeof direct === 'number') return direct;
-  const meta = r['meta'] as Record<string, unknown> | undefined;
-  return (meta?.['changes'] as number) ?? 0;
-}
 
 function parseTransports(json: string | null): AuthenticatorTransportFuture[] | undefined {
   if (!json) return undefined;

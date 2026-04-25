@@ -154,6 +154,13 @@ export class LoginDialogComponent {
   }
 
   async onPasskeyLogin(): Promise<void> {
+    // Defence-in-depth: the button is `[disabled]` while a login is in flight,
+    // but a programmatic invocation or a double-fired event could still re-enter
+    // here. Bail out early in that case so we never start two parallel
+    // ceremonies (which the authenticator would reject anyway).
+    if (this.isPasskeyLoggingIn()) {
+      return;
+    }
     this.passkeyError.set(null);
     this.isPasskeyLoggingIn.set(true);
     try {
@@ -169,9 +176,9 @@ export class LoginDialogComponent {
       const oauthReturnUrl = sessionStorage.getItem('oauth_return_url');
       if (oauthReturnUrl) {
         sessionStorage.removeItem('oauth_return_url');
-        this.router.navigateByUrl(oauthReturnUrl).catch(() => {});
+        void this.router.navigateByUrl(oauthReturnUrl);
       } else {
-        this.router.navigate(['/']).catch(() => {});
+        void this.router.navigate(['/']);
       }
     } catch (error: unknown) {
       if (error instanceof PasskeyError) {

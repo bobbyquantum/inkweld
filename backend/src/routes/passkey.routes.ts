@@ -60,12 +60,27 @@ function rpFromContext(c: Context): PasskeyRpConfig {
     : [];
   const configOrigins = parsedOrigins.length > 0 ? parsedOrigins : [...config.allowedOrigins];
 
-  // If ALLOWED_ORIGINS is the wildcard '*', use the request's Origin header so
-  // WebAuthn verification can match it exactly (the library does not support '*').
+  // WebAuthn requires an exact origin match — never trust the client-supplied
+  // Origin header. If the operator left ALLOWED_ORIGINS='*' we refuse to use
+  // it for passkey verification: in development we fall back to localhost with
+  // a loud warning, in any other environment we throw so the misconfiguration
+  // is visible immediately rather than silently accepting forged origins.
   let origins: string[];
-  if (configOrigins.length === 1 && configOrigins[0] === '*') {
-    const requestOrigin = c.req.header('origin');
-    origins = requestOrigin ? [requestOrigin] : ['http://localhost'];
+  if (configOrigins.includes('*')) {
+    if (process.env['NODE_ENV'] === 'development') {
+      console.warn(
+        '[passkey] ALLOWED_ORIGINS="*" is not allowed for WebAuthn; ' +
+          'falling back to http://localhost (development only). ' +
+          'Set ALLOWED_ORIGINS to an explicit list of origins.'
+      );
+      origins = ['http://localhost'];
+    } else {
+      throw new Error(
+        'ALLOWED_ORIGINS contains "*" which is not a valid WebAuthn expected ' +
+          'origin. Configure ALLOWED_ORIGINS with an explicit comma-separated ' +
+          'list of origins (e.g. "https://app.example.com").'
+      );
+    }
   } else {
     origins = configOrigins;
   }
@@ -311,8 +326,20 @@ export function passkeyManagementHandlers(app: any): void {
       return c.json({ message: 'Passkey deleted' }, 200);
     }
 
-    const body = (await c.req.json()) as { name?: string };
-    const ok = await passkeyService.renameForUser(db, user.id, id, body.name ?? '');
+    // PATCH — validate the request body against the same Zod schema the
+    // sub-router's openapi route uses, so workerd traffic gets identical
+    // validation guarantees to Bun traffic.
+    let rawBody: unknown;
+    try {
+      rawBody = await c.req.json();
+    } catch {
+      return c.json({ error: 'Invalid JSON body' }, 400);
+    }
+    const parsed = PasskeyRenameRequestSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return c.json({ error: 'Invalid request', details: parsed.error.flatten() }, 400);
+    }
+    const ok = await passkeyService.renameForUser(db, user.id, id, parsed.data.name);
     if (!ok) return c.json({ error: 'Passkey not found' }, 404);
     return c.json({ message: 'Passkey renamed' }, 200);
   };
