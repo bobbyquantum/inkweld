@@ -278,31 +278,48 @@ passkeyRoutes.openapi(listRoute, async (c) => {
 });
 
 // Wrangler/workerd plain handlers for parametrised DELETE and PATCH routes.
-// OpenAPIHono's `createRoute` / `openapi()` path matching is broken for
-// parametrised paths in the workerd runtime (returns 404), so we register
-// plain Hono handlers *before* the openapi() declarations.  The openapi()
-// calls below still provide schema documentation; the plain handlers do the
-// actual work (first match wins in Hono).
-passkeyRoutes.delete('/:id', async (c) => {
-  const db = c.get('db');
-  const user = c.get('user');
-  if (!user) return c.json({ error: 'Not authenticated' }, 401);
-  const id = c.req.param('id');
-  const ok = await passkeyService.deleteForUser(db, user.id, id);
-  if (!ok) return c.json({ error: 'Passkey not found' }, 404);
-  return c.json({ message: 'Passkey deleted' }, 200);
-});
+// OpenAPIHono sub-router path matching breaks for `/:id` paths in workerd,
+// so these are registered directly on the parent app via passkeyManagementHandlers().
+// The openapi() declarations below still provide schema documentation.
 
-passkeyRoutes.patch('/:id', async (c) => {
-  const db = c.get('db');
-  const user = c.get('user');
-  if (!user) return c.json({ error: 'Not authenticated' }, 401);
-  const id = c.req.param('id');
-  const body = await c.req.json<{ name?: string }>();
-  const ok = await passkeyService.renameForUser(db, user.id, id, body.name ?? '');
-  if (!ok) return c.json({ error: 'Passkey not found' }, 404);
-  return c.json({ message: 'Passkey renamed' }, 200);
-});
+/**
+ * Register passkey management routes (DELETE/PATCH /:id) directly on the
+ * parent Hono app so that workerd's router can resolve the parametrised paths.
+ * The sub-router (passkeyRoutes) doesn't propagate /:id paths in Wrangler.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function passkeyManagementHandlers(app: any): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handler = (method: 'delete' | 'patch') => async (c: any) => {
+    const db = c.get('db');
+
+    // Passkeys-enabled guard (mirrors the sub-router middleware)
+    const enabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
+    if (!enabled) return c.json({ error: 'Passkey authentication is disabled' }, 403);
+
+    // Resolve the current user (same logic as optionalAuth)
+    const sessionUser = await authService.getUserFromSession(db, c);
+    if (sessionUser && userService.canLogin(sessionUser)) c.set('user', sessionUser);
+    const user = c.get('user');
+    if (!user) return c.json({ error: 'Not authenticated' }, 401);
+
+    const id = c.req.param('id') as string;
+
+    if (method === 'delete') {
+      const ok = await passkeyService.deleteForUser(db, user.id, id);
+      if (!ok) return c.json({ error: 'Passkey not found' }, 404);
+      return c.json({ message: 'Passkey deleted' }, 200);
+    }
+
+    const body = (await c.req.json()) as { name?: string };
+    const ok = await passkeyService.renameForUser(db, user.id, id, body.name ?? '');
+    if (!ok) return c.json({ error: 'Passkey not found' }, 404);
+    return c.json({ message: 'Passkey renamed' }, 200);
+  };
+
+  app.delete('/api/v1/auth/passkeys/:id', handler('delete'));
+  app.patch('/api/v1/auth/passkeys/:id', handler('patch'));
+}
 
 const deleteRoute = createRoute({
   method: 'delete',

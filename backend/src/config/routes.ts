@@ -40,7 +40,7 @@ import oauthRoutes from '../routes/oauth.routes';
 import githubAuthRoutes from '../routes/github-auth.routes';
 import robotsRoutes from '../routes/robots.routes';
 import passwordResetRoutes from '../routes/password-reset.routes';
-import passkeyRoutes from '../routes/passkey.routes';
+import passkeyRoutes, { passkeyManagementHandlers } from '../routes/passkey.routes';
 import { adminEmailRoutes } from '../routes/admin-email.routes';
 
 /**
@@ -114,7 +114,12 @@ export function registerCommonRoutes(app: any): void {
   // Password reset (forgot password / reset password, no auth required)
   app.route('/api/v1/auth', passwordResetRoutes);
 
-  // Passkeys (WebAuthn) — login routes are anonymous, others require auth
+  // Passkeys (WebAuthn) — login routes are anonymous, others require auth.
+  // DELETE /:id and PATCH /:id are registered directly on the parent app
+  // *before* the sub-router mount because workerd's sub-router doesn't
+  // propagate parametrised paths correctly (they return 404 in Wrangler).
+  // Registering on the parent app first ensures these are matched in all runtimes.
+  passkeyManagementHandlers(app);
   app.route('/api/v1/auth/passkeys', passkeyRoutes);
 
   // GitHub OAuth (login via GitHub, no auth required)
