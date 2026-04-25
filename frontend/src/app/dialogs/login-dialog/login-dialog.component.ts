@@ -169,9 +169,9 @@ export class LoginDialogComponent {
       const oauthReturnUrl = sessionStorage.getItem('oauth_return_url');
       if (oauthReturnUrl) {
         sessionStorage.removeItem('oauth_return_url');
-        void this.router.navigateByUrl(oauthReturnUrl);
+        this.router.navigateByUrl(oauthReturnUrl).catch(() => {});
       } else {
-        void this.router.navigate(['/']);
+        this.router.navigate(['/']).catch(() => {});
       }
     } catch (error: unknown) {
       if (error instanceof PasskeyError) {

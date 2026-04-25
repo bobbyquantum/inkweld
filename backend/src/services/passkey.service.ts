@@ -366,24 +366,24 @@ function parseTransports(json: string | null): AuthenticatorTransportFuture[] | 
 
 function uint8ToBase64Url(bytes: Uint8Array): string {
   let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  const b64 = typeof btoa !== 'undefined' ? btoa(binary) : Buffer.from(bytes).toString('base64');
+  for (const byte of bytes) binary += String.fromCodePoint(byte);
+  const b64 = typeof btoa === 'undefined' ? Buffer.from(bytes).toString('base64') : btoa(binary);
   // Strip trailing '=' padding without a regex (avoids potential super-linear
   // backtracking on pathological inputs and addresses Sonar rule S5852).
   let end = b64.length;
-  while (end > 0 && b64.charCodeAt(end - 1) === 61 /* '=' */) end--;
-  // Replace '+' -> '-' and '/' -> '_' using char-class regexes (no quantifiers).
-  return b64.slice(0, end).replace(/\+/g, '-').replace(/\//g, '_');
+  while (end > 0 && b64.codePointAt(end - 1) === 61 /* '=' */) end--;
+  // Replace '+' -> '-' and '/' -> '_'.
+  return b64.slice(0, end).replaceAll('+', '-').replaceAll('/', '_');
 }
 
 function base64UrlToUint8(b64url: string): Uint8Array {
-  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  const b64 = b64url.replaceAll('-', '+').replaceAll('_', '/');
   const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
   const padded = b64 + pad;
   if (typeof atob !== 'undefined') {
     const binary = atob(padded);
     const out = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+    for (let i = 0; i < binary.length; i++) out[i] = binary.codePointAt(i) ?? 0;
     return out;
   }
   return new Uint8Array(Buffer.from(padded, 'base64'));

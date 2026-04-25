@@ -146,8 +146,7 @@ passkeyRoutes.openapi(registerFinishRoute, async (c) => {
   const result = await passkeyService.finishRegistration(
     db,
     user,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    response as any,
+    response as unknown as import('@simplewebauthn/server').VerifyRegistrationResponseOpts['response'],
     rpFromContext(c),
     name
   );
@@ -214,8 +213,7 @@ passkeyRoutes.openapi(loginFinishRoute, async (c) => {
   const { response } = c.req.valid('json');
   const result = await passkeyService.finishAuthentication(
     db,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    response as any,
+    response as unknown as import('@simplewebauthn/server').VerifyAuthenticationResponseOpts['response'],
     rpFromContext(c)
   );
 
@@ -277,6 +275,33 @@ passkeyRoutes.openapi(listRoute, async (c) => {
   if (!user) return c.json({ error: 'Not authenticated' }, 401);
   const list = await passkeyService.listForUser(db, user.id);
   return c.json({ passkeys: list.map(passkeyToDto) }, 200);
+});
+
+// Wrangler/workerd plain handlers for parametrised DELETE and PATCH routes.
+// OpenAPIHono's `createRoute` / `openapi()` path matching is broken for
+// parametrised paths in the workerd runtime (returns 404), so we register
+// plain Hono handlers *before* the openapi() declarations.  The openapi()
+// calls below still provide schema documentation; the plain handlers do the
+// actual work (first match wins in Hono).
+passkeyRoutes.delete('/:id', async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Not authenticated' }, 401);
+  const id = c.req.param('id');
+  const ok = await passkeyService.deleteForUser(db, user.id, id);
+  if (!ok) return c.json({ error: 'Passkey not found' }, 404);
+  return c.json({ message: 'Passkey deleted' }, 200);
+});
+
+passkeyRoutes.patch('/:id', async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Not authenticated' }, 401);
+  const id = c.req.param('id');
+  const body = await c.req.json<{ name?: string }>();
+  const ok = await passkeyService.renameForUser(db, user.id, id, body.name ?? '');
+  if (!ok) return c.json({ error: 'Passkey not found' }, 404);
+  return c.json({ message: 'Passkey renamed' }, 200);
 });
 
 const deleteRoute = createRoute({

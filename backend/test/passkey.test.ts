@@ -691,6 +691,41 @@ describe('PasskeyService – finishRegistration (expired challenge)', () => {
     expect(result.verified).toBe(false);
     expect(result.error).toMatch(/challenge/i);
   });
+
+  it('returns verified=false when the challenge belongs to a different user', async () => {
+    // Insert the challenge for USER_ID, then attempt to claim it as a *different* user.
+    // This exercises the `record.userId !== userId` branch in takeChallengeByValue.
+    const challenge = `reg-challenge-wrong-user-${crypto.randomUUID()}`;
+    await insertChallenge(challenge, 'registration', USER_ID, 300);
+
+    const fakeClientData = btoa(
+      JSON.stringify({ challenge, type: 'webauthn.create', origin: 'http://localhost:4200' })
+    )
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    // Use a user object with a different id so the userId check fails
+    const wrongUser = { id: crypto.randomUUID(), username: 'wrong' } as Parameters<
+      typeof passkeyService.finishRegistration
+    >[1];
+
+    const result = await passkeyService.finishRegistration(
+      db,
+      wrongUser,
+      {
+        id: 'test-wrong-user',
+        rawId: 'test-wrong-user',
+        type: 'public-key',
+        response: { clientDataJSON: fakeClientData, attestationObject: '' },
+        clientExtensionResults: {},
+      },
+      RP
+    );
+
+    expect(result.verified).toBe(false);
+    expect(result.error).toMatch(/challenge/i);
+  });
 });
 
 describe('PasskeyService – finishAuthentication (expired challenge)', () => {
