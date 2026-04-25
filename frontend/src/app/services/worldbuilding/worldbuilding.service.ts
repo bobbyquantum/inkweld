@@ -122,7 +122,7 @@ export class WorldbuildingService {
    * Useful for populating filter dropdowns, schema pickers, etc.
    */
   getSchemas(): ElementTypeSchema[] {
-    return this.schemasCache;
+    return this.schemas();
   }
 
   /**
