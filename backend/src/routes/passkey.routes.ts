@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
-import { requireAuth } from '../middleware/auth';
+import { optionalAuth } from '../middleware/auth';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 import { passkeyService, type PasskeyRpConfig } from '../services/passkey.service';
@@ -31,16 +31,10 @@ passkeyRoutes.use('*', async (c, next) => {
   return next();
 });
 
-// Auth-protected paths: registration + management. Login paths are anonymous.
-passkeyRoutes.use('/register/*', requireAuth);
-passkeyRoutes.use('/', requireAuth);
-// Note: Hono's use('/:id') with a single-segment wildcard can interfere with
-// OpenAPIHono route matching for named parameters in the Cloudflare Workers
-// (workerd) runtime.  We therefore register auth middleware separately for
-// the two HTTP methods that operate on /{id} instead of using a shared
-// use('/:id', requireAuth) wildcard.
-passkeyRoutes.delete('/:id', requireAuth);
-passkeyRoutes.patch('/:id', requireAuth);
+// Populate c.get('user') for any request that carries a valid session.
+// Login routes are anonymous, so we use optionalAuth (not requireAuth) here —
+// individual handlers enforce authentication via inline `if (!user)` guards.
+passkeyRoutes.use('*', optionalAuth);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RP config — derived per-request so it works across runtimes (Workers vs Bun).
@@ -54,11 +48,21 @@ function rpFromContext(c: Context): PasskeyRpConfig {
   const rpName = env?.WEBAUTHN_RP_NAME || config.webauthn.rpName;
 
   // Origins — prefer ALLOWED_ORIGINS env (Workers), fall back to config.
-  const envOrigins = env?.ALLOWED_ORIGINS;
-  const origins = envOrigins
+  const rawAllowedOrigins = env?.ALLOWED_ORIGINS ?? process.env['ALLOWED_ORIGINS'];
+  const configOrigins = rawAllowedOrigins
     ?.split(',')
     .map((s) => s.trim())
     .filter(Boolean) || [...config.allowedOrigins];
+
+  // If ALLOWED_ORIGINS is the wildcard '*', use the request's Origin header so
+  // WebAuthn verification can match it exactly (the library does not support '*').
+  let origins: string[];
+  if (configOrigins.length === 1 && configOrigins[0] === '*') {
+    const requestOrigin = c.req.header('origin');
+    origins = requestOrigin ? [requestOrigin] : ['http://localhost'];
+  } else {
+    origins = configOrigins;
+  }
 
   return { rpId, rpName, origins };
 }
