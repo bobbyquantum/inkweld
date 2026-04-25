@@ -344,7 +344,7 @@ describe('HomeComponent', () => {
       of({ matches: true, breakpoints: {} })
     );
     component.ngOnInit();
-    expect(component.isMobile).toBe(true);
+    expect(component.isMobile()).toBe(true);
   });
 
   it('should set isMobile to false when breakpoint does not match', () => {
@@ -352,7 +352,7 @@ describe('HomeComponent', () => {
       of({ matches: false, breakpoints: {} })
     );
     component.ngOnInit();
-    expect(component.isMobile).toBe(false);
+    expect(component.isMobile()).toBe(false);
   });
 
   it('should handle error when loading projects', async () => {

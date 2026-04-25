@@ -76,6 +76,8 @@
   z-index: 10;
 
   &.mobile {
+    position: static;
+    z-index: auto;
     .side-nav {
       position: fixed;
       left: 0;

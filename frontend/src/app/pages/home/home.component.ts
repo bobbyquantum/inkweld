@@ -92,7 +92,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   // Component state
   loadError = false;
   selectedProject: Project | null = null;
-  isMobile = false;
+  isMobile = signal(false);
   searchControl = new FormControl('');
   sideNavOpen = signal(true); // Open by default on desktop
   mobileSearchActive = signal(false); // Track mobile search mode
@@ -284,9 +284,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       .observe([Breakpoints.XSmall, Breakpoints.Small])
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
-        this.isMobile = result.matches;
+        this.isMobile.set(result.matches);
         // Close side nav on mobile by default
-        if (this.isMobile) {
+        if (this.isMobile()) {
           this.sideNavOpen.set(false);
         } else {
           this.sideNavOpen.set(true);
