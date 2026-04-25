@@ -25,7 +25,6 @@ describe('TemplateEditorPageComponent', () => {
     icon: 'person',
     description: 'Character schema',
     version: 1,
-    isBuiltIn: true,
     tabs: [
       {
         key: 'basic',
@@ -81,6 +80,13 @@ describe('TemplateEditorPageComponent', () => {
       'Character schema'
     );
     expect(component.basicForm.get('icon')?.value).toBe('person');
+  });
+
+  it('should include date as an available field type', () => {
+    expect(component.fieldTypes).toContainEqual({
+      value: 'date',
+      label: 'Date',
+    });
   });
 
   it('should initialize tabs from schema', () => {

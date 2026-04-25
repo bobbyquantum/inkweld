@@ -94,6 +94,7 @@ export class TemplateEditorPageComponent implements OnInit, AfterViewInit {
     { value: 'text', label: 'Text' },
     { value: 'textarea', label: 'Text Area' },
     { value: 'number', label: 'Number' },
+    { value: 'date', label: 'Date' },
     { value: 'select', label: 'Select' },
     { value: 'array', label: 'Array (Tags)' },
     { value: 'checkbox', label: 'Checkbox' },

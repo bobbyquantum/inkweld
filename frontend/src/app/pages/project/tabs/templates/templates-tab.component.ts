@@ -53,7 +53,6 @@ interface TemplateSchema {
   description?: string;
   tabCount: number;
   fieldCount: number;
-  isBuiltIn: boolean;
 }
 
 /**
@@ -149,7 +148,6 @@ export class TemplatesTabComponent {
         description: schema.description,
         tabCount: schema.tabs?.length || 0,
         fieldCount: this.countFields(schema.tabs || []),
-        isBuiltIn: schema.isBuiltIn !== false, // Default to true if not specified
       }));
 
       // Sort by label
@@ -194,7 +192,6 @@ export class TemplatesTabComponent {
       icon: 'article',
       description: '',
       version: 1,
-      isBuiltIn: false,
       tabs: [
         {
           key: 'general',

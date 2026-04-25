@@ -761,8 +761,7 @@ export class WorldbuildingService {
       icon: sourceSchema.icon,
       description: newDescription || `Clone of ${sourceSchema.name}`,
       version: 1,
-      isBuiltIn: false,
-      tabs: sourceSchema.tabs, // Deep clone not needed as we're creating new objects
+      tabs: sourceSchema.tabs,
       defaultValues: sourceSchema.defaultValues,
       createdAt: now,
       updatedAt: now,

@@ -517,7 +517,6 @@ describe('ProjectSearchDialogComponent', () => {
         icon: 'person',
         description: '',
         version: 1,
-        isBuiltIn: false,
         tabs: [],
       });
       expect(component.getIcon(result)).toBe('person');
