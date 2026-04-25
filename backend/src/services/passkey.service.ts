@@ -268,8 +268,7 @@ class PasskeyService {
     const result = await db
       .delete(userPasskeys)
       .where(and(eq(userPasskeys.id, passkeyId), eq(userPasskeys.userId, userId)));
-    const changes = (result as unknown as { changes?: number })?.changes ?? 0;
-    return changes > 0;
+    return affectedRows(result) > 0;
   }
 
   async renameForUser(
@@ -282,8 +281,7 @@ class PasskeyService {
       .update(userPasskeys)
       .set({ name })
       .where(and(eq(userPasskeys.id, passkeyId), eq(userPasskeys.userId, userId)));
-    const changes = (result as unknown as { changes?: number })?.changes ?? 0;
-    return changes > 0;
+    return affectedRows(result) > 0;
   }
 
   /**
@@ -292,7 +290,7 @@ class PasskeyService {
   async cleanupChallenges(db: DatabaseInstance): Promise<number> {
     const now = Math.floor(Date.now() / 1000);
     const result = await db.delete(webauthnChallenges).where(lt(webauthnChallenges.expiresAt, now));
-    return (result as unknown as { changes?: number })?.changes ?? 0;
+    return affectedRows(result);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -352,6 +350,16 @@ class PasskeyService {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the number of rows affected by a Drizzle mutation (delete/update).
+ * Drizzle returns `changes` on Bun/better-sqlite3 and `rowsAffected` on D1,
+ * so we check both to work across all runtimes.
+ */
+function affectedRows(result: unknown): number {
+  const r = result as Record<string, unknown>;
+  return (r?.['rowsAffected'] as number) ?? (r?.['changes'] as number) ?? 0;
+}
 
 function parseTransports(json: string | null): AuthenticatorTransportFuture[] | undefined {
   if (!json) return undefined;
