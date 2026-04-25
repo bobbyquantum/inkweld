@@ -8,7 +8,7 @@
     </div>
   </div>
 } @else {
-  <div class="content-container" [class.is-mobile]="isMobile">
+  <div class="content-container" [class.is-mobile]="isMobile()">
     <!-- Header section with logo and search bar (always visible) -->
     @if (isAuthenticated()) {
       <div class="header-section">
@@ -16,7 +16,7 @@
           class="search-container"
           [class.mobile-search-mode]="mobileSearchActive()">
           <!-- Mobile search mode: Back button + Search field -->
-          @if (isMobile && mobileSearchActive()) {
+          @if (isMobile() && mobileSearchActive()) {
             <div class="left-section">
               <button
                 mat-icon-button
@@ -56,7 +56,7 @@
             <!-- Normal mode: Hamburger/Logo + Search icon + User menu -->
             <!-- Left section: Hamburger (mobile) + Logo -->
             <div class="left-section">
-              @if (isAuthenticated() && isMobile) {
+              @if (isAuthenticated() && isMobile()) {
                 <button
                   mat-icon-button
                   (click)="toggleSideNav()"
@@ -72,7 +72,7 @@
             </div>
 
             <!-- Center section: Search box (desktop only) -->
-            @if (isAuthenticated() && !isMobile) {
+            @if (isAuthenticated() && !isMobile()) {
               <div class="center-section">
                 <mat-form-field
                   appearance="outline"
@@ -100,7 +100,7 @@
 
             <!-- Right section: Search icon (mobile) + Sync All + Create button + User menu -->
             <div class="right-section">
-              @if (isAuthenticated() && isMobile) {
+              @if (isAuthenticated() && isMobile()) {
                 <button
                   mat-icon-button
                   (click)="toggleMobileSearch()"
@@ -137,7 +137,7 @@
                     class="sync-btn"
                     data-testid="sync-all-btn">
                     <mat-icon>sync</mat-icon>
-                    @if (!isMobile) {
+                    @if (!isMobile()) {
                       <span>Sync All</span>
                     }
                   </button>
@@ -191,12 +191,12 @@
       @if (isAuthenticated()) {
         <app-side-nav
           [isOpen]="sideNavOpen"
-          [isMobile]="isMobile"
+          [isMobile]="isMobile()"
           [projectItems]="allProjects()"
           [selectedProject]="selectedProject"
           (projectSelected)="selectProject($event)">
         </app-side-nav>
-        @if (isMobile && sideNavOpen()) {
+        @if (isMobile() && sideNavOpen()) {
           <button
             type="button"
             class="side-nav-overlay"
