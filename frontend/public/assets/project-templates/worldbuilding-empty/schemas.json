@@ -5,7 +5,6 @@
     "icon": "person",
     "description": "A character in your story or world",
     "version": 1,
-    "isBuiltIn": false,
     "tabs": [
       {
         "key": "basic",
@@ -177,11 +176,18 @@
         "order": 4,
         "fields": [
           {
+            "key": "background.dateOfBirth",
+            "label": "Date of Birth",
+            "type": "date",
+            "description": "The character's date of birth in the project's time system.",
+            "layout": { "span": 6 }
+          },
+          {
             "key": "background.birthplace",
             "label": "Birthplace",
             "type": "text",
             "placeholder": "Where was the character born?",
-            "layout": { "span": 12 }
+            "layout": { "span": 6 }
           },
           {
             "key": "background.family",
@@ -250,7 +256,6 @@
     "icon": "place",
     "description": "A place or location in your world",
     "version": 1,
-    "isBuiltIn": false,
     "tabs": [
       {
         "key": "basic",
@@ -431,7 +436,6 @@
     "icon": "category",
     "description": "A generic item or object in your world.",
     "version": 1,
-    "isBuiltIn": false,
     "tabs": [
       {
         "key": "basic",

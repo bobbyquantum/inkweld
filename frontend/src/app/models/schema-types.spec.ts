@@ -148,7 +148,6 @@ describe('schema-types', () => {
           icon: 'person',
           description: 'A character template',
           version: 1,
-          isBuiltIn: true,
           tabs: [
             {
               key: 'basic',
@@ -162,7 +161,6 @@ describe('schema-types', () => {
         };
 
         expect(schema.id).toBe('character-schema');
-        expect(schema.isBuiltIn).toBe(true);
         expect(schema.tabs).toHaveLength(1);
         expect(schema.defaultValues).toEqual({ name: 'New Character' });
       });

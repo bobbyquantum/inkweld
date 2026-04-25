@@ -21,7 +21,6 @@ const MOCK_SCHEMAS: ElementTypeSchema[] = [
     icon: 'person',
     description: '',
     version: 1,
-    isBuiltIn: true,
     tabs: [],
   },
   {
@@ -30,7 +29,6 @@ const MOCK_SCHEMAS: ElementTypeSchema[] = [
     icon: 'place',
     description: '',
     version: 1,
-    isBuiltIn: true,
     tabs: [],
   },
 ];
@@ -202,9 +200,9 @@ describe('EditRelationshipTypeDialogComponent', () => {
       inverseLabel: 'Rivalled by',
       showInverse: false,
       category: RelationshipCategory.Social,
+      isBuiltIn: false,
       icon: 'bolt',
       color: '#FF4500',
-      isBuiltIn: false,
       sourceEndpoint: { allowedSchemas: ['character-v1'], maxCount: 1 },
       targetEndpoint: { allowedSchemas: [], maxCount: null },
     };

@@ -247,7 +247,11 @@
                                 })
                               ">
                               @for (type of fieldTypes; track type.value) {
-                                <mat-option [value]="type.value">
+                                <mat-option
+                                  [value]="type.value"
+                                  [attr.data-testid]="
+                                    'field-type-option-' + type.value
+                                  ">
                                   {{ type.label }}
                                 </mat-option>
                               }

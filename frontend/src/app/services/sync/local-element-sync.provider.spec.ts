@@ -133,7 +133,6 @@ describe('LocalElementSyncProvider', () => {
     icon: 'person',
     description: 'Character schema',
     version: 1,
-    isBuiltIn: false,
     tabs: [],
   };
   const mockElementTag: ElementTag = {

@@ -1,3 +1,4 @@
+import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 /**
@@ -63,12 +64,6 @@ test.describe('Worldbuilding Templates', () => {
     await expect(
       page.getByTestId('template-card').filter({ hasText: 'Custom Event' })
     ).toBeVisible();
-
-    // Verify it shows as Custom (not Built-in)
-    const customEventCard = page
-      .getByTestId('template-card')
-      .filter({ hasText: 'Custom Event' });
-    await expect(customEventCard.getByTestId('badge-custom')).toBeVisible();
   });
 
   test('should create, clone and delete custom templates from Templates tab', async ({
@@ -283,6 +278,71 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('save-template-button')).toBeEnabled();
     await page.getByTestId('save-template-button').click();
     await expect(page.getByTestId('template-editor-page')).not.toBeVisible();
+  });
+
+  test('should expose Date as a template editor field type', async ({
+    localPageWithProject: page,
+  }) => {
+    await page.getByTestId('project-card').first().click();
+    await expect(page).toHaveURL(/\/.+\/.+/);
+
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-character-v1').click();
+    await page.getByTestId('element-name-input').fill('Date Type Init');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.getByTestId('element-Date Type Init')).toBeVisible();
+
+    await page.getByTestId('sidebar-settings-button').click();
+    await page.waitForURL(/\/settings$/);
+    await expect(page.getByTestId('settings-tab-content')).toBeVisible();
+    await page.getByTestId('nav-templates').click();
+    await expect(page.getByTestId('template-card').first()).toBeVisible();
+
+    await page
+      .getByTestId('template-card')
+      .filter({ hasText: 'Character' })
+      .getByTestId('edit-template-button')
+      .first()
+      .click();
+    await expect(page.getByTestId('template-editor-page')).toBeVisible();
+
+    await page.getByTestId('add-field-button').click();
+    await page.getByTestId('field-expansion-header').last().click();
+    await page.getByTestId('field-type-select').last().click();
+    await expect(page.getByTestId('field-type-option-date')).toBeVisible();
+  });
+
+  test('should show demo character date of birth values from the template', async ({
+    localPage: page,
+  }) => {
+    await createProjectWithTwoSteps(
+      page,
+      'Demo Dates',
+      'demo-dates',
+      undefined,
+      'worldbuilding-demo'
+    );
+
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+    const charactersFolder = page.getByRole('treeitem', { name: 'Characters' });
+    await charactersFolder.locator('button').first().click();
+
+    const elaraElement = page.getByRole('treeitem', {
+      name: 'Elara Nightwhisper',
+    });
+    await expect(elaraElement).toBeVisible();
+    await elaraElement.click();
+    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
+
+    const backgroundTab = page
+      .getByTestId('nav-background')
+      .or(page.getByTestId('accordion-background'));
+    await expect(backgroundTab).toBeVisible();
+    await backgroundTab.click();
+
+    const dateField = page.getByTestId('field-background.dateOfBirth');
+    await expect(dateField).toBeVisible();
+    await expect(dateField.locator('input')).toHaveValue('1198-5-12');
   });
 
   test('should handle icon display for custom templates', async ({

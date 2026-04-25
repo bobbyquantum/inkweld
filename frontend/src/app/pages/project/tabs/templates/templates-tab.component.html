@@ -75,13 +75,6 @@
               <div class="template-name">
                 <mat-icon>{{ template.icon }}</mat-icon>
                 <span>{{ template.label }}</span>
-                @if (template.isBuiltIn) {
-                  <span class="badge built-in">Built-in</span>
-                } @else {
-                  <span class="badge custom" data-testid="badge-custom"
-                    >Custom</span
-                  >
-                }
               </div>
               <div class="template-meta">
                 <span

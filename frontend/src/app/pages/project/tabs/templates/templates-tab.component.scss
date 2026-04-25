@@ -43,24 +43,6 @@
   }
 }
 
-.badge {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 400;
-
-  &.built-in {
-    background: var(--sys-surface-container-highest);
-    color: var(--sys-on-surface-variant);
-  }
-
-  &.custom {
-    background: var(--sys-secondary-container);
-    color: var(--sys-on-secondary-container);
-  }
-}
-
 .template-meta {
   display: flex;
   align-items: center;

@@ -24,7 +24,6 @@ describe('TemplateEditorDialogComponent', () => {
     icon: 'person',
     description: 'Character schema',
     version: 1,
-    isBuiltIn: true,
     tabs: [
       {
         key: 'basic',
