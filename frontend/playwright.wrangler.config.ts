@@ -7,6 +7,9 @@ import { defineConfig, devices } from '@playwright/test';
  * using `wrangler dev` locally. This provides a more production-like
  * environment than the Bun backend, testing D1 database and Durable Objects.
  *
+ * Wrangler tests run in an isolated CI job. Ports are hardcoded to match
+ * wrangler.toml's ALLOWED_ORIGINS. Override via env vars for local runs.
+ *
  * Prerequisites:
  *   1. Run `npx wrangler login` if not already authenticated
  *   2. D1 database is auto-initialized via globalSetup
@@ -18,6 +21,17 @@ import { defineConfig, devices } from '@playwright/test';
  * Note: Wrangler dev is slower to start than Bun (~30-60s).
  * Data persists in D1 between runs.
  */
+
+const FRONTEND_PORT = Number(process.env['PLAYWRIGHT_FRONTEND_PORT'] ?? 4400);
+const BACKEND_PORT = Number(process.env['PLAYWRIGHT_BACKEND_PORT'] ?? 9333);
+const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
+const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
+
+// Expose ports to globalSetup and test workers via environment variables
+process.env['API_BASE_URL'] = BACKEND_URL;
+process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(FRONTEND_PORT);
+process.env['PLAYWRIGHT_BACKEND_PORT'] = String(BACKEND_PORT);
+
 export default defineConfig({
   testDir: './e2e/online',
 
@@ -43,7 +57,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL - frontend served separately (dedicated e2e port to avoid clashing with dev server) */
-    baseURL: 'http://localhost:4400',
+    baseURL: FRONTEND_URL,
 
     /* Action timeout for slow CI environments */
     actionTimeout: 15000,
@@ -70,9 +84,9 @@ export default defineConfig({
       // Wrangler dev server (Workers runtime locally)
       // Uses --local for local persistence, --port to avoid clashing with dev server
       // D1 init runs first to seed database before server starts
-      command: 'bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port 9333',
+      command: `bun run init:d1-local && npx wrangler dev src/cloudflare-runner.ts -c wrangler.toml --local --port ${BACKEND_PORT}`,
       cwd: '../backend',
-      url: 'http://localhost:9333/api/v1/health',
+      url: `${BACKEND_URL}/api/v1/health`,
       reuseExistingServer: !process.env['CI'],
       timeout: 120000, // Extra time for D1 init + wrangler startup
       env: {
@@ -83,10 +97,11 @@ export default defineConfig({
     },
     {
       // Frontend server (dedicated e2e port to avoid clashing with dev server)
-      command: process.env['E2E_MODE'] === 'prod'
-        ? 'npx http-server dist/browser -p 4400 -c-1 --proxy http://localhost:4400?'
-        : 'npm start -- --port 4400',
-      url: 'http://localhost:4400',
+      command:
+        process.env['E2E_MODE'] === 'prod'
+          ? `npx http-server dist/browser -p ${FRONTEND_PORT} -c-1 --proxy ${FRONTEND_URL}?`
+          : `npm start -- --port ${FRONTEND_PORT}`,
+      url: FRONTEND_URL,
       reuseExistingServer: !process.env['CI'],
       timeout: 120000,
     },

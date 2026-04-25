@@ -7,6 +7,8 @@ import {
   test,
 } from './fixtures';
 
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+
 /**
  * Helper function to open the profile manager dialog from user menu
  */
@@ -86,7 +88,7 @@ test.describe('Offline to Server Migration', () => {
     // Step 6: Enter server URL
     await offlinePage
       .locator('[data-testid="new-server-url-input"]')
-      .fill('http://localhost:9333');
+      .fill(API_BASE);
 
     // Step 7: Click "Connect" button - this will trigger migration flow since we have local projects
     await offlinePage.locator('[data-testid="connect-server-button"]').click();
@@ -259,7 +261,7 @@ test.describe('Offline to Server Migration', () => {
 
     await offlinePage
       .locator('[data-testid="new-server-url-input"]')
-      .fill('http://localhost:9333');
+      .fill(API_BASE);
 
     await offlinePage.locator('[data-testid="connect-server-button"]').click();
 
@@ -431,7 +433,7 @@ test.describe('Offline to Server Migration', () => {
 
     await offlinePage
       .locator('[data-testid="new-server-url-input"]')
-      .fill('http://localhost:9333');
+      .fill(API_BASE);
     await offlinePage.locator('[data-testid="connect-server-button"]').click();
 
     // Step 4: Register new user
@@ -571,7 +573,7 @@ test.describe('Offline to Server Migration', () => {
 
     await offlinePage
       .locator('[data-testid="new-server-url-input"]')
-      .fill('http://localhost:9333');
+      .fill(API_BASE);
     await offlinePage.locator('[data-testid="connect-server-button"]').click();
 
     // Wait for the dialog to update

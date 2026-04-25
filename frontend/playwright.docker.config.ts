@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { getPort } from './e2e/common/free-port';
+
 /**
  * Docker E2E Test Configuration
  *
@@ -21,72 +23,81 @@ import { defineConfig, devices } from '@playwright/test';
  *   - Runtime environment issues
  *   - Production build problems
  */
-export default defineConfig({
-  // Reuse the online tests - Docker serves both frontend and API on port 8333
-  testDir: './e2e/online',
 
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env['CI'],
+export default (async () => {
+  const dockerPort = await getPort('PLAYWRIGHT_DOCKER_PORT');
 
-  /* Retry failed tests in CI for stability */
-  retries: process.env['CI'] ? 1 : 0,
+  // Expose to globalSetup so it can map the correct host port
+  process.env['PLAYWRIGHT_DOCKER_PORT'] = String(dockerPort);
+  process.env['API_BASE_URL'] = `http://localhost:${dockerPort}`;
 
-  /* Reporter to use */
-  reporter: [['list'], ['html', { open: 'never' }]],
+  return defineConfig({
+    // Reuse the online tests - Docker serves both frontend and API on the allocated port
+    testDir: './e2e/online',
 
-  /* Test timeout - Docker is slower, needs more time */
-  timeout: 60000,
+    /* Fail the build on CI if you accidentally left test.only in the source code. */
+    forbidOnly: !!process.env['CI'],
 
-  /* Expect timeout */
-  expect: {
-    timeout: 30000,
-  },
+    /* Retry failed tests in CI for stability */
+    retries: process.env['CI'] ? 1 : 0,
 
-  /* Global setup/teardown for Docker container management */
-  globalSetup: './e2e/docker/global-setup.ts',
-  globalTeardown: './e2e/docker/global-teardown.ts',
+    /* Reporter to use */
+    reporter: [['list'], ['html', { open: 'never' }]],
 
-  /* Shared settings for all the projects below */
-  use: {
-    /* Base URL - Docker container serves both frontend and backend on 9333 */
-    baseURL: 'http://localhost:9333',
+    /* Test timeout - Docker is slower, needs more time */
+    timeout: 60000,
 
-    /* Action timeout for slow CI environments */
-    actionTimeout: 15000,
-    navigationTimeout: 30000,
-
-    /* Collect trace when retrying the failed test */
-    trace: 'on-first-retry',
-
-    /* Screenshot on failure */
-    screenshot: 'only-on-failure',
-
-    /* Video on failure */
-    video: 'retain-on-failure',
-
-    /* Ensure each test gets a fresh browser context */
-    contextOptions: {
-      storageState: undefined,
-    },
-  },
-
-  /* No webServer config - Docker container is managed by global setup/teardown */
-
-  /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+    /* Expect timeout */
+    expect: {
+      timeout: 30000,
     },
 
-    // Uncomment for additional browser coverage
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-  ],
-});
+    /* Global setup/teardown for Docker container management */
+    globalSetup: './e2e/docker/global-setup.ts',
+    globalTeardown: './e2e/docker/global-teardown.ts',
+
+    /* Shared settings for all the projects below */
+    use: {
+      /* Base URL - Docker container serves both frontend and backend on the allocated port */
+      baseURL: `http://localhost:${dockerPort}`,
+
+      /* Action timeout for slow CI environments */
+      actionTimeout: 15000,
+      navigationTimeout: 30000,
+
+      /* Collect trace when retrying the failed test */
+      trace: 'on-first-retry',
+
+      /* Screenshot on failure */
+      screenshot: 'only-on-failure',
+
+      /* Video on failure */
+      video: 'retain-on-failure',
+
+      /* Ensure each test gets a fresh browser context */
+      contextOptions: {
+        storageState: undefined,
+      },
+    },
+
+    /* No webServer config - Docker container is managed by global setup/teardown */
+
+    /* Configure projects for major browsers */
+    projects: [
+      {
+        name: 'chromium',
+        use: { ...devices['Desktop Chrome'] },
+      },
+
+      // Uncomment for additional browser coverage
+      // {
+      //   name: 'firefox',
+      //   use: { ...devices['Desktop Firefox'] },
+      // },
+      // {
+      //   name: 'webkit',
+      //   use: { ...devices['Desktop Safari'] },
+      // },
+    ],
+  });
+})();

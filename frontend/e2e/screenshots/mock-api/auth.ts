@@ -332,7 +332,7 @@ export function setupAuthHandlers(): void {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          redirectUrl: `http://localhost:4200/auth/callback/${provider}?code=mock-auth-code`,
+          redirectUrl: `${process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? 'http://localhost:4200'}/auth/callback/${provider}?code=mock-auth-code`,
         }),
       });
     }

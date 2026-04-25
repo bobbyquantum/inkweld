@@ -1,14 +1,14 @@
 import { TEST_PASSWORDS } from '../common/test-credentials';
 import { expect, test } from './fixtures';
 
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+
 /**
  * Simple test to verify online/full-stack infrastructure is working
  */
 test.describe('Online Infrastructure', () => {
   test('should access backend health endpoint', async ({ page }) => {
-    const response = await page.request.get(
-      'http://localhost:9333/api/v1/health'
-    );
+    const response = await page.request.get(`${API_BASE}/api/v1/health`);
     expect(response.ok()).toBeTruthy();
   });
 
@@ -21,14 +21,12 @@ test.describe('Online Infrastructure', () => {
     const testPassword = TEST_PASSWORDS.USER;
 
     // First, verify the backend config has USER_APPROVAL_REQUIRED=false
-    const configResponse = await page.request.get(
-      'http://localhost:9333/api/v1/config'
-    );
+    const configResponse = await page.request.get(`${API_BASE}/api/v1/config`);
     expect(configResponse.ok()).toBeTruthy();
 
     // Register via API first (more reliable than UI flow)
     const registerResponse = await page.request.post(
-      'http://localhost:9333/api/v1/auth/register',
+      `${API_BASE}/api/v1/auth/register`,
       {
         data: {
           username: testUsername,
@@ -78,7 +76,7 @@ test.describe('Online Infrastructure', () => {
         );
         localStorage.setItem('srv:server-1:auth_token', token);
       },
-      { token: registerData.token!, serverUrl: 'http://localhost:9333' }
+      { token: registerData.token!, serverUrl: API_BASE }
     );
 
     // Navigate to app
