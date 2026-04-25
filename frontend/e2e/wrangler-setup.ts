@@ -7,7 +7,7 @@
  */
 import { request } from '@playwright/test';
 
-const API_BASE_URL = 'http://localhost:9333';
+const API_BASE_URL = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 async function globalSetup(): Promise<void> {
   console.log('\n🔧 Wrangler E2E Global Setup');

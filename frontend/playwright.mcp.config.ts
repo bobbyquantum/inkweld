@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './e2e/common/test-credentials';
+import { getPort } from './e2e/common/free-port';
 
 /**
  * MCP (Model Context Protocol) E2E Test Configuration
@@ -10,14 +11,28 @@ import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './e2e/common/test-credenti
  * - The MCP Inspector UI for connection and interactive testing
  *
  * Spins up:
- * 1. Backend server with in-memory database (port 9333)
- * 2. MCP Inspector UI (port 6274) + proxy (port 6277)
+ * 1. Backend server with in-memory database
+ * 2. MCP Inspector UI + proxy
  *
  * Usage:
  *   npm run e2e:mcp
  *   npm run e2e:mcp:ui
  *   npm run e2e:mcp:debug
  */
+
+const backendPort = await getPort('PLAYWRIGHT_BACKEND_PORT');
+const inspectorUiPort = await getPort('PLAYWRIGHT_MCP_INSPECTOR_UI_PORT');
+const inspectorProxyPort = await getPort('PLAYWRIGHT_MCP_INSPECTOR_PROXY_PORT');
+const backendUrl = `http://localhost:${backendPort}`;
+const inspectorUiUrl = `http://localhost:${inspectorUiPort}`;
+
+// Expose ports to globalSetup and test workers via environment variables
+process.env['API_BASE_URL'] = backendUrl;
+process.env['MCP_INSPECTOR_URL'] = inspectorUiUrl;
+process.env['PLAYWRIGHT_BACKEND_PORT'] = String(backendPort);
+process.env['PLAYWRIGHT_MCP_INSPECTOR_UI_PORT'] = String(inspectorUiPort);
+process.env['PLAYWRIGHT_MCP_INSPECTOR_PROXY_PORT'] = String(inspectorProxyPort);
+
 export default defineConfig({
   testDir: './e2e/mcp',
 
@@ -63,17 +78,17 @@ export default defineConfig({
       // Backend server with in-memory database
       command: 'bun src/bun-runner.ts',
       cwd: '../backend',
-      url: 'http://localhost:9333/api/v1/health',
+      url: `${backendUrl}/api/v1/health`,
       reuseExistingServer: false,
       timeout: 60000,
       env: {
         ...process.env,
         NODE_ENV: 'test',
-        PORT: '9333',
+        PORT: String(backendPort),
         DB_TYPE: 'sqlite',
         DB_DATABASE: ':memory:',
         SESSION_SECRET: TEST_SESSION_SECRETS.MCP,
-        ALLOWED_ORIGINS: 'http://localhost:6274,http://localhost:6277,http://localhost:4200',
+        ALLOWED_ORIGINS: `${inspectorUiUrl},http://localhost:${inspectorProxyPort},http://localhost:4200`,
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
         DATA_PATH: './test-data/e2e-mcp',
@@ -82,14 +97,14 @@ export default defineConfig({
         DEFAULT_ADMIN_USERNAME: 'mcp-admin',
         DEFAULT_ADMIN_PASSWORD: TEST_PASSWORDS.MCP_ADMIN,
         // Set BASE_URL for OAuth metadata endpoints
-        BASE_URL: 'http://localhost:9333',
+        BASE_URL: backendUrl,
       },
     },
     {
-      // MCP Inspector (UI on 6274, proxy on 6277)
+      // MCP Inspector (UI + proxy)
       command:
         'npx -y @modelcontextprotocol/inspector',
-      url: 'http://localhost:6274',
+      url: inspectorUiUrl,
       reuseExistingServer: false,
       timeout: 60000,
       env: {
@@ -98,9 +113,8 @@ export default defineConfig({
         DANGEROUSLY_OMIT_AUTH: 'true',
         // Prevent auto-opening browser
         MCP_AUTO_OPEN_ENABLED: 'false',
-        // Use default ports
-        CLIENT_PORT: '6274',
-        SERVER_PORT: '6277',
+        CLIENT_PORT: String(inspectorUiPort),
+        SERVER_PORT: String(inspectorProxyPort),
       },
     },
   ],

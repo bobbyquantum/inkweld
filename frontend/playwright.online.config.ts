@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './e2e/common/test-credentials';
+import { getPort } from './e2e/common/free-port';
 
 /**
  * Online E2E Test Configuration
@@ -18,6 +19,17 @@ import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './e2e/common/test-credenti
  *   npm run e2e:online
  *   npm run e2e:online:ci
  */
+
+const frontendPort = await getPort('PLAYWRIGHT_FRONTEND_PORT');
+const backendPort = await getPort('PLAYWRIGHT_BACKEND_PORT');
+const frontendUrl = `http://localhost:${frontendPort}`;
+const backendUrl = `http://localhost:${backendPort}`;
+
+// Expose ports to globalSetup and test workers via environment variables
+process.env['API_BASE_URL'] = backendUrl;
+process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(frontendPort);
+process.env['PLAYWRIGHT_BACKEND_PORT'] = String(backendPort);
+
 export default defineConfig({
   testDir: './e2e/online',
 
@@ -44,7 +56,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://localhost:4400',
+    baseURL: frontendUrl,
 
     /* Action timeout for slow CI environments */
     actionTimeout: 15000,
@@ -71,7 +83,7 @@ export default defineConfig({
       // Backend server with in-memory database (dedicated e2e port to avoid clashing with dev server)
       command: 'bun src/bun-runner.ts',
       cwd: '../backend',
-      url: 'http://localhost:9333/api/v1/health',
+      url: `${backendUrl}/api/v1/health`,
       reuseExistingServer: false,
       timeout: 60000,
       env: {
@@ -79,11 +91,11 @@ export default defineConfig({
         ...process.env,
         // Override with test-specific values
         NODE_ENV: 'test',
-        PORT: '9333',
+        PORT: String(backendPort),
         DB_TYPE: 'sqlite',
         DB_DATABASE: ':memory:',
         SESSION_SECRET: TEST_SESSION_SECRETS.ONLINE,
-        ALLOWED_ORIGINS: 'http://localhost:4400',
+        ALLOWED_ORIGINS: frontendUrl,
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
         DATA_PATH: './test-data/e2e',
@@ -99,9 +111,9 @@ export default defineConfig({
     {
       // Frontend server (dedicated e2e port to avoid clashing with dev server)
       command: process.env['E2E_MODE'] === 'prod'
-        ? 'npx http-server dist/browser -p 4400 -c-1 --proxy http://localhost:4400?'
-        : 'npm start -- --port 4400',
-      url: 'http://localhost:4400',
+        ? `npx http-server dist/browser -p ${frontendPort} -c-1 --proxy ${frontendUrl}?`
+        : `npm start -- --port ${frontendPort}`,
+      url: frontendUrl,
       reuseExistingServer: !process.env['CI'],
       timeout: 120000,
     },

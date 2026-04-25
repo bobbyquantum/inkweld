@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { getPort } from './e2e/common/free-port';
+
 /**
  * Docker E2E Test Configuration
  *
@@ -21,8 +23,15 @@ import { defineConfig, devices } from '@playwright/test';
  *   - Runtime environment issues
  *   - Production build problems
  */
+
+const dockerPort = await getPort('PLAYWRIGHT_DOCKER_PORT');
+
+// Expose to globalSetup so it can map the correct host port
+process.env['PLAYWRIGHT_DOCKER_PORT'] = String(dockerPort);
+process.env['API_BASE_URL'] = `http://localhost:${dockerPort}`;
+
 export default defineConfig({
-  // Reuse the online tests - Docker serves both frontend and API on port 8333
+  // Reuse the online tests - Docker serves both frontend and API on the allocated port
   testDir: './e2e/online',
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -48,8 +57,8 @@ export default defineConfig({
 
   /* Shared settings for all the projects below */
   use: {
-    /* Base URL - Docker container serves both frontend and backend on 9333 */
-    baseURL: 'http://localhost:9333',
+    /* Base URL - Docker container serves both frontend and backend on the allocated port */
+    baseURL: `http://localhost:${dockerPort}`,
 
     /* Action timeout for slow CI environments */
     actionTimeout: 15000,

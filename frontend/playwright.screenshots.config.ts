@@ -1,11 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { getPort } from './e2e/common/free-port';
+
 /**
  * Playwright configuration for screenshot generation.
  * These tests generate promotional screenshots for documentation.
  *
  * Run with: npm run e2e:screenshots
  */
+
+const frontendPort = await getPort('PLAYWRIGHT_FRONTEND_PORT');
+const frontendUrl = `http://localhost:${frontendPort}`;
+
+// Expose to test workers so mock handlers can use the correct origin
+process.env['PLAYWRIGHT_TEST_BASE_URL'] = frontendUrl;
+process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(frontendPort);
+
 export default defineConfig({
   testDir: './e2e/screenshots',
   testIgnore: ['**/mock-api/registry.spec.ts'],
@@ -20,7 +30,7 @@ export default defineConfig({
   },
 
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL: frontendUrl,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     actionTimeout: 10000,
@@ -35,8 +45,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:4200',
+    command: `npm run start -- --port ${frontendPort}`,
+    url: frontendUrl,
     reuseExistingServer: !process.env['CI'],
     timeout: 120000,
   },

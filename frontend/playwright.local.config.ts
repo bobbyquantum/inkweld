@@ -1,6 +1,8 @@
 /// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test';
 
+import { getPort } from './e2e/common/free-port';
+
 /**
  * Local E2E Test Configuration
  *
@@ -12,6 +14,14 @@ import { defineConfig, devices } from '@playwright/test';
  *   npm run e2e:local
  *   npm run e2e:local:ci
  */
+
+const frontendPort = await getPort('PLAYWRIGHT_FRONTEND_PORT');
+const frontendUrl = `http://localhost:${frontendPort}`;
+
+// Expose to test workers via environment variable
+process.env['PLAYWRIGHT_TEST_BASE_URL'] = process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? frontendUrl;
+process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(frontendPort);
+
 export default defineConfig({
   testDir: './e2e/local',
   fullyParallel: true,
@@ -33,7 +43,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? 'http://localhost:4200',
+    baseURL: process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? frontendUrl,
 
     /* Action timeout for slow CI environments */
     actionTimeout: 15000,
@@ -53,15 +63,15 @@ export default defineConfig({
   webServer: process.env['E2E_MODE'] === 'prod'
     ? {
         // Serve production build
-        command: 'npx http-server dist/browser -p 4200 -c-1 --proxy http://localhost:4200?',
-        url: 'http://localhost:4200',
+        command: `npx http-server dist/browser -p ${frontendPort} -c-1 --proxy ${frontendUrl}?`,
+        url: frontendUrl,
         reuseExistingServer: !process.env['CI'],
         timeout: 120000,
       }
     : {
         // Frontend dev server
-        command: 'npm start',
-        url: 'http://localhost:4200',
+        command: `npm start -- --port ${frontendPort}`,
+        url: frontendUrl,
         reuseExistingServer: !process.env['CI'],
         timeout: 120000,
       },

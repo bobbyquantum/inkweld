@@ -2,6 +2,8 @@ import { type Page } from '@playwright/test';
 
 import { expect, test } from './fixtures';
 
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+
 /**
  * Helper to navigate to admin page via user menu.
  * This is more reliable than direct URL navigation because it ensures
@@ -346,7 +348,7 @@ test.describe('Admin Settings', () => {
 
     // First, ENSURE it starts as false (the safe default for parallel tests)
     await adminPage.request.put(
-      'http://localhost:9333/api/v1/admin/config/USER_APPROVAL_REQUIRED',
+      `${API_BASE}/api/v1/admin/config/USER_APPROVAL_REQUIRED`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -392,7 +394,7 @@ test.describe('Admin Settings', () => {
 
     // IMMEDIATELY restore to false to minimize impact on parallel tests
     await adminPage.request.put(
-      'http://localhost:9333/api/v1/admin/config/USER_APPROVAL_REQUIRED',
+      `${API_BASE}/api/v1/admin/config/USER_APPROVAL_REQUIRED`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

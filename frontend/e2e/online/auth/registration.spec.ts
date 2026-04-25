@@ -1,6 +1,8 @@
 import { TEST_PASSWORDS } from '../../common/test-credentials';
 import { expect, test } from '../fixtures';
 
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+
 // Helper to open register dialog
 async function openRegisterDialog(page: import('@playwright/test').Page) {
   await page.goto('/');
@@ -53,7 +55,7 @@ test.describe('User Registration', () => {
     // First, create a user via API so we have an existing username to test against
     const existingUsername = `existing${Date.now()}`;
     const registerResponse = await page.request.post(
-      'http://localhost:9333/api/v1/auth/register',
+      `${API_BASE}/api/v1/auth/register`,
       {
         data: {
           username: existingUsername,
@@ -65,7 +67,7 @@ test.describe('User Registration', () => {
 
     // Verify the user was created by checking username availability
     const checkResponse = await page.request.get(
-      `http://localhost:9333/api/v1/users/check-username?username=${existingUsername}`
+      `${API_BASE}/api/v1/users/check-username?username=${existingUsername}`
     );
     const checkData = await checkResponse.json();
     expect(checkData.available).toBe(false); // Username should NOT be available
@@ -103,7 +105,7 @@ test.describe('User Registration', () => {
     // First, create a user via API so we have an existing username to test against
     const existingUsername = `suggest${Date.now()}`;
     const registerResponse = await page.request.post(
-      'http://localhost:9333/api/v1/auth/register',
+      `${API_BASE}/api/v1/auth/register`,
       {
         data: {
           username: existingUsername,
@@ -247,7 +249,7 @@ test.describe('User Registration', () => {
     // First, create a user via API so we have an existing username to test against
     const existingUsername = `selectuser${Date.now()}`;
     const registerResponse = await page.request.post(
-      'http://localhost:9333/api/v1/auth/register',
+      `${API_BASE}/api/v1/auth/register`,
       {
         data: {
           username: existingUsername,

@@ -2,8 +2,8 @@ import { type APIRequestContext, expect, test as base } from '@playwright/test';
 
 import { TEST_PASSWORDS } from '../common/test-credentials';
 
-export const API_BASE = 'http://localhost:9333';
-export const INSPECTOR_URL = 'http://localhost:6274';
+export const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+export const INSPECTOR_URL = process.env['MCP_INSPECTOR_URL'] ?? 'http://localhost:6274';
 
 // ============================================
 // Types

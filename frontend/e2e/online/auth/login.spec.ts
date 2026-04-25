@@ -1,6 +1,8 @@
 import { TEST_PASSWORDS } from '../../common/test-credentials';
 import { expect, test } from '../fixtures';
 
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+
 test.describe('User Login', () => {
   test('should login successfully with valid credentials', async ({
     anonymousPage: page,
@@ -10,7 +12,7 @@ test.describe('User Login', () => {
     const testPassword = TEST_PASSWORDS.USER;
 
     const registerResponse = await page.request.post(
-      'http://localhost:9333/api/v1/auth/register',
+      `${API_BASE}/api/v1/auth/register`,
       {
         data: {
           username: testUsername,
