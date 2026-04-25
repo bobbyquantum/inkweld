@@ -385,20 +385,11 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 - Located in `frontend/src/api-client/`
 - **Regenerate**: First generate OpenAPI spec, then Angular client
 
-**Important - OpenAPI Generation**: The `generate:openapi` script doesn't terminate automatically. Use a 30-second timeout:
+**Regenerate**:
 
-```powershell
-# PowerShell (Windows)
-$job = Start-Job -ScriptBlock { Set-Location server; bun run generate:openapi 2>&1 }
-$null = Wait-Job $job -Timeout 30
-Stop-Job $job -ErrorAction SilentlyContinue
-Remove-Job $job
-
-# Then generate Angular client
-cd backend && bun run generate:angular-client
+```bash
+cd backend && bun run generate:openapi && bun run generate:angular-client
 ```
-
-**Note**: OpenAPI generation runs in "preview mode" and doesn't need database connectivity. It will succeed even if database connection fails afterward (that's expected).
 
 ---
 

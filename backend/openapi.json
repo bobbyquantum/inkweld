@@ -13853,6 +13853,7 @@
           "Passkeys"
         ],
         "operationId": "startPasskeyLogin",
+        "security": [],
         "responses": {
           "200": {
             "description": "WebAuthn authentication options",
@@ -13873,6 +13874,7 @@
           "Passkeys"
         ],
         "operationId": "finishPasskeyLogin",
+        "security": [],
         "requestBody": {
           "content": {
             "application/json": {
