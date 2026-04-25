@@ -13,7 +13,7 @@ import { request } from '@playwright/test';
 
 import { TEST_API_KEYS, TEST_PASSWORDS } from './common/test-credentials';
 
-const API_BASE_URL = 'http://localhost:9333';
+const API_BASE_URL = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 // Must match playwright.online.config.ts env vars
 const DEFAULT_ADMIN = {

@@ -1,5 +1,7 @@
 import { expect, test } from './fixtures';
 
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
+
 // Helper to extract mode from v2 config format
 function getActiveMode(
   config: {
@@ -55,11 +57,11 @@ test.describe('Authentication', () => {
       } | null
     );
     expect(mode).toBe('server');
-    expect(serverUrl).toBe('http://localhost:9333');
+    expect(serverUrl).toBe(API_BASE);
 
     // Verify we can access an authenticated endpoint
     const response = await authenticatedPage.request.get(
-      'http://localhost:9333/api/v1/projects',
+      `${API_BASE}/api/v1/projects`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

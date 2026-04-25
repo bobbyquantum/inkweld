@@ -42,9 +42,10 @@ export type ServerUnavailablePage = Page & {
 
 /**
  * Get the API base URL from Playwright config or environment.
- * Defaults to http://localhost:9333 for online tests, but Docker tests use 8333.
+ * Reads from API_BASE_URL env var (set dynamically by playwright configs).
+ * Falls back to http://localhost:9333 for manual/legacy runs.
  */
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   // Check for explicit API URL override
   if (process.env['API_BASE_URL']) {
     return process.env['API_BASE_URL'];

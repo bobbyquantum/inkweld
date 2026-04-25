@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-const API_BASE = 'http://localhost:9333';
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 /**
  * OAuth 2.1 & MCP Discovery Tests
