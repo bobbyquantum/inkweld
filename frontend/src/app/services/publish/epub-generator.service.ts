@@ -677,7 +677,7 @@ export class EpubGeneratorService {
       return '';
     }
 
-    const attrs: Record<string, unknown> = node.attrs;
+    const attrs: Record<string, unknown> = node.attrs ?? {};
     const parts: string[] = [];
 
     for (const [key, value] of Object.entries(attrs)) {

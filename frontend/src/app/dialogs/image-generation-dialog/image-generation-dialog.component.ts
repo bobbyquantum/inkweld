@@ -562,7 +562,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       );
 
       const profiles = allProfiles.filter(p =>
-        enabledProviders.has(p.provider as string)
+        enabledProviders.has(p.provider as unknown as ImageProviderType)
       );
 
       if (profiles.length < allProfiles.length) {
