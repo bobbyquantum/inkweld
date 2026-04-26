@@ -682,7 +682,7 @@ export class UnifiedSnapshotService {
         xmlContent: snapshot.xmlContent,
         worldbuildingData: snapshot.worldbuildingData,
         wordCount: snapshot.wordCount,
-        metadata: snapshot.metadata as Record<string, unknown>,
+        metadata: snapshot.metadata,
       };
 
       const serverSnapshot = await firstValueFrom(

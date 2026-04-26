@@ -72,9 +72,9 @@ describe('TabManagerService', () => {
     });
 
     it('should return "worldbuilding" for custom types', () => {
-      expect(
-        service.getTabTypeForElement('CUSTOM_MY_TYPE' as ElementType)
-      ).toBe('worldbuilding');
+      expect(service.getTabTypeForElement('CUSTOM_MY_TYPE')).toBe(
+        'worldbuilding'
+      );
     });
   });
 

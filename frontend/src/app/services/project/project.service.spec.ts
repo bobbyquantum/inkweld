@@ -62,10 +62,10 @@ describe('ProjectService', () => {
   beforeEach(() => {
     api = mockDeep<ProjectsService>();
     imagesApi = mockDeep<ImagesService>();
-    store = mockDeep<StorageService>() as StoreMock;
-    setup = mockDeep<SetupService>() as SetupMock;
-    localStorage = mockDeep<LocalStorageService>() as OfflineStorageMock;
-    projectSync = mockDeep<ProjectSyncService>() as ProjectSyncMock;
+    store = mockDeep<StorageService>();
+    setup = mockDeep<SetupService>();
+    localStorage = mockDeep<LocalStorageService>();
+    projectSync = mockDeep<ProjectSyncService>();
 
     // Storage baseline
     store.initializeDatabase.mockResolvedValue(DB);

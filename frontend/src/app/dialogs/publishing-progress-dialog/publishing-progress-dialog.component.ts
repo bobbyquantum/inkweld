@@ -104,7 +104,7 @@ export class PublishingProgressDialogComponent implements OnInit, OnDestroy {
             setTimeout(() => {
               this.dialogRef.close({
                 success: true,
-              } as PublishingProgressDialogResult);
+              });
             }, 1500);
           } else if (progress.phase === PublishingPhase.ERROR) {
             // Stay open on error so user can see the message
@@ -112,7 +112,7 @@ export class PublishingProgressDialogComponent implements OnInit, OnDestroy {
             this.dialogRef.close({
               success: false,
               cancelled: true,
-            } as PublishingProgressDialogResult);
+            });
           }
         });
 
@@ -136,7 +136,7 @@ export class PublishingProgressDialogComponent implements OnInit, OnDestroy {
       this.dialogRef.close({
         success: false,
         cancelled: true,
-      } as PublishingProgressDialogResult);
+      });
     }
   }
 
@@ -149,7 +149,7 @@ export class PublishingProgressDialogComponent implements OnInit, OnDestroy {
       success: currentProgress.phase === PublishingPhase.COMPLETE,
       error: currentProgress.error,
       cancelled: currentProgress.phase === PublishingPhase.CANCELLED,
-    } as PublishingProgressDialogResult);
+    });
   }
 
   /**

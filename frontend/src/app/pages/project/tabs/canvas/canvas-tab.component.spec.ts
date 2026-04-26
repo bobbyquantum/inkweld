@@ -73,8 +73,7 @@ describe('CanvasTabComponent', () => {
 
   beforeAll(() => {
     if (!globalThis.ResizeObserver) {
-      globalThis.ResizeObserver =
-        MockResizeObserver as unknown as typeof ResizeObserver;
+      globalThis.ResizeObserver = MockResizeObserver;
     }
   });
 
@@ -125,7 +124,7 @@ describe('CanvasTabComponent', () => {
       expandable: false,
       version: 1,
       metadata: {},
-    } as Element,
+    },
   ];
 
   const mockProjectState = {
@@ -545,7 +544,7 @@ describe('CanvasTabComponent', () => {
           src: '',
           width: 1,
           height: 1,
-        } as CanvasImage)
+        })
       ).toBe('image');
       expect(
         component['getObjectIcon']({
@@ -558,7 +557,7 @@ describe('CanvasTabComponent', () => {
           fill: '#000',
           width: 100,
           align: 'left',
-        } as CanvasText)
+        })
       ).toBe('title');
       expect(
         component['getObjectIcon']({
@@ -569,7 +568,7 @@ describe('CanvasTabComponent', () => {
           strokeWidth: 2,
           closed: false,
           tension: 0,
-        } as CanvasPath)
+        })
       ).toBe('draw');
       expect(
         component['getObjectIcon']({
@@ -581,7 +580,7 @@ describe('CanvasTabComponent', () => {
           fill: '#fff',
           stroke: '#000',
           strokeWidth: 1,
-        } as CanvasShape)
+        })
       ).toBe('crop_square');
       expect(
         component['getObjectIcon']({
@@ -590,7 +589,7 @@ describe('CanvasTabComponent', () => {
           label: 'Pin',
           icon: 'place',
           color: '#f00',
-        } as CanvasPin)
+        })
       ).toBe('place');
     });
   });
@@ -2248,7 +2247,7 @@ describe('CanvasTabComponent', () => {
         stroke: '#000000',
         strokeWidth: 2,
         ...overrides,
-      } as CanvasShape;
+      };
     }
 
     it('should do nothing when no object is selected', () => {
@@ -2561,7 +2560,7 @@ describe('CanvasTabComponent', () => {
     });
 
     it('should do nothing when stage is null', () => {
-      component['stage'] = null as unknown as Konva.Stage;
+      component['stage'] = null;
       component['exportAsPng']();
       expect(clickSpy).not.toHaveBeenCalled();
     });
@@ -3385,7 +3384,7 @@ describe('CanvasTabComponent', () => {
       const oldSig = component['getObjectRenderSignature']({
         ...obj,
         text: 'Old Text',
-      } as CanvasText);
+      });
       component['objectRenderSignatures'].set('text-1', oldSig);
 
       component['syncKonvaFromConfig'](defaultConfig.layers, [obj]);

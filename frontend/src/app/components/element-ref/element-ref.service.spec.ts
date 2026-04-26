@@ -439,15 +439,11 @@ describe('ElementRefService', () => {
     });
 
     it('should return category icon for custom types', () => {
-      expect(service.getDefaultIconForType('CUSTOM_Race' as ElementType)).toBe(
-        'description'
-      );
+      expect(service.getDefaultIconForType('CUSTOM_Race')).toBe('description');
     });
 
     it('should return description icon for unknown types', () => {
-      expect(service.getDefaultIconForType('UNKNOWN' as ElementType)).toBe(
-        'description'
-      );
+      expect(service.getDefaultIconForType('UNKNOWN')).toBe('description');
     });
   });
 
@@ -460,18 +456,14 @@ describe('ElementRefService', () => {
     });
 
     it('should format custom types with title case and spaces', () => {
-      expect(service.formatElementType('CUSTOM_Race' as ElementType)).toBe(
-        'Custom Race'
+      expect(service.formatElementType('CUSTOM_Race')).toBe('Custom Race');
+      expect(service.formatElementType('CUSTOM_Magic_System')).toBe(
+        'Custom Magic System'
       );
-      expect(
-        service.formatElementType('CUSTOM_Magic_System' as ElementType)
-      ).toBe('Custom Magic System');
     });
 
     it('should return title case for unrecognized types', () => {
-      expect(service.formatElementType('UNKNOWN' as ElementType)).toBe(
-        'Unknown'
-      );
+      expect(service.formatElementType('UNKNOWN')).toBe('Unknown');
     });
   });
 

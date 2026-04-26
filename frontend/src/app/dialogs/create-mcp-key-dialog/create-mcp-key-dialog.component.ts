@@ -205,7 +205,7 @@ export class CreateMcpKeyDialogComponent {
       this.dialogRef.close({
         fullKey: response.fullKey,
         key: response.key,
-      } as CreateMcpKeyDialogResult);
+      });
     } catch (error) {
       console.error('Failed to create API key:', error);
       this.snackBar.open('Failed to create API key', 'Close', {

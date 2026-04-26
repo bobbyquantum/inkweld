@@ -209,7 +209,7 @@ export class PublishCompleteDialogComponent {
     this.dialogRef.close({
       action: 'view-files',
       file: this.file(),
-    } as PublishCompleteDialogResult);
+    });
   }
 
   /**
@@ -219,6 +219,6 @@ export class PublishCompleteDialogComponent {
     this.dialogRef.close({
       action: 'close',
       file: this.file(),
-    } as PublishCompleteDialogResult);
+    });
   }
 }

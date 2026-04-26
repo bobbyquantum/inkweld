@@ -48,7 +48,7 @@ describe('NewElementDialogComponent', () => {
       version: schema.version || 1,
       tabs: schema.tabs || [],
       ...schema,
-    })) as ElementTypeSchema[];
+    }));
   };
 
   beforeEach(async () => {

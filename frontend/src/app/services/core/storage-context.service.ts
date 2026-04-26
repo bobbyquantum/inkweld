@@ -155,7 +155,7 @@ export class StorageContextService {
         typeof parsed === 'object' &&
         parsed !== null &&
         'version' in parsed &&
-        (parsed as { version: unknown }).version === 2
+        parsed.version === 2
       ) {
         this.configSignal.set(parsed as AppConfigV2);
         return;

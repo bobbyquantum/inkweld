@@ -1105,7 +1105,7 @@ describe('ImageGenerationDialogComponent', () => {
         images: [],
         createdAt: new Date(),
         savedMediaIds: [],
-      } as GenerationJob);
+      });
 
       component.generate();
 

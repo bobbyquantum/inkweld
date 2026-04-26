@@ -750,14 +750,12 @@ export class PdfGeneratorService {
 
     const nodeName = this.getNodeName(node);
     if (nodeName === 'elementref') {
-      const attrs = (node as Record<string, unknown>)['attrs'] as
-        | Record<string, unknown>
-        | undefined;
+      const attrs = node['attrs'] as Record<string, unknown> | undefined;
       const displayText = attrs?.['displayText'];
       return typeof displayText === 'string' ? displayText : '';
     }
 
-    const text = (node as Record<string, unknown>)['text'];
+    const text = node['text'];
     if (typeof text === 'string') return text;
 
     const children = this.getChildren(node);

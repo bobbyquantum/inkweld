@@ -74,7 +74,7 @@ describe('EditAvatarDialogComponent', () => {
 
   it('resetState should clear state', () => {
     component.imageChangedEvent = {} as Event;
-    component.croppedImage = 'url' as unknown as typeof component.croppedImage;
+    component.croppedImage = 'url';
     component.croppedBlob = new Blob();
     component.hasImageLoaded = true;
     component.isCropperReady = true;

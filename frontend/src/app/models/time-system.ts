@@ -515,7 +515,7 @@ export const RELATIVE_YEARS_SYSTEM: TimeSystem = Object.freeze({
   name: 'Relative Years',
   isBuiltIn: true,
   unitLabels: Object.freeze(['Year']),
-  subdivisions: Object.freeze([]) as readonly number[],
+  subdivisions: Object.freeze([]),
   format: '{u0}',
   parseSeparator: '-',
 });
@@ -526,7 +526,7 @@ export const ISO_YEAR_SYSTEM: TimeSystem = Object.freeze({
   name: 'ISO Year',
   isBuiltIn: true,
   unitLabels: Object.freeze(['Year']),
-  subdivisions: Object.freeze([]) as readonly number[],
+  subdivisions: Object.freeze([]),
   format: '{u0}',
   parseSeparator: '-',
 });
@@ -580,7 +580,7 @@ export const MISSION_DAY_SYSTEM: TimeSystem = Object.freeze({
   name: 'Sci-Fi: Mission Day',
   isBuiltIn: true,
   unitLabels: Object.freeze(['Day']),
-  subdivisions: Object.freeze([]) as readonly number[],
+  subdivisions: Object.freeze([]),
   format: 'T+{u0}',
   parseSeparator: '-',
 });

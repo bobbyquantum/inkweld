@@ -510,7 +510,7 @@ describe('EditorToolbarComponent', () => {
             sel.includes('data-toolbar-group') ||
             sel.includes('data-toolbar-divider')
           ) {
-            return makeGroupEl(50) as unknown as Element;
+            return makeGroupEl(50);
           }
           return null;
         });

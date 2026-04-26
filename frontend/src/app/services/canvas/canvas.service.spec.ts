@@ -4,7 +4,6 @@ import { type Element, ElementType } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  type CanvasObject,
   type CanvasPin,
   type CanvasText,
   createDefaultCanvasConfig,
@@ -486,7 +485,7 @@ describe('CanvasService', () => {
       service.loadConfig('canvas-1');
       const originalId = service.activeConfig()!.layers[0].id;
 
-      service.updateLayer(originalId, { id: 'hacked-id' } as never);
+      service.updateLayer(originalId, { id: 'hacked-id' });
 
       expect(service.activeConfig()!.layers[0].id).toBe(originalId);
     });
@@ -587,7 +586,7 @@ describe('CanvasService', () => {
       service.loadConfig('canvas-1');
       service.addObject(makeTextObject({ id: 'obj-1' }));
 
-      service.updateObject('obj-1', { id: 'hacked' } as Partial<CanvasObject>);
+      service.updateObject('obj-1', { id: 'hacked' });
 
       expect(service.activeConfig()!.objects[0].id).toBe('obj-1');
     });

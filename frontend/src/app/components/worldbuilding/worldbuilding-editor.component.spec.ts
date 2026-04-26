@@ -121,7 +121,7 @@ describe('WorldbuildingEditorComponent', () => {
       type: 'character',
       name: 'Test Character',
       age: '25',
-    } as Record<string, unknown>);
+    });
     worldbuildingService.observeChanges.mockResolvedValue(() => {});
     worldbuildingService.saveWorldbuildingData.mockResolvedValue();
     worldbuildingService.initializeWorldbuildingElement.mockResolvedValue();
@@ -659,7 +659,7 @@ describe('WorldbuildingEditorComponent', () => {
               addListener: vi.fn(),
               removeListener: vi.fn(),
               dispatchEvent: vi.fn(),
-            } as unknown as MediaQueryList;
+            };
           });
 
         fixture = TestBed.createComponent(WorldbuildingEditorComponent);

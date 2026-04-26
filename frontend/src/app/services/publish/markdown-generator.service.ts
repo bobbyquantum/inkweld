@@ -384,9 +384,7 @@ export class MarkdownGeneratorService {
           .join('\n');
 
       case 'image': {
-        const attrs = (node as Record<string, unknown>)['attrs'] as
-          | Record<string, unknown>
-          | undefined;
+        const attrs = node['attrs'] as Record<string, unknown> | undefined;
         const src = this.safeStringAttr(attrs, 'src');
         const alt = this.safeStringAttr(attrs, 'alt');
         const title = this.safeStringAttr(attrs, 'title');
@@ -395,9 +393,7 @@ export class MarkdownGeneratorService {
       }
 
       case 'code_block': {
-        const langAttr = (node as Record<string, unknown>)['attrs'] as
-          | Record<string, unknown>
-          | undefined;
+        const langAttr = node['attrs'] as Record<string, unknown> | undefined;
         const lang = this.safeStringAttr(langAttr, 'lang');
         return '```' + lang + '\n' + childText + '\n```';
       }
@@ -451,18 +447,14 @@ export class MarkdownGeneratorService {
 
     // Inline element reference - render display text
     if (nodeName === 'elementRef') {
-      const attrs = (node as Record<string, unknown>)['attrs'] as
-        | Record<string, unknown>
-        | undefined;
+      const attrs = node['attrs'] as Record<string, unknown> | undefined;
       const displayText = attrs?.['displayText'];
       return typeof displayText === 'string' ? displayText : '';
     }
 
     // Inline image
     if (nodeName === 'image') {
-      const attrs = (node as Record<string, unknown>)['attrs'] as
-        | Record<string, unknown>
-        | undefined;
+      const attrs = node['attrs'] as Record<string, unknown> | undefined;
       const src = this.safeStringAttr(attrs, 'src');
       const alt = this.safeStringAttr(attrs, 'alt');
       const title = this.safeStringAttr(attrs, 'title');
@@ -473,7 +465,7 @@ export class MarkdownGeneratorService {
     // Hard break
     if (nodeName === 'hard_break') return '  \n';
 
-    const text = (node as Record<string, unknown>)['text'];
+    const text = node['text'];
     if (typeof text === 'string') {
       const rawMarks = this.getRawMarks(node);
       return this.applyMarks(text, rawMarks);

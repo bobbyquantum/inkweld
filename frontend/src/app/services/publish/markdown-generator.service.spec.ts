@@ -57,7 +57,7 @@ describe('MarkdownGeneratorService', () => {
       expandable: false,
       version: 1,
       metadata: {},
-    } as Element,
+    },
   ];
 
   const mockPlan: PublishPlan = {
@@ -366,7 +366,7 @@ describe('MarkdownGeneratorService', () => {
         expandable: true,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       projectStateMock.elements = signal([folderElement]);
 
@@ -1509,7 +1509,7 @@ describe('MarkdownGeneratorService', () => {
         expandable: true,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       const childElement: Element = {
         id: 'child-1',
@@ -1521,7 +1521,7 @@ describe('MarkdownGeneratorService', () => {
         expandable: false,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       projectStateMock.elements = signal([folderElement, childElement]);
 
@@ -1563,7 +1563,7 @@ describe('MarkdownGeneratorService', () => {
           expandable: false,
           version: 1,
           metadata: {},
-        } as Element);
+        });
 
         items.push({
           id: `item-${i}`,
@@ -1608,7 +1608,7 @@ describe('MarkdownGeneratorService', () => {
           expandable: false,
           version: 1,
           metadata: {},
-        } as Element);
+        });
 
         items.push({
           id: `item-${i}`,
