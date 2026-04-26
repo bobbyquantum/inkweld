@@ -35,15 +35,13 @@
           }
         </button>
         @if (isPasskeyLoggingIn()) {
-          <a
+          <button
+            type="button"
             class="passkey-cancel-link"
-            tabindex="0"
-            role="button"
             (click)="cancelPasskeyLogin()"
-            (keydown.enter)="cancelPasskeyLogin()"
             data-testid="passkey-cancel-link">
             Cancel
-          </a>
+          </button>
         }
       </div>
       @if (passkeyError()) {
@@ -156,15 +154,13 @@
             }
           </button>
           @if (isPasskeyLoggingIn()) {
-            <a
+            <button
+              type="button"
               class="passkey-cancel-link"
-              tabindex="0"
-              role="button"
               (click)="cancelPasskeyLogin()"
-              (keydown.enter)="cancelPasskeyLogin()"
               data-testid="passkey-cancel-link">
               Cancel
-            </a>
+            </button>
           }
         </div>
         @if (passkeyError()) {

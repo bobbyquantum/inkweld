@@ -195,36 +195,40 @@ export class LoginDialogComponent {
         void this.router.navigate(['/']);
       }
     } catch (error: unknown) {
-      if (error instanceof PasskeyError) {
-        if (error.code === 'CANCELLED') {
-          // User cancelled the prompt - silent.
-          return;
-        }
-        // Mirror the password-login flow: when the backend rejects with
-        // pending-approval or account-disabled, send the user to the
-        // dedicated /approval-pending page instead of leaving them
-        // staring at red error text inside the login dialog. They've
-        // proved possession of the passkey — the only thing missing is
-        // admin approval, and the pending page tells them that clearly.
-        if (error.code === 'PENDING_APPROVAL') {
-          this.dialogRef.close(false);
-          void this.router.navigate(['/approval-pending']);
-          return;
-        }
-        if (error.code === 'ACCOUNT_DISABLED') {
-          // No dedicated page for disabled accounts; surface the message
-          // in the dialog so the user can contact an admin. (Closing
-          // silently would imply success.)
-          this.passkeyError.set(error.message);
-          return;
-        }
-        this.passkeyError.set(error.message);
-      } else {
-        this.passkeyError.set('Passkey login failed. Please try again.');
-      }
+      this.handlePasskeyLoginError(error);
     } finally {
       this.isPasskeyLoggingIn.set(false);
     }
+  }
+
+  private handlePasskeyLoginError(error: unknown): void {
+    if (!(error instanceof PasskeyError)) {
+      this.passkeyError.set('Passkey login failed. Please try again.');
+      return;
+    }
+    if (error.code === 'CANCELLED') {
+      // User cancelled the prompt - silent.
+      return;
+    }
+    // Mirror the password-login flow: when the backend rejects with
+    // pending-approval or account-disabled, send the user to the
+    // dedicated /approval-pending page instead of leaving them
+    // staring at red error text inside the login dialog. They've
+    // proved possession of the passkey — the only thing missing is
+    // admin approval, and the pending page tells them that clearly.
+    if (error.code === 'PENDING_APPROVAL') {
+      this.dialogRef.close(false);
+      void this.router.navigate(['/approval-pending']);
+      return;
+    }
+    if (error.code === 'ACCOUNT_DISABLED') {
+      // No dedicated page for disabled accounts; surface the message
+      // in the dialog so the user can contact an admin. (Closing
+      // silently would imply success.)
+      this.passkeyError.set(error.message);
+      return;
+    }
+    this.passkeyError.set(error.message);
   }
 
   /**

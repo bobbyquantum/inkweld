@@ -11,7 +11,7 @@ import { UnauthorizedError, ForbiddenError } from '../errors';
  */
 async function rejectEnrolmentScope(c: Context<AppContext>): Promise<void> {
   const session = await authService.getSession(c);
-  if (session && session.scope === 'enrol') {
+  if (session?.scope === 'enrol') {
     throw new ForbiddenError(
       'Enrolment-scoped session cannot be used for general access. ' +
         'Complete passkey enrolment, wait for admin approval, then log in.'

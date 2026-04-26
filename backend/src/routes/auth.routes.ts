@@ -46,6 +46,44 @@ const registerRoute = createRoute({
   },
 });
 
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Returns an error message string, or null when the input is valid. */
+async function validateRegistrationInput(
+  db: DrizzleD1Database,
+  input: { password: string | undefined; email: string | undefined }
+): Promise<{ error: string } | { error: null; passwordLoginEnabled: boolean }> {
+  const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
+  if (requireEmail && !input.email) {
+    return { error: 'Email address is required' };
+  }
+
+  const passwordLoginEnabled = await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED');
+  if (passwordLoginEnabled) {
+    if (!input.password) {
+      return { error: 'Password is required' };
+    }
+    const passwordPolicy = await getPasswordPolicy(db);
+    const passwordErrors = validatePassword(input.password, passwordPolicy);
+    if (passwordErrors.length > 0) {
+      return { error: passwordErrors[0] };
+    }
+  }
+
+  if (input.email) {
+    const existingUser = await userService.findByEmail(db, input.email);
+    if (existingUser) {
+      return { error: 'Registration failed. Please try a different username or email.' };
+    }
+  }
+
+  return { error: null, passwordLoginEnabled };
+}
+
 authRoutes.openapi(registerRoute, async (c) => {
   const db = c.get('db');
   const { username, password, email, name } = c.req.valid('json');
@@ -54,11 +92,12 @@ authRoutes.openapi(registerRoute, async (c) => {
   // configService reads database first, then environment, then defaults
   const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
 
-  // Check if email is required
-  const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
-  if (requireEmail && !email) {
-    return c.json({ error: 'Email address is required' }, 400);
+  // Validate all registration input (email required, password policy, duplicate email)
+  const validation = await validateRegistrationInput(db, { password, email });
+  if (validation.error) {
+    return c.json({ error: validation.error }, 400);
   }
+  const { passwordLoginEnabled } = validation;
 
   // Passwordless mode: when PASSWORD_LOGIN_ENABLED is false the server creates
   // a user row with a NULL password column. The client is then responsible for
@@ -67,30 +106,6 @@ authRoutes.openapi(registerRoute, async (c) => {
   // explicitly ignore any password supplied in the request body in this mode
   // rather than silently storing it: re-enabling password login later should
   // not retroactively activate stale registration-time passwords.
-  const passwordLoginEnabled = await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED');
-
-  if (passwordLoginEnabled) {
-    if (!password) {
-      return c.json({ error: 'Password is required' }, 400);
-    }
-    // Validate password against configured policy
-    const passwordPolicy = await getPasswordPolicy(db);
-    const passwordErrors = validatePassword(password, passwordPolicy);
-    if (passwordErrors.length > 0) {
-      return c.json({ error: passwordErrors[0] }, 400);
-    }
-  }
-
-  // Block duplicate emails (only for real email addresses, not @local fallbacks)
-  if (email) {
-    const existingUser = await userService.findByEmail(db, email);
-    if (existingUser) {
-      return c.json(
-        { error: 'Registration failed. Please try a different username or email.' },
-        400
-      );
-    }
-  }
 
   // Check if this is the first user - they automatically become admin
   // This enables testing on ephemeral hosts without pre-configured admin credentials

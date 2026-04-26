@@ -124,7 +124,7 @@ async function resolveRegistrationUser(c: Context): Promise<User | null> {
     return (await userService.findById(db, ctxUser.id)) ?? null;
   }
   const sessionResult = await authService.getSession(c);
-  if (!sessionResult || sessionResult.scope !== 'enrol') {
+  if (sessionResult?.scope !== 'enrol') {
     return null;
   }
   // Enrolment scope is the only path through which an unapproved/disabled
