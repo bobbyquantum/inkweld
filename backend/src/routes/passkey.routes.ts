@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
-import type { Context } from 'hono';
+import type { Context, Hono } from 'hono';
 import { optionalAuth } from '../middleware/auth';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
@@ -42,8 +42,9 @@ passkeyRoutes.use('*', optionalAuth);
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function rpFromContext(c: Context): PasskeyRpConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const env = (c as any).env as Record<string, string | undefined> | undefined;
+  // Cloudflare Workers exposes secrets via c.env; Bun reads them from
+  // process.env. Read both, preferring the request-scoped binding.
+  const env = (c.env ?? undefined) as Record<string, string | undefined> | undefined;
 
   const rpId = env?.WEBAUTHN_RP_ID || config.webauthn.rpId;
   const rpName = env?.WEBAUTHN_RP_NAME || config.webauthn.rpName;
@@ -332,10 +333,8 @@ passkeyRoutes.openapi(listRoute, async (c) => {
  * parent Hono app so that workerd's router can resolve the parametrised paths.
  * The sub-router (passkeyRoutes) doesn't propagate /:id paths in Wrangler.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function passkeyManagementHandlers(app: any): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handler = (method: 'delete' | 'patch') => async (c: any) => {
+export function passkeyManagementHandlers(app: Hono<AppContext>): void {
+  const handler = (method: 'delete' | 'patch') => async (c: Context<AppContext>) => {
     const db = c.get('db');
 
     // Passkeys-enabled guard (mirrors the sub-router middleware)

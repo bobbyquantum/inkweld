@@ -12,6 +12,6 @@ import { Passkey } from './passkey';
 
 export interface PasskeyRegisterFinishResponse { 
     verified: boolean;
-    passkey?: Passkey;
+    passkey: Passkey;
 }
 

@@ -199,17 +199,23 @@ export const config = {
   // previously registered credential. Always set WEBAUTHN_RP_ID explicitly
   // in production. We log a loud warning if the default is used in production.
   webauthn: {
-    rpId: process.env.WEBAUTHN_RP_ID || 'localhost',
+    // Production refuses to start without WEBAUTHN_RP_ID because the value is
+    // baked into every passkey registration: changing it later invalidates
+    // every previously registered credential.
+    // On Cloudflare Workers, secrets only flow through `c.env`, so we skip
+    // this check and let runtime validation in `rpFromContext` handle it.
+    rpId: (() => {
+      const rpId = process.env.WEBAUTHN_RP_ID;
+      if (!isCloudflareWorkers && process.env.NODE_ENV === 'production' && !rpId) {
+        throw new Error(
+          'WEBAUTHN_RP_ID must be set in production. It cannot be changed ' +
+            'after users register passkeys without invalidating their credentials.'
+        );
+      }
+      return rpId || 'localhost';
+    })(),
     rpName: process.env.WEBAUTHN_RP_NAME || 'Inkweld',
   },
 } as const;
-
-if (process.env.NODE_ENV === 'production' && !process.env.WEBAUTHN_RP_ID) {
-  console.warn(
-    '[config] WEBAUTHN_RP_ID is not set in production — defaulting to "localhost". ' +
-      'Passkey registrations made against this default cannot be migrated to a real ' +
-      'domain later. Set WEBAUTHN_RP_ID to your public hostname before users register.'
-  );
-}
 
 export type Config = typeof config;

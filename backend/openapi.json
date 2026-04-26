@@ -3860,7 +3860,8 @@
           }
         },
         "required": [
-          "verified"
+          "verified",
+          "passkey"
         ]
       },
       "Passkey": {

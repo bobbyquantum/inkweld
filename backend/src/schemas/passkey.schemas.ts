@@ -77,10 +77,13 @@ export const PasskeyListResponseSchema = z
 /**
  * @component PasskeyRegisterFinishResponse
  */
+// On the 200 success path, the route always returns `passkey` — a missing
+// passkey is treated as a 400 verification failure upstream. Marking it
+// required here keeps generated SDK types accurate.
 export const PasskeyRegisterFinishResponseSchema = z
   .object({
     verified: z.boolean(),
-    passkey: PasskeySchema.optional(),
+    passkey: PasskeySchema,
   })
   .openapi('PasskeyRegisterFinishResponse');
 
