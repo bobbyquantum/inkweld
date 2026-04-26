@@ -9,11 +9,35 @@ import { logger } from './logger.service';
 const authLog = logger.child('Auth');
 
 const TOKEN_EXPIRY = 30 * 24 * 60 * 60; // 30 days in seconds
+// Enrolment-only sessions exist solely so a freshly-registered, not-yet-
+// approved user (in passwordless mode) can complete the WebAuthn ceremony
+// before the dialog closes. 15 minutes is well over the human time needed
+// for a biometric prompt and short enough to limit blast radius if a token
+// is intercepted. They are NOT renewed and cannot be exchanged for a full
+// session — see SessionData.scope below.
+const ENROLMENT_TOKEN_EXPIRY = 15 * 60; // 15 minutes in seconds
+
+/**
+ * Session capability scope.
+ *
+ *   - `'full'`   — issued after a normal login or auto-approved registration.
+ *                  Grants every authenticated route subject to canLogin().
+ *                  Default when the field is absent (back-compat with tokens
+ *                  minted before this field existed).
+ *   - `'enrol'`  — issued only by `/auth/register` when the user requires
+ *                  admin approval AND password login is disabled. The user
+ *                  has no other way to attach a credential to the new
+ *                  account, so we let them run the WebAuthn registration
+ *                  ceremony and ONLY that. requireAuth / requireAdmin /
+ *                  every other middleware reject this scope outright.
+ */
+export type SessionScope = 'full' | 'enrol';
 
 export interface SessionData {
   userId: string;
   username: string;
   email: string;
+  scope?: SessionScope; // omitted == 'full' (back-compat)
   exp?: number; // JWT expiration timestamp
   [key: string]: string | number | undefined; // Index signature for JWT compatibility
 }
@@ -66,6 +90,7 @@ class AuthService {
       userId: user.id,
       username: user.username || '',
       email: '', // Omit actual email from JWT to avoid PII leakage in tokens
+      scope: 'full',
       exp: now + TOKEN_EXPIRY, // JWT expiration (30 days)
     };
 
@@ -73,6 +98,39 @@ class AuthService {
     const secret = this.getSecret(c);
     const token = await sign(sessionData, secret, 'HS256');
     return token;
+  }
+
+  /**
+   * Issue a short-lived enrolment-only token.
+   *
+   * Used by the registration flow when the user requires admin approval and
+   * password login is disabled — they have no credential at all yet, so we
+   * give them just enough capability to attach a passkey to the new account
+   * before being parked at /approval-pending. The token:
+   *
+   *   - has scope `'enrol'`, so requireAuth / requireAdmin / optionalAuth
+   *     all reject it for normal app usage
+   *   - expires in 15 minutes (one biometric prompt's worth of patience)
+   *   - is honoured ONLY by the passkey register/start + register/finish
+   *     handlers, which look it up explicitly via `authService.getSession`
+   *     and check `session.scope === 'enrol'`
+   *
+   * It deliberately does NOT bypass `canLogin` for any other purpose. An
+   * unapproved user with this token cannot list passkeys, cannot delete
+   * passkeys, cannot read /me, cannot do anything except enrol exactly one
+   * credential and then wait.
+   */
+  async createEnrolmentSession(c: Context, user: User): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    const sessionData: SessionData = {
+      userId: user.id,
+      username: user.username || '',
+      email: '',
+      scope: 'enrol',
+      exp: now + ENROLMENT_TOKEN_EXPIRY,
+    };
+    const secret = this.getSecret(c);
+    return sign(sessionData, secret, 'HS256');
   }
 
   /**

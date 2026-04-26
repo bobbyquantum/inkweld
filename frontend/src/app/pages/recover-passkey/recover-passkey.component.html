@@ -1,0 +1,86 @@
+<div class="recover-passkey-container" data-testid="recover-passkey-page">
+  <mat-card class="recover-passkey-card">
+    <mat-card-content>
+      @if (!isEmailRecoveryEnabled()) {
+        <!--
+          Stale bookmark / direct nav while the admin has flipped recovery
+          off. Don't try to call the backend — the endpoint would return 404.
+        -->
+        <div class="disabled-container" data-testid="recover-disabled">
+          <mat-icon class="disabled-icon">block</mat-icon>
+          <h2>Passkey Recovery Disabled</h2>
+          <p>
+            Email-based passkey recovery is not enabled on this server. Please
+            contact your administrator if you've lost access to your passkeys.
+          </p>
+        </div>
+      } @else if (!submitted()) {
+        <div class="card-header">
+          <mat-icon class="header-icon">key_off</mat-icon>
+          <h2>Lost Your Passkey?</h2>
+          <p class="subtitle">
+            Enter the email address associated with your account, and we'll send
+            you a one-time link to enrol a new passkey.
+          </p>
+        </div>
+
+        <form (ngSubmit)="onSubmit()" data-testid="recover-passkey-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email Address</mat-label>
+            <input
+              matInput
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              required
+              data-testid="recover-email-input"
+              aria-label="Email address" />
+          </mat-form-field>
+
+          @if (error()) {
+            <div
+              class="error-message"
+              data-testid="recover-error"
+              role="alert"
+              aria-live="assertive">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ error() }}</span>
+            </div>
+          }
+
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="isSubmitting() || !email.trim()"
+            class="submit-button"
+            data-testid="recover-submit-button">
+            @if (isSubmitting()) {
+              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            } @else {
+              Send Recovery Link
+            }
+          </button>
+        </form>
+      } @else {
+        <div class="success-container" data-testid="recover-success">
+          <mat-icon class="success-icon">mark_email_read</mat-icon>
+          <h2>Check Your Email</h2>
+          <p>
+            If an account with that email address exists, we've sent a passkey
+            recovery link. Please check your inbox (and spam folder).
+          </p>
+          <p class="hint">The link will expire in 60 minutes.</p>
+          <p class="hint">
+            For security, the link will let you enrol a <strong>new</strong>
+            passkey but will not remove your existing ones.
+          </p>
+        </div>
+      }
+
+      <div class="back-link">
+        <a routerLink="/" data-testid="back-to-login">Back to home</a>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

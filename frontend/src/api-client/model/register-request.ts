@@ -15,9 +15,9 @@ export interface RegisterRequest {
      */
     username: string;
     /**
-     * Password (minimum 6 characters)
+     * Password (minimum 6 characters). Optional: required only when PASSWORD_LOGIN_ENABLED is true on the server. Passwordless registrations must immediately enrol a passkey via the WebAuthn registration flow.
      */
-    password: string;
+    password?: string;
     /**
      * Email address (optional)
      */

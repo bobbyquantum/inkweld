@@ -85,6 +85,89 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- Passkeys Card -->
+    <mat-card class="setting-card" data-testid="passkeys-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Passkey Authentication</span>
+            <span class="setting-description">
+              Allow users to register and sign in with passkeys (biometrics,
+              hardware keys). When disabled, all passkey endpoints return an
+              error and the passkey UI is hidden.
+            </span>
+          </div>
+          <mat-slide-toggle
+            [checked]="passkeysEnabled()"
+            (change)="togglePasskeys($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-passkeys"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Password Login Card -->
+    <mat-card class="setting-card" data-testid="password-login-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Password Login</span>
+            <span class="setting-description">
+              Allow users to sign in with email/username + password. Disable to
+              run a passkey-only deployment. Existing users without a passkey
+              must use the "Lost your passkey?" recovery flow to enrol one.
+            </span>
+            @if (!passwordLoginEnabled() && !emailRecoveryEnabled()) {
+              <span class="env-locked-notice">
+                <mat-icon>warning</mat-icon>
+                Email recovery is also OFF — users without a passkey have no way
+                to recover access.
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [checked]="passwordLoginEnabled()"
+            (change)="togglePasswordLogin($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-password-login"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Email Recovery Card -->
+    <mat-card class="setting-card" data-testid="email-recovery-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Email-based Account Recovery</span>
+            <span class="setting-description">
+              When password login is enabled, this powers the "Forgot password?"
+              email. When passwords are off, it powers the "Lost your passkey?"
+              magic-link enrolment flow. Requires a working outbound mailer
+              (configure SMTP in your environment).
+            </span>
+            @if (!isEmailEnabled()) {
+              <span
+                class="env-locked-notice"
+                data-testid="email-recovery-no-smtp-warning">
+                <mat-icon>warning</mat-icon>
+                No outbound email is configured (SMTP settings missing). This
+                toggle has no effect until email is set up.
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [checked]="emailRecoveryEnabled()"
+            (change)="toggleEmailRecovery($event.checked)"
+            [disabled]="isSaving() || !isEmailEnabled()"
+            color="primary"
+            data-testid="setting-toggle-email-recovery"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <!-- Require Email Card -->
     <mat-card class="setting-card" data-testid="require-email-card">
       <mat-card-content>
@@ -107,100 +190,108 @@
     </mat-card>
 
     <!-- Password Policy Card -->
-    <mat-card class="setting-card" data-testid="password-policy-card">
-      <mat-card-content>
-        <div class="setting-section-header">
-          <mat-icon>password</mat-icon>
-          <span class="setting-label">Password Policy</span>
-        </div>
-        <span class="setting-description policy-description">
-          Configure password requirements for user registration and password
-          resets.
-        </span>
+    @if (showPasswordPolicy()) {
+      <mat-card class="setting-card" data-testid="password-policy-card">
+        <mat-card-content>
+          <div class="setting-section-header">
+            <mat-icon>password</mat-icon>
+            <span class="setting-label">Password Policy</span>
+          </div>
+          <span class="setting-description policy-description">
+            Configure password requirements for user registration and password
+            resets.
+          </span>
 
-        <div class="policy-settings">
-          <div class="policy-row">
-            <div class="policy-info">
-              <span>Minimum Length</span>
+          <div class="policy-settings">
+            <div class="policy-row">
+              <div class="policy-info">
+                <span>Minimum Length</span>
+              </div>
+              <mat-form-field appearance="outline" class="min-length-field">
+                <input
+                  matInput
+                  type="number"
+                  min="1"
+                  max="128"
+                  [ngModel]="passwordMinLength()"
+                  (change)="savePasswordMinLength($any($event.target).value)"
+                  [disabled]="isSaving()"
+                  data-testid="password-min-length-input" />
+              </mat-form-field>
             </div>
-            <mat-form-field appearance="outline" class="min-length-field">
-              <input
-                matInput
-                type="number"
-                min="1"
-                max="128"
-                [ngModel]="passwordMinLength()"
-                (change)="savePasswordMinLength($any($event.target).value)"
+
+            <div class="policy-row">
+              <div class="policy-info">
+                <span>Require Uppercase Letter</span>
+              </div>
+              <mat-slide-toggle
+                [checked]="passwordRequireUppercase()"
+                (change)="
+                  togglePasswordPolicy(
+                    'PASSWORD_REQUIRE_UPPERCASE',
+                    $event.checked
+                  )
+                "
                 [disabled]="isSaving()"
-                data-testid="password-min-length-input" />
-            </mat-form-field>
-          </div>
-
-          <div class="policy-row">
-            <div class="policy-info">
-              <span>Require Uppercase Letter</span>
+                color="primary"
+                data-testid="setting-toggle-require-uppercase"></mat-slide-toggle>
             </div>
-            <mat-slide-toggle
-              [checked]="passwordRequireUppercase()"
-              (change)="
-                togglePasswordPolicy(
-                  'PASSWORD_REQUIRE_UPPERCASE',
-                  $event.checked
-                )
-              "
-              [disabled]="isSaving()"
-              color="primary"
-              data-testid="setting-toggle-require-uppercase"></mat-slide-toggle>
-          </div>
 
-          <div class="policy-row">
-            <div class="policy-info">
-              <span>Require Lowercase Letter</span>
+            <div class="policy-row">
+              <div class="policy-info">
+                <span>Require Lowercase Letter</span>
+              </div>
+              <mat-slide-toggle
+                [checked]="passwordRequireLowercase()"
+                (change)="
+                  togglePasswordPolicy(
+                    'PASSWORD_REQUIRE_LOWERCASE',
+                    $event.checked
+                  )
+                "
+                [disabled]="isSaving()"
+                color="primary"
+                data-testid="setting-toggle-require-lowercase"></mat-slide-toggle>
             </div>
-            <mat-slide-toggle
-              [checked]="passwordRequireLowercase()"
-              (change)="
-                togglePasswordPolicy(
-                  'PASSWORD_REQUIRE_LOWERCASE',
-                  $event.checked
-                )
-              "
-              [disabled]="isSaving()"
-              color="primary"
-              data-testid="setting-toggle-require-lowercase"></mat-slide-toggle>
-          </div>
 
-          <div class="policy-row">
-            <div class="policy-info">
-              <span>Require Number</span>
+            <div class="policy-row">
+              <div class="policy-info">
+                <span>Require Number</span>
+              </div>
+              <mat-slide-toggle
+                [checked]="passwordRequireNumber()"
+                (change)="
+                  togglePasswordPolicy(
+                    'PASSWORD_REQUIRE_NUMBER',
+                    $event.checked
+                  )
+                "
+                [disabled]="isSaving()"
+                color="primary"
+                data-testid="setting-toggle-require-number"></mat-slide-toggle>
             </div>
-            <mat-slide-toggle
-              [checked]="passwordRequireNumber()"
-              (change)="
-                togglePasswordPolicy('PASSWORD_REQUIRE_NUMBER', $event.checked)
-              "
-              [disabled]="isSaving()"
-              color="primary"
-              data-testid="setting-toggle-require-number"></mat-slide-toggle>
-          </div>
 
-          <div class="policy-row">
-            <div class="policy-info">
-              <span>Require Special Character</span>
-              <span class="policy-hint">(@$!%*?&)</span>
+            <div class="policy-row">
+              <div class="policy-info">
+                <span>Require Special Character</span>
+                <span class="policy-hint">(@$!%*?&)</span>
+              </div>
+              <mat-slide-toggle
+                [checked]="passwordRequireSymbol()"
+                (change)="
+                  togglePasswordPolicy(
+                    'PASSWORD_REQUIRE_SYMBOL',
+                    $event.checked
+                  )
+                "
+                [disabled]="isSaving()"
+                color="primary"
+                data-testid="setting-toggle-require-symbol"></mat-slide-toggle>
             </div>
-            <mat-slide-toggle
-              [checked]="passwordRequireSymbol()"
-              (change)="
-                togglePasswordPolicy('PASSWORD_REQUIRE_SYMBOL', $event.checked)
-              "
-              [disabled]="isSaving()"
-              color="primary"
-              data-testid="setting-toggle-require-symbol"></mat-slide-toggle>
           </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+        </mat-card-content>
+      </mat-card>
+    }
 
     <!-- Site URL Card -->
     <mat-card class="setting-card" data-testid="site-url-card">

@@ -26,6 +26,7 @@ api/mcp-keys.service.ts
 api/mcp.service.ts
 api/media.service.ts
 api/o-auth.service.ts
+api/passkeys.service.ts
 api/projects.service.ts
 api/published-files.service.ts
 api/share.service.ts
@@ -159,6 +160,17 @@ model/optimize-image-prompt-request.ts
 model/optimize-image-prompt-response.ts
 model/paginated-image-audits.ts
 model/paginated-users-response.ts
+model/passkey-list-response.ts
+model/passkey-login-finish-request.ts
+model/passkey-login-finish-response.ts
+model/passkey-recovery-finish-request.ts
+model/passkey-recovery-finish-response.ts
+model/passkey-recovery-request-body.ts
+model/passkey-recovery-start-request.ts
+model/passkey-register-finish-request.ts
+model/passkey-register-finish-response.ts
+model/passkey-rename-request.ts
+model/passkey.ts
 model/pending-invitation.ts
 model/project-access.ts
 model/project-rename-redirect.ts

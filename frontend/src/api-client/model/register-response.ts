@@ -21,6 +21,10 @@ export interface RegisterResponse {
      */
     token?: string;
     /**
+     * Short-lived (15 min) WebAuthn-enrolment-only JWT. Issued only when requiresApproval=true AND password login is disabled, so the user can attach a passkey to their pending account before being parked at /approval-pending. Cannot be used for any other authenticated endpoint.
+     */
+    enrolmentToken?: string;
+    /**
      * Whether account requires admin approval
      */
     requiresApproval?: boolean;

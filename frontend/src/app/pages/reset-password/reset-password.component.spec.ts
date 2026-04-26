@@ -54,6 +54,7 @@ describe('ResetPasswordComponent', () => {
       emailEnabled: false,
       requireEmail: false,
       passwordPolicy: DEFAULT_POLICY,
+      passkeysEnabled: true,
     }),
     refreshSystemFeatures: vi.fn(),
     getAiImageGenerationStatus: vi.fn().mockReturnValue({ status: 'hidden' }),

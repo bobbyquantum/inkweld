@@ -7,7 +7,12 @@ import { getDatabase } from '../src/db/index';
 import { users, projects, announcements } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 
 const db = getDatabase();
 let client: TestClient;
@@ -19,6 +24,8 @@ const USER_ID = crypto.randomUUID();
 
 beforeAll(async () => {
   testServer = await startTestServer();
+  // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+  await enablePasswordLoginForTests();
   client = new TestClient(testServer.baseUrl);
   adminClient = new TestClient(testServer.baseUrl);
 

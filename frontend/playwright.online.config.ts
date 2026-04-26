@@ -110,6 +110,17 @@ export default (async () => {
           // Default admin for e2e tests
           DEFAULT_ADMIN_USERNAME: 'e2e-admin',
           DEFAULT_ADMIN_PASSWORD: TEST_PASSWORDS.ADMIN,
+          // Existing online e2e suite assumes classic password login is on
+          // (the fixtures register/login users via the password API). Backend
+          // production defaults are now passwordless-first per NIST SP 800-63B
+          // Rev. 4, so the test backend has to opt back in. The dedicated
+          // `passwordless.spec.ts` flips this off via the admin API per-test.
+          PASSWORD_LOGIN_ENABLED: 'true',
+          // Enable email-based passkey recovery so the recovery e2e tests can
+          // hit the request endpoint. They don't actually consume the magic
+          // link (the token is hashed at rest and SMTP isn't configured); the
+          // redeem flow is covered by unit tests + backend integration tests.
+          EMAIL_RECOVERY_ENABLED: 'true',
         },
       },
       {

@@ -14,7 +14,12 @@ import { mcpOAuthCodes } from '../src/db/schema/mcp-oauth-codes';
 import { projectCollaborators } from '../src/db/schema/project-collaborators';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 
 const db = getDatabase();
 let client: TestClient;
@@ -27,6 +32,8 @@ const PROJECT_2_ID = crypto.randomUUID();
 
 beforeAll(async () => {
   testServer = await startTestServer();
+  // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+  await enablePasswordLoginForTests();
   client = new TestClient(testServer.baseUrl);
   unauthClient = new TestClient(testServer.baseUrl);
 

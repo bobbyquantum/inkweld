@@ -202,6 +202,31 @@ export const routes: Routes = [
     title: 'Reset Password',
   },
   {
+    // "Lost your passkey?" — collects email and triggers recovery magic-link.
+    // Symmetric to /forgot-password but for the WebAuthn flow. Gated at
+    // runtime by SystemConfigService.isEmailRecoveryEnabled inside the
+    // component; the backend additionally returns 404 when the flag is off,
+    // so a stale bookmark is harmless.
+    path: 'recover-passkey',
+    loadComponent: () =>
+      import('./pages/recover-passkey/recover-passkey.component').then(
+        m => m.RecoverPasskeyComponent
+      ),
+    title: 'Recover Passkey',
+  },
+  {
+    // Magic-link redemption page. The recovery email points here with a
+    // ?token=<opaque> query string. Path-style instead of query-style is
+    // tempting but we follow the password-reset convention so operators can
+    // reuse their existing email-rewriting/redaction rules.
+    path: 'recover-passkey/redeem',
+    loadComponent: () =>
+      import('./pages/recover-passkey-redeem/recover-passkey-redeem.component').then(
+        m => m.RecoverPasskeyRedeemComponent
+      ),
+    title: 'Set Up New Passkey',
+  },
+  {
     path: 'unavailable',
     loadComponent: () =>
       import('./pages/unavailable/unavailable.component').then(

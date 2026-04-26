@@ -19,3 +19,6 @@ export * from './password-reset-tokens';
 export * from './comment-threads';
 export * from './comment-messages';
 export * from './comment-read-status';
+export * from './user-passkeys';
+export * from './webauthn-challenges';
+export * from './passkey-recovery-tokens';

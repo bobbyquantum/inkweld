@@ -1,0 +1,118 @@
+<div class="passkeys-settings" data-testid="passkeys-settings">
+  <div class="header-row">
+    <div class="title-block">
+      <h2>
+        <mat-icon>fingerprint</mat-icon>
+        Passkeys
+      </h2>
+      <p class="section-description">
+        Passkeys let you sign in with your device's screen lock, fingerprint, or
+        face — no password required.
+      </p>
+    </div>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="register()"
+      [disabled]="!isSupported || registering()"
+      [attr.aria-busy]="registering()"
+      data-testid="add-passkey-button">
+      <mat-icon>add</mat-icon>
+      @if (registering()) {
+        <span>Waiting for passkey...</span>
+      } @else {
+        <span>Add passkey</span>
+      }
+    </button>
+  </div>
+
+  @if (!isSupported) {
+    <mat-card class="warning-card" data-testid="passkeys-unsupported">
+      <mat-card-content>
+        <mat-icon>info</mat-icon>
+        <span>This browser does not support passkeys.</span>
+      </mat-card-content>
+    </mat-card>
+  } @else if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="32"></mat-spinner>
+      <span>Loading passkeys...</span>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card" role="alert">
+      <mat-card-content>
+        <mat-icon>error</mat-icon>
+        <span>{{ error() }}</span>
+        <button mat-button (click)="refresh()">Retry</button>
+      </mat-card-content>
+    </mat-card>
+  } @else if (!hasPasskeys()) {
+    <mat-card class="empty-card" data-testid="passkeys-empty">
+      <mat-card-content>
+        <mat-icon>vpn_key_off</mat-icon>
+        <span>You don't have any passkeys yet.</span>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <div class="passkey-list" data-testid="passkey-list">
+      @for (passkey of passkeys(); track passkey.id) {
+        <mat-card
+          class="passkey-card"
+          [attr.data-testid]="'passkey-item-' + passkey.id">
+          <mat-card-content>
+            <div class="passkey-info">
+              <mat-icon class="passkey-icon">fingerprint</mat-icon>
+              <div class="passkey-meta">
+                <div class="passkey-name">
+                  {{ passkey.name || 'Unnamed passkey' }}
+                  @if (passkey.backedUp) {
+                    <mat-icon
+                      class="badge-icon"
+                      aria-hidden="true"
+                      matTooltip="Synced across your devices"
+                      >cloud_done</mat-icon
+                    >
+                  }
+                </div>
+                <div class="passkey-sub">
+                  Added {{ formatDate(passkey.createdAt) }}
+                  @if (passkey.lastUsedAt) {
+                    · Last used {{ formatDate(passkey.lastUsedAt) }}
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="passkey-actions">
+              <button
+                mat-icon-button
+                type="button"
+                (click)="rename(passkey)"
+                [disabled]="isBusy(passkey.id)"
+                matTooltip="Rename"
+                [attr.aria-label]="
+                  'Rename ' + (passkey.name || 'Unnamed passkey')
+                "
+                [attr.data-testid]="'rename-passkey-' + passkey.id">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                type="button"
+                color="warn"
+                (click)="delete(passkey)"
+                [disabled]="isBusy(passkey.id)"
+                matTooltip="Delete"
+                [attr.aria-label]="
+                  'Delete ' + (passkey.name || 'Unnamed passkey')
+                "
+                [attr.data-testid]="'delete-passkey-' + passkey.id">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

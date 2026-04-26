@@ -68,7 +68,6 @@ bun run generate:openapi && bun run generate:angular-client
 
 **Yjs Document IDs**: Frontend uses `username:slug:elements`, backend uses `username:slug:elements/` (trailing slash). This is intentional — y-websocket normalizes them. Do not "fix" this.
 
-**OpenAPI Generation**: Script doesn't auto-terminate. Use 30-second timeout or manually stop.
 
 ## Key Files
 
