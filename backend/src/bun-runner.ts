@@ -2,6 +2,9 @@
  * Bun runtime entrypoint
  * Uses native bun:sqlite for database operations
  */
+// reflect-metadata must be imported before any module that uses tsyringe
+// (pulled in transitively by @simplewebauthn/server → @peculiar/x509).
+import 'reflect-metadata';
 import { checkAndRunSetup } from './setup-wizard';
 
 // Check if running as compiled binary and if setup is needed

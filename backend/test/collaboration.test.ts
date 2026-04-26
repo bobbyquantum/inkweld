@@ -9,7 +9,12 @@ import {
 } from '../src/db/schema/index';
 import { eq, and } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Collaboration', () => {
@@ -24,6 +29,8 @@ describe('Collaboration', () => {
   beforeAll(async () => {
     // Start test server
     const { baseUrl } = await startTestServer();
+    // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+    await enablePasswordLoginForTests();
     ownerClient = new TestClient(baseUrl);
     collaboratorClient = new TestClient(baseUrl);
 

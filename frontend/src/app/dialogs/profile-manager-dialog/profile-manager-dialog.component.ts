@@ -600,8 +600,19 @@ export class ProfileManagerDialogComponent {
    */
   async onRegistrationSubmit(credentials: {
     username: string;
-    password: string;
+    password?: string;
   }): Promise<void> {
+    // Local→remote profile migration always uses password registration today.
+    // Passwordless migration would require a passkey enrolment ceremony
+    // against the remote server mid-flow, which the migration UI doesn't
+    // support yet — guard explicitly so the call site below stays type-safe.
+    if (!credentials.password) {
+      this.authError.set(
+        'A password is required to migrate this profile to the server.'
+      );
+      return;
+    }
+
     this.isAuthenticating.set(true);
     this.registrationForm?.setLoading(true);
     this.authError.set(null);

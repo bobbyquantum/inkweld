@@ -230,6 +230,38 @@ COOKIE_DOMAIN=.yoursite.com
 
 ---
 
+## Passkeys (WebAuthn)
+
+Enable passwordless sign-in via device biometrics or security keys.
+
+### WEBAUTHN_RP_ID
+
+**Required for production** | String | Default: `localhost`
+
+The WebAuthn Relying Party ID — the effective domain of your deployment (no protocol or port). Must match the domain users access Inkweld from.
+
+```bash
+WEBAUTHN_RP_ID=inkweld.yourcompany.com
+```
+
+:::danger Cannot change after users register passkeys
+Changing this value invalidates all existing passkeys.
+:::
+
+### WEBAUTHN_RP_NAME
+
+**Optional** | String | Default: `Inkweld`
+
+Human-readable name shown in the browser passkey registration prompt.
+
+```bash
+WEBAUTHN_RP_NAME="Acme Writing Platform"
+```
+
+See the [Passkeys admin guide](./admin-guide/passkeys) for full setup instructions.
+
+---
+
 ## GitHub OAuth
 
 Enable users to sign in with their GitHub accounts.
@@ -431,6 +463,8 @@ PORT=8333
 NODE_ENV=production
 SESSION_SECRET=<generated-32-char-secret>
 ALLOWED_ORIGINS=https://inkweld.yourcompany.com
+WEBAUTHN_RP_ID=inkweld.yourcompany.com
+WEBAUTHN_RP_NAME="My Inkweld"
 DB_TYPE=sqlite
 DB_PATH=/data/inkweld.db
 DATA_PATH=/data
@@ -464,37 +498,40 @@ wrangler secret put SESSION_SECRET --env production
 
 ## Environment Variable Reference
 
-| Variable                 | Default        | Description                                              |
-| ------------------------ | -------------- | -------------------------------------------------------- |
-| `SESSION_SECRET`         | Required       | Session encryption key (32+ chars)                       |
-| `ALLOWED_ORIGINS`        | Required       | Comma-separated CORS origins                             |
-| `PORT`                   | `8333`         | HTTP server port                                         |
-| `HOST`                   | `0.0.0.0`      | Network interface to bind                                |
-| `NODE_ENV`               | `development`  | Environment mode                                         |
-| `DB_TYPE`                | `sqlite`       | Database type (`sqlite` or `d1`)                         |
-| `DB_PATH`                | `./sqlite.db`  | SQLite file path                                         |
-| `DATA_PATH`              | `./data`       | Data storage directory                                   |
-| `USER_APPROVAL_REQUIRED` | `false`        | Require admin approval for new users                     |
-| `GITHUB_ENABLED`         | `false`        | Enable GitHub OAuth                                      |
-| `GITHUB_CLIENT_ID`       | -              | GitHub OAuth client ID                                   |
-| `GITHUB_CLIENT_SECRET`   | -              | GitHub OAuth client secret                               |
-| `GITHUB_CALLBACK_URL`    | Auto           | GitHub OAuth callback URL                                |
-| `DEFAULT_ADMIN_USERNAME` | -              | Initial admin username                                   |
-| `DEFAULT_ADMIN_PASSWORD` | -              | Initial admin password                                   |
-| `SERVE_FRONTEND`         | `true`         | Serve embedded frontend                                  |
-| `FRONTEND_DIST`          | -              | External frontend path                                   |
-| `OPENAI_API_KEY`         | -              | OpenAI API key for AI features                           |
-| `AI_KILL_SWITCH`         | `true`         | Disable all AI features when `true`                      |
-| `WORKERSAI_ACCOUNT_ID`   | -              | Cloudflare Account ID for Workers AI                     |
-| `WORKERSAI_API_TOKEN`    | -              | Cloudflare Workers AI API token                          |
-| `COOKIE_DOMAIN`          | Auto           | Cookie domain                                            |
-| `GC`                     | `true`         | Yjs garbage collection                                   |
-| `LOG_LEVEL`              | `debug`/`info` | Log verbosity (`debug`, `info`, `warn`, `error`, `none`) |
+| Variable                 | Default                                             | Description                                                                                                                                                                               |
+| ------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SESSION_SECRET`         | Required                                            | Session encryption key (32+ chars)                                                                                                                                                        |
+| `ALLOWED_ORIGINS`        | Required                                            | Comma-separated CORS origins                                                                                                                                                              |
+| `PORT`                   | `8333`                                              | HTTP server port                                                                                                                                                                          |
+| `HOST`                   | `0.0.0.0`                                           | Network interface to bind                                                                                                                                                                 |
+| `NODE_ENV`               | `development`                                       | Environment mode                                                                                                                                                                          |
+| `DB_TYPE`                | `sqlite`                                            | Database type (`sqlite` or `d1`)                                                                                                                                                          |
+| `DB_PATH`                | `./sqlite.db`                                       | SQLite file path                                                                                                                                                                          |
+| `DATA_PATH`              | `./data`                                            | Data storage directory                                                                                                                                                                    |
+| `USER_APPROVAL_REQUIRED` | `false`                                             | Require admin approval for new users                                                                                                                                                      |
+| `WEBAUTHN_RP_ID`         | `localhost` (dev only — **required in production**) | WebAuthn Relying Party ID (domain only, no port). Once users register passkeys against an RP ID, it cannot be changed without invalidating every credential — set this before going live. |
+| `WEBAUTHN_RP_NAME`       | `Inkweld`                                           | Human-readable name shown in passkey prompts                                                                                                                                              |
+| `GITHUB_ENABLED`         | `false`                                             | Enable GitHub OAuth                                                                                                                                                                       |
+| `GITHUB_CLIENT_ID`       | -                                                   | GitHub OAuth client ID                                                                                                                                                                    |
+| `GITHUB_CLIENT_SECRET`   | -                                                   | GitHub OAuth client secret                                                                                                                                                                |
+| `GITHUB_CALLBACK_URL`    | Auto                                                | GitHub OAuth callback URL                                                                                                                                                                 |
+| `DEFAULT_ADMIN_USERNAME` | -                                                   | Initial admin username                                                                                                                                                                    |
+| `DEFAULT_ADMIN_PASSWORD` | -                                                   | Initial admin password                                                                                                                                                                    |
+| `SERVE_FRONTEND`         | `true`                                              | Serve embedded frontend                                                                                                                                                                   |
+| `FRONTEND_DIST`          | -                                                   | External frontend path                                                                                                                                                                    |
+| `OPENAI_API_KEY`         | -                                                   | OpenAI API key for AI features                                                                                                                                                            |
+| `AI_KILL_SWITCH`         | `true`                                              | Disable all AI features when `true`                                                                                                                                                       |
+| `WORKERSAI_ACCOUNT_ID`   | -                                                   | Cloudflare Account ID for Workers AI                                                                                                                                                      |
+| `WORKERSAI_API_TOKEN`    | -                                                   | Cloudflare Workers AI API token                                                                                                                                                           |
+| `COOKIE_DOMAIN`          | Auto                                                | Cookie domain                                                                                                                                                                             |
+| `GC`                     | `true`                                              | Yjs garbage collection                                                                                                                                                                    |
+| `LOG_LEVEL`              | `debug`/`info`                                      | Log verbosity (`debug`, `info`, `warn`, `error`, `none`)                                                                                                                                  |
 
 ---
 
 ## Next Steps
 
 - **[Admin Panel](./admin-guide/overview)** - Manage users, settings, and system health from the web UI
+- **[Passkeys](./admin-guide/passkeys)** - Configure passwordless WebAuthn authentication
 - **[AI Image Generation](./admin-guide/ai-image-generation)** - Set up AI-powered features
 - **[Troubleshooting](./troubleshooting/logging)** - Common issues and solutions

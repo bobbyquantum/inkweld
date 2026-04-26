@@ -171,5 +171,13 @@
         </mat-accordion>
       }
     </section>
+
+    <mat-divider></mat-divider>
+
+    @if (systemConfig.isPasskeysEnabled()) {
+      <section class="settings-section">
+        <app-passkeys-settings></app-passkeys-settings>
+      </section>
+    }
   </div>
 </div>

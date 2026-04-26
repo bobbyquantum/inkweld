@@ -115,6 +115,46 @@ export const CONFIG_KEYS = {
     type: 'boolean' as const,
   },
 
+  // Passkey (WebAuthn) settings
+  PASSKEYS_ENABLED: {
+    category: 'auth' as ConfigCategory,
+    description:
+      'Enable passkey (WebAuthn) authentication. When disabled, all passkey endpoints return 403.',
+    encrypted: false,
+    envVar: 'PASSKEYS_ENABLED',
+    type: 'boolean' as const,
+  },
+
+  // Password login: when disabled the app is fully passwordless. Existing
+  // password hashes remain in the DB (for re-enable) but the /login route,
+  // forgot/reset routes and password fields in the UI are all gated off.
+  // Defaults to false so new deployments get the secure-by-default posture
+  // recommended by current cybersecurity guidance (NIST SP 800-63B Rev. 4).
+  PASSWORD_LOGIN_ENABLED: {
+    category: 'auth' as ConfigCategory,
+    description:
+      'Enable username/password authentication. Disable for a fully passwordless deployment ' +
+      '(passkeys only). Existing password hashes are preserved but cannot be used while disabled.',
+    encrypted: false,
+    envVar: 'PASSWORD_LOGIN_ENABLED',
+    type: 'boolean' as const,
+  },
+
+  // Email-based recovery: when passwords are off this enables a magic-link
+  // flow that lets a user re-enrol a passkey from a verified email. When
+  // passwords are on it is unused (the existing forgot-password flow handles
+  // that case). Defaults to false so operators must consciously opt in to
+  // the email-as-recovery-channel attack surface.
+  EMAIL_RECOVERY_ENABLED: {
+    category: 'auth' as ConfigCategory,
+    description:
+      'Enable email-based account recovery (magic-link). Used to send a passkey-enrolment ' +
+      'link when passwords are disabled, or a password-reset link when passwords are enabled.',
+    encrypted: false,
+    envVar: 'EMAIL_RECOVERY_ENABLED',
+    type: 'boolean' as const,
+  },
+
   // GitHub OAuth settings
   GITHUB_ENABLED: {
     category: 'github' as ConfigCategory,

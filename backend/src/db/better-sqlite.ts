@@ -15,6 +15,10 @@ export async function setupBetterSqliteDatabase(
   if (db) return db;
 
   sqlite = new Database(dbPath);
+  // SQLite does not enforce foreign keys by default — required so
+  // ON DELETE CASCADE on user-owned tables (passkeys, challenges, etc.)
+  // actually fires when a user is removed.
+  sqlite.pragma('foreign_keys = ON');
   db = drizzle(sqlite, { schema });
 
   return db;

@@ -34,6 +34,9 @@ function flushAllConfigRequests(
     PASSWORD_REQUIRE_NUMBER: 'true',
     PASSWORD_REQUIRE_SYMBOL: 'true',
     SITE_URL: '',
+    PASSKEYS_ENABLED: 'true',
+    PASSWORD_LOGIN_ENABLED: 'true',
+    EMAIL_RECOVERY_ENABLED: 'false',
   };
   const values = { ...defaults, ...overrides };
 
@@ -54,6 +57,7 @@ describe('AdminSettingsComponent', () => {
   let mockSystemConfigService: {
     isAiKillSwitchLockedByEnv: ReturnType<typeof vi.fn>;
     refreshSystemFeatures: ReturnType<typeof vi.fn>;
+    isEmailEnabled: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -66,6 +70,7 @@ describe('AdminSettingsComponent', () => {
     mockSystemConfigService = {
       isAiKillSwitchLockedByEnv: vi.fn().mockReturnValue(false),
       refreshSystemFeatures: vi.fn(),
+      isEmailEnabled: vi.fn().mockReturnValue(true),
     };
 
     await TestBed.configureTestingModule({
@@ -403,6 +408,404 @@ describe('AdminSettingsComponent', () => {
       await savePromise;
 
       expect(component.passwordMinLength()).toBe(12);
+    });
+  });
+
+  describe('Passkeys', () => {
+    it('should load passkeysEnabled value on init', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSKEYS_ENABLED: 'false' });
+      await flushMicrotasks();
+      expect(component.passkeysEnabled()).toBe(false);
+    });
+
+    it('should enable passkeys via togglePasskeys(true)', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSKEYS_ENABLED: 'false' });
+      await flushMicrotasks();
+
+      const togglePromise = component.togglePasskeys(true);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSKEYS_ENABLED'
+      );
+      expect(putReq.request.method).toBe('PUT');
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(component.passkeysEnabled()).toBe(true);
+      expect(component.isSaving()).toBe(false);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('should disable passkeys via togglePasskeys(false)', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const togglePromise = component.togglePasskeys(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSKEYS_ENABLED'
+      );
+      expect(putReq.request.body).toEqual({ value: 'false' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(component.passkeysEnabled()).toBe(false);
+    });
+
+    it('should revert state and not call refresh when save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      mockSystemConfigService.refreshSystemFeatures.mockClear();
+
+      const togglePromise = component.togglePasskeys(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSKEYS_ENABLED'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      // State reverted to opposite of attempted value
+      expect(component.passkeysEnabled()).toBe(true);
+      expect(component.isSaving()).toBe(false);
+      expect(
+        mockSystemConfigService.refreshSystemFeatures
+      ).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Email Recovery toggle', () => {
+    it('does not show SMTP warning when email is configured', async () => {
+      mockSystemConfigService.isEmailEnabled.mockReturnValue(true);
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+      fixture.detectChanges();
+
+      const warning = fixture.nativeElement.querySelector(
+        '[data-testid="email-recovery-no-smtp-warning"]'
+      );
+      expect(warning).toBeFalsy();
+    });
+
+    it('shows SMTP warning and reports email not enabled when SMTP is not configured', async () => {
+      mockSystemConfigService.isEmailEnabled.mockReturnValue(false);
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+      fixture.detectChanges();
+
+      // The service signal should report email not enabled
+      expect(component.isEmailEnabled()).toBe(false);
+
+      const warning = fixture.nativeElement.querySelector(
+        '[data-testid="email-recovery-no-smtp-warning"]'
+      );
+      expect(warning).toBeTruthy();
+    });
+
+    it('enables email recovery without confirming when password login is on', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSWORD_LOGIN_ENABLED: 'true',
+        EMAIL_RECOVERY_ENABLED: 'false',
+      });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+
+      const togglePromise = component.toggleEmailRecovery(true);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/EMAIL_RECOVERY_ENABLED'
+      );
+      expect(putReq.request.method).toBe('PUT');
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(component.emailRecoveryEnabled()).toBe(true);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('disables email recovery without confirming when password login is on', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSWORD_LOGIN_ENABLED: 'true',
+        EMAIL_RECOVERY_ENABLED: 'true',
+      });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+
+      const togglePromise = component.toggleEmailRecovery(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/EMAIL_RECOVERY_ENABLED'
+      );
+      expect(putReq.request.body).toEqual({ value: 'false' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(component.emailRecoveryEnabled()).toBe(false);
+    });
+
+    it('requires confirmation when disabling in passwordless mode and proceeds when confirmed', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSWORD_LOGIN_ENABLED: 'false',
+        EMAIL_RECOVERY_ENABLED: 'true',
+      });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+      mockDialog.open.mockReturnValueOnce({ afterClosed: () => of(true) });
+
+      const togglePromise = component.toggleEmailRecovery(false);
+      // Wait a microtask so dialog logic resolves before we expect the PUT
+      await flushMicrotasks();
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/EMAIL_RECOVERY_ENABLED'
+      );
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      expect(component.emailRecoveryEnabled()).toBe(false);
+    });
+
+    it('aborts disable in passwordless mode when confirmation is cancelled', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSWORD_LOGIN_ENABLED: 'false',
+        EMAIL_RECOVERY_ENABLED: 'true',
+      });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+      mockDialog.open.mockReturnValueOnce({ afterClosed: () => of(false) });
+
+      await component.toggleEmailRecovery(false);
+
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      // No PUT — verify by asking the controller for outstanding requests
+      httpMock.expectNone('/api/v1/admin/config/EMAIL_RECOVERY_ENABLED');
+      expect(component.emailRecoveryEnabled()).toBe(true);
+    });
+
+    it('reverts state when the save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSWORD_LOGIN_ENABLED: 'true',
+        EMAIL_RECOVERY_ENABLED: 'false',
+      });
+      await flushMicrotasks();
+
+      const togglePromise = component.toggleEmailRecovery(true);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/EMAIL_RECOVERY_ENABLED'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      expect(component.emailRecoveryEnabled()).toBe(false);
+      expect(component.isSaving()).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Password Login toggle', () => {
+    it('refuses to disable when passkeys are also disabled', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSKEYS_ENABLED: 'false',
+        PASSWORD_LOGIN_ENABLED: 'true',
+      });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+
+      await component.togglePasswordLogin(false);
+
+      // Symmetric guard: never lets both auth methods be off — no PUT, no
+      // dialog, state untouched.
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      httpMock.expectNone('/api/v1/admin/config/PASSWORD_LOGIN_ENABLED');
+      expect(component.passwordLoginEnabled()).toBe(true);
+    });
+
+    it('enables password login without confirming', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSWORD_LOGIN_ENABLED: 'false' });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+
+      const togglePromise = component.togglePasswordLogin(true);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSWORD_LOGIN_ENABLED'
+      );
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(component.passwordLoginEnabled()).toBe(true);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('requires confirmation when disabling and proceeds when confirmed', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSKEYS_ENABLED: 'true',
+        PASSWORD_LOGIN_ENABLED: 'true',
+      });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+      mockDialog.open.mockReturnValueOnce({ afterClosed: () => of(true) });
+
+      const togglePromise = component.togglePasswordLogin(false);
+      await flushMicrotasks();
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSWORD_LOGIN_ENABLED'
+      );
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      expect(component.passwordLoginEnabled()).toBe(false);
+    });
+
+    it('aborts disable when confirmation is cancelled', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PASSKEYS_ENABLED: 'true',
+        PASSWORD_LOGIN_ENABLED: 'true',
+      });
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+      mockDialog.open.mockReturnValueOnce({ afterClosed: () => of(false) });
+
+      await component.togglePasswordLogin(false);
+
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      httpMock.expectNone('/api/v1/admin/config/PASSWORD_LOGIN_ENABLED');
+      expect(component.passwordLoginEnabled()).toBe(true);
+    });
+
+    it('reverts state when the save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { PASSWORD_LOGIN_ENABLED: 'false' });
+      await flushMicrotasks();
+
+      const togglePromise = component.togglePasswordLogin(true);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/PASSWORD_LOGIN_ENABLED'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      expect(component.passwordLoginEnabled()).toBe(false);
+      expect(component.isSaving()).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('toggleRequireEmail', () => {
+    it('persists the new value and refreshes system features on success', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { REQUIRE_EMAIL: 'false' });
+      await flushMicrotasks();
+      mockSystemConfigService.refreshSystemFeatures.mockClear();
+
+      const togglePromise = component.toggleRequireEmail(true);
+      const putReq = httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL');
+      expect(putReq.request.method).toBe('PUT');
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(component.requireEmailEnabled()).toBe(true);
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+      expect(component.isSaving()).toBe(false);
+    });
+
+    it('reverts on save failure', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { REQUIRE_EMAIL: 'false' });
+      await flushMicrotasks();
+
+      const togglePromise = component.toggleRequireEmail(true);
+      const putReq = httpMock.expectOne('/api/v1/admin/config/REQUIRE_EMAIL');
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      expect(component.requireEmailEnabled()).toBe(false);
+      expect(component.isSaving()).toBe(false);
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('toggleUserApproval error path', () => {
+    it('reverts on save failure', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { USER_APPROVAL_REQUIRED: 'true' });
+      await flushMicrotasks();
+
+      const togglePromise = component.toggleUserApproval(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/USER_APPROVAL_REQUIRED'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      expect(component.userApprovalRequired()).toBe(true);
+      expect(component.isSaving()).toBe(false);
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('loadConfig error path', () => {
+    it('records an error and stops loading when loadConfig throws', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      // adminConfigService.getConfig() swallows HTTP errors and returns null,
+      // so the only way the catch in loadConfig() runs is if something inside
+      // the try-block throws. Stub the systemConfig signal to throw to simulate
+      // that — this exercises the error/isLoading state cleanup branch.
+      mockSystemConfigService.isAiKillSwitchLockedByEnv.mockImplementation(
+        () => {
+          throw new Error('boom');
+        }
+      );
+
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+      await flushMicrotasks();
+
+      expect(component.isLoading()).toBe(false);
+      expect(component.error()).toBeInstanceOf(Error);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
   });
 });

@@ -16,6 +16,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   };
   let mockSystemConfig: {
     isLocalMode: ReturnType<typeof vi.fn>;
+    isPasskeysEnabled: ReturnType<typeof vi.fn>;
+    isPasswordLoginEnabled: ReturnType<typeof vi.fn>;
   };
   let mockSnackBar: {
     open: ReturnType<typeof vi.fn>;
@@ -41,6 +43,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     mockSystemConfig = {
       isLocalMode: vi.fn().mockReturnValue(false),
+      isPasskeysEnabled: vi.fn().mockReturnValue(true),
+      isPasswordLoginEnabled: vi.fn().mockReturnValue(true),
     };
 
     mockSnackBar = {
@@ -173,7 +177,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   });
 
   describe('auth provider display', () => {
-    it('should show local auth chip for local users', () => {
+    it('should show password chip for local users when password login is enabled', () => {
       mockUserService.currentUser.mockReturnValue({
         id: '1',
         username: 'testuser',
@@ -187,10 +191,37 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       fixture.detectChanges();
 
       const el: HTMLElement = fixture.nativeElement;
-      const localChip = el.querySelector('[data-testid="auth-chip-local"]');
+      const passwordChip = el.querySelector(
+        '[data-testid="auth-chip-password"]'
+      );
+      const passkeyChip = el.querySelector('[data-testid="auth-chip-passkey"]');
       const githubChip = el.querySelector('[data-testid="auth-chip-github"]');
-      expect(localChip).toBeTruthy();
+      expect(passwordChip).toBeTruthy();
+      expect(passkeyChip).toBeFalsy();
       expect(githubChip).toBeFalsy();
+    });
+
+    it('should show passkey chip for local users when password login is disabled', () => {
+      mockSystemConfig.isPasswordLoginEnabled.mockReturnValue(false);
+      mockUserService.currentUser.mockReturnValue({
+        id: '1',
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+        enabled: true,
+        authProvider: 'local',
+      });
+
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      const passwordChip = el.querySelector(
+        '[data-testid="auth-chip-password"]'
+      );
+      const passkeyChip = el.querySelector('[data-testid="auth-chip-passkey"]');
+      expect(passkeyChip).toBeTruthy();
+      expect(passwordChip).toBeFalsy();
     });
 
     it('should show github auth chip for github users', () => {
@@ -207,9 +238,11 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       fixture.detectChanges();
 
       const el: HTMLElement = fixture.nativeElement;
-      const localChip = el.querySelector('[data-testid="auth-chip-local"]');
+      const passwordChip = el.querySelector(
+        '[data-testid="auth-chip-password"]'
+      );
       const githubChip = el.querySelector('[data-testid="auth-chip-github"]');
-      expect(localChip).toBeFalsy();
+      expect(passwordChip).toBeFalsy();
       expect(githubChip).toBeTruthy();
     });
 
@@ -227,9 +260,11 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       fixture.detectChanges();
 
       const el: HTMLElement = fixture.nativeElement;
-      const localChip = el.querySelector('[data-testid="auth-chip-local"]');
+      const passwordChip = el.querySelector(
+        '[data-testid="auth-chip-password"]'
+      );
       const githubChip = el.querySelector('[data-testid="auth-chip-github"]');
-      expect(localChip).toBeTruthy();
+      expect(passwordChip).toBeTruthy();
       expect(githubChip).toBeTruthy();
     });
 
