@@ -60,27 +60,28 @@ function rpFromContext(c: Context): PasskeyRpConfig {
     : [];
   const configOrigins = parsedOrigins.length > 0 ? parsedOrigins : [...config.allowedOrigins];
 
-  // WebAuthn requires an exact origin match — never trust the client-supplied
-  // Origin header. If the operator left ALLOWED_ORIGINS='*' we refuse to use
-  // it for passkey verification: in development we fall back to localhost with
-  // a loud warning, in any other environment we throw so the misconfiguration
-  // is visible immediately rather than silently accepting forged origins.
+  // WebAuthn requires an exact origin match — never silently trust the
+  // client-supplied Origin header in production. If the operator left
+  // ALLOWED_ORIGINS='*':
+  //   - In production: throw so the misconfiguration surfaces immediately.
+  //     Operators must set ALLOWED_ORIGINS to the explicit origin(s) users
+  //     access the app from (e.g. "https://app.example.com").
+  //   - In any other env (development, test, e2e): fall back to the request's
+  //     Origin header so local dev and Docker e2e setups that legitimately
+  //     use '*' to accept any port/host continue to work. The browser's
+  //     same-origin enforcement on the WebAuthn API still binds credentials
+  //     to the RP ID, so a forged server-side Origin alone is not exploitable.
   let origins: string[];
   if (configOrigins.includes('*')) {
-    if (process.env['NODE_ENV'] === 'development') {
-      console.warn(
-        '[passkey] ALLOWED_ORIGINS="*" is not allowed for WebAuthn; ' +
-          'falling back to http://localhost (development only). ' +
-          'Set ALLOWED_ORIGINS to an explicit list of origins.'
-      );
-      origins = ['http://localhost'];
-    } else {
+    if (process.env['NODE_ENV'] === 'production') {
       throw new Error(
         'ALLOWED_ORIGINS contains "*" which is not a valid WebAuthn expected ' +
-          'origin. Configure ALLOWED_ORIGINS with an explicit comma-separated ' +
-          'list of origins (e.g. "https://app.example.com").'
+          'origin in production. Configure ALLOWED_ORIGINS with an explicit ' +
+          'comma-separated list of origins (e.g. "https://app.example.com").'
       );
     }
+    const requestOrigin = c.req.header('origin');
+    origins = requestOrigin ? [requestOrigin] : ['http://localhost'];
   } else {
     origins = configOrigins;
   }
