@@ -24,15 +24,19 @@
 #
 # 4. Update the database_id values in the env sections below
 #
-# 5. Set secrets (from backend directory):
+# 5. Set WEBAUTHN_RP_ID to your frontend domain in each [env.*.vars] section.
+#    This must match the domain users access the app from. IMMUTABLE after
+#    any user registers a passkey — changing it invalidates all credentials.
+#
+# 6. Set secrets (from backend directory):
 #    npx wrangler secret put SESSION_SECRET --env preview
 #    npx wrangler secret put SESSION_SECRET --env production
 #
-# 6. Run migrations (from backend directory):
+# 7. Run migrations (from backend directory):
 #    npx wrangler d1 execute inkweld_preview --file=./drizzle/0000_safe_mysterio.sql
 #    npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql
 #
-# 7. Deploy (from project root):
+# 8. Deploy (from project root):
 #    npm run cloudflare:preview:deploy   # Preview
 #    npm run cloudflare:prod:deploy      # Production
 #
@@ -98,6 +102,9 @@ name = "inkweld-backend-preview"
 NODE_ENV = "preview"
 PORT = "8333"
 DB_TYPE = "d1"
+# Must match your frontend domain (e.g. "preview.inkweld.app").
+# IMMUTABLE after any user registers a passkey.
+WEBAUTHN_RP_ID = "your-preview-domain.com"
 # Include *.your-pages-project.pages.dev to allow deployment preview URLs
 ALLOWED_ORIGINS = "http://localhost:4200"
 USER_APPROVAL_REQUIRED = "false"
@@ -140,6 +147,9 @@ name = "inkweld-backend-prod"
 NODE_ENV = "production"
 PORT = "8333"
 DB_TYPE = "d1"
+# Must match your frontend domain (e.g. "app.inkweld.app").
+# IMMUTABLE after any user registers a passkey.
+WEBAUTHN_RP_ID = "your-production-domain.com"
 # Include *.your-pages-project.pages.dev to allow deployment preview URLs
 ALLOWED_ORIGINS = ""
 USER_APPROVAL_REQUIRED = "true"
@@ -174,6 +184,8 @@ script_name = "inkweld-backend-prod"
 # Required for each environment:
 #   SESSION_SECRET - Used for JWT signing, CSRF token generation, and session
 #                    cookies. Must be at least 32 characters in production.
+#   WEBAUTHN_RP_ID - Relying Party ID for WebAuthn/passkey authentication. Must
+#                    match your frontend domain (no protocol/port). IMMUTABLE.
 #
 # Optional:
 #   DATABASE_KEY   - Override for SESSION_SECRET, used specifically for database
