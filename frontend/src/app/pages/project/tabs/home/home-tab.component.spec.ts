@@ -132,7 +132,7 @@ describe('HomeTabComponent', () => {
 
     snackBar = {
       open: vi.fn(),
-    } as any;
+    };
   };
 
   beforeEach(async () => {

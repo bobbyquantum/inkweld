@@ -727,7 +727,7 @@ export class ProjectTreeComponent implements OnDestroy {
       ...element,
       expanded: false,
       metadata: element.metadata ?? {},
-    } as ProjectElement);
+    });
   }
 
   /**

@@ -189,8 +189,8 @@ describe('ProjectImportService', () => {
     );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     projectsService.deleteProject.mockReturnValue(of({}) as any);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    http.post.mockReturnValue(of({}) as any);
+
+    http.post.mockReturnValue(of({}));
 
     TestBed.configureTestingModule({
       providers: [

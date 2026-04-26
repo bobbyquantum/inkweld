@@ -167,19 +167,6 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     lastConnectionError$: lastConnectionErrorSubject.asObservable(),
     remotePresence$: new BehaviorSubject([]).asObservable(),
     setLocalAwareness: vi.fn(),
-  } as MockedObject<IElementSyncProvider> & {
-    _elementsSubject: BehaviorSubject<Element[]>;
-    _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
-    _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
-    _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
-    _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
-    _elementTagsSubject: BehaviorSubject<ElementTag[]>;
-    _customTagsSubject: BehaviorSubject<TagDefinition[]>;
-    _mediaTagsSubject: BehaviorSubject<MediaTag[]>;
-    _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
-    _syncStateSubject: BehaviorSubject<DocumentSyncState>;
-    _errorsSubject: Subject<string>;
-    _lastConnectionErrorSubject: BehaviorSubject<string | null>;
   };
 }
 
@@ -281,7 +268,7 @@ describe('ProjectStateService', () => {
 
     mockStorageService = {
       isAvailable: vi.fn().mockReturnValue(true),
-      initializeDatabase: vi.fn().mockResolvedValue({} as IDBDatabase),
+      initializeDatabase: vi.fn().mockResolvedValue({}),
       get: vi.fn().mockResolvedValue(null),
       set: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<StorageService>;
@@ -1202,7 +1189,7 @@ describe('ProjectStateService', () => {
           name: 'Test Doc',
           type: 'document',
           element: docElement,
-        } as AppTab,
+        },
       ];
 
       mockStorageService.get

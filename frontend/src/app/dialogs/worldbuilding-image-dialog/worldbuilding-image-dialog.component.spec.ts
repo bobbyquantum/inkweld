@@ -96,7 +96,7 @@ describe('WorldbuildingImageDialogComponent', () => {
   describe('file selection', () => {
     it('should open file selector when openFileSelector is called', () => {
       const mockFileInput = { click: vi.fn() } as unknown as HTMLInputElement;
-      component.fileInput = { nativeElement: mockFileInput } as any;
+      component.fileInput = { nativeElement: mockFileInput };
 
       component.openFileSelector();
 
@@ -226,7 +226,7 @@ describe('WorldbuildingImageDialogComponent', () => {
       component.pendingFileName = 'test.png';
       component.croppedBlob = new Blob(['test']);
       const mockFileInput = { value: 'test' } as HTMLInputElement;
-      component.fileInput = { nativeElement: mockFileInput } as any;
+      component.fileInput = { nativeElement: mockFileInput };
 
       component.cancelCropping();
 

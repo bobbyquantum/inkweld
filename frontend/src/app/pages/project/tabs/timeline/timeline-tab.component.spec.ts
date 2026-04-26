@@ -451,11 +451,7 @@ describe('TimelineTabComponent', () => {
       ['username', 'alice'],
       ['slug', 'my-project'],
     ]);
-    (
-      mockRoute.snapshot.paramMap as unknown as {
-        get: (k: string) => string | null;
-      }
-    ).get = (k: string) => mockParams.get(k) ?? null;
+    mockRoute.snapshot.paramMap.get = (k: string) => mockParams.get(k) ?? null;
     const router = TestBed.inject(Router);
     fixture.detectChanges();
     component['onOpenTimeSystemSettings']();
@@ -467,11 +463,7 @@ describe('TimelineTabComponent', () => {
 
   it('does not navigate when username is missing', () => {
     const mockParams = new Map([['tabId', 't-1']]);
-    (
-      mockRoute.snapshot.paramMap as unknown as {
-        get: (k: string) => string | null;
-      }
-    ).get = (k: string) => mockParams.get(k) ?? null;
+    mockRoute.snapshot.paramMap.get = (k: string) => mockParams.get(k) ?? null;
     const router = TestBed.inject(Router);
     fixture.detectChanges();
     component['onOpenTimeSystemSettings']();

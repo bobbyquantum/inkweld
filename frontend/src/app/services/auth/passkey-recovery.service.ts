@@ -157,9 +157,9 @@ export class PasskeyRecoveryService {
     // HttpErrorResponse from the generated client: extract the server's
     // {error: "..."} body when present.
     if (err && typeof err === 'object' && 'error' in err) {
-      const inner = (err as { error: unknown }).error;
+      const inner = err.error;
       if (inner && typeof inner === 'object' && 'error' in inner) {
-        const message = (inner as { error: unknown }).error;
+        const message = inner.error;
         if (typeof message === 'string') {
           return new PasskeyError('NETWORK_ERROR', message);
         }

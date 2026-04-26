@@ -87,7 +87,7 @@ describe('ProjectSearchDialogComponent', () => {
       allTags: signal([]),
       elementTags: signal([]),
       getElementsWithTag: vi.fn().mockReturnValue([]),
-    } as Partial<TagService>;
+    };
 
     mockRelationshipService = {
       hasRelationships: vi.fn().mockReturnValue(false),
@@ -95,12 +95,12 @@ describe('ProjectSearchDialogComponent', () => {
         .fn()
         .mockReturnValue({ outgoing: [], incoming: [] }),
       relationships: signal([]),
-    } as Partial<RelationshipService>;
+    };
 
     mockWorldbuildingService = {
       getSchemas: vi.fn().mockReturnValue([]),
       getSchemaById: vi.fn().mockReturnValue(null),
-    } as Partial<WorldbuildingService>;
+    };
 
     await TestBed.configureTestingModule({
       imports: [ProjectSearchDialogComponent, MatDialogModule],

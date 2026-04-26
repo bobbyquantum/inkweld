@@ -270,7 +270,7 @@ describe('MediaSelectorDialogComponent', () => {
     const items = component.mediaItems();
     component.selectItem(items[0]);
 
-    localStorageService.getMedia.mockResolvedValueOnce(null as unknown as Blob);
+    localStorageService.getMedia.mockResolvedValueOnce(null);
     await component.confirm();
 
     expect(dialogRef.close).not.toHaveBeenCalled();

@@ -12,7 +12,6 @@ import {
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
-import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { RelationshipService } from './relationship.service';
 
 // Mock relationship types (simulating what would come from a project template)
@@ -156,9 +155,7 @@ describe('RelationshipService', () => {
     };
 
     mockSyncProviderFactory = {
-      getProvider: vi
-        .fn()
-        .mockReturnValue(mockSyncProvider as unknown as IElementSyncProvider),
+      getProvider: vi.fn().mockReturnValue(mockSyncProvider),
     };
 
     TestBed.configureTestingModule({

@@ -94,7 +94,7 @@ export class InsertImageDialogComponent
       this.dialogRef.close({
         mediaId,
         imageBlob: this.croppedBlob,
-      } as InsertImageDialogResult);
+      });
     }
   }
 }

@@ -518,7 +518,7 @@ export class CommentService {
       messages: JSON.stringify(messages),
       messageCount: messages.length,
       preview: text.length > 100 ? text.substring(0, 100) + '…' : text,
-    } as Partial<CommentMarkAttrs>);
+    });
   }
 
   /**

@@ -20,12 +20,6 @@ import { type ThemeOption, ThemeService } from '@themes/theme.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
-// Extended user interface that includes isAdmin
-// This will be properly typed once the API client is regenerated
-interface AdminUser extends User {
-  isAdmin?: boolean;
-}
-
 @Component({
   selector: 'app-user-menu',
   imports: [
@@ -59,7 +53,7 @@ export class UserMenuComponent implements OnInit {
     if (mode !== 'server') {
       return false;
     }
-    const currentUser = this.userService.currentUser() as AdminUser;
+    const currentUser = this.userService.currentUser();
     return currentUser?.isAdmin === true;
   });
 

@@ -693,7 +693,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       case 'stable-diffusion':
         return 'Stable Diffusion';
       default:
-        return provider as string;
+        return provider;
     }
   }
 

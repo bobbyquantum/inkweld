@@ -56,18 +56,17 @@ describe('AutoSnapshotService', () => {
     id: string,
     name: string,
     type: ElementType
-  ): ProjectElement =>
-    ({
-      id,
-      name,
-      type,
-      level: 0,
-      order: 0,
-      parentId: null,
-      expandable: type === ElementType.Folder,
-      version: 1,
-      metadata: {},
-    }) as ProjectElement;
+  ): ProjectElement => ({
+    id,
+    name,
+    type,
+    level: 0,
+    order: 0,
+    parentId: null,
+    expandable: type === ElementType.Folder,
+    version: 1,
+    metadata: {},
+  });
 
   beforeEach(() => {
     projectSignal = signal<Project | undefined>(mockProject as Project);

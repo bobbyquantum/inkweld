@@ -565,7 +565,7 @@ export class EpubGeneratorService {
 
     // Handle object format
     if (typeof data === 'object') {
-      return this.nodeToHtml(data as ProseMirrorNode);
+      return this.nodeToHtml(data);
     }
 
     // Handle primitives (string, number, boolean)
@@ -677,7 +677,7 @@ export class EpubGeneratorService {
       return '';
     }
 
-    const attrs = node.attrs as Record<string, unknown>;
+    const attrs: Record<string, unknown> = node.attrs;
     const parts: string[] = [];
 
     for (const [key, value] of Object.entries(attrs)) {
@@ -688,7 +688,8 @@ export class EpubGeneratorService {
         } else if (typeof value === 'string') {
           stringValue = value;
         } else {
-          stringValue = String(value as string | number | boolean);
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          stringValue = String(value);
         }
         parts.push(`${key}="${this.escapeHtml(stringValue)}"`);
       }

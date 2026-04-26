@@ -348,7 +348,7 @@ export class WorldbuildingService {
       `[WorldbuildingService] getWorldbuildingData START for ${elementId}`
     );
     const dataMap = await this.setupCollaboration(elementId, username, slug);
-    const jsonData = dataMap.toJSON() as Record<string, unknown>;
+    const jsonData = dataMap.toJSON();
     console.log(
       `[WorldbuildingService] getWorldbuildingData END for ${elementId}, keys:`,
       Object.keys(jsonData)
@@ -372,7 +372,7 @@ export class WorldbuildingService {
     const dataMap = await this.setupCollaboration(elementId, username, slug);
 
     const observer = () => {
-      const jsonData = dataMap.toJSON() as Record<string, unknown>;
+      const jsonData = dataMap.toJSON();
       console.log(
         '[WorldbuildingService] Observer fired, data keys:',
         Object.keys(jsonData)

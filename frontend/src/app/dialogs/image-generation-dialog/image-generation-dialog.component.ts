@@ -438,7 +438,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
             const h = Number.parseInt(match[2], 10);
             const mp = (w * h) / 1_000_000;
             options.push({
-              value: size as ImageSize,
+              value: size,
               label: `${w}×${h}`,
               megapixels: mp.toFixed(2),
             });
@@ -558,7 +558,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       const enabledProviders = new Set(
         status?.providers
           .filter(p => p.enabled && p.available)
-          .map(p => p.type as string) ?? []
+          .map(p => p.type) ?? []
       );
 
       const profiles = allProfiles.filter(p =>
