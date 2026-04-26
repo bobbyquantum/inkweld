@@ -144,7 +144,7 @@ Coming soon, once first numbered release is added.
 |--|--|---------|-------|
 | ✅ | 🔥 | Relationship chart element | New element type for visualizing connections |
 | ✅ | 🔥 | Graph layout | Force-directed network visualization |
-| ⬜ | 🟡 | Hierarchy layout | Tree-style parent/child visualization |
+| ✅ | 🟡 | Hierarchy layout | Tree-style parent/child visualization |
 | ✅ | 🟡 | Relationship type filtering | Choose which relationship types to include |
 | ✅ | 🟡 | Element type filtering | Choose which element types to include |
 | ✅ | 🟢 | Export chart as image | PNG/SVG export |
@@ -159,8 +159,8 @@ Coming soon, once first numbered release is added.
 | ✅ | 🟡 | Layers | Add, rename, duplicate, delete; visibility & lock toggles |
 | ✅ | 🟡 | Pan and zoom | Navigate large canvases smoothly |
 | ✅ | 🟡 | Export as PNG | Standard and high-resolution export |
-| ⬜ | 🟡 | Shape fills & stroke palette | Per-object color editing |
-| ⬜ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
+| ✅ | 🟡 | Shape fills & stroke palette | Per-object color editing |
+| ✅ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
 
 ### Interactive Maps
 
@@ -210,7 +210,7 @@ Coming soon, once first numbered release is added.
 | ✅ | 🔥 | CI/CD with automated testing | |
 | ✅ | 🟡 | Auto-publish to GHCR | |
 | ✅ | 🟡 | Admin dashboard | User management, AI settings, announcements |
-| ⬜ | 🟡 | Production logging | |
+| ✅ | 🟡 | Production logging | |
 | ⬜ | 🟢 | Monitoring setup | |
 
 ### Documentation
