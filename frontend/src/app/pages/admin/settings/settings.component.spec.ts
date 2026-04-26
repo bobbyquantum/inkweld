@@ -35,6 +35,8 @@ function flushAllConfigRequests(
     PASSWORD_REQUIRE_SYMBOL: 'true',
     SITE_URL: '',
     PASSKEYS_ENABLED: 'true',
+    PASSWORD_LOGIN_ENABLED: 'true',
+    EMAIL_RECOVERY_ENABLED: 'false',
   };
   const values = { ...defaults, ...overrides };
 
@@ -55,6 +57,7 @@ describe('AdminSettingsComponent', () => {
   let mockSystemConfigService: {
     isAiKillSwitchLockedByEnv: ReturnType<typeof vi.fn>;
     refreshSystemFeatures: ReturnType<typeof vi.fn>;
+    isEmailEnabled: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -67,6 +70,7 @@ describe('AdminSettingsComponent', () => {
     mockSystemConfigService = {
       isAiKillSwitchLockedByEnv: vi.fn().mockReturnValue(false),
       refreshSystemFeatures: vi.fn(),
+      isEmailEnabled: vi.fn().mockReturnValue(true),
     };
 
     await TestBed.configureTestingModule({
@@ -475,6 +479,37 @@ describe('AdminSettingsComponent', () => {
       ).not.toHaveBeenCalled();
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Email Recovery toggle', () => {
+    it('does not show SMTP warning when email is configured', async () => {
+      mockSystemConfigService.isEmailEnabled.mockReturnValue(true);
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+      fixture.detectChanges();
+
+      const warning = fixture.nativeElement.querySelector(
+        '[data-testid="email-recovery-no-smtp-warning"]'
+      );
+      expect(warning).toBeFalsy();
+    });
+
+    it('shows SMTP warning and reports email not enabled when SMTP is not configured', async () => {
+      mockSystemConfigService.isEmailEnabled.mockReturnValue(false);
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+      fixture.detectChanges();
+
+      // The service signal should report email not enabled
+      expect(component.isEmailEnabled()).toBe(false);
+
+      const warning = fixture.nativeElement.querySelector(
+        '[data-testid="email-recovery-no-smtp-warning"]'
+      );
+      expect(warning).toBeTruthy();
     });
   });
 });
