@@ -19,6 +19,7 @@ import { type PublishPlan } from '../../models/publish-plan';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { BackgroundSyncService } from '../local/background-sync.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { ProjectRenameMigrationService } from '../local/project-rename-migration.service';
@@ -40,13 +41,7 @@ import { RecentFilesService } from './recent-files.service';
 import { type AppTab, TabManagerService } from './tab-manager.service';
 
 // Constants for document cache configuration
-const DOCUMENT_CACHE_CONFIG = {
-  dbName: 'documentCache',
-  version: 1,
-  stores: {
-    openedDocuments: null,
-  },
-};
+const DOCUMENT_CACHE_DB_BASE_NAME = 'documentCache';
 
 // Re-export for backward compatibility
 export type { ValidDropLevels } from './element-tree.service';
@@ -79,6 +74,7 @@ export class ProjectStateService implements OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly recentFilesService = inject(RecentFilesService);
   private readonly storageService = inject(StorageService);
+  private readonly storageContext = inject(StorageContextService);
   private readonly logger = inject(LoggerService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly timeSystemLibrary = inject(TimeSystemLibraryService);
@@ -1351,9 +1347,11 @@ export class ProjectStateService implements OnDestroy {
   private initializeDocumentCache(): void {
     if (this.storageService.isAvailable()) {
       try {
-        this.documentCacheDb = this.storageService.initializeDatabase(
-          DOCUMENT_CACHE_CONFIG
-        );
+        this.documentCacheDb = this.storageService.initializeDatabase({
+          dbName: this.storageContext.prefixDbName(DOCUMENT_CACHE_DB_BASE_NAME),
+          version: 1,
+          stores: { openedDocuments: null },
+        });
         this.logger.info('ProjectState', 'Document cache initialized');
       } catch (error) {
         this.logger.error(

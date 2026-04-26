@@ -1,7 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Optional } from '@angular/core';
 
 import { type Correction } from '../../../api-client/model/correction';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- Used as Angular DI token, required at runtime
+import { StorageContextService } from '../../services/core/storage-context.service';
 import { type ExtendedCorrectionDto } from './correction-dto.extension';
+
+const LINT_REJECTED_BASE_KEY = 'lint-rejected-suggestions';
 
 /**
  * Service to store and manage user decisions on lint suggestions
@@ -10,10 +14,19 @@ import { type ExtendedCorrectionDto } from './correction-dto.extension';
   providedIn: 'root',
 })
 export class LintStorageService {
-  private readonly STORAGE_KEY = 'lint-rejected-suggestions';
   private rejectedSuggestions: Set<string> = new Set();
 
-  constructor() {
+  private get STORAGE_KEY(): string {
+    if (this.storageContext) {
+      return this.storageContext.prefixKey(LINT_REJECTED_BASE_KEY);
+    }
+    return LINT_REJECTED_BASE_KEY;
+  }
+
+  constructor(
+    // eslint-disable-next-line @angular-eslint/prefer-inject -- Optional injection needed for non-Angular contexts (e.g. ProseMirror plugins using `new`)
+    @Optional() private readonly storageContext?: StorageContextService
+  ) {
     this.loadRejectedSuggestions();
     this.listenForEvents();
   }
