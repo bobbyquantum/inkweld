@@ -126,7 +126,7 @@ export class WorldbuildingImageDialogComponent
       this.dialogRef.close({
         imageData: result.imageData,
         imageBlob: blob,
-      } as WorldbuildingImageDialogResult);
+      });
     } catch (err) {
       console.error('[WorldbuildingImageDialog] Failed to process image:', err);
       this.showError('Failed to process generated image. Please try again.');
@@ -141,7 +141,7 @@ export class WorldbuildingImageDialogComponent
         this.dialogRef.close({
           imageData: base64,
           imageBlob: this.croppedBlob,
-        } as WorldbuildingImageDialogResult);
+        });
       });
     }
   }
@@ -151,6 +151,6 @@ export class WorldbuildingImageDialogComponent
   removeImage(): void {
     this.dialogRef.close({
       removed: true,
-    } as WorldbuildingImageDialogResult);
+    });
   }
 }

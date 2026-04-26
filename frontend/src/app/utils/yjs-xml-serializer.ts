@@ -110,10 +110,8 @@ function wrapInMarkTag(
   const attrParts = [`data-mark="${escapeAttrValue(markName)}"`];
   for (const [key, value] of Object.entries(markAttrs)) {
     if (value !== undefined && value !== null) {
-      const strValue =
-        typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value as string | number | boolean);
+      const strValue: string =
+        typeof value === 'object' ? JSON.stringify(value) : String(value); // eslint-disable-line @typescript-eslint/no-base-to-string
       attrParts.push(`${key}="${escapeAttrValue(strValue)}"`);
     }
   }

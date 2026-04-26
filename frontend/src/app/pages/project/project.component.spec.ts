@@ -836,7 +836,7 @@ describe('ProjectComponent', () => {
 
   describe('beforeunload handler', () => {
     it('should not prevent navigation when no unsaved changes', () => {
-      const event = new Event('beforeunload') as BeforeUnloadEvent;
+      const event = new Event('beforeunload');
       Object.defineProperty(event, 'preventDefault', { value: vi.fn() });
 
       const result = component.onBeforeUnload(event);
@@ -844,7 +844,7 @@ describe('ProjectComponent', () => {
     });
 
     it('should block navigation when unsaved changes exist', () => {
-      const event = new Event('beforeunload') as BeforeUnloadEvent;
+      const event = new Event('beforeunload');
       Object.defineProperty(event, 'preventDefault', { value: vi.fn() });
       (
         component as unknown as { hasUnsavedChanges: boolean }

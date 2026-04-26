@@ -197,19 +197,16 @@ describe('EditorFloatingMenuComponent', () => {
     it('should prefer below-selection placement on coarse pointers', () => {
       const matchMediaSpy = vi
         .spyOn(globalThis, 'matchMedia')
-        .mockImplementation(
-          ((query: string) =>
-            ({
-              matches: query === '(pointer: coarse)',
-              media: query,
-              onchange: null,
-              addListener: vi.fn(),
-              removeListener: vi.fn(),
-              addEventListener: vi.fn(),
-              removeEventListener: vi.fn(),
-              dispatchEvent: vi.fn(),
-            }) as unknown as MediaQueryList) as typeof globalThis.matchMedia
-        );
+        .mockImplementation((query: string) => ({
+          matches: query === '(pointer: coarse)',
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }));
 
       updateSubject.next();
       fixture.detectChanges();

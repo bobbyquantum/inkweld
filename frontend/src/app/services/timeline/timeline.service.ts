@@ -301,7 +301,7 @@ export class TimelineService {
       if (event.linkedElementId === deletedElementId) {
         touched = true;
         const { linkedElementId: _removed, ...rest } = event;
-        return rest as TimelineEvent;
+        return rest;
       }
       return event;
     });

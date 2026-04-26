@@ -331,7 +331,7 @@ describe('EditProjectDialogComponent', () => {
       const croppedBlob = new Blob(['cropped data'], { type: 'image/png' });
       component.croppedBlob = croppedBlob;
       component.pendingFileName = 'test.png';
-      component.croppedImage = 'blob:test-url' as any;
+      component.croppedImage = 'blob:test-url';
       component.showCropper = true;
 
       component.applyCroppedImage();
@@ -346,7 +346,7 @@ describe('EditProjectDialogComponent', () => {
       component.showCropper = true;
       component.imageChangedEvent = {} as Event;
       component.croppedBlob = new Blob();
-      component.croppedImage = 'test' as any;
+      component.croppedImage = 'test';
 
       // Mock the coverImageInput
       const coverInput = document.createElement('input');
@@ -363,7 +363,7 @@ describe('EditProjectDialogComponent', () => {
 
     it('should reset cropper state correctly', () => {
       component.imageChangedEvent = {} as Event;
-      component.croppedImage = 'test' as any;
+      component.croppedImage = 'test';
       component.croppedBlob = new Blob();
       component.hasImageLoaded = true;
       component.isCropperReady = true;

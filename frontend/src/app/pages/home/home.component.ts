@@ -164,7 +164,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         coverImage: null,
         createdDate: new Date(cp.acceptedAt).toISOString(),
         updatedDate: new Date(cp.acceptedAt).toISOString(),
-      } as Project,
+      },
       isShared: true as const,
       sharedByUsername: cp.ownerUsername,
     }));

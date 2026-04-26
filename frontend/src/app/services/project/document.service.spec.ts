@@ -621,10 +621,10 @@ describe('DocumentService', () => {
       };
       const setTimeoutSpy = vi
         .spyOn(globalThis, 'setTimeout')
-        .mockImplementation(((callback: TimerHandler) => {
+        .mockImplementation((callback: TimerHandler) => {
           (callback as () => void)();
           return 1 as unknown as ReturnType<typeof setTimeout>;
-        }) as unknown as typeof setTimeout);
+        });
 
       privateService.localStorage = {
         getMediaUrl: vi.fn().mockResolvedValue('blob:resolved-media'),
@@ -784,10 +784,10 @@ describe('DocumentService', () => {
       let scheduledReconnect: (() => void) | undefined;
       const setTimeoutSpy = vi
         .spyOn(globalThis, 'setTimeout')
-        .mockImplementation(((callback: TimerHandler) => {
+        .mockImplementation((callback: TimerHandler) => {
           scheduledReconnect = callback as () => void;
           return 1 as unknown as ReturnType<typeof setTimeout>;
-        }) as unknown as typeof setTimeout);
+        });
 
       mockWebSocketProvider.on.mockImplementation((event: string, cb: any) => {
         callbacks[event] = cb;

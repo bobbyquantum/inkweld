@@ -150,20 +150,17 @@ describe('ImageViewerDialogComponent', () => {
     const image = component.imageElement()?.nativeElement as HTMLImageElement;
 
     // Mock layout sizes
-    container.getBoundingClientRect = vi.fn(
-      () =>
-        ({
-          left: 0,
-          top: 0,
-          width: 200,
-          height: 100,
-          right: 200,
-          bottom: 100,
-          x: 0,
-          y: 0,
-          toJSON: () => ({}),
-        }) as DOMRect
-    );
+    container.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      width: 200,
+      height: 100,
+      right: 200,
+      bottom: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }));
     Object.defineProperty(image, 'naturalWidth', { value: 400 });
     Object.defineProperty(image, 'naturalHeight', { value: 200 });
 
@@ -183,20 +180,17 @@ describe('ImageViewerDialogComponent', () => {
 
   it('should toggle zoom on double click', () => {
     const container = component.viewerContainer()?.nativeElement as HTMLElement;
-    container.getBoundingClientRect = vi.fn(
-      () =>
-        ({
-          left: 0,
-          top: 0,
-          width: 300,
-          height: 200,
-          right: 300,
-          bottom: 200,
-          x: 0,
-          y: 0,
-          toJSON: () => ({}),
-        }) as DOMRect
-    );
+    container.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      width: 300,
+      height: 200,
+      right: 300,
+      bottom: 200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }));
 
     // Zoom in from fit
     component.onDoubleClick({
@@ -474,20 +468,17 @@ describe('ImageViewerDialogComponent', () => {
     const container = component.viewerContainer()?.nativeElement as HTMLElement;
     const image = component.imageElement()?.nativeElement as HTMLImageElement;
 
-    container.getBoundingClientRect = vi.fn(
-      () =>
-        ({
-          left: 0,
-          top: 0,
-          width: 200,
-          height: 100,
-          right: 200,
-          bottom: 100,
-          x: 0,
-          y: 0,
-          toJSON: () => ({}),
-        }) as DOMRect
-    );
+    container.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      width: 200,
+      height: 100,
+      right: 200,
+      bottom: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }));
     Object.defineProperty(image, 'naturalWidth', { value: 400 });
     Object.defineProperty(image, 'naturalHeight', { value: 200 });
 

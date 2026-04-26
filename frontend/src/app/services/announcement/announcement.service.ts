@@ -113,8 +113,8 @@ export class AnnouncementService {
           .pipe(catchError(this.handleError.bind(this)))
       );
 
-      this.publicAnnouncements.set(announcements as Announcement[]);
-      return announcements as Announcement[];
+      this.publicAnnouncements.set(announcements);
+      return announcements;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -141,9 +141,9 @@ export class AnnouncementService {
           .pipe(catchError(this.handleError.bind(this)))
       );
 
-      this.announcements.set(announcements as AnnouncementWithReadStatus[]);
+      this.announcements.set(announcements);
       this.updateUnreadCount();
-      return announcements as AnnouncementWithReadStatus[];
+      return announcements;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -255,8 +255,8 @@ export class AnnouncementService {
           .pipe(catchError(this.handleError.bind(this)))
       );
 
-      this.adminAnnouncements.set(announcements as Announcement[]);
-      return announcements as Announcement[];
+      this.adminAnnouncements.set(announcements);
+      return announcements;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -280,7 +280,7 @@ export class AnnouncementService {
           .pipe(catchError(this.handleError.bind(this)))
       );
 
-      return announcement as Announcement;
+      return announcement;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -320,11 +320,11 @@ export class AnnouncementService {
 
       // Add to local state
       this.adminAnnouncements.update(announcements => [
-        announcement as Announcement,
+        announcement,
         ...announcements,
       ]);
 
-      return announcement as Announcement;
+      return announcement;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -372,7 +372,7 @@ export class AnnouncementService {
         )
       );
 
-      return announcement as Announcement;
+      return announcement;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -436,7 +436,7 @@ export class AnnouncementService {
         )
       );
 
-      return announcement as Announcement;
+      return announcement;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -470,7 +470,7 @@ export class AnnouncementService {
         )
       );
 
-      return announcement as Announcement;
+      return announcement;
     } catch (error) {
       this.logger.error(
         'AnnouncementService',
@@ -520,7 +520,7 @@ export class AnnouncementService {
         errorBody !== null &&
         'message' in errorBody
       ) {
-        const msg = (errorBody as { message: unknown }).message;
+        const msg = errorBody.message;
         if (typeof msg === 'string') {
           errorMessage = msg;
         }

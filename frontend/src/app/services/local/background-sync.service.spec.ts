@@ -95,9 +95,7 @@ describe('BackgroundSyncService', () => {
     service = TestBed.inject(BackgroundSyncService);
     _setupService = TestBed.inject(SetupService);
     projectSyncService = TestBed.inject(ProjectSyncService);
-    _projectService = TestBed.inject(
-      ProjectService
-    ) as unknown as ProjectService;
+    _projectService = TestBed.inject(ProjectService);
     _projectsApi = TestBed.inject(ProjectsService);
     _loggerService = TestBed.inject(LoggerService);
   });

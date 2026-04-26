@@ -2,7 +2,6 @@ import {
   CANVAS_PIN_RELATIONSHIP_TYPE,
   type CanvasObject,
   type CanvasPin,
-  type CanvasShape,
 } from '@models/canvas.model';
 import type { RelationshipService } from '@services/relationship/relationship.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,11 +50,7 @@ describe('createPinRelationship', () => {
   });
 
   it('should create a relationship and return its ID', () => {
-    const id = createPinRelationship(
-      svc as unknown as RelationshipService,
-      'canvas-el',
-      'target-el'
-    );
+    const id = createPinRelationship(svc, 'canvas-el', 'target-el');
     expect(id).toBe('rel-123');
     expect(svc.addRelationship).toHaveBeenCalledWith(
       'canvas-el',
@@ -65,11 +60,7 @@ describe('createPinRelationship', () => {
   });
 
   it('should ensure the pin relationship type exists before creating', () => {
-    createPinRelationship(
-      svc as unknown as RelationshipService,
-      'canvas-el',
-      'target-el'
-    );
+    createPinRelationship(svc, 'canvas-el', 'target-el');
     expect(svc.getTypeById).toHaveBeenCalledWith(CANVAS_PIN_RELATIONSHIP_TYPE);
   });
 });
@@ -95,7 +86,7 @@ describe('removePinRelationship', () => {
       linkedElementId: 'el-1',
       relationshipId: 'rel-abc',
     };
-    removePinRelationship(svc as unknown as RelationshipService, pin);
+    removePinRelationship(svc, pin);
     expect(svc.removeRelationship).toHaveBeenCalledWith('rel-abc');
   });
 
@@ -107,7 +98,7 @@ describe('removePinRelationship', () => {
       icon: 'place',
       color: '#f00',
     };
-    removePinRelationship(svc as unknown as RelationshipService, pin);
+    removePinRelationship(svc, pin);
     expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 });
@@ -125,7 +116,7 @@ describe('ensureCanvasPinRelationshipType', () => {
 
   it('should add the type when it does not exist', () => {
     (svc.getTypeById as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
-    ensureCanvasPinRelationshipType(svc as unknown as RelationshipService);
+    ensureCanvasPinRelationshipType(svc);
     expect(svc.addRawType).toHaveBeenCalledWith(
       expect.objectContaining({
         id: CANVAS_PIN_RELATIONSHIP_TYPE,
@@ -138,7 +129,7 @@ describe('ensureCanvasPinRelationshipType', () => {
     (svc.getTypeById as ReturnType<typeof vi.fn>).mockReturnValue({
       id: CANVAS_PIN_RELATIONSHIP_TYPE,
     });
-    ensureCanvasPinRelationshipType(svc as unknown as RelationshipService);
+    ensureCanvasPinRelationshipType(svc);
     expect(svc.addRawType).not.toHaveBeenCalled();
   });
 });
@@ -164,7 +155,7 @@ describe('cleanupPinRelationships', () => {
         icon: 'place',
         color: '#f00',
         relationshipId: 'rel-1',
-      } as CanvasPin,
+      },
       {
         ...baseObj,
         id: 'pin-2',
@@ -173,9 +164,9 @@ describe('cleanupPinRelationships', () => {
         icon: 'place',
         color: '#f00',
         relationshipId: 'rel-2',
-      } as CanvasPin,
+      },
     ];
-    cleanupPinRelationships(svc as unknown as RelationshipService, objects);
+    cleanupPinRelationships(svc, objects);
     expect(svc.removeRelationship).toHaveBeenCalledTimes(2);
     expect(svc.removeRelationship).toHaveBeenCalledWith('rel-1');
     expect(svc.removeRelationship).toHaveBeenCalledWith('rel-2');
@@ -192,14 +183,14 @@ describe('cleanupPinRelationships', () => {
         height: 50,
         stroke: '#000',
         strokeWidth: 1,
-      } as CanvasShape,
+      },
     ];
-    cleanupPinRelationships(svc as unknown as RelationshipService, objects);
+    cleanupPinRelationships(svc, objects);
     expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 
   it('should handle empty array', () => {
-    cleanupPinRelationships(svc as unknown as RelationshipService, []);
+    cleanupPinRelationships(svc, []);
     expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 
@@ -212,9 +203,9 @@ describe('cleanupPinRelationships', () => {
         label: 'Unlinked',
         icon: 'place',
         color: '#f00',
-      } as CanvasPin,
+      },
     ];
-    cleanupPinRelationships(svc as unknown as RelationshipService, objects);
+    cleanupPinRelationships(svc, objects);
     expect(svc.removeRelationship).not.toHaveBeenCalled();
   });
 });

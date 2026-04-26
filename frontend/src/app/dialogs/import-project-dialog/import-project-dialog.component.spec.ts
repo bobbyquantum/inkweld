@@ -18,10 +18,7 @@ import {
   type ArchiveProgress,
   ImportPhase,
 } from '../../models/project-archive';
-import {
-  ProjectImportService,
-  type SlugValidationResult,
-} from '../../services/project/project-import.service';
+import { ProjectImportService } from '../../services/project/project-import.service';
 import {
   ImportProjectDialogComponent,
   type ImportProjectDialogData,
@@ -98,7 +95,7 @@ describe('ImportProjectDialogComponent', () => {
       validateSlug: vi.fn().mockReturnValue({
         valid: true,
         available: true,
-      } as SlugValidationResult),
+      }),
       suggestSlug: vi.fn().mockReturnValue('test-project'),
       importProject: vi.fn().mockResolvedValue(mockProject),
     };

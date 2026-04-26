@@ -216,7 +216,7 @@ export function createElementRefPlugin(
             type: 'activate',
             triggerPos: from,
             popupPosition,
-          } as PluginAction);
+          });
 
           view.dispatch(tr);
 
@@ -564,7 +564,7 @@ function createTriggerDecoration(
 function closePopup(view: EditorView): void {
   const tr = view.state.tr.setMeta(elementRefPluginKey, {
     type: 'deactivate',
-  } as PluginAction);
+  });
   view.dispatch(tr);
 }
 
@@ -604,7 +604,7 @@ export function insertElementRef(
   // Create transaction: replace trigger with node, then deactivate
   const tr = view.state.tr
     .replaceWith(from, to, node)
-    .setMeta(elementRefPluginKey, { type: 'deactivate' } as PluginAction);
+    .setMeta(elementRefPluginKey, { type: 'deactivate' });
 
   // Move cursor after the inserted node
   const newPos = from + 1; // Position after the node
@@ -622,7 +622,7 @@ export function insertElementRef(
 export function cancelElementRef(view: EditorView): void {
   const tr = view.state.tr.setMeta(elementRefPluginKey, {
     type: 'deactivate',
-  } as PluginAction);
+  });
   view.dispatch(tr);
   view.focus();
 }

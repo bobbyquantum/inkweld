@@ -209,7 +209,7 @@ describe('QuickOpenDialogComponent', () => {
   describe('highlighting', () => {
     it('should highlight matched characters', () => {
       const result: QuickOpenResult = {
-        element: { ...mockElements[0], name: 'Test' } as Element,
+        element: { ...mockElements[0], name: 'Test' },
         matchPositions: [0, 2], // T and s
         score: 0,
         path: '',
@@ -224,7 +224,7 @@ describe('QuickOpenDialogComponent', () => {
 
     it('should return plain text when no match positions', () => {
       const result: QuickOpenResult = {
-        element: { ...mockElements[0], name: 'Test' } as Element,
+        element: { ...mockElements[0], name: 'Test' },
         matchPositions: [],
         score: 0,
         path: '',
@@ -240,7 +240,7 @@ describe('QuickOpenDialogComponent', () => {
         element: {
           ...mockElements[0],
           name: '<script>alert(1)</script>',
-        } as Element,
+        },
         matchPositions: [],
         score: 0,
         path: '',

@@ -909,7 +909,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
           animationDuration: 500,
           padding: 40,
           spacingFactor: 1.2,
-        } as cytoscape.LayoutOptions;
+        };
 
       case 'grid':
         return {
@@ -920,7 +920,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
           avoidOverlap: true,
           condense: true,
           spacingFactor: 1.2,
-        } as cytoscape.LayoutOptions;
+        };
 
       case 'concentric':
         return {
@@ -931,7 +931,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
           minNodeSpacing: 40,
           concentric: (node: cytoscape.NodeSingular) => node.degree(false),
           levelWidth: () => 2,
-        } as cytoscape.LayoutOptions;
+        };
 
       default:
         return {

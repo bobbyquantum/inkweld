@@ -759,7 +759,7 @@ describe('PdfGeneratorService', () => {
         expandable: true,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       const childElement: Element = {
         id: 'child-1',
@@ -771,7 +771,7 @@ describe('PdfGeneratorService', () => {
         expandable: false,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       projectStateMock.elements = signal([folderElement, childElement]);
 

@@ -77,8 +77,8 @@ export class CustomRouteReuseStrategy implements RouteReuseStrategy {
         );
         // Clear any stored handlers for the previous project
         this.clearStoredProject(
-          curr.params['username'] as unknown as string,
-          curr.params['slug'] as unknown as string
+          curr.params['username'] as string,
+          curr.params['slug'] as string
         );
         return false;
       }

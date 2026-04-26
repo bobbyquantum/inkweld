@@ -318,7 +318,7 @@ describe('ProjectTemplateService', () => {
             description: 'Has media',
             icon: 'image',
             folder: 'with-media',
-          } as ProjectTemplateInfo,
+          },
         ],
       };
 
@@ -421,7 +421,7 @@ describe('ProjectTemplateService', () => {
             description: 'Has broken media',
             icon: 'image',
             folder: 'broken-media',
-          } as ProjectTemplateInfo,
+          },
         ],
       };
 
@@ -496,7 +496,7 @@ describe('ProjectTemplateService', () => {
             description: 'Shared archive paths',
             icon: 'image',
             folder: 'dupe-media',
-          } as ProjectTemplateInfo,
+          },
         ],
       };
 

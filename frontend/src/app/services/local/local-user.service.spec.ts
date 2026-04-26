@@ -52,7 +52,7 @@ describe('LocalUserService', () => {
         },
         length: 0,
         key: (_index: number) => null,
-      } as Storage,
+      },
       writable: true,
       configurable: true,
     });
@@ -192,7 +192,7 @@ describe('LocalUserService', () => {
           setItem: () => {
             throw new Error('Storage full');
           },
-        } as Storage,
+        },
         writable: true,
         configurable: true,
       });

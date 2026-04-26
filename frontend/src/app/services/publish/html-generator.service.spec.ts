@@ -62,7 +62,7 @@ describe('HtmlGeneratorService', () => {
       expandable: false,
       version: 1,
       metadata: {},
-    } as Element,
+    },
   ];
 
   const mockPlan: PublishPlan = {
@@ -981,7 +981,7 @@ describe('HtmlGeneratorService', () => {
         expandable: true,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       const childElement: Element = {
         id: 'child-1',
@@ -993,7 +993,7 @@ describe('HtmlGeneratorService', () => {
         expandable: false,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       projectStateMock.elements = signal([folderElement, childElement]);
 
@@ -1064,7 +1064,7 @@ describe('HtmlGeneratorService', () => {
           expandable: false,
           version: 1,
           metadata: {},
-        } as Element);
+        });
 
         items.push({
           id: `item-${i}`,
@@ -1108,7 +1108,7 @@ describe('HtmlGeneratorService', () => {
           expandable: false,
           version: 1,
           metadata: {},
-        } as Element);
+        });
 
         items.push({
           id: `item-${i}`,

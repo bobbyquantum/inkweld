@@ -327,10 +327,10 @@ export class MediaImageNodeView {
     this.img.className = 'media-image';
 
     // Copy all attributes from the node
-    const attrs = node.attrs as Record<string, string | null | undefined>;
+    const attrs: Record<string, unknown> = node.attrs;
     for (const [key, value] of Object.entries(attrs)) {
       if (value != null && key !== 'src') {
-        this.img.setAttribute(key, value);
+        this.img.setAttribute(key, value as string);
       }
     }
 
@@ -398,17 +398,17 @@ export class MediaImageNodeView {
     }
 
     this.node = node;
-    const attrs = node.attrs as Record<string, string | null | undefined>;
+    const attrs: Record<string, unknown> = node.attrs;
 
     // Update attributes
     for (const [key, value] of Object.entries(attrs)) {
       if (key !== 'src' && value != null) {
-        this.img.setAttribute(key, value);
+        this.img.setAttribute(key, value as string);
       }
     }
 
     // Re-resolve the source if it changed
-    void this.resolveImageSrc(attrs['src']);
+    void this.resolveImageSrc(attrs['src'] as string | undefined | null);
 
     return true;
   }
@@ -451,8 +451,8 @@ export function createMediaImageNodeViews(
   return {
     image: (node, view, getPos) => {
       const nodeView = new MediaImageNodeView(node, view, getPos, options);
-      const attrs = node.attrs as Record<string, string | null | undefined>;
-      nodeView.init(attrs['src']);
+      const attrs: Record<string, unknown> = node.attrs;
+      nodeView.init(attrs['src'] as string | undefined | null);
       return nodeView;
     },
   };

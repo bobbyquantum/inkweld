@@ -1341,7 +1341,7 @@ describe('SettingsTabComponent', () => {
       (projectStateService.elements as ReturnType<typeof signal>).set([
         { id: 'doc-1' },
         { id: 'doc-2' },
-      ] as any);
+      ]);
       vi.stubGlobal('indexedDB', {
         databases: vi.fn().mockResolvedValue([]),
       });

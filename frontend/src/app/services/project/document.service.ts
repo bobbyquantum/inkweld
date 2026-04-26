@@ -562,7 +562,7 @@ export class DocumentService {
 
     // Element node
     const tagName = node.type || 'paragraph';
-    const attrs = node.attrs || {};
+    const attrs: Record<string, unknown> = node.attrs || {};
 
     // Build attribute string
     const attrParts: string[] = [];
@@ -575,7 +575,8 @@ export class DocumentService {
         } else if (typeof value === 'string') {
           strValue = value;
         } else {
-          strValue = String(value as string | number | boolean);
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          strValue = String(value);
         }
         attrParts.push(`${key}="${this.escapeXml(strValue)}"`);
       }
