@@ -11,6 +11,7 @@ import {
 } from '../../models/published-file';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PublishedFilesService } from './published-files.service';
 
@@ -66,6 +67,17 @@ describe('PublishedFilesService', () => {
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: LoggerService, useValue: logger },
         { provide: SetupService, useValue: setupService },
+        {
+          provide: StorageContextService,
+          useValue: {
+            prefixKey: (key: string) => key,
+            prefixDbName: (key: string) => key,
+            prefixDocumentId: (key: string) => key,
+            getPrefix: () => 'local:',
+            getPrefixForConfig: () => 'local:',
+            getActiveConfig: () => null,
+          },
+        },
       ],
     });
 

@@ -3,6 +3,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SettingsService } from '@services/core/settings.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 
 import { ProjectTreeSettingsComponent } from './project-tree-settings.component';
 
@@ -34,7 +35,21 @@ describe('ProjectTreeSettingsComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [ProjectTreeSettingsComponent, FormsModule, MatCheckboxModule],
-      providers: [provideZonelessChangeDetection(), SettingsService],
+      providers: [
+        provideZonelessChangeDetection(),
+        SettingsService,
+        {
+          provide: StorageContextService,
+          useValue: {
+            prefixKey: (key: string) => key,
+            prefixDbName: (key: string) => key,
+            prefixDocumentId: (key: string) => key,
+            getPrefix: () => 'local:',
+            getPrefixForConfig: () => 'local:',
+            getActiveConfig: () => null,
+          },
+        },
+      ],
     }).compileComponents();
 
     settingsService = TestBed.inject(SettingsService);

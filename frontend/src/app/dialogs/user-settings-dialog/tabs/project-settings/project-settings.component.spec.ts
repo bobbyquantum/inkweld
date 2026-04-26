@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { SettingsService } from '@services/core/settings.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
 import { ProjectSettingsComponent } from './project-settings.component';
@@ -45,6 +46,17 @@ describe('ProjectSettingsComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         SettingsService,
+        {
+          provide: StorageContextService,
+          useValue: {
+            prefixKey: (key: string) => key,
+            prefixDbName: (key: string) => key,
+            prefixDocumentId: (key: string) => key,
+            getPrefix: () => 'local:',
+            getPrefixForConfig: () => 'local:',
+            getActiveConfig: () => null,
+          },
+        },
         {
           provide: AutoSnapshotService,
           useValue: {

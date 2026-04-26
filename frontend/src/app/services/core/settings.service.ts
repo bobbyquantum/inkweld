@@ -1,10 +1,18 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+
+import { StorageContextService } from './storage-context.service';
+
+const SETTINGS_BASE_KEY = 'userSettings';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
-  private readonly settingsKey = 'userSettings';
+  private readonly storageContext = inject(StorageContextService);
+
+  private get settingsKey(): string {
+    return this.storageContext.prefixKey(SETTINGS_BASE_KEY);
+  }
 
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
