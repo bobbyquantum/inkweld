@@ -4,6 +4,7 @@ import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
@@ -89,14 +90,7 @@ function isRecoverableWithCache(error: unknown): boolean {
   return false;
 }
 
-const PROJECT_CACHE_CONFIG = {
-  dbName: 'projectCache',
-  version: 1,
-  stores: {
-    projects: null,
-    projectsList: null,
-  },
-} as const;
+const PROJECT_CACHE_DB_BASE_NAME = 'projectCache';
 
 const PROJECTS_LIST_CACHE_KEY = 'allProjects';
 const MAX_RETRIES = 3;
@@ -112,6 +106,18 @@ export class ProjectService {
   private readonly setupService = inject(SetupService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSync = inject(ProjectSyncService);
+  private readonly storageContext = inject(StorageContextService);
+
+  private get projectCacheConfig() {
+    return {
+      dbName: this.storageContext.prefixDbName(PROJECT_CACHE_DB_BASE_NAME),
+      version: 1,
+      stores: {
+        projects: null,
+        projectsList: null,
+      },
+    } as const;
+  }
 
   readonly projects = signal<Project[]>([]);
   readonly isLoading = signal(false);
@@ -120,7 +126,7 @@ export class ProjectService {
   readonly initialized = signal(false);
 
   private readonly db: Promise<IDBDatabase> = this.storage
-    .initializeDatabase(PROJECT_CACHE_CONFIG)
+    .initializeDatabase(this.projectCacheConfig)
     .catch(error => {
       console.error('Project cache initialization failed:', error);
       throw new ProjectServiceError(

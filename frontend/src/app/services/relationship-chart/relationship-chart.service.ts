@@ -27,6 +27,7 @@ import {
   createDefaultChartConfig,
 } from '../../models/relationship-chart.model';
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';
 
@@ -34,7 +35,7 @@ import { RelationshipService } from '../relationship/relationship.service';
 const CHART_CONFIG_META_KEY = 'chartConfig';
 
 /** LocalStorage key prefix for chart viewport/positions */
-const CHART_STATE_PREFIX = 'inkweld-chart-state:';
+const CHART_STATE_BASE_PREFIX = 'inkweld-chart-state:';
 
 /**
  * Local-only display state saved to localStorage
@@ -53,6 +54,7 @@ export class RelationshipChartService {
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
   private readonly relationshipService = inject(RelationshipService);
+  private readonly storageContext = inject(StorageContextService);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Active chart state
@@ -327,10 +329,10 @@ export class RelationshipChartService {
    */
   saveLocalState(elementId: string, state: ChartLocalState): void {
     try {
-      localStorage.setItem(
-        CHART_STATE_PREFIX + elementId,
-        JSON.stringify(state)
+      const key = this.storageContext.prefixKey(
+        CHART_STATE_BASE_PREFIX + elementId
       );
+      localStorage.setItem(key, JSON.stringify(state));
     } catch {
       // localStorage might be full or disabled
     }
@@ -341,7 +343,10 @@ export class RelationshipChartService {
    */
   loadLocalState(elementId: string): ChartLocalState | null {
     try {
-      const raw = localStorage.getItem(CHART_STATE_PREFIX + elementId);
+      const key = this.storageContext.prefixKey(
+        CHART_STATE_BASE_PREFIX + elementId
+      );
+      const raw = localStorage.getItem(key);
       return raw ? (JSON.parse(raw) as ChartLocalState) : null;
     } catch {
       return null;

@@ -10,6 +10,7 @@ import {
 } from '../../models/published-file';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 
 /**
@@ -42,6 +43,7 @@ export class PublishedFilesService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly logger = inject(LoggerService);
   private readonly setupService = inject(SetupService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** Current project's published files (reactive) */
   private readonly filesSubject = new BehaviorSubject<PublishedFile[]>([]);
@@ -333,7 +335,9 @@ export class PublishedFilesService {
 
   private loadOfflineMetadata(projectKey: string): PublishedFile[] {
     try {
-      const key = `${projectKey}:${PUBLISHED_FILES_KEY}`;
+      const key = this.storageContext.prefixKey(
+        `${projectKey}:${PUBLISHED_FILES_KEY}`
+      );
       const stored = localStorage.getItem(key);
       if (stored) {
         return JSON.parse(stored) as PublishedFile[];
@@ -352,7 +356,9 @@ export class PublishedFilesService {
     files: PublishedFile[]
   ): void {
     try {
-      const key = `${projectKey}:${PUBLISHED_FILES_KEY}`;
+      const key = this.storageContext.prefixKey(
+        `${projectKey}:${PUBLISHED_FILES_KEY}`
+      );
       localStorage.setItem(key, JSON.stringify(files));
     } catch (err) {
       this.logger.warn(

@@ -18,6 +18,7 @@ import {
   createDefaultLayer,
 } from '@models/canvas.model';
 import { LoggerService } from '@services/core/logger.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { nanoid } from 'nanoid';
 
@@ -33,7 +34,7 @@ export interface PinOptions {
 }
 
 /** LocalStorage key prefix for per-user canvas viewport */
-const CANVAS_STATE_PREFIX = 'inkweld-canvas-state:';
+const CANVAS_STATE_BASE_PREFIX = 'inkweld-canvas-state:';
 
 /**
  * NOT provided at root — each CanvasTabComponent provides its own
@@ -43,6 +44,7 @@ const CANVAS_STATE_PREFIX = 'inkweld-canvas-state:';
 export class CanvasService {
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
+  private readonly storageContext = inject(StorageContextService);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Active canvas state
@@ -357,10 +359,10 @@ export class CanvasService {
   /** Save viewport state to localStorage */
   saveViewport(elementId: string, viewport: CanvasViewport): void {
     try {
-      localStorage.setItem(
-        `${CANVAS_STATE_PREFIX}${elementId}`,
-        JSON.stringify(viewport)
+      const key = this.storageContext.prefixKey(
+        `${CANVAS_STATE_BASE_PREFIX}${elementId}`
       );
+      localStorage.setItem(key, JSON.stringify(viewport));
     } catch {
       // localStorage full or unavailable — ignore
     }
@@ -369,7 +371,10 @@ export class CanvasService {
   /** Load viewport state from localStorage */
   loadViewport(elementId: string): CanvasViewport | null {
     try {
-      const raw = localStorage.getItem(`${CANVAS_STATE_PREFIX}${elementId}`);
+      const key = this.storageContext.prefixKey(
+        `${CANVAS_STATE_BASE_PREFIX}${elementId}`
+      );
+      const raw = localStorage.getItem(key);
       if (!raw) return null;
       return JSON.parse(raw) as CanvasViewport;
     } catch {

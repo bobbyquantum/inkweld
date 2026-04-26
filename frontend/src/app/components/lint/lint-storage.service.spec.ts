@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
+import { StorageContextService } from '../../services/core/storage-context.service';
 import { type ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 
@@ -33,7 +34,20 @@ describe('LintStorageService', () => {
     setItemSpy = vi.spyOn(localStorage, 'setItem');
 
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        {
+          provide: StorageContextService,
+          useValue: {
+            prefixKey: (key: string) => key,
+            prefixDbName: (key: string) => key,
+            prefixDocumentId: (key: string) => key,
+            getPrefix: () => 'local:',
+            getPrefixForConfig: () => 'local:',
+            getActiveConfig: () => null,
+          },
+        },
+      ],
     });
     service = TestBed.inject(LintStorageService);
   });
@@ -75,8 +89,8 @@ describe('LintStorageService', () => {
     const id2 = '10-15-test2';
     getItemSpy.mockReturnValue(JSON.stringify([id1, id2]));
 
-    // Re-create service to trigger constructor logic
-    service = new LintStorageService();
+    // Re-load to simulate fresh init
+    (service as any).loadRejectedSuggestions();
 
     expect((service as any).rejectedSuggestions.has(id1)).toBe(true);
     expect((service as any).rejectedSuggestions.has(id2)).toBe(true);
@@ -91,8 +105,8 @@ describe('LintStorageService', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => {});
 
-    // Re-create service to trigger constructor logic
-    service = new LintStorageService();
+    // Re-load to simulate fresh init
+    (service as any).loadRejectedSuggestions();
 
     expect((service as any).rejectedSuggestions.size).toBe(0);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
