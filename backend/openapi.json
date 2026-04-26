@@ -42,6 +42,11 @@
             "description": "JWT authentication token (if auto-login enabled)",
             "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
           },
+          "enrolmentToken": {
+            "type": "string",
+            "description": "Short-lived (15 min) WebAuthn-enrolment-only JWT. Issued only when requiresApproval=true AND password login is disabled, so the user can attach a passkey to their pending account before being parked at /approval-pending. Cannot be used for any other authenticated endpoint.",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
           "requiresApproval": {
             "type": "boolean",
             "description": "Whether account requires admin approval",
@@ -135,7 +140,7 @@
           "password": {
             "type": "string",
             "minLength": 6,
-            "description": "Password (minimum 6 characters)",
+            "description": "Password (minimum 6 characters). Optional: required only when PASSWORD_LOGIN_ENABLED is true on the server. Passwordless registrations must immediately enrol a passkey via the WebAuthn registration flow.",
             "example": "password123"
           },
           "email": {
@@ -151,8 +156,7 @@
           }
         },
         "required": [
-          "username",
-          "password"
+          "username"
         ]
       },
       "LoginResponse": {
@@ -1111,6 +1115,16 @@
             "type": "boolean",
             "example": true,
             "description": "Whether passkey (WebAuthn) authentication is enabled. When false, all passkey endpoints return 403."
+          },
+          "passwordLoginEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether username/password authentication is enabled. When false the app is fully passwordless: /login, /forgot-password, /reset-password and registration password fields are all disabled. The frontend uses this to hide password UI entirely."
+          },
+          "emailRecoveryEnabled": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether email-based recovery is enabled. When passwords are off, this controls the magic-link passkey-enrolment recovery flow. When passwords are on, this gates the forgot-password reset email."
           }
         },
         "required": [
@@ -1123,7 +1137,9 @@
           "emailEnabled",
           "requireEmail",
           "passwordPolicy",
-          "passkeysEnabled"
+          "passkeysEnabled",
+          "passwordLoginEnabled",
+          "emailRecoveryEnabled"
         ]
       },
       "LintStatus": {
@@ -3954,6 +3970,72 @@
           "name"
         ]
       },
+      "PasskeyRecoveryRequestBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address associated with the account"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "PasskeyRecoveryStartRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Raw recovery token from the email link"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "PasskeyRecoveryFinishResponse": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "passkey": {
+            "$ref": "#/components/schemas/Passkey"
+          }
+        },
+        "required": [
+          "verified",
+          "passkey"
+        ]
+      },
+      "PasskeyRecoveryFinishRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Raw recovery token from the email link"
+          },
+          "response": {
+            "$ref": "#/components/schemas/PasskeyResponse"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Optional user-supplied passkey label"
+          }
+        },
+        "required": [
+          "token",
+          "response"
+        ]
+      },
       "TestEmailResponse": {
         "type": "object",
         "properties": {
@@ -4447,7 +4529,7 @@
             }
           },
           "403": {
-            "description": "Account disabled or pending approval",
+            "description": "Password login is disabled on this server, or the account is disabled / pending approval",
             "content": {
               "application/json": {
                 "schema": {
@@ -13725,6 +13807,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Password login is disabled on this server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -13757,6 +13849,16 @@
           },
           "400": {
             "description": "Invalid or expired reset token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Password login is disabled on this server",
             "content": {
               "application/json": {
                 "schema": {
@@ -14044,6 +14146,156 @@
           },
           "404": {
             "description": "Passkey not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey-recovery/request": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "requestPasskeyRecovery",
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRecoveryRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "If an account with this email exists, a passkey recovery link has been sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Passkey recovery is disabled on this server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey-recovery/start": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "startPasskeyRecovery",
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRecoveryStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "WebAuthn registration options for the holder of the recovery token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired recovery link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Passkey recovery is disabled on this server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/passkey-recovery/finish": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "finishPasskeyRecovery",
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRecoveryFinishRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey enrolled successfully — user must now log in normally",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyRecoveryFinishResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired recovery link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Passkey recovery is disabled on this server",
             "content": {
               "application/json": {
                 "schema": {

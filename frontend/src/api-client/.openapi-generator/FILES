@@ -163,6 +163,10 @@ model/paginated-users-response.ts
 model/passkey-list-response.ts
 model/passkey-login-finish-request.ts
 model/passkey-login-finish-response.ts
+model/passkey-recovery-finish-request.ts
+model/passkey-recovery-finish-response.ts
+model/passkey-recovery-request-body.ts
+model/passkey-recovery-start-request.ts
 model/passkey-register-finish-request.ts
 model/passkey-register-finish-response.ts
 model/passkey-rename-request.ts

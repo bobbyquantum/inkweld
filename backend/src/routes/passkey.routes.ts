@@ -18,6 +18,7 @@ import {
 import { errorResponse, MessageResponseSchema } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
 import type { UserPasskey } from '../db/schema';
+import type { User } from '../db/schema/users';
 
 const passkeyRoutes = new OpenAPIHono<AppContext>();
 
@@ -40,7 +41,7 @@ passkeyRoutes.use('*', optionalAuth);
 // RP config — derived per-request so it works across runtimes (Workers vs Bun).
 // ─────────────────────────────────────────────────────────────────────────────
 
-function rpFromContext(c: Context): PasskeyRpConfig {
+export function rpFromContext(c: Context): PasskeyRpConfig {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const env = (c as any).env as Record<string, string | undefined> | undefined;
 
@@ -100,6 +101,38 @@ function passkeyToDto(p: UserPasskey) {
   };
 }
 
+/**
+ * Resolve the user for the two registration endpoints.
+ *
+ * Accepts EITHER:
+ *   - a full-scope session (the normal case: an approved user adding another
+ *     passkey from account settings), already attached to context by
+ *     optionalAuth, OR
+ *   - an enrolment-scoped session (a freshly-registered, not-yet-approved
+ *     user attaching their first credential — see authService.createEnrolmentSession).
+ *
+ * optionalAuth deliberately skips enrolment-scoped tokens so it never grants
+ * them broader visibility, so we re-resolve here when c.get('user') is empty.
+ *
+ * Returns null on auth failure; callers translate that to a 401.
+ */
+async function resolveRegistrationUser(c: Context): Promise<User | null> {
+  const db = c.get('db');
+  const ctxUser = c.get('user');
+  if (ctxUser) {
+    return (await userService.findById(db, ctxUser.id)) ?? null;
+  }
+  const sessionResult = await authService.getSession(c);
+  if (!sessionResult || sessionResult.scope !== 'enrol') {
+    return null;
+  }
+  // Enrolment scope is the only path through which an unapproved/disabled
+  // user reaches a register handler. The token itself is the proof — we
+  // do NOT additionally check canLogin here, because by definition this
+  // user has not yet been approved.
+  return (await userService.findById(db, sessionResult.userId)) ?? null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Registration (authenticated)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -120,10 +153,8 @@ const registerStartRoute = createRoute({
 
 passkeyRoutes.openapi(registerStartRoute, async (c) => {
   const db = c.get('db');
-  const ctxUser = c.get('user');
-  if (!ctxUser) return c.json({ error: 'Not authenticated' }, 401);
-  const user = await userService.findById(db, ctxUser.id);
-  if (!user) return c.json({ error: 'User not found' }, 401);
+  const user = await resolveRegistrationUser(c);
+  if (!user) return c.json({ error: 'Not authenticated' }, 401);
   const options = await passkeyService.startRegistration(db, user, rpFromContext(c));
   return c.json(options as unknown as Record<string, unknown>, 200);
 });
@@ -154,10 +185,8 @@ const registerFinishRoute = createRoute({
 
 passkeyRoutes.openapi(registerFinishRoute, async (c) => {
   const db = c.get('db');
-  const ctxUser = c.get('user');
-  if (!ctxUser) return c.json({ error: 'Not authenticated' }, 401);
-  const user = await userService.findById(db, ctxUser.id);
-  if (!user) return c.json({ error: 'User not found' }, 401);
+  const user = await resolveRegistrationUser(c);
+  if (!user) return c.json({ error: 'Not authenticated' }, 401);
   const { response, name } = c.req.valid('json');
   const result = await passkeyService.finishRegistration(
     db,

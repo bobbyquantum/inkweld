@@ -324,18 +324,30 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 **Key files:**
 - `backend/src/db/schema/user-passkeys.ts` — credential storage schema
 - `backend/src/db/schema/webauthn-challenges.ts` — challenge storage schema
+- `backend/src/db/schema/passkey-recovery-tokens.ts` — magic-link token storage (hashed)
 - `backend/drizzle/0023_add-passkeys.sql` — migration
+- `backend/drizzle/0024_add-passkey-recovery-tokens.sql` — recovery migration
 - `backend/src/services/passkey.service.ts` — WebAuthn ceremony logic
+- `backend/src/services/passkey-recovery.service.ts` — magic-link request + redeem ceremonies
 - `backend/src/routes/passkey.routes.ts` — Hono routes (all start/finish endpoints are POST)
+- `backend/src/routes/passkey-recovery.routes.ts` — Hono routes for the recovery flow
 - `frontend/src/app/services/auth/passkey.service.ts` — Angular service wrapping the API
+- `frontend/src/app/services/auth/passkey-recovery.service.ts` — magic-link recovery wrapper
 - `frontend/src/app/components/passkeys-settings/` — account settings UI (list/add/rename/delete)
-- `frontend/src/app/dialogs/login-dialog/` — passkey login button in login dialog
+- `frontend/src/app/dialogs/login-dialog/` — passkey login button + "Lost your passkey?" link
+- `frontend/src/app/pages/recover-passkey/` — recovery request page (`/recover-passkey`)
+- `frontend/src/app/pages/recover-passkey-redeem/` — magic-link redemption page (`/recover-passkey/redeem?token=...`)
 - `frontend/e2e/online/passkey.spec.ts` — E2E tests using CDP virtual authenticator
+- `frontend/e2e/online/passwordless.spec.ts` — E2E for the `PASSWORD_LOGIN_ENABLED` flag
+- `frontend/e2e/online/passkey-recovery.spec.ts` — E2E for the recovery request page
 
 **Environment variables (production required):**
 - `WEBAUTHN_RP_ID` — domain only, no protocol/port (e.g. `inkweld.yourcompany.com`). Defaults to `localhost` in dev. **Cannot be changed after users register passkeys.**
 - `WEBAUTHN_RP_NAME` — display name shown in browser prompts. Defaults to `Inkweld`.
 - `ALLOWED_ORIGINS` — also used as `expectedOrigin` in WebAuthn verification; must include every origin users access the app from.
+- `PASSKEYS_ENABLED` — master switch for the passkey feature (default: `true`).
+- `PASSWORD_LOGIN_ENABLED` — allow username/password sign-in (default: `false` — passwordless-first per NIST SP 800-63B Rev. 4). When `false` the `/login`, `/forgot-password` and `/reset-password` endpoints return 403/404 and the registration form omits password fields and immediately enrols a passkey.
+- `EMAIL_RECOVERY_ENABLED` — allow email-based account recovery (default: `false`). In passwordless mode this powers a magic-link flow that lets a user enrol a NEW passkey from a verified email; existing passkeys are preserved. In password mode it powers the classic forgot-password flow. Requires SMTP / `EMAIL_*` settings.
 
 **Important gotchas:**
 - Backend timestamps (`createdAt`, `lastUsedAt`) are stored in **seconds**. The frontend `formatDate()` multiplies by 1000 before constructing a `Date`. Do not "fix" this.
@@ -344,11 +356,17 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 - The Angular API client returns `Observable<HttpEvent<T>>` — in unit tests, use an `obs()` helper returning `Observable<any>` to avoid TypeScript errors with mock return values.
 - E2E tests use Chromium's CDP `WebAuthn.enable` + `WebAuthn.addVirtualAuthenticator` with `ctap2/internal/resident-key/UV/auto-presence`.
 - The login dialog's `onPasskeyLogin()` calls `userService.setCurrentUser(user)` after a successful passkey login to sync the user cache.
+- The online e2e backend explicitly opts into `PASSWORD_LOGIN_ENABLED=true` and `EMAIL_RECOVERY_ENABLED=true` (in `playwright.online.config.ts`) because the existing test fixtures register/login users via the password API. Production images use the secure-by-default passwordless posture.
+- Magic-link recovery tokens are hashed at rest (single-use, 60-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
 
 **Data flow:**
 1. Register: `POST /register/start` → browser prompt → `POST /register/finish` → row in `userPasskeys`
 2. Login: `POST /login/start` → browser prompt → `POST /login/finish` → JWT in response body + cookie session
 3. Management: `GET /` (list), `PATCH /:id` (rename), `DELETE /:id`
+4. Recovery (passwordless mode, email enabled):
+   `POST /api/v1/passkey-recovery/request` (anonymous, email)
+   → email with `/recover-passkey/redeem?token=<raw>` link
+   → `POST /start` + `POST /finish` enrol a NEW passkey (no session issued; existing passkeys untouched)
 
 ### File Structure
 

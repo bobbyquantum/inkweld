@@ -52,6 +52,14 @@ export interface SystemFeatures {
      * Whether passkey (WebAuthn) authentication is enabled. When false, all passkey endpoints return 403.
      */
     passkeysEnabled: boolean;
+    /**
+     * Whether username/password authentication is enabled. When false the app is fully passwordless: /login, /forgot-password, /reset-password and registration password fields are all disabled. The frontend uses this to hide password UI entirely.
+     */
+    passwordLoginEnabled: boolean;
+    /**
+     * Whether email-based recovery is enabled. When passwords are off, this controls the magic-link passkey-enrolment recovery flow. When passwords are on, this gates the forgot-password reset email.
+     */
+    emailRecoveryEnabled: boolean;
 }
 export enum SystemFeaturesAppMode {
     Online = 'ONLINE',

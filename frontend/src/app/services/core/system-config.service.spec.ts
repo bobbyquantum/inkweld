@@ -35,6 +35,8 @@ describe('SystemConfigService', () => {
       requireSymbol: true,
     },
     passkeysEnabled: true,
+    passwordLoginEnabled: true,
+    emailRecoveryEnabled: false,
   };
 
   beforeEach(() => {
@@ -140,6 +142,8 @@ describe('SystemConfigService', () => {
           requireSymbol: true,
         },
         passkeysEnabled: true,
+        passwordLoginEnabled: true,
+        emailRecoveryEnabled: false,
       });
 
       expect(offlineService.isConfigLoaded()).toBe(true);
@@ -189,6 +193,8 @@ describe('SystemConfigService', () => {
               requireSymbol: true,
             },
             passkeysEnabled: true,
+            passwordLoginEnabled: true,
+            emailRecoveryEnabled: false,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -233,6 +239,8 @@ describe('SystemConfigService', () => {
           requireSymbol: true,
         },
         passkeysEnabled: true,
+        passwordLoginEnabled: true,
+        emailRecoveryEnabled: false,
       };
 
       // Wait for initial load
@@ -600,6 +608,8 @@ describe('SystemConfigService', () => {
               requireSymbol: true,
             },
             passkeysEnabled: true,
+            passwordLoginEnabled: true,
+            emailRecoveryEnabled: false,
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -644,6 +654,8 @@ describe('SystemConfigService', () => {
                 requireSymbol: true,
               },
               passkeysEnabled: true,
+              passwordLoginEnabled: true,
+              emailRecoveryEnabled: false,
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(

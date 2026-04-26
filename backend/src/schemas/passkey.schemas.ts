@@ -102,3 +102,54 @@ export const PasskeyRenameRequestSchema = z
     name: z.string().min(1).max(100),
   })
   .openapi('PasskeyRenameRequest');
+
+/**
+ * Body for requesting a passkey recovery email.
+ * @component PasskeyRecoveryRequestBody
+ */
+export const PasskeyRecoveryRequestSchema = z
+  .object({
+    email: z.email().openapi({ description: 'Email address associated with the account' }),
+  })
+  .openapi('PasskeyRecoveryRequestBody');
+
+/**
+ * Body for the first half of magic-link redemption — exchanges a recovery
+ * token for WebAuthn registration options. The token is NOT consumed here.
+ * @component PasskeyRecoveryStartRequest
+ */
+export const PasskeyRecoveryStartRequestSchema = z
+  .object({
+    token: z.string().min(1).openapi({ description: 'Raw recovery token from the email link' }),
+  })
+  .openapi('PasskeyRecoveryStartRequest');
+
+/**
+ * Body for the second half — verifies the WebAuthn ceremony and (only on
+ * success) burns the token and persists the new credential.
+ * @component PasskeyRecoveryFinishRequest
+ */
+export const PasskeyRecoveryFinishRequestSchema = z
+  .object({
+    token: z.string().min(1).openapi({ description: 'Raw recovery token from the email link' }),
+    response: PasskeyResponseSchema,
+    name: z
+      .string()
+      .max(100)
+      .optional()
+      .openapi({ description: 'Optional user-supplied passkey label' }),
+  })
+  .openapi('PasskeyRecoveryFinishRequest');
+
+/**
+ * Successful recovery-finish response. Returns only the passkey ID; the
+ * client is expected to redirect the user to the normal login flow once
+ * enrolment completes — recovery deliberately does NOT issue a session.
+ * @component PasskeyRecoveryFinishResponse
+ */
+export const PasskeyRecoveryFinishResponseSchema = z
+  .object({
+    verified: z.literal(true),
+    passkey: PasskeySchema,
+  })
+  .openapi('PasskeyRecoveryFinishResponse');

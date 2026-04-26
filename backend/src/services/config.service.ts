@@ -133,6 +133,16 @@ class ConfigService {
         return 'false';
       case 'PASSKEYS_ENABLED':
         return 'true'; // Passkeys enabled by default
+      case 'PASSWORD_LOGIN_ENABLED':
+        // Default OFF — modern best practice is passwordless. Operators who
+        // want password login (e.g. on first install before any passkey is
+        // registered) must explicitly enable it via env var or admin UI.
+        return 'false';
+      case 'EMAIL_RECOVERY_ENABLED':
+        // Default OFF — opting into an email-based recovery channel is a
+        // deliberate trust decision because it broadens the attack surface
+        // beyond the device-bound passkey credential.
+        return 'false';
       case 'AI_LINT_ENABLED':
         return envConfig.openai.enabled ? 'true' : 'false';
       case 'AI_IMAGE_ENABLED':

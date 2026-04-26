@@ -145,9 +145,65 @@ Older browsers will not show the passkey button in the login dialog.
 
 Passkeys are stored in two tables:
 
-| Table                | Purpose                                                            |
-| -------------------- | ------------------------------------------------------------------ |
-| `userPasskeys`       | Registered credential IDs, public keys, counters, device metadata  |
-| `webauthnChallenges` | Single-use challenges (5-minute expiry). Cleaned up automatically. |
+| Table                   | Purpose                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------- |
+| `userPasskeys`          | Registered credential IDs, public keys, counters, device metadata                              |
+| `webauthnChallenges`    | Single-use challenges (5-minute expiry). Cleaned up automatically.                             |
+| `passkeyRecoveryTokens` | Hashed magic-link tokens used by the passwordless recovery flow. Single-use, 60-minute expiry. |
 
-Migration: `backend/drizzle/0023_add-passkeys.sql`
+Migrations:
+
+- `backend/drizzle/0023_add-passkeys.sql`
+- `backend/drizzle/0024_add-passkey-recovery-tokens.sql`
+
+---
+
+## Passwordless Mode
+
+Inkweld can be configured for **passwordless-only** authentication — disabling username/password sign-in entirely so passkeys are the only way to access an account. This is the default for new deployments (per [NIST SP 800-63B Rev. 4](https://pages.nist.gov/800-63-4/) recommendations on phishing-resistant authenticators).
+
+### Enabling passwordless mode
+
+Two server-side settings control the auth surface:
+
+| Setting                  | Default | Effect when `false`                                                                                        |
+| ------------------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `PASSWORD_LOGIN_ENABLED` | `false` | `/login`, `/forgot-password`, `/reset-password` return 403/404; registration form omits the password field |
+| `EMAIL_RECOVERY_ENABLED` | `false` | The "Lost your passkey?" link is hidden; the magic-link recovery endpoint returns 404                      |
+
+Both can be set via environment variables on first boot, or changed at runtime by an admin via **Admin → Settings**.
+
+```bash
+# Passwordless-first deployment with email-based recovery
+PASSWORD_LOGIN_ENABLED=false
+EMAIL_RECOVERY_ENABLED=true
+```
+
+:::warning Existing password users without a passkey
+
+When you flip `PASSWORD_LOGIN_ENABLED` from `true` to `false`, any user who had an account but never registered a passkey **will be locked out** until they go through the email recovery flow (which requires `EMAIL_RECOVERY_ENABLED=true` and a working SMTP setup) to enrol one. The admin UI requires you to type "disable password login" to confirm this change.
+
+Existing password hashes are preserved while disabled, so flipping the flag back on restores access for all those users.
+
+:::
+
+:::tip Lockout safety guard
+
+The admin settings UI will refuse to disable password login while passkeys are also disabled — that combination would lock everyone out. Re-enable passkeys first.
+
+:::
+
+### Magic-link passkey recovery
+
+When `PASSWORD_LOGIN_ENABLED=false` and `EMAIL_RECOVERY_ENABLED=true`, users who lose access to their device can recover their account via email:
+
+1. User clicks **Lost your passkey?** in the login dialog (or visits `/recover-passkey` directly).
+2. They enter the email address registered on their account.
+3. Inkweld emails them a one-time recovery link valid for **60 minutes**.
+4. The link opens `/recover-passkey/redeem?token=...` and prompts them to enrol a **new** passkey on the current device.
+5. On success, the new passkey is added to their account. **Existing passkeys are NOT removed** — recovery is purely additive, so a recovered phone doesn't invalidate the user's other devices.
+6. The user is then redirected to the login screen to sign in with the new passkey. No session is granted by the recovery flow itself.
+
+Recovery tokens are stored hashed (SHA-256) so a database leak does not expose the magic-link URLs. Each token is single-use.
+
+For the recovery email to deliver, you must also configure SMTP — see the email configuration section.

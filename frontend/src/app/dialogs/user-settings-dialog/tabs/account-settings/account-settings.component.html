@@ -29,12 +29,26 @@
       <span class="auth-provider-label">Authentication</span>
       <div class="auth-provider-chips">
         @if (provider === 'local' || provider === 'local+github') {
-          <mat-chip-set>
-            <mat-chip highlighted data-testid="auth-chip-local">
-              <mat-icon matChipAvatar>password</mat-icon>
-              Password
-            </mat-chip>
-          </mat-chip-set>
+          <!--
+            In passwordless mode a 'local' account authenticates via passkey,
+            not password. Only show the Password chip when password login is
+            actually enabled server-wide.
+          -->
+          @if (systemConfig.isPasswordLoginEnabled()) {
+            <mat-chip-set>
+              <mat-chip highlighted data-testid="auth-chip-password">
+                <mat-icon matChipAvatar>password</mat-icon>
+                Password
+              </mat-chip>
+            </mat-chip-set>
+          } @else {
+            <mat-chip-set>
+              <mat-chip highlighted data-testid="auth-chip-passkey">
+                <mat-icon matChipAvatar>fingerprint</mat-icon>
+                Passkey
+              </mat-chip>
+            </mat-chip-set>
+          }
         }
         @if (provider === 'github' || provider === 'local+github') {
           <mat-chip-set>

@@ -43,6 +43,11 @@ const LOCAL_DEFAULTS: SystemFeatures = {
   requireEmail: false,
   passwordPolicy: DEFAULT_PASSWORD_POLICY,
   passkeysEnabled: true,
+  // Local mode is single-user / no remote auth — keep password login on so the
+  // standard local UX (and existing local tests) continue to work without an
+  // email server. The flags only really matter in server mode.
+  passwordLoginEnabled: true,
+  emailRecoveryEnabled: false,
 };
 
 /** Default system features when server is unavailable (degraded mode) */
@@ -57,6 +62,11 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   requireEmail: false,
   passwordPolicy: DEFAULT_PASSWORD_POLICY,
   passkeysEnabled: true,
+  // When the server is unreachable we deliberately fall back to permissive
+  // defaults so the UI can still attempt password login if/when the server
+  // returns; the real values will be replaced once the API call succeeds.
+  passwordLoginEnabled: true,
+  emailRecoveryEnabled: false,
 };
 
 @Injectable({
@@ -77,6 +87,11 @@ export class SystemConfigService {
     requireEmail: false,
     passwordPolicy: DEFAULT_PASSWORD_POLICY,
     passkeysEnabled: true,
+    // Pessimistic initial state — assume password login OFF until we hear
+    // otherwise from the server, so we don't briefly flash the password form
+    // in passwordless deployments.
+    passwordLoginEnabled: false,
+    emailRecoveryEnabled: false,
   });
 
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
@@ -115,6 +130,23 @@ export class SystemConfigService {
   );
   public readonly isPasskeysEnabled = computed(
     () => this.systemFeaturesSignal().passkeysEnabled ?? true
+  );
+  /**
+   * Whether classic email/password login is enabled on the server.
+   * When false the UI must hide password fields and the /login + password
+   * reset endpoints will refuse requests; users authenticate via passkey.
+   */
+  public readonly isPasswordLoginEnabled = computed(
+    () => this.systemFeaturesSignal().passwordLoginEnabled ?? false
+  );
+  /**
+   * Whether the email-based recovery flow is enabled. When password login is
+   * on, this gates the "forgot password" email; when password login is off,
+   * it gates the "lost passkey" magic-link enrolment flow. Both share the
+   * same flag because they both depend on a working outbound mailer.
+   */
+  public readonly isEmailRecoveryEnabled = computed(
+    () => this.systemFeaturesSignal().emailRecoveryEnabled ?? false
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 

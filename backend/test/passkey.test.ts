@@ -24,7 +24,12 @@ import { getDatabase } from '../src/db/index';
 import type { DatabaseInstance } from '../src/types/context';
 import { users, userPasskeys, webauthnChallenges } from '../src/db/schema/index';
 import { passkeyService } from '../src/services/passkey.service';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 
 // ─── Shared fixtures ───────────────────────────────────────────────────────
 
@@ -92,6 +97,9 @@ async function insertChallenge(
 
 beforeAll(async () => {
   testServer = await startTestServer();
+  // Passkey routes themselves don't require password login, but the test
+  // helpers register & log in fixture users via the password flow.
+  await enablePasswordLoginForTests();
   db = getDatabase();
   client = new TestClient(testServer.baseUrl);
   client2 = new TestClient(testServer.baseUrl);

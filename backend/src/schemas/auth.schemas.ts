@@ -44,7 +44,14 @@ export const RegisterRequestSchema = z
     password: z
       .string()
       .min(6)
-      .openapi({ description: 'Password (minimum 6 characters)', example: 'password123' }),
+      .optional()
+      .openapi({
+        description:
+          'Password (minimum 6 characters). Optional: required only when ' +
+          'PASSWORD_LOGIN_ENABLED is true on the server. Passwordless registrations ' +
+          'must immediately enrol a passkey via the WebAuthn registration flow.',
+        example: 'password123',
+      }),
     email: z
       .email()
       .optional()
@@ -70,6 +77,17 @@ export const RegisterResponseSchema = z
       description: 'JWT authentication token (if auto-login enabled)',
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     }),
+    enrolmentToken: z
+      .string()
+      .optional()
+      .openapi({
+        description:
+          'Short-lived (15 min) WebAuthn-enrolment-only JWT. Issued only when ' +
+          'requiresApproval=true AND password login is disabled, so the user can ' +
+          'attach a passkey to their pending account before being parked at ' +
+          '/approval-pending. Cannot be used for any other authenticated endpoint.',
+        example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      }),
     requiresApproval: z
       .boolean()
       .optional()
