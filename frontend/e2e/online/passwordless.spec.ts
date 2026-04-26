@@ -18,7 +18,10 @@ import { expect, type Page, test } from './fixtures';
  * mode switch.
  */
 
-const API_BASE = 'http://localhost:9333';
+// Mirror admin.spec.ts: prefer the playwright config's API_BASE_URL so this
+// spec works across Online (Bun :8333), Docker, and Wrangler (:9333) without
+// hardcoding a port.
+const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 async function setPasswordLoginFlag(
   adminPage: Page,
