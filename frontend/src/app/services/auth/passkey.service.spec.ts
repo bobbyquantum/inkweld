@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -309,6 +310,40 @@ describe('PasskeyService', () => {
       });
     });
 
+    it('throws PENDING_APPROVAL on 403 with pending-approval message', async () => {
+      // Simulate the backend's 403 response from passkey.routes.ts:275 so the
+      // login dialog can route the user to /approval-pending instead of just
+      // displaying raw red error text.
+      const httpError = new HttpErrorResponse({
+        status: 403,
+        statusText: 'Forbidden',
+        error: { error: 'Account pending approval' },
+      });
+      passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
+      fakeStartAuthentication.mockResolvedValue(fakeAssertion);
+      passkeyApi.finishPasskeyLogin.mockReturnValue(errObs(httpError));
+
+      await expect(service.login()).rejects.toMatchObject({
+        code: 'PENDING_APPROVAL',
+        message: 'Account pending approval',
+      });
+    });
+
+    it('throws ACCOUNT_DISABLED on 403 with disabled message', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 403,
+        statusText: 'Forbidden',
+        error: { error: 'Account is disabled' },
+      });
+      passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
+      fakeStartAuthentication.mockResolvedValue(fakeAssertion);
+      passkeyApi.finishPasskeyLogin.mockReturnValue(errObs(httpError));
+
+      await expect(service.login()).rejects.toMatchObject({
+        code: 'ACCOUNT_DISABLED',
+      });
+    });
+
     it('throws VERIFICATION_FAILED when server returns no token', async () => {
       passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
       fakeStartAuthentication.mockResolvedValue(fakeAssertion);
@@ -351,8 +386,18 @@ describe('PasskeyService', () => {
     });
   });
 
-  // ── list() ────────────────────────────────────────────────────────────────
+  // ── abortLogin() ──────────────────────────────────────────────────────────
 
+  describe('abortLogin()', () => {
+    it('does not throw when called with no ceremony in progress', () => {
+      // WebAuthnAbortService.cancelCeremony() is a no-op when there is no
+      // active controller. We verify the public contract: calling abortLogin()
+      // never throws, regardless of state.
+      expect(() => service.abortLogin()).not.toThrow();
+    });
+  });
+
+  // ── list() ────────────────────────────────────────────────────────────────
   describe('list()', () => {
     it('returns passkeys from the API', async () => {
       passkeyApi.listPasskeys.mockReturnValue(obs(fakePasskeys));

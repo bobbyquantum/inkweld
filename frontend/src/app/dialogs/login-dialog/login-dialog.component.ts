@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -37,8 +37,22 @@ export class LoginDialogComponent {
   private readonly passkeyService = inject(PasskeyService);
 
   readonly isEmailEnabled = this.systemConfig.isEmailEnabled;
+  readonly isPasswordLoginEnabled = this.systemConfig.isPasswordLoginEnabled;
+  readonly isEmailRecoveryEnabled = this.systemConfig.isEmailRecoveryEnabled;
   readonly isPasskeySupported = this.passkeyService.isSupported();
   readonly isPasskeyLoggingIn = signal(false);
+
+  /**
+   * Whether to show the "Lost your passkey?" recovery link. Only meaningful
+   * in passwordless deployments where email recovery is on — in classic
+   * mode the existing "Forgot password?" link covers the recovery story.
+   */
+  readonly showPasskeyRecoveryLink = computed(
+    () =>
+      !this.isPasswordLoginEnabled() &&
+      this.isEmailRecoveryEnabled() &&
+      this.systemConfig.isPasskeysEnabled()
+  );
 
   username = '';
   password = '';
@@ -186,6 +200,24 @@ export class LoginDialogComponent {
           // User cancelled the prompt - silent.
           return;
         }
+        // Mirror the password-login flow: when the backend rejects with
+        // pending-approval or account-disabled, send the user to the
+        // dedicated /approval-pending page instead of leaving them
+        // staring at red error text inside the login dialog. They've
+        // proved possession of the passkey — the only thing missing is
+        // admin approval, and the pending page tells them that clearly.
+        if (error.code === 'PENDING_APPROVAL') {
+          this.dialogRef.close(false);
+          void this.router.navigate(['/approval-pending']);
+          return;
+        }
+        if (error.code === 'ACCOUNT_DISABLED') {
+          // No dedicated page for disabled accounts; surface the message
+          // in the dialog so the user can contact an admin. (Closing
+          // silently would imply success.)
+          this.passkeyError.set(error.message);
+          return;
+        }
         this.passkeyError.set(error.message);
       } else {
         this.passkeyError.set('Passkey login failed. Please try again.');
@@ -195,6 +227,16 @@ export class LoginDialogComponent {
     }
   }
 
+  /**
+   * Cancel an in-progress passkey login ceremony. The passkey service aborts
+   * the browser prompt; the pending `login()` promise will resolve as CANCELLED
+   * which the `onPasskeyLogin` handler already treats silently (no error shown).
+   */
+  cancelPasskeyLogin(): void {
+    this.passkeyService.abortLogin();
+    // The finally block in onPasskeyLogin() will reset isPasskeyLoggingIn.
+  }
+
   onRegisterClick(): void {
     this.dialogRef.close('register'); // Signal to open register dialog
   }
@@ -202,5 +244,15 @@ export class LoginDialogComponent {
   goToForgotPassword(): void {
     this.dialogRef.close(false);
     void this.router.navigate(['/forgot-password']);
+  }
+
+  /**
+   * Send the user to the magic-link recovery request page. Used when password
+   * login is off so users who lost their device can request a one-time link
+   * by email and enrol a fresh passkey.
+   */
+  goToPasskeyRecovery(): void {
+    this.dialogRef.close(false);
+    void this.router.navigate(['/recover-passkey']);
   }
 }

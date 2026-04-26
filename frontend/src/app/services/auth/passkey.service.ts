@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import {
   type PasskeyListResponse,
@@ -18,6 +19,7 @@ import {
   browserSupportsWebAuthn,
   startAuthentication,
   startRegistration,
+  WebAuthnAbortService,
 } from '@simplewebauthn/browser';
 import { firstValueFrom } from 'rxjs';
 
@@ -51,6 +53,8 @@ export class PasskeyError extends Error {
       | 'NETWORK_ERROR'
       | 'VERIFICATION_FAILED'
       | 'NO_CREDENTIAL'
+      | 'PENDING_APPROVAL'
+      | 'ACCOUNT_DISABLED'
       | 'UNKNOWN',
     message: string
   ) {
@@ -81,6 +85,15 @@ export class PasskeyService {
    */
   isSupported(): boolean {
     return this.browserSupportsWebAuthn();
+  }
+
+  /**
+   * Abort an in-progress passkey login ceremony (e.g. user taps "Cancel").
+   * The pending `login()` promise will reject with a `CANCELLED` PasskeyError.
+   * If no ceremony is in progress this is a no-op.
+   */
+  abortLogin(): void {
+    WebAuthnAbortService.cancelCeremony();
   }
 
   /**
@@ -216,6 +229,31 @@ export class PasskeyService {
 
   private toPasskeyError(err: unknown, fallback: string): PasskeyError {
     if (err instanceof PasskeyError) return err;
+
+    // Surface backend gating responses as typed codes so callers (esp. the
+    // login dialog) can route the user to /approval-pending instead of just
+    // painting the raw error string in red. The backend handlers in
+    // passkey.routes.ts return:
+    //   403 'Account pending approval' — user not yet approved
+    //   403 'Account is disabled'      — user disabled by admin
+    // Anything else 4xx/5xx falls through to NETWORK_ERROR.
+    if (err instanceof HttpErrorResponse) {
+      const serverMessage =
+        (typeof err.error === 'object' && err.error !== null
+          ? (err.error as { error?: string }).error
+          : undefined) || err.message;
+      if (err.status === 403) {
+        const lower = (serverMessage || '').toLowerCase();
+        if (lower.includes('pending approval')) {
+          return new PasskeyError('PENDING_APPROVAL', serverMessage);
+        }
+        if (lower.includes('disabled')) {
+          return new PasskeyError('ACCOUNT_DISABLED', serverMessage);
+        }
+      }
+      return new PasskeyError('NETWORK_ERROR', serverMessage);
+    }
+
     const message = err instanceof Error ? err.message : fallback;
     return new PasskeyError('NETWORK_ERROR', message);
   }

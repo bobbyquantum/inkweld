@@ -1,12 +1,13 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter, Router } from '@angular/router';
 import { AuthenticationService, type User } from '@inkweld/index';
 import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService, UserServiceError } from '@services/user/user.service';
 import { of } from 'rxjs';
 import {
@@ -62,7 +63,20 @@ describe('LoginDialogComponent', () => {
     passkeyService = {
       isSupported: vi.fn().mockReturnValue(true),
       login: vi.fn().mockResolvedValue(fakeUser),
+      abortLogin: vi.fn(),
     } as unknown as MockedObject<PasskeyService>;
+
+    // Provide a synchronous fake of SystemConfigService so the dialog renders
+    // deterministically. Real one fetches /system-features async; without
+    // intercepting that we'd be at the mercy of the pessimistic initial
+    // signal values (passwordLogin: false), which would hide the password
+    // form and break the existing tests that exercise it.
+    const systemConfigStub = {
+      isEmailEnabled: signal(false).asReadonly(),
+      isPasswordLoginEnabled: signal(true).asReadonly(),
+      isEmailRecoveryEnabled: signal(false).asReadonly(),
+      isPasskeysEnabled: signal(true).asReadonly(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [LoginDialogComponent],
@@ -76,6 +90,7 @@ describe('LoginDialogComponent', () => {
         { provide: MatSnackBar, useValue: snackBar },
         { provide: AuthenticationService, useValue: authService },
         { provide: PasskeyService, useValue: passkeyService },
+        { provide: SystemConfigService, useValue: systemConfigStub },
       ],
     }).compileComponents();
 
@@ -339,6 +354,30 @@ describe('LoginDialogComponent', () => {
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
 
+    it('redirects to /approval-pending on PENDING_APPROVAL error', async () => {
+      passkeyService.login.mockRejectedValue(
+        new PasskeyError('PENDING_APPROVAL', 'Account pending approval')
+      );
+
+      await component.onPasskeyLogin();
+
+      expect(dialogRef.close).toHaveBeenCalledWith(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/approval-pending']);
+      expect(component.passkeyError()).toBeNull();
+    });
+
+    it('shows passkeyError on ACCOUNT_DISABLED without navigating', async () => {
+      passkeyService.login.mockRejectedValue(
+        new PasskeyError('ACCOUNT_DISABLED', 'Account is disabled')
+      );
+
+      await component.onPasskeyLogin();
+
+      expect(component.passkeyError()).toBe('Account is disabled');
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
+
     it('shows passkeyError when PasskeyError with non-CANCELLED code', async () => {
       passkeyService.login.mockRejectedValue(
         new PasskeyError('NETWORK_ERROR', 'Server unreachable')
@@ -394,6 +433,11 @@ describe('LoginDialogComponent', () => {
       fixture = TestBed.createComponent(LoginDialogComponent);
       component = fixture.componentInstance;
       expect(component.isPasskeySupported).toBe(false);
+    });
+
+    it('cancelPasskeyLogin delegates to passkeyService.abortLogin()', () => {
+      component.cancelPasskeyLogin();
+      expect(passkeyService.abortLogin).toHaveBeenCalledOnce();
     });
   });
 });
