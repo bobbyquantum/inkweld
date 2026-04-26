@@ -270,9 +270,7 @@ export class MediaSyncService {
     state.update(s => ({
       ...s,
       items: s.items.map(item =>
-        item.mediaId === mediaId
-          ? { ...item, status: 'downloading' as MediaSyncStatus }
-          : item
+        item.mediaId === mediaId ? { ...item, status: 'downloading' } : item
       ),
     }));
 
@@ -290,9 +288,7 @@ export class MediaSyncService {
         ...s,
         needsDownload: Math.max(0, s.needsDownload - 1),
         items: s.items.map(item =>
-          item.mediaId === mediaId
-            ? { ...item, status: 'synced' as MediaSyncStatus }
-            : item
+          item.mediaId === mediaId ? { ...item, status: 'synced' } : item
         ),
       }));
     } catch (error) {
@@ -300,9 +296,7 @@ export class MediaSyncService {
       state.update(s => ({
         ...s,
         items: s.items.map(item =>
-          item.mediaId === mediaId
-            ? { ...item, status: 'server-only' as MediaSyncStatus }
-            : item
+          item.mediaId === mediaId ? { ...item, status: 'server-only' } : item
         ),
         error: `Failed to download ${filename}`,
       }));
@@ -373,9 +367,7 @@ export class MediaSyncService {
     state.update(s => ({
       ...s,
       items: s.items.map(item =>
-        item.mediaId === mediaId
-          ? { ...item, status: 'uploading' as MediaSyncStatus }
-          : item
+        item.mediaId === mediaId ? { ...item, status: 'uploading' } : item
       ),
     }));
 
@@ -405,9 +397,7 @@ export class MediaSyncService {
         ...s,
         needsUpload: Math.max(0, s.needsUpload - 1),
         items: s.items.map(item =>
-          item.mediaId === mediaId
-            ? { ...item, status: 'synced' as MediaSyncStatus }
-            : item
+          item.mediaId === mediaId ? { ...item, status: 'synced' } : item
         ),
       }));
     } catch (error) {
@@ -415,9 +405,7 @@ export class MediaSyncService {
       state.update(s => ({
         ...s,
         items: s.items.map(item =>
-          item.mediaId === mediaId
-            ? { ...item, status: 'local-only' as MediaSyncStatus }
-            : item
+          item.mediaId === mediaId ? { ...item, status: 'local-only' } : item
         ),
         error: `Failed to upload ${mediaId}`,
       }));

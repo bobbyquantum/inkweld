@@ -99,7 +99,7 @@ describe('AuthTokenService', () => {
         },
         length: 0,
         key: (_index: number) => null,
-      } as Storage,
+      },
       writable: true,
       configurable: true,
     });

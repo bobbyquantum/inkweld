@@ -47,7 +47,7 @@ describe('TemplatesTabComponent', () => {
       tabs: schema.tabs || [],
       defaultValues: schema.defaultValues,
       ...schema,
-    })) as ElementTypeSchema[];
+    }));
   };
 
   beforeEach(async () => {
@@ -381,7 +381,7 @@ describe('TemplatesTabComponent', () => {
       component.editTemplate(mockCustomTemplate);
 
       const updatedSchema = { ...mockCustomSchema, name: 'Updated Template' };
-      await component.onEditorDone(updatedSchema as ElementTypeSchema);
+      await component.onEditorDone(updatedSchema);
 
       expect(component.editingState().mode).toBe('list');
       expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
@@ -399,7 +399,7 @@ describe('TemplatesTabComponent', () => {
 
       const newSchema = component.editingSchema()!;
       const savedSchema = { ...newSchema, name: 'My Template' };
-      await component.onEditorDone(savedSchema as ElementTypeSchema);
+      await component.onEditorDone(savedSchema);
 
       expect(component.editingState().mode).toBe('list');
       expect(mockWorldbuildingService.saveSchemaToLibrary).toHaveBeenCalledWith(

@@ -842,7 +842,7 @@ describe('EpubGeneratorService', () => {
         expandable: true,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       const childElement: Element = {
         id: 'child-1',
@@ -854,7 +854,7 @@ describe('EpubGeneratorService', () => {
         expandable: false,
         version: 1,
         metadata: {},
-      } as Element;
+      };
 
       projectStateMock.elements = signal([folderElement, childElement]);
 

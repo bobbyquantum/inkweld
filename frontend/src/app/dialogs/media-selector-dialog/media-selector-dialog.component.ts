@@ -317,7 +317,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
       if (items.length === 0) return;
       this.dialogRef.close({
         selectedItems: items,
-      } as MediaSelectorDialogResult);
+      });
     } else {
       const selected = this.selectedItem();
       if (!selected) return;
@@ -333,7 +333,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
       this.dialogRef.close({
         selected,
         blob,
-      } as MediaSelectorDialogResult);
+      });
     }
   }
 

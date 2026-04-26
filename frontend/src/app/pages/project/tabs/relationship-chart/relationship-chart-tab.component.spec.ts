@@ -31,7 +31,7 @@ describe('RelationshipChartTabComponent', () => {
 
   beforeAll(() => {
     if (!globalThis.ResizeObserver) {
-      globalThis.ResizeObserver = MockResizeObserver as any;
+      globalThis.ResizeObserver = MockResizeObserver;
     }
   });
 

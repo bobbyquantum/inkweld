@@ -94,7 +94,7 @@ export class SetupComponent implements OnInit {
             appModeValue === 'LOCAL' ||
             appModeValue === 'BOTH')
         ) {
-          this.appMode.set(appModeValue as AppMode);
+          this.appMode.set(appModeValue);
 
           // Auto-select mode if only one option is available
           if (appModeValue === 'ONLINE') {

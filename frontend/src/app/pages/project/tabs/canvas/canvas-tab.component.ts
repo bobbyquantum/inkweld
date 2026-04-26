@@ -1171,8 +1171,8 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         fill: settings.stroke,
         pointerLength: shapeType === 'arrow' ? 10 : 0,
         pointerWidth: shapeType === 'arrow' ? 10 : 0,
-      }) as unknown as Konva.Line;
-      kLayer.add(this.drawingLine as unknown as Konva.Arrow);
+      });
+      kLayer.add(this.drawingLine);
     } else if (shapeType === 'ellipse') {
       this.drawingShape = new Konva.Ellipse({
         x: pos.x,
@@ -1591,7 +1591,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           text: result.text,
           fill: result.color,
           name: result.text.substring(0, 30),
-        } as Partial<CanvasText>);
+        });
       });
   }
 
@@ -1658,7 +1658,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           name: result.label,
           linkedElementId: result.linkedElementId,
           relationshipId,
-        } as Partial<CanvasPin>);
+        });
       });
   }
 
@@ -1948,10 +1948,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
           if (result.stroke !== undefined) updates['stroke'] = result.stroke;
         }
 
-        this.canvasService.updateObject(
-          objId,
-          updates as Partial<CanvasObject>
-        );
+        this.canvasService.updateObject(objId, updates);
 
         // Also update the Konva node visually
         this.updateKonvaNodeColors(objId, objType, result);
@@ -2275,7 +2272,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
         ...(obj.type === 'pin'
           ? { relationshipId: undefined, linkedElementId: undefined }
           : {}),
-      } as CanvasObject;
+      };
       this.canvasService.addObject(copy);
     }
   }
@@ -2417,7 +2414,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       // Strip relationship ownership so copies don't share IDs
       const copy =
         obj.type === 'pin' ? { ...obj, relationshipId: undefined } : { ...obj };
-      this.clipboard.set(copy as CanvasObject);
+      this.clipboard.set(copy);
       this.clipboardIsCut = false;
     }
   }
@@ -2436,7 +2433,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       // Strip stale relationship ID from clipboard
       const copy =
         obj.type === 'pin' ? { ...obj, relationshipId: undefined } : { ...obj };
-      this.clipboard.set(copy as CanvasObject);
+      this.clipboard.set(copy);
       this.clipboardIsCut = true;
       this.canvasService.removeObject(id);
       this.selectedObjectId.set(null);
@@ -2463,7 +2460,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       layerId,
       x: pastePos.x + PASTE_OFFSET,
       y: pastePos.y + PASTE_OFFSET,
-    } as CanvasObject;
+    };
 
     // Create a fresh relationship for pasted linked pins
     if (newObj.type === 'pin' && newObj.linkedElementId) {
@@ -2502,7 +2499,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
       id: nanoid(),
       x: obj.x + OFFSET,
       y: obj.y + OFFSET,
-    } as CanvasObject;
+    };
 
     this.canvasService.addObject(duplicate);
     this.selectedObjectId.set(duplicate.id);
