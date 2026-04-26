@@ -56,6 +56,15 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 export interface RegistrationResult {
   user: User;
   token?: string;
+  /**
+   * Short-lived (15 min) WebAuthn-enrolment-only JWT issued by the backend
+   * when `requiresApproval=true` AND password login is disabled. The dialog
+   * uses it to attach a passkey to the pending account before parking the
+   * user at /approval-pending — without it the brand-new account would have
+   * no credential at all and the user would be permanently locked out once
+   * the dialog closes. Cannot be used for any other authenticated endpoint.
+   */
+  enrolmentToken?: string;
   requiresApproval: boolean;
 }
 
@@ -111,6 +120,12 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   private readonly systemConfig = inject(SystemConfigService);
 
   readonly isRequireEmail = this.systemConfig.isRequireEmailEnabled;
+  /**
+   * Whether classic password login is enabled. When false, the form hides
+   * the password fields and submits without a password — the user is then
+   * expected to enrol a passkey via the parent's post-registration flow.
+   */
+  readonly isPasswordLoginEnabled = this.systemConfig.isPasswordLoginEnabled;
   private readonly policy = this.systemConfig.passwordPolicy;
 
   /** Whether to show the submit button (can be hidden if parent handles submission) */
@@ -166,7 +181,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    */
   @Output() submitRequest = new EventEmitter<{
     username: string;
-    password: string;
+    password?: string;
   }>();
 
   @ViewChild('passwordField', { static: false, read: ElementRef })
@@ -326,6 +341,21 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
 
     // Set email as required if REQUIRE_EMAIL is enabled
     this.updateEmailRequiredValidator();
+
+    // Strip password validators in passwordless mode so the form can submit
+    // with empty password fields. Done once in ngOnInit (rather than reactively
+    // via effect) because the flag is fixed for the lifetime of the dialog —
+    // an admin toggling it mid-registration would just be ignored until the
+    // user re-opens the dialog, which is the safer UX (no surprise field
+    // appearing/disappearing mid-flow).
+    if (!this.isPasswordLoginEnabled()) {
+      this.passwordControl?.clearValidators();
+      this.passwordControl?.updateValueAndValidity();
+      this.confirmPasswordControl?.clearValidators();
+      this.confirmPasswordControl?.updateValueAndValidity();
+      // The cross-field passwordMatchValidator returns null when both are
+      // empty, so the form-level validator stays satisfied automatically.
+    }
   }
 
   /**
@@ -605,13 +635,20 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
 
     const credentials: {
       username: string;
-      password: string;
+      password?: string;
       name?: string;
       email?: string;
     } = {
       username: formValues.username,
-      password: formValues.password,
     };
+
+    // Only attach a password when password login is on AND the user typed
+    // something. The backend treats an absent/empty password as "passwordless
+    // signup" and stores NULL — see backend/src/services/user.service.ts
+    // create() and the gating tests in passwordless-gating.test.ts.
+    if (this.isPasswordLoginEnabled() && formValues.password) {
+      credentials.password = formValues.password;
+    }
 
     if (formValues.displayName?.trim()) {
       credentials.name = formValues.displayName.trim();
@@ -634,7 +671,12 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         this.authService.registerUser(credentials)
       );
 
-      // Store authentication token for subsequent requests (using prefixed key)
+      // Store authentication token for subsequent requests (using prefixed key).
+      // We deliberately skip this when requiresApproval — the user is parked
+      // at /approval-pending until an admin approves them. In passwordless
+      // mode the backend additionally returns `enrolmentToken`, an
+      // enrolment-scoped session that the dialog applies transiently to run
+      // a WebAuthn ceremony; we do NOT persist it via authTokenService.
       if (response.token && !response.requiresApproval) {
         this.authTokenService.setToken(response.token);
       }
@@ -648,6 +690,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       this.registered.emit({
         user: response.user,
         token: response.token,
+        enrolmentToken: response.enrolmentToken,
         requiresApproval: response.requiresApproval ?? false,
       });
     } catch (error: unknown) {

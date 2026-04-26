@@ -6,7 +6,12 @@ import { commentMessages } from '../src/db/schema/comment-messages';
 import { commentReadStatus } from '../src/db/schema/comment-read-status';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Comments', () => {
@@ -23,6 +28,8 @@ describe('Comments', () => {
 
   beforeAll(async () => {
     const { baseUrl } = await startTestServer();
+    // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+    await enablePasswordLoginForTests();
     ownerClient = new TestClient(baseUrl);
     collabClient = new TestClient(baseUrl);
     anonClient = new TestClient(baseUrl);

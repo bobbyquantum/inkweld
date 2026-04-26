@@ -5,6 +5,58 @@
  */
 import { serve, type Server } from 'bun';
 import { createBunApp } from '../src/bun-app';
+import { getDatabase } from '../src/db/index';
+import { configService } from '../src/services/config.service';
+
+/**
+ * Enable password login for a test suite.
+ *
+ * Production deployments default `PASSWORD_LOGIN_ENABLED` to `false`
+ * (passwordless-first per NIST SP 800-63B Rev. 4). Suites that exercise
+ * the legacy password flow (`/login`, `/forgot-password`, `/reset-password`,
+ * password registration) must opt in by calling this helper from `beforeAll`.
+ *
+ * The override is written to the config table; tests share a single in-memory
+ * database so the value persists for the lifetime of the test process. Suites
+ * verifying gating behaviour when password login is disabled should call
+ * `disablePasswordLoginForTests()` to revert.
+ */
+export async function enablePasswordLoginForTests(): Promise<void> {
+  const db = getDatabase();
+  await configService.set(db, 'PASSWORD_LOGIN_ENABLED', 'true');
+}
+
+/**
+ * Revert the `PASSWORD_LOGIN_ENABLED` override to the default (off).
+ *
+ * Use this in tests that explicitly verify the gating behaviour, then call
+ * `enablePasswordLoginForTests()` again in `afterAll` if other suites in the
+ * same process depend on password login being enabled.
+ */
+export async function disablePasswordLoginForTests(): Promise<void> {
+  const db = getDatabase();
+  await configService.delete(db, 'PASSWORD_LOGIN_ENABLED');
+}
+
+/**
+ * Force `USER_APPROVAL_REQUIRED=true` for a test. Suites must restore the
+ * default in `afterAll` via `disableUserApprovalForTests()` because the
+ * test process shares a single in-memory database — leaving this on would
+ * make every later registration in any suite require approval.
+ */
+export async function enableUserApprovalForTests(): Promise<void> {
+  const db = getDatabase();
+  await configService.set(db, 'USER_APPROVAL_REQUIRED', 'true');
+}
+
+/**
+ * Revert the `USER_APPROVAL_REQUIRED` override. Pair with
+ * `enableUserApprovalForTests()` in `afterAll`.
+ */
+export async function disableUserApprovalForTests(): Promise<void> {
+  const db = getDatabase();
+  await configService.delete(db, 'USER_APPROVAL_REQUIRED');
+}
 
 let testServer: Server<undefined> | null = null;
 let testPort: number = 0;

@@ -46,6 +46,44 @@ const registerRoute = createRoute({
   },
 });
 
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Returns an error message string, or null when the input is valid. */
+async function validateRegistrationInput(
+  db: DrizzleD1Database,
+  input: { password: string | undefined; email: string | undefined }
+): Promise<{ error: string } | { error: null; passwordLoginEnabled: boolean }> {
+  const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
+  if (requireEmail && !input.email) {
+    return { error: 'Email address is required' };
+  }
+
+  const passwordLoginEnabled = await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED');
+  if (passwordLoginEnabled) {
+    if (!input.password) {
+      return { error: 'Password is required' };
+    }
+    const passwordPolicy = await getPasswordPolicy(db);
+    const passwordErrors = validatePassword(input.password, passwordPolicy);
+    if (passwordErrors.length > 0) {
+      return { error: passwordErrors[0] };
+    }
+  }
+
+  if (input.email) {
+    const existingUser = await userService.findByEmail(db, input.email);
+    if (existingUser) {
+      return { error: 'Registration failed. Please try a different username or email.' };
+    }
+  }
+
+  return { error: null, passwordLoginEnabled };
+}
+
 authRoutes.openapi(registerRoute, async (c) => {
   const db = c.get('db');
   const { username, password, email, name } = c.req.valid('json');
@@ -54,29 +92,20 @@ authRoutes.openapi(registerRoute, async (c) => {
   // configService reads database first, then environment, then defaults
   const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
 
-  // Check if email is required
-  const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
-  if (requireEmail && !email) {
-    return c.json({ error: 'Email address is required' }, 400);
+  // Validate all registration input (email required, password policy, duplicate email)
+  const validation = await validateRegistrationInput(db, { password, email });
+  if (validation.error) {
+    return c.json({ error: validation.error }, 400);
   }
+  const { passwordLoginEnabled } = validation;
 
-  // Validate password against configured policy
-  const passwordPolicy = await getPasswordPolicy(db);
-  const passwordErrors = validatePassword(password, passwordPolicy);
-  if (passwordErrors.length > 0) {
-    return c.json({ error: passwordErrors[0] }, 400);
-  }
-
-  // Block duplicate emails (only for real email addresses, not @local fallbacks)
-  if (email) {
-    const existingUser = await userService.findByEmail(db, email);
-    if (existingUser) {
-      return c.json(
-        { error: 'Registration failed. Please try a different username or email.' },
-        400
-      );
-    }
-  }
+  // Passwordless mode: when PASSWORD_LOGIN_ENABLED is false the server creates
+  // a user row with a NULL password column. The client is then responsible for
+  // immediately running the WebAuthn registration ceremony against the
+  // returned session — without a passkey the account is unreachable. We
+  // explicitly ignore any password supplied in the request body in this mode
+  // rather than silently storing it: re-enabling password login later should
+  // not retroactively activate stale registration-time passwords.
 
   // Check if this is the first user - they automatically become admin
   // This enables testing on ephemeral hosts without pre-configured admin credentials
@@ -89,7 +118,7 @@ authRoutes.openapi(registerRoute, async (c) => {
       db,
       {
         username,
-        password,
+        password: passwordLoginEnabled ? password : undefined,
         email: email || username + '@local',
         name: name || username,
       },
@@ -149,6 +178,25 @@ authRoutes.openapi(registerRoute, async (c) => {
       to: userToReturn.email || '',
     });
 
+    // Passwordless mode: the brand-new account has NO credential at all
+    // (no password, no passkey). If we don't give the user a way to enrol
+    // a passkey before the dialog closes they'll be permanently locked out
+    // — admin approval would unlock an account they can't sign into.
+    //
+    // Mint a 15-minute enrolment-only token (see authService for scope
+    // semantics). It can be used to call POST /passkeys/register/start +
+    // /finish ONCE, and nothing else; every other middleware rejects the
+    // 'enrol' scope outright. The frontend register dialog drives the
+    // WebAuthn ceremony before navigating to /approval-pending.
+    //
+    // Password mode users don't need this — they already have a password
+    // they can use to sign in once approved (and add a passkey from
+    // settings if they want).
+    let enrolmentToken: string | undefined;
+    if (!passwordLoginEnabled) {
+      enrolmentToken = await authService.createEnrolmentSession(c, userToReturn);
+    }
+
     return c.json(
       {
         message: 'Registration successful. Please wait for admin approval.',
@@ -161,6 +209,7 @@ authRoutes.openapi(registerRoute, async (c) => {
           enabled: userToReturn.enabled,
           hasAvatar: userToReturn.hasAvatar,
         },
+        enrolmentToken,
         requiresApproval: true,
       },
       200
@@ -201,13 +250,30 @@ const loginRoute = createRoute({
       description: 'Login successful',
     },
     401: errorResponse('Invalid credentials'),
-    403: errorResponse('Account disabled or pending approval'),
+    403: errorResponse(
+      'Password login is disabled on this server, or the account is disabled / pending approval'
+    ),
   },
 });
 
 authRoutes.openapi(loginRoute, async (c) => {
   const db = c.get('db');
   const { username, password } = c.req.valid('json');
+
+  // Hard-gate on PASSWORD_LOGIN_ENABLED. When the operator has chosen a
+  // passwordless deployment we refuse password authentication outright
+  // rather than silently accepting and then failing on a missing hash —
+  // the client should be hiding password UI when the /config/features
+  // flag is false, but a defence-in-depth check belongs here too.
+  const passwordLoginEnabled = await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED');
+  if (!passwordLoginEnabled) {
+    return c.json(
+      {
+        error: 'Password login is disabled on this server. Please sign in with a passkey instead.',
+      },
+      403
+    );
+  }
 
   // Authenticate user
   const user = await authService.authenticate(db, username, password);

@@ -40,6 +40,7 @@ describe('RegistrationFormComponent', () => {
   let setupService: MockedObject<SetupService>;
   let systemConfigService: {
     isRequireEmailEnabled: ReturnType<typeof vi.fn>;
+    isPasswordLoginEnabled: ReturnType<typeof vi.fn>;
     passwordPolicy: ReturnType<typeof vi.fn>;
   };
 
@@ -62,6 +63,9 @@ describe('RegistrationFormComponent', () => {
 
     systemConfigService = {
       isRequireEmailEnabled: vi.fn().mockReturnValue(false),
+      // Default to true so existing password-policy tests keep working;
+      // passwordless-mode tests can flip this with `.mockReturnValue(false)`.
+      isPasswordLoginEnabled: vi.fn().mockReturnValue(true),
       passwordPolicy: vi.fn().mockReturnValue(DEFAULT_POLICY),
     };
 
@@ -671,6 +675,77 @@ describe('RegistrationFormComponent', () => {
 
       // Verify initialCalls was captured (it should be 0 at spy creation)
       expect(initialCalls).toBe(0);
+    });
+  });
+
+  describe('passwordless mode', () => {
+    beforeEach(() => {
+      systemConfigService.isPasswordLoginEnabled.mockReturnValue(false);
+      // Re-run init so password validators are stripped per the new flag.
+      component.ngOnInit();
+    });
+
+    it('exposes isPasswordLoginEnabled signal returning false', () => {
+      expect(component.isPasswordLoginEnabled()).toBe(false);
+    });
+
+    it('clears password validators so the form can submit empty', () => {
+      component.registerForm.get('username')?.setValue('newuser');
+      // No password / confirmPassword set
+      expect(component.registerForm.get('password')?.valid).toBe(true);
+      expect(component.registerForm.get('confirmPassword')?.valid).toBe(true);
+      expect(component.registerForm.valid).toBe(true);
+    });
+
+    it('omits password from credentials on submit', async () => {
+      const submitRequestSpy = vi.fn();
+      component.submitRequest.subscribe(submitRequestSpy);
+      component.externalSubmit = true;
+
+      component.registerForm.get('username')?.setValue('newuser');
+      // Even if leftover text is in the password field, do not include it
+      // when the flag is off — password login is disabled server-side.
+      component.registerForm.get('password')?.setValue('');
+
+      await component.submit();
+
+      expect(submitRequestSpy).toHaveBeenCalledWith({ username: 'newuser' });
+      expect(authService.registerUser).not.toHaveBeenCalled();
+    });
+
+    it('omits password even if a stale value is in the password control', async () => {
+      const submitRequestSpy = vi.fn();
+      component.submitRequest.subscribe(submitRequestSpy);
+      component.externalSubmit = true;
+
+      component.registerForm.get('username')?.setValue('newuser');
+      // A stale password value: the gate checks the *flag* first, so this
+      // should still be omitted even though formValues.password is truthy.
+      component.registerForm.get('password')?.setValue('LeftoverPass1!');
+
+      await component.submit();
+
+      const arg = submitRequestSpy.mock.calls[0][0];
+      expect(arg).toEqual({ username: 'newuser' });
+      expect(arg.password).toBeUndefined();
+    });
+
+    it('still includes name and email when provided in passwordless mode', async () => {
+      const submitRequestSpy = vi.fn();
+      component.submitRequest.subscribe(submitRequestSpy);
+      component.externalSubmit = true;
+
+      component.registerForm.get('username')?.setValue('newuser');
+      component.registerForm.get('displayName')?.setValue('New User');
+      component.registerForm.get('email')?.setValue('new@example.com');
+
+      await component.submit();
+
+      expect(submitRequestSpy).toHaveBeenCalledWith({
+        username: 'newuser',
+        name: 'New User',
+        email: 'new@example.com',
+      });
     });
   });
 });

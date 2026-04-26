@@ -90,50 +90,68 @@
     <mat-error>{{ getEmailErrorMessage() }}</mat-error>
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
-    <mat-label>Password</mat-label>
-    <input
-      #passwordField
-      matInput
-      type="password"
-      formControlName="password"
-      required
-      (focus)="onPasswordFocus()"
-      (blur)="onPasswordBlur()"
-      (input)="onPasswordInput($event)"
-      aria-label="Password"
-      [attr.data-testid]="testIdPrefix + 'password-input'" />
-    <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
-  </mat-form-field>
+  @if (isPasswordLoginEnabled()) {
+    <mat-form-field appearance="outline">
+      <mat-label>Password</mat-label>
+      <input
+        #passwordField
+        matInput
+        type="password"
+        formControlName="password"
+        required
+        (focus)="onPasswordFocus()"
+        (blur)="onPasswordBlur()"
+        (input)="onPasswordInput($event)"
+        aria-label="Password"
+        [attr.data-testid]="testIdPrefix + 'password-input'" />
+      <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
+    </mat-form-field>
 
-  @if (
-    serverValidationErrors['password'] &&
-    serverValidationErrors['password'].length > 0
-  ) {
-    <div class="password-validation-errors">
-      <div class="validation-error-heading">Password requirements:</div>
-      <ul class="validation-error-list">
-        @for (error of serverValidationErrors['password']; track error) {
-          <li class="validation-error-item">
-            <mat-icon class="validation-error-icon">error_outline</mat-icon>
-            <span>{{ error }}</span>
-          </li>
-        }
-      </ul>
+    @if (
+      serverValidationErrors['password'] &&
+      serverValidationErrors['password'].length > 0
+    ) {
+      <div class="password-validation-errors">
+        <div class="validation-error-heading">Password requirements:</div>
+        <ul class="validation-error-list">
+          @for (error of serverValidationErrors['password']; track error) {
+            <li class="validation-error-item">
+              <mat-icon class="validation-error-icon">error_outline</mat-icon>
+              <span>{{ error }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Confirm Password</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="confirmPassword"
+        required
+        aria-label="Confirm Password"
+        [attr.data-testid]="testIdPrefix + 'confirm-password-input'" />
+      <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
+    </mat-form-field>
+  } @else {
+    <!--
+      Passwordless deployment — no password fields rendered. The parent dialog
+      (RegisterDialogComponent) is expected to chain a passkey-enrolment
+      ceremony immediately after a successful registration.
+    -->
+    <div
+      class="passwordless-notice"
+      data-testid="passwordless-registration-notice">
+      <mat-icon>fingerprint</mat-icon>
+      <span>
+        After creating your account you'll be prompted to set up a passkey (Face
+        ID, Touch ID, Windows Hello, or a hardware security key) to sign in. No
+        password required.
+      </span>
     </div>
   }
-
-  <mat-form-field appearance="outline">
-    <mat-label>Confirm Password</mat-label>
-    <input
-      matInput
-      type="password"
-      formControlName="confirmPassword"
-      required
-      aria-label="Confirm Password"
-      [attr.data-testid]="testIdPrefix + 'confirm-password-input'" />
-    <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
-  </mat-form-field>
 
   @if (showSubmitButton) {
     <button

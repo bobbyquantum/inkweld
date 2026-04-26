@@ -270,3 +270,48 @@ If you didn't make this change, please contact your administrator immediately.
 ${footerText(params.loginUrl)}`,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Passkey Recovery Email (sent when a user with no working passkey requests
+// a magic-link to enrol a fresh credential — see passkey-recovery.service)
+// ---------------------------------------------------------------------------
+export function passkeyRecoveryEmail(params: {
+  userName: string;
+  recoveryUrl: string;
+  expiresInMinutes: number;
+}): { subject: string; html: string; text: string } {
+  const safeName = escapeHtml(params.userName);
+  const safeRecoveryUrl = escapeHtml(params.recoveryUrl);
+  const baseUrl = params.recoveryUrl.split('/recover-passkey')[0];
+
+  return {
+    subject: 'Inkweld — Add a New Passkey to Your Account',
+    html: `
+<div style="${STYLES.container}">
+  <div style="${STYLES.card}">
+    <h1 style="${STYLES.heading}">Add a New Passkey</h1>
+    <p style="${STYLES.text}">Hi ${safeName},</p>
+    <p style="${STYLES.text}">We received a request to add a new passkey to your account. Click the button below to enrol a passkey on this device:</p>
+    <p style="margin: 24px 0; text-align: center;">
+      <a href="${safeRecoveryUrl}" style="${STYLES.button}">Add a Passkey</a>
+    </p>
+    <p style="${STYLES.text}">This link will expire in ${params.expiresInMinutes} minutes and can only be used once. Your existing passkeys will keep working.</p>
+    <p style="${STYLES.text}">If you didn't request this, you can safely ignore this email — no changes have been made to your account.</p>
+    ${footerHtml(baseUrl)}
+  </div>
+</div>`,
+    text: `Inkweld — Add a New Passkey to Your Account
+
+Hi ${params.userName},
+
+We received a request to add a new passkey to your account. Visit the link below to enrol a passkey on this device:
+
+${params.recoveryUrl}
+
+This link will expire in ${params.expiresInMinutes} minutes and can only be used once. Your existing passkeys will keep working.
+
+If you didn't request this, you can safely ignore this email — no changes have been made to your account.
+
+${footerText(baseUrl)}`,
+  };
+}

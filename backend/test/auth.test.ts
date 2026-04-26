@@ -3,7 +3,12 @@ import { getDatabase } from '../src/db/index';
 import { users } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
 
 describe('Authentication', () => {
@@ -13,6 +18,8 @@ describe('Authentication', () => {
   beforeAll(async () => {
     // Start test server
     testServer = await startTestServer();
+    // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+    await enablePasswordLoginForTests();
     client = new TestClient(testServer.baseUrl);
 
     const db = getDatabase();

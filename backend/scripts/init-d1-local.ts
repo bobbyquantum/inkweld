@@ -124,6 +124,18 @@ try {
   // Enable OpenAI image provider
   await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('AI_IMAGE_OPENAI_ENABLED', 'true', 0, 'ai', 'Enable OpenAI image generation', ${now}, ${now})"`.quiet();
   console.log('   ✅ AI_IMAGE_OPENAI_ENABLED = true');
+
+  // Existing online/docker e2e fixtures register and log in via the password
+  // API. Production defaults are passwordless-first (NIST SP 800-63B Rev. 4),
+  // so the wrangler test backend has to opt back in. The dedicated
+  // passwordless.spec.ts flips this off via the admin API per-test.
+  await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('PASSWORD_LOGIN_ENABLED', 'true', 0, 'auth', 'Allow username/password login', ${now}, ${now})"`.quiet();
+  console.log('   ✅ PASSWORD_LOGIN_ENABLED = true');
+
+  // Enable email-based passkey recovery so the recovery e2e tests can hit the
+  // request endpoint. The redeem flow is covered by unit + integration tests.
+  await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('EMAIL_RECOVERY_ENABLED', 'true', 0, 'auth', 'Allow email-based passkey recovery', ${now}, ${now})"`.quiet();
+  console.log('   ✅ EMAIL_RECOVERY_ENABLED = true');
 } catch (error) {
   console.error('   ⚠️  Could not seed config values:', error);
 }

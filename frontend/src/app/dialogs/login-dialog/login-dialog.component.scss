@@ -59,7 +59,42 @@ form {
 .forgot-password-link {
   display: block;
   text-align: center;
-  margin-top: 4px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--sys-primary);
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.passkey-button {
+  width: 100%;
+  transition: width 0.2s ease;
+}
+
+// When waiting for the browser prompt the button shrinks to leave room for
+// the "Cancel" link that appears alongside it.
+.passkey-button-primary {
+  width: 100%;
+}
+
+.passkey-button-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  // While waiting, shrink the button so the Cancel link fits inline.
+  &:has(.passkey-cancel-link) .passkey-button {
+    flex: 1;
+    width: auto;
+  }
+}
+
+.passkey-cancel-link {
+  white-space: nowrap;
   font-size: 0.85rem;
   color: var(--sys-primary);
   cursor: pointer;

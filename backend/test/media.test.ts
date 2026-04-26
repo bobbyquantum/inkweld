@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
 import { TEST_PASSWORDS } from './test-credentials';
@@ -15,6 +20,8 @@ describe('Media Routes', () => {
 
   beforeAll(async () => {
     const server = await startTestServer();
+    // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+    await enablePasswordLoginForTests();
     baseUrl = server.baseUrl;
     client = new TestClient(baseUrl);
 

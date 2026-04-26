@@ -1,0 +1,236 @@
+.recover-passkey-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background-image: url('/home_background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  .dark-theme & {
+    &::before {
+      background-color: rgba(0, 0, 0, 0.6);
+      -webkit-backdrop-filter: saturate(70%);
+      backdrop-filter: saturate(70%);
+
+      @supports not (
+        (backdrop-filter: saturate(70%)) or
+          (-webkit-backdrop-filter: saturate(70%))
+      ) {
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+    }
+  }
+}
+
+.recover-passkey-card {
+  max-width: 440px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+
+  // Glass effect matching the global theme pattern
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+
+  mat-card-content {
+    padding: 32px;
+  }
+}
+
+:host-context(.dark-theme) .recover-passkey-card {
+  background: rgba(18, 18, 20, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 24px;
+
+  .header-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--sys-primary);
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: var(--sys-on-surface-variant);
+    line-height: 1.5;
+  }
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: -4px 0 12px 0;
+  border-radius: 4px;
+  background-color: var(--sys-error-container, rgba(244, 67, 54, 0.1));
+  color: var(--sys-on-error-container, #b71c1c);
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid var(--sys-error, #f44336);
+
+  mat-icon {
+    margin-right: 8px;
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.submit-button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.button-spinner {
+  display: inline-block;
+}
+
+.success-container {
+  text-align: center;
+  padding: 16px 0;
+
+  .success-icon {
+    font-size: 56px;
+    width: 56px;
+    height: 56px;
+    color: #4caf50;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    margin: 0 0 12px 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--sys-on-surface-variant);
+    line-height: 1.6;
+    margin: 0 0 8px 0;
+  }
+
+  .hint {
+    font-size: 13px;
+    color: var(--sys-on-surface-variant);
+    font-style: italic;
+  }
+}
+
+.back-link {
+  text-align: center;
+  margin-top: 24px;
+
+  a {
+    color: var(--sys-primary);
+    text-decoration: none;
+    font-size: 14px;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.disabled-container {
+  text-align: center;
+  padding: 24px 0;
+
+  .disabled-icon {
+    font-size: 56px;
+    width: 56px;
+    height: 56px;
+    color: var(--sys-on-surface-variant);
+    margin-bottom: 16px;
+    opacity: 0.6;
+  }
+
+  h2 {
+    margin: 0 0 12px 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--sys-on-surface-variant);
+    line-height: 1.6;
+  }
+}
+
+.error-container {
+  text-align: center;
+  padding: 24px 0;
+
+  .error-icon-large {
+    font-size: 56px;
+    width: 56px;
+    height: 56px;
+    color: var(--sys-error, #f44336);
+    margin-bottom: 16px;
+    opacity: 0.7;
+  }
+
+  h2 {
+    margin: 0 0 12px 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--sys-on-surface-variant);
+    line-height: 1.6;
+
+    a {
+      color: var(--sys-primary);
+    }
+  }
+}

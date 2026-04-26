@@ -26,7 +26,8 @@ import {
   bunSqliteDatabaseMiddleware,
   type BunSqliteAppContext,
 } from './middleware/database.bun-sqlite.middleware';
-import { setupBunDatabase } from './db/bun-sqlite';
+import { setupBunDatabase, getBunDatabase } from './db/bun-sqlite';
+import { passkeyService } from './services/passkey.service';
 
 // Import common route registration + specialized routes
 import { registerCommonRoutes } from './config/routes';
@@ -292,6 +293,11 @@ async function bootstrap() {
     await setupBunDatabase(dbPath);
     logger.info('Database', `Bun SQLite database initialized (${dbPath})`);
 
+    // Periodically clean up expired WebAuthn challenges. The /login/start
+    // endpoint is anonymous and creates a row per call — without a sweeper,
+    // the table grows unbounded under load or hostile traffic.
+    schedulePasskeyChallengeCleanup();
+
     const port = config.port;
     logger.info('Server', `Inkweld backend (Bun) ready on port ${port}`);
 
@@ -322,6 +328,30 @@ async function bootstrap() {
 // bootstrap() is called by the runtime entrypoint (bun-runner.ts), not at import time,
 // so that test imports don't trigger server startup side-effects.
 export { bootstrap };
+
+/** Run a passkey challenge sweep now and every hour thereafter. */
+function schedulePasskeyChallengeCleanup(): void {
+  const intervalMs = 60 * 60 * 1000; // 1 hour
+
+  const runOnce = async () => {
+    try {
+      const removed = await passkeyService.cleanupChallenges(getBunDatabase());
+      if (removed > 0) {
+        logger.debug('Passkey', `Removed ${removed} expired WebAuthn challenge(s)`);
+      }
+    } catch (err) {
+      logger.warn('Passkey', 'Challenge cleanup failed', { err: String(err) });
+    }
+  };
+
+  // Fire-and-forget initial sweep; don't block bootstrap.
+  void runOnce();
+  const handle = setInterval(runOnce, intervalMs);
+  // Allow the process to exit naturally even with the interval scheduled.
+  if (typeof handle === 'object' && handle && 'unref' in handle) {
+    (handle as { unref: () => void }).unref();
+  }
+}
 
 // Build the server config with optional TLS
 const serverConfig: {

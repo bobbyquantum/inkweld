@@ -1,10 +1,19 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { passwordResetService } from '../services/password-reset.service';
+import { configService } from '../services/config.service';
 import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
 import { errorResponse, MessageResponseSchema } from '../schemas/common.schemas';
 import type { AppContext } from '../types/context';
 
 const passwordResetRoutes = new OpenAPIHono<AppContext>();
+
+/**
+ * Both routes in this file are gated on PASSWORD_LOGIN_ENABLED. A fully
+ * passwordless deployment has no password to reset, so we 404 these endpoints
+ * rather than expose a misleading "no account with that email" response. The
+ * frontend already hides the "forgot password" link when passwords are off,
+ * but defence-in-depth lives here.
+ */
 
 // ---------------------------------------------------------------------------
 // POST /forgot-password — request a password reset
@@ -40,12 +49,18 @@ const forgotPasswordRoute = createRoute({
       description: 'If an account with this email exists, a password reset link has been sent.',
     },
     400: errorResponse('Invalid request'),
+    404: errorResponse('Password login is disabled on this server'),
   },
 });
 
 passwordResetRoutes.openapi(forgotPasswordRoute, async (c) => {
   const db = c.get('db');
   const { email } = c.req.valid('json');
+
+  // Defence-in-depth gate: see file-level comment.
+  if (!(await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED'))) {
+    return c.json({ error: 'Password login is disabled on this server' }, 404);
+  }
 
   // Always return the same response regardless of outcome (prevent enumeration)
   await passwordResetService.requestReset(db, email);
@@ -96,12 +111,18 @@ const resetPasswordRoute = createRoute({
       description: 'Password has been reset successfully',
     },
     400: errorResponse('Invalid or expired reset token'),
+    404: errorResponse('Password login is disabled on this server'),
   },
 });
 
 passwordResetRoutes.openapi(resetPasswordRoute, async (c) => {
   const db = c.get('db');
   const { token, newPassword } = c.req.valid('json');
+
+  // Defence-in-depth gate: see file-level comment.
+  if (!(await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED'))) {
+    return c.json({ error: 'Password login is disabled on this server' }, 404);
+  }
 
   // Validate password against configured policy
   const passwordPolicy = await getPasswordPolicy(db);

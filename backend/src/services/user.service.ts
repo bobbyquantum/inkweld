@@ -64,7 +64,12 @@ class UserService {
     data: {
       username: string;
       email: string;
-      password: string;
+      /**
+       * Plaintext password to hash. Optional: passwordless registrations
+       * (PASSWORD_LOGIN_ENABLED=false) create a user with a NULL password
+       * column and rely on a passkey being enrolled in the same flow.
+       */
+      password?: string;
       name?: string;
     },
     options?: {
@@ -72,7 +77,7 @@ class UserService {
       autoApprove?: boolean;
     }
   ): Promise<User> {
-    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+    const hashedPassword = data.password ? await bcrypt.hash(data.password, SALT_ROUNDS) : null;
 
     // Use explicit autoApprove option if provided, otherwise check database config
     // configService reads from database first, then environment, then defaults

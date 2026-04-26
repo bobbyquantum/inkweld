@@ -3,7 +3,12 @@ import { getDatabase } from '../src/db/index';
 import { users, projects, publishedFiles } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
 import { getStorageService } from '../src/services/storage.service';
 
@@ -15,6 +20,8 @@ describe('Share Routes', () => {
 
   beforeAll(async () => {
     const server = await startTestServer();
+    // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+    await enablePasswordLoginForTests();
     baseUrl = server.baseUrl;
 
     const db = getDatabase();

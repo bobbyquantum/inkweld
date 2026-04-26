@@ -91,6 +91,19 @@ export default async function globalSetup(): Promise<void> {
     // Enable AI image generation for e2e testing
     '-e',
     'AI_IMAGE_ENABLED=true',
+    // Existing e2e suite assumes classic password login is on. Production
+    // images now default to PASSWORD_LOGIN_ENABLED=false (passwordless-first
+    // per NIST SP 800-63B Rev. 4) so the test container has to opt back in.
+    // The dedicated `passwordless.spec.ts` flips this off via the admin
+    // settings UI rather than rebuilding the container.
+    '-e',
+    'PASSWORD_LOGIN_ENABLED=true',
+    // Enable email-based passkey recovery so the recovery e2e tests can hit
+    // the request endpoint. They don't actually consume the magic link
+    // (the token is hashed at rest and SMTP isn't configured); the redeem
+    // flow is covered by unit tests + the backend integration tests.
+    '-e',
+    'EMAIL_RECOVERY_ENABLED=true',
     'inkweld-inkweld',
   ];
 

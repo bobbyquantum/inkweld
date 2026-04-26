@@ -1,0 +1,105 @@
+<div
+  class="recover-passkey-container"
+  data-testid="recover-passkey-redeem-page">
+  <mat-card class="recover-passkey-card">
+    <mat-card-content>
+      @if (noToken()) {
+        <div class="error-container" data-testid="redeem-no-token">
+          <mat-icon class="error-icon-large">link_off</mat-icon>
+          <h2>Invalid Recovery Link</h2>
+          <p>
+            This page requires a valid recovery token. Please use the link from
+            your recovery email, or
+            <a routerLink="/recover-passkey">request a new one</a>.
+          </p>
+        </div>
+      } @else if (browserUnsupported()) {
+        <div class="error-container" data-testid="redeem-unsupported">
+          <mat-icon class="error-icon-large">block</mat-icon>
+          <h2>Browser Not Supported</h2>
+          <p>
+            Your browser does not support passkeys (WebAuthn). Please open this
+            link in a modern browser (Chrome, Edge, Safari, or Firefox) on a
+            device with biometrics or a hardware security key.
+          </p>
+        </div>
+      } @else if (success()) {
+        <div class="success-container" data-testid="redeem-success">
+          <mat-icon class="success-icon">check_circle</mat-icon>
+          <h2>Passkey Enrolled</h2>
+          <p>
+            Your new passkey has been added to your account. Your existing
+            passkeys (if any) are still active.
+          </p>
+          <p class="hint">
+            For your security, you'll need to sign in with your new passkey to
+            continue.
+          </p>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="goToLogin()"
+            class="submit-button"
+            data-testid="redeem-go-login">
+            Sign In With Your Passkey
+          </button>
+        </div>
+      } @else {
+        <div class="card-header">
+          <mat-icon class="header-icon">fingerprint</mat-icon>
+          <h2>Set Up Your New Passkey</h2>
+          <p class="subtitle">
+            We'll create a new passkey on this device. Your existing passkeys
+            (if any) will remain active.
+          </p>
+        </div>
+
+        <form (ngSubmit)="onSubmit()" data-testid="redeem-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Passkey Name</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="passkeyName"
+              name="passkeyName"
+              maxlength="64"
+              data-testid="redeem-name-input"
+              aria-label="Passkey name" />
+            <mat-hint
+              >A label to help you identify this passkey later.</mat-hint
+            >
+          </mat-form-field>
+
+          @if (error()) {
+            <div
+              class="error-message"
+              data-testid="redeem-error"
+              role="alert"
+              aria-live="assertive">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ error() }}</span>
+            </div>
+          }
+
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="isSubmitting()"
+            class="submit-button"
+            data-testid="redeem-submit-button">
+            @if (isSubmitting()) {
+              <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+            } @else {
+              Create Passkey
+            }
+          </button>
+        </form>
+      }
+
+      <div class="back-link">
+        <a routerLink="/" data-testid="back-to-home">Back to home</a>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

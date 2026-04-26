@@ -10,7 +10,12 @@ import { users } from '../src/db/schema/index';
 import { config as configTable } from '../src/db/schema/config';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 import { TEST_API_KEYS, TEST_PASSWORDS } from './test-credentials';
 
 describe('AI Providers Routes', () => {
@@ -26,6 +31,8 @@ describe('AI Providers Routes', () => {
   beforeAll(async () => {
     // Start test server
     const { baseUrl } = await startTestServer();
+    // Legacy password-flow tests: opt in to PASSWORD_LOGIN_ENABLED.
+    await enablePasswordLoginForTests();
     adminClient = new TestClient(baseUrl);
     userClient = new TestClient(baseUrl);
     unauthClient = new TestClient(baseUrl);

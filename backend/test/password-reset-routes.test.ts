@@ -3,7 +3,12 @@ import { getDatabase } from '../src/db/index';
 import { users } from '../src/db/schema';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  startTestServer,
+  stopTestServer,
+  TestClient,
+  enablePasswordLoginForTests,
+} from './server-test-helper';
 
 describe('Password Reset Routes', () => {
   let client: TestClient;
@@ -13,6 +18,8 @@ describe('Password Reset Routes', () => {
 
   beforeAll(async () => {
     const { baseUrl } = await startTestServer();
+    // Password-reset endpoints are gated on PASSWORD_LOGIN_ENABLED.
+    await enablePasswordLoginForTests();
     client = new TestClient(baseUrl);
     adminClient = new TestClient(baseUrl);
 

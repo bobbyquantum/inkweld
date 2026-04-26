@@ -188,6 +188,34 @@ export const config = {
     certPath: process.env.TLS_CERT_PATH || './certs/cert.pem',
     keyPath: process.env.TLS_KEY_PATH || './certs/key.pem',
   },
+
+  // WebAuthn / passkeys
+  // RP ID must match the effective domain users see in their browser (no scheme/port).
+  // For local development this defaults to 'localhost'.
+  // RP name is shown to users in the browser passkey UI.
+  //
+  // ⚠️  Production warning: once any user registers a passkey against an RP ID,
+  // that ID is effectively immutable — changing it later invalidates every
+  // previously registered credential. Always set WEBAUTHN_RP_ID explicitly
+  // in production. We log a loud warning if the default is used in production.
+  webauthn: {
+    // Production refuses to start without WEBAUTHN_RP_ID because the value is
+    // baked into every passkey registration: changing it later invalidates
+    // every previously registered credential.
+    // On Cloudflare Workers, secrets only flow through `c.env`, so we skip
+    // this check and let runtime validation in `rpFromContext` handle it.
+    rpId: (() => {
+      const rpId = process.env.WEBAUTHN_RP_ID;
+      if (!isCloudflareWorkers && process.env.NODE_ENV === 'production' && !rpId) {
+        throw new Error(
+          'WEBAUTHN_RP_ID must be set in production. It cannot be changed ' +
+            'after users register passkeys without invalidating their credentials.'
+        );
+      }
+      return rpId || 'localhost';
+    })(),
+    rpName: process.env.WEBAUTHN_RP_NAME || 'Inkweld',
+  },
 } as const;
 
 export type Config = typeof config;

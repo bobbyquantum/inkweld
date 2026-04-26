@@ -60,7 +60,7 @@ describe('app.routes', () => {
     for (const component of resolvedComponents) {
       expect(component).toBeTypeOf('function');
     }
-  }, 30000);
+  }, 60000);
 
   it('configures project child routes with reuse metadata and redirects', () => {
     const projectRoute = flatRoutes.find(

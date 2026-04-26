@@ -82,6 +82,25 @@ const SystemFeaturesSchema = z
       .openapi({
         description: 'Password policy configuration for registration and password reset',
       }),
+    passkeysEnabled: z.boolean().openapi({
+      example: true,
+      description:
+        'Whether passkey (WebAuthn) authentication is enabled. When false, all passkey endpoints return 403.',
+    }),
+    passwordLoginEnabled: z.boolean().openapi({
+      example: false,
+      description:
+        'Whether username/password authentication is enabled. When false the app is fully ' +
+        'passwordless: /login, /forgot-password, /reset-password and registration password ' +
+        'fields are all disabled. The frontend uses this to hide password UI entirely.',
+    }),
+    emailRecoveryEnabled: z.boolean().openapi({
+      example: false,
+      description:
+        'Whether email-based recovery is enabled. When passwords are off, this controls the ' +
+        'magic-link passkey-enrolment recovery flow. When passwords are on, this gates the ' +
+        'forgot-password reset email.',
+    }),
   })
   .openapi('SystemFeatures');
 
@@ -181,6 +200,15 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // Load password policy
   const passwordPolicy = await getPasswordPolicy(db);
 
+  // Check if passkeys (WebAuthn) are enabled
+  const passkeysEnabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
+
+  // Whether password login + email-recovery flows are available. These two
+  // flags drive the "passwordless mode" UX in the frontend (see login dialog
+  // + registration form + admin Password-Policy section visibility).
+  const passwordLoginEnabled = await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED');
+  const emailRecoveryEnabled = await configService.getBoolean(db, 'EMAIL_RECOVERY_ENABLED');
+
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -192,6 +220,9 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     emailEnabled,
     requireEmail,
     passwordPolicy,
+    passkeysEnabled,
+    passwordLoginEnabled,
+    emailRecoveryEnabled,
   });
 });
 
