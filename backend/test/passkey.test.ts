@@ -324,6 +324,38 @@ describe('PasskeyService – startAuthentication', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PasskeyService – parseTransports error path (invalid JSON in DB)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('PasskeyService – parseTransports error handling', () => {
+  it('handles invalid transports JSON gracefully during startRegistration', async () => {
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)).limit(1))[0];
+
+    // Insert a passkey with malformed transports JSON
+    await db.insert(userPasskeys).values({
+      userId: USER_ID,
+      credentialId: `cred-bad-json-${crypto.randomUUID()}`,
+      publicKey: 'dGVzdA',
+      counter: 0,
+      transports: '{invalid json}', // will trigger JSON.parse error
+      aaguid: null,
+      deviceType: 'singleDevice',
+      backedUp: false,
+      name: null,
+    });
+
+    // startRegistration reads credentials and tries to parse transports.
+    // The catch block in parseTransports should handle the JSON error gracefully.
+    const opts = await passkeyService.startRegistration(db, user, RP);
+    expect(opts).toHaveProperty('challenge');
+    expect(opts.excludeCredentials).toHaveLength(1);
+    // The credential should still appear in excludeCredentials (transports = undefined)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(opts.excludeCredentials![0].transports).toBeUndefined();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PasskeyService – finishRegistration / finishAuthentication error paths
 // (we can't forge a real credential, but we can test all the early-exit paths)
 // ═══════════════════════════════════════════════════════════════════════════
