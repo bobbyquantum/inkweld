@@ -7,6 +7,7 @@
 
 import { eq, and, desc } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import {
   projectCollaborators,
   type ProjectCollaborator,
@@ -26,13 +27,20 @@ import { NotFoundError, BadRequestError } from '../errors';
 /**
  * Collaborator with user details
  */
-export interface CollaboratorWithUser extends ProjectCollaborator {
+export interface CollaboratorWithUser {
+  projectId: string;
+  userId: string;
+  role: CollaboratorRole;
+  status: InvitationStatus;
+  invitedBy: string | null;
+  invitedAt: number;
+  acceptedAt: number | null;
+  collaboratorType: CollaboratorType;
+  mcpSessionId: string | null;
   username: string;
   name: string | null;
   email: string | null;
   invitedByUsername: string | null;
-  /** 'user' for human collaborators, 'oauth_app' for AI/MCP apps */
-  collaboratorType: CollaboratorType;
   /** OAuth client name (only set for oauth_app type) */
   clientName: string | null;
 }
@@ -54,8 +62,7 @@ class CollaborationService {
    * Get all collaborators for a project
    */
   async getCollaborators(db: DatabaseInstance, projectId: string): Promise<CollaboratorWithUser[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
+    const results = await (db as D1DatabaseInstance)
       .select({
         projectId: projectCollaborators.projectId,
         userId: projectCollaborators.userId,
@@ -75,17 +82,14 @@ class CollaborationService {
       .where(eq(projectCollaborators.projectId, projectId))
       .orderBy(desc(projectCollaborators.invitedAt));
 
-    // Get OAuth client names for oauth_app entries
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sessionIds: string[] = (results as any[])
+    const sessionIds = results
       .filter((r) => r.mcpSessionId !== null)
       .map((r) => r.mcpSessionId as string)
       .filter((id, index, arr) => arr.indexOf(id) === index);
 
     const clientNameMap = new Map<string, string>();
     for (const sessionId of sessionIds) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const [sessionWithClient] = await (db as any)
+      const [sessionWithClient] = await (db as D1DatabaseInstance)
         .select({
           clientName: mcpOAuthClients.clientName,
         })
@@ -98,9 +102,7 @@ class CollaborationService {
       }
     }
 
-    // Get inviter usernames in a second query
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const inviterIds: string[] = (results as any[])
+    const inviterIds = results
       .filter((r) => r.invitedBy !== null)
       .map((r) => r.invitedBy as string)
       .filter((id, index, arr) => arr.indexOf(id) === index);
@@ -115,20 +117,20 @@ class CollaborationService {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return results.map((r: any) => ({
-      projectId: r.projectId as string,
-      userId: r.userId as string,
+    return results.map((r) => ({
+      projectId: r.projectId,
+      userId: r.userId,
       role: r.role as CollaboratorRole,
       status: r.status as InvitationStatus,
-      invitedBy: r.invitedBy as string | null,
-      invitedAt: r.invitedAt as number,
-      acceptedAt: r.acceptedAt as number | null,
-      username: r.username as string,
-      name: r.name as string | null,
-      email: r.email as string | null,
-      invitedByUsername: r.invitedBy ? (inviterMap.get(r.invitedBy) ?? null) : null,
+      invitedBy: r.invitedBy,
+      invitedAt: r.invitedAt,
+      acceptedAt: r.acceptedAt,
       collaboratorType: (r.collaboratorType as CollaboratorType) ?? 'user',
+      mcpSessionId: r.mcpSessionId,
+      username: r.username ?? '',
+      name: r.name,
+      email: r.email,
+      invitedByUsername: r.invitedBy ? (inviterMap.get(r.invitedBy) ?? null) : null,
       clientName: r.mcpSessionId ? (clientNameMap.get(r.mcpSessionId) ?? null) : null,
     }));
   }
@@ -331,8 +333,7 @@ class CollaborationService {
       invitedByUsername: string | null;
     }>
   > {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
+    const results = await (db as D1DatabaseInstance)
       .select({
         projectId: projectCollaborators.projectId,
         role: projectCollaborators.role,
@@ -351,8 +352,7 @@ class CollaborationService {
 
     // Get owner and inviter usernames
     const userIds = new Set<string>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    results.forEach((r: any) => {
+    results.forEach((r) => {
       if (r.ownerId) userIds.add(r.ownerId);
       if (r.invitedBy) userIds.add(r.invitedBy);
     });
@@ -361,18 +361,17 @@ class CollaborationService {
     for (const uid of userIds) {
       const user = await userService.findById(db, uid);
       if (user?.username) {
-        usernameMap.set(uid, user.username);
+        usernameMap.set(uid, user.username as string);
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return results.map((r: any) => ({
-      projectId: r.projectId as string,
-      projectTitle: r.projectTitle as string,
-      projectSlug: r.projectSlug as string,
-      ownerUsername: usernameMap.get(r.ownerId) ?? 'unknown',
+    return results.map((r) => ({
+      projectId: r.projectId,
+      projectTitle: r.projectTitle ?? '',
+      projectSlug: r.projectSlug ?? '',
+      ownerUsername: usernameMap.get(r.ownerId ?? '') ?? 'unknown',
       role: r.role as CollaboratorRole,
-      invitedAt: r.invitedAt as number,
+      invitedAt: r.invitedAt,
       invitedByUsername: r.invitedBy ? (usernameMap.get(r.invitedBy) ?? null) : null,
     }));
   }
@@ -393,8 +392,7 @@ class CollaborationService {
       acceptedAt: number;
     }>
   > {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results = await (db as any)
+    const results = await (db as D1DatabaseInstance)
       .select({
         projectId: projectCollaborators.projectId,
         role: projectCollaborators.role,
@@ -415,14 +413,13 @@ class CollaborationService {
     // When a user grants an MCP agent access to their own project, the
     // collaborator entry has userId = the granting user (i.e. the owner).
     // Without this filter, the project appears as both owned AND collaborated.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filtered = (results as any[]).filter(
+    const filtered = results.filter(
       (r) => r.collaboratorType !== 'oauth_app' || r.ownerId !== userId
     );
 
     // Get owner usernames
 
-    const ownerIds: string[] = filtered
+    const ownerIds = filtered
       .filter((r) => r.ownerId !== null)
       .map((r) => r.ownerId as string)
       .filter((id, index, arr) => arr.indexOf(id) === index);
@@ -435,14 +432,13 @@ class CollaborationService {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return filtered.map((r: any) => ({
-      projectId: r.projectId as string,
-      projectTitle: r.projectTitle as string,
-      projectSlug: r.projectSlug as string,
-      ownerUsername: usernameMap.get(r.ownerId) ?? 'unknown',
+    return filtered.map((r) => ({
+      projectId: r.projectId,
+      projectTitle: r.projectTitle ?? '',
+      projectSlug: r.projectSlug ?? '',
+      ownerUsername: usernameMap.get(r.ownerId ?? '') ?? 'unknown',
       role: r.role as CollaboratorRole,
-      acceptedAt: r.acceptedAt as number,
+      acceptedAt: r.acceptedAt ?? 0,
     }));
   }
 

@@ -245,8 +245,7 @@ async function acquireFromGenerate(
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isAvailable = await imageGenerationService.isAvailable(db as any);
+  const isAvailable = await imageGenerationService.isAvailable(db as DatabaseInstance);
   if (!isAvailable) {
     return {
       error: {
@@ -285,8 +284,7 @@ async function acquireFromGenerate(
     options: profile.modelConfig || undefined,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const genResult = await imageGenerationService.generate(db as any, request);
+  const genResult = await imageGenerationService.generate(db as DatabaseInstance, request);
 
   if (!genResult.data || genResult.data.length === 0) {
     return {
