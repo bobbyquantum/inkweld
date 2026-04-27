@@ -445,10 +445,3 @@ export class YjsWorkerService {
     };
   }
 }
-
-/**
- * Factory function to create the appropriate Yjs service based on runtime
- */
-export function createYjsWorkerService(ctx: YjsWorkerContext): YjsWorkerService {
-  return new YjsWorkerService(ctx);
-}

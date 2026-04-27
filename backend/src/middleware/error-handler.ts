@@ -17,7 +17,6 @@ export const errorHandler: ErrorHandler = (err, c) => {
     err.name === 'ForbiddenError' ||
     err.name === 'NotFoundError' ||
     err.name === 'BadRequestError' ||
-    err.name === 'ValidationError' ||
     (err instanceof HTTPException && err.status < 500);
 
   if (isExpectedError) {
@@ -46,17 +45,6 @@ export const errorHandler: ErrorHandler = (err, c) => {
       {
         error: 'Bad Request',
         message: err.message || 'Invalid request',
-      },
-      400
-    );
-  }
-
-  if (err.name === 'ValidationError') {
-    return c.json(
-      {
-        error: 'Validation Error',
-        message: err.message,
-        details: err.cause,
       },
       400
     );

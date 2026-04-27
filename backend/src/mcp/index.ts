@@ -7,12 +7,7 @@
 // Core exports
 export * from './mcp.types';
 export * from './mcp.auth';
-export {
-  handleMcpRequest,
-  registerResourceHandler,
-  registerTool,
-  registerPrompt,
-} from './mcp.handler';
+export { handleMcpRequest, registerResourceHandler, registerTool } from './mcp.handler';
 
 // Register resources (side effects - they self-register)
 // Only projects are listed as resources - tools handle the rest
