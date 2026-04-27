@@ -125,9 +125,8 @@ class ImageGenerationService {
 
   private async loadCustomModels(
     db: DatabaseInstance,
-    configKey: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    provider: { setModels(models: any[]): void },
+    configKey: ConfigKey,
+    provider: { setModels(models: unknown[]): void },
     label: string
   ): Promise<void> {
     const modelsJson = await this.getConfigValue(db, configKey);
@@ -146,11 +145,9 @@ class ImageGenerationService {
   /**
    * Get a config value (empty string if not set)
    */
-  private async getConfigValue(db: DatabaseInstance, key: string): Promise<string | undefined> {
+  private async getConfigValue(db: DatabaseInstance, key: ConfigKey): Promise<string | undefined> {
     try {
-      // Use type assertion since we're accessing keys dynamically
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic config key access
-      const configValue = await configService.get(db, key as any);
+      const configValue = await configService.get(db, key);
       return configValue.value || undefined;
     } catch {
       return undefined;
@@ -256,8 +253,7 @@ class ImageGenerationService {
         const result = await provider.generate(request);
         yield { type: 'completed', result };
       } catch (error: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-        const err = error as any;
+        const err = error instanceof Error ? error : new Error(String(error));
         yield { type: 'error', error: err.message || 'Image generation failed' };
       }
     }

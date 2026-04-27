@@ -14,6 +14,7 @@
 import { eq, and, not, isNull, or, lt } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import {
   mcpOAuthClients,
   type McpOAuthClient,
@@ -866,8 +867,7 @@ class McpOAuthService {
    * Check if an OAuth session has been revoked
    */
   async isSessionRevoked(db: DatabaseInstance, sessionId: string): Promise<boolean> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DatabaseInstance type doesn't support partial select
-    const [session] = await (db as any)
+    const [session] = await (db as D1DatabaseInstance)
       .select({ revokedAt: mcpOAuthSessions.revokedAt })
       .from(mcpOAuthSessions)
       .where(eq(mcpOAuthSessions.id, sessionId))
@@ -913,8 +913,7 @@ class McpOAuthService {
       permissions: string[];
     }>
   > {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    const collaborators = await (db as any)
+    const collaborators = await (db as D1DatabaseInstance)
       .select({
         projectId: projectCollaborators.projectId,
         role: projectCollaborators.role,
@@ -926,8 +925,7 @@ class McpOAuthService {
       .innerJoin(users, eq(projects.userId, users.id))
       .where(eq(projectCollaborators.mcpSessionId, sessionId));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return collaborators.map((c: any) => ({
+    return collaborators.map((c) => ({
       projectId: c.projectId,
       projectSlug: c.projectSlug,
       ownerUsername: c.ownerUsername || '',
@@ -1023,8 +1021,7 @@ class McpOAuthService {
    * Get all active OAuth sessions for a user (for Connected Apps UI)
    */
   async getUserSessions(db: DatabaseInstance, userId: string): Promise<PublicOAuthSession[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    const sessions = await (db as any)
+    const sessions = await (db as D1DatabaseInstance)
       .select({
         id: mcpOAuthSessions.id,
         clientId: mcpOAuthSessions.clientId,
@@ -1039,8 +1036,7 @@ class McpOAuthService {
 
     // Count projects for each session
     const result: PublicOAuthSession[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const session of sessions as any[]) {
+    for (const session of sessions) {
       const grants = await this.getSessionGrants(db, session.id);
       result.push({
         id: session.id,
@@ -1074,8 +1070,7 @@ class McpOAuthService {
       role: CollaboratorRole;
     }>;
   } | null> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    const sessions = await (db as any)
+    const sessions = await (db as D1DatabaseInstance)
       .select({
         id: mcpOAuthSessions.id,
         clientId: mcpOAuthSessions.clientId,
@@ -1098,8 +1093,7 @@ class McpOAuthService {
     const session = sessions[0];
     if (!session) return null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle join result type is complex
-    const grants = await (db as any)
+    const grants = await (db as D1DatabaseInstance)
       .select({
         projectId: projectCollaborators.projectId,
         projectTitle: projects.title,
@@ -1124,8 +1118,7 @@ class McpOAuthService {
         lastUsedAt: session.lastUsedAt,
         projectCount: grantsWithCount.length,
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      grants: (grants as any[]).map((g) => ({
+      grants: grants.map((g) => ({
         projectId: g.projectId,
         projectTitle: g.projectTitle,
         projectSlug: g.projectSlug,
