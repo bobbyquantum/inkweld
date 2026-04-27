@@ -330,7 +330,6 @@
             <!-- All Projects Section (owned + shared) -->
             @if (allProjects().length === 0 && !searchControl.value) {
               <div class="empty-state" data-testid="empty-state">
-                <mat-icon class="empty-icon">add_circle_outline</mat-icon>
                 <h2>Create Your First Project</h2>
                 <p>Get started by creating a new project or importing one</p>
                 <div class="empty-state-actions">
@@ -344,7 +343,6 @@
                     mat-button
                     data-testid="import-first-project-button"
                     (click)="importProject()">
-                    <mat-icon>upload_file</mat-icon>
                     Import Project
                   </button>
                 </div>
