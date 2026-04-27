@@ -102,6 +102,4 @@ describe('Error classes', () => {
       expect(error).toBeInstanceOf(Error);
     });
   });
-
-
 });
