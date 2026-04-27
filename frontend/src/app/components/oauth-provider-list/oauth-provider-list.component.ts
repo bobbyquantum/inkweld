@@ -16,6 +16,7 @@ import { AuthenticationService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { LoggerService } from '../../services/core/logger.service';
 
 @Component({
   selector: 'app-oauth-provider-list',
@@ -27,6 +28,7 @@ export class OAuthProviderListComponent implements OnInit {
   private readonly AuthenticationService = inject(AuthenticationService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly ngZone = inject(NgZone);
+  private readonly logger = inject(LoggerService);
 
   /**
    * Whether this component is being used in the register context.
@@ -70,7 +72,7 @@ export class OAuthProviderListComponent implements OnInit {
   }
 
   signInWithProvider(provider: string): void {
-    console.log(`Sign in with ${provider} clicked`);
+    this.logger.debug('OAuthProviderList', `Sign in with ${provider} clicked`);
     this.ngZone.runOutsideAngular(() => {
       let apiUrl = '';
       if (environment?.apiUrl) {

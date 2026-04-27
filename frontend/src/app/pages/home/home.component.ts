@@ -39,6 +39,7 @@ import {
   type PendingInvitation,
 } from '@inkweld/model/models';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
@@ -87,6 +88,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly syncQueueService = inject(SyncQueueService);
   private readonly coverSyncService = inject(CoverSyncService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly logger = inject(LoggerService);
   readonly activationService = inject(ProjectActivationService);
 
   // Component state
@@ -518,14 +520,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   selectProject(project: Project) {
-    console.log('[HomeComponent] selectProject called with:', {
-      project: {
-        username: project.username,
-        slug: project.slug,
-        title: project.title,
-      },
-    });
-
     void this.router.navigate([project.username || '', project.slug || ''], {
       onSameUrlNavigation: 'reload',
       skipLocationChange: false,

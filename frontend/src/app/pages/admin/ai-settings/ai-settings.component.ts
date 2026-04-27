@@ -40,6 +40,7 @@ import {
 } from 'api-client';
 import { firstValueFrom } from 'rxjs';
 
+import { LoggerService } from '../../../services/core/logger.service';
 import { ImageProfileDialogComponent } from '../image-profiles/image-profile-dialog/image-profile-dialog.component';
 
 interface ProviderConfig {
@@ -106,6 +107,7 @@ export class AdminAiSettingsComponent implements OnInit {
   private readonly profilesService = inject(AdminImageProfilesService);
   private readonly dialog = inject(MatDialog);
   private readonly systemConfigService = inject(SystemConfigService);
+  private readonly logger = inject(LoggerService);
 
   // AI Kill Switch state from system config
   readonly isAiKillSwitchEnabled =
@@ -394,10 +396,6 @@ export class AdminAiSettingsComponent implements OnInit {
         this.imageService.getDefaultTextToImageModels()
       );
       this.defaultModelsCache.set(response);
-      console.log(
-        '[AI Settings] Loaded default models from backend:',
-        response.providers
-      );
     } catch (err) {
       console.error('Failed to fetch default models from backend:', err);
       // Continue with empty cache - parseModelsConfig will return empty arrays

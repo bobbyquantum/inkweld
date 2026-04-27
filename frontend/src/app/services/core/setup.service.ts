@@ -3,6 +3,7 @@ import { type User } from '@inkweld/index';
 
 import { environment } from '../../../environments/environment';
 import { stripTrailingSlashes } from '../../utils/string-utils';
+import { LoggerService } from './logger.service';
 import {
   LOCAL_CONFIG_ID,
   type ServerConfig,
@@ -35,6 +36,7 @@ export interface AppConfig {
 })
 export class SetupService {
   private readonly storageContext = inject(StorageContextService);
+  private readonly logger = inject(LoggerService);
 
   /** Whether the app is configured (has at least one config) */
   readonly isConfigured = computed(() => this.storageContext.isConfigured());
@@ -91,8 +93,9 @@ export class SetupService {
       activeConfig?.type !== 'server' ||
       activeConfig?.serverUrl !== preConfiguredUrl
     ) {
-      console.log(
-        '[SetupService] Auto-configuring for hosted deployment:',
+      this.logger.debug(
+        'SetupService',
+        'Auto-configuring for hosted deployment:',
         preConfiguredUrl
       );
 

@@ -27,6 +27,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ElementType } from '../../../api-client';
+import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 
@@ -86,6 +87,7 @@ export class NewElementDialogComponent {
   private readonly data = inject<NewElementDialogData | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
+  private readonly logger = inject(LoggerService);
 
   // Step control
   currentStep = signal<1 | 2>(1);
@@ -198,14 +200,8 @@ export class NewElementDialogComponent {
   /**
    * Load worldbuilding element types from project's schema library
    */
-  private loadWorldbuildingTypes(username: string, slug: string): void {
+  private loadWorldbuildingTypes(_username: string, _slug: string): void {
     try {
-      console.log(
-        '[NewElementDialog] Loading worldbuilding types for',
-        username,
-        slug
-      );
-
       // Get all schemas as plain objects
       const schemas = this.worldbuildingService.getAllSchemas();
 
@@ -214,7 +210,6 @@ export class NewElementDialogComponent {
         return;
       }
 
-      console.log('[NewElementDialog] Found schemas:', schemas.length);
       this.buildWorldbuildingOptions(schemas);
     } catch (error) {
       console.error('[NewElementDialog] Error loading schemas:', error);
@@ -230,8 +225,6 @@ export class NewElementDialogComponent {
     const worldbuildingOptions: ElementTypeOption[] = [];
 
     for (const schema of schemas) {
-      console.log('[NewElementDialog] Found schema:', schema);
-
       worldbuildingOptions.push({
         type: ElementType.Worldbuilding,
         schemaId: schema.id,
@@ -242,11 +235,6 @@ export class NewElementDialogComponent {
       });
     }
 
-    console.log(
-      '[NewElementDialog] Built worldbuilding options:',
-      worldbuildingOptions
-    );
-
     // Update options with both document types and loaded worldbuilding types
     // Use the constant documentTypes instead of reading the signal to avoid
     // creating a dependency in the calling effect
@@ -254,10 +242,6 @@ export class NewElementDialogComponent {
       ...this.documentTypes,
       ...worldbuildingOptions,
     ]);
-
-    console.log(
-      `[NewElementDialog] Loaded ${worldbuildingOptions.length} worldbuilding types from schema library`
-    );
   }
 
   onCancel = (): void => {

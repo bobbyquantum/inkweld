@@ -11,6 +11,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { type Subscription } from 'rxjs';
 
 import { FolderElementEditorComponent } from '../../../../components/folder-element-editor/folder-element-editor.component';
+import { LoggerService } from '../../../../services/core/logger.service';
 
 @Component({
   selector: 'app-folder-tab',
@@ -29,18 +30,12 @@ export class FolderTabComponent implements OnInit, OnDestroy {
   protected readonly documentService = inject(DocumentService);
   protected readonly route = inject(ActivatedRoute);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly logger = inject(LoggerService);
 
   ngOnInit(): void {
     // Subscribe to route param changes instead of using snapshot
     this.paramSubscription = this.route.paramMap.subscribe(params => {
       const newElementId = params.get('tabId') || '';
-
-      console.log(
-        `[FolderTab] Folder ID from route params: ${newElementId}` +
-          (this.elementId === newElementId
-            ? ''
-            : ' (changed from ' + this.elementId + ')')
-      );
 
       // Update element ID
       this.elementId = newElementId;
@@ -62,8 +57,9 @@ export class FolderTabComponent implements OnInit, OnDestroy {
 
     // Log destruction
     if (this.elementId) {
-      console.log(
-        `[FolderTab] Destroying component for folder ID: ${this.elementId}`
+      this.logger.debug(
+        'FolderTab',
+        `Destroying component for folder ID: ${this.elementId}`
       );
     }
   }
@@ -90,7 +86,10 @@ export class FolderTabComponent implements OnInit, OnDestroy {
       this.elementId.includes(':') &&
       this.elementId.split(':').length === 3
     ) {
-      console.log(`[FolderTab] ID already fully formatted: ${this.elementId}`);
+      this.logger.debug(
+        'FolderTab',
+        `ID already fully formatted: ${this.elementId}`
+      );
       return this.elementId;
     }
 
@@ -103,7 +102,7 @@ export class FolderTabComponent implements OnInit, OnDestroy {
     }
 
     const fullId = `${project.username}:${project.slug}:${this.elementId}`;
-    console.log(`[FolderTab] Built full element ID: ${fullId}`);
+    this.logger.debug('FolderTab', `Built full element ID: ${fullId}`);
     return fullId;
   }
 }

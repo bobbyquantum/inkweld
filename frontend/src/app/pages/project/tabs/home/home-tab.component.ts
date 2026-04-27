@@ -18,6 +18,7 @@ import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
+import { LoggerService } from '../../../../services/core/logger.service';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { base64ToBlob } from '../../../../utils/base64-utils';
 
@@ -45,6 +46,7 @@ export class HomeTabComponent {
   protected readonly snackBar = inject(MatSnackBar);
   // Router for navigation
   protected readonly router = inject(Router);
+  private readonly logger = inject(LoggerService);
 
   protected readonly hasCover = computed(() => {
     const project = this.projectState.project();
@@ -137,7 +139,12 @@ export class HomeTabComponent {
     slug: string,
     imageData: string
   ): void {
-    console.log('Saving cover image for project:', username, slug);
+    this.logger.debug(
+      'HomeTab',
+      'Saving cover image for project:',
+      username,
+      slug
+    );
 
     // Convert base64 to Blob
     const imageBlob = base64ToBlob(imageData);
@@ -146,7 +153,7 @@ export class HomeTabComponent {
     this.projectService
       .uploadProjectCover(username, slug, imageBlob)
       .then(async () => {
-        console.log('Cover image uploaded successfully');
+        this.logger.debug('HomeTab', 'Cover image uploaded successfully');
         this.snackBar.open('Cover image saved successfully', 'Close', {
           duration: 3000,
         });

@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import {
   type WorldbuildingIdentity,
@@ -65,6 +66,7 @@ export class IdentityPanelComponent implements OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly http = inject(HttpClient);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly logger = inject(LoggerService);
 
   // State
   identity = signal<WorldbuildingIdentity>({});
@@ -217,14 +219,7 @@ export class IdentityPanelComponent implements OnDestroy {
         this.username(),
         this.slug()
       );
-      console.log('[IdentityPanel] Loaded identity data:', {
-        elementId,
-        username: this.username(),
-        slug: this.slug(),
-        image: data?.image,
-        description: data?.description?.substring(0, 50),
-        data,
-      });
+
       if (data) {
         this.identity.set(data);
         this.description.set(data.description ?? '');
@@ -244,12 +239,6 @@ export class IdentityPanelComponent implements OnDestroy {
       await this.worldbuildingService.observeIdentityChanges(
         elementId,
         (data: WorldbuildingIdentity) => {
-          console.log('[IdentityPanel] Realtime sync received:', {
-            elementId,
-            image: data?.image,
-            description: data?.description?.substring(0, 50),
-            data,
-          });
           this.identity.set(data);
           // Only update description if different to avoid cursor jumps
           if (data.description !== this.description()) {

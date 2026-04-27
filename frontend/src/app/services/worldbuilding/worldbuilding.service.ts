@@ -8,6 +8,7 @@ import * as Y from 'yjs';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { createAuthenticatedWebsocketProvider } from '../sync/authenticated-websocket-provider';
@@ -45,6 +46,7 @@ export class WorldbuildingService {
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
+  private readonly logger = inject(LoggerService);
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private readonly connections = new Map<string, WorldbuildingConnection>();
@@ -184,9 +186,6 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<Y.Map<unknown>> {
-    console.log(
-      `[WorldbuildingService] createConnection START for ${elementId}`
-    );
     const ydoc = new Y.Doc();
     const dataMap = ydoc.getMap('worldbuilding');
     const identityMap = ydoc.getMap('identity');
@@ -207,11 +206,15 @@ export class WorldbuildingService {
 
     try {
       await Promise.race([syncPromise, timeoutPromise]);
-      console.log(
-        `[WorldbuildingService] IndexedDB synced for ${elementId}, dataMap size=${dataMap.size}`
+      this.logger.debug(
+        'WorldbuildingService',
+        `IndexedDB synced for ${elementId}`
       );
     } catch {
-      console.log(`[WorldbuildingService] IndexedDB timeout for ${elementId}`);
+      this.logger.debug(
+        'WorldbuildingService',
+        `IndexedDB timeout for ${elementId}`
+      );
       // Continue anyway - the document may be empty/new
     }
 
@@ -272,7 +275,7 @@ export class WorldbuildingService {
     username: string,
     slug: string,
     ydoc: Y.Doc,
-    dataMap: Y.Map<unknown>
+    _dataMap: Y.Map<unknown>
   ): Promise<WebsocketProvider | undefined> {
     const mode = this.setupService.getMode();
     const wsUrl = this.setupService.getWebSocketUrl();
@@ -300,10 +303,8 @@ export class WorldbuildingService {
         { resyncInterval: WEBSOCKET_RESYNC_INTERVAL }
       );
 
-      provider.on('sync', (isSynced: boolean) => {
-        console.log(
-          `[WorldbuildingService] WebSocket sync event for ${elementId}: synced=${isSynced}, dataMap size=${dataMap.size}`
-        );
+      provider.on('sync', (_isSynced: boolean) => {
+        // WebSocket sync event handled internally
       });
 
       return provider;
@@ -344,15 +345,8 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<Record<string, unknown> | null> {
-    console.log(
-      `[WorldbuildingService] getWorldbuildingData START for ${elementId}`
-    );
     const dataMap = await this.setupCollaboration(elementId, username, slug);
     const jsonData = dataMap.toJSON();
-    console.log(
-      `[WorldbuildingService] getWorldbuildingData END for ${elementId}, keys:`,
-      Object.keys(jsonData)
-    );
 
     return jsonData || null;
   }
@@ -373,10 +367,6 @@ export class WorldbuildingService {
 
     const observer = () => {
       const jsonData = dataMap.toJSON();
-      console.log(
-        '[WorldbuildingService] Observer fired, data keys:',
-        Object.keys(jsonData)
-      );
       callback(jsonData);
     };
 
@@ -478,12 +468,6 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<void> {
-    console.log('[WorldbuildingService] saveWorldbuildingData called:', {
-      elementId,
-      data,
-      username,
-      slug,
-    });
     const dataMap = await this.setupCollaboration(elementId, username, slug);
     const connectionKey = this.buildConnectionKey(elementId, username, slug);
     const connection = this.connections.get(connectionKey)!;
@@ -560,14 +544,16 @@ export class WorldbuildingService {
 
     // Check if already initialized (has a 'schemaId' field)
     if (dataMap.has('schemaId')) {
-      console.log(
-        `[WorldbuildingService] Element ${element.id} already initialized, skipping`
+      this.logger.debug(
+        'WorldbuildingService',
+        `Element ${element.id} already initialized, skipping`
       );
       return;
     }
 
-    console.log(
-      `[WorldbuildingService] Initializing new WORLDBUILDING element ${element.id} with schemaId=${element.schemaId}`
+    this.logger.debug(
+      'WorldbuildingService',
+      `Initializing element ${element.id}`
     );
 
     // Get the schema from the project's template library
@@ -716,17 +702,10 @@ export class WorldbuildingService {
       return null;
     }
 
-    // Log available schema IDs for debugging
-    const availableIds = schemas.map(s => s.id);
-    console.log(
-      `[SchemaLibrary] Looking for "${schemaId}" in available IDs:`,
-      availableIds
-    );
-
     const schema = schemas.find(s => s.id === schemaId);
     if (!schema) {
       console.warn(
-        `[SchemaLibrary] No schema found for ID "${schemaId}". Available: ${availableIds.join(', ')}`
+        `[SchemaLibrary] No schema found for ID "${schemaId}". Available: ${schemas.map(s => s.id).join(', ')}`
       );
       return null;
     }
