@@ -59,8 +59,7 @@ class AuthService {
   private getSecret(c: Context): string {
     // Try to get from request context first (Cloudflare Workers)
     // In Hono Workers, c.env is the raw Cloudflare env bindings object
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const env = (c as any).env;
+    const env = (c as unknown as { env: Record<string, string | undefined> }).env;
     // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
     let envSecret: string | undefined;
     if (env && typeof env.DATABASE_KEY === 'string') {

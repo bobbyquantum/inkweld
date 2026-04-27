@@ -168,8 +168,7 @@ class ProjectService {
     oldSlug: string
   ): Promise<ProjectSlugAlias | undefined> {
     // First find the user by username
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userResult = await (db as any)
+    const userResult = await (db as D1DatabaseInstance)
       .select({ id: users.id })
       .from(users)
       .where(eq(users.username, username))
@@ -270,8 +269,7 @@ class ProjectService {
     slug: string
   ): Promise<ProjectTombstone | undefined> {
     // First find the user by username
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userResult = await (db as any)
+    const userResult = await (db as D1DatabaseInstance)
       .select({ id: users.id })
       .from(users)
       .where(eq(users.username, username))
@@ -324,15 +322,14 @@ class ProjectService {
     const usernames = [...new Set(parsedKeys.map((k) => k.username))];
 
     // Look up user IDs for all usernames
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userResults = await (db as any)
+    const userResults = await (db as D1DatabaseInstance)
       .select({ id: users.id, username: users.username })
       .from(users)
       .where(inArray(users.username, usernames));
 
     const usernameToId = new Map<string, string>();
     for (const user of userResults) {
-      usernameToId.set(user.username, user.id);
+      if (user.username) usernameToId.set(user.username, user.id);
     }
 
     // For each parsed key, check if there's a tombstone

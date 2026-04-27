@@ -18,11 +18,15 @@ import {
   loadReferenceImagesFromContext,
   getElementImageUrls,
 } from '../utils/reference-image-loader';
-import type { AppContext } from '../types/context';
+import type { AppContext, DatabaseInstance } from '../types/context';
+import type { User } from '../types/context';
 import type { ImageModelProfile } from '../db/schema/image-model-profiles';
+import type { StorageService } from '../services/storage.service';
 import type {
   ImageProviderType,
   ImageSize,
+  ImageGenerateResponse,
+  ReferenceImage,
   WorldbuildingContext,
   CustomImageSize,
   ResolvedImageRequest,
@@ -339,8 +343,7 @@ interface ResolvedProfile {
 }
 
 async function resolveProfileSettings(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: any,
+  db: DatabaseInstance,
   body: ValidatedBody
 ): Promise<ResolvedProfile | { error: string }> {
   const profile = await imageProfileService.getById(db, body.profileId);
@@ -378,12 +381,10 @@ async function resolveProfileSettings(
 }
 
 async function loadReferenceImagesForRequest(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  storage: any,
+  storage: StorageService,
   body: ValidatedBody
 ): Promise<{
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  referenceImages: any[] | undefined;
+  referenceImages: ReferenceImage[] | undefined;
   referenceImageUrls: string[];
 }> {
   const worldbuildingContext = body.worldbuildingContext as WorldbuildingContext[] | undefined;
@@ -410,27 +411,20 @@ async function loadReferenceImagesForRequest(
 }
 
 async function recordGenerationAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  user: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  profile: any,
+  db: DatabaseInstance,
+  user: User | undefined,
+  profile: ImageModelProfile,
   prompt: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  result: any,
+  result: ImageGenerateResponse,
   referenceImageUrls: string[]
 ): Promise<void> {
   const isModerated = !!(
     result.textContent ||
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (result.data.length > 0 && result.data.every((d: any) => d.textContent && !d.b64Json && !d.url))
+    (result.data.length > 0 && result.data.every((d) => d.textContent && !d.b64Json && !d.url))
   );
   const outputImageUrls = result.data
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .filter((d: any) => d.url || d.b64Json)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((d: any) => d.url || `data:${d.mimeType || 'image/png'};base64,[generated-image]`);
+    .filter((d) => d.url || d.b64Json)
+    .map((d) => d.url || `data:${d.mimeType || 'image/png'};base64,[generated-image]`);
 
   try {
     await imageAuditService.create(db, {
@@ -510,8 +504,7 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
 
     return c.json(result, 200);
   } catch (error: unknown) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-    const err = error as any;
+    const err = error instanceof Error ? error : new Error(String(error));
     aiImageLog.error(' Error in generate endpoint:', err);
 
     if (err.name === 'ZodError') {
@@ -669,8 +662,7 @@ aiImageRoutes.openapi(updateCustomSizesRoute, async (c) => {
 
     return c.json({ sizes: validated.sizes }, 200);
   } catch (error: unknown) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-    const err = error as any;
+    const err = error instanceof Error ? error : new Error(String(error));
     aiImageLog.error(' Error updating custom sizes:', err);
 
     if (err.name === 'ZodError') {
@@ -773,8 +765,7 @@ aiImageRoutes.post('/generate-stream', async (c) => {
               }
             }
           } catch (err: unknown) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-            const error = err as any;
+            const error = err instanceof Error ? err : new Error(String(err));
             aiImageLog.error('Stream error:', error);
             send('error', { type: 'error', error: error.message || 'Stream failed' });
           } finally {
@@ -791,8 +782,7 @@ aiImageRoutes.post('/generate-stream', async (c) => {
       }
     );
   } catch (error: unknown) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-    const err = error as any;
+    const err = error instanceof Error ? error : new Error(String(error));
     aiImageLog.error('Error in generate-stream endpoint:', err);
 
     if (err.name === 'ZodError') {
