@@ -303,10 +303,6 @@ export class WorldbuildingService {
         { resyncInterval: WEBSOCKET_RESYNC_INTERVAL }
       );
 
-      provider.on('sync', (_isSynced: boolean) => {
-        // WebSocket sync event handled internally
-      });
-
       return provider;
     } catch (error) {
       console.error(

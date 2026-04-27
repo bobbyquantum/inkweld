@@ -13,10 +13,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthenticationService } from '@inkweld/index';
+import { LoggerService } from '@services/core/logger.service';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { LoggerService } from '../../services/core/logger.service';
 
 @Component({
   selector: 'app-oauth-provider-list',

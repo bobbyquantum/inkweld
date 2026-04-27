@@ -13,12 +13,12 @@ import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Element, ElementType } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LoggerService } from '@services/core/logger.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
-import { LoggerService } from '../../../../services/core/logger.service';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { base64ToBlob } from '../../../../utils/base64-utils';
 

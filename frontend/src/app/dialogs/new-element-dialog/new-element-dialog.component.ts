@@ -27,7 +27,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ElementType } from '../../../api-client';
-import { LoggerService } from '../../services/core/logger.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 
@@ -87,7 +86,6 @@ export class NewElementDialogComponent {
   private readonly data = inject<NewElementDialogData | null>(MAT_DIALOG_DATA, {
     optional: true,
   });
-  private readonly logger = inject(LoggerService);
 
   // Step control
   currentStep = signal<1 | 2>(1);
@@ -185,7 +183,7 @@ export class NewElementDialogComponent {
     effect(() => {
       const project = this.projectState.project();
       if (project) {
-        this.loadWorldbuildingTypes(project.username, project.slug);
+        this.loadWorldbuildingTypes();
       }
     });
 
@@ -200,7 +198,7 @@ export class NewElementDialogComponent {
   /**
    * Load worldbuilding element types from project's schema library
    */
-  private loadWorldbuildingTypes(_username: string, _slug: string): void {
+  private loadWorldbuildingTypes(): void {
     try {
       // Get all schemas as plain objects
       const schemas = this.worldbuildingService.getAllSchemas();

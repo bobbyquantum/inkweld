@@ -6,12 +6,12 @@ import {
   type OnInit,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { type Subscription } from 'rxjs';
 
 import { FolderElementEditorComponent } from '../../../../components/folder-element-editor/folder-element-editor.component';
-import { LoggerService } from '../../../../services/core/logger.service';
 
 @Component({
   selector: 'app-folder-tab',

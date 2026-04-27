@@ -27,6 +27,7 @@ import {
   RouterModule,
 } from '@angular/router';
 import { type Element, ElementType } from '@inkweld/index';
+import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import {
   type AppTab,
@@ -35,7 +36,6 @@ import {
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
-import { LoggerService } from '../../../services/core/logger.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 
 const SYSTEM_TAB_ICONS: Partial<

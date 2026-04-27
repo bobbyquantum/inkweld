@@ -96,10 +96,6 @@ export class LintStorageService {
    * Listen for custom events for accepting and rejecting suggestions
    */
   private listenForEvents(): void {
-    document.addEventListener('lint-correction-accept', (_event: Event) => {
-      // Suggestion accepted - could add analytics here
-    });
-
     document.addEventListener('lint-correction-reject', (event: Event) => {
       const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
       if (customEvent.detail) {

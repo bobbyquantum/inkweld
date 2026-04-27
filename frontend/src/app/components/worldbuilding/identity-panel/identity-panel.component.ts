@@ -17,7 +17,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import {
   type WorldbuildingIdentity,
@@ -66,7 +65,6 @@ export class IdentityPanelComponent implements OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly http = inject(HttpClient);
   private readonly localStorage = inject(LocalStorageService);
-  private readonly logger = inject(LoggerService);
 
   // State
   identity = signal<WorldbuildingIdentity>({});

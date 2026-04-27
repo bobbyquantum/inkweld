@@ -30,6 +30,7 @@ import { PresenceIndicatorComponent } from '@components/presence-indicator/prese
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -51,7 +52,6 @@ import {
   type PublishPlan,
 } from '../../models/publish-plan';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
-import { LoggerService } from '../../services/core/logger.service';
 import { ProjectSearchService } from '../../services/core/project-search.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
