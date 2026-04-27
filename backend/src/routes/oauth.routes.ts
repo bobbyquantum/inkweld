@@ -456,10 +456,11 @@ const registerClientHandler = async (c: Context<AppContext>) => {
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Shared handler requires type assertion
-oauthRoutes.openapi(registerClientRoute, registerClientHandler as any);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Shared handler requires type assertion
-oauthRoutes.openapi(registerClientAliasRoute, registerClientHandler as any);
+// Shared handler requires type assertion — OpenAPIHono infers handler types per-route
+// @ts-expect-error OpenAPI handler return type mismatch
+oauthRoutes.openapi(registerClientRoute, registerClientHandler);
+// @ts-expect-error OpenAPI handler return type mismatch
+oauthRoutes.openapi(registerClientAliasRoute, registerClientHandler);
 
 // ============================================
 // Authorization Endpoint

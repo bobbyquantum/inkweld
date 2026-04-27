@@ -980,9 +980,8 @@ registerTool({
       const sharedDoc = await service.getDocument(docId);
 
       // ProseMirror content is stored in an XmlFragment
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const doc = sharedDoc.doc as any;
-      const xmlFragment = doc.getXmlFragment?.('prosemirror');
+      const doc = sharedDoc.doc;
+      const xmlFragment = doc.getXmlFragment('prosemirror');
 
       if (!xmlFragment) {
         return {
@@ -1362,12 +1361,10 @@ registerTool({
     try {
       const sharedDoc = await service.getDocument(docId);
       const plansArray = sharedDoc.doc.getArray('plans');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allPlans = (plansArray as any).toJSON?.() ?? [];
+      const allPlans = (plansArray as unknown as { toJSON: () => unknown[] }).toJSON?.() ?? [];
 
       if (planId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const plan = allPlans.find((p: any) => p.id === planId);
+        const plan = (allPlans as Array<Record<string, unknown>>).find((p) => p.id === planId);
         if (!plan) {
           return {
             content: [{ type: 'text', text: `Error: publish plan "${planId}" not found` }],

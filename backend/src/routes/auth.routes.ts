@@ -6,7 +6,7 @@ import { emailService } from '../services/email.service';
 import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
 import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
-import { type AppContext } from '../types/context';
+import { type AppContext, type DatabaseInstance } from '../types/context';
 import {
   LoginRequestSchema,
   LoginResponseSchema,
@@ -46,15 +46,13 @@ const registerRoute = createRoute({
   },
 });
 
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Returns an error message string, or null when the input is valid. */
 async function validateRegistrationInput(
-  db: DrizzleD1Database,
+  db: DatabaseInstance,
   input: { password: string | undefined; email: string | undefined }
 ): Promise<{ error: string } | { error: null; passwordLoginEnabled: boolean }> {
   const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
@@ -94,10 +92,10 @@ authRoutes.openapi(registerRoute, async (c) => {
 
   // Validate all registration input (email required, password policy, duplicate email)
   const validation = await validateRegistrationInput(db, { password, email });
-  if (validation.error) {
+  if ('error' in validation && validation.error) {
     return c.json({ error: validation.error }, 400);
   }
-  const { passwordLoginEnabled } = validation;
+  const { passwordLoginEnabled } = validation as { error: null; passwordLoginEnabled: boolean };
 
   // Passwordless mode: when PASSWORD_LOGIN_ENABLED is false the server creates
   // a user row with a NULL password column. The client is then responsible for

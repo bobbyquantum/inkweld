@@ -1,5 +1,6 @@
 import { eq, and, or, isNull, lte, gte, desc, sql, isNotNull } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import {
   announcements,
   announcementReads,
@@ -85,9 +86,7 @@ class AnnouncementService {
   ): Promise<AnnouncementWithReadStatus[]> {
     const now = new Date();
 
-    // Use (db as any) because the union of database instances makes .select({ ... }) hard to type check
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (db as any)
+    const result = await (db as D1DatabaseInstance)
       .select({
         announcement: announcements,
         readAt: announcementReads.readAt,
@@ -109,7 +108,7 @@ class AnnouncementService {
       )
       .orderBy(desc(announcements.publishedAt));
 
-    return result.map((row: { announcement: Announcement; readAt: Date | null }) => ({
+    return result.map((row) => ({
       ...row.announcement,
       isRead: row.readAt !== null && row.readAt !== undefined,
       readAt: row.readAt || null,
@@ -122,9 +121,7 @@ class AnnouncementService {
   async getUnreadCount(db: DatabaseInstance, userId: string): Promise<number> {
     const now = new Date();
 
-    // Use (db as any) because the union of database instances makes .select({ ... }) hard to type check
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (db as any)
+    const result = await (db as D1DatabaseInstance)
       .select({ count: sql<number>`count(*)` })
       .from(announcements)
       .leftJoin(
@@ -257,9 +254,7 @@ class AnnouncementService {
     const now = new Date();
 
     // Get all unread published announcements
-    // Use (db as any) because the union of database instances makes .select({ ... }) hard to type check
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const unreadAnnouncements = await (db as any)
+    const unreadAnnouncements = await (db as D1DatabaseInstance)
       .select({ id: announcements.id })
       .from(announcements)
       .leftJoin(
@@ -280,7 +275,7 @@ class AnnouncementService {
 
     // Insert read records for all unread announcements
     if (unreadAnnouncements.length > 0) {
-      const readRecords = unreadAnnouncements.map((a: { id: string }) => ({
+      const readRecords = unreadAnnouncements.map((a) => ({
         id: crypto.randomUUID(),
         announcementId: a.id,
         userId,
