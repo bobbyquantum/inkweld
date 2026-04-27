@@ -38,14 +38,3 @@ export class InternalError extends Error {
     this.name = 'InternalError';
   }
 }
-
-export class ValidationError extends Error {
-  constructor(
-    message = 'Validation failed',
-    public details?: unknown
-  ) {
-    super(message);
-    this.name = 'ValidationError';
-    this.cause = details;
-  }
-}

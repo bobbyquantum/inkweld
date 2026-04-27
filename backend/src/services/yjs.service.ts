@@ -17,7 +17,7 @@ const messageSync = 0;
 const messageAwareness = 1;
 
 /** Convert a non-null value to a string without producing '[object Object]'. */
-export function coerceToString(value: NonNullable<unknown>): string {
+function coerceToString(value: NonNullable<unknown>): string {
   if (typeof value === 'string') return value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value as number | boolean | bigint);
