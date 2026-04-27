@@ -54,26 +54,6 @@ describe('Error Handler Middleware', () => {
     });
   });
 
-  describe('ValidationError handling', () => {
-    it('should handle ValidationError with 400 status', async () => {
-      const app = createTestApp();
-      app.get('/test', () => {
-        const error = new Error('Invalid input data');
-        error.name = 'ValidationError';
-        (error as Error & { cause: unknown }).cause = { field: 'email', issue: 'invalid format' };
-        throw error;
-      });
-
-      const res = await app.request('/test');
-      expect(res.status).toBe(400);
-
-      const json = await res.json();
-      expect(json.error).toBe('Validation Error');
-      expect(json.message).toBe('Invalid input data');
-      expect(json.details).toEqual({ field: 'email', issue: 'invalid format' });
-    });
-  });
-
   describe('UnauthorizedError handling', () => {
     it('should handle UnauthorizedError with 401 status', async () => {
       const app = createTestApp();

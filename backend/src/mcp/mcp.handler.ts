@@ -13,7 +13,6 @@ import {
   type McpResource,
   type McpResourceContents,
   type McpTool,
-  type McpPrompt,
   type McpContext,
   createErrorResponse,
   createSuccessResponse,
@@ -66,30 +65,6 @@ const toolRegistry = new Map<string, ToolHandler>();
  */
 export function registerTool(handler: ToolHandler): void {
   toolRegistry.set(handler.tool.name, handler);
-}
-
-// ============================================
-// Prompt Registry
-// ============================================
-
-interface PromptHandler {
-  prompt: McpPrompt;
-  getPrompt: (
-    ctx: McpContext,
-    args: Record<string, unknown>
-  ) => Promise<{
-    description?: string;
-    messages: Array<{ role: 'user' | 'assistant'; content: { type: 'text'; text: string } }>;
-  }>;
-}
-
-const promptRegistry = new Map<string, PromptHandler>();
-
-/**
- * Register a prompt
- */
-export function registerPrompt(handler: PromptHandler): void {
-  promptRegistry.set(handler.prompt.name, handler);
 }
 
 // ============================================
@@ -248,36 +223,6 @@ async function handleToolsCall(
   return handler.execute(mcpContext, db, args);
 }
 
-/**
- * Handle prompts/list request
- */
-async function handlePromptsList(_c: Context<AppContext>): Promise<{ prompts: McpPrompt[] }> {
-  return { prompts: Array.from(promptRegistry.values()).map((h) => h.prompt) };
-}
-
-/**
- * Handle prompts/get request
- */
-async function handlePromptsGet(
-  c: Context<AppContext>,
-  params: { name: string; arguments?: Record<string, unknown> }
-): Promise<unknown> {
-  const mcpContext = c.get('mcpContext');
-
-  if (!mcpContext) {
-    throw new Error('MCP context not available');
-  }
-
-  const { name, arguments: args = {} } = params;
-
-  const handler = promptRegistry.get(name);
-  if (!handler) {
-    throw new McpRpcError(JSON_RPC_ERRORS.METHOD_NOT_FOUND, `Unknown prompt: ${name}`);
-  }
-
-  return handler.getPrompt(mcpContext, args);
-}
-
 // ============================================
 // Main Handler
 // ============================================
@@ -379,17 +324,6 @@ export async function handleMcpRequest(c: Context<AppContext>): Promise<Response
 
       case 'tools/call':
         result = await handleToolsCall(
-          c,
-          params as { name: string; arguments?: Record<string, unknown> }
-        );
-        break;
-
-      case 'prompts/list':
-        result = await handlePromptsList(c);
-        break;
-
-      case 'prompts/get':
-        result = await handlePromptsGet(
           c,
           params as { name: string; arguments?: Record<string, unknown> }
         );

@@ -5,7 +5,6 @@ import {
   NotFoundError,
   BadRequestError,
   InternalError,
-  ValidationError,
 } from '../src/errors';
 
 describe('Error classes', () => {
@@ -101,46 +100,6 @@ describe('Error classes', () => {
     it('should be instance of Error', () => {
       const error = new InternalError();
       expect(error).toBeInstanceOf(Error);
-    });
-  });
-
-  describe('ValidationError', () => {
-    it('should create with default message', () => {
-      const error = new ValidationError();
-      expect(error.message).toBe('Validation failed');
-      expect(error.name).toBe('ValidationError');
-      expect(error.details).toBeUndefined();
-    });
-
-    it('should create with custom message', () => {
-      const error = new ValidationError('Email is invalid');
-      expect(error.message).toBe('Email is invalid');
-      expect(error.name).toBe('ValidationError');
-    });
-
-    it('should create with details', () => {
-      const details = { field: 'email', issue: 'invalid format' };
-      const error = new ValidationError('Validation failed', details);
-      expect(error.message).toBe('Validation failed');
-      expect(error.details).toEqual(details);
-      expect(error.cause).toEqual(details);
-    });
-
-    it('should be instance of Error', () => {
-      const error = new ValidationError();
-      expect(error).toBeInstanceOf(Error);
-    });
-
-    it('should handle complex details object', () => {
-      const details = {
-        errors: [
-          { field: 'email', message: 'Invalid email' },
-          { field: 'password', message: 'Too short' },
-        ],
-        meta: { timestamp: new Date().toISOString() },
-      };
-      const error = new ValidationError('Multiple validation errors', details);
-      expect(error.details).toEqual(details);
     });
   });
 });
