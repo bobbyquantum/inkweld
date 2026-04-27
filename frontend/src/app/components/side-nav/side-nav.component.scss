@@ -115,6 +115,7 @@
   .nav-items {
     padding-top: 16px;
     flex-shrink: 0;
+    overflow: hidden;
   }
 
   .nav-item {
@@ -124,6 +125,9 @@
     padding: 10px 14px;
     height: auto;
     min-height: 44px;
+    width: calc(100% - 24px) !important;
+    max-width: calc(100% - 24px) !important;
+    box-sizing: border-box;
     transition: all 0.2s ease;
     cursor: pointer;
     display: flex;
