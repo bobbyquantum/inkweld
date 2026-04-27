@@ -223,7 +223,7 @@ describe('FileStorageService', () => {
       const fileMap = new Map(files.map((f) => [f.filename, f.mimeType]));
 
       expect(fileMap.get('image.jpg')).toBe('image/jpeg');
-      expect(fileMap.get('script.js')).toBe('text/javascript');
+      expect(fileMap.get('script.js')).toBe('application/javascript');
       expect(fileMap.get('styles.css')).toBe('text/css');
     });
   });
