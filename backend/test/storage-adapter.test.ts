@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import {
   createStorageService,
   getStorageService,
@@ -192,6 +192,108 @@ describe('Storage Service', () => {
 
       const hasAvatar = await service.hasUserAvatar(username);
       expect(hasAvatar).toBe(false);
+    });
+  });
+});
+
+describe('R2StorageAdapter', () => {
+  describe('createStorageService with R2 bucket', () => {
+    it('should create an R2-based storage service when a bucket is provided', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mockBucket = {} as any;
+      const storage = createStorageService(mockBucket);
+      expect(storage).toBeDefined();
+      expect(typeof storage.saveProjectFile).toBe('function');
+    });
+  });
+
+  describe('R2 adapter delegation', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mockR2: any;
+    let storage: StorageService;
+
+    beforeEach(() => {
+      mockR2 = {
+        put: mock(() => Promise.resolve()),
+        get: mock(() => Promise.resolve(null)),
+        head: mock(() => Promise.resolve(null)),
+        delete: mock(() => Promise.resolve()),
+        list: mock(() => Promise.resolve({ objects: [] })),
+      };
+      storage = createStorageService(mockR2);
+    });
+
+    it('saveProjectFile delegates to R2 put', async () => {
+      await storage.saveProjectFile('user', 'proj', 'f.txt', Buffer.from('hi'), 'text/plain');
+      expect(mockR2.put).toHaveBeenCalledTimes(1);
+    });
+
+    it('readProjectFile delegates to R2 get', async () => {
+      const result = await storage.readProjectFile('user', 'proj', 'f.txt');
+      expect(result).toBeNull();
+      expect(mockR2.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('projectFileExists delegates to R2 head', async () => {
+      const exists = await storage.projectFileExists('user', 'proj', 'f.txt');
+      expect(exists).toBe(false);
+      expect(mockR2.head).toHaveBeenCalledTimes(1);
+    });
+
+    it('deleteProjectFile delegates to R2 delete', async () => {
+      await storage.deleteProjectFile('user', 'proj', 'f.txt');
+      expect(mockR2.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('deleteProjectDirectory delegates to R2 list + delete', async () => {
+      mockR2.list = mock(() => Promise.resolve({ objects: [{ key: 'user/proj/f.txt' }] }));
+      await storage.deleteProjectDirectory('user', 'proj');
+      expect(mockR2.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('saveUserAvatar delegates to R2 put', async () => {
+      await storage.saveUserAvatar('user', Buffer.from('avatar'));
+      expect(mockR2.put).toHaveBeenCalledTimes(1);
+    });
+
+    it('getUserAvatar delegates to R2 get', async () => {
+      const result = await storage.getUserAvatar('user');
+      expect(result).toBeNull();
+      expect(mockR2.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('hasUserAvatar delegates to R2 head', async () => {
+      const exists = await storage.hasUserAvatar('user');
+      expect(exists).toBe(false);
+      expect(mockR2.head).toHaveBeenCalledTimes(1);
+    });
+
+    it('deleteUserAvatar delegates to R2 delete', async () => {
+      await storage.deleteUserAvatar('user');
+      expect(mockR2.delete).toHaveBeenCalledTimes(1);
+    });
+
+    it('listProjectFiles delegates to R2 list', async () => {
+      const files = await storage.listProjectFiles('user', 'proj');
+      expect(files).toEqual([]);
+      expect(mockR2.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('lists project files with prefix filter', async () => {
+      mockR2.list = mock(() =>
+        Promise.resolve({
+          objects: [
+            {
+              key: 'user/proj/media-img.png',
+              size: 100,
+              httpMetadata: { contentType: 'image/png' },
+              uploaded: new Date(),
+            },
+          ],
+        })
+      );
+      const _files = await storage.listProjectFiles('user', 'proj', 'media');
+      expect(mockR2.list).toHaveBeenCalledTimes(1);
     });
   });
 });
