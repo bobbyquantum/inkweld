@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
 import {
   MigrationService,
@@ -47,6 +48,7 @@ export class ConnectionSettingsComponent {
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
+  private readonly logger = inject(LoggerService);
 
   protected currentMode = this.setupService.getMode();
   protected currentServerUrl = this.setupService.getServerUrl() || '';
@@ -213,7 +215,7 @@ export class ConnectionSettingsComponent {
    * Handle authentication for migration
    */
   async authenticate() {
-    console.log('[Migration] authenticate() called');
+    this.logger.debug('Migration', 'authenticate() called');
     const usernameValue = this.username();
     const passwordValue = this.password();
     const confirmPasswordValue = this.confirmPassword();
@@ -232,24 +234,26 @@ export class ConnectionSettingsComponent {
       return;
     }
 
-    console.log('[Migration] Starting authentication, mode:', this.authMode());
+    this.logger.debug(
+      'Migration',
+      'Starting authentication, mode:',
+      this.authMode()
+    );
     this.isAuthenticating.set(true);
     this.authError.set(null);
 
     try {
       // Set server URL first
-      console.log(
-        '[Migration] Before configureServerMode, current mode:',
+      this.logger.debug(
+        'Migration',
+        'Before configureServerMode, current mode:',
         this.setupService.getMode()
       );
       await this.setupService.configureServerMode(this.newServerUrl.trim());
-      console.log(
-        '[Migration] After configureServerMode, new mode:',
+      this.logger.debug(
+        'Migration',
+        'After configureServerMode, new mode:',
         this.setupService.getMode()
-      );
-      console.log(
-        '[Migration] localStorage inkweld-app-config:',
-        localStorage.getItem('inkweld-app-config')
       );
 
       // Register or login
@@ -261,8 +265,9 @@ export class ConnectionSettingsComponent {
       } else {
         await this.migrationService.loginToServer(usernameValue, passwordValue);
       }
-      console.log(
-        '[Migration] After auth, token in localStorage:',
+      this.logger.debug(
+        'Migration',
+        'After auth, token:',
         this.authTokenService.hasToken() ? 'EXISTS' : 'MISSING'
       );
 
@@ -274,7 +279,7 @@ export class ConnectionSettingsComponent {
 
       // Show success message
       const state = this.migrationState();
-      console.log('[Migration] Final state:', JSON.stringify(state));
+      this.logger.debug('Migration', 'Final state:', JSON.stringify(state));
 
       if (state.status === MigrationStatus.Completed) {
         this.snackBar.open(
@@ -285,41 +290,22 @@ export class ConnectionSettingsComponent {
 
         // Configure server mode BEFORE cleanup
         // Note: We skip the health check since we just successfully authenticated and migrated
-        console.log('[Migration] Configuring server mode...');
+        this.logger.debug('Migration', 'Configuring server mode...');
         const serverUrl = this.newServerUrl.trim();
         const config = {
           mode: 'server' as const,
           serverUrl: serverUrl,
         };
         localStorage.setItem('inkweld-app-config', JSON.stringify(config));
-        console.log(
-          '[Migration] Server mode configured, app-config:',
-          localStorage.getItem('inkweld-app-config')
-        );
 
         // Clean up local data
-        console.log(
-          '[Migration] Before cleanup, offline user:',
-          localStorage.getItem('inkweld-local-user')
-        );
+
         this.migrationService.cleanupLocalData();
-        console.log(
-          '[Migration] After cleanup, offline user:',
-          localStorage.getItem('inkweld-local-user')
-        );
-        console.log(
-          '[Migration] After cleanup, app-config:',
-          localStorage.getItem('inkweld-app-config')
-        );
-        console.log(
-          '[Migration] After cleanup, auth_token:',
-          this.authTokenService.hasToken() ? 'EXISTS' : 'MISSING'
-        );
 
         // Reload the page to reinitialize the app in server mode
         // This ensures Angular picks up the new mode from localStorage
         setTimeout(() => {
-          console.log('[Migration] About to reload...');
+          this.logger.debug('Migration', 'About to reload...');
           globalThis.location?.reload?.();
         }, 1000);
       } else if (state.status === MigrationStatus.Failed) {

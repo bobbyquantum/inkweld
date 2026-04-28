@@ -4,6 +4,8 @@ import { SwUpdate, type VersionReadyEvent } from '@angular/service-worker';
 import { ConfirmationDialogComponent } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import { filter } from 'rxjs/operators';
 
+import { LoggerService } from './logger.service';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -11,6 +13,7 @@ export class UpdateService {
   // SwUpdate is optional - may not be available in tests or when service worker is disabled
   private readonly swUpdate = inject(SwUpdate, { optional: true });
   private readonly dialog = inject(MatDialog);
+  private readonly logger = inject(LoggerService);
 
   /** Whether an update is available and waiting to be applied */
   readonly updateAvailable = signal(false);
@@ -24,7 +27,10 @@ export class UpdateService {
    */
   initialize(): void {
     if (this.swUpdate?.isEnabled) {
-      console.log('Service Worker Update Service initialized');
+      this.logger.info(
+        'UpdateService',
+        'Service Worker Update Service initialized'
+      );
 
       this.swUpdate.versionUpdates
         .pipe(
@@ -33,7 +39,7 @@ export class UpdateService {
           )
         )
         .subscribe(evt => {
-          console.log('New version available!', evt);
+          this.logger.info('UpdateService', 'New version available!', evt);
           this.updateAvailable.set(true);
           this.showUpdateDialog();
         });

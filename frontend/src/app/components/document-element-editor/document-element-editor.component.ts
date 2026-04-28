@@ -44,6 +44,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
 import { InsertImageService } from '@services/core/insert-image.service';
 import { InsertLinkService } from '@services/core/insert-link.service';
+import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
@@ -120,6 +121,7 @@ export class DocumentElementEditorComponent
   protected findService = inject(FindInDocumentService);
   private readonly tagService = inject(TagService);
   protected commentService = inject(CommentService);
+  private readonly logger = inject(LoggerService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';
@@ -331,14 +333,19 @@ export class DocumentElementEditorComponent
   }
 
   ngOnInit(): void {
-    console.log('[DocumentEditor] ngOnInit - documentId:', this.documentId);
+    this.logger.debug(
+      'DocumentEditor',
+      'ngOnInit - documentId:',
+      this.documentId
+    );
     this.ensureProperDocumentId();
 
     // Only create editor if we have a valid documentId
     // Otherwise, ngOnChanges will create it when documentId is set by routing
     if (this.documentId && this.documentId !== 'invalid') {
-      console.log(
-        '[DocumentEditor] ngOnInit - creating editor for',
+      this.logger.debug(
+        'DocumentEditor',
+        'ngOnInit - creating editor for',
         this.documentId
       );
       this.editor = new Editor({
@@ -347,13 +354,10 @@ export class DocumentElementEditorComponent
         features: { resizeImage: true },
       });
       this.editorKey++; // Force template refresh
-      console.log(
-        '[DocumentEditor] ngOnInit - editor created, doc size:',
-        this.editor.view?.state.doc.content.size
-      );
     } else {
-      console.log(
-        '[DocumentEditor] ngOnInit - waiting for valid documentId from routing'
+      this.logger.debug(
+        'DocumentEditor',
+        'ngOnInit - waiting for valid documentId from routing'
       );
     }
 
@@ -379,8 +383,9 @@ export class DocumentElementEditorComponent
         return;
       }
 
-      console.log(
-        '[DocumentEditor] ngAfterViewChecked - calling setupCollaboration:',
+      this.logger.debug(
+        'DocumentEditor',
+        'ngAfterViewChecked - calling setupCollaboration:',
         this.documentId
       );
 
@@ -394,8 +399,9 @@ export class DocumentElementEditorComponent
       requestAnimationFrame(() => {
         // Check if component was destroyed or editor changed while waiting
         if (this.destroyed || !this.editor?.view?.dom) {
-          console.log(
-            '[DocumentEditor] Skipping setupCollaboration - component destroyed or editor invalid'
+          this.logger.debug(
+            'DocumentEditor',
+            'Skipping setupCollaboration - component destroyed or editor invalid'
           );
           this.collaborationSetup = false;
           return;
@@ -408,8 +414,9 @@ export class DocumentElementEditorComponent
             if (this.destroyed || !this.editor?.view?.dom) {
               return;
             }
-            console.log(
-              `[DocumentEditor] setupCollaboration complete, editor doc size: ${this.editor.view.state.doc.nodeSize}`
+            this.logger.debug(
+              'DocumentEditor',
+              `setupCollaboration complete, editor doc size: ${this.editor.view.state.doc.nodeSize}`
             );
 
             // Register editor with find service for Ctrl+F support
@@ -443,15 +450,13 @@ export class DocumentElementEditorComponent
       const prevDocId = changes['documentId'].previousValue as string;
       const newDocId = changes['documentId'].currentValue as string;
 
-      console.log('[DocumentEditor] ngOnChanges - switching tabs', {
-        prevDocId,
-        newDocId,
-      });
-
       // CRITICAL: Destroy editor FIRST before disconnecting
       // This prevents Yjs awareness cleanup from trying to update a live editor
       if (prevDocId && prevDocId !== 'invalid') {
-        console.log('[DocumentEditor] ngOnChanges - destroying old editor');
+        this.logger.debug(
+          'DocumentEditor',
+          'ngOnChanges - destroying old editor'
+        );
         this.editor.destroy();
         this.documentService.disconnect(prevDocId);
       }
@@ -462,8 +467,9 @@ export class DocumentElementEditorComponent
         this.collaborationSetup = false; // Reset collaboration flag
 
         // Recreate editor instance for the new document
-        console.log(
-          '[DocumentEditor] ngOnChanges - creating new editor for tab'
+        this.logger.debug(
+          'DocumentEditor',
+          'ngOnChanges - creating new editor for tab'
         );
         this.editor = new Editor({
           history: true,
@@ -471,10 +477,6 @@ export class DocumentElementEditorComponent
           features: { resizeImage: true },
         });
         this.editorKey++; // Force template refresh
-        console.log(
-          '[DocumentEditor] ngOnChanges - new editor created, doc size:',
-          this.editor.view?.state.doc.content.size
-        );
 
         this.ensureProperDocumentId();
 
@@ -779,15 +781,20 @@ export class DocumentElementEditorComponent
    */
   private updateEditableState(): void {
     const canWrite = this.projectState.canWrite();
-    console.log('[DocumentEditor] updateEditableState - canWrite:', canWrite);
+    this.logger.debug(
+      'DocumentEditor',
+      'updateEditableState - canWrite:',
+      canWrite
+    );
 
     if (this.editor?.view) {
       // Dispatch UPDATE_EDITABLE meta to set editor editable state
       const { dispatch, state } = this.editor.view;
       const tr = state.tr.setMeta('UPDATE_EDITABLE', canWrite);
       dispatch(tr);
-      console.log(
-        `[DocumentEditor] Editor set to ${canWrite ? 'editable' : 'read-only'} mode`
+      this.logger.debug(
+        'DocumentEditor',
+        `Editor set to ${canWrite ? 'editable' : 'read-only'} mode`
       );
     }
   }

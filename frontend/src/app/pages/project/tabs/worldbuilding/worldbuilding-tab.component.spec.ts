@@ -100,7 +100,7 @@ describe('WorldbuildingTabComponent', () => {
 
       expect(component['elementId']()).toBe('element-123');
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[WorldbuildingTab] Element ID from route params: element-123'
+        '[DEBUG][WorldbuildingTab] Element ID from route params: element-123'
       );
 
       consoleLogSpy.mockRestore();
@@ -116,7 +116,7 @@ describe('WorldbuildingTabComponent', () => {
 
       expect(component['elementType']()).toBe(ElementType.Worldbuilding);
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[WorldbuildingTab] Element type: WORLDBUILDING'
+        '[DEBUG][WorldbuildingTab] Element type: WORLDBUILDING'
       );
 
       consoleLogSpy.mockRestore();
@@ -164,7 +164,7 @@ describe('WorldbuildingTabComponent', () => {
 
       expect(component['elementId']()).toBe('element-456');
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[WorldbuildingTab] Element ID from route params: element-456'
+        '[DEBUG][WorldbuildingTab] Element ID from route params: element-456'
       );
 
       consoleLogSpy.mockRestore();
@@ -210,7 +210,7 @@ describe('WorldbuildingTabComponent', () => {
 
       expect(component['elementType']()).toBe(ElementType.Worldbuilding);
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[WorldbuildingTab] Element type loaded: WORLDBUILDING'
+        '[DEBUG][WorldbuildingTab] Element type loaded: WORLDBUILDING'
       );
 
       consoleLogSpy.mockRestore();

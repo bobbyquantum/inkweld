@@ -24,7 +24,7 @@ export const pluginKey = new PluginKey<LintState>('lint');
 
 function lintDebugLog(...args: unknown[]): void {
   if (isDevMode()) {
-    console.log(...args);
+    console.debug(...args);
   }
 }
 

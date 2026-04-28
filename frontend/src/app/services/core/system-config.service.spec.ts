@@ -148,7 +148,7 @@ describe('SystemConfigService', () => {
 
       expect(offlineService.isConfigLoaded()).toBe(true);
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[SystemConfig] Local mode - using default features without API call'
+        '[DEBUG][SystemConfig] Local mode - using default features without API call'
       );
     });
 
@@ -211,7 +211,7 @@ describe('SystemConfigService', () => {
       return new Promise<void>(resolve => {
         setTimeout(() => {
           expect(consoleSpy).toHaveBeenCalledWith(
-            '[SystemConfig] Loaded system features:',
+            '[INFO][SystemConfig] Loaded system features:',
             mockSystemFeatures
           );
           resolve();

@@ -2,6 +2,8 @@ import { Injectable, Optional } from '@angular/core';
 
 import { type Correction } from '../../../api-client/model/correction';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- Used as Angular DI token, required at runtime
+import { LoggerService } from '../../services/core/logger.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- Used as Angular DI token, required at runtime
 import { StorageContextService } from '../../services/core/storage-context.service';
 import { type ExtendedCorrectionDto } from './correction-dto.extension';
 
@@ -24,6 +26,8 @@ export class LintStorageService {
   }
 
   constructor(
+    // eslint-disable-next-line @angular-eslint/prefer-inject -- Optional injection needed for non-Angular contexts (e.g. ProseMirror plugins using `new`)
+    @Optional() private readonly logger?: LoggerService,
     // eslint-disable-next-line @angular-eslint/prefer-inject -- Optional injection needed for non-Angular contexts (e.g. ProseMirror plugins using `new`)
     @Optional() private readonly storageContext?: StorageContextService
   ) {
@@ -61,8 +65,9 @@ export class LintStorageService {
       if (saved) {
         const items = JSON.parse(saved) as string[];
         this.rejectedSuggestions = new Set(items);
-        console.log(
-          `[LintStorage] Loaded ${this.rejectedSuggestions.size} rejected suggestions`
+        this.logger?.debug(
+          'LintStorage',
+          `Loaded ${this.rejectedSuggestions.size} rejected suggestions`
         );
       }
     } catch (error) {
@@ -78,7 +83,10 @@ export class LintStorageService {
     try {
       const items = Array.from(this.rejectedSuggestions);
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
-      console.log(`[LintStorage] Saved ${items.length} rejected suggestions`);
+      this.logger?.debug(
+        'LintStorage',
+        `Saved ${items.length} rejected suggestions`
+      );
     } catch (error) {
       console.error('[LintStorage] Error saving rejected suggestions:', error);
     }
@@ -88,16 +96,6 @@ export class LintStorageService {
    * Listen for custom events for accepting and rejecting suggestions
    */
   private listenForEvents(): void {
-    document.addEventListener('lint-correction-accept', (event: Event) => {
-      const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
-      if (customEvent.detail) {
-        console.log(
-          '[LintStorage] Suggestion accepted:',
-          customEvent.detail.correctedText
-        );
-      }
-    });
-
     document.addEventListener('lint-correction-reject', (event: Event) => {
       const customEvent = event as CustomEvent<ExtendedCorrectionDto>;
       if (customEvent.detail) {
@@ -115,10 +113,6 @@ export class LintStorageService {
     const id = this.getCorrectionId(correction);
     this.rejectedSuggestions.add(id);
     this.saveRejectedSuggestions();
-    console.log(
-      '[LintStorage] Suggestion rejected and saved:',
-      correction.correctedText
-    );
   }
 
   /**
@@ -137,6 +131,6 @@ export class LintStorageService {
   public clearRejectedSuggestions(): void {
     this.rejectedSuggestions.clear();
     this.saveRejectedSuggestions();
-    console.log('[LintStorage] Cleared all rejected suggestions');
+    this.logger?.debug('LintStorage', 'Cleared all rejected suggestions');
   }
 }

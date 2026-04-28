@@ -518,14 +518,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   selectProject(project: Project) {
-    console.log('[HomeComponent] selectProject called with:', {
-      project: {
-        username: project.username,
-        slug: project.slug,
-        title: project.title,
-      },
-    });
-
     void this.router.navigate([project.username || '', project.slug || ''], {
       onSameUrlNavigation: 'reload',
       skipLocationChange: false,

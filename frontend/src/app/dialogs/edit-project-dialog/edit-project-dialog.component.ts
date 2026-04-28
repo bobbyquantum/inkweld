@@ -30,6 +30,7 @@ import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LoggerService } from '@services/core/logger.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -70,6 +71,7 @@ export class EditProjectDialogComponent implements OnInit {
   private readonly systemConfig = inject(SystemConfigService);
   private readonly projectState = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly logger = inject(LoggerService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
@@ -112,8 +114,7 @@ export class EditProjectDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.project = this.dialogData;
-    console.log('dialogData: ', this.dialogData);
-    console.log('Project: ', this.project);
+
     this.form.patchValue({
       title: this.project.title,
       description: this.project.description,
@@ -186,7 +187,10 @@ export class EditProjectDialogComponent implements OnInit {
       // Check if this is a "Cover image not found" error, which is expected
       if (error instanceof Error && error.message === 'Cover image not found') {
         // This is normal for projects without a cover image
-        console.log('No cover image set for this project');
+        this.logger.debug(
+          'EditProjectDialog',
+          'No cover image set for this project'
+        );
       } else {
         // Log other errors that might be unexpected
         console.warn('Error loading cover image:', error);

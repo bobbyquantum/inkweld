@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { LoggerService } from '@services/core/logger.service';
 import { type Subscription } from 'rxjs';
 
 import { type Element, type ElementType } from '../../../../../api-client';
@@ -22,6 +23,7 @@ import { ProjectStateService } from '../../../../services/project/project-state.
 export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly projectState = inject(ProjectStateService);
+  private readonly logger = inject(LoggerService);
   private paramSubscription: Subscription | null = null;
 
   protected elementId = signal<string>('');
@@ -47,8 +49,9 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
         const element = elements.find(el => el.id === currentId);
         if (element) {
           this.elementType.set(element.type);
-          console.log(
-            `[WorldbuildingTab] Element type loaded: ${element.type}`
+          this.logger.debug(
+            'WorldbuildingTab',
+            `Element type loaded: ${element.type}`
           );
         }
       }
@@ -91,8 +94,9 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
     // Subscribe to route param changes
     this.paramSubscription = this.route.paramMap.subscribe(params => {
       const newElementId = params.get('tabId') || '';
-      console.log(
-        `[WorldbuildingTab] Element ID from route params: ${newElementId}`
+      this.logger.debug(
+        'WorldbuildingTab',
+        `Element ID from route params: ${newElementId}`
       );
 
       this.elementId.set(newElementId);
@@ -101,7 +105,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
       const element = this.findElement(newElementId);
       if (element) {
         this.elementType.set(element.type);
-        console.log(`[WorldbuildingTab] Element type: ${element.type}`);
+        this.logger.debug('WorldbuildingTab', `Element type: ${element.type}`);
       } else {
         console.warn(
           `[WorldbuildingTab] Element not found yet: ${newElementId}, waiting for elements to load...`
