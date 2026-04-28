@@ -30,6 +30,7 @@ import { PresenceIndicatorComponent } from '@components/presence-indicator/prese
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { LoggerService } from '@services/core/logger.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -101,6 +102,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly autoSnapshotService = inject(AutoSnapshotService);
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
   private readonly activationService = inject(ProjectActivationService);
+  private readonly logger = inject(LoggerService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -240,7 +242,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    console.log(`Loading project ${username}/${slug}`);
+    this.logger.debug(
+      'ProjectComponent',
+      `Loading project ${username}/${slug}`
+    );
     void this.projectState.loadProject(username, slug);
 
     // Start automated media sync for this project
@@ -251,7 +256,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
-    console.log('ProjectComponent init');
+    this.logger.debug('ProjectComponent', 'ProjectComponent init');
     this.paramsSubscription = this.route.params.subscribe(params => {
       const username = params['username'] as string;
       const slug = params['slug'] as string;

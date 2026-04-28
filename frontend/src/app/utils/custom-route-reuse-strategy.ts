@@ -59,9 +59,6 @@ export class CustomRouteReuseStrategy implements RouteReuseStrategy {
       future.data['reuseComponent'] === false
     ) {
       // Don't reuse if reuseComponent is explicitly set to false
-      console.log(
-        `[RouteReuse] Preventing component reuse for route: ${future.routeConfig.path}`
-      );
       return false;
     }
 
@@ -72,9 +69,6 @@ export class CustomRouteReuseStrategy implements RouteReuseStrategy {
         future.params['username'] !== curr.params['username'] ||
         future.params['slug'] !== curr.params['slug']
       ) {
-        console.log(
-          `[RouteReuse] Project params changed from ${curr.params['username']}/${curr.params['slug']} to ${future.params['username']}/${future.params['slug']}, creating fresh component`
-        );
         // Clear any stored handlers for the previous project
         this.clearStoredProject(
           curr.params['username'] as string,

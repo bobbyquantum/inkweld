@@ -31,13 +31,8 @@ function createDynamicConfiguration(setupService: SetupService): Configuration {
       // Strip trailing slashes to prevent double-slash URLs (e.g., "https://example.com//api/v1/...")
       return stripTrailingSlashes(result);
     },
-    set: function (value: string) {
+    set: function (_value: string) {
       // Ignore setter - we always use the getter
-      console.log(
-        '[Dynamic API Config] Attempted to set basePath to:',
-        value,
-        '(ignored)'
-      );
     },
     enumerable: true,
     configurable: true,

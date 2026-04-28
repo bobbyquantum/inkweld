@@ -786,12 +786,6 @@ export class MigrationService {
         : 'Cleaning up all local data (projects, elements, user)'
     );
 
-    // Debug: Check localStorage before cleanup
-    console.log(
-      '[Migration] Before cleanup - app-config:',
-      localStorage.getItem('inkweld-app-config')
-    );
-
     // IMPORTANT: Use getLocalModeProjects() instead of projects() because
     // at cleanup time we're already in server mode, so projects() would read
     // from the server-mode storage instead of local-mode storage.
@@ -817,12 +811,6 @@ export class MigrationService {
       // Clear local user (no longer needed in server mode)
       localStorage.removeItem('inkweld-local-user');
     }
-
-    // Debug: Check localStorage after cleanup
-    console.log(
-      '[Migration] After cleanup - app-config:',
-      localStorage.getItem('inkweld-app-config')
-    );
 
     this.logger.info('MigrationService', 'Local data cleanup completed');
   }

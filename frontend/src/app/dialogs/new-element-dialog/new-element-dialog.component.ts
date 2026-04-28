@@ -183,7 +183,7 @@ export class NewElementDialogComponent {
     effect(() => {
       const project = this.projectState.project();
       if (project) {
-        this.loadWorldbuildingTypes(project.username, project.slug);
+        this.loadWorldbuildingTypes();
       }
     });
 
@@ -198,14 +198,8 @@ export class NewElementDialogComponent {
   /**
    * Load worldbuilding element types from project's schema library
    */
-  private loadWorldbuildingTypes(username: string, slug: string): void {
+  private loadWorldbuildingTypes(): void {
     try {
-      console.log(
-        '[NewElementDialog] Loading worldbuilding types for',
-        username,
-        slug
-      );
-
       // Get all schemas as plain objects
       const schemas = this.worldbuildingService.getAllSchemas();
 
@@ -214,7 +208,6 @@ export class NewElementDialogComponent {
         return;
       }
 
-      console.log('[NewElementDialog] Found schemas:', schemas.length);
       this.buildWorldbuildingOptions(schemas);
     } catch (error) {
       console.error('[NewElementDialog] Error loading schemas:', error);
@@ -230,8 +223,6 @@ export class NewElementDialogComponent {
     const worldbuildingOptions: ElementTypeOption[] = [];
 
     for (const schema of schemas) {
-      console.log('[NewElementDialog] Found schema:', schema);
-
       worldbuildingOptions.push({
         type: ElementType.Worldbuilding,
         schemaId: schema.id,
@@ -242,11 +233,6 @@ export class NewElementDialogComponent {
       });
     }
 
-    console.log(
-      '[NewElementDialog] Built worldbuilding options:',
-      worldbuildingOptions
-    );
-
     // Update options with both document types and loaded worldbuilding types
     // Use the constant documentTypes instead of reading the signal to avoid
     // creating a dependency in the calling effect
@@ -254,10 +240,6 @@ export class NewElementDialogComponent {
       ...this.documentTypes,
       ...worldbuildingOptions,
     ]);
-
-    console.log(
-      `[NewElementDialog] Loaded ${worldbuildingOptions.length} worldbuilding types from schema library`
-    );
   }
 
   onCancel = (): void => {

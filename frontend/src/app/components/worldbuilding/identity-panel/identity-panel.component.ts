@@ -217,14 +217,7 @@ export class IdentityPanelComponent implements OnDestroy {
         this.username(),
         this.slug()
       );
-      console.log('[IdentityPanel] Loaded identity data:', {
-        elementId,
-        username: this.username(),
-        slug: this.slug(),
-        image: data?.image,
-        description: data?.description?.substring(0, 50),
-        data,
-      });
+
       if (data) {
         this.identity.set(data);
         this.description.set(data.description ?? '');
@@ -244,12 +237,6 @@ export class IdentityPanelComponent implements OnDestroy {
       await this.worldbuildingService.observeIdentityChanges(
         elementId,
         (data: WorldbuildingIdentity) => {
-          console.log('[IdentityPanel] Realtime sync received:', {
-            elementId,
-            image: data?.image,
-            description: data?.description?.substring(0, 50),
-            data,
-          });
           this.identity.set(data);
           // Only update description if different to avoid cursor jumps
           if (data.description !== this.description()) {

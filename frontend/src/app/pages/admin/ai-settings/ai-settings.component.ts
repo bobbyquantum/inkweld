@@ -394,10 +394,6 @@ export class AdminAiSettingsComponent implements OnInit {
         this.imageService.getDefaultTextToImageModels()
       );
       this.defaultModelsCache.set(response);
-      console.log(
-        '[AI Settings] Loaded default models from backend:',
-        response.providers
-      );
     } catch (err) {
       console.error('Failed to fetch default models from backend:', err);
       // Continue with empty cache - parseModelsConfig will return empty arrays
