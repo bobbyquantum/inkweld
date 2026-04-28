@@ -82,7 +82,6 @@ export async function createAuthenticatedWebsocketProvider(
               // Remove our status listener
               provider.off('status', handleStatus);
 
-              console.log('[AuthWS] Authentication successful');
               resolve(provider);
             } else if (response.startsWith('access-denied')) {
               const reason = response.split(':')[1] || 'unknown';
@@ -105,7 +104,6 @@ export async function createAuthenticatedWebsocketProvider(
         };
 
         // Send the auth token as the first message
-        console.log('[AuthWS] Sending auth token...');
         ws.send(authToken);
       } else if (status === 'disconnected' && !authCompleted) {
         // Connection failed before auth completed
@@ -186,7 +184,6 @@ export function setupReauthentication(
             authComplete = true;
             needsAuth = false;
             ws.onmessage = originalHandler;
-            console.log('[AuthWS] Re-authentication successful');
           } else if (response.startsWith('access-denied')) {
             const reason = response.split(':')[1] || 'unknown';
             console.error(`[AuthWS] Re-authentication denied: ${reason}`);
@@ -206,7 +203,6 @@ export function setupReauthentication(
       };
 
       // Send auth token
-      console.log('[AuthWS] Re-sending auth token...');
       ws.send(token);
     }
   });

@@ -13,6 +13,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Element, ElementType } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { LoggerService } from '@services/core/logger.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -45,6 +46,7 @@ export class HomeTabComponent {
   protected readonly snackBar = inject(MatSnackBar);
   // Router for navigation
   protected readonly router = inject(Router);
+  private readonly logger = inject(LoggerService);
 
   protected readonly hasCover = computed(() => {
     const project = this.projectState.project();
@@ -137,7 +139,12 @@ export class HomeTabComponent {
     slug: string,
     imageData: string
   ): void {
-    console.log('Saving cover image for project:', username, slug);
+    this.logger.debug(
+      'HomeTab',
+      'Saving cover image for project:',
+      username,
+      slug
+    );
 
     // Convert base64 to Blob
     const imageBlob = base64ToBlob(imageData);
@@ -146,7 +153,7 @@ export class HomeTabComponent {
     this.projectService
       .uploadProjectCover(username, slug, imageBlob)
       .then(async () => {
-        console.log('Cover image uploaded successfully');
+        this.logger.debug('HomeTab', 'Cover image uploaded successfully');
         this.snackBar.open('Cover image saved successfully', 'Close', {
           duration: 3000,
         });

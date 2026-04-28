@@ -27,6 +27,7 @@ import {
   RouterModule,
 } from '@angular/router';
 import { type Element, ElementType } from '@inkweld/index';
+import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import {
   type AppTab,
@@ -85,6 +86,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly dialogGateway = inject(DialogGatewayService);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly logger = inject(LoggerService);
 
   private readonly destroy$ = new Subject<void>();
   private routerSubscription: Subscription | null = null;
@@ -686,7 +688,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
    * @param type System tab to open: media, templates-list, or settings.
    */
   openSystemTab(type: 'media' | 'templates-list' | 'settings'): void {
-    console.log(`[TabInterface] Opening system tab: ${type}`);
+    this.logger.debug('TabInterface', `Opening system tab: ${type}`);
     this.projectState.openSystemTab(type);
   }
 

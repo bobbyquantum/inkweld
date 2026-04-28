@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { LoggerService } from './logger.service';
 import { SetupService } from './setup.service';
 
 /**
@@ -75,6 +76,7 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
 export class SystemConfigService {
   private readonly configApiService = inject(ConfigurationService);
   private readonly setupService = inject(SetupService);
+  private readonly logger = inject(LoggerService);
 
   private readonly systemFeaturesSignal = signal<SystemFeatures>({
     aiKillSwitch: true, // Default to ON (AI disabled) for safety
@@ -162,8 +164,9 @@ export class SystemConfigService {
     // Check if we're in local mode - don't call API in local mode
     const mode = this.setupService.getMode();
     if (mode === 'local') {
-      console.log(
-        '[SystemConfig] Local mode - using default features without API call'
+      this.logger.debug(
+        'SystemConfig',
+        'Local mode - using default features without API call'
       );
       this.systemFeaturesSignal.set(LOCAL_DEFAULTS);
       this.configLoadedSuccessfully.set(true); // Intentional local mode
@@ -175,7 +178,7 @@ export class SystemConfigService {
       .getSystemFeatures()
       .pipe(
         tap(features => {
-          console.log('[SystemConfig] Loaded system features:', features);
+          this.logger.info('SystemConfig', 'Loaded system features:', features);
           this.systemFeaturesSignal.set(features);
           this.configLoadedSuccessfully.set(true); // HTTP API worked
           this.isLoaded.set(true);

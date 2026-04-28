@@ -650,10 +650,10 @@ export class DocumentService {
    * @returns Promise that resolves when collaboration is set up
    */
   async setupCollaboration(editor: Editor, documentId: string): Promise<void> {
-    console.log('[DocumentService] setupCollaboration called for:', documentId);
-    console.log(
-      '[DocumentService] editor doc size BEFORE:',
-      editor.view?.state.doc.content.size
+    this.logger.debug(
+      'DocumentService',
+      'setupCollaboration called for:',
+      documentId
     );
 
     // Validate documentId format (must be username:slug:docId)
@@ -717,14 +717,6 @@ export class DocumentService {
       // Wait for initial IndexedDB sync
       await indexeddbProvider.whenSynced;
       this.logger.debug('DocumentService', 'IndexedDB sync complete');
-      console.log(
-        '[DocumentService] IndexedDB synced, ydoc XML fragment:',
-        type.toJSON()
-      );
-      console.log(
-        '[DocumentService] Editor doc size AFTER sync:',
-        editor.view?.state.doc.content.size
-      );
 
       // Check for imported content from project import
       // This is content stored as JSON in importedContentMap that needs to be
@@ -954,10 +946,6 @@ export class DocumentService {
     }
 
     view.updateState(newState);
-    console.log(
-      '[DocumentService] Core plugins added, editor doc size:',
-      view.state.doc.content.size
-    );
 
     // Force the view to re-render to sync content from Yjs to ProseMirror
     view.dispatch(view.state.tr);
@@ -1708,19 +1696,8 @@ export class DocumentService {
     const type = ydoc.getXmlFragment('prosemirror');
 
     // Initialize IndexedDB provider with the LOCAL document ID (may differ from server ID during migration)
-    console.log(
-      `[syncDocumentToServer] Looking up IndexedDB key: "${localDocId}"`
-    );
     const indexeddbProvider = new IndexeddbPersistence(localDocId, ydoc);
     await indexeddbProvider.whenSynced;
-
-    console.log(
-      `[syncDocumentToServer] IndexedDB synced for "${localDocId}":`,
-      {
-        xmlFragmentLength: type.length,
-        xmlContent: type.length > 0 ? type.toJSON() : '(empty)',
-      }
-    );
 
     this.logger.debug(
       'DocumentService',
