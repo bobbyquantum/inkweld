@@ -159,7 +159,14 @@ function xmlTextToXmlString(text: Y.XmlText): string {
  * Recursively processes all child elements and text nodes.
  */
 function xmlElementToXmlString(element: Y.XmlElement): string {
-  const tagName = element.nodeName.toLowerCase();
+  // Preserve the original case of the node name. y-prosemirror uses the
+  // ProseMirror schema's node type names verbatim (e.g. `elementRef`,
+  // `codeBlock`, `listItem`, `bulletList`, `orderedList`, `hardBreak`).
+  // Lowercasing here turns those into invalid PM node types so when the XML
+  // is reapplied to a fragment via `applyXmlToFragment` the prosemirror-yjs
+  // binding silently drops the unknown nodes — most visibly causing every
+  // element reference inside a snapshot to vanish on restore.
+  const tagName = element.nodeName;
 
   // Build attributes string
   const attrs: string[] = [];
@@ -434,7 +441,10 @@ function processElementChildren(parent: Element): (Y.XmlElement | Y.XmlText)[] {
  * them into XmlText with formatting attributes.
  */
 function domElementToYjsElement(element: Element): Y.XmlElement | null {
-  const yElement = new Y.XmlElement(element.nodeName.toLowerCase());
+  // Preserve the original case of the tag name (see xmlElementToXmlString for
+  // the rationale). DOMParser('text/xml') is case-sensitive, so `nodeName`
+  // already contains the verbatim tag from the source XML.
+  const yElement = new Y.XmlElement(element.nodeName);
 
   // Copy attributes
   for (const attr of Array.from(element.attributes)) {
