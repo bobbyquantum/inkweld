@@ -4,9 +4,9 @@ services:
     container_name: inkweld
     environment:
       # Database Configuration
-      - DB_TYPE=sqlite
-      - DB_PATH=/data/sqlite.db
-      - DATA_PATH=/data/yjs
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_PATH=${DB_PATH:-/data/sqlite.db}
+      - DATA_PATH=${DATA_PATH:-/data/yjs}
 
       # Server Configuration
       - PORT=8333
@@ -23,6 +23,24 @@ services:
       - GITHUB_ENABLED=${GITHUB_ENABLED:-false}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+
+      # Passkeys (WebAuthn)
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-localhost}
+      - WEBAUTHN_RP_NAME=${WEBAUTHN_RP_NAME:-Inkweld}
+      - PASSKEYS_ENABLED=${PASSKEYS_ENABLED:-true}
+      - PASSWORD_LOGIN_ENABLED=${PASSWORD_LOGIN_ENABLED:-false}
+      - EMAIL_RECOVERY_ENABLED=${EMAIL_RECOVERY_ENABLED:-false}
+      - APP_MODE=${APP_MODE:-BOTH}
+
+      # Email / SMTP
+      - EMAIL_ENABLED=${EMAIL_ENABLED:-false}
+      - EMAIL_HOST=${EMAIL_HOST:-}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_ENCRYPTION=${EMAIL_ENCRYPTION:-starttls}
+      - EMAIL_USERNAME=${EMAIL_USERNAME:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-Inkweld}
     volumes:
       - inkweld_data:/data
     ports:
