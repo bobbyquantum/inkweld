@@ -191,6 +191,49 @@ describe('yjs-xml-serializer', () => {
       const result = xmlFragmentToXmlString(fragment);
       expect(result).toBe('<image src="test.jpg"/>');
     });
+
+    it('should preserve camelCase node names (elementRef)', () => {
+      // Regression: snapshot of a document containing an elementRef inline
+      // atom node was lowercasing the tag name to `elementref`, which the
+      // ProseMirror schema does not recognise — so on restore the node
+      // disappeared entirely. y-prosemirror keeps the schema name verbatim
+      // (e.g. `elementRef`, `codeBlock`, `listItem`) so we must preserve case.
+      const paragraph = new Y.XmlElement('paragraph');
+      const ref = new Y.XmlElement('elementRef');
+      ref.setAttribute('elementId', 'char-elara');
+      ref.setAttribute('elementType', 'WORLDBUILDING');
+      ref.setAttribute('displayText', 'Elara Nightwhisper');
+      paragraph.insert(0, [ref]);
+      fragment.insert(0, [paragraph]);
+
+      const result = xmlFragmentToXmlString(fragment);
+      expect(result).toContain('<elementRef ');
+      expect(result).not.toContain('<elementref');
+      expect(result).toContain('elementId="char-elara"');
+      expect(result).toContain('displayText="Elara Nightwhisper"');
+    });
+
+    it('should preserve camelCase node names for codeBlock and listItem', () => {
+      // y-prosemirror uses the schema's node type names verbatim. The default
+      // ProseMirror schema has `codeBlock`, `listItem`, `bulletList`,
+      // `orderedList`, `hardBreak` — all camelCase.
+      const codeBlock = new Y.XmlElement('codeBlock');
+      const t = new Y.XmlText();
+      t.insert(0, 'console.log("hi");');
+      codeBlock.insert(0, [t]);
+
+      const list = new Y.XmlElement('bulletList');
+      const li = new Y.XmlElement('listItem');
+      list.insert(0, [li]);
+
+      fragment.insert(0, [codeBlock, list]);
+
+      const result = xmlFragmentToXmlString(fragment);
+      expect(result).toContain('<codeBlock>');
+      expect(result).toContain('</codeBlock>');
+      expect(result).toContain('<bulletList>');
+      expect(result).toContain('<listItem');
+    });
   });
 
   describe('applyXmlToFragment', () => {
@@ -395,6 +438,41 @@ describe('yjs-xml-serializer', () => {
       // from being returned as a number
       expect(child.getAttribute('tag')).toBe('');
     });
+
+    it('should preserve camelCase node names when parsing (elementRef)', () => {
+      // Regression: deserialiser used to lowercase tag names, turning
+      // `<elementRef>` into a Y.XmlElement called `elementref` — which the
+      // ProseMirror schema rejects, causing every element reference to vanish
+      // when a snapshot was restored.
+      applyXmlToFragment(
+        ydoc,
+        fragment,
+        '<paragraph>Hello <elementRef elementId="char-elara" elementType="WORLDBUILDING" displayText="Elara"/></paragraph>'
+      );
+
+      const paragraph = fragment.get(0) as Y.XmlElement;
+      expect(paragraph.nodeName).toBe('paragraph');
+      expect(paragraph.length).toBe(2);
+      const ref = paragraph.get(1) as Y.XmlElement;
+      expect(ref.nodeName).toBe('elementRef');
+      expect(ref.getAttribute('elementId')).toBe('char-elara');
+      expect(ref.getAttribute('displayText')).toBe('Elara');
+    });
+
+    it('should preserve camelCase node names for codeBlock and listItem', () => {
+      applyXmlToFragment(
+        ydoc,
+        fragment,
+        '<codeBlock>x</codeBlock><bulletList><listItem><paragraph>a</paragraph></listItem></bulletList>'
+      );
+
+      const code = fragment.get(0) as Y.XmlElement;
+      const list = fragment.get(1) as Y.XmlElement;
+      expect(code.nodeName).toBe('codeBlock');
+      expect(list.nodeName).toBe('bulletList');
+      const li = list.get(0) as Y.XmlElement;
+      expect(li.nodeName).toBe('listItem');
+    });
   });
 
   describe('roundtrip', () => {
@@ -521,6 +599,56 @@ describe('yjs-xml-serializer', () => {
       const fragment2 = ydoc2.getXmlFragment('test');
       applyXmlToFragment(ydoc2, fragment2, xml);
 
+      const xml2 = xmlFragmentToXmlString(fragment2);
+      expect(xml2).toBe(xml);
+    });
+
+    it('should roundtrip elementRef inline atom nodes preserving attrs and case', () => {
+      // Regression for snapshot bug: restoring a snapshot of a document
+      // containing element references caused them all to vanish, because
+      // the serializer was lowercasing `elementRef` -> `elementref` in both
+      // directions, producing nodes the ProseMirror schema rejects.
+      const ydoc1 = new Y.Doc();
+      const fragment1 = ydoc1.getXmlFragment('test');
+
+      const paragraph = new Y.XmlElement('paragraph');
+      const before = new Y.XmlText();
+      before.insert(0, 'See ');
+      const ref = new Y.XmlElement('elementRef');
+      ref.setAttribute('elementId', 'char-elara');
+      ref.setAttribute('elementType', 'WORLDBUILDING');
+      ref.setAttribute('displayText', 'Elara Nightwhisper');
+      ref.setAttribute('originalName', 'Elara Nightwhisper');
+      ref.setAttribute('relationshipTypeId', 'referenced-in');
+      const after = new Y.XmlText();
+      after.insert(0, ' for details.');
+      paragraph.insert(0, [before, ref, after]);
+      fragment1.insert(0, [paragraph]);
+
+      const xml = xmlFragmentToXmlString(fragment1);
+      // Sanity: the serialized XML must use the original camelCase tag.
+      expect(xml).toContain('<elementRef ');
+
+      const ydoc2 = new Y.Doc();
+      const fragment2 = ydoc2.getXmlFragment('test');
+      applyXmlToFragment(ydoc2, fragment2, xml);
+
+      // The deserialized fragment must still contain a node literally named
+      // `elementRef` with the original attributes.
+      const p = fragment2.get(0) as Y.XmlElement;
+      expect(p.length).toBe(3);
+      const restoredRef = p.get(1) as Y.XmlElement;
+      expect(restoredRef.nodeName).toBe('elementRef');
+      expect(restoredRef.getAttribute('elementId')).toBe('char-elara');
+      expect(restoredRef.getAttribute('elementType')).toBe('WORLDBUILDING');
+      expect(restoredRef.getAttribute('displayText')).toBe(
+        'Elara Nightwhisper'
+      );
+      expect(restoredRef.getAttribute('relationshipTypeId')).toBe(
+        'referenced-in'
+      );
+
+      // Re-serializing must produce identical XML.
       const xml2 = xmlFragmentToXmlString(fragment2);
       expect(xml2).toBe(xml);
     });
