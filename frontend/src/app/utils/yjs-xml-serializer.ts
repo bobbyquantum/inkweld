@@ -178,7 +178,7 @@ function xmlElementToXmlString(element: Y.XmlElement): string {
       if (typeof value === 'object') {
         strValue = JSON.stringify(value);
       } else {
-        strValue = String(value);
+        strValue = `${value}`;
       }
       attrs.push(`${key}="${escapeAttrValue(strValue)}"`);
     }
