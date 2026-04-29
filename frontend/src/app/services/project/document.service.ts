@@ -7,8 +7,8 @@ import {
   type WritableSignal,
 } from '@angular/core';
 import { type Editor } from '@bobbyquantum/ngx-editor';
-import { createCommentPlugin } from '@editor';
 import {
+  createCommentPlugin,
   createElementRefPlugin,
   createFindPlugin,
   createImagePastePlugin,
