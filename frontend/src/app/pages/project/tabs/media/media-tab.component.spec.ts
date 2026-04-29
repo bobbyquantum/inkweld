@@ -774,6 +774,21 @@ describe('MediaTabComponent', () => {
       expect(usages).toContain('Tagged on element "My Character"');
     });
 
+    it('should not match an image node with no src attribute', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'doc-nosrc', name: 'No-src Doc', type: 'ITEM', sortIndex: 0 },
+      ] as never[]);
+      (
+        documentService.getDocumentContent as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        // image node present but src is absent — covers the `src &&` false branch
+        { type: 'image', attrs: {} },
+      ]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+      expect(usages ?? []).not.toContain('Embedded in document "No-src Doc"');
+    });
+
     it('should return no usages when media is not referenced anywhere', async () => {
       const usages = await getUsagesFor(TARGET_MEDIA_ID);
       expect(usages).toBeUndefined(); // no usages → details is undefined
