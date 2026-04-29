@@ -112,11 +112,8 @@ Create a `.env` file:
 GITHUB_REPOSITORY_OWNER=bobbyquantum
 IMAGE_TAG=latest
 PORT=8333
-PUBLIC_URL=https://your-domain.com
-CLIENT_URL=https://your-domain.com
 ALLOWED_ORIGINS=https://your-domain.com
 SESSION_SECRET=a-long-random-string
-LOCAL_USERS_ENABLED=true
 GITHUB_ENABLED=true
 GITHUB_CLIENT_ID=your-github-client-id
 GITHUB_CLIENT_SECRET=your-github-client-secret

@@ -20,7 +20,7 @@ Enter the following details:
 | Field                | Description                                                     |
 | -------------------- | --------------------------------------------------------------- |
 | **Username**         | A unique identifier (3+ characters). Used in your project URLs. |
-| **Password**         | A strong password (8+ characters with complexity requirements). |
+| **Password**         | A password (8+ characters).                                     |
 | **Confirm Password** | Re-enter your password to confirm.                              |
 
 As you type your username, Inkweld checks availability in real-time:
