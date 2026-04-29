@@ -27,8 +27,12 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
 COPY frontend/bun.lock frontend/package.json ./
 # Skip Electron binary download - not needed for web frontend build in Docker
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+# Install with --ignore-scripts to disable arbitrary postinstall execution,
+# then explicitly run esbuild's binary installer (the only postinstall the
+# Angular build genuinely needs).
 RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
-  bun install --frozen-lockfile; \
+  bun install --frozen-lockfile --ignore-scripts \
+  && node node_modules/esbuild/install.js; \
   fi
 
 COPY frontend .
