@@ -296,7 +296,7 @@ Frontend runs on `:4200`, backend on `:8333`.
 | Build | `npm run build` |
 | Docker | `npm run compose:up:prod` |
 
-📖 **[Developer docs →](docs/GETTING_STARTED.md)**
+📖 **[Developer docs →](docs/site/docs/getting-started.md)**
 
 ---
 
