@@ -286,7 +286,7 @@ Flipping from `true` to `false` locks out any user who has a password but no pas
 
 **Default:** `false` | Boolean
 
-Enable email-based account recovery. When passwords are disabled this powers a magic-link flow that lets users enrol a new passkey. When passwords are enabled it powers the classic forgot-password flow. Requires SMTP settings to deliver emails.
+Enable email-based account recovery. When passwords are disabled, this powers a magic-link flow that lets users enrol a new passkey. When passwords are enabled, it powers the classic forgot-password flow. Requires SMTP settings to deliver emails.
 
 ```bash
 EMAIL_RECOVERY_ENABLED=true

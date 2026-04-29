@@ -195,7 +195,7 @@ Coming soon, once first numbered release is added.
 ### Auth & Security
 |  |  | Feature | Notes |
 |--|--|---------|-------|
-| ✅ | 🔥 | Password auth | Strong client-side requirements; backend enforces 6-char minimum only. Disabled by default in v0.2+ (passwordless-first per NIST SP 800-63B Rev. 4) — set `PASSWORD_LOGIN_ENABLED=true` to opt in |
+| ✅ | 🔥 | Password auth | Strong client-side requirements. Disabled by default in v0.2+ (passwordless-first per NIST SP 800-63B Rev. 4) — set `PASSWORD_LOGIN_ENABLED=true` to opt in |
 | ✅ | 🔥 | Passkeys (WebAuthn) | Passwordless sign-in with device biometrics or hardware security keys |
 | ✅ | 🔥 | Magic-link passkey recovery | Email-based recovery to enrol a new passkey if the original device is lost (requires `EMAIL_RECOVERY_ENABLED=true` + SMTP) |
 | ✅ | 🔥 | CSRF protection | |
