@@ -608,4 +608,215 @@ describe('MediaTabComponent', () => {
       expect(localStorage.deleteMedia).toHaveBeenCalled();
     });
   });
+
+  describe('findMediaUsages (via deleteMedia confirmation details)', () => {
+    const TARGET_MEDIA_ID = 'img-abc123';
+    const TARGET_MEDIA_URL = `media:${TARGET_MEDIA_ID}`;
+
+    async function getUsagesFor(
+      mediaId: string
+    ): Promise<string[] | undefined> {
+      await component.loadMedia();
+      fixture.detectChanges();
+
+      const item = component.mediaItems().find(m => m.mediaId === mediaId)!;
+      await component.deleteMedia(item);
+
+      const call = (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mock.calls.at(-1)?.[0] as { details?: string[] };
+      return call?.details;
+    }
+
+    it('should detect cover image usage', async () => {
+      (projectStateService.coverMediaId as ReturnType<typeof signal>).set(
+        TARGET_MEDIA_ID
+      );
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages).toContain('Used as the project cover image');
+    });
+
+    it('should detect canvas image usage', async () => {
+      const canvasConfig = JSON.stringify({
+        objects: [{ type: 'image', src: TARGET_MEDIA_URL }],
+      });
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        {
+          id: 'canvas-1',
+          name: 'Scene Board',
+          type: 'CANVAS',
+          sortIndex: 0,
+          metadata: { canvasConfig },
+        },
+      ] as never[]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages).toContain('Placed on canvas "Scene Board"');
+    });
+
+    it('should not report canvas usage when image src does not match', async () => {
+      const canvasConfig = JSON.stringify({
+        objects: [{ type: 'image', src: 'media:other-image' }],
+      });
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        {
+          id: 'canvas-1',
+          name: 'Scene Board',
+          type: 'CANVAS',
+          sortIndex: 0,
+          metadata: { canvasConfig },
+        },
+      ] as never[]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages ?? []).not.toContain('Placed on canvas "Scene Board"');
+    });
+
+    it('should silently skip canvas elements with malformed config', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        {
+          id: 'canvas-1',
+          name: 'Bad Canvas',
+          type: 'CANVAS',
+          sortIndex: 0,
+          metadata: { canvasConfig: 'not-json' },
+        },
+      ] as never[]);
+
+      // Should not throw; usages list should not include the canvas
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+      expect(usages ?? []).not.toContain('Placed on canvas "Bad Canvas"');
+    });
+
+    it('should detect document embedded image usage', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'doc-1', name: 'Chapter 1', type: 'ITEM', sortIndex: 0 },
+      ] as never[]);
+      (
+        documentService.getDocumentContent as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        {
+          type: 'image',
+          attrs: { src: TARGET_MEDIA_URL },
+        },
+      ]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages).toContain('Embedded in document "Chapter 1"');
+    });
+
+    it('should detect document embedded image nested in content', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'doc-2', name: 'Chapter 2', type: 'ITEM', sortIndex: 0 },
+      ] as never[]);
+      (
+        documentService.getDocumentContent as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [{ type: 'image', attrs: { src: TARGET_MEDIA_URL } }],
+        },
+      ]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages).toContain('Embedded in document "Chapter 2"');
+    });
+
+    it('should not report document usage when image src does not match', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'doc-3', name: 'Chapter 3', type: 'ITEM', sortIndex: 0 },
+      ] as never[]);
+      (
+        documentService.getDocumentContent as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        { type: 'image', attrs: { src: 'media:different-image' } },
+      ]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages ?? []).not.toContain('Embedded in document "Chapter 3"');
+    });
+
+    it('should silently skip documents that throw on read', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'doc-err', name: 'Broken Doc', type: 'ITEM', sortIndex: 0 },
+      ] as never[]);
+      (
+        documentService.getDocumentContent as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('read error'));
+
+      // Should not throw; usage not reported
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+      expect(usages ?? []).not.toContain('Embedded in document "Broken Doc"');
+    });
+
+    it('should detect element tag usage', async () => {
+      (
+        mediaTagService.getElementsForMedia as ReturnType<typeof vi.fn>
+      ).mockReturnValue(['el-tagged']);
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        {
+          id: 'el-tagged',
+          name: 'My Character',
+          type: 'WORLDBUILDING',
+          sortIndex: 0,
+        },
+      ] as never[]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages).toContain('Tagged on element "My Character"');
+    });
+
+    it('should not match an image node with no src attribute', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'doc-nosrc', name: 'No-src Doc', type: 'ITEM', sortIndex: 0 },
+      ] as never[]);
+      (
+        documentService.getDocumentContent as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        // image node present but src is absent — covers the `src &&` false branch
+        { type: 'image', attrs: {} },
+      ]);
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+      expect(usages ?? []).not.toContain('Embedded in document "No-src Doc"');
+    });
+
+    it('should return no usages when media is not referenced anywhere', async () => {
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+      expect(usages).toBeUndefined(); // no usages → details is undefined
+    });
+
+    it('should return early with empty usages when project is missing', async () => {
+      (projectStateService.project as ReturnType<typeof signal>).set(null);
+
+      await component.loadMedia();
+      // deleteMedia checks for project; call it with a synthetic item
+      const item: MediaItem = {
+        mediaId: TARGET_MEDIA_ID,
+        filename: 'test.jpg',
+        mimeType: 'image/jpeg',
+        size: 1000,
+        createdAt: '',
+        isImage: true,
+        url: '',
+        category: 'inline',
+        categoryLabel: 'Inline Image',
+      };
+      await component.deleteMedia(item);
+
+      // With no project, confirmation is still shown but with no usages/details
+      const call = (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mock.calls.at(-1)?.[0] as { details?: string[] };
+      expect(call?.details).toBeUndefined();
+    });
+  });
 });

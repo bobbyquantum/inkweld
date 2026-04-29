@@ -635,10 +635,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       name: meta.name ?? current?.name ?? '',
       description: meta.description ?? current?.description ?? '',
       coverMediaId: meta.coverMediaId ?? current?.coverMediaId,
-      pinnedElementIds:
-        meta.pinnedElementIds !== undefined
-          ? meta.pinnedElementIds
-          : current?.pinnedElementIds,
+      pinnedElementIds: meta.pinnedElementIds ?? current?.pinnedElementIds,
       updatedAt: new Date().toISOString(),
     };
 
