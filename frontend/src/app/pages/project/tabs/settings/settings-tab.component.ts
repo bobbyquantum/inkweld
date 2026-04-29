@@ -23,6 +23,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
+import { RelationshipsTabComponent } from '@components/relationships-tab/relationships-tab.component';
+import { TagsTabComponent } from '@components/tags-tab/tags-tab.component';
+import { TemplatesTabComponent } from '@components/templates-tab/templates-tab.component';
 import {
   CreateMcpKeyDialogComponent,
   type CreateMcpKeyDialogResult,
@@ -46,9 +49,6 @@ import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom } from 'rxjs';
 
-import { RelationshipsTabComponent } from '../relationships/relationships-tab.component';
-import { TagsTabComponent } from '../tags/tags-tab.component';
-import { TemplatesTabComponent } from '../templates/templates-tab.component';
 import { TimeSystemsSettingsComponent } from './time-systems-settings/time-systems-settings.component';
 
 /**

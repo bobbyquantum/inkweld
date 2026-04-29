@@ -18,7 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   RelationshipCategory,
   type RelationshipTypeDefinition,
-} from '@components/element-ref/element-ref.model';
+} from '@models/element-ref.model';
 import { type ElementTypeSchema } from '@models/schema-types';
 
 // ─── Icon / Color palette (same system as tag editor) ────────────────────────

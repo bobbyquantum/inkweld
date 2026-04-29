@@ -12,8 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
-import { type TagDefinition } from '../../components/tags/tag.model';
+import { type TagDefinition } from '@models/tag.model';
 
 export interface TagEditDialogData {
   tag?: TagDefinition;

@@ -14,6 +14,11 @@ import {
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
+import {
+  ElementPickerDialogComponent,
+  type ElementPickerDialogData,
+  type ElementPickerDialogResult,
+} from '../../dialogs/element-picker-dialog/element-picker-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
 import {
   ImageGenerationDialogComponent,
@@ -54,6 +59,14 @@ import {
   RenameDialogComponent,
   type RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
+import {
+  SnapshotsDialogComponent,
+  type SnapshotsDialogData,
+} from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
+import {
+  TagEditorDialogComponent,
+  type TagEditorDialogData,
+} from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import {
   WorldbuildingImageDialogComponent,
@@ -275,6 +288,37 @@ export class DialogGatewayService {
       width: '500px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openTagEditorDialog(data: TagEditorDialogData): void {
+    this.dialog.open(TagEditorDialogComponent, {
+      data,
+      width: '450px',
+      autoFocus: false,
+    });
+  }
+
+  openSnapshotsDialog(data: SnapshotsDialogData): void {
+    this.dialog.open(SnapshotsDialogComponent, {
+      data,
+      width: '550px',
+      autoFocus: false,
+    });
+  }
+
+  openElementPickerDialog(
+    data: ElementPickerDialogData
+  ): Promise<ElementPickerDialogResult | undefined> {
+    const dialogRef = this.dialog.open<
+      ElementPickerDialogComponent,
+      ElementPickerDialogData,
+      ElementPickerDialogResult
+    >(ElementPickerDialogComponent, {
+      width: '500px',
+      maxHeight: '80vh',
+      data,
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

@@ -4,6 +4,16 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import {
+  type EditRelationshipTypeDialogData,
+  type EditRelationshipTypeDialogResult,
+} from '@dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
+import { DocumentSyncState } from '@models/document-sync-state';
+import {
+  RelationshipCategory,
+  type RelationshipTypeDefinition,
+} from '@models/element-ref.model';
+import { type ElementTypeSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
@@ -11,16 +21,6 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  RelationshipCategory,
-  type RelationshipTypeDefinition,
-} from '../../../../components/element-ref/element-ref.model';
-import {
-  type EditRelationshipTypeDialogData,
-  type EditRelationshipTypeDialogResult,
-} from '../../../../dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
-import { DocumentSyncState } from '../../../../models/document-sync-state';
-import { type ElementTypeSchema } from '../../../../models/schema-types';
 import { RelationshipsTabComponent } from './relationships-tab.component';
 
 describe('RelationshipsTabComponent', () => {

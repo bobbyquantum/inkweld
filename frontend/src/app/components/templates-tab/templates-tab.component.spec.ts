@@ -1,13 +1,13 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { type Project } from '@inkweld/index';
+import { type ElementTypeSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type Project } from '../../../../../api-client';
-import { type ElementTypeSchema } from '../../../../models/schema-types';
 import {
   TEMPLATE_RELOAD_DELAY,
   TemplatesTabComponent,

@@ -23,9 +23,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
-import { TagService } from '../../services/tag/tag.service';
-import { type ResolvedTag, type TagDefinition } from './tag.model';
+import { type ResolvedTag, type TagDefinition } from '@models/tag.model';
+import { TagService } from '@services/tag/tag.service';
 
 /**
  * Autocomplete option value type

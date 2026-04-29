@@ -21,11 +21,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
+import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 
 import { type Element, ElementType } from '../../../api-client';
-import { type RelationshipTypeDefinition } from '../../components/element-ref/element-ref.model';
 
 /**
  * Data passed to the dialog

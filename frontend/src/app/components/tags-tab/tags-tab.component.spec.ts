@@ -4,16 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { type TagDefinition, type TagIndexEntry } from '@models/tag.model';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { TagService } from '@services/tag/tag.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type TagDefinition,
-  type TagIndexEntry,
-} from '../../../../components/tags/tag.model';
-import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
-import { ProjectStateService } from '../../../../services/project/project-state.service';
-import { TagService } from '../../../../services/tag/tag.service';
 import { TagsTabComponent } from './tags-tab.component';
 
 describe('TagsTabComponent', () => {
