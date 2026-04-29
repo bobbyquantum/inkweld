@@ -798,26 +798,57 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     const mediaUrl = createMediaUrl(mediaId);
 
     // 2. Canvas images
-    for (const el of elements.filter(e => e.type === ElementType.Canvas)) {
-      const configStr = el.metadata?.['canvasConfig'];
-      if (configStr) {
-        try {
-          const config = JSON.parse(configStr) as CanvasConfig;
-          const hasImage = config.objects?.some(
-            obj => obj.type === 'image' && obj.src === mediaUrl
-          );
-          if (hasImage) {
-            usages.push(`Placed on canvas "${el.name}"`);
-          }
-        } catch {
-          /* ignore malformed config */
-        }
-      }
-    }
+    this.findCanvasUsages(elements, mediaUrl, usages);
 
     // 3. Document embedded images
+    await this.findDocumentUsages(
+      elements,
+      project.username,
+      project.slug,
+      mediaId,
+      usages
+    );
+
+    // 4. Element associations
+    const taggedElements = this.mediaTagService.getElementsForMedia(mediaId);
+    for (const elId of taggedElements) {
+      usages.push(`Tagged on element "${this.getElementName(elId)}"`);
+    }
+
+    return usages;
+  }
+
+  private findCanvasUsages(
+    elements: ReturnType<typeof this.projectState.elements>,
+    mediaUrl: string,
+    usages: string[]
+  ): void {
+    for (const el of elements.filter(e => e.type === ElementType.Canvas)) {
+      const configStr = el.metadata?.['canvasConfig'];
+      if (!configStr) continue;
+      try {
+        const config = JSON.parse(configStr) as CanvasConfig;
+        const hasImage = config.objects?.some(
+          obj => obj.type === 'image' && obj.src === mediaUrl
+        );
+        if (hasImage) {
+          usages.push(`Placed on canvas "${el.name}"`);
+        }
+      } catch {
+        /* ignore malformed config */
+      }
+    }
+  }
+
+  private async findDocumentUsages(
+    elements: ReturnType<typeof this.projectState.elements>,
+    username: string,
+    slug: string,
+    mediaId: string,
+    usages: string[]
+  ): Promise<void> {
     for (const el of elements.filter(e => e.type === ElementType.Item)) {
-      const docId = `${project.username}:${project.slug}:${el.id}`;
+      const docId = `${username}:${slug}:${el.id}`;
       try {
         const content = await this.documentService.getDocumentContent(docId);
         if (content && this.prosemirrorContainsMedia(content, mediaId)) {
@@ -827,14 +858,6 @@ export class MediaTabComponent implements OnInit, OnDestroy {
         /* skip unreadable docs */
       }
     }
-
-    // 4. Element associations
-    const taggedElements = this.mediaTagService.getElementsForMedia(mediaId);
-    for (const elId of taggedElements) {
-      usages.push(`Tagged on element "${this.getElementName(elId)}"`);
-    }
-
-    return usages;
   }
 
   /**
