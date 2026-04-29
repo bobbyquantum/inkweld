@@ -19,7 +19,11 @@ cd "$PROJECT_ROOT"
 # Install dependencies if needed
 if [[ ! -d "node_modules" ]]; then
   echo "📦 Installing dependencies..."
-  bun install
+  # NOTE: --ignore-scripts is intentionally NOT used here. Several legitimate
+  # dependencies (esbuild, electron, workerd) require their postinstall hooks
+  # to download platform-specific native binaries. The root postinstall also
+  # bootstraps sub-workspace installs. Lockfile is enforced via --frozen-lockfile.
+  bun install --frozen-lockfile
 fi
 
 # Build docs with production URL
