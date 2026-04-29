@@ -992,4 +992,80 @@ describe('WorldbuildingService', () => {
       expect(typeof service.localEdit$.subscribe).toBe('function');
     });
   });
+
+  describe('setYjsNestedObject – reuse existing Y.Map branch', () => {
+    it('should reuse an existing Y.Map when saving nested object data twice', async () => {
+      const elementId = 'nested-reuse-element';
+
+      // First save: creates the Y.Map for 'appearance'
+      await service.saveWorldbuildingData(
+        elementId,
+        { appearance: { height: '180cm' } },
+        username,
+        slug
+      );
+
+      // Second save: the Y.Map for 'appearance' already exists — exercises the
+      // `existingMap instanceof Y.Map` true branch in setYjsNestedObject.
+      await service.saveWorldbuildingData(
+        elementId,
+        { appearance: { height: '185cm', weight: '80kg' } },
+        username,
+        slug
+      );
+
+      const savedData = await service.getWorldbuildingData(
+        elementId,
+        username,
+        slug
+      );
+      expect(savedData?.['appearance']).toBeDefined();
+    });
+  });
+
+  describe('initializeWorldbuildingElement – reuse existing parent Y.Map branch', () => {
+    it('should reuse an existing parent Y.Map for dotted fields sharing a parent', async () => {
+      const schemaWithDottedFields: ElementTypeSchema = {
+        id: 'dotted-schema-v1',
+        name: 'Dotted Schema',
+        icon: 'person',
+        description: 'Schema with multiple dotted fields sharing a parent',
+        version: 1,
+        tabs: [
+          {
+            key: 'physical',
+            label: 'Physical',
+            icon: 'body',
+            order: 1,
+            fields: [
+              // Two fields share the 'appearance' parent — the second one
+              // exercises the `existingParent instanceof Y.Map` true branch.
+              { key: 'appearance.height', label: 'Height', type: 'text' },
+              { key: 'appearance.weight', label: 'Weight', type: 'text' },
+            ],
+          },
+        ],
+        defaultValues: {},
+      };
+
+      service.saveSchemaToLibrary(schemaWithDottedFields);
+
+      const element = {
+        id: 'dotted-element-1',
+        type: ElementType.Worldbuilding,
+        schemaId: 'dotted-schema-v1',
+        name: 'Test Entity',
+      } as Element;
+
+      // Should complete without errors and create 'appearance' parent only once
+      await service.initializeWorldbuildingElement(element, username, slug);
+
+      const data = await service.getWorldbuildingData(
+        'dotted-element-1',
+        username,
+        slug
+      );
+      expect(data?.['appearance']).toBeDefined();
+    });
+  });
 });

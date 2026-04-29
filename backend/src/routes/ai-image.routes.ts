@@ -18,8 +18,7 @@ import {
   loadReferenceImagesFromContext,
   getElementImageUrls,
 } from '../utils/reference-image-loader';
-import type { AppContext, DatabaseInstance } from '../types/context';
-import type { User } from '../types/context';
+import type { AppContext, DatabaseInstance, User } from '../types/context';
 import type { ImageModelProfile } from '../db/schema/image-model-profiles';
 import type { StorageService } from '../services/storage.service';
 import type {
