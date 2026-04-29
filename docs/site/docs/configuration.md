@@ -209,13 +209,13 @@ DATA_PATH=/var/lib/inkweld/data
 
 ### USER_APPROVAL_REQUIRED
 
-**Default:** `false` | Boolean
+**Default:** `true` | Boolean
 
 When enabled, new user registrations require admin approval before they can access the platform.
 
 ```bash
-USER_APPROVAL_REQUIRED=true     # Recommended for production
-USER_APPROVAL_REQUIRED=false    # Open registration (default)
+USER_APPROVAL_REQUIRED=true     # Admin approval required (default)
+USER_APPROVAL_REQUIRED=false    # Open registration
 ```
 
 ### COOKIE_DOMAIN
@@ -256,6 +256,40 @@ Human-readable name shown in the browser passkey registration prompt.
 
 ```bash
 WEBAUTHN_RP_NAME="Acme Writing Platform"
+```
+
+### PASSKEYS_ENABLED
+
+**Default:** `true` | Boolean
+
+Master switch for passkey support. When `false`, the passkey UI is hidden and WebAuthn endpoints return 404.
+
+```bash
+PASSKEYS_ENABLED=true
+```
+
+### PASSWORD_LOGIN_ENABLED
+
+**Default:** `false` | Boolean
+
+Allow username/password sign-in. When `false` (default), Inkweld is passwordless-first: the `/login` endpoint returns 403 for password attempts, registration omits the password field and immediately enrols a passkey, and the forgot/reset password endpoints return 404. Set to `true` to restore classic password auth alongside passkeys.
+
+```bash
+PASSWORD_LOGIN_ENABLED=true
+```
+
+:::warning
+Flipping from `true` to `false` locks out any user who has a password but no passkey, unless `EMAIL_RECOVERY_ENABLED` is also `true`.
+:::
+
+### EMAIL_RECOVERY_ENABLED
+
+**Default:** `false` | Boolean
+
+Enable email-based account recovery. When passwords are disabled, this powers a magic-link flow that lets users enrol a new passkey. When passwords are enabled, it powers the classic forgot-password flow. Requires SMTP settings to deliver emails.
+
+```bash
+EMAIL_RECOVERY_ENABLED=true
 ```
 
 See the [Passkeys admin guide](./admin-guide/passkeys) for full setup instructions.
@@ -342,6 +376,103 @@ DEFAULT_ADMIN_PASSWORD=your-secure-admin-password
 
 :::tip First User Alternative
 If you don't set a default admin, the first user to register automatically becomes an administrator.
+:::
+
+---
+
+## Application Mode
+
+### APP_MODE
+
+**Default:** `BOTH` | `ONLINE` | `LOCAL` | `BOTH`
+
+Controls whether the frontend allows users to operate in online mode, local mode, or offers both options.
+
+```bash
+APP_MODE=ONLINE    # Require server connection (no local-only option)
+APP_MODE=LOCAL     # Local mode only (no server connection option)
+APP_MODE=BOTH      # User can choose either mode (default)
+```
+
+---
+
+## Email / SMTP
+
+SMTP configuration for account recovery emails, magic-link passkey recovery, and password resets.
+
+### EMAIL_ENABLED
+
+**Default:** `false` | Boolean
+
+Master switch for email delivery. When `false`, the email service short-circuits and no emails are sent. Set to `true` to enable any email feature.
+
+```bash
+EMAIL_ENABLED=true
+```
+
+### EMAIL_HOST
+
+**Required if email enabled** | String
+
+SMTP host (e.g. `smtp.sendgrid.net`, `smtp.mailgun.org`).
+
+```bash
+EMAIL_HOST=smtp.sendgrid.net
+```
+
+### EMAIL_PORT
+
+**Default:** `587` | Number
+
+SMTP port. Use `587` for STARTTLS, `465` for implicit TLS, or `25` for no encryption.
+
+```bash
+EMAIL_PORT=587
+```
+
+### EMAIL_ENCRYPTION
+
+**Default:** `starttls` | `starttls` | `tls` | `none`
+
+Must match the chosen port.
+
+```bash
+EMAIL_ENCRYPTION=starttls
+```
+
+### EMAIL_USERNAME / EMAIL_PASSWORD
+
+**Optional** | String
+
+SMTP credentials. Leave blank for unauthenticated relays (e.g., inside a VPC).
+
+```bash
+EMAIL_USERNAME=apikey
+EMAIL_PASSWORD=your-smtp-password
+```
+
+### EMAIL_FROM
+
+**Required if email enabled** | String
+
+Envelope From address. Must be a domain you're authorised to send from (SPF/DKIM).
+
+```bash
+EMAIL_FROM=noreply@example.com
+```
+
+### EMAIL_FROM_NAME
+
+**Default:** `Inkweld` | String
+
+Display name shown to email recipients.
+
+```bash
+EMAIL_FROM_NAME="My Inkweld"
+```
+
+:::tip Test your email setup
+After configuring SMTP, verify it works by triggering a password reset or recovery email. Check the server logs for SMTP errors if messages don't arrive.
 :::
 
 ---
@@ -498,34 +629,56 @@ wrangler secret put SESSION_SECRET --env production
 
 ## Environment Variable Reference
 
-| Variable                 | Default                                             | Description                                                                                                                                                                               |
-| ------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SESSION_SECRET`         | Required                                            | Session encryption key (32+ chars)                                                                                                                                                        |
-| `ALLOWED_ORIGINS`        | Required                                            | Comma-separated CORS origins                                                                                                                                                              |
-| `PORT`                   | `8333`                                              | HTTP server port                                                                                                                                                                          |
-| `HOST`                   | `0.0.0.0`                                           | Network interface to bind                                                                                                                                                                 |
-| `NODE_ENV`               | `development`                                       | Environment mode                                                                                                                                                                          |
-| `DB_TYPE`                | `sqlite`                                            | Database type (`sqlite` or `d1`)                                                                                                                                                          |
-| `DB_PATH`                | `./sqlite.db`                                       | SQLite file path                                                                                                                                                                          |
-| `DATA_PATH`              | `./data`                                            | Data storage directory                                                                                                                                                                    |
-| `USER_APPROVAL_REQUIRED` | `false`                                             | Require admin approval for new users                                                                                                                                                      |
-| `WEBAUTHN_RP_ID`         | `localhost` (dev only — **required in production**) | WebAuthn Relying Party ID (domain only, no port). Once users register passkeys against an RP ID, it cannot be changed without invalidating every credential — set this before going live. |
-| `WEBAUTHN_RP_NAME`       | `Inkweld`                                           | Human-readable name shown in passkey prompts                                                                                                                                              |
-| `GITHUB_ENABLED`         | `false`                                             | Enable GitHub OAuth                                                                                                                                                                       |
-| `GITHUB_CLIENT_ID`       | -                                                   | GitHub OAuth client ID                                                                                                                                                                    |
-| `GITHUB_CLIENT_SECRET`   | -                                                   | GitHub OAuth client secret                                                                                                                                                                |
-| `GITHUB_CALLBACK_URL`    | Auto                                                | GitHub OAuth callback URL                                                                                                                                                                 |
-| `DEFAULT_ADMIN_USERNAME` | -                                                   | Initial admin username                                                                                                                                                                    |
-| `DEFAULT_ADMIN_PASSWORD` | -                                                   | Initial admin password                                                                                                                                                                    |
-| `SERVE_FRONTEND`         | `true`                                              | Serve embedded frontend                                                                                                                                                                   |
-| `FRONTEND_DIST`          | -                                                   | External frontend path                                                                                                                                                                    |
-| `OPENAI_API_KEY`         | -                                                   | OpenAI API key for AI features                                                                                                                                                            |
-| `AI_KILL_SWITCH`         | `true`                                              | Disable all AI features when `true`                                                                                                                                                       |
-| `WORKERSAI_ACCOUNT_ID`   | -                                                   | Cloudflare Account ID for Workers AI                                                                                                                                                      |
-| `WORKERSAI_API_TOKEN`    | -                                                   | Cloudflare Workers AI API token                                                                                                                                                           |
-| `COOKIE_DOMAIN`          | Auto                                                | Cookie domain                                                                                                                                                                             |
-| `GC`                     | `true`                                              | Yjs garbage collection                                                                                                                                                                    |
-| `LOG_LEVEL`              | `debug`/`info`                                      | Log verbosity (`debug`, `info`, `warn`, `error`, `none`)                                                                                                                                  |
+| Variable                      | Default                                             | Description                                                                                                                                                                               |
+| ----------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SESSION_SECRET`              | Required                                            | Session encryption key (32+ chars)                                                                                                                                                        |
+| `ALLOWED_ORIGINS`             | Required                                            | Comma-separated CORS origins                                                                                                                                                              |
+| `PORT`                        | `8333`                                              | HTTP server port                                                                                                                                                                          |
+| `HOST`                        | `0.0.0.0`                                           | Network interface to bind                                                                                                                                                                 |
+| `NODE_ENV`                    | `development`                                       | Environment mode                                                                                                                                                                          |
+| `INKWELD_VERSION`             | Auto (from CI/CD)                                   | Application version string                                                                                                                                                                |
+| `DB_TYPE`                     | `sqlite`                                            | Database type (`sqlite` or `d1`)                                                                                                                                                          |
+| `DB_PATH`                     | `./sqlite.db`                                       | SQLite file path                                                                                                                                                                          |
+| `DATA_PATH`                   | `./data`                                            | Data storage directory                                                                                                                                                                    |
+| `USER_APPROVAL_REQUIRED`      | `true`                                              | Require admin approval for new users                                                                                                                                                      |
+| `APP_MODE`                    | `BOTH`                                              | Application mode: `ONLINE`, `LOCAL`, or `BOTH`                                                                                                                                            |
+| `COOKIE_DOMAIN`               | Auto                                                | Cookie domain                                                                                                                                                                             |
+| `PASSKEYS_ENABLED`            | `true`                                              | Master switch for passkey (WebAuthn) support                                                                                                                                              |
+| `PASSWORD_LOGIN_ENABLED`      | `false`                                             | Allow username/password sign-in (passwordless-first by default)                                                                                                                           |
+| `EMAIL_RECOVERY_ENABLED`      | `false`                                             | Allow email-based account recovery / magic-link flow                                                                                                                                      |
+| `EMAIL_ENABLED`               | `false`                                             | Master switch for email delivery                                                                                                                                                          |
+| `EMAIL_HOST`                  | -                                                   | SMTP host                                                                                                                                                                                 |
+| `EMAIL_PORT`                  | `587`                                               | SMTP port                                                                                                                                                                                 |
+| `EMAIL_ENCRYPTION`            | `starttls`                                          | SMTP encryption: `starttls`, `tls`, or `none`                                                                                                                                             |
+| `EMAIL_USERNAME`              | -                                                   | SMTP username                                                                                                                                                                             |
+| `EMAIL_PASSWORD`              | -                                                   | SMTP password                                                                                                                                                                             |
+| `EMAIL_FROM`                  | -                                                   | Envelope From address                                                                                                                                                                     |
+| `EMAIL_FROM_NAME`             | `Inkweld`                                           | Display name shown to email recipients                                                                                                                                                    |
+| `WEBAUTHN_RP_ID`              | `localhost` (dev only — **required in production**) | WebAuthn Relying Party ID (domain only, no port). Once users register passkeys against an RP ID, it cannot be changed without invalidating every credential — set this before going live. |
+| `WEBAUTHN_RP_NAME`            | `Inkweld`                                           | Human-readable name shown in passkey prompts                                                                                                                                              |
+| `GITHUB_ENABLED`              | `false`                                             | Enable GitHub OAuth                                                                                                                                                                       |
+| `GITHUB_CLIENT_ID`            | -                                                   | GitHub OAuth client ID                                                                                                                                                                    |
+| `GITHUB_CLIENT_SECRET`        | -                                                   | GitHub OAuth client secret                                                                                                                                                                |
+| `GITHUB_CALLBACK_URL`         | Auto                                                | GitHub OAuth callback URL                                                                                                                                                                 |
+| `DEFAULT_ADMIN_USERNAME`      | -                                                   | Initial admin username                                                                                                                                                                    |
+| `DEFAULT_ADMIN_PASSWORD`      | -                                                   | Initial admin password                                                                                                                                                                    |
+| `SERVE_FRONTEND`              | `true`                                              | Serve embedded frontend                                                                                                                                                                   |
+| `FRONTEND_DIST`               | -                                                   | External frontend path                                                                                                                                                                    |
+| `OPENAI_API_KEY`              | -                                                   | OpenAI API key for AI features                                                                                                                                                            |
+| `AI_KILL_SWITCH`              | `true`                                              | Disable all AI features when `true`                                                                                                                                                       |
+| `AI_IMAGE_ENABLED`            | `true`                                              | Enable AI image generation                                                                                                                                                                |
+| `AI_IMAGE_OPENAI_ENABLED`     | `false`                                             | Enable OpenAI image generation provider                                                                                                                                                   |
+| `AI_IMAGE_OPENROUTER_ENABLED` | `false`                                             | Enable OpenRouter image generation provider                                                                                                                                               |
+| `AI_IMAGE_OPENROUTER_API_KEY` | -                                                   | OpenRouter API key                                                                                                                                                                        |
+| `AI_FALAI_ENABLED`            | `false`                                             | Enable Fal.ai image generation provider                                                                                                                                                   |
+| `AI_FALAI_API_KEY`            | -                                                   | Fal.ai API key                                                                                                                                                                            |
+| `AI_IMAGE_SD_ENABLED`         | `false`                                             | Enable Stable Diffusion (self-hosted) image generation                                                                                                                                    |
+| `AI_IMAGE_SD_ENDPOINT`        | -                                                   | Stable Diffusion WebUI endpoint URL                                                                                                                                                       |
+| `AI_IMAGE_WORKERSAI_ENABLED`  | `false`                                             | Enable Cloudflare Workers AI image generation                                                                                                                                             |
+| `WORKERSAI_ACCOUNT_ID`        | -                                                   | Cloudflare Account ID for Workers AI                                                                                                                                                      |
+| `WORKERSAI_API_TOKEN`         | -                                                   | Cloudflare Workers AI API token                                                                                                                                                           |
+| `GC`                          | `true`                                              | Yjs garbage collection                                                                                                                                                                    |
+| `LOG_LEVEL`                   | `debug`/`info`                                      | Log verbosity (`debug`, `info`, `warn`, `error`, `none`)                                                                                                                                  |
 
 ---
 
