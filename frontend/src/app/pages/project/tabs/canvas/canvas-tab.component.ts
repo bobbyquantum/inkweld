@@ -48,6 +48,7 @@ import {
 import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.service';
 import { CanvasColorService } from '@services/canvas/canvas-color.service';
+import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
 import { CanvasRendererService } from '@services/canvas/canvas-renderer.service';
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
@@ -91,6 +92,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
     CanvasZoomService,
     CanvasColorService,
     CanvasClipboardService,
+    CanvasKeyboardService,
   ],
 })
 export class CanvasTabComponent implements OnInit, OnDestroy {
@@ -102,6 +104,7 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   private readonly canvasZoom = inject(CanvasZoomService);
   private readonly canvasColor = inject(CanvasColorService);
   private readonly canvasClipboard = inject(CanvasClipboardService);
+  private readonly canvasKeyboard = inject(CanvasKeyboardService);
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly localStorageService = inject(LocalStorageService);
@@ -1137,135 +1140,26 @@ export class CanvasTabComponent implements OnInit, OnDestroy {
   // Keyboard Shortcuts
   // ─────────────────────────────────────────────────────────────────────────
 
-  private readonly keyHandler = (e: KeyboardEvent) => {
-    if (this.isTypingTarget(e.target)) return;
-
-    const key = e.key.toLowerCase();
-    if (this.handleClipboardAndDuplicateShortcuts(e, key)) return;
-    if (this.handleToolSelectionShortcuts(key, e.ctrlKey || e.metaKey)) return;
-    if (this.handleEditingShortcuts(e, key)) return;
-    this.handleZoomShortcuts(e, key);
-  };
-
-  private isTypingTarget(target: EventTarget | null): boolean {
-    if (
-      target instanceof HTMLInputElement ||
-      target instanceof HTMLTextAreaElement ||
-      target instanceof HTMLSelectElement
-    ) {
-      return true;
-    }
-
-    // Check for contentEditable elements
-    if (target instanceof HTMLElement) {
-      return (
-        target.isContentEditable ||
-        target.getAttribute('contenteditable') === 'true'
-      );
-    }
-
-    return false;
-  }
-
-  private handleClipboardAndDuplicateShortcuts(
-    e: KeyboardEvent,
-    key: string
-  ): boolean {
-    if (!e.ctrlKey && !e.metaKey) return false;
-
-    if (key === 'c') {
-      e.preventDefault();
-      this.onCopy();
-      return true;
-    }
-
-    if (key === 'x') {
-      e.preventDefault();
-      this.onCut();
-      return true;
-    }
-
-    if (key === 'v') {
-      e.preventDefault();
-      this.contextMenuCanvasPos = null;
-      this.onPaste();
-      return true;
-    }
-
-    if (key === 'd') {
-      e.preventDefault();
-      this.onDuplicateObject();
-      return true;
-    }
-
-    return false;
-  }
-
-  private static readonly TOOL_KEY_MAP: Record<string, CanvasTool> = {
-    v: 'select',
-    r: 'rectSelect',
-    h: 'pan',
-    p: 'pin',
-    d: 'draw',
-    l: 'line',
-    s: 'shape',
-    t: 'text',
-  };
-
-  private handleToolSelectionShortcuts(
-    key: string,
-    hasModifier: boolean
-  ): boolean {
-    if (hasModifier) return false;
-
-    const tool = CanvasTabComponent.TOOL_KEY_MAP[key];
-    if (!tool) return false;
-
-    this.onToolChange(tool);
-    return true;
-  }
-
-  private handleEditingShortcuts(e: KeyboardEvent, key: string): boolean {
-    if (key === 'delete' || key === 'backspace') {
-      e.preventDefault();
-      this.deleteSelectedObject();
-      return true;
-    }
-
-    if (key !== 'escape') return false;
-
-    this.selectedObjectId.set(null);
-    this.transformer?.nodes([]);
-    this.selectionLayer?.batchDraw();
-    this.activeTool.set('select');
-    return true;
-  }
-
-  private handleZoomShortcuts(e: KeyboardEvent, key: string): void {
-    if (!e.ctrlKey && !e.metaKey) return;
-
-    if (key === '=' || key === '+') {
-      e.preventDefault();
-      this.onZoomIn();
-      return;
-    }
-
-    if (key === '-') {
-      e.preventDefault();
-      this.onZoomOut();
-      return;
-    }
-
-    if (key === '0') {
-      e.preventDefault();
-      this.onFitAll();
-    }
-  }
-
   private setupKeyboardShortcuts(): void {
-    document.addEventListener('keydown', this.keyHandler);
-    this.destroyRef.onDestroy(() => {
-      document.removeEventListener('keydown', this.keyHandler);
+    this.canvasKeyboard.attach({
+      onCopy: () => this.onCopy(),
+      onCut: () => this.onCut(),
+      onPaste: () => {
+        this.contextMenuCanvasPos = null;
+        this.onPaste();
+      },
+      onDuplicate: () => this.onDuplicateObject(),
+      onDelete: () => this.deleteSelectedObject(),
+      onEscape: () => {
+        this.selectedObjectId.set(null);
+        this.transformer?.nodes([]);
+        this.selectionLayer?.batchDraw();
+        this.activeTool.set('select');
+      },
+      onToolChange: tool => this.onToolChange(tool),
+      onZoomIn: () => this.onZoomIn(),
+      onZoomOut: () => this.onZoomOut(),
+      onFitAll: () => this.onFitAll(),
     });
   }
 
