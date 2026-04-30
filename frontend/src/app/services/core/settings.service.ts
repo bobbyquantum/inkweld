@@ -15,15 +15,23 @@ export class SettingsService {
   }
 
   /**
-   * Reactive signal for the "show breadcrumbs" preference. Components that
-   * conditionally render the editor breadcrumb bar should subscribe to this
-   * signal so the UI updates immediately when the user toggles it.
+   * Internal writable signal backing the "show breadcrumbs" preference.
+   * Updates must go through {@link setShowBreadcrumbs} so the value is
+   * persisted to localStorage.
+   */
+  private readonly _showBreadcrumbs = signal<boolean>(
+    this.getSetting<boolean>('showBreadcrumbs', true)
+  );
+
+  /**
+   * Read-only reactive signal for the "show breadcrumbs" preference.
+   * Components that conditionally render the editor breadcrumb bar should
+   * subscribe to this signal so the UI updates immediately when the user
+   * toggles it.
    *
    * Defaults to `true` (breadcrumbs visible).
    */
-  readonly showBreadcrumbs = signal<boolean>(
-    this.getSetting<boolean>('showBreadcrumbs', true)
-  );
+  readonly showBreadcrumbs = this._showBreadcrumbs.asReadonly();
 
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
@@ -43,7 +51,7 @@ export class SettingsService {
    */
   setShowBreadcrumbs(value: boolean): void {
     this.setSetting<boolean>('showBreadcrumbs', value);
-    this.showBreadcrumbs.set(value);
+    this._showBreadcrumbs.set(value);
   }
 
   private getSettings(): Record<string, unknown> {

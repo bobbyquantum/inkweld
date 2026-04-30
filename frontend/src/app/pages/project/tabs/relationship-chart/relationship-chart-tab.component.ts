@@ -29,10 +29,10 @@ import fcose from 'cytoscape-fcose';
 cytoscape.use(fcose);
 cytoscape.use(dagre);
 
+import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 
 import { type Element, ElementType } from '../../../../../api-client';
-import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import {
   ElementPickerDialogComponent,
   type ElementPickerDialogResult,

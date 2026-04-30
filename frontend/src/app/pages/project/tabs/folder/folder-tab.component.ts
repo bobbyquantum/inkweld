@@ -6,12 +6,12 @@ import {
   type OnInit,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { type Subscription } from 'rxjs';
 
-import { DocumentBreadcrumbsComponent } from '../../../../components/document-breadcrumbs/document-breadcrumbs.component';
 import { FolderElementEditorComponent } from '../../../../components/folder-element-editor/folder-element-editor.component';
 
 @Component({

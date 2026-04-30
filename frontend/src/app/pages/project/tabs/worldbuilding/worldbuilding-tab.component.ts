@@ -7,11 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { LoggerService } from '@services/core/logger.service';
 import { type Subscription } from 'rxjs';
 
 import { type Element, type ElementType } from '../../../../../api-client';
-import { DocumentBreadcrumbsComponent } from '../../../../components/document-breadcrumbs/document-breadcrumbs.component';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 
